@@ -21,9 +21,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.Ordered;
-import com.android.tools.r8.utils.structural.StructuralItem;
-import com.android.tools.r8.utils.structural.StructuralMapping;
-import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -40,7 +37,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class DexProgramClass extends DexClass
-    implements ProgramDefinition, Supplier<DexProgramClass>, StructuralItem<DexProgramClass> {
+    implements ProgramDefinition, Supplier<DexProgramClass> {
 
   @FunctionalInterface
   public interface ChecksumSupplier {
@@ -145,36 +142,6 @@ public class DexProgramClass extends DexClass
     this.checksumSupplier = checksumSupplier;
     this.synthesizedFrom = new HashSet<>();
     synthesizedDirectlyFrom.forEach(this::addSynthesizedFrom);
-  }
-
-  @Override
-  public DexProgramClass self() {
-    return this;
-  }
-
-  @Override
-  public StructuralMapping<DexProgramClass> getStructuralMapping() {
-    return DexProgramClass::specify;
-  }
-
-  private static void specify(StructuralSpecification<DexProgramClass, ?> spec) {
-    spec.withItem(c -> c.type)
-        .withItem(c -> c.superType)
-        .withItem(c -> c.interfaces)
-        .withItem(c -> c.accessFlags)
-        .withNullableItem(c -> c.sourceFile)
-        .withNullableItem(c -> c.initialClassFileVersion)
-        .withBool(c -> c.deprecated)
-        .withNullableItem(DexClass::getNestHostClassAttribute)
-        .withItemCollection(DexClass::getNestMembersClassAttributes)
-        .withItem(DexDefinition::annotations)
-        // TODO(b/158159959): Make signatures structural.
-        .withAssert(c -> c.classSignature == ClassSignature.noSignature())
-        .withItemArray(c -> c.staticFields)
-        .withItemArray(c -> c.instanceFields)
-        .withItemCollection(DexClass::allMethodsSorted)
-        // TODO(b/168584485): Synthesized-from is being removed (empty for new synthetics).
-        .withAssert(c -> c.synthesizedFrom.isEmpty());
   }
 
   public void forEachProgramField(Consumer<? super ProgramField> consumer) {

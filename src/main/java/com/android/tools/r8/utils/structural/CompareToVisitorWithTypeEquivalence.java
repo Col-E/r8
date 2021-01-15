@@ -28,6 +28,6 @@ public class CompareToVisitorWithTypeEquivalence extends CompareToVisitorBase {
   public int visitDexType(DexType type1, DexType type2) {
     DexType repr1 = representatives.getRepresentative(type1);
     DexType repr2 = representatives.getRepresentative(type2);
-    return debug(repr1.getDescriptor().acceptCompareTo(repr2.getDescriptor(), this));
+    return repr1.getDescriptor().acceptCompareTo(repr2.getDescriptor(), this);
   }
 }

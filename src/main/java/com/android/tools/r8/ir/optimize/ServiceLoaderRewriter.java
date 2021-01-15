@@ -4,15 +4,25 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.MethodCollection;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -22,13 +32,15 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.desugar.ServiceLoaderSourceCode;
+import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * ServiceLoaderRewriter will attempt to rewrite calls on the form of: ServiceLoader.load(X.class,
@@ -59,15 +71,19 @@ import java.util.Map;
  */
 public class ServiceLoaderRewriter {
 
+  public static final String SERVICE_LOADER_CLASS_NAME = "$$ServiceLoaderMethods";
+  private static final String SERVICE_LOADER_METHOD_PREFIX_NAME = "$load";
+
+  private AtomicReference<DexProgramClass> synthesizedClass = new AtomicReference<>();
+
   private final AppView<AppInfoWithLiveness> appView;
-  private final List<ProgramMethod> serviceLoadMethods = new ArrayList<>();
 
   public ServiceLoaderRewriter(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 
-  public List<ProgramMethod> getServiceLoadMethods() {
-    return serviceLoadMethods;
+  public DexProgramClass getSynthesizedClass() {
+    return synthesizedClass.get();
   }
 
   public void rewrite(IRCode code, MethodProcessingId methodProcessingId) {
@@ -170,7 +186,7 @@ public class ServiceLoaderRewriter {
               constClass.getValue(),
               service -> {
                 DexEncodedMethod addedMethod =
-                    createSynthesizedMethod(service, classes, methodProcessingId, code.context());
+                    createSynthesizedMethod(service, classes, methodProcessingId);
                 if (appView.options().isGeneratingClassFiles()) {
                   addedMethod.upgradeClassFileVersion(code.method().getClassFileVersion());
                 }
@@ -183,31 +199,75 @@ public class ServiceLoaderRewriter {
   }
 
   private DexEncodedMethod createSynthesizedMethod(
-      DexType serviceType,
-      List<DexClass> classes,
-      MethodProcessingId methodProcessingId,
-      ProgramMethod context) {
+      DexType serviceType, List<DexClass> classes, MethodProcessingId methodProcessingId) {
+    MethodCollection methodCollection = getOrSetSynthesizedClass().getMethodCollection();
+    String methodNamePrefix = SERVICE_LOADER_METHOD_PREFIX_NAME + "$";
     DexProto proto = appView.dexItemFactory().createProto(appView.dexItemFactory().iteratorType);
-    ProgramMethod method =
-        appView
-            .getSyntheticItems()
-            .createMethod(
-                SyntheticKind.SERVICE_LOADER,
-                context,
-                appView.dexItemFactory(),
-                builder ->
-                    builder
-                        .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                        .setProto(proto)
-                        .setCode(
-                            m ->
-                                ServiceLoaderSourceCode.generate(
-                                    serviceType, classes, appView.dexItemFactory())),
-                methodProcessingId);
-    synchronized (serviceLoadMethods) {
-      serviceLoadMethods.add(method);
+    synchronized (methodCollection) {
+      DexMethod methodReference;
+      do {
+        methodReference =
+            appView
+                .dexItemFactory()
+                .createMethod(
+                    appView.dexItemFactory().serviceLoaderRewrittenClassType,
+                    proto,
+                    methodNamePrefix + methodProcessingId.getAndIncrementId());
+      } while (methodCollection.getMethod(methodReference) != null);
+      DexEncodedMethod method =
+          new DexEncodedMethod(
+              methodReference,
+              MethodAccessFlags.fromSharedAccessFlags(
+                  Constants.ACC_PUBLIC | Constants.ACC_STATIC, false),
+              MethodTypeSignature.noSignature(),
+              DexAnnotationSet.empty(),
+              ParameterAnnotationsList.empty(),
+              ServiceLoaderSourceCode.generate(serviceType, classes, appView.dexItemFactory()),
+              true);
+      methodCollection.addDirectMethod(method);
+      return method;
     }
-    return method.getDefinition();
+  }
+
+  private DexProgramClass getOrSetSynthesizedClass() {
+    if (synthesizedClass.get() != null) {
+      return synthesizedClass.get();
+    }
+    assert !appView.options().encodeChecksums;
+    ChecksumSupplier checksumSupplier = DexProgramClass::invalidChecksumRequest;
+    DexProgramClass clazz =
+        synthesizedClass.updateAndGet(
+            existingClass -> {
+              if (existingClass != null) {
+                return existingClass;
+              }
+              DexProgramClass newClass =
+                  new DexProgramClass(
+                      appView.dexItemFactory().serviceLoaderRewrittenClassType,
+                      null,
+                      new SynthesizedOrigin("Service Loader desugaring", getClass()),
+                      ClassAccessFlags.fromDexAccessFlags(
+                          Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC),
+                      appView.dexItemFactory().objectType,
+                      DexTypeList.empty(),
+                      appView.dexItemFactory().createString("ServiceLoader"),
+                      null,
+                      Collections.emptyList(),
+                      null,
+                      Collections.emptyList(),
+                      ClassSignature.noSignature(),
+                      DexAnnotationSet.empty(),
+                      DexEncodedField.EMPTY_ARRAY, // Static fields.
+                      DexEncodedField.EMPTY_ARRAY, // Instance fields.
+                      DexEncodedMethod.EMPTY_ARRAY,
+                      DexEncodedMethod.EMPTY_ARRAY, // Virtual methods.
+                      appView.dexItemFactory().getSkipNameValidationForTesting(),
+                      checksumSupplier);
+              newClass.getMethodCollection().useSortedBacking();
+              return newClass;
+            });
+    assert clazz != null;
+    return clazz;
   }
 
   /**

@@ -47,6 +47,7 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
+import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -268,7 +269,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.switchMaps = switchMaps;
     this.lockCandidates = lockCandidates;
     this.initClassReferences = initClassReferences;
-    assert verify();
+    verify();
   }
 
   private AppInfoWithLiveness(AppInfoWithLiveness previous, CommittedItems committedItems) {
@@ -365,11 +366,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.initClassReferences);
   }
 
-  private boolean verify() {
+  private void verify() {
     assert keepInfo.verifyPinnedTypesAreLive(liveTypes);
     assert objectAllocationInfoCollection.verifyAllocatedTypesAreLive(
         liveTypes, getMissingClasses(), this);
-    return true;
   }
 
   private static KeepInfoCollection extendPinnedItems(
@@ -454,7 +454,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.lockCandidates = previous.lockCandidates;
     this.initClassReferences = previous.initClassReferences;
     previous.markObsolete();
-    assert verify();
+    verify();
   }
 
   public static AppInfoWithLivenessModifier modifier() {
@@ -471,6 +471,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             || InterfaceMethodRewriter.isCompanionClassType(type)
             || InterfaceMethodRewriter.isEmulatedLibraryClassType(type)
             || type.toDescriptorString().startsWith("Lj$/$r8$retargetLibraryMember$")
+            || TwrCloseResourceRewriter.isUtilityClassDescriptor(type)
             // TODO(b/150736225): Not sure how to remove these.
             || DesugaredLibraryAPIConverter.isVivifiedType(type)
         : "Failed lookup of non-missing type: " + type;

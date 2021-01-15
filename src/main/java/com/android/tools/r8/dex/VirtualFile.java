@@ -28,7 +28,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.MainDexClasses;
-import com.android.tools.r8.synthesis.SyntheticNaming;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -667,7 +667,7 @@ public class VirtualFile {
 
     @Override
     public boolean addType(DexType type) {
-      assert SyntheticNaming.verifyNotInternalSynthetic(type);
+      assert SyntheticItems.verifyNotInternalSynthetic(type);
       return types.add(type);
     }
 
@@ -790,7 +790,7 @@ public class VirtualFile {
 
     @Override
     public boolean addType(DexType type) {
-      assert SyntheticNaming.verifyNotInternalSynthetic(type);
+      assert SyntheticItems.verifyNotInternalSynthetic(type);
       return maybeInsert(type, types, base.types);
     }
 

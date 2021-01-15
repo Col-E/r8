@@ -247,9 +247,6 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
   public void acceptHashing(HashingVisitor visitor) {
     // Rather than hash the entire content, hash the sizes and each instruction "type" which
     // should provide a fast yet reasonably distinct key.
-    // TODO(b/158159959): This will likely lead to a lot of distinct synthetics hashing to the same
-    //  hash as many have the same instruction pattern such as an invoke of the impl method or a
-    //  field access.
     visitor.visitInt(instructions.size());
     visitor.visitInt(tryCatchRanges.size());
     visitor.visitInt(localVariables.size());

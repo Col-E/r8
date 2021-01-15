@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer
 import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer.VIVIFIED_TYPE_WRAPPER_SUFFIX;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
+import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX;
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_NAME_PREFIX;
 import static com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator.ENUM_UNBOXING_UTILITY_CLASS_SUFFIX;
 
@@ -16,8 +17,10 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.horizontalclassmerging.SyntheticArgumentClass;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
+import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
+import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.synthesis.SyntheticNaming;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
@@ -38,13 +41,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   // Bundletool is merging classes that may originate from a build with an old version of R8.
   // Allow merging of classes that use names from older versions of R8.
   private static List<String> OLD_SYNTHESIZED_NAMES =
-      ImmutableList.of(
-          "$r8$backportedMethods$utility",
-          "$r8$java8methods$utility",
-          "$r8$twr$utility",
-          "$-DC",
-          "$$ServiceLoaderMethods",
-          "-$$Lambda$");
+      ImmutableList.of("$r8$backportedMethods$utility", "$r8$java8methods$utility", "$-DC");
 
   public final DexString descriptor;
   private String toStringCache = null;
@@ -305,6 +302,12 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   }
 
   // TODO(b/158159959): Remove usage of name-based identification.
+  public boolean isD8R8SynthesizedLambdaClassType() {
+    String name = toSourceString();
+    return name.contains(LAMBDA_CLASS_NAME_PREFIX);
+  }
+
+  // TODO(b/158159959): Remove usage of name-based identification.
   public boolean isD8R8SynthesizedClassType() {
     String name = toSourceString();
     // The synthesized classes listed here must always be unique to a program context and thus
@@ -315,7 +318,8 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
         || name.contains(ENUM_UNBOXING_UTILITY_CLASS_SUFFIX)
         || name.contains(SyntheticArgumentClass.SYNTHETIC_CLASS_SUFFIX)
         // New and hygienic synthesis infrastructure.
-        || SyntheticNaming.isSyntheticName(name)
+        || name.contains(SyntheticItems.INTERNAL_SYNTHETIC_CLASS_SEPARATOR)
+        || name.contains(SyntheticItems.EXTERNAL_SYNTHETIC_CLASS_SEPARATOR)
         // Only generated in core lib.
         || name.contains(EMULATE_LIBRARY_CLASS_NAME_SUFFIX)
         || name.contains(TYPE_WRAPPER_SUFFIX)
@@ -333,9 +337,12 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   private static boolean isSynthesizedTypeThatCouldBeDuplicated(String name) {
     // Any entry that is removed from here must be added to OLD_SYNTHESIZED_NAMES to ensure that
     // newer releases can be used to merge previous builds.
-    return name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX) // Could collide.
+    return name.contains(LAMBDA_CLASS_NAME_PREFIX) // Could collide.
+        || name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX) // Could collide.
         || name.contains(OutlineOptions.CLASS_NAME) // Global singleton.
-        || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME); // Global singleton.
+        || name.contains(TwrCloseResourceRewriter.UTILITY_CLASS_NAME) // Global singleton.
+        || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME) // Global singleton.
+        || name.contains(ServiceLoaderRewriter.SERVICE_LOADER_CLASS_NAME); // Global singleton.
   }
 
   private boolean oldSynthesizedName(String name) {

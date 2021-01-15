@@ -14,8 +14,6 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
-import com.android.tools.r8.synthesis.SyntheticNaming;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -401,18 +399,13 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
   }
 
   public static DexAnnotation createAnnotationSynthesizedClass(
-      SyntheticKind kind, DexType synthesizingContext, DexItemFactory dexItemFactory) {
-    DexAnnotationElement kindElement =
-        new DexAnnotationElement(
-            dexItemFactory.kindString,
-            new DexValueString(dexItemFactory.createString(kind.descriptor)));
-    DexAnnotationElement typeElement =
-        new DexAnnotationElement(dexItemFactory.valueString, new DexValueType(synthesizingContext));
+      DexType synthesizingContext, DexItemFactory dexItemFactory) {
+    DexValueType value = new DexValueType(synthesizingContext);
+    DexAnnotationElement element = new DexAnnotationElement(dexItemFactory.valueString, value);
     return new DexAnnotation(
         VISIBILITY_BUILD,
         new DexEncodedAnnotation(
-            dexItemFactory.annotationSynthesizedClass,
-            new DexAnnotationElement[] {kindElement, typeElement}));
+            dexItemFactory.annotationSynthesizedClass, new DexAnnotationElement[] {element}));
   }
 
   public static boolean hasSynthesizedClassAnnotation(
@@ -420,7 +413,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     return getSynthesizedClassAnnotationContextType(annotations, factory) != null;
   }
 
-  public static Pair<SyntheticKind, DexType> getSynthesizedClassAnnotationContextType(
+  public static DexType getSynthesizedClassAnnotationContextType(
       DexAnnotationSet annotations, DexItemFactory factory) {
     if (annotations.size() != 1) {
       return null;
@@ -429,31 +422,17 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     if (annotation.annotation.type != factory.annotationSynthesizedClass) {
       return null;
     }
-    if (annotation.annotation.elements.length != 2) {
+    if (annotation.annotation.elements.length != 1) {
       return null;
     }
-    assert factory.kindString.isLessThan(factory.valueString);
-    DexAnnotationElement kindElement = annotation.annotation.elements[0];
-    if (kindElement.name != factory.kindString) {
+    DexAnnotationElement element = annotation.annotation.elements[0];
+    if (element.name != factory.valueString) {
       return null;
     }
-    if (!kindElement.value.isDexValueString()) {
+    if (!element.value.isDexValueType()) {
       return null;
     }
-    SyntheticKind kind =
-        SyntheticNaming.SyntheticKind.fromDescriptor(
-            kindElement.value.asDexValueString().getValue().toString());
-    if (kind == null) {
-      return null;
-    }
-    DexAnnotationElement valueElement = annotation.annotation.elements[1];
-    if (valueElement.name != factory.valueString) {
-      return null;
-    }
-    if (!valueElement.value.isDexValueType()) {
-      return null;
-    }
-    return new Pair<>(kind, valueElement.value.asDexValueType().getValue());
+    return element.value.asDexValueType().getValue();
   }
 
   public static DexAnnotation createAnnotationSynthesizedClassMap(

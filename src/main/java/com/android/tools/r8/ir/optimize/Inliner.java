@@ -49,6 +49,7 @@ import com.android.tools.r8.ir.conversion.CodeOptimization;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostOptimization;
+import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.inliner.DefaultInliningReasonStrategy;
@@ -129,7 +130,9 @@ public class Inliner implements PostOptimization {
     }
 
     if (extraNeverInlineMethods.contains(
-        appView.graphLens().getOriginalMethodSignature(singleTargetReference))) {
+            appView.graphLens().getOriginalMethodSignature(singleTargetReference))
+        || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(
+            singleTargetReference, appView)) {
       whyAreYouNotInliningReporter.reportExtraNeverInline();
       return true;
     }

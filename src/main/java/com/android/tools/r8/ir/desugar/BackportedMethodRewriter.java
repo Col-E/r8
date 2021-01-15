@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -32,7 +33,6 @@ import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethodRewrites;
-import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -1406,13 +1406,15 @@ public final class BackportedMethodRewriter {
       return appInfo
           .getSyntheticItems()
           .createMethod(
-              SyntheticNaming.SyntheticKind.BACKPORT,
               context,
               appInfo.dexItemFactory(),
               builder ->
                   builder
                       .setProto(getProto(appInfo.dexItemFactory()))
-                      .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                      .setAccessFlags(
+                          MethodAccessFlags.fromSharedAccessFlags(
+                              Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC,
+                              false))
                       .setCode(
                           methodSig -> generateTemplateMethod(appInfo.app().options, methodSig)));
     }

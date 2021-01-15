@@ -170,7 +170,7 @@ public class HashingVisitorWithTypeEquivalence extends HashingVisitor {
     }
 
     @Override
-    protected <S> ItemSpecification<T> withCustomItemIterator(
+    protected <S> ItemSpecification<T> withItemIterator(
         Function<T, Iterator<S>> getter, CompareToAccept<S> compare, HashingAccept<S> hasher) {
       parent.visitItemIterator(getter.apply(item), hasher);
       return this;

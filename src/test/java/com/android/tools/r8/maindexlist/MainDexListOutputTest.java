@@ -6,7 +6,6 @@ package com.android.tools.r8.maindexlist;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -17,7 +16,6 @@ import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
@@ -61,8 +59,8 @@ public class MainDexListOutputTest extends TestBase {
     @Override
     public void finished(DiagnosticsHandler handler) {
       String string = builder.toString();
-      assertThat(string, containsString(testClassMainDexName));
-      assertThat(string, SyntheticItemsTestUtils.containsExternalSyntheticReference());
+      assertTrue(string.contains(testClassMainDexName));
+      assertTrue(string.contains("Lambda"));
     }
   }
 

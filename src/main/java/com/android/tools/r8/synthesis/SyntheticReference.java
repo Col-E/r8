@@ -4,10 +4,9 @@
 package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -15,24 +14,16 @@ import java.util.function.Function;
  *
  * <p>This class is internal to the synthetic items collection, thus package-protected.
  */
-abstract class SyntheticReference<
-    R extends SyntheticReference<R, D>, D extends SyntheticDefinition<R, D>> {
-
-  private final SyntheticKind kind;
+abstract class SyntheticReference {
   private final SynthesizingContext context;
 
-  SyntheticReference(SyntheticKind kind, SynthesizingContext context) {
-    assert kind != null;
-    assert context != null;
-    this.kind = kind;
+  SyntheticReference(SynthesizingContext context) {
     this.context = context;
   }
 
-  abstract D lookupDefinition(Function<DexType, DexClass> definitions);
+  abstract SyntheticDefinition lookupDefinition(Function<DexType, DexClass> definitions);
 
-  final SyntheticKind getKind() {
-    return kind;
-  }
+  abstract DexReference getReference();
 
   final SynthesizingContext getContext() {
     return context;
@@ -40,8 +31,5 @@ abstract class SyntheticReference<
 
   abstract DexType getHolder();
 
-  abstract R rewrite(NonIdentityGraphLens lens);
-
-  abstract void apply(
-      Consumer<SyntheticMethodReference> onMethod, Consumer<SyntheticClassReference> onClass);
+  abstract SyntheticReference rewrite(NonIdentityGraphLens lens);
 }

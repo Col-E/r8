@@ -191,8 +191,6 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract String getOriginalBinaryName();
 
-  public abstract ClassReference getOriginalReference();
-
   public abstract ClassReference getFinalReference();
 
   public abstract String getFinalName();

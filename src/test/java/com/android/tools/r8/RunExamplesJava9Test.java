@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -270,7 +269,6 @@ public abstract class RunExamplesJava9Test
   }
 
   @Test
-  @Ignore("b/177532008: Re-enable once fixed.")
   public void testTwrCloseResourceMethod() throws Throwable {
     TestRunner<?> test = test("twr-close-resource", "twrcloseresource", "TwrCloseResourceTest");
     test
