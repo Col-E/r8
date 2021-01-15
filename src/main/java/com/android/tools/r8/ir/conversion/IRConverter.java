@@ -322,7 +322,9 @@ public class IRConverter {
         this.identifierNameStringMarker = null;
       }
       this.devirtualizer =
-          options.enableDevirtualization ? new Devirtualizer(appViewWithLiveness) : null;
+          options.enableDevirtualization
+              ? new Devirtualizer(appViewWithLiveness, mainDexClasses)
+              : null;
       this.typeChecker = new TypeChecker(appViewWithLiveness, VerifyTypesHelper.create(appView));
       this.d8NestBasedAccessDesugaring = null;
       this.serviceLoaderRewriter =

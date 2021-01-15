@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -47,10 +48,13 @@ import java.util.Set;
 public class Devirtualizer {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final MainDexTracingResult mainDexTracingResult;
   private final InternalOptions options;
 
-  public Devirtualizer(AppView<AppInfoWithLiveness> appView) {
+  public Devirtualizer(
+      AppView<AppInfoWithLiveness> appView, MainDexTracingResult mainDexTracingResult) {
     this.appView = appView;
+    this.mainDexTracingResult = mainDexTracingResult;
     this.options = appView.options();
   }
 
@@ -148,7 +152,9 @@ public class Devirtualizer {
           // Rebind the invoke to the most specific target.
           DexMethod invokedMethod = invoke.getInvokedMethod();
           DexClassAndMethod reboundTarget = rebindSuperInvokeToMostSpecific(invokedMethod, context);
-          if (reboundTarget != null && reboundTarget.getReference() != invokedMethod) {
+          if (reboundTarget != null
+              && reboundTarget.getReference() != invokedMethod
+              && !isRebindingNewClassIntoMainDex(invokedMethod, reboundTarget.getReference())) {
             it.replaceCurrentInstruction(
                 new InvokeSuper(
                     reboundTarget.getReference(),
@@ -187,6 +193,11 @@ public class Devirtualizer {
 
         // Due to the potential downcast below, make sure the new target holder is visible.
         if (AccessControl.isClassAccessible(holderClass, context, appView).isPossiblyFalse()) {
+          continue;
+        }
+
+        // Ensure that we are not adding a new main dex root
+        if (isRebindingNewClassIntoMainDex(invoke.getInvokedMethod(), target.getReference())) {
           continue;
         }
 
@@ -381,5 +392,15 @@ public class Devirtualizer {
 
     // Change the invoke-virtual instruction to target the refined resolution result instead.
     return newResolutionResult.getResolvedMethod().method;
+  }
+
+  private boolean isRebindingNewClassIntoMainDex(
+      DexMethod originalMethod, DexMethod reboundMethod) {
+    if (!mainDexTracingResult.isRoot(originalMethod.holder)
+        && !appView.appInfo().getMainDexClasses().contains(originalMethod.holder)) {
+      return false;
+    }
+    return !mainDexTracingResult.isRoot(reboundMethod.holder)
+        && !appView.appInfo().getMainDexClasses().contains(reboundMethod.holder);
   }
 }

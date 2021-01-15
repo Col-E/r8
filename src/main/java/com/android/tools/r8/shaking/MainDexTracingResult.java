@@ -146,6 +146,10 @@ public class MainDexTracingResult {
     return getRoots().contains(definition.getContextType());
   }
 
+  public boolean isRoot(DexType type) {
+    return getRoots().contains(type);
+  }
+
   public boolean isDependency(ProgramDefinition definition) {
     return getDependencies().contains(definition.getContextType());
   }

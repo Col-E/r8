@@ -115,6 +115,11 @@ public class TestParametersBuilder {
     return withDexRuntimesStartingFromIncluding(DexVm.Version.V5_1_1);
   }
 
+  /** Add all available DEX runtimes that do not support native multidex. */
+  public TestParametersBuilder withMainDexRuntimes() {
+    return withDexRuntimesEndingAtExcluding(DexVm.Version.V5_1_1);
+  }
+
   /** Add all available DEX runtimes starting from and including {@param startInclusive}. */
   public TestParametersBuilder withDexRuntimesStartingFromIncluding(DexVm.Version startInclusive) {
     return withDexRuntimeFilter(vm -> startInclusive.isOlderThanOrEqual(vm));
