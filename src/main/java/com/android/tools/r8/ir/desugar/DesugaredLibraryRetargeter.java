@@ -64,7 +64,6 @@ import java.util.function.Consumer;
 
 public class DesugaredLibraryRetargeter {
 
-  public static final String RETARGET_PACKAGE = "retarget/";
   public static final String DESUGAR_LIB_RETARGET_CLASS_NAME_PREFIX =
       "$r8$retargetLibraryMember$virtualDispatch";
 
@@ -676,7 +675,6 @@ public class DesugaredLibraryRetargeter {
                 .options()
                 .desugaredLibraryConfiguration
                 .getSynthesizedLibraryClassesPackagePrefix()
-            + RETARGET_PACKAGE
             + DESUGAR_LIB_RETARGET_CLASS_NAME_PREFIX
             + '$'
             + method.getHolderType().getName()
