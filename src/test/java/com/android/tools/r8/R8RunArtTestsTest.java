@@ -741,8 +741,20 @@ public abstract class R8RunArtTestsTest {
           .put(
               "095-switch-MAX_INT",
               TestCondition.match(
+                  TestCondition.tools(DexTool.NONE),
+                  TestCondition.compilers(CompilerUnderTest.D8_AFTER_R8CF),
+                  TestCondition.runtimes(DexVm.Version.V4_0_4)))
+          .put(
+              "095-switch-MAX_INT",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.NONE),
+                  TestCondition.compilers(CompilerUnderTest.D8),
+                  TestCondition.runtimes(DexVm.Version.V4_0_4)))
+          .put(
+              "095-switch-MAX_INT",
+              TestCondition.match(
                   TestCondition.tools(DexTool.DX),
-                  TestCondition.D8_COMPILER,
+                  TestCondition.compilers(CompilerUnderTest.D8),
                   TestCondition.runtimes(DexVm.Version.V4_0_4)))
           .build();
 
