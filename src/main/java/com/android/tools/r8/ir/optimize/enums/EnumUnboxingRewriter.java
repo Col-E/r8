@@ -434,7 +434,7 @@ public class EnumUnboxingRewriter {
     return factory.createField(
         relocator.getNewMemberLocationFor(enumType),
         factory.intArrayType,
-        factory.enumValuesFieldName + "$field$" + compatibleName(enumType));
+        "$$values$$field$" + compatibleName(enumType));
   }
 
   private DexEncodedField computeValuesEncodedField(DexField field) {
@@ -451,7 +451,7 @@ public class EnumUnboxingRewriter {
     return factory.createMethod(
         relocator.getNewMemberLocationFor(enumType),
         factory.createProto(factory.intArrayType),
-        factory.enumValuesFieldName + "$method$" + compatibleName(enumType));
+        "$$values$$method$" + compatibleName(enumType));
   }
 
   private DexEncodedMethod computeValuesEncodedMethod(
