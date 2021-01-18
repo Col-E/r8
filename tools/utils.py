@@ -512,7 +512,7 @@ def print_dexsegments(prefix, dex_files):
 def check_java_version():
   cmd= [jdk.GetJavaExecutable(), '-version']
   output = subprocess.check_output(cmd, stderr = subprocess.STDOUT)
-  m = re.search('openjdk version "([^"]*)"', output)
+  m = re.search('openjdk version "([^"]*)"', output.decode('utf-8'))
   if m is None:
     raise Exception("Can't check java version: no version string in output"
         " of 'java -version': '{}'".format(output))
