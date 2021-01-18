@@ -4,6 +4,8 @@
 package com.android.tools.r8.rewrite.switches;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
@@ -32,8 +34,7 @@ public class MaxIntSwitchTest extends TestBase {
   }
 
   private void checkResult(TestRunResult<?> result) {
-    if (mode == CompilationMode.DEBUG
-        && parameters.getDexRuntimeVersion().isOlderThanOrEqual(Version.V4_0_4)) {
+    if (parameters.getDexRuntimeVersion().isOlderThanOrEqual(Version.V4_0_4)) {
       result.assertFailureWithErrorThatThrows(AssertionError.class);
     } else {
       result.assertSuccessWithOutputLines("good");
@@ -55,6 +56,8 @@ public class MaxIntSwitchTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(this.getClass())
         .addKeepMainRule(TestClass.class)
+        .enableInliningAnnotations()
+        .enableMemberValuePropagationAnnotations()
         .setMinApi(parameters.getApiLevel())
         .setMode(mode)
         .run(parameters.getRuntime(), TestClass.class)
@@ -62,14 +65,26 @@ public class MaxIntSwitchTest extends TestBase {
   }
 
   static class TestClass {
-    public static void main(String[] args) {
-      switch (0x7fffffff) {
+    @NeverInline
+    @NeverPropagateValue
+    public static void f(int i) {
+      switch (i) {
+        case 0x7ffffffd:
+          System.out.println("a");
+          break;
+        case 0x7ffffffe:
+          System.out.println("b");
+          break;
         case 0x7fffffff:
           System.out.println("good");
           break;
         default:
           throw new AssertionError();
       }
+    }
+
+    public static void main(String[] args) {
+      f(0x7fffffff);
     }
   }
 }
