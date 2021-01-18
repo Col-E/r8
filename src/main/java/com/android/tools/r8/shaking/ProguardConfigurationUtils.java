@@ -134,11 +134,15 @@ public class ProguardConfigurationUtils {
       if (rule.getClassType() != ProguardClassType.CLASS) {
         continue;
       }
+      if (!rule.getClassAnnotations().isEmpty() || !rule.getInheritanceAnnotations().isEmpty()) {
+        continue;
+      }
       if (rule.hasInheritanceClassName()
           && !rule.getInheritanceClassName().matches(factory.objectType)) {
         continue;
       }
-      if (!rule.getClassNames().matches(factory.androidOsBuildVersionType)) {
+      if (rule.getClassNames().hasWildcards()
+          || !rule.getClassNames().matches(factory.androidOsBuildVersionType)) {
         continue;
       }
       for (ProguardMemberRule memberRule : rule.getMemberRules()) {
@@ -147,6 +151,9 @@ public class ProguardConfigurationUtils {
           return true;
         }
         if (memberRule.getRuleType() != ProguardMemberType.FIELD) {
+          continue;
+        }
+        if (!memberRule.getAnnotations().isEmpty()) {
           continue;
         }
         if (memberRule.getAccessFlags().isProtected()
