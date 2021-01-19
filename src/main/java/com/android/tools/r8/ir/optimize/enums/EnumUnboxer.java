@@ -495,11 +495,11 @@ public class EnumUnboxer {
         ObjectState enumState =
             enumStaticFieldValues.getObjectStateForPossiblyPinnedField(staticField.field);
         if (enumState == null) {
-          if (!isFinalFieldInitialized(staticField, enumClass)) {
+          if (staticField.getOptimizationInfo().isDead()) {
+            // We don't care about unused field data.
             continue;
           }
-          // Tracking the content of the field yielded either an empty object state, or something
-          // incoherent. We bail out.
+          // We could not track the content of that field. We bail out.
           return null;
         }
         OptionalInt optionalOrdinal = getOrdinal(enumState);
@@ -513,7 +513,8 @@ public class EnumUnboxer {
         ObjectState valuesState =
             enumStaticFieldValues.getObjectStateForPossiblyPinnedField(staticField.field);
         if (valuesState == null) {
-          if (!isFinalFieldInitialized(staticField, enumClass)) {
+          if (staticField.getOptimizationInfo().isDead()) {
+            // We don't care about unused field data.
             continue;
           }
           // We could not track the content of that field, and the field could be a values field.
@@ -564,13 +565,6 @@ public class EnumUnboxer {
         unboxedValues.build(),
         valuesField.build(),
         valuesContents == null ? EnumData.INVALID_VALUES_SIZE : valuesContents.getEnumValuesSize());
-  }
-
-  private boolean isFinalFieldInitialized(DexEncodedField staticField, DexProgramClass enumClass) {
-    assert staticField.isFinal();
-    return appView
-        .appInfo()
-        .isFieldOnlyWrittenInMethodIgnoringPinning(staticField, enumClass.getClassInitializer());
   }
 
   private EnumInstanceFieldData computeEnumFieldData(
