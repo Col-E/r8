@@ -275,9 +275,9 @@ def find_min_xmx(options, args):
   else:
     working = 1024 * 8
   exit_code = 0
-  range = options.find_min_xmx_range_size
+  range = int(options.find_min_xmx_range_size)
   while working - not_working > range:
-    next_candidate = working - ((working - not_working)/2)
+    next_candidate = int(working - ((working - not_working)/2))
     print('working: %s, non_working: %s, next_candidate: %s' %
           (working, not_working, next_candidate))
     extra_args = ['-Xmx%sM' % next_candidate]
