@@ -1473,6 +1473,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean disableMappingToOriginalProgramVerification = false;
     public boolean allowInvalidCfAccessFlags =
         System.getProperty("com.android.tools.r8.allowInvalidCfAccessFlags") != null;
+    // TODO(b/177333791): Set to true
+    public boolean checkForNotExpandingMainDexTracingResult = false;
 
     // Flag to allow processing of resources in D8. A data resource consumer still needs to be
     // specified.

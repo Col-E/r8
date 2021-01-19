@@ -13,9 +13,14 @@ import java.util.function.Consumer;
 
 public class AssertUtils {
 
-  public static <E extends Throwable> void assertFailsCompilation(ThrowingAction<E> action)
-      throws E {
-    assertFailsCompilationIf(true, action);
+  public static void assertFailsCompilation(ThrowingAction<CompilationFailedException> action) {
+    try {
+      assertFailsCompilationIf(true, action);
+      return;
+    } catch (CompilationFailedException e) {
+      // Should have been caught
+    }
+    fail("Should have failed with a CompilationFailedException");
   }
 
   public static <E extends Throwable> void assertFailsCompilation(

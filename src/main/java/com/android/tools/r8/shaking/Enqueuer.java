@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.FieldAccessInfoImpl.MISSING_FIELD_ACCESS_INFO;
+import static com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator.ENUM_UNBOXING_UTILITY_CLASS_SUFFIX;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
@@ -103,6 +104,7 @@ import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleRes
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
+import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
@@ -162,7 +164,8 @@ public class Enqueuer {
   public enum Mode {
     INITIAL_TREE_SHAKING,
     FINAL_TREE_SHAKING,
-    MAIN_DEX_TRACING,
+    INITIAL_MAIN_DEX_TRACING,
+    FINAL_MAIN_DEX_TRACING,
     WHY_ARE_YOU_KEEPING;
 
     public boolean isInitialTreeShaking() {
@@ -177,8 +180,16 @@ public class Enqueuer {
       return isInitialTreeShaking() || isFinalTreeShaking();
     }
 
-    public boolean isTracingMainDex() {
-      return this == MAIN_DEX_TRACING;
+    public boolean isInitialMainDexTracing() {
+      return this == INITIAL_MAIN_DEX_TRACING;
+    }
+
+    public boolean isFinalMainDexTracing() {
+      return this == FINAL_MAIN_DEX_TRACING;
+    }
+
+    public boolean isMainDexTracing() {
+      return isInitialMainDexTracing() || isFinalMainDexTracing();
     }
 
     public boolean isWhyAreYouKeeping() {
@@ -366,12 +377,14 @@ public class Enqueuer {
       ProgramMethodMap.create();
   private final Map<DexMethod, ProgramMethod> methodsWithBackports = new IdentityHashMap<>();
   private final Set<DexProgramClass> classesWithSerializableLambdas = Sets.newIdentityHashSet();
+  private final MainDexTracingResult previousMainDexTracingResult;
 
   Enqueuer(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer,
-      Mode mode) {
+      Mode mode,
+      MainDexTracingResult previousMainDexTracingResult) {
     assert appView.appServices() != null;
     InternalOptions options = appView.options();
     this.appInfo = appView.appInfo();
@@ -384,6 +397,7 @@ public class Enqueuer {
     this.options = options;
     this.useRegistryFactory = createUseRegistryFactory();
     this.workList = EnqueuerWorklist.createWorklist();
+    this.previousMainDexTracingResult = previousMainDexTracingResult;
 
     if (mode.isInitialOrFinalTreeShaking()) {
       if (options.protoShrinking().enableGeneratedMessageLiteShrinking) {
@@ -1659,6 +1673,14 @@ public class Enqueuer {
       return;
     }
 
+    assert !mode.isFinalMainDexTracing()
+            || !options.testing.checkForNotExpandingMainDexTracingResult
+            || previousMainDexTracingResult.isRoot(clazz)
+            || clazz.toSourceString().contains(ENUM_UNBOXING_UTILITY_CLASS_SUFFIX)
+            // TODO(b/177847090): Consider not outlining anything in main dex.
+            || clazz.toSourceString().contains(OutlineOptions.CLASS_NAME)
+        : "Class " + clazz.toSourceString() + " was not a main dex root in the first round";
+
     // Mark types in inner-class attributes referenced.
     for (InnerClassAttribute innerClassAttribute : clazz.getInnerClasses()) {
       recordTypeReference(innerClassAttribute.getInner(), clazz, this::ignoreMissingClass);
@@ -1766,7 +1788,7 @@ public class Enqueuer {
 
     if (!appView.options().enableUnusedInterfaceRemoval
         || rootSet.noUnusedInterfaceRemoval.contains(type)
-        || mode.isTracingMainDex()) {
+        || mode.isMainDexTracing()) {
       markTypeAsLive(clazz, implementer);
     } else {
       if (liveTypes.contains(clazz)) {
@@ -2047,7 +2069,7 @@ public class Enqueuer {
   }
 
   private void ensureFromLibraryOrThrow(DexType type, DexLibraryClass context) {
-    if (mode.isTracingMainDex()) {
+    if (mode.isMainDexTracing()) {
       // b/72312389: android.jar contains parts of JUnit and most developers include JUnit in
       // their programs. This leads to library classes extending program classes. When tracing
       // main dex lists we allow this.
@@ -2385,7 +2407,7 @@ public class Enqueuer {
   private void markLibraryAndClasspathMethodOverridesAsLive(
       InstantiatedObject instantiation, DexClass libraryClass) {
     assert libraryClass.isNotProgramClass();
-    if (mode.isTracingMainDex()) {
+    if (mode.isMainDexTracing()) {
       // Library roots must be specified for tracing of library methods. For classpath the expected
       // use case is that the classes will be classloaded, thus they should have no bearing on the
       // content of the main dex file.
@@ -2891,7 +2913,7 @@ public class Enqueuer {
   public Set<DexProgramClass> traceMainDex(
       RootSet rootSet, ExecutorService executorService, Timing timing) throws ExecutionException {
     assert analyses.isEmpty();
-    assert mode.isTracingMainDex();
+    assert mode.isMainDexTracing();
     this.rootSet = rootSet;
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);

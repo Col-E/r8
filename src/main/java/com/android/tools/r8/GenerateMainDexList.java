@@ -96,7 +96,8 @@ public class GenerateMainDexList {
     }
 
     Enqueuer enqueuer =
-        EnqueuerFactory.createForMainDexTracing(appView, subtypingInfo, graphConsumer);
+        EnqueuerFactory.createForFinalMainDexTracing(
+            appView, subtypingInfo, graphConsumer, MainDexTracingResult.NONE);
     Set<DexProgramClass> liveTypes = enqueuer.traceMainDex(mainDexRootSet, executor, timing);
     // LiveTypes is the result.
     MainDexTracingResult mainDexTracingResult = new MainDexListBuilder(liveTypes, appView).run();

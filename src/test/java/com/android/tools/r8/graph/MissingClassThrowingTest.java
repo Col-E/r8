@@ -65,7 +65,7 @@ public class MissingClassThrowingTest extends TestBase {
   }
 
   @Test
-  public void testSuperTypeOfExceptions() throws Exception {
+  public void testSuperTypeOfExceptions() {
     AssertUtils.assertFailsCompilation(
         () ->
             testForR8(parameters.getBackend())

@@ -435,7 +435,7 @@ public class R8 {
                 .run(executorService);
         // Live types is the tracing result.
         Set<DexProgramClass> mainDexBaseClasses =
-            EnqueuerFactory.createForMainDexTracing(appView, subtypingInfo)
+            EnqueuerFactory.createForInitialMainDexTracing(appView, subtypingInfo)
                 .traceMainDex(mainDexRootSet, executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
         mainDexTracingResult = new MainDexListBuilder(mainDexBaseClasses, appView).run();
@@ -644,8 +644,11 @@ public class R8 {
         }
 
         Enqueuer enqueuer =
-            EnqueuerFactory.createForMainDexTracing(
-                appView, new SubtypingInfo(appView), mainDexKeptGraphConsumer);
+            EnqueuerFactory.createForFinalMainDexTracing(
+                appView,
+                new SubtypingInfo(appView),
+                mainDexKeptGraphConsumer,
+                mainDexTracingResult);
         // Find classes which may have code executed before secondary dex files installation.
         // Live types is the tracing result.
         Set<DexProgramClass> mainDexBaseClasses =
@@ -1071,8 +1074,8 @@ public class R8 {
       SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
       if (forMainDex) {
         enqueuer =
-            EnqueuerFactory.createForMainDexTracing(
-                appView, subtypingInfo, whyAreYouKeepingConsumer);
+            EnqueuerFactory.createForFinalMainDexTracing(
+                appView, subtypingInfo, whyAreYouKeepingConsumer, MainDexTracingResult.NONE);
         enqueuer.traceMainDex(rootSet, executorService, timing);
       } else {
         enqueuer =
