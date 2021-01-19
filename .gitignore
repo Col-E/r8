@@ -217,6 +217,7 @@ third_party/youtube-developer/20200415
 third_party/youtube-developer/20200415.tar.gz
 tmp/
 tools/*.pyc
+tools/__pycache__
 tools/*/art
 tools/*/art-5.1.1
 tools/*/art-5.1.1.tar.gz

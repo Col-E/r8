@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
@@ -41,7 +41,7 @@ def checkout_r8(temp, branch):
 
 def prepare_release(args):
   if args.version:
-    print "Cannot manually specify version when making a dev release."
+    print("Cannot manually specify version when making a dev release.")
     sys.exit(1)
 
   def make_release(args):
@@ -57,13 +57,13 @@ def prepare_release(args):
           if result:
             break
         if not result or not result.group(1):
-          print 'Failed to find version label matching %s(\d+)-dev'\
-                % R8_DEV_BRANCH
+          print('Failed to find version label matching %s(\d+)-dev'\
+                % R8_DEV_BRANCH)
           sys.exit(1)
         try:
           patch_version = int(result.group(1))
         except ValueError:
-          print 'Failed to convert version to integer: %s' % result.group(1)
+          print('Failed to convert version to integer: %s' % result.group(1))
 
         old_version = '%s.%s-dev' % (R8_DEV_BRANCH, patch_version)
         version = '%s.%s-dev' % (R8_DEV_BRANCH, patch_version + 1)
@@ -74,8 +74,8 @@ def prepare_release(args):
         other_diff = version_change_diff(
             merge_diff_output, old_version, "master")
         if not other_diff:
-          print 'Merge point from master (%s)' % commithash, \
-            'is the same as exiting release (%s).' % old_version
+          print('Merge point from master (%s)' % commithash, \
+            'is the same as exiting release (%s).' % old_version)
           sys.exit(1)
 
         if args.dev_pre_cherry_pick:
@@ -102,7 +102,7 @@ def prepare_release(args):
         if not args.dry_run:
           input = raw_input('Publish dev release version %s [y/N]:' % version)
           if input != 'y':
-            print 'Aborting dev release for %s' % version
+            print('Aborting dev release for %s' % version)
             sys.exit(1)
 
         maybe_check_call(args, [
@@ -139,25 +139,25 @@ def version_change_diff(diff, old_version, new_version):
 def validate_version_change_diff(version_diff_output, old_version, new_version):
   invalid = version_change_diff(version_diff_output, old_version, new_version)
   if invalid:
-    print "Unexpected diff:"
-    print "=" * 80
-    print version_diff_output
-    print "=" * 80
+    print("Unexpected diff:")
+    print("=" * 80)
+    print(version_diff_output)
+    print("=" * 80)
     accept_string = 'THE DIFF IS OK!'
     input = raw_input(
       "Accept the additonal diff as part of the release? "
       "Type '%s' to accept: " % accept_string)
     if input != accept_string:
-      print "You did not type '%s'" % accept_string
-      print 'Aborting dev release for %s' % version
+      print("You did not type '%s'" % accept_string)
+      print('Aborting dev release for %s' % version)
       sys.exit(1)
 
 
 def maybe_check_call(args, cmd):
   if args.dry_run:
-    print 'DryRun:', ' '.join(cmd)
+    print('DryRun:', ' '.join(cmd))
   else:
-    print ' '.join(cmd)
+    print(' '.join(cmd))
     return subprocess.check_call(cmd)
 
 
@@ -185,7 +185,7 @@ def release_studio_or_aosp(r8_checkout, path, options, git_message):
       if not options.use_existing_work_branch:
         subprocess.check_call(['git', 'commit', '-a', '-m', git_message])
       else:
-        print ('Not committing when --use-existing-work-branch. '
+        print('Not committing when --use-existing-work-branch. '
             + 'Commit message should be:\n\n'
             + git_message
             + '\n')
@@ -194,7 +194,7 @@ def release_studio_or_aosp(r8_checkout, path, options, git_message):
       if not options.no_upload and not options.use_existing_work_branch:
         process = subprocess.Popen(['repo', 'upload', '.', '--verify'],
                                    stdin=subprocess.PIPE)
-        return process.communicate(input='y\n')[0]
+        return process.communicate(input=b'y\n')[0]
 
 
 def prepare_aosp(args):
@@ -202,7 +202,7 @@ def prepare_aosp(args):
   assert os.path.exists(args.aosp), "Could not find AOSP path %s" % args.aosp
 
   def release_aosp(options):
-    print "Releasing for AOSP"
+    print("Releasing for AOSP")
     if options.dry_run:
       return 'DryRun: omitting AOSP release for %s' % options.version
 
@@ -228,7 +228,7 @@ def prepare_maven(args):
     gfile = '/bigstore/r8-releases/raw/%s/r8lib.zip' % args.version
     release_id = gmaven_publisher_stage(options, [gfile])
 
-    print "Staged Release ID " + release_id + ".\n"
+    print("Staged Release ID " + release_id + ".\n")
     gmaven_publisher_stage_redir_test_info(
         release_id, "com.android.tools:r8:%s" % args.version, "r8lib.jar")
 
@@ -236,13 +236,13 @@ def prepare_maven(args):
     input = raw_input("Continue with publishing [y/N]:")
 
     if input != 'y':
-      print 'Aborting release to Google maven'
+      print('Aborting release to Google maven')
       sys.exit(1)
 
     gmaven_publisher_publish(args, release_id)
 
-    print
-    print "Published. Use the email workflow for approval."
+    print("")
+    print("Published. Use the email workflow for approval.")
 
   return release_maven
 
@@ -275,7 +275,7 @@ def prepare_studio(args):
                                        % args.studio)
 
   def release_studio(options):
-    print "Releasing for STUDIO"
+    print("Releasing for STUDIO")
     if options.dry_run:
       return 'DryRun: omitting studio release for %s' % options.version
 
@@ -329,7 +329,7 @@ def download_file(version, file, dst):
 
 def download_gfile(gfile, dst):
   if not gfile.startswith('/bigstore/r8-releases'):
-    print 'Unexpected gfile prefix for %s' % gfile
+    print('Unexpected gfile prefix for %s' % gfile)
     sys.exit(1)
 
   urllib.urlretrieve(
@@ -348,7 +348,7 @@ def prepare_google3(args):
     check_no_google3_client(args, args.p4_client)
 
   def release_google3(options):
-    print "Releasing for Google 3"
+    print("Releasing for Google 3")
     if options.dry_run:
       return 'DryRun: omitting g3 release for %s' % options.version
 
@@ -456,7 +456,7 @@ Test: L8ToolTest, L8DexDesugarTest"""
       if not args.use_existing_work_branch:
         subprocess.check_call(['git', 'commit', '-a', '-m', git_message])
       else:
-        print ('Not committing when --use-existing-work-branch. '
+        print('Not committing when --use-existing-work-branch. '
             + 'Commit message should be:\n\n'
             + git_message
             + '\n')
@@ -497,23 +497,23 @@ def prepare_desugar_library(args):
         release_id = gmaven_publisher_stage(
             args, [library_gfile, configuration_gfile])
 
-        print "Staged Release ID " + release_id + ".\n"
+        print("Staged Release ID " + release_id + ".\n")
         gmaven_publisher_stage_redir_test_info(
             release_id,
             "com.android.tools:%s:%s" % (DESUGAR_JDK_LIBS, library_version),
             library_jar)
 
-        print
+        print("")
         input = raw_input("Continue with publishing [y/N]:")
 
         if input != 'y':
-          print 'Aborting release to Google maven'
+          print('Aborting release to Google maven')
           sys.exit(1)
 
         gmaven_publisher_publish(args, release_id)
 
-        print
-        print "Published. Use the email workflow for approval."
+        print("")
+        print("Published. Use the email workflow for approval.")
 
   return make_release
 
@@ -524,7 +524,7 @@ def check_configuration(configuration_archive):
   dirs = os.listdir(
     os.path.join('com', 'android', 'tools', DESUGAR_JDK_LIBS_CONFIGURATION))
   if len(dirs) != 1:
-    print 'Unexpected archive content, %s' + dirs
+    print('Unexpected archive content, %s' + dirs)
     sys.exit(1)
 
   version = dirs[0]
@@ -537,14 +537,14 @@ def check_configuration(configuration_archive):
     '%s-%s.pom' % (DESUGAR_JDK_LIBS_CONFIGURATION, version))
   version_from_pom = extract_version_from_pom(pom_file)
   if version != version_from_pom:
-    print 'Version mismatch, %s != %s' % (version, version_from_pom)
+    print('Version mismatch, %s != %s' % (version, version_from_pom))
     sys.exit(1)
 
 def check_no_google3_client(args, client_name):
   if not args.use_existing_work_branch:
     clients = subprocess.check_output('g4 myclients', shell=True)
     if ':%s:' % client_name in clients:
-      print ("Remove the existing '%s' client before continuing " +
+      print("Remove the existing '%s' client before continuing " +
              "(force delete: 'g4 citc -d -f %s'), " +
              "or use option --use-existing-work-branch.") % (client_name, client_name)
       sys.exit(1)
@@ -563,11 +563,11 @@ GMAVEN_PUBLISH_STAGE_RELEASE_ID_PATTERN = re.compile('Release ID = ([0-9a-f\-]+)
 
 def gmaven_publisher_stage(args, gfiles):
   if args.dry_run:
-    print 'Dry-run, would have staged %s' % gfiles
+    print('Dry-run, would have staged %s' % gfiles)
     return 'dry-run-release-id'
 
-  print "Staging: %s" % ', '.join(gfiles)
-  print
+  print("Staging: %s" % ', '.join(gfiles))
+  print("")
 
   cmd = [GMAVEN_PUBLISHER, 'stage', '--gfile', ','.join(gfiles)]
   output = subprocess.check_output(cmd)
@@ -579,13 +579,13 @@ def gmaven_publisher_stage(args, gfiles):
 
   matches = GMAVEN_PUBLISH_STAGE_RELEASE_ID_PATTERN.findall(output)
   if matches == None or len(matches) > 1:
-    print ("Could not determine the release ID from the gmaven_publisher " +
-           "output. Expected a line with 'Release ID = <release id>'.")
-    print "Output was:"
-    print output
+    print("Could not determine the release ID from the gmaven_publisher " +
+          "output. Expected a line with 'Release ID = <release id>'.")
+    print("Output was:")
+    print(output)
     sys.exit(1)
 
-  print output
+  print(output)
 
   release_id = matches[0]
   return release_id
@@ -604,7 +604,7 @@ def gmaven_publisher_stage_redir_test_info(release_id, artifact, dst):
                 + "-Dartifact=%s "
                 + "-Ddest=%s") % (artifact, dst)
 
-  print """To test the staged content with 'redir' run:
+  print("""To test the staged content with 'redir' run:
 
 %s
 
@@ -620,12 +620,12 @@ Use this commands to get artifact from 'redir':
 
 rm -rf /tmp/maven_repo_local
 %s
-""" % (redir_command, get_command)
+""" % (redir_command, get_command))
 
 
 def gmaven_publisher_publish(args, release_id):
   if args.dry_run:
-    print 'Dry-run, would have published %s' % release_id
+    print('Dry-run, would have published %s' % release_id)
     return
 
   cmd = [GMAVEN_PUBLISHER, 'publish', release_id]
@@ -636,11 +636,11 @@ def branch_change_diff(diff, old_version, new_version):
   for line in diff.splitlines():
     if line.startswith('-R8') and \
         line != "-R8_DEV_BRANCH = '%s'" % old_version:
-      print line
+      print(line)
       invalid_line = line
     elif line.startswith('+R8') and \
         line != "+R8_DEV_BRANCH = '%s'" % new_version:
-      print line
+      print(line)
       invalid_line = line
   return invalid_line
 
@@ -648,15 +648,15 @@ def branch_change_diff(diff, old_version, new_version):
 def validate_branch_change_diff(version_diff_output, old_version, new_version):
   invalid = branch_change_diff(version_diff_output, old_version, new_version)
   if invalid:
-    print
-    print "The diff for the branch change in tools/release.py is not as expected:"
-    print
-    print "=" * 80
-    print version_diff_output
-    print "=" * 80
-    print
-    print "Validate the uploaded CL before landing."
-    print
+    print("")
+    print("The diff for the branch change in tools/release.py is not as expected:")
+    print("")
+    print("=" * 80)
+    print(version_diff_output)
+    print("=" * 80)
+    print("")
+    print("Validate the uploaded CL before landing.")
+    print("")
 
 
 def prepare_branch(args):
@@ -668,7 +668,7 @@ def prepare_branch(args):
   semver = utils.check_basic_semver_version(
     branch_version, ", release branch version should be x.y", 2)
   if not semver.larger_than(current_semver):
-    print ('New branch version "'
+    print('New branch version "'
       + branch_version
       + '" must be strictly larger than the current "'
       + R8_DEV_BRANCH
@@ -703,14 +703,14 @@ def prepare_branch(args):
         if not options.dry_run:
           input = raw_input('Create new branch for %s [y/N]:' % branch_version)
           if input != 'y':
-            print 'Aborting new branch for %s' % branch_version
+            print('Aborting new branch for %s' % branch_version)
             sys.exit(1)
 
         maybe_check_call(options, [
           'git', 'push', 'origin', 'HEAD:%s' % branch_version])
         maybe_tag(options, full_version)
 
-        print ('Updating tools/r8_release.py to make new dev releases on %s'
+        print('Updating tools/r8_release.py to make new dev releases on %s'
           % branch_version)
 
         subprocess.check_call(['git', 'new-branch', 'update-release-script'])
@@ -723,7 +723,7 @@ def prepare_branch(args):
           if result:
             break
         if not result or not result.group(1):
-          print 'Failed to find version label in %s' % THIS_FILE_RELATIVE
+          print('Failed to find version label in %s' % THIS_FILE_RELATIVE)
           sys.exit(1)
 
         # Update this file with the new dev branch.
@@ -742,9 +742,9 @@ def prepare_branch(args):
 
         maybe_check_call(options, ['git', 'cl', 'upload', '-f', '-m', message])
 
-        print
-        print 'Make sure to send out the branch change CL for review.'
-        print
+        print('')
+        print('Make sure to send out the branch change CL for review.')
+        print('')
 
   return make_branch
 
@@ -826,12 +826,12 @@ def parse_options():
       and args.version
       and not 'dev' in args.version
       and args.bug == []):
-    print ("When releasing a release version to Android Studio add the "
+    print("When releasing a release version to Android Studio add the "
            + "list of bugs by using '--bug'")
     sys.exit(1)
 
   if args.version and not 'dev' in args.version and args.google3:
-    print "You should not roll a release version into google 3"
+    print("You should not roll a release version into google 3")
     sys.exit(1)
 
   return args
@@ -843,13 +843,13 @@ def main():
 
   if args.new_dev_branch:
     if args.google3 or args.studio or args.aosp:
-      print 'Cannot create a branch and roll at the same time.'
+      print('Cannot create a branch and roll at the same time.')
       sys.exit(1)
     targets_to_run.append(prepare_branch(args))
 
   if args.dev_release:
     if args.google3 or args.studio or args.aosp:
-      print 'Cannot create a dev release and roll at the same time.'
+      print('Cannot create a dev release and roll at the same time.')
       sys.exit(1)
     targets_to_run.append(prepare_release(args))
 
@@ -873,10 +873,10 @@ def main():
 
   if args.update_desugar_library_in_studio:
     if not args.studio:
-      print ("--studio required")
+      print("--studio required")
       sys.exit(1)
     if args.bug == []:
-      print ("Update studio mirror of com.android.tools:desugar_jdk_libs "
+      print("Update studio mirror of com.android.tools:desugar_jdk_libs "
              + "requires at least one bug by using '--bug'")
       sys.exit(1)
     targets_to_run.append(update_desugar_library_in_studio(args))
@@ -885,13 +885,13 @@ def main():
   for target_closure in targets_to_run:
     final_results.append(target_closure(args))
 
-  print '\n\n**************************************************************'
-  print 'PRINTING SUMMARY'
-  print '**************************************************************\n\n'
+  print('\n\n**************************************************************')
+  print('PRINTING SUMMARY')
+  print('**************************************************************\n\n')
 
   for result in final_results:
     if result is not None:
-      print result
+      print(result)
 
 
 if __name__ == '__main__':

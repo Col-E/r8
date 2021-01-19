@@ -63,8 +63,8 @@ def copy_targets(root, target_root, srcs, dests, maps=False):
             ', as' + dest + ' does not exist already')
 
 def copy_jar_targets(root, target_root, jar_targets, maps):
-  srcs = map((lambda t: t[0] + '.jar'), jar_targets)
-  dests = map((lambda t: t[1] + '.jar'), jar_targets)
+  srcs = list(map((lambda t: t[0] + '.jar'), jar_targets))
+  dests = list(map((lambda t: t[1] + '.jar'), jar_targets))
   copy_targets(root, target_root, srcs, dests, maps=maps)
 
 def copy_other_targets(root, target_root):
@@ -88,7 +88,7 @@ def download_target(root, target, hash_or_version, is_hash, quiet=False):
 
 def main_download(hash, maps, targets, target_root, version):
   jar_targets = JAR_TARGETS_MAP[targets]
-  final_targets = map((lambda t: t[0] + '.jar'), jar_targets) + OTHER_TARGETS
+  final_targets = list(map((lambda t: t[0] + '.jar'), jar_targets)) + OTHER_TARGETS
   with utils.TempDir() as root:
     for target in final_targets:
       if hash:
