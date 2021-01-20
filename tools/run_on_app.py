@@ -231,7 +231,7 @@ def get_permutations():
   }
   # Check to ensure that we add all variants here.
   assert len(APPS) == len(data_providers)
-  for app, data in data_providers.iteritems():
+  for app, data in data_providers.items():
     for version in data.VERSIONS:
       for type in data.VERSIONS[version]:
         if (app, version, type) not in DISABLED_PERMUTATIONS:
