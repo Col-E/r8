@@ -6,11 +6,12 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.google.common.base.Predicates.alwaysTrue;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -33,7 +34,9 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
+import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfoLookup;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TriConsumer;
 import com.android.tools.r8.utils.TriFunction;
@@ -56,12 +59,10 @@ import java.util.function.Predicate;
 
 public class AssumeInserter {
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
-  private final InternalOptions options;
+  private final AppView<AppInfoWithLiveness> appView;
 
-  public AssumeInserter(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public AssumeInserter(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.options = appView.options();
   }
 
   public void insertAssumeInstructions(IRCode code, Timing timing) {
@@ -225,7 +226,26 @@ public class AssumeInserter {
 
   private boolean computeAssumedValuesFromSingleTarget(
       IRCode code, InvokeMethod invoke, AssumedValues.Builder assumedValuesBuilder) {
+    SingleResolutionResult resolutionResult =
+        appView
+            .appInfo()
+            .unsafeResolveMethodDueToDexFormat(invoke.getInvokedMethod())
+            .asSingleResolution();
+    if (resolutionResult == null) {
+      return false;
+    }
+
     DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
+    if (invoke.hasUsedOutValue() && invoke.getOutType().isReferenceType()) {
+      AssumeInfo assumeInfo =
+          AssumeInfoLookup.lookupAssumeInfo(appView, resolutionResult, singleTarget);
+      if (assumeInfo != null
+          && assumeInfo.hasReturnInfo()
+          && assumeInfo.getReturnInfo().isNonNull()) {
+        assumedValuesBuilder.addNonNullValueKnownToDominateAllUsers(invoke, invoke.outValue());
+      }
+    }
+
     if (singleTarget == null) {
       return false;
     }
@@ -234,12 +254,11 @@ public class AssumeInserter {
     MethodOptimizationInfo optimizationInfo = singleTarget.getDefinition().getOptimizationInfo();
 
     // Case (2), invocations that are guaranteed to return a non-null value.
-    Value outValue = invoke.outValue();
-    if (outValue != null && outValue.hasNonDebugUsers()) {
+    if (invoke.hasUsedOutValue()) {
       needsAssumeInstruction =
           computeAssumedValuesForOutValue(
               invoke,
-              optimizationInfo.getDynamicUpperBoundTypeOrElse(outValue.getType()),
+              optimizationInfo.getDynamicUpperBoundTypeOrElse(invoke.getOutType()),
               optimizationInfo.getDynamicLowerBoundType(),
               assumedValuesBuilder);
     }
@@ -264,20 +283,31 @@ public class AssumeInserter {
 
   private boolean computeAssumedValuesForFieldGet(
       FieldInstruction fieldGet, AssumedValues.Builder assumedValuesBuilder) {
-    Value outValue = fieldGet.outValue();
-    if (!outValue.hasNonDebugUsers()) {
+    if (fieldGet.hasUnusedOutValue()) {
       return false;
     }
 
-    DexEncodedField field = appView.appInfo().resolveField(fieldGet.getField()).getResolvedField();
-    if (field == null) {
+    SuccessfulFieldResolutionResult resolutionResult =
+        appView.appInfo().resolveField(fieldGet.getField()).asSuccessfulResolution();
+    if (resolutionResult == null) {
       return false;
     }
 
-    FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
+    DexClassAndField field = resolutionResult.getResolutionPair();
+
+    if (field.getType().isReferenceType()) {
+      AssumeInfo assumeInfo = AssumeInfoLookup.lookupAssumeInfo(appView, field);
+      if (assumeInfo != null
+          && assumeInfo.hasReturnInfo()
+          && assumeInfo.getReturnInfo().isNonNull()) {
+        assumedValuesBuilder.addNonNullValueKnownToDominateAllUsers(fieldGet, fieldGet.outValue());
+      }
+    }
+
+    FieldOptimizationInfo optimizationInfo = field.getDefinition().getOptimizationInfo();
     return computeAssumedValuesForOutValue(
         fieldGet,
-        optimizationInfo.getDynamicUpperBoundTypeOrElse(outValue.getType()),
+        optimizationInfo.getDynamicUpperBoundTypeOrElse(fieldGet.getOutType()),
         optimizationInfo.getDynamicLowerBoundType(),
         assumedValuesBuilder);
   }

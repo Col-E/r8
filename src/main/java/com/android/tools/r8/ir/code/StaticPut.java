@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
@@ -28,7 +29,6 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.ProguardMemberRule;
 
 public class StaticPut extends FieldInstruction implements StaticFieldInstruction {
 
@@ -99,22 +99,14 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
-      // MemberValuePropagation will replace the field read only if the target field has bound
-      // -assumevalues rule whose return value is *single*.
-      //
-      // Note that, in principle, class initializer of the field's holder may have side effects.
-      // However, with -assumevalues, we assume that the developer wants to remove field accesses.
-      ProguardMemberRule rule = appInfoWithLiveness.assumedValues.get(getField());
-      if (rule != null && rule.getReturnValue().isSingleValue()) {
-        return false;
-      }
 
-      if (instructionInstanceCanThrow(appView, context, assumption)) {
+      SuccessfulFieldResolutionResult resolutionResult =
+          appInfoWithLiveness.resolveField(getField()).asSuccessfulResolution();
+      if (internalInstructionInstanceCanThrow(appView, context, assumption, resolutionResult)) {
         return true;
       }
 
-      DexEncodedField encodedField =
-          appInfoWithLiveness.resolveField(getField()).getResolvedField();
+      DexEncodedField encodedField = resolutionResult.getResolvedField();
       assert encodedField != null : "NoSuchFieldError (resolution failure) should be caught.";
 
       boolean isDeadProtoExtensionField =

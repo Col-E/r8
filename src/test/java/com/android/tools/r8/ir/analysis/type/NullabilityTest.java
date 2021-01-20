@@ -13,7 +13,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Argument;
@@ -33,6 +32,7 @@ import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterArrayAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -63,7 +63,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       boolean npeCaught,
       BiConsumer<AppView<?>, IRCode> inspector)
       throws Exception {
-    AppView<? extends AppInfoWithClassHierarchy> appView = build(mainClass);
+    AppView<AppInfoWithLiveness> appView = build(mainClass);
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(mainClass.getName()).method(signature);
     IRCode irCode = fooSubject.buildIR();

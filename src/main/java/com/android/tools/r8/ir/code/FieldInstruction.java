@@ -64,8 +64,18 @@ public abstract class FieldInstruction extends Instruction {
 
   public boolean instructionInstanceCanThrow(
       AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    SuccessfulFieldResolutionResult resolutionResult =
-        appView.appInfo().resolveField(field, context).asSuccessfulResolution();
+    return internalInstructionInstanceCanThrow(
+        appView,
+        context,
+        assumption,
+        appView.appInfo().resolveField(field, context).asSuccessfulResolution());
+  }
+
+  boolean internalInstructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      SideEffectAssumption assumption,
+      SuccessfulFieldResolutionResult resolutionResult) {
     if (resolutionResult == null) {
       return true;
     }

@@ -5,13 +5,12 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class NonNullTrackerTestBase extends TestBase {
 
-  protected AppView<? extends AppInfoWithClassHierarchy> build(Class<?> mainClass)
-      throws Exception {
-    return computeAppViewWithSubtyping(buildAndroidApp(ToolHelper.getClassAsBytes(mainClass)));
+  protected AppView<AppInfoWithLiveness> build(Class<?> mainClass) throws Exception {
+    return computeAppViewWithLiveness(buildAndroidApp(ToolHelper.getClassAsBytes(mainClass)));
   }
 }

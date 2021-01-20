@@ -7,19 +7,20 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
+import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
@@ -34,8 +35,9 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
+import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
+import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfoLookup;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.android.tools.r8.shaking.ProguardMemberRuleReturnValue;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -54,48 +56,17 @@ public class MemberValuePropagation {
   // Fields for which we have reported warnings to due Proguard configuration rules.
   private final Set<DexField> warnedFields = Sets.newIdentityHashSet();
 
-  private enum RuleType {
-    NONE,
-    ASSUME_NO_SIDE_EFFECTS,
-    ASSUME_VALUES
-  }
-
-  private static class ProguardMemberRuleLookup {
-
-    final RuleType type;
-    final ProguardMemberRule rule;
-
-    ProguardMemberRuleLookup(RuleType type, ProguardMemberRule rule) {
-      this.type = type;
-      this.rule = rule;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (!(other instanceof ProguardMemberRuleLookup)) {
-        return false;
-      }
-      ProguardMemberRuleLookup otherLookup = (ProguardMemberRuleLookup) other;
-      return type == otherLookup.type && rule == otherLookup.rule;
-    }
-
-    @Override
-    public int hashCode() {
-      return type.ordinal() * 31 + rule.hashCode();
-    }
-  }
-
   public MemberValuePropagation(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.reporter = appView.options().reporter;
   }
 
-  private boolean mayPropagateValueFor(DexEncodedField field) {
-    if (field.isProgramField(appView)) {
-      return appView.appInfo().mayPropagateValueFor(field.field);
+  private boolean mayPropagateValueFor(DexClassAndField field) {
+    if (field.isProgramField()) {
+      return appView.appInfo().mayPropagateValueFor(field.getReference());
     }
-    return appView.appInfo().assumedValues.containsKey(field.field)
-        || appView.appInfo().noSideEffects.containsKey(field.field);
+    return appView.appInfo().assumedValues.containsKey(field.getReference())
+        || appView.appInfo().noSideEffects.containsKey(field.getReference());
   }
 
   private boolean mayPropagateValueFor(DexClassAndMethod method) {
@@ -106,36 +77,25 @@ public class MemberValuePropagation {
         || appView.appInfo().noSideEffects.containsKey(method.getReference());
   }
 
-  private ProguardMemberRuleLookup lookupMemberRule(DexClassAndMethod method) {
-    return method != null ? lookupMemberRule(method.getDefinition()) : null;
-  }
-
-  private ProguardMemberRuleLookup lookupMemberRule(DexDefinition definition) {
-    if (definition == null) {
-      return null;
-    }
-    DexReference reference = definition.getReference();
-    ProguardMemberRule rule = appView.appInfo().noSideEffects.get(reference);
-    if (rule != null) {
-      return new ProguardMemberRuleLookup(RuleType.ASSUME_NO_SIDE_EFFECTS, rule);
-    }
-    rule = appView.appInfo().assumedValues.get(reference);
-    if (rule != null) {
-      return new ProguardMemberRuleLookup(RuleType.ASSUME_VALUES, rule);
-    }
-    return null;
-  }
-
-  private Instruction constantReplacementFromProguardRule(
-      ProguardMemberRule rule, IRCode code, Instruction instruction) {
-    if (rule == null || !rule.hasReturnValue()) {
+  private Instruction createReplacementFromAssumeInfo(
+      AssumeInfo assumeInfo, IRCode code, Instruction instruction) {
+    if (!assumeInfo.hasReturnInfo()) {
       return null;
     }
 
-    ProguardMemberRuleReturnValue returnValueRule = rule.getReturnValue();
+    ProguardMemberRuleReturnValue returnValueRule = assumeInfo.getReturnInfo();
 
     // Check if this value can be assumed constant.
     if (returnValueRule.isSingleValue()) {
+      if (instruction.getOutType().isReferenceType()) {
+        if (returnValueRule.getSingleValue() == 0) {
+          return appView
+              .abstractValueFactory()
+              .createNullValue()
+              .createMaterializingInstruction(appView, code, instruction);
+        }
+        return null;
+      }
       return appView.abstractValueFactory()
           .createSingleNumberValue(returnValueRule.getSingleValue())
           .createMaterializingInstruction(appView, code, instruction);
@@ -177,31 +137,33 @@ public class MemberValuePropagation {
     return null;
   }
 
-  private void setValueRangeFromProguardRule(ProguardMemberRule rule, Value value) {
-    if (rule.hasReturnValue() && rule.getReturnValue().isValueRange()) {
-      assert !rule.getReturnValue().isSingleValue();
-      value.setValueRange(rule.getReturnValue().getValueRange());
+  private void setValueRangeFromAssumeInfo(AssumeInfo assumeInfo, Value value) {
+    if (assumeInfo.hasReturnInfo() && assumeInfo.getReturnInfo().isValueRange()) {
+      assert !assumeInfo.getReturnInfo().isSingleValue();
+      value.setValueRange(assumeInfo.getReturnInfo().getValueRange());
     }
   }
 
-  private boolean tryConstantReplacementFromProguard(
+  private boolean applyAssumeInfoIfPossible(
       IRCode code,
       Set<Value> affectedValues,
       ListIterator<BasicBlock> blocks,
       InstructionListIterator iterator,
       Instruction current,
-      ProguardMemberRuleLookup lookup) {
-    Instruction replacement = constantReplacementFromProguardRule(lookup.rule, code, current);
+      AssumeInfo assumeInfo) {
+    Instruction replacement = createReplacementFromAssumeInfo(assumeInfo, code, current);
     if (replacement == null) {
       // Check to see if a value range can be assumed.
-      setValueRangeFromProguardRule(lookup.rule, current.outValue());
+      if (current.getOutType().isPrimitiveType()) {
+        setValueRangeFromAssumeInfo(assumeInfo, current.outValue());
+      }
       return false;
     }
     affectedValues.addAll(current.outValue().affectedValues());
-    if (lookup.type == RuleType.ASSUME_NO_SIDE_EFFECTS) {
+    if (assumeInfo.isAssumeNoSideEffects()) {
       iterator.replaceCurrentInstruction(replacement);
     } else {
-      assert lookup.type == RuleType.ASSUME_VALUES;
+      assert assumeInfo.isAssumeValues();
       BasicBlock block = current.getBlock();
       Position position = current.getPosition();
       if (current.hasOutValue()) {
@@ -240,43 +202,33 @@ public class MemberValuePropagation {
       return;
     }
 
-    DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
-    ProguardMemberRuleLookup lookup = lookupMemberRule(singleTarget);
-    if (lookup == null) {
-      // -assumenosideeffects rules are applied to upward visible and overriding methods, but only
-      // references that have actual definitions are marked by the root set builder. So, here, we
-      // try again with a resolved target, not the direct definition, which may not exist.
-      DexEncodedMethod resolutionTarget =
-          appView.appInfo().unsafeResolveMethodDueToDexFormat(invokedMethod).getSingleTarget();
-      lookup = lookupMemberRule(resolutionTarget);
-    }
-
-    if (lookup != null) {
-      // Check to see if a constant value can be assumed.
-      // But, if the current matched rule is -assumenosideeffects without the return value, it won't
-      // be transformed into a replacement instruction. Check if there is -assumevalues rule bound
-      // to the target.
-      if (singleTarget != null
-          && lookup.type == RuleType.ASSUME_NO_SIDE_EFFECTS
-          && !lookup.rule.hasReturnValue()) {
-        ProguardMemberRule rule = appView.appInfo().assumedValues.get(singleTarget.getReference());
-        if (rule != null) {
-          lookup = new ProguardMemberRuleLookup(RuleType.ASSUME_VALUES, rule);
-        }
-      }
-      if (tryConstantReplacementFromProguard(
-          code, affectedValues, blocks, iterator, invoke, lookup)) {
-        return;
-      }
-    }
-
-    // No Proguard rule could replace the instruction check for knowledge about the return value.
-    if (singleTarget == null || !mayPropagateValueFor(singleTarget)) {
+    SingleResolutionResult resolutionResult =
+        appView.appInfo().unsafeResolveMethodDueToDexFormat(invokedMethod).asSingleResolution();
+    if (resolutionResult == null) {
       return;
     }
 
-    AbstractValue abstractReturnValue =
-        singleTarget.getDefinition().getOptimizationInfo().getAbstractReturnValue();
+    DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
+    AssumeInfo lookup = AssumeInfoLookup.lookupAssumeInfo(appView, resolutionResult, singleTarget);
+    if (lookup != null
+        && applyAssumeInfoIfPossible(code, affectedValues, blocks, iterator, invoke, lookup)) {
+      return;
+    }
+
+    // No Proguard rule could replace the instruction check for knowledge about the return value.
+    if (singleTarget != null && !mayPropagateValueFor(singleTarget)) {
+      return;
+    }
+
+    AbstractValue abstractReturnValue;
+    if (invokedMethod.getReturnType().isAlwaysNull(appView)) {
+      abstractReturnValue = appView.abstractValueFactory().createNullValue();
+    } else if (singleTarget != null) {
+      abstractReturnValue =
+          singleTarget.getDefinition().getOptimizationInfo().getAbstractReturnValue();
+    } else {
+      abstractReturnValue = UnknownValue.getInstance();
+    }
 
     if (abstractReturnValue.isSingleValue()) {
       SingleValue singleReturnValue = abstractReturnValue.asSingleValue();
@@ -293,7 +245,7 @@ public class MemberValuePropagation {
 
         if (invoke.isInvokeMethodWithReceiver()) {
           iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, context);
-        } else if (invoke.isInvokeStatic()) {
+        } else if (invoke.isInvokeStatic() && singleTarget != null) {
           iterator.replaceCurrentInstructionByInitClassIfPossible(
               appView, code, singleTarget.getHolderType());
         }
@@ -308,7 +260,10 @@ public class MemberValuePropagation {
         } else {
           iterator.add(replacement);
         }
-        singleTarget.getDefinition().getMutableOptimizationInfo().markAsPropagated();
+
+        if (singleTarget != null) {
+          singleTarget.getDefinition().getMutableOptimizationInfo().markAsPropagated();
+        }
       }
     }
   }
@@ -322,8 +277,9 @@ public class MemberValuePropagation {
     DexField field = current.getField();
 
     // TODO(b/123857022): Should be able to use definitionFor().
-    DexEncodedField target = appView.appInfo().resolveField(field).getResolvedField();
-    if (target == null) {
+    SuccessfulFieldResolutionResult resolutionResult =
+        appView.appInfo().resolveField(field).asSuccessfulResolution();
+    if (resolutionResult == null) {
       boolean replaceCurrentInstructionWithConstNull =
           appView.withGeneratedExtensionRegistryShrinker(
               shrinker -> shrinker.wasRemoved(field), false);
@@ -333,7 +289,9 @@ public class MemberValuePropagation {
       return;
     }
 
-    if (target.isStatic() != current.isStaticGet()) {
+    DexClassAndField target = resolutionResult.getResolutionPair();
+    DexEncodedField definition = target.getDefinition();
+    if (definition.isStatic() != current.isStaticGet()) {
       return;
     }
 
@@ -342,33 +300,35 @@ public class MemberValuePropagation {
     }
 
     // Check if there is a Proguard configuration rule that specifies the value of the field.
-    ProguardMemberRuleLookup lookup = lookupMemberRule(target);
+    AssumeInfo lookup = AssumeInfoLookup.lookupAssumeInfo(appView, target);
     if (lookup != null
-        && tryConstantReplacementFromProguard(
-            code, affectedValues, blocks, iterator, current, lookup)) {
+        && applyAssumeInfoIfPossible(code, affectedValues, blocks, iterator, current, lookup)) {
       return;
     }
 
     AbstractValue abstractValue;
     if (field.getType().isAlwaysNull(appView)) {
       abstractValue = appView.abstractValueFactory().createSingleNumberValue(0);
-    } else if (appView.appInfo().isFieldWrittenByFieldPutInstruction(target)) {
-      abstractValue = target.getOptimizationInfo().getAbstractValue();
-      if (abstractValue.isUnknown() && !target.isStatic()) {
+    } else if (appView.appInfo().isFieldWrittenByFieldPutInstruction(definition)) {
+      abstractValue = definition.getOptimizationInfo().getAbstractValue();
+      if (abstractValue.isUnknown() && !definition.isStatic()) {
         AbstractValue abstractReceiverValue =
             current.asInstanceGet().object().getAbstractValue(appView, code.context());
         if (abstractReceiverValue.isSingleFieldValue()) {
           abstractValue =
-              abstractReceiverValue.asSingleFieldValue().getState().getAbstractFieldValue(target);
+              abstractReceiverValue
+                  .asSingleFieldValue()
+                  .getState()
+                  .getAbstractFieldValue(definition);
         }
       }
-    } else if (target.isStatic()) {
+    } else if (definition.isStatic()) {
       // This is guaranteed to read the static value of the field.
-      abstractValue = target.getStaticValue().toAbstractValue(appView.abstractValueFactory());
+      abstractValue = definition.getStaticValue().toAbstractValue(appView.abstractValueFactory());
       // Verify that the optimization info is consistent with the static value.
-      assert target.getOptimizationInfo().getAbstractValue().isUnknown()
-          || !target.hasExplicitStaticValue()
-          || abstractValue == target.getOptimizationInfo().getAbstractValue();
+      assert definition.getOptimizationInfo().getAbstractValue().isUnknown()
+          || !definition.hasExplicitStaticValue()
+          || abstractValue == definition.getOptimizationInfo().getAbstractValue();
     } else {
       // This is guaranteed to read the default value of the field.
       abstractValue = appView.abstractValueFactory().createSingleNumberValue(0);
@@ -411,7 +371,8 @@ public class MemberValuePropagation {
         } else {
           iterator.add(replacement);
         }
-        feedback.markFieldAsPropagated(target);
+
+        feedback.markFieldAsPropagated(definition);
       }
     }
   }

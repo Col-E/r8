@@ -60,6 +60,10 @@ public class ProguardMemberRuleReturnValue {
     return type == Type.FIELD;
   }
 
+  public boolean isNonNull() {
+    return isValueRange() && getValueRange().getMin() > 0;
+  }
+
   public boolean isNull() {
     return type == Type.NULL;
   }
