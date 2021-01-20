@@ -269,7 +269,7 @@ def get_HEAD_sha1_for_checkout(checkout):
   cmd = ['git', 'rev-parse', 'HEAD']
   PrintCmd(cmd)
   with ChangedWorkingDirectory(checkout):
-    return subprocess.check_output(cmd).strip()
+    return subprocess.check_output(cmd).decode('utf-8').strip()
 
 def makedirs_if_needed(path):
   try:
