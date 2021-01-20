@@ -757,14 +757,14 @@ public class IRConverter {
     if (inliner != null) {
       postMethodProcessorBuilder.put(inliner);
     }
-    if (!options.debug) {
-      new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)
-          .run(executorService, feedback, timing);
-    }
     if (enumUnboxer != null) {
       enumUnboxer.unboxEnums(postMethodProcessorBuilder, executorService, feedback);
     } else {
       appView.setUnboxedEnums(EnumDataMap.empty());
+    }
+    if (!options.debug) {
+      new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)
+          .run(executorService, feedback, timing);
     }
 
     timing.begin("IR conversion phase 2");
