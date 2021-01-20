@@ -421,8 +421,8 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
   private String expectedOutput(boolean objectsRequireNonNullWithSupplierSupported) {
     return StringUtils.lines(
         "1",
-        "true",
-        "true",
+        "false",
+        "false",
         Objects.toString(Objects.hash(1, 2)),
         "4",
         "NPE",
@@ -525,8 +525,8 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
       boolean objectsRequireNonNullWithSupplierSupported = Boolean.parseBoolean(args[0]);
       // Android K methods.
       objectsCompare("b", "a");
-      objectsDeepEquals(args, args);
-      objectsEquals(args, args);
+      objectsDeepEquals(args, new Object());
+      objectsEquals(args, new Object());
       objectsHash(1, 2);
       objectsHashCode(4);
       objectsRequireNonNull(System.currentTimeMillis() >= 0 ? null : new Object());

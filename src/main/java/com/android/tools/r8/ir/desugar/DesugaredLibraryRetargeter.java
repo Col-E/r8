@@ -362,8 +362,10 @@ public class DesugaredLibraryRetargeter {
   private class RetargetingSetup {
 
     private void setUpRetargeting() {
+      DesugaredLibraryConfiguration desugaredLibraryConfiguration =
+          appView.options().desugaredLibraryConfiguration;
       Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
-          appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember();
+          desugaredLibraryConfiguration.getRetargetCoreLibMember();
       for (DexString methodName : retargetCoreLibMember.keySet()) {
         for (DexType inType : retargetCoreLibMember.get(methodName).keySet()) {
           DexClass typeClass = appView.definitionFor(inType);
@@ -391,6 +393,22 @@ public class DesugaredLibraryRetargeter {
             }
           }
         }
+      }
+      if (desugaredLibraryConfiguration.isLibraryCompilation()) {
+        // TODO(b/177977763): This is only a workaround rewriting invokes of j.u.Arrays.deepEquals0
+        // to j.u.DesugarArrays.deepEquals0.
+        DexItemFactory itemFactory = appView.options().dexItemFactory();
+        DexString name = itemFactory.createString("deepEquals0");
+        DexProto proto =
+            itemFactory.createProto(
+                itemFactory.booleanType, itemFactory.objectType, itemFactory.objectType);
+        DexMethod source =
+            itemFactory.createMethod(
+                itemFactory.createType(itemFactory.arraysDescriptor), proto, name);
+        DexMethod target =
+            itemFactory.createMethod(
+                itemFactory.createType("Ljava/util/DesugarArrays;"), proto, name);
+        retargetLibraryMember.put(source, target);
       }
     }
 
