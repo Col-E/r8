@@ -11,7 +11,7 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ir.desugar.LambdaRewriter;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -100,10 +100,11 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
         inspector.allClasses().stream()
             .anyMatch(
                 clazz ->
-                    clazz.getOriginalName().contains(LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX)
+                    clazz.isSynthesizedJavaLambdaClass()
                         && clazz
-                            .getOriginalName()
-                            .contains("$" + lambdaHolder.getSimpleName() + "$")));
+                            .getOriginalReference()
+                            .equals(
+                                SyntheticItemsTestUtils.syntheticLambdaClass(lambdaHolder, 0))));
   }
 
   static class TestClass {

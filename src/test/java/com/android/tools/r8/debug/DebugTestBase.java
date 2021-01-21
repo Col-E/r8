@@ -9,6 +9,7 @@ import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
@@ -2161,8 +2162,28 @@ public abstract class DebugTestBase extends TestBase {
       }
 
       private static boolean isInLambdaClass(VmMirror mirror, Location location) {
-        String classSig = mirror.getClassSignature(location.classID);
-        return classSig.contains("$$Lambda$");
+        // TODO(b/174809573): These "lambda" specific methods are highly questionable.
+        //   Determine the exact filtering behavior of intellij (which is very likely not name
+        //   based) and update this filter accordingly.
+        CommandPacket cmd =
+            new CommandPacket(
+                ReferenceTypeCommandSet.CommandSetID, ReferenceTypeCommandSet.ModifiersCommand);
+        cmd.setNextValueAsReferenceTypeID(location.classID);
+        ReplyPacket reply = mirror.performCommand(cmd);
+        mirror.checkReply(reply);
+        int modifiers = reply.getNextValueAsInt();
+        ClassAccessFlags flags = ClassAccessFlags.fromCfAccessFlags(modifiers);
+        if (!flags.isSynthetic()) {
+          return false;
+        }
+        String signature = mirror.getClassSignature(location.classID);
+        if (signature.contains("-CC")) {
+          // TODO(b/174809573): The need to return false here indicates a questionable test
+          //  expectation. Either the test is incorrect or there is a bug in our generation of
+          //  -CC classes marked as synthetic as that would lead to unwanted debugger filtering.
+          return false;
+        }
+        return true;
       }
 
       private static boolean isLambdaMethod(VmMirror mirror, Location location) {

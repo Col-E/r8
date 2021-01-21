@@ -13,7 +13,6 @@ import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
 
 import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
@@ -57,6 +56,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
@@ -406,17 +406,13 @@ public final class InterfaceMethodRewriter {
             appView
                 .getSyntheticItems()
                 .createMethod(
+                    SyntheticNaming.SyntheticKind.STATIC_INTERFACE_CALL,
                     context.getHolder(),
                     factory,
                     syntheticMethodBuilder ->
                         syntheticMethodBuilder
                             .setProto(invokedMethod.proto)
-                            .setAccessFlags(
-                                MethodAccessFlags.fromSharedAccessFlags(
-                                    Constants.ACC_PUBLIC
-                                        | Constants.ACC_STATIC
-                                        | Constants.ACC_SYNTHETIC,
-                                    false))
+                            .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                             .setCode(
                                 m ->
                                     ForwardMethodBuilder.builder(factory)
@@ -1128,6 +1124,7 @@ public final class InterfaceMethodRewriter {
       Builder<?> builder, Flavor flavour, Consumer<ProgramMethod> newSynthesizedMethodConsumer) {
     ClassProcessor processor = new ClassProcessor(appView, this, newSynthesizedMethodConsumer);
     // First we compute all desugaring *without* introducing forwarding methods.
+    assert appView.getSyntheticItems().verifyNonLegacySyntheticsAreCommitted();
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, false)) {
         if (appView.isAlreadyLibraryDesugared(clazz)) {

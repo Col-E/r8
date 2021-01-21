@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -17,7 +16,6 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -33,12 +31,16 @@ import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethodRewrites;
+import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,6 +53,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.objectweb.asm.Opcodes;
 
 public final class BackportedMethodRewriter {
@@ -128,6 +131,14 @@ public final class BackportedMethodRewriter {
     }
     CfCode code = method.getDefinition().getCode().asCfCode();
     ListIterator<CfInstruction> iterator = code.getInstructions().listIterator();
+    // TODO(b/172194101): Make this part of a unique context construction.
+    IntBox nextBackportId = new IntBox();
+    Supplier<String> methodIdSupplier =
+        () -> {
+          Hasher hasher = Hashing.sha256().newHasher();
+          method.getReference().hash(hasher);
+          return "$" + hasher.hash().toString() + "$" + nextBackportId.getAndIncrement();
+        };
     boolean replaced = false;
     while (iterator.hasNext()) {
       CfInvoke invoke = iterator.next().asInvoke();
@@ -144,7 +155,7 @@ public final class BackportedMethodRewriter {
           iterator = mutableInstructions.listIterator(iterator.previousIndex());
           iterator.next();
         }
-        provider.rewriteInvoke(invoke, iterator, method.getHolder(), appInfo, consumer);
+        provider.rewriteInvoke(invoke, iterator, method, appInfo, consumer, methodIdSupplier);
         replaced = true;
       }
     }
@@ -1348,9 +1359,10 @@ public final class BackportedMethodRewriter {
     public abstract void rewriteInvoke(
         CfInvoke invoke,
         ListIterator<CfInstruction> iterator,
-        DexProgramClass context,
+        ProgramMethod context,
         AppInfoWithClassHierarchy appInfo,
-        Consumer<ProgramMethod> registerSynthesizedMethod);
+        Consumer<ProgramMethod> registerSynthesizedMethod,
+        Supplier<String> methodIdProvider);
   }
 
   private static final class InvokeRewriter extends MethodProvider {
@@ -1366,9 +1378,10 @@ public final class BackportedMethodRewriter {
     public void rewriteInvoke(
         CfInvoke invoke,
         ListIterator<CfInstruction> iterator,
-        DexProgramClass context,
+        ProgramMethod context,
         AppInfoWithClassHierarchy appInfo,
-        Consumer<ProgramMethod> registerSynthesizedMethod) {
+        Consumer<ProgramMethod> registerSynthesizedMethod,
+        Supplier<String> methodIdProvider) {
       rewriter.rewrite(invoke, iterator, appInfo.dexItemFactory());
     }
   }
@@ -1392,31 +1405,33 @@ public final class BackportedMethodRewriter {
     public void rewriteInvoke(
         CfInvoke invoke,
         ListIterator<CfInstruction> iterator,
-        DexProgramClass context,
+        ProgramMethod context,
         AppInfoWithClassHierarchy appInfo,
-        Consumer<ProgramMethod> registerSynthesizedMethod) {
-      ProgramMethod method = getSyntheticMethod(context, appInfo);
+        Consumer<ProgramMethod> registerSynthesizedMethod,
+        Supplier<String> methodIdProvider) {
+      ProgramMethod method = getSyntheticMethod(context, methodIdProvider, appInfo);
       registerSynthesizedMethod.accept(method);
       iterator.remove();
       iterator.add(new CfInvoke(Opcodes.INVOKESTATIC, method.getReference(), false));
     }
 
     private ProgramMethod getSyntheticMethod(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        ProgramMethod context,
+        Supplier<String> methodIdProvider,
+        AppInfoWithClassHierarchy appInfo) {
       return appInfo
           .getSyntheticItems()
           .createMethod(
+              SyntheticNaming.SyntheticKind.BACKPORT,
               context,
               appInfo.dexItemFactory(),
               builder ->
                   builder
                       .setProto(getProto(appInfo.dexItemFactory()))
-                      .setAccessFlags(
-                          MethodAccessFlags.fromSharedAccessFlags(
-                              Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC,
-                              false))
+                      .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                       .setCode(
-                          methodSig -> generateTemplateMethod(appInfo.app().options, methodSig)));
+                          methodSig -> generateTemplateMethod(appInfo.app().options, methodSig)),
+              methodIdProvider);
     }
 
     public DexProto getProto(DexItemFactory itemFactory) {

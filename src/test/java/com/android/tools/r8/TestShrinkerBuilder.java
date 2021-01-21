@@ -90,7 +90,7 @@ public abstract class TestShrinkerBuilder<
 
   public abstract T addKeepRuleFiles(List<Path> files);
 
-  public T addKeepRuleFiles(Path... files) throws IOException {
+  public T addKeepRuleFiles(Path... files) {
     return addKeepRuleFiles(Arrays.asList(files));
   }
 

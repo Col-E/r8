@@ -16,7 +16,6 @@ import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -28,30 +27,24 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.InvokeCustom;
-import com.android.tools.r8.ir.code.InvokeDirect;
-import com.android.tools.r8.ir.code.NewInstance;
-import com.android.tools.r8.ir.code.StaticGet;
-import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.synthesis.SyntheticNaming;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.IdentityHashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -69,7 +62,6 @@ import org.objectweb.asm.Opcodes;
 public class LambdaRewriter {
 
   // Public for testing.
-  public static final String LAMBDA_CLASS_NAME_PREFIX = "-$$Lambda$";
   public static final String LAMBDA_GROUP_CLASS_NAME_PREFIX = "-$$LambdaGroup$";
   static final String EXPECTED_LAMBDA_METHOD_PREFIX = "lambda$";
   public static final String LAMBDA_INSTANCE_FIELD_NAME = "INSTANCE";
@@ -81,16 +73,11 @@ public class LambdaRewriter {
   private final LambdaRewriterLens.Builder lensBuilder = LambdaRewriterLens.builder();
   private final Set<DexMethod> forcefullyMovedMethods = Sets.newIdentityHashSet();
 
-  // Maps call sites seen so far to inferred lambda descriptor. It is intended
-  // to help avoid re-matching call sites we already seen. Note that same call
-  // site may match one or several lambda classes.
-  //
-  // NOTE: synchronize concurrent access on `knownCallSites`.
-  private final Map<DexCallSite, LambdaDescriptor> knownCallSites = new IdentityHashMap<>();
-  // Maps lambda class type into lambda class representation. Since lambda class
-  // type uniquely defines lambda class, effectively canonicalizes lambda classes.
+  // Maps lambda class type into lambda class representation.
   // NOTE: synchronize concurrent access on `knownLambdaClasses`.
-  private final Map<DexType, LambdaClass> knownLambdaClasses = new IdentityHashMap<>();
+  private final List<LambdaClass> knownLambdaClasses = new ArrayList<>();
+
+  private final Reference2IntMap<DexMethod> methodIds = new Reference2IntOpenHashMap<>();
 
   public LambdaRewriter(AppView<?> appView) {
     this.appView = appView;
@@ -138,7 +125,7 @@ public class LambdaRewriter {
           if (descriptor == null) {
             return null;
           }
-          return getOrCreateLambdaClass(descriptor, method);
+          return createLambdaClass(descriptor, method);
         });
   }
 
@@ -209,16 +196,10 @@ public class LambdaRewriter {
   }
 
   /** Generates lambda classes and adds them to the builder. */
-  public void finalizeLambdaDesugaringForD8(
-      Builder<?> builder, IRConverter converter, ExecutorService executorService)
+  public void finalizeLambdaDesugaringForD8(IRConverter converter, ExecutorService executorService)
       throws ExecutionException {
     synthesizeAccessibilityBridgesForLambdaClassesD8(
-        knownLambdaClasses.values(), converter, executorService);
-    for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
-      DexProgramClass synthesizedClass = lambdaClass.getOrCreateLambdaClass();
-      appView.appInfo().addSynthesizedClass(synthesizedClass, lambdaClass.addToMainDexList.get());
-      builder.addSynthesizedClass(synthesizedClass);
-    }
+        knownLambdaClasses, converter, executorService);
     fixup();
     optimizeSynthesizedClasses(converter, executorService);
   }
@@ -226,183 +207,44 @@ public class LambdaRewriter {
   private void optimizeSynthesizedClasses(IRConverter converter, ExecutorService executorService)
       throws ExecutionException {
     converter.optimizeSynthesizedClasses(
-        knownLambdaClasses.values().stream()
-            .map(LambdaClass::getOrCreateLambdaClass)
+        knownLambdaClasses.stream()
+            .map(LambdaClass::getLambdaProgramClass)
             .collect(ImmutableSet.toImmutableSet()),
         executorService);
   }
 
-  // Matches invoke-custom instruction operands to infer lambda descriptor
-  // corresponding to this lambda invocation point.
-  //
-  // Returns the lambda descriptor or `MATCH_FAILED`.
-  private LambdaDescriptor inferLambdaDescriptor(DexCallSite callSite, ProgramMethod context) {
-    // We check the map before and after inferring lambda descriptor to minimize time
-    // spent in synchronized block. As a result we may throw away calculated descriptor
-    // in rare case when another thread has same call site processed concurrently,
-    // but this is a low price to pay comparing to making whole method synchronous.
-    LambdaDescriptor descriptor = getKnown(knownCallSites, callSite);
-    return descriptor != null
-        ? descriptor
-        : putIfAbsent(
-            knownCallSites,
-            callSite,
-            LambdaDescriptor.infer(callSite, appView.appInfoForDesugaring(), context));
-  }
-
-  // Returns a lambda class corresponding to the lambda descriptor and context,
-  // creates the class if it does not yet exist.
-  public LambdaClass getOrCreateLambdaClass(
-      LambdaDescriptor descriptor, ProgramMethod accessedFrom) {
-    DexType lambdaClassType = LambdaClass.createLambdaClassType(appView, accessedFrom, descriptor);
-    // We check the map twice to to minimize time spent in synchronized block.
-    LambdaClass lambdaClass = getKnown(knownLambdaClasses, lambdaClassType);
-    if (lambdaClass == null) {
-      lambdaClass =
-          putIfAbsent(
-              knownLambdaClasses,
-              lambdaClassType,
-              new LambdaClass(appView, this, accessedFrom, lambdaClassType, descriptor));
-      if (appView.options().isDesugaredLibraryCompilation()) {
-        DexType rewrittenType =
-            appView.rewritePrefix.rewrittenType(accessedFrom.getHolderType(), appView);
-        if (rewrittenType == null) {
-          rewrittenType =
-              appView
-                  .options()
-                  .desugaredLibraryConfiguration
-                  .getEmulateLibraryInterface()
-                  .get(accessedFrom.getHolderType());
-        }
-        if (rewrittenType != null) {
-          addRewritingPrefix(accessedFrom, rewrittenType, lambdaClassType);
-        }
-      }
-    }
-    lambdaClass.addSynthesizedFrom(accessedFrom.getHolder());
-    if (appView.appInfo().getMainDexClasses().contains(accessedFrom.getHolder())) {
-      lambdaClass.addToMainDexList.set(true);
+  // Creates a lambda class corresponding to the lambda descriptor and context.
+  public LambdaClass createLambdaClass(LambdaDescriptor descriptor, ProgramMethod accessedFrom) {
+    int nextId =
+        methodIds.compute(
+            accessedFrom.getReference(), (method, value) -> value == null ? 0 : value + 1);
+    Box<LambdaClass> box = new Box<>();
+    DexProgramClass clazz =
+        appView
+            .getSyntheticItems()
+            .createClass(
+                SyntheticNaming.SyntheticKind.LAMBDA,
+                accessedFrom.getHolder(),
+                appView.dexItemFactory(),
+                // TODO(b/172194101): Make this part of a unique context construction.
+                () -> {
+                  Hasher hasher = Hashing.sha256().newHasher();
+                  accessedFrom.getReference().hash(hasher);
+                  return "$" + hasher.hash().toString() + "$" + nextId;
+                },
+                builder ->
+                    box.set(new LambdaClass(builder, appView, this, accessedFrom, descriptor)));
+    // Immediately set the actual program class on the lambda.
+    LambdaClass lambdaClass = box.get();
+    lambdaClass.setClass(clazz);
+    synchronized (knownLambdaClasses) {
+      knownLambdaClasses.add(lambdaClass);
     }
     return lambdaClass;
   }
 
-  private LambdaClass getKnownLambdaClass(LambdaDescriptor descriptor, ProgramMethod accessedFrom) {
-    DexType lambdaClassType = LambdaClass.createLambdaClassType(appView, accessedFrom, descriptor);
-    return getKnown(knownLambdaClasses, lambdaClassType);
-  }
-
-  private void addRewritingPrefix(
-      ProgramMethod context, DexType rewritten, DexType lambdaClassType) {
-    String javaName = lambdaClassType.toString();
-    String typeString = context.getHolderType().toString();
-    String actualPrefix = typeString.substring(0, typeString.lastIndexOf('.'));
-    String rewrittenString = rewritten.toString();
-    String actualRewrittenPrefix = rewrittenString.substring(0, rewrittenString.lastIndexOf('.'));
-    assert javaName.startsWith(actualPrefix);
-    appView.rewritePrefix.rewriteType(
-        lambdaClassType,
-        appView
-            .dexItemFactory()
-            .createType(
-                DescriptorUtils.javaTypeToDescriptor(
-                    actualRewrittenPrefix + javaName.substring(actualPrefix.length()))));
-  }
-
-  private static <K, V> V getKnown(Map<K, V> map, K key) {
-    synchronized (map) {
-      return map.get(key);
-    }
-  }
-
-  private static <K, V> V putIfAbsent(Map<K, V> map, K key, V value) {
-    synchronized (map) {
-      V known = map.get(key);
-      if (known != null) {
-        return known;
-      }
-      map.put(key, value);
-      return value;
-    }
-  }
-
-  // Patches invoke-custom instruction to create or get an instance
-  // of the generated lambda class.
-  private void patchInstruction(
-      InvokeCustom invoke,
-      LambdaClass lambdaClass,
-      IRCode code,
-      ListIterator<BasicBlock> blocks,
-      InstructionListIterator instructions,
-      Set<Value> affectedValues) {
-    assert lambdaClass != null;
-    assert instructions != null;
-
-    // The value representing new lambda instance: we reuse the
-    // value from the original invoke-custom instruction, and thus
-    // all its usages.
-    Value lambdaInstanceValue = invoke.outValue();
-    if (lambdaInstanceValue == null) {
-      // The out value might be empty in case it was optimized out.
-      lambdaInstanceValue =
-          code.createValue(
-              TypeElement.fromDexType(lambdaClass.type, Nullability.maybeNull(), appView));
-    } else {
-      affectedValues.add(lambdaInstanceValue);
-    }
-
-    // For stateless lambdas we replace InvokeCustom instruction with StaticGet
-    // reading the value of INSTANCE field created for singleton lambda class.
-    if (lambdaClass.isStateless()) {
-      instructions.replaceCurrentInstruction(
-          new StaticGet(lambdaInstanceValue, lambdaClass.lambdaField));
-      // Note that since we replace one throwing operation with another we don't need
-      // to have any special handling for catch handlers.
-      return;
-    }
-
-    // For stateful lambdas we always create a new instance since we need to pass
-    // captured values to the constructor.
-    //
-    // We replace InvokeCustom instruction with a new NewInstance instruction
-    // instantiating lambda followed by InvokeDirect instruction calling a
-    // constructor on it.
-    //
-    //    original:
-    //      Invoke-Custom rResult <- { rArg0, rArg1, ... }; call site: ...
-    //
-    //    result:
-    //      NewInstance   rResult <-  LambdaClass
-    //      Invoke-Direct { rResult, rArg0, rArg1, ... }; method: void LambdaClass.<init>(...)
-    lambdaInstanceValue.setType(
-        lambdaInstanceValue.getType().asReferenceType().asDefinitelyNotNull());
-    NewInstance newInstance = new NewInstance(lambdaClass.type, lambdaInstanceValue);
-    instructions.replaceCurrentInstruction(newInstance);
-
-    List<Value> arguments = new ArrayList<>();
-    arguments.add(lambdaInstanceValue);
-    arguments.addAll(invoke.arguments()); // Optional captures.
-    InvokeDirect constructorCall =
-        new InvokeDirect(lambdaClass.constructor, null /* no return value */, arguments);
-    instructions.add(constructorCall);
-    constructorCall.setPosition(newInstance.getPosition());
-
-    // If we don't have catch handlers we are done.
-    if (!constructorCall.getBlock().hasCatchHandlers()) {
-      return;
-    }
-
-    // Move the iterator back to position it between the two instructions, split
-    // the block between the two instructions, and copy the catch handlers.
-    instructions.previous();
-    assert instructions.peekNext().isInvokeDirect();
-    BasicBlock currentBlock = newInstance.getBlock();
-    BasicBlock nextBlock = instructions.split(code, blocks);
-    assert !instructions.hasNext();
-    nextBlock.copyCatchHandlers(code, blocks, currentBlock, appView.options());
-  }
-
-  public Map<DexType, LambdaClass> getKnownLambdaClasses() {
-    return knownLambdaClasses;
+  public Collection<LambdaClass> getKnownLambdaClasses() {
+    return Collections.unmodifiableList(knownLambdaClasses);
   }
 
   public NestedGraphLens fixup() {

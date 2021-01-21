@@ -48,7 +48,6 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
-import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -270,7 +269,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.switchMaps = switchMaps;
     this.lockCandidates = lockCandidates;
     this.initClassReferences = initClassReferences;
-    verify();
+    assert verify();
   }
 
   private AppInfoWithLiveness(AppInfoWithLiveness previous, CommittedItems committedItems) {
@@ -367,10 +366,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.initClassReferences);
   }
 
-  private void verify() {
+  private boolean verify() {
     assert keepInfo.verifyPinnedTypesAreLive(liveTypes);
     assert objectAllocationInfoCollection.verifyAllocatedTypesAreLive(
         liveTypes, getMissingClasses(), this);
+    return true;
   }
 
   private static KeepInfoCollection extendPinnedItems(
@@ -455,7 +455,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.lockCandidates = previous.lockCandidates;
     this.initClassReferences = previous.initClassReferences;
     previous.markObsolete();
-    verify();
+    assert verify();
   }
 
   public static AppInfoWithLivenessModifier modifier() {
@@ -471,7 +471,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             // TODO(b/150693139): Remove these exceptions once fixed.
             || InterfaceMethodRewriter.isCompanionClassType(type)
             || InterfaceMethodRewriter.isEmulatedLibraryClassType(type)
-            || TwrCloseResourceRewriter.isUtilityClassDescriptor(type)
             || DesugaredLibraryRetargeter.isRetargetType(type, options())
             // TODO(b/150736225): Not sure how to remove these.
             || DesugaredLibraryAPIConverter.isVivifiedType(type)

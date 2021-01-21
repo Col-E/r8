@@ -1702,6 +1702,10 @@ public class TestBase {
     return AndroidApiLevel.L;
   }
 
+  public static AndroidApiLevel apiLevelWithTwrCloseResourceSupport() {
+    return AndroidApiLevel.K;
+  }
+
   public static boolean canUseJavaUtilObjects(TestParameters parameters) {
     return parameters.isCfRuntime()
         || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K);

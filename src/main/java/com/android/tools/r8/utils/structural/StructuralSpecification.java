@@ -51,12 +51,12 @@ public abstract class StructuralSpecification<T, V extends StructuralSpecificati
       HashingAccept<S> hasher);
 
   /** Base implementation for visiting an enumeration of items. */
-  protected abstract <S> V withItemIterator(
+  protected abstract <S> V withCustomItemIterator(
       Function<T, Iterator<S>> getter, CompareToAccept<S> compare, HashingAccept<S> hasher);
 
   public final <S> V withCustomItemCollection(
       Function<T, Collection<S>> getter, StructuralAcceptor<S> acceptor) {
-    return withItemIterator(getter.andThen(Collection::iterator), acceptor, acceptor);
+    return withCustomItemIterator(getter.andThen(Collection::iterator), acceptor, acceptor);
   }
 
   /**
@@ -79,24 +79,23 @@ public abstract class StructuralSpecification<T, V extends StructuralSpecificati
         predicate, getter, StructuralItem::acceptCompareTo, StructuralItem::acceptHashing);
   }
 
+  public final <S extends StructuralItem<S>> V withItemIterator(Function<T, Iterator<S>> getter) {
+    return withCustomItemIterator(
+        getter, StructuralItem::acceptCompareTo, StructuralItem::acceptHashing);
+  }
+
   public final <S extends StructuralItem<S>> V withItemCollection(
       Function<T, Collection<S>> getter) {
-    return withItemIterator(
-        getter.andThen(Collection::iterator),
-        StructuralItem::acceptCompareTo,
-        StructuralItem::acceptHashing);
+    return withItemIterator(getter.andThen(Collection::iterator));
   }
 
   public final <S extends StructuralItem<S>> V withItemArray(Function<T, S[]> getter) {
-    return withItemIterator(
-        getter.andThen(a -> Arrays.asList(a).iterator()),
-        StructuralItem::acceptCompareTo,
-        StructuralItem::acceptHashing);
+    return withItemIterator(getter.andThen(a -> Arrays.asList(a).iterator()));
   }
 
   public final <S extends StructuralItem<S>> V withItemArrayAllowingNullMembers(
       Function<T, S[]> getter) {
-    return withItemIterator(
+    return withCustomItemIterator(
         getter.andThen(a -> Arrays.asList(a).iterator()),
         (a, b, visitor) -> {
           if (a == null || b == null) {

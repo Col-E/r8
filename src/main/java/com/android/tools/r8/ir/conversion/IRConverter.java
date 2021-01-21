@@ -240,7 +240,9 @@ public class IRConverter {
           new DesugaredLibraryAPIConverter(appView, Mode.GENERATE_CALLBACKS_AND_WRAPPERS);
       this.backportedMethodRewriter = new BackportedMethodRewriter(appView);
       this.twrCloseResourceRewriter =
-          enableTwrCloseResourceDesugaring() ? new TwrCloseResourceRewriter(appView, this) : null;
+          TwrCloseResourceRewriter.enableTwrCloseResourceDesugaring(appView.options())
+              ? new TwrCloseResourceRewriter(appView)
+              : null;
       this.d8NestBasedAccessDesugaring =
           options.shouldDesugarNests() ? new D8NestBasedAccessDesugaring(appView) : null;
       this.lambdaMerger = null;
@@ -274,8 +276,9 @@ public class IRConverter {
             ? new InterfaceMethodRewriter(appView, this)
             : null;
     this.twrCloseResourceRewriter =
-        (options.desugarState == DesugarState.ON && enableTwrCloseResourceDesugaring())
-            ? new TwrCloseResourceRewriter(appView, this)
+        (TwrCloseResourceRewriter.enableTwrCloseResourceDesugaring(options)
+                && !appView.enableWholeProgramOptimizations())
+            ? new TwrCloseResourceRewriter(appView)
             : null;
     this.backportedMethodRewriter =
         (options.desugarState == DesugarState.ON && !appView.enableWholeProgramOptimizations())
@@ -384,20 +387,6 @@ public class IRConverter {
     this(AppView.createForD8(appInfo), timing, printer, MainDexTracingResult.NONE);
   }
 
-  private boolean enableTwrCloseResourceDesugaring() {
-    return enableTryWithResourcesDesugaring() && !options.canUseTwrCloseResourceMethod();
-  }
-
-  private boolean enableTryWithResourcesDesugaring() {
-    switch (options.tryWithResourcesDesugaring) {
-      case Off:
-        return false;
-      case Auto:
-        return !options.canUseSuppressedExceptions();
-    }
-    throw new Unreachable();
-  }
-
   private void removeLambdaDeserializationMethods() {
     if (lambdaRewriter != null) {
       lambdaRewriter.removeLambdaDeserializationMethods(appView.appInfo().classes());
@@ -411,11 +400,10 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
-      throws ExecutionException {
+  private void synthesizeLambdaClasses(ExecutorService executorService) throws ExecutionException {
     if (lambdaRewriter != null) {
       assert !appView.enableWholeProgramOptimizations();
-      lambdaRewriter.finalizeLambdaDesugaringForD8(builder, this, executorService);
+      lambdaRewriter.finalizeLambdaDesugaringForD8(this, executorService);
     }
   }
 
@@ -437,16 +425,16 @@ public class IRConverter {
       Flavor includeAllResources,
       ExecutorService executorService)
       throws ExecutionException {
+    assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
     if (interfaceMethodRewriter != null) {
       interfaceMethodRewriter.desugarInterfaceMethods(
           builder, includeAllResources, executorService);
     }
   }
 
-  private void synthesizeTwrCloseResourceUtilityClass(
-      Builder<?> builder, ExecutorService executorService) throws ExecutionException {
+  private void processTwrCloseResourceUtilityMethods() {
     if (twrCloseResourceRewriter != null) {
-      twrCloseResourceRewriter.synthesizeUtilityClass(builder, executorService, options);
+      twrCloseResourceRewriter.processSynthesizedMethods(this);
     }
   }
 
@@ -523,9 +511,21 @@ public class IRConverter {
     builder.setHighestSortingString(highestSortingString);
 
     desugarNestBasedAccess(builder, executor);
-    synthesizeLambdaClasses(builder, executor);
+
+    // Synthesize lambda classes and commit to the app in full.
+    synthesizeLambdaClasses(executor);
+    processTwrCloseResourceUtilityMethods();
+    if (appView.getSyntheticItems().hasPendingSyntheticClasses()) {
+      appView.setAppInfo(
+          new AppInfo(
+              appView.appInfo().getSyntheticItems().commit(builder.build()),
+              appView.appInfo().getMainDexClasses()));
+      application = appView.appInfo().app();
+      builder = application.builder();
+      builder.setHighestSortingString(highestSortingString);
+    }
+
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
-    synthesizeTwrCloseResourceUtilityClass(builder, executor);
     processSynthesizedJava8UtilityClasses(executor);
     synthesizeRetargetClass(builder, executor);
     synthesizeInvokeSpecialBridges(executor);
@@ -534,10 +534,10 @@ public class IRConverter {
 
     timing.end();
 
-    DexApplication app = builder.build();
+    application = builder.build();
     appView.setAppInfo(
         new AppInfo(
-            appView.appInfo().getSyntheticItems().commit(app),
+            appView.appInfo().getSyntheticItems().commit(application),
             appView.appInfo().getMainDexClasses()));
   }
 
@@ -796,6 +796,14 @@ public class IRConverter {
       appView.clearCodeRewritings();
     }
 
+    // Commit synthetics before creating a builder (otherwise the builder will not include the
+    // synthetics.)
+    if (appView.getSyntheticItems().hasPendingSyntheticClasses()) {
+      appView.setAppInfo(
+          appView
+              .appInfo()
+              .rebuildWithLiveness(appView.getSyntheticItems().commit(appView.appInfo().app())));
+    }
     // Build a new application with jumbo string info.
     Builder<?> builder = appView.appInfo().app().builder();
     builder.setHighestSortingString(highestSortingString);
@@ -805,7 +813,6 @@ public class IRConverter {
     feedback.updateVisibleOptimizationInfo();
 
     printPhase("Utility classes synthesis");
-    synthesizeTwrCloseResourceUtilityClass(builder, executorService);
     processSynthesizedJava8UtilityClasses(executorService);
     synthesizeRetargetClass(builder, executorService);
     synthesizeEnumUnboxingUtilityMethods(executorService);
@@ -817,11 +824,9 @@ public class IRConverter {
     printPhase("Desugared library API Conversion finalization");
     generateDesugaredLibraryAPIWrappers(builder, executorService);
 
-    if (serviceLoaderRewriter != null && serviceLoaderRewriter.getSynthesizedClass() != null) {
-      appView.appInfo().addSynthesizedClass(serviceLoaderRewriter.getSynthesizedClass(), true);
+    if (serviceLoaderRewriter != null) {
       processSynthesizedServiceLoaderMethods(
-          serviceLoaderRewriter.getSynthesizedClass(), executorService);
-      builder.addSynthesizedClass(serviceLoaderRewriter.getSynthesizedClass());
+          serviceLoaderRewriter.getServiceLoadMethods(), executorService);
     }
 
     // Update optimization info for all synthesized methods at once.
@@ -962,11 +967,10 @@ public class IRConverter {
   }
 
   private void processSynthesizedServiceLoaderMethods(
-      DexProgramClass synthesizedClass, ExecutorService executorService) throws ExecutionException {
+      List<ProgramMethod> serviceLoadMethods, ExecutorService executorService)
+      throws ExecutionException {
     ThreadUtils.processItems(
-        synthesizedClass::forEachProgramMethod,
-        this::forEachSynthesizedServiceLoaderMethod,
-        executorService);
+        serviceLoadMethods, this::forEachSynthesizedServiceLoaderMethod, executorService);
   }
 
   private void forEachSynthesizedServiceLoaderMethod(ProgramMethod method) {
@@ -1477,7 +1481,7 @@ public class IRConverter {
     deadCodeRemover.run(code, timing);
     assert code.isConsistentSSA();
 
-    if (options.desugarState == DesugarState.ON && enableTryWithResourcesDesugaring()) {
+    if (options.desugarState == DesugarState.ON && options.enableTryWithResourcesDesugaring()) {
       timing.begin("Rewrite Throwable suppresed methods");
       codeRewriter.rewriteThrowableAddAndGetSuppressed(code);
       timing.end();
@@ -1564,7 +1568,7 @@ public class IRConverter {
 
     if (twrCloseResourceRewriter != null) {
       timing.begin("Rewrite TWR close");
-      twrCloseResourceRewriter.rewriteMethodCode(code);
+      twrCloseResourceRewriter.rewriteIR(code);
       timing.end();
     }
 

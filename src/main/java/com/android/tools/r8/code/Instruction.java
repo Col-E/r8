@@ -332,6 +332,9 @@ public abstract class Instruction implements CfOrDexInstruction, StructuralItem<
   @Override
   public final void acceptHashing(HashingVisitor visitor) {
     // Rather than traverse the full instruction, the compare ID will likely give a reasonable hash.
+    // TODO(b/158159959): This will likely lead to a lot of distinct synthetics hashing to the same
+    //  hash as many have the same instruction pattern such as an invoke of the impl method or a
+    //  field access.
     visitor.visitInt(getCompareToId());
   }
 

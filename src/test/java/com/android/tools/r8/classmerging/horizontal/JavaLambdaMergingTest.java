@@ -4,16 +4,18 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
-import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class JavaLambdaMergingTest extends HorizontalClassMergingTestBase {
@@ -23,6 +25,7 @@ public class JavaLambdaMergingTest extends HorizontalClassMergingTestBase {
   }
 
   @Test
+  @Ignore("b/174809311): Test does not work with hygienic lambdas. Rewrite or remove")
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
@@ -38,16 +41,12 @@ public class JavaLambdaMergingTest extends HorizontalClassMergingTestBase {
             inspector -> {
               Set<DexType> lambdaSources =
                   inspector.getSources().stream()
-                      .filter(x -> x.toSourceString().contains(LAMBDA_CLASS_NAME_PREFIX))
+                      .filter(JavaLambdaMergingTest::isLambda)
                       .collect(Collectors.toSet());
               assertEquals(3, lambdaSources.size());
               DexType firstTarget = inspector.getTarget(lambdaSources.iterator().next());
               for (DexType lambdaSource : lambdaSources) {
-                assertTrue(
-                    inspector
-                        .getTarget(lambdaSource)
-                        .toSourceString()
-                        .contains(LAMBDA_CLASS_NAME_PREFIX));
+                assertTrue(isLambda(inspector.getTarget(lambdaSource)));
                 assertEquals(firstTarget, inspector.getTarget(lambdaSource));
               }
             })
@@ -57,6 +56,11 @@ public class JavaLambdaMergingTest extends HorizontalClassMergingTestBase {
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello world!");
+  }
+
+  private static boolean isLambda(DexType type) {
+    return SyntheticItemsTestUtils.isExternalLambda(
+        Reference.classFromDescriptor(type.toDescriptorString()));
   }
 
   public static class Main {

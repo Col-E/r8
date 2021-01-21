@@ -1090,10 +1090,18 @@ public class MethodOptimizationInfoCollector {
       } else if (classInitializerSideEffect.canBePostponed()) {
         feedback.classInitializerMayBePostponed(method);
       } else {
-        assert !context.getHolderType().isD8R8SynthesizedLambdaClassType()
-                || options.debug
-                || appView.appInfo().hasPinnedInstanceInitializer(context.getHolderType())
-                || appView.options().horizontalClassMergerOptions().isJavaLambdaMergingEnabled()
+        assert options.debug
+                || appView
+                    .getSyntheticItems()
+                    .verifySyntheticLambdaProperty(
+                        context.getHolder(),
+                        lambdaClass ->
+                            appView.appInfo().hasPinnedInstanceInitializer(lambdaClass.getType())
+                                || appView
+                                    .options()
+                                    .horizontalClassMergerOptions()
+                                    .isJavaLambdaMergingEnabled(),
+                        nonLambdaClass -> true)
             : "Unexpected observable side effects from lambda `" + context.toSourceString() + "`";
       }
       return;

@@ -841,12 +841,21 @@ public class R8 {
           appView.getSyntheticItems().computeFinalSynthetics(appView);
       if (result != null) {
         if (appView.appInfo().hasLiveness()) {
-          appViewWithLiveness.setAppInfo(
-              appViewWithLiveness.appInfo().rebuildWithLiveness(result.commit));
+          if (result.lens == null) {
+            appViewWithLiveness.setAppInfo(
+                appViewWithLiveness.appInfo().rebuildWithLiveness(result.commit));
+          } else {
+            appViewWithLiveness.rewriteWithLensAndApplication(
+                result.lens, result.commit.getApplication().asDirect());
+          }
+          appViewWithLiveness.pruneItems(result.prunedItems);
         } else {
           appView.setAppInfo(appView.appInfo().rebuildWithClassHierarchy(result.commit));
+          appView.pruneItems(result.prunedItems);
+          if (result.lens != null) {
+            appView.setGraphLens(result.lens);
+          }
         }
-        appViewWithLiveness.pruneItems(result.prunedItems);
       }
 
       // Perform minification.

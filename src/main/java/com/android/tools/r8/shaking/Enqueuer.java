@@ -87,6 +87,7 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
+import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
@@ -370,12 +371,14 @@ public class Enqueuer {
 
   private final LambdaRewriter lambdaRewriter;
   private final BackportedMethodRewriter backportRewriter;
+  private final TwrCloseResourceRewriter twrCloseResourceRewriter;
   private final DesugaredLibraryConversionWrapperAnalysis desugaredLibraryWrapperAnalysis;
   private final Map<DexType, Pair<LambdaClass, ProgramMethod>> lambdaClasses =
       new IdentityHashMap<>();
   private final ProgramMethodMap<Map<DexCallSite, LambdaClass>> lambdaCallSites =
       ProgramMethodMap.create();
   private final Map<DexMethod, ProgramMethod> methodsWithBackports = new IdentityHashMap<>();
+  private final Map<DexMethod, ProgramMethod> methodsWithTwrCloseResource = new IdentityHashMap<>();
   private final Set<DexProgramClass> classesWithSerializableLambdas = Sets.newIdentityHashSet();
   private final MainDexTracingResult previousMainDexTracingResult;
 
@@ -417,6 +420,10 @@ public class Enqueuer {
     lambdaRewriter = options.desugarState == DesugarState.ON ? new LambdaRewriter(appView) : null;
     backportRewriter =
         options.desugarState == DesugarState.ON ? new BackportedMethodRewriter(appView) : null;
+    twrCloseResourceRewriter =
+        TwrCloseResourceRewriter.enableTwrCloseResourceDesugaring(options)
+            ? new TwrCloseResourceRewriter(appView)
+            : null;
 
     objectAllocationInfoCollection =
         ObjectAllocationInfoCollectionImpl.builder(mode.isInitialTreeShaking(), graphReporter);
@@ -935,7 +942,7 @@ public class Enqueuer {
       assert contextMethod.getCode().isCfCode() : "Unexpected input type with lambdas";
       CfCode code = contextMethod.getCode().asCfCode();
       if (code != null) {
-        LambdaClass lambdaClass = lambdaRewriter.getOrCreateLambdaClass(descriptor, context);
+        LambdaClass lambdaClass = lambdaRewriter.createLambdaClass(descriptor, context);
         lambdaClasses.put(lambdaClass.type, new Pair<>(lambdaClass, context));
         lambdaCallSites
             .computeIfAbsent(context, k -> new IdentityHashMap<>())
@@ -1248,12 +1255,24 @@ public class Enqueuer {
     return false;
   }
 
+  private boolean registerCloseResource(DexMethod invokedMethod, ProgramMethod context) {
+    if (twrCloseResourceRewriter != null
+        && TwrCloseResourceRewriter.isTwrCloseResourceMethod(
+            invokedMethod, appView.dexItemFactory())) {
+      methodsWithTwrCloseResource.putIfAbsent(context.getReference(), context);
+      return true;
+    }
+    return false;
+  }
+
   private void traceInvokeStatic(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
     if (registerBackportInvoke(invokedMethod, context)) {
       return;
     }
-
+    if (registerCloseResource(invokedMethod, context)) {
+      return;
+    }
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     if (dexItemFactory.classMethods.isReflectiveClassLookup(invokedMethod)
         || dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod)) {
@@ -3060,13 +3079,9 @@ public class Enqueuer {
       return empty;
     }
 
-    void addInstantiatedClass(
-        DexProgramClass clazz, ProgramMethod context, boolean isMainDexClass) {
+    void addInstantiatedClass(DexProgramClass clazz, ProgramMethod context) {
       assert !syntheticInstantiations.containsKey(clazz.type);
       syntheticInstantiations.put(clazz.type, new Pair<>(clazz, context));
-      if (isMainDexClass) {
-        mainDexTypes.add(clazz);
-      }
     }
 
     void addClasspathClass(DexClasspathClass clazz) {
@@ -3088,10 +3103,6 @@ public class Enqueuer {
 
     void amendApplication(Builder appBuilder) {
       assert !isEmpty();
-      for (Pair<DexProgramClass, ProgramMethod> clazzAndContext :
-          syntheticInstantiations.values()) {
-        appBuilder.addProgramClass(clazzAndContext.getFirst());
-      }
       appBuilder.addClasspathClasses(syntheticClasspathClasses.values());
     }
 
@@ -3162,6 +3173,7 @@ public class Enqueuer {
     synthesizeLambdas(additions);
     synthesizeLibraryConversionWrappers(additions);
     synthesizeBackports(additions);
+    synthesizeTwrCloseResource(additions);
     if (additions.isEmpty()) {
       return;
     }
@@ -3205,6 +3217,12 @@ public class Enqueuer {
     }
   }
 
+  private void synthesizeTwrCloseResource(SyntheticAdditions additions) {
+    for (ProgramMethod method : methodsWithTwrCloseResource.values()) {
+      twrCloseResourceRewriter.rewriteCf(method, additions::addLiveMethod);
+    }
+  }
+
   private void synthesizeLambdas(SyntheticAdditions additions) {
     if (lambdaRewriter == null || lambdaClasses.isEmpty()) {
       assert lambdaCallSites.isEmpty();
@@ -3215,8 +3233,8 @@ public class Enqueuer {
       // Add all desugared classes to the application, main-dex list, and mark them instantiated.
       LambdaClass lambdaClass = lambdaClassAndContext.getFirst();
       ProgramMethod context = lambdaClassAndContext.getSecond();
-      DexProgramClass programClass = lambdaClass.getOrCreateLambdaClass();
-      additions.addInstantiatedClass(programClass, context, lambdaClass.addToMainDexList.get());
+      DexProgramClass programClass = lambdaClass.getLambdaProgramClass();
+      additions.addInstantiatedClass(programClass, context);
       // Mark the instance constructor targeted and live.
       DexEncodedMethod constructor = programClass.lookupDirectMethod(lambdaClass.constructor);
       KeepReason reason = KeepReason.instantiatedIn(context);
@@ -3371,10 +3389,9 @@ public class Enqueuer {
     lambdaRewriter
         .getKnownLambdaClasses()
         .forEach(
-            (type, lambda) -> {
-              DexProgramClass synthesizedClass = lambda.getOrCreateLambdaClass();
+            lambda -> {
+              DexProgramClass synthesizedClass = lambda.getLambdaProgramClass();
               assert synthesizedClass != null;
-              assert synthesizedClass == appInfo().definitionForWithoutExistenceAssert(type);
               assert liveTypes.contains(synthesizedClass);
               if (synthesizedClass == null) {
                 return;
