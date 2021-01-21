@@ -50,6 +50,7 @@ import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaStructureError;
 import com.android.tools.r8.ir.optimize.lambda.kotlin.KotlinLambdaGroupIdFactory;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -397,20 +398,30 @@ public final class LambdaMerger {
     for (LambdaGroup group : groups.values()) {
       ThrowingConsumer<DexClass, LambdaStructureError> validator =
           group.lambdaClassValidator(kotlin, appView.appInfo());
-      group.forEachLambda(info ->
-          futures.add(service.submit(() -> {
-            try {
-              validator.accept(info.clazz);
-            } catch (LambdaStructureError error) {
-              if (error.reportable) {
-                reporter.info(
-                    new StringDiagnostic("Unexpected Kotlin lambda structure [" +
-                        info.clazz.type.toSourceString() + "]: " + error.getMessage())
-                );
-              }
-              invalidateLambda(info.clazz.type);
-            }
-          })));
+      group.forEachLambda(
+          info ->
+              futures.add(
+                  service.submit(
+                      () -> {
+                        try {
+                          validator.accept(info.clazz);
+                        } catch (LambdaStructureError error) {
+                          ProguardConfiguration proguardConfiguration =
+                              appView.options().getProguardConfiguration();
+                          if (error.reportable
+                              && !proguardConfiguration
+                                  .getDontNotePatterns()
+                                  .matches(info.clazz.getType())) {
+                            reporter.info(
+                                new StringDiagnostic(
+                                    "Unexpected Kotlin lambda structure ["
+                                        + info.clazz.type.toSourceString()
+                                        + "]: "
+                                        + error.getMessage()));
+                          }
+                          invalidateLambda(info.clazz.type);
+                        }
+                      })));
     }
     ThreadUtils.awaitFutures(futures);
   }
