@@ -1003,6 +1003,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public CfCode buildEmptyThrowingCfCode() {
+    return buildEmptyThrowingCfCode(method);
+  }
+
+  public static CfCode buildEmptyThrowingCfCode(DexMethod method) {
     CfInstruction insn[] = {new CfConstNull(), new CfThrow()};
     return new CfCode(
         method.holder,

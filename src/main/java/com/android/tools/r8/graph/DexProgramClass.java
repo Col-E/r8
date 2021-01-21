@@ -212,6 +212,15 @@ public class DexProgramClass extends DexClass
     return Iterables.transform(directMethods(predicate), method -> new ProgramMethod(this, method));
   }
 
+  public Iterable<ProgramMethod> virtualProgramMethods() {
+    return Iterables.transform(virtualMethods(), method -> new ProgramMethod(this, method));
+  }
+
+  public Iterable<ProgramMethod> virtualProgramMethods(Predicate<DexEncodedMethod> predicate) {
+    return Iterables.transform(
+        virtualMethods(predicate), method -> new ProgramMethod(this, method));
+  }
+
   public Iterable<ProgramMethod> programInstanceInitializers() {
     return directProgramMethods(DexEncodedMethod::isInstanceInitializer);
   }

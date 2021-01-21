@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -35,7 +36,10 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.MethodCollection;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -63,6 +67,7 @@ import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.synthesis.SyntheticNaming;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
@@ -355,16 +360,16 @@ public final class InterfaceMethodRewriter {
           getMethodOrigin(context.getReference()));
     }
 
-    DexEncodedMethod directTarget = clazz.lookupMethod(method);
+    DexClassAndMethod directTarget = clazz.lookupClassMethod(method);
     if (directTarget != null) {
       // This can be a private instance method call. Note that the referenced
       // method is expected to be in the current class since it is private, but desugaring
       // may move some methods or their code into other classes.
       instructions.replaceCurrentInstruction(
           new InvokeStatic(
-              directTarget.isPrivateMethod()
-                  ? privateAsMethodOfCompanionClass(method)
-                  : defaultAsMethodOfCompanionClass(method),
+              directTarget.getDefinition().isPrivateMethod()
+                  ? privateAsMethodOfCompanionClass(directTarget)
+                  : defaultAsMethodOfCompanionClass(directTarget),
               invoke.outValue(),
               invoke.arguments()));
     } else {
@@ -375,7 +380,7 @@ public final class InterfaceMethodRewriter {
         // This is a invoke-direct call to a virtual method.
         instructions.replaceCurrentInstruction(
             new InvokeStatic(
-                defaultAsMethodOfCompanionClass(virtualTarget.getDefinition().method),
+                defaultAsMethodOfCompanionClass(virtualTarget),
                 invoke.outValue(),
                 invoke.arguments()));
       } else {
@@ -490,6 +495,7 @@ public final class InterfaceMethodRewriter {
         UtilityMethodsForCodeOptimizations.synthesizeThrowNoSuchMethodErrorMethod(
             appView, context, methodProcessingId);
     throwNoSuchMethodErrorMethod.optimize(methodProcessor);
+
     InvokeStatic throwNoSuchMethodErrorInvoke =
         InvokeStatic.builder()
             .setMethod(throwNoSuchMethodErrorMethod.getMethod())
@@ -533,7 +539,7 @@ public final class InterfaceMethodRewriter {
       DexMethod amendedMethod = amendDefaultMethod(context.getHolder(), invokedMethod);
       instructions.replaceCurrentInstruction(
           new InvokeStatic(
-              defaultAsMethodOfCompanionClass(amendedMethod),
+              defaultAsMethodOfCompanionClass(amendedMethod, appView.dexItemFactory()),
               invoke.outValue(),
               invoke.arguments()));
     } else {
@@ -547,7 +553,7 @@ public final class InterfaceMethodRewriter {
             if (holder.isLibraryClass() && holder.isInterface()) {
               instructions.replaceCurrentInstruction(
                   new InvokeStatic(
-                      defaultAsMethodOfCompanionClass(target.getReference(), factory),
+                      defaultAsMethodOfCompanionClass(target),
                       invoke.outValue(),
                       invoke.arguments()));
             }
@@ -567,9 +573,7 @@ public final class InterfaceMethodRewriter {
           DexMethod retargetMethod =
               options.desugaredLibraryConfiguration.retargetMethod(superTarget, appView);
           if (retargetMethod == null) {
-            DexMethod originalCompanionMethod =
-                instanceAsMethodOfCompanionClass(
-                    superTarget.getReference(), DEFAULT_METHOD_PREFIX, factory);
+            DexMethod originalCompanionMethod = defaultAsMethodOfCompanionClass(superTarget);
             DexMethod companionMethod =
                 factory.createMethod(
                     getCompanionClassType(emulatedItf),
@@ -955,12 +959,11 @@ public final class InterfaceMethodRewriter {
 
   // Represent a static interface method as a method of companion class.
   final DexMethod staticAsMethodOfCompanionClass(DexClassAndMethod method) {
-    return staticAsMethodOfCompanionClass(method.getReference());
-  }
-
-  final DexMethod staticAsMethodOfCompanionClass(DexMethod method) {
-    // No changes for static methods.
-    return factory.createMethod(getCompanionClassType(method.holder), method.proto, method.name);
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexType companionClassType = getCompanionClassType(method.getHolderType(), dexItemFactory);
+    DexMethod rewritten = method.getReference().withHolder(companionClassType, dexItemFactory);
+    recordCompanionClassReference(appView, method, rewritten);
+    return rewritten;
   }
 
   private static DexMethod instanceAsMethodOfCompanionClass(
@@ -993,12 +996,11 @@ public final class InterfaceMethodRewriter {
     return instanceAsMethodOfCompanionClass(method, DEFAULT_METHOD_PREFIX, factory);
   }
 
-  DexMethod defaultAsMethodOfCompanionClass(DexMethod method) {
-    return defaultAsMethodOfCompanionClass(method, factory);
-  }
-
-  DexMethod defaultAsMethodOfCompanionClass(DexClassAndMethod method) {
-    return defaultAsMethodOfCompanionClass(method.getReference(), factory);
+  final DexMethod defaultAsMethodOfCompanionClass(DexClassAndMethod method) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexMethod rewritten = defaultAsMethodOfCompanionClass(method.getReference(), dexItemFactory);
+    recordCompanionClassReference(appView, method, rewritten);
+    return rewritten;
   }
 
   // Represent a private instance interface method as a method of companion class.
@@ -1007,8 +1009,57 @@ public final class InterfaceMethodRewriter {
     return instanceAsMethodOfCompanionClass(method, PRIVATE_METHOD_PREFIX, factory);
   }
 
-  DexMethod privateAsMethodOfCompanionClass(DexMethod method) {
-    return privateAsMethodOfCompanionClass(method, factory);
+  private DexMethod privateAsMethodOfCompanionClass(DexClassAndMethod method) {
+    return privateAsMethodOfCompanionClass(method.getReference(), factory);
+  }
+
+  private static void recordCompanionClassReference(
+      AppView<?> appView, DexClassAndMethod method, DexMethod rewritten) {
+    // If the interface class is a program class, we shouldn't need to synthesize the companion
+    // class on the classpath.
+    if (method.getHolder().isProgramClass()) {
+      return;
+    }
+
+    // If the companion class does not exist, then synthesize it on the classpath.
+    DexClass companionClass = appView.definitionFor(rewritten.getHolderType());
+    if (companionClass == null) {
+      companionClass =
+          synthesizeEmptyCompanionClass(appView, rewritten.getHolderType(), method.getHolder());
+    }
+
+    // If the companion class is a classpath class, then synthesize the companion class method if it
+    // does not exist.
+    if (companionClass.isClasspathClass()) {
+      synthetizeCompanionClassMethodIfNotPresent(companionClass.asClasspathClass(), rewritten);
+    }
+  }
+
+  private static DexClasspathClass synthesizeEmptyCompanionClass(
+      AppView<?> appView, DexType type, DexClass context) {
+    return appView
+        .getSyntheticItems()
+        .createClasspathClass(
+            SyntheticKind.COMPANION_CLASS, type, context, appView.dexItemFactory());
+  }
+
+  private static void synthetizeCompanionClassMethodIfNotPresent(
+      DexClasspathClass companionClass, DexMethod method) {
+    MethodCollection methodCollection = companionClass.getMethodCollection();
+    synchronized (methodCollection) {
+      if (methodCollection.getMethod(method) == null) {
+        boolean d8R8Synthesized = true;
+        methodCollection.addDirectMethod(
+            new DexEncodedMethod(
+                method,
+                MethodAccessFlags.createPublicStaticSynthetic(),
+                MethodTypeSignature.noSignature(),
+                DexAnnotationSet.empty(),
+                ParameterAnnotationsList.empty(),
+                DexEncodedMethod.buildEmptyThrowingCfCode(method),
+                d8R8Synthesized));
+      }
+    }
   }
 
   private void renameEmulatedInterfaces() {
