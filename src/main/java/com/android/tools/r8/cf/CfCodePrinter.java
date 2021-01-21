@@ -452,9 +452,9 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfFrame frame) {
-    String keys = join(frame.getLocals().keySet(), ",", BraceType.NONE);
-    String values = join(frame.getLocals().values(), ",", BraceType.NONE, this::frameTypeType);
-    String stack = join(frame.getStack(), ",", BraceType.NONE, this::frameTypeType);
+    String keys = join(frame.getLocals().keySet(), ",");
+    String values = join(",", frame.getLocals().values(), this::frameTypeType);
+    String stack = join(",", frame.getStack(), this::frameTypeType);
     printNewInstruction(
         "CfFrame",
         "new "

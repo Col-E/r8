@@ -169,6 +169,7 @@ public abstract class R8RunExamplesCommon {
 
   protected void configure(InternalOptions options) {
     options.lineNumberOptimization = LineNumberOptimization.OFF;
+    options.testing.allowDexInputForTesting = input == Input.DX;
   }
 
   private boolean shouldCompileFail() {

@@ -62,8 +62,8 @@ class PrimaryMethodProcessor extends MethodProcessor {
   }
 
   @Override
-  public Phase getPhase() {
-    return Phase.PRIMARY;
+  public boolean isPrimaryMethodProcessor() {
+    return true;
   }
 
   @Override

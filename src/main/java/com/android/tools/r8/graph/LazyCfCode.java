@@ -105,7 +105,7 @@ public class LazyCfCode extends Code {
   private final Origin origin;
   private JarApplicationReader application;
   private CfCode code;
-  protected ReparseContext context;
+  private ReparseContext context;
   private boolean reachabilitySensitive = false;
 
   public void markReachabilitySensitive() {

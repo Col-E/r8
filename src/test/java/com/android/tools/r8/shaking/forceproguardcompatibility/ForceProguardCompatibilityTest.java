@@ -215,7 +215,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     testCheckCast(
         TestMainWithCheckCast.class,
         TestClassWithDefaultConstructor.class,
-        forceProguardCompatibility || parameters.isCfRuntime());
+        forceProguardCompatibility);
     testCheckCast(TestMainWithoutCheckCast.class, TestClassWithDefaultConstructor.class, false);
   }
 

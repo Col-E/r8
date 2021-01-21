@@ -227,9 +227,9 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     for (Value value : current.inValues()) {
       value.removeUser(current);
     }
-    if (current.outValue() != null && current.outValue().isUsed()) {
+    if (current.hasUsedOutValue()) {
       assert newInstruction.outValue() != null;
-      if (affectedValues != null) {
+      if (affectedValues != null && newInstruction.getOutType() != current.getOutType()) {
         current.outValue().addAffectedValuesTo(affectedValues);
       }
       current.outValue().replaceUsers(newInstruction.outValue());
@@ -243,6 +243,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     listIterator.add(newInstruction);
     current.clearBlock();
     metadata.record(newInstruction);
+    current = newInstruction;
   }
 
   @Override
@@ -399,6 +400,69 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     if (value.hasAnyUsers() && !newType.equals(oldType)) {
       affectedValues.addAll(value.affectedValues());
     }
+  }
+
+  @Override
+  public void replaceCurrentInstructionWithThrow(
+      AppView<?> appView,
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      Value exceptionValue,
+      Set<BasicBlock> blocksToRemove,
+      Set<Value> affectedValues) {
+    if (current == null) {
+      throw new IllegalStateException();
+    }
+
+    Instruction toBeReplaced = current;
+    InternalOptions options = appView.options();
+
+    BasicBlock block = toBeReplaced.getBlock();
+    assert !blocksToRemove.contains(block);
+    assert affectedValues != null;
+
+    // Split the block before the instruction that should be replaced by `throw exceptionValue`.
+    previous();
+
+    BasicBlock throwBlock;
+    if (block.hasCatchHandlers() && !toBeReplaced.instructionTypeCanThrow()) {
+      // We need to insert the throw instruction in a block of its own, so split the current block
+      // into three blocks, where the intermediate block only contains a goto instruction.
+      throwBlock = splitCopyCatchHandlers(code, blockIterator, options);
+      throwBlock.listIterator(code).split(code, blockIterator, true);
+    } else {
+      splitCopyCatchHandlers(code, blockIterator, options);
+      throwBlock = block;
+    }
+
+    // Unlink all blocks that are dominated by the unique normal successor of the throw block.
+    blocksToRemove.addAll(
+        throwBlock.unlink(
+            throwBlock.getUniqueNormalSuccessor(),
+            new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS),
+            affectedValues));
+
+    InstructionListIterator throwBlockInstructionIterator;
+    if (throwBlock == block) {
+      throwBlockInstructionIterator = this;
+      previous();
+      next();
+    } else {
+      throwBlockInstructionIterator = throwBlock.listIterator(code, 1);
+    }
+    assert !throwBlockInstructionIterator.hasNext();
+
+    // Replace the instruction by throw.
+    Throw throwInstruction = new Throw(exceptionValue);
+    if (hasInsertionPosition()) {
+      throwInstruction.setPosition(position);
+    } else if (toBeReplaced.getPosition().isSome()) {
+      throwInstruction.setPosition(toBeReplaced.getPosition());
+    } else {
+      assert !toBeReplaced.instructionTypeCanThrow();
+      throwInstruction.setPosition(Position.syntheticNone());
+    }
+    throwBlockInstructionIterator.replaceCurrentInstruction(throwInstruction);
   }
 
   @Override
@@ -563,8 +627,9 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       IRCode code, ListIterator<BasicBlock> blockIterator, InternalOptions options) {
     BasicBlock splitBlock = split(code, blockIterator, false);
     assert !block.hasCatchHandlers();
-    assert splitBlock.hasCatchHandlers();
-    block.copyCatchHandlers(code, blockIterator, splitBlock, options);
+    if (splitBlock.hasCatchHandlers()) {
+      block.copyCatchHandlers(code, blockIterator, splitBlock, options);
+    }
     return splitBlock;
   }
 

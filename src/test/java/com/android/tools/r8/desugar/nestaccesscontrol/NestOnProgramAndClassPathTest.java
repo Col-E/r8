@@ -99,9 +99,7 @@ public class NestOnProgramAndClassPathTest extends TestBase {
     testForD8()
         .addProgramFiles(inner.writeToZip(), host.writeToZip())
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(options -> options.enableNestBasedAccessDesugaring = true)
         .compile()
-        .inspect(inspector -> assertEquals(3, inspector.allClasses().size()))
         .run(parameters.getRuntime(), getMainClass("constructors"))
         .assertSuccessWithOutput(getExpectedResult("constructors"));
   }
@@ -117,7 +115,6 @@ public class NestOnProgramAndClassPathTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addProgramFiles(matchingClasses)
         .addClasspathFiles(JAR)
-        .addOptionsModification(options -> options.enableNestBasedAccessDesugaring = true)
         .compile();
   }
 

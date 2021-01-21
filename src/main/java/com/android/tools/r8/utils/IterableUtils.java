@@ -59,8 +59,12 @@ public class IterableUtils {
     return -1;
   }
 
-  public static <T> Iterable<T> filter(Iterable<T> iterable, Predicate<T> predicate) {
+  public static <T> Iterable<T> filter(Iterable<T> iterable, Predicate<? super T> predicate) {
     return () -> IteratorUtils.filter(iterable.iterator(), predicate);
+  }
+
+  public static <T> boolean hasNext(Iterable<T> iterable) {
+    return iterable.iterator().hasNext();
   }
 
   public static <T> int size(Iterable<T> iterable) {
@@ -75,6 +79,10 @@ public class IterableUtils {
     List<T> result = new ArrayList<>();
     iterable.forEach(result::add);
     return result;
+  }
+
+  public static <S, T> Iterable<T> transform(Iterable<S> iterable, Function<S, T> fn) {
+    return Iterables.transform(iterable, fn::apply);
   }
 
   public static <T> boolean isEmpty(Iterable<T> iterable) {

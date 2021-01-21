@@ -92,7 +92,8 @@ public class PrintSeeds {
       RootSet rootSet =
           new RootSetBuilder(appView, subtypingInfo, options.getProguardConfiguration().getRules())
               .run(executor);
-      Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo);
+      Enqueuer enqueuer =
+          EnqueuerFactory.createForInitialTreeShaking(appView, executor, subtypingInfo);
       AppInfoWithLiveness appInfo =
           enqueuer.traceApplication(
               rootSet, options.getProguardConfiguration().getDontWarnPatterns(), executor, timing);

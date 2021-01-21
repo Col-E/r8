@@ -15,7 +15,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.horizontalclassmerging.SyntheticArgumentClass;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
-import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
+import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -173,6 +173,10 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
       BiConsumer<DexMethod, T> methodConsumer,
       T arg) {
     classConsumer.accept(this, arg);
+  }
+
+  public String getTypeName() {
+    return toSourceString();
   }
 
   @Override

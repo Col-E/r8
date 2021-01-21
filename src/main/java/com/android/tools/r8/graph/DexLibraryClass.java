@@ -13,6 +13,7 @@ import com.android.tools.r8.origin.Origin;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -82,6 +83,14 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
     assert !field.isPrivate();
     assert !field.isStatic() || !field.hasExplicitStaticValue();
     return true;
+  }
+
+  @Override
+  public void accept(
+      Consumer<DexProgramClass> programClassConsumer,
+      Consumer<DexClasspathClass> classpathClassConsumer,
+      Consumer<DexLibraryClass> libraryClassConsumer) {
+    libraryClassConsumer.accept(this);
   }
 
   @Override

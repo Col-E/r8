@@ -120,6 +120,14 @@ public interface InstructionListIterator
   void replaceCurrentInstructionWithStaticGet(
       AppView<?> appView, IRCode code, DexField field, Set<Value> affectedValues);
 
+  void replaceCurrentInstructionWithThrow(
+      AppView<?> appView,
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      Value exceptionValue,
+      Set<BasicBlock> blocksToRemove,
+      Set<Value> affectedValues);
+
   /**
    * Replace the current instruction with null throwing instructions.
    *

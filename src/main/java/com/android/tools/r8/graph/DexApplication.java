@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public abstract class DexApplication {
@@ -109,7 +110,7 @@ public abstract class DexApplication {
     // that.
     if (options.testing.deterministicSortingBasedOnDexType) {
       // To keep the order deterministic, we sort the classes by their type, which is a unique key.
-      classes.sort((a, b) -> a.type.compareTo(b.type));
+      classes.sort(Comparator.comparing(DexClass::getType));
     }
     return classes;
   }
@@ -133,7 +134,7 @@ public abstract class DexApplication {
     // new or removing existing classes), classpath and library
     // collections will be considered monolithic collections.
 
-    final List<DexProgramClass> programClasses = new ArrayList<>();
+    List<DexProgramClass> programClasses = new ArrayList<>();
 
     final List<DataResourceProvider> dataResourceProviders = new ArrayList<>();
 

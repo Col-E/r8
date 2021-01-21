@@ -23,6 +23,11 @@ public final class ClasspathMethod extends DexClassAndMethod {
   }
 
   @Override
+  public boolean isClasspathMember() {
+    return true;
+  }
+
+  @Override
   public boolean isClasspathMethod() {
     return true;
   }

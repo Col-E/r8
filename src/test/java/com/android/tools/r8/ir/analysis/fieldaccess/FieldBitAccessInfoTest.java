@@ -36,7 +36,6 @@ import com.android.tools.r8.utils.Timing;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,7 +48,7 @@ public class FieldBitAccessInfoTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public FieldBitAccessInfoTest(TestParameters parameters) {
@@ -61,7 +60,7 @@ public class FieldBitAccessInfoTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines(
@@ -93,7 +92,7 @@ public class FieldBitAccessInfoTest extends TestBase {
     clazz.forEachProgramMethod(
         method -> {
           IRCode code = method.buildIR(appView);
-          fieldAccessAnalysis.recordFieldAccesses(code, feedback, new MethodProcessorMock());
+          fieldAccessAnalysis.recordFieldAccesses(code, feedback, new PrimaryMethodProcessorMock());
         });
 
     int bitsReadInBitField = feedback.bitsReadPerField.getInt(uniqueFieldByName(clazz, "bitField"));
@@ -116,7 +115,7 @@ public class FieldBitAccessInfoTest extends TestBase {
     }
   }
 
-  private AppView<AppInfoWithClassHierarchy> buildApp() throws IOException, ExecutionException {
+  private AppView<AppInfoWithClassHierarchy> buildApp() throws IOException {
     DexItemFactory dexItemFactory = new DexItemFactory();
     InternalOptions options = new InternalOptions(dexItemFactory, new Reporter());
     options.programConsumer =
@@ -210,16 +209,16 @@ public class FieldBitAccessInfoTest extends TestBase {
     }
   }
 
-  static class MethodProcessorMock extends MethodProcessor {
-
-    @Override
-    public Phase getPhase() {
-      return Phase.PRIMARY;
-    }
+  static class PrimaryMethodProcessorMock extends MethodProcessor {
 
     @Override
     public boolean shouldApplyCodeRewritings(ProgramMethod method) {
       return false;
+    }
+
+    @Override
+    public boolean isPrimaryMethodProcessor() {
+      return true;
     }
 
     @Override

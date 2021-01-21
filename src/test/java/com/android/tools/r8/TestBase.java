@@ -720,9 +720,9 @@ public class TestBase {
         MainDexClasses.createEmptyMainDexClasses());
   }
 
-  protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithSubtyping(AndroidApp app)
-      throws Exception {
-    return computeAppViewWithSubtyping(
+  protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierachy(
+      AndroidApp app) throws Exception {
+    return computeAppViewWithClassHierachy(
         app,
         factory ->
             buildConfigForRules(
@@ -730,7 +730,7 @@ public class TestBase {
                 Collections.singletonList(ProguardKeepRule.defaultKeepAllRule(unused -> {}))));
   }
 
-  private static AppView<AppInfoWithClassHierarchy> computeAppViewWithSubtyping(
+  private static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierachy(
       AndroidApp app, Function<DexItemFactory, ProguardConfiguration> keepConfig) throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
     InternalOptions options = new InternalOptions(keepConfig.apply(dexItemFactory), new Reporter());
@@ -759,7 +759,7 @@ public class TestBase {
 
   protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(
       AndroidApp app, Function<DexItemFactory, ProguardConfiguration> keepConfig) throws Exception {
-    AppView<AppInfoWithClassHierarchy> appView = computeAppViewWithSubtyping(app, keepConfig);
+    AppView<AppInfoWithClassHierarchy> appView = computeAppViewWithClassHierachy(app, keepConfig);
     // Run the tree shaker to compute an instance of AppInfoWithLiveness.
     ExecutorService executor = Executors.newSingleThreadExecutor();
     SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
@@ -769,7 +769,7 @@ public class TestBase {
             .run(executor);
     appView.setRootSet(rootSet);
     AppInfoWithLiveness appInfoWithLiveness =
-        EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo)
+        EnqueuerFactory.createForInitialTreeShaking(appView, executor, subtypingInfo)
             .traceApplication(rootSet, ProguardClassFilter.empty(), executor, Timing.empty());
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
     // due to liveness.

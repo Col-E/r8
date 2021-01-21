@@ -817,8 +817,7 @@ public class JarClassFileReader<T extends DexClass> {
 
     private boolean classRequiresCode() {
       return parent.classKind == ClassKind.PROGRAM
-          || (parent.application.options.enableNestBasedAccessDesugaring
-              && !parent.application.options.canUseNestBasedAccess()
+          || (!parent.application.options.canUseNestBasedAccess()
               && parent.classKind == ClassKind.CLASSPATH
               && parent.isInANest());
     }

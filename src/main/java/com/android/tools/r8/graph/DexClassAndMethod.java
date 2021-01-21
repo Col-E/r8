@@ -9,6 +9,8 @@ public class DexClassAndMethod extends DexClassAndMember<DexEncodedMethod, DexMe
 
   DexClassAndMethod(DexClass holder, DexEncodedMethod method) {
     super(holder, method);
+    assert holder.isClasspathClass() == (this instanceof ClasspathMethod);
+    assert holder.isLibraryClass() == (this instanceof LibraryMethod);
     assert holder.isProgramClass() == (this instanceof ProgramMethod);
   }
 
@@ -19,12 +21,12 @@ public class DexClassAndMethod extends DexClassAndMember<DexEncodedMethod, DexMe
   public static DexClassAndMethod create(DexClass holder, DexEncodedMethod method) {
     if (holder.isProgramClass()) {
       return new ProgramMethod(holder.asProgramClass(), method);
-    } else if (holder.isLibraryClass()) {
-      return new LibraryMethod(holder.asLibraryClass(), method);
-    } else {
-      assert holder.isClasspathClass();
-      return new ClasspathMethod(holder.asClasspathClass(), method);
     }
+    if (holder.isLibraryClass()) {
+      return new LibraryMethod(holder.asLibraryClass(), method);
+    }
+    assert holder.isClasspathClass();
+    return new ClasspathMethod(holder.asClasspathClass(), method);
   }
 
   public boolean isDefaultMethod() {

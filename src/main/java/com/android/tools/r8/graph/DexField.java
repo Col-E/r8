@@ -52,6 +52,11 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   }
 
   @Override
+  public DexClassAndField lookupMemberOnClass(DexClass clazz) {
+    return clazz != null ? clazz.lookupClassField(this) : null;
+  }
+
+  @Override
   public ProgramField lookupOnProgramClass(DexProgramClass clazz) {
     return clazz != null ? clazz.lookupProgramField(this) : null;
   }

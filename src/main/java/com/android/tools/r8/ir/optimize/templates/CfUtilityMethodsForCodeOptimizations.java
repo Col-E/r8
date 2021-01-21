@@ -33,6 +33,7 @@ public final class CfUtilityMethodsForCodeOptimizations {
 
   public static void registerSynthesizedCodeReferences(DexItemFactory factory) {
     factory.createSynthesizedType("Ljava/lang/ClassCastException;");
+    factory.createSynthesizedType("Ljava/lang/NoSuchMethodError;");
   }
 
   public static CfCode
@@ -69,6 +70,29 @@ public final class CfUtilityMethodsForCodeOptimizations {
                 new ArrayDeque<>(Arrays.asList())),
             new CfReturnVoid(),
             label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode CfUtilityMethodsForCodeOptimizationsTemplates_throwNoSuchMethodError(
+      InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        2,
+        0,
+        ImmutableList.of(
+            label0,
+            new CfNew(options.itemFactory.createType("Ljava/lang/NoSuchMethodError;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/NoSuchMethodError;"),
+                    options.itemFactory.createProto(options.itemFactory.voidType),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfThrow()),
         ImmutableList.of(),
         ImmutableList.of());
   }

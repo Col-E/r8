@@ -148,6 +148,14 @@ public class DexProgramClass extends DexClass
   }
 
   @Override
+  public void accept(
+      Consumer<DexProgramClass> programClassConsumer,
+      Consumer<DexClasspathClass> classpathClassConsumer,
+      Consumer<DexLibraryClass> libraryClassConsumer) {
+    programClassConsumer.accept(this);
+  }
+
+  @Override
   public DexProgramClass self() {
     return this;
   }

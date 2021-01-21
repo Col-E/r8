@@ -85,6 +85,17 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   }
 
   @Override
+  public void replaceCurrentInstructionWithThrow(
+      AppView<?> appView,
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      Value exceptionValue,
+      Set<BasicBlock> blocksToRemove,
+      Set<Value> affectedValues) {
+    throw new Unimplemented();
+  }
+
+  @Override
   public void replaceCurrentInstructionWithThrowNull(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       IRCode code,

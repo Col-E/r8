@@ -38,6 +38,7 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -48,9 +49,14 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessingId;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.Collection;
 import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
+import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
+import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
@@ -251,15 +257,21 @@ public final class InterfaceMethodRewriter {
 
   // Rewrites the references to static and default interface methods.
   // NOTE: can be called for different methods concurrently.
-  public void rewriteMethodReferences(IRCode code) {
+  public void rewriteMethodReferences(
+      IRCode code, MethodProcessor methodProcessor, MethodProcessingId methodProcessingId) {
     ProgramMethod context = code.context();
     if (synthesizedMethods.contains(context)) {
       return;
     }
 
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
+      if (blocksToRemove.contains(block)) {
+        continue;
+      }
       InstructionListIterator instructions = block.listIterator(code);
       while (instructions.hasNext()) {
         Instruction instruction = instructions.next();
@@ -271,7 +283,15 @@ public final class InterfaceMethodRewriter {
             rewriteInvokeDirect(instruction.asInvokeDirect(), instructions, context);
             break;
           case INVOKE_STATIC:
-            rewriteInvokeStatic(instruction.asInvokeStatic(), instructions, context);
+            rewriteInvokeStatic(
+                instruction.asInvokeStatic(),
+                code,
+                blocks,
+                instructions,
+                affectedValues,
+                blocksToRemove,
+                methodProcessor,
+                methodProcessingId);
             break;
           case INVOKE_SUPER:
             rewriteInvokeSuper(instruction.asInvokeSuper(), instructions, context);
@@ -287,6 +307,14 @@ public final class InterfaceMethodRewriter {
         }
       }
     }
+
+    code.removeBlocks(blocksToRemove);
+
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
+
+    assert code.isConsistentSSA();
   }
 
   private void rewriteInvokeCustom(InvokeCustom invoke, ProgramMethod context) {
@@ -359,13 +387,21 @@ public final class InterfaceMethodRewriter {
   }
 
   private void rewriteInvokeStatic(
-      InvokeStatic invoke, InstructionListIterator instructions, ProgramMethod context) {
+      InvokeStatic invoke,
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      InstructionListIterator instructions,
+      Set<Value> affectedValues,
+      Set<BasicBlock> blocksToRemove,
+      MethodProcessor methodProcessor,
+      MethodProcessingId methodProcessingId) {
     DexMethod invokedMethod = invoke.getInvokedMethod();
     if (appView.getSyntheticItems().isPendingSynthetic(invokedMethod.holder)) {
       // We did not create this code yet, but it will not require rewriting.
       return;
     }
 
+    ProgramMethod context = code.context();
     DexClass clazz = appView.definitionFor(invokedMethod.holder, context);
     if (clazz == null) {
       // NOTE: leave unchanged those calls to undefined targets. This may lead to runtime
@@ -432,13 +468,44 @@ public final class InterfaceMethodRewriter {
         // When leaving static interface method invokes upgrade the class file version.
         context.getDefinition().upgradeClassFileVersion(CfVersion.V1_8);
       }
-    } else {
+      return;
+    }
+
+    SingleResolutionResult resolutionResult =
+        appView
+            .appInfoForDesugaring()
+            .resolveMethodOnInterface(clazz, invokedMethod)
+            .asSingleResolution();
+    if (resolutionResult != null) {
       instructions.replaceCurrentInstruction(
           new InvokeStatic(
-              staticAsMethodOfCompanionClass(invokedMethod),
+              staticAsMethodOfCompanionClass(resolutionResult.getResolutionPair()),
               invoke.outValue(),
               invoke.arguments()));
+      return;
     }
+
+    // Replace by throw new NoSuchMethodError.
+    UtilityMethodForCodeOptimizations throwNoSuchMethodErrorMethod =
+        UtilityMethodsForCodeOptimizations.synthesizeThrowNoSuchMethodErrorMethod(
+            appView, context, methodProcessingId);
+    throwNoSuchMethodErrorMethod.optimize(methodProcessor);
+    InvokeStatic throwNoSuchMethodErrorInvoke =
+        InvokeStatic.builder()
+            .setMethod(throwNoSuchMethodErrorMethod.getMethod())
+            .setFreshOutValue(appView, code)
+            .setPosition(invoke)
+            .build();
+    instructions.previous();
+    instructions.add(throwNoSuchMethodErrorInvoke);
+    instructions.next();
+    instructions.replaceCurrentInstructionWithThrow(
+        appView,
+        code,
+        blockIterator,
+        throwNoSuchMethodErrorInvoke.outValue(),
+        blocksToRemove,
+        affectedValues);
   }
 
   private void rewriteInvokeSuper(

@@ -52,11 +52,6 @@ public class OneTimeMethodProcessor extends MethodProcessor {
     return true;
   }
 
-  @Override
-  public Phase getPhase() {
-    return Phase.ONE_TIME;
-  }
-
   public <E extends Exception> void forEachWaveWithExtension(
       ThrowingBiConsumer<ProgramMethod, MethodProcessingId, E> consumer) throws E {
     while (!wave.isEmpty()) {

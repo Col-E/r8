@@ -101,7 +101,11 @@ public abstract class TestShrinkerBuilder<
   }
 
   public T addDontWarn(Class<?> clazz) {
-    return addKeepRules("-dontwarn " + clazz.getTypeName());
+    return addDontWarn(clazz.getTypeName());
+  }
+
+  public T addDontWarn(String className) {
+    return addKeepRules("-dontwarn " + className);
   }
 
   public T addKeepKotlinMetadata() {

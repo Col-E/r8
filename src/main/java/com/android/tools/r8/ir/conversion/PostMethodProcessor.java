@@ -53,11 +53,6 @@ public class PostMethodProcessor extends MethodProcessor {
   }
 
   @Override
-  public Phase getPhase() {
-    return Phase.POST;
-  }
-
-  @Override
   public boolean shouldApplyCodeRewritings(ProgramMethod method) {
     assert !wave.contains(method);
     return !processed.contains(method);

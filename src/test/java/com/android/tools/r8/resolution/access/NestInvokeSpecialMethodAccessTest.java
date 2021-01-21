@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -18,7 +19,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.OptionalBool;
@@ -82,16 +82,16 @@ public class NestInvokeSpecialMethodAccessTest extends TestBase {
     Class<?> declaredClass = A.class;
     Class<?> callerClass = B.class;
 
-    AppView<AppInfoWithLiveness> appView = getAppView();
-    AppInfoWithLiveness appInfo = appView.appInfo();
+    AppView<AppInfoWithClassHierarchy> appView = getAppView();
+    AppInfoWithClassHierarchy appInfo = appView.appInfo();
 
-    DexClass definingClassDefinition = getDexProgramClass(definingClass, appInfo);
-    DexClass declaredClassDefinition = getDexProgramClass(declaredClass, appInfo);
-    DexProgramClass callerClassDefinition = getDexProgramClass(callerClass, appInfo);
+    DexClass definingClassDefinition = getDexProgramClass(definingClass, appView);
+    DexClass declaredClassDefinition = getDexProgramClass(declaredClass, appView);
+    DexProgramClass callerClassDefinition = getDexProgramClass(callerClass, appView);
 
-    DexMethod method = getTargetMethodSignature(declaredClass, appInfo);
+    DexMethod method = getTargetMethodSignature(declaredClass, appView);
 
-    assertCallingClassCallsTarget(callerClass, appInfo, method);
+    assertCallingClassCallsTarget(callerClass, appView, method);
 
     // Resolve the method from the point of the declared holder.
     assertEquals(method.holder, declaredClassDefinition.type);
@@ -121,29 +121,28 @@ public class NestInvokeSpecialMethodAccessTest extends TestBase {
   }
 
   private void assertCallingClassCallsTarget(
-      Class<?> callerClass, AppInfoWithLiveness appInfo, DexMethod target) {
-    CodeInspector inspector = new CodeInspector(appInfo.app());
+      Class<?> callerClass, AppView<?> appView, DexMethod target) {
+    CodeInspector inspector = new CodeInspector(appView.appInfo().app());
     MethodSubject foo = inspector.clazz(callerClass).uniqueMethodWithName("foo");
     assertTrue(
         foo.streamInstructions().anyMatch(i -> i.isInvokeSpecial() && i.getMethod() == target));
   }
 
-  private DexMethod getTargetMethodSignature(Class<?> declaredClass, AppInfoWithLiveness appInfo) {
+  private DexMethod getTargetMethodSignature(Class<?> declaredClass, AppView<?> appView) {
     return buildMethod(
         Reference.method(Reference.classFromClass(declaredClass), "bar", ImmutableList.of(), null),
-        appInfo.dexItemFactory());
+        appView.dexItemFactory());
   }
 
-  private DexProgramClass getDexProgramClass(Class<?> definingClass, AppInfoWithLiveness appInfo) {
-    return appInfo
-        .definitionFor(buildType(definingClass, appInfo.dexItemFactory()))
+  private DexProgramClass getDexProgramClass(Class<?> definingClass, AppView<?> appView) {
+    return appView
+        .definitionFor(buildType(definingClass, appView.dexItemFactory()))
         .asProgramClass();
   }
 
-  private AppView<AppInfoWithLiveness> getAppView() throws Exception {
-    return computeAppViewWithLiveness(
-        buildClasses(getClasses()).addClassProgramData(getTransformedClasses()).build(),
-        Main.class);
+  private AppView<AppInfoWithClassHierarchy> getAppView() throws Exception {
+    return computeAppViewWithClassHierachy(
+        buildClasses(getClasses()).addClassProgramData(getTransformedClasses()).build());
   }
 
   @Test

@@ -62,7 +62,7 @@ public class FieldAccessAnalysis {
 
   public void recordFieldAccesses(
       IRCode code, OptimizationFeedback feedback, MethodProcessor methodProcessor) {
-    if (!methodProcessor.isPrimary()) {
+    if (!methodProcessor.isPrimaryMethodProcessor()) {
       return;
     }
 

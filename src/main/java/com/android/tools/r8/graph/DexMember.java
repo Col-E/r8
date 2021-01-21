@@ -24,6 +24,8 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
 
   public abstract DexEncodedMember<?, ?> lookupOnClass(DexClass clazz);
 
+  public abstract DexClassAndMember<?, ?> lookupMemberOnClass(DexClass clazz);
+
   public abstract ProgramMember<?, ?> lookupOnProgramClass(DexProgramClass clazz);
 
   public abstract boolean match(R entry);

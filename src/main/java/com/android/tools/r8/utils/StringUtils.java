@@ -108,8 +108,8 @@ public class StringUtils {
     return append(builder, collection, ", ", BraceType.PARENS);
   }
 
-  public static <T> StringBuilder append(StringBuilder builder, Collection<T> collection,
-      String seperator, BraceType brace) {
+  public static <T> StringBuilder append(
+      StringBuilder builder, Iterable<T> collection, String seperator, BraceType brace) {
     builder.append(brace.left());
     boolean first = true;
     for (T element : collection) {
@@ -128,18 +128,22 @@ public class StringUtils {
     return join(collection, separator, BraceType.NONE);
   }
 
+  public static <T> String join(String separator, Iterable<T> iterable, Function<T, String> fn) {
+    return join(separator, iterable, fn, BraceType.NONE);
+  }
+
   public static String join(String separator, String... strings) {
     return join(Arrays.asList(strings), separator, BraceType.NONE);
   }
 
   public static <T> String join(Collection<T> collection, String separator, BraceType brace) {
-    return join(collection, separator, brace, Object::toString);
+    return join(separator, collection, Object::toString, brace);
   }
 
-  public static <T> String join(Collection<T> collection, String separator, BraceType brace,
-      Function<T, String> fn) {
+  public static <T> String join(
+      String separator, Iterable<T> iterable, Function<T, String> fn, BraceType brace) {
     StringBuilder builder = new StringBuilder();
-    append(builder, ListUtils.map(collection, fn), separator, brace);
+    append(builder, IterableUtils.transform(iterable, fn), separator, brace);
     return builder.toString();
   }
 

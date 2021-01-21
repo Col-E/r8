@@ -31,7 +31,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.DirectMappedDexApplication.Builder;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.InitClassLens;
@@ -49,8 +48,6 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
-import com.android.tools.r8.ir.desugar.NestedPrivateMethodLens;
-import com.android.tools.r8.ir.desugar.R8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.NestReducer;
@@ -420,6 +417,8 @@ public class R8 {
       }
 
       assert appView.appInfo().hasLiveness();
+      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+
       assert verifyNoJarApplicationReaders(appView.appInfo().classes());
       // Build conservative main dex content after first round of tree shaking. This is used
       // by certain optimizations to avoid introducing additional class references into main dex
@@ -435,7 +434,7 @@ public class R8 {
                 .run(executorService);
         // Live types is the tracing result.
         Set<DexProgramClass> mainDexBaseClasses =
-            EnqueuerFactory.createForInitialMainDexTracing(appView, subtypingInfo)
+            EnqueuerFactory.createForInitialMainDexTracing(appView, executorService, subtypingInfo)
                 .traceMainDex(mainDexRootSet, executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
         mainDexTracingResult = new MainDexListBuilder(mainDexBaseClasses, appView).run();
@@ -448,7 +447,6 @@ public class R8 {
       appView.dexItemFactory().clearTypeElementsCache();
 
       if (options.getProguardConfiguration().isAccessModificationAllowed()) {
-        AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
         SubtypingInfo subtypingInfo = appViewWithLiveness.appInfo().computeSubtypingInfo();
         GraphLens publicizedLens =
             ClassAndMemberPublicizer.run(
@@ -466,28 +464,12 @@ public class R8 {
         }
       }
 
-      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+      // This pass attempts to reduce the number of nests and nest size to allow further passes, and
+      // should therefore be run after the publicizer.
+      new NestReducer(appViewWithLiveness).run(executorService, timing);
+
       appView.setGraphLens(new MemberRebindingAnalysis(appViewWithLiveness).run(executorService));
       appView.appInfo().withLiveness().getFieldAccessInfoCollection().restrictToProgram(appView);
-
-      if (options.shouldDesugarNests()) {
-        timing.begin("NestBasedAccessDesugaring");
-        R8NestBasedAccessDesugaring analyzer = new R8NestBasedAccessDesugaring(appViewWithLiveness);
-        Builder appBuilder = getDirectApp(appView).builder();
-        NestedPrivateMethodLens lens = analyzer.run(executorService, appBuilder);
-        if (lens != null) {
-          appView.rewriteWithLensAndApplication(lens, appBuilder.build());
-        }
-        timing.end();
-      } else {
-        timing.begin("NestReduction");
-        // This pass attempts to reduce the number of nests and nest size
-        // to allow further passes, specifically the class mergers, to do
-        // a better job. This pass is better run before the class merger
-        // but after the publicizer (cannot be run as part of the Enqueuer).
-        new NestReducer(appViewWithLiveness).run(executorService);
-        timing.end();
-      }
 
       boolean isKotlinLibraryCompilationWithInlinePassThrough =
           options.enableCfByteCodePassThrough && appView.hasCfByteCodePassThroughMethods();
@@ -646,6 +628,7 @@ public class R8 {
         Enqueuer enqueuer =
             EnqueuerFactory.createForFinalMainDexTracing(
                 appView,
+                executorService,
                 new SubtypingInfo(appView),
                 mainDexKeptGraphConsumer,
                 mainDexTracingResult);
@@ -697,6 +680,7 @@ public class R8 {
           Enqueuer enqueuer =
               EnqueuerFactory.createForFinalTreeShaking(
                   appView,
+                  executorService,
                   new SubtypingInfo(appView),
                   keptGraphConsumer,
                   prunedTypes);
@@ -1014,7 +998,8 @@ public class R8 {
       SubtypingInfo subtypingInfo,
       RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder)
       throws ExecutionException {
-    Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo);
+    Enqueuer enqueuer =
+        EnqueuerFactory.createForInitialTreeShaking(appView, executorService, subtypingInfo);
     enqueuer.setAnnotationRemoverBuilder(annotationRemoverBuilder);
     if (appView.options().enableInitializedClassesInInstanceMethodsAnalysis) {
       enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
@@ -1084,12 +1069,16 @@ public class R8 {
       if (forMainDex) {
         enqueuer =
             EnqueuerFactory.createForFinalMainDexTracing(
-                appView, subtypingInfo, whyAreYouKeepingConsumer, MainDexTracingResult.NONE);
+                appView,
+                executorService,
+                subtypingInfo,
+                whyAreYouKeepingConsumer,
+                MainDexTracingResult.NONE);
         enqueuer.traceMainDex(rootSet, executorService, timing);
       } else {
         enqueuer =
             EnqueuerFactory.createForWhyAreYouKeeping(
-                appView, subtypingInfo, whyAreYouKeepingConsumer);
+                appView, executorService, subtypingInfo, whyAreYouKeepingConsumer);
         enqueuer.traceApplication(
             rootSet,
             options.getProguardConfiguration().getDontWarnPatterns(),

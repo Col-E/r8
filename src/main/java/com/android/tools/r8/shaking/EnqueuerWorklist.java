@@ -174,6 +174,19 @@ public class EnqueuerWorklist {
     }
   }
 
+  static class TraceCodeAction extends EnqueuerAction {
+    private final ProgramMethod method;
+
+    TraceCodeAction(ProgramMethod method) {
+      this.method = method;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.traceCode(method);
+    }
+  }
+
   static class TraceConstClassAction extends EnqueuerAction {
     private final DexType type;
     // TODO(b/175854431): Avoid pushing context on worklist.
@@ -302,6 +315,10 @@ public class EnqueuerWorklist {
 
   void enqueueMarkFieldKeptAction(ProgramField field, KeepReasonWitness witness) {
     queue.add(new MarkFieldKeptAction(field, witness));
+  }
+
+  public void enqueueTraceCodeAction(ProgramMethod method) {
+    queue.add(new TraceCodeAction(method));
   }
 
   public void enqueueTraceConstClassAction(DexType type, ProgramMethod context) {

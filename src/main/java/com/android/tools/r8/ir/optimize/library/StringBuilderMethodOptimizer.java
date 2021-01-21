@@ -122,16 +122,13 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
         UtilityMethodForCodeOptimizations toStringIfNotNullMethod =
             UtilityMethodsForCodeOptimizations.synthesizeToStringIfNotNullMethod(
                 appView, code.context(), state.methodProcessingId);
-        // TODO(b/172194277): Allow synthetics when generating CF.
-        if (toStringIfNotNullMethod != null) {
-          toStringIfNotNullMethod.optimize(state.methodProcessor);
-          InvokeStatic replacement =
-              InvokeStatic.builder()
-                  .setMethod(toStringIfNotNullMethod.getMethod())
-                  .setSingleArgument(object)
-                  .build();
-          instructionIterator.replaceCurrentInstruction(replacement);
-        }
+        toStringIfNotNullMethod.optimize(state.methodProcessor);
+        InvokeStatic replacement =
+            InvokeStatic.builder()
+                .setMethod(toStringIfNotNullMethod.getMethod())
+                .setSingleArgument(object)
+                .build();
+        instructionIterator.replaceCurrentInstruction(replacement);
       }
     }
   }

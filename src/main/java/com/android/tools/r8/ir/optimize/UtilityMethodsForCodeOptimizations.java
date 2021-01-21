@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -23,10 +24,6 @@ public class UtilityMethodsForCodeOptimizations {
   public static UtilityMethodForCodeOptimizations synthesizeToStringIfNotNullMethod(
       AppView<?> appView, ProgramMethod context, MethodProcessingId methodProcessingId) {
     InternalOptions options = appView.options();
-    if (options.isGeneratingClassFiles()) {
-      // TODO(b/172194277): Allow synthetics when generating CF.
-      return null;
-    }
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     SyntheticItems syntheticItems = appView.getSyntheticItems();
@@ -37,9 +34,10 @@ public class UtilityMethodsForCodeOptimizations {
             dexItemFactory,
             builder ->
                 builder
-                    .setProto(proto)
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                    .setCode(method -> getToStringIfNotNullCodeTemplate(method, options)),
+                    .setClassFileVersion(CfVersion.V1_8)
+                    .setCode(method -> getToStringIfNotNullCodeTemplate(method, options))
+                    .setProto(proto),
             methodProcessingId);
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
@@ -53,10 +51,6 @@ public class UtilityMethodsForCodeOptimizations {
   public static UtilityMethodForCodeOptimizations synthesizeThrowClassCastExceptionIfNotNullMethod(
       AppView<?> appView, ProgramMethod context, MethodProcessingId methodProcessingId) {
     InternalOptions options = appView.options();
-    if (options.isGeneratingClassFiles()) {
-      // TODO(b/172194277): Allow synthetics when generating CF.
-      return null;
-    }
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     SyntheticItems syntheticItems = appView.getSyntheticItems();
@@ -67,10 +61,11 @@ public class UtilityMethodsForCodeOptimizations {
             dexItemFactory,
             builder ->
                 builder
-                    .setProto(proto)
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                    .setClassFileVersion(CfVersion.V1_8)
                     .setCode(
-                        method -> getThrowClassCastExceptionIfNotNullCodeTemplate(method, options)),
+                        method -> getThrowClassCastExceptionIfNotNullCodeTemplate(method, options))
+                    .setProto(proto),
             methodProcessingId);
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
@@ -80,6 +75,33 @@ public class UtilityMethodsForCodeOptimizations {
     return CfUtilityMethodsForCodeOptimizations
         .CfUtilityMethodsForCodeOptimizationsTemplates_throwClassCastExceptionIfNotNull(
             options, method);
+  }
+
+  public static UtilityMethodForCodeOptimizations synthesizeThrowNoSuchMethodErrorMethod(
+      AppView<?> appView, ProgramMethod context, MethodProcessingId methodProcessingId) {
+    InternalOptions options = appView.options();
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexProto proto = dexItemFactory.createProto(dexItemFactory.noSuchMethodErrorType);
+    SyntheticItems syntheticItems = appView.getSyntheticItems();
+    ProgramMethod syntheticMethod =
+        syntheticItems.createMethod(
+            SyntheticNaming.SyntheticKind.THROW_NSME,
+            context,
+            dexItemFactory,
+            builder ->
+                builder
+                    .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                    .setClassFileVersion(CfVersion.V1_8)
+                    .setCode(method -> getThrowNoSuchMethodErrorCodeTemplate(method, options))
+                    .setProto(proto),
+            methodProcessingId);
+    return new UtilityMethodForCodeOptimizations(syntheticMethod);
+  }
+
+  private static CfCode getThrowNoSuchMethodErrorCodeTemplate(
+      DexMethod method, InternalOptions options) {
+    return CfUtilityMethodsForCodeOptimizations
+        .CfUtilityMethodsForCodeOptimizationsTemplates_throwNoSuchMethodError(options, method);
   }
 
   public static class UtilityMethodForCodeOptimizations {

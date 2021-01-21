@@ -287,14 +287,17 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
       D8TestRunResult result =
           compileResult.run(
               parameters.getRuntime(), "TestNGMainRunner", verbosity, runnableTests.get(path));
-      if (result.getStdOut().contains("java.lang.NoSuchMethodError")
-          && Arrays.stream(missingDesugaredMethods())
-              .anyMatch(method -> result.getStdOut().contains(method))) {
+      String stdout = result.getStdOut();
+      if (stdout.contains("java.lang.NoSuchMethodError")
+          && Arrays.stream(missingDesugaredMethods()).anyMatch(method -> stdout.contains(method))) {
         // TODO(b/134732760): support Java 9 APIs.
-      } else if (result.getStdOut().contains("in class Ljava/util/Random")
-          && result.getStdOut().contains("java.lang.NoSuchMethodError")) {
+      } else if (stdout.contains("java.lang.NoSuchMethodError")
+          && stdout.contains("org.openjdk.tests.java.util.stream.IterateTest.testIterate")) {
+        // TODO(b/134732760): support Java 9 APIs.
+      } else if (stdout.contains("in class Ljava/util/Random")
+          && stdout.contains("java.lang.NoSuchMethodError")) {
         // TODO(b/134732760): Random Java 9 Apis, support or do not use them.
-      } else if (result.getStdOut().contains("java.lang.AssertionError")) {
+      } else if (stdout.contains("java.lang.AssertionError")) {
         // TODO(b/134732760): Investigate and fix these issues.
       } else {
         String errorMessage = "STDOUT:\n" + result.getStdOut() + "STDERR:\n" + result.getStdErr();

@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
@@ -21,6 +22,7 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.modeling.LibraryMethodReadSetModeling;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
@@ -251,6 +253,11 @@ public abstract class InvokeMethod extends Invoke {
       assert arguments != null;
       this.arguments = arguments;
       return self();
+    }
+
+    public B setFreshOutValue(AppView<?> appView, ValueFactory factory) {
+      return super.setFreshOutValue(
+          factory, TypeElement.fromDexType(method.getReturnType(), maybeNull(), appView));
     }
 
     public B setSingleArgument(Value argument) {

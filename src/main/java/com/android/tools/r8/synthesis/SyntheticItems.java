@@ -300,7 +300,13 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       Consumer<SyntheticMethodBuilder> fn,
       MethodProcessingId methodProcessingId) {
     return createMethod(
-        kind, context, factory, fn, methodProcessingId::getFullyQualifiedIdAndIncrement);
+        kind,
+        context,
+        factory,
+        fn,
+        methodProcessingId != null
+            ? methodProcessingId::getFullyQualifiedIdAndIncrement
+            : this::getNextSyntheticId);
   }
 
   // TODO(b/172194101): Remove/private this once the uniqueness is a property of the context.

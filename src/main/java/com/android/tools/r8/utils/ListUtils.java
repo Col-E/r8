@@ -14,6 +14,36 @@ import java.util.function.Predicate;
 
 public class ListUtils {
 
+  /**
+   * Maps each element in the list using on the given function. Returns the mapped list if any
+   * elements were rewritten, otherwise returns the original list.
+   *
+   * <p>If the given function {@param fn} returns null for an element {@code v}, this is interpreted
+   * as the singleton list containing {@code v} (i.e., no changes should be made to the given
+   * element).
+   */
+  public static <T> List<T> flatMap(List<T> list, Function<T, List<T>> fn, List<T> defaultValue) {
+    List<T> result = null;
+    for (int i = 0; i < list.size(); i++) {
+      T element = list.get(i);
+      List<T> replacement = fn.apply(element);
+      if (replacement == null) {
+        if (result != null) {
+          result.add(element);
+        }
+      } else {
+        if (result == null) {
+          result = new ArrayList<>(list.size() + replacement.size() - 1);
+          for (int j = 0; j < i; j++) {
+            result.add(list.get(j));
+          }
+        }
+        result.addAll(replacement);
+      }
+    }
+    return result != null ? result : defaultValue;
+  }
+
   public static <T> T first(List<T> list) {
     return list.get(0);
   }

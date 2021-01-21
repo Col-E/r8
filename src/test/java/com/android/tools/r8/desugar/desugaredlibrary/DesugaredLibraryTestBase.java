@@ -24,7 +24,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
-import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
+import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.AndroidApiLevel;

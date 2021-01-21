@@ -65,6 +65,10 @@ public class CfFieldInstruction extends CfInstruction {
     return visitor.visit(this, other.asFieldInstruction(), CfFieldInstruction::specify);
   }
 
+  public boolean isFieldGet() {
+    return opcode == Opcodes.GETFIELD || opcode == Opcodes.GETSTATIC;
+  }
+
   @Override
   public CfFieldInstruction asFieldInstruction() {
     return this;

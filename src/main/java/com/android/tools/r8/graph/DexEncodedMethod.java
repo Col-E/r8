@@ -49,7 +49,6 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.DexFieldWithAccess;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.NestUtils;
@@ -60,7 +59,8 @@ import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
-import com.android.tools.r8.ir.synthetic.FieldAccessorSourceCode;
+import com.android.tools.r8.ir.synthetic.FieldAccessorBuilder;
+import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.kotlin.KotlinMethodLevelInfo;
@@ -495,10 +495,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public boolean isNative() {
     return accessFlags.isNative();
-  }
-
-  public boolean isPrivate() {
-    return accessFlags.isPrivate();
   }
 
   public boolean isPublic() {
@@ -1192,59 +1188,47 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return builder.build();
   }
 
-  public ProgramMethod toInitializerForwardingBridge(DexProgramClass holder, DexMethod newMethod) {
-    assert accessFlags.isPrivate()
+  public ProgramMethod toInitializerForwardingBridge(
+      DexProgramClass holder, DexMethod newMethod, DexItemFactory dexItemFactory) {
+    assert isPrivate()
         : "Expected to create bridge for private constructor as part of nest-based access"
             + " desugaring";
-    Builder builder = syntheticBuilder(this);
-    builder.setMethod(newMethod);
-    ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
-        ForwardMethodSourceCode.builder(newMethod);
-    forwardSourceCodeBuilder
-        .setReceiver(holder.type)
-        .setTargetReceiver(holder.type)
-        .setTarget(method)
-        .setInvokeType(Invoke.Type.DIRECT)
-        .setExtraNullParameter();
-    builder.setCode(
-        new SynthesizedCode(
-            forwardSourceCodeBuilder::build, registry -> registry.registerInvokeDirect(method)));
-    assert !builder.accessFlags.isStatic();
     assert !holder.isInterface();
-    builder.accessFlags.unsetPrivate();
-    builder.accessFlags.setSynthetic();
-    builder.accessFlags.setConstructor();
-    return new ProgramMethod(holder, builder.build());
+    return new ProgramMethod(
+        holder,
+        syntheticBuilder(this)
+            .setMethod(newMethod)
+            .setCode(
+                ForwardMethodBuilder.builder(dexItemFactory)
+                    .setNonStaticSourceWithExtraUnusedParameter(newMethod)
+                    .setConstructorTarget(getReference())
+                    .build())
+            .modifyAccessFlags(
+                accessFlags -> {
+                  assert !accessFlags.isStatic();
+                  accessFlags.unsetPrivate();
+                  accessFlags.setSynthetic();
+                  accessFlags.setConstructor();
+                })
+            .build());
   }
 
   public static ProgramMethod createFieldAccessorBridge(
-      DexFieldWithAccess fieldWithAccess, DexProgramClass holder, DexMethod newMethod) {
-    assert holder.type == fieldWithAccess.getHolder();
+      ProgramField field, boolean isGet, DexMethod newMethod) {
     MethodAccessFlags accessFlags =
         MethodAccessFlags.fromSharedAccessFlags(
             Constants.ACC_SYNTHETIC
                 | Constants.ACC_STATIC
-                | (holder.isInterface() ? Constants.ACC_PUBLIC : 0),
+                | (field.getHolder().isInterface() ? Constants.ACC_PUBLIC : 0),
             false);
-    Code code =
-        new SynthesizedCode(
-            callerPosition ->
-                new FieldAccessorSourceCode(
-                    null, newMethod, callerPosition, newMethod, fieldWithAccess),
-            registry -> {
-              if (fieldWithAccess.isInstanceGet()) {
-                registry.registerInstanceFieldRead(fieldWithAccess.getField());
-              } else if (fieldWithAccess.isStaticGet()) {
-                registry.registerStaticFieldRead(fieldWithAccess.getField());
-              } else if (fieldWithAccess.isInstancePut()) {
-                registry.registerInstanceFieldWrite(fieldWithAccess.getField());
-              } else {
-                assert fieldWithAccess.isStaticPut();
-                registry.registerStaticFieldWrite(fieldWithAccess.getField());
-              }
-            });
+    CfCode code =
+        FieldAccessorBuilder.builder()
+            .apply(isGet ? FieldAccessorBuilder::setGetter : FieldAccessorBuilder::setSetter)
+            .setField(field)
+            .setSourceMethod(newMethod)
+            .build();
     return new ProgramMethod(
-        holder,
+        field.getHolder(),
         new DexEncodedMethod(
             newMethod,
             accessFlags,
@@ -1285,35 +1269,36 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         true);
   }
 
-  public ProgramMethod toStaticForwardingBridge(DexProgramClass holder, DexMethod newMethod) {
-    assert accessFlags.isPrivate()
+  public ProgramMethod toStaticForwardingBridge(
+      DexProgramClass holder, DexMethod newMethod, DexItemFactory dexItemFactory) {
+    assert isPrivate()
         : "Expected to create bridge for private method as part of nest-based access desugaring";
-    Builder builder = syntheticBuilder(this);
-    builder.setMethod(newMethod);
-    ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
-        ForwardMethodSourceCode.builder(newMethod);
-    forwardSourceCodeBuilder
-        .setTargetReceiver(accessFlags.isStatic() ? null : method.holder)
-        .setTarget(method)
-        .setInvokeType(accessFlags.isStatic() ? Invoke.Type.STATIC : Invoke.Type.DIRECT)
-        .setIsInterface(holder.isInterface());
-    builder.setCode(
-        new SynthesizedCode(
-            forwardSourceCodeBuilder::build,
-            registry -> {
-              if (accessFlags.isStatic()) {
-                registry.registerInvokeStatic(method);
-              } else {
-                registry.registerInvokeDirect(method);
-              }
-            }));
-    builder.accessFlags.setSynthetic();
-    builder.accessFlags.setStatic();
-    builder.accessFlags.unsetPrivate();
-    if (holder.isInterface()) {
-      builder.accessFlags.setPublic();
-    }
-    return new ProgramMethod(holder, builder.build());
+    return new ProgramMethod(
+        holder,
+        syntheticBuilder(this)
+            .setMethod(newMethod)
+            .setCode(
+                ForwardMethodBuilder.builder(dexItemFactory)
+                    .setStaticSource(newMethod)
+                    .apply(
+                        builder -> {
+                          if (isStatic()) {
+                            builder.setStaticTarget(getReference(), holder.isInterface());
+                          } else {
+                            builder.setDirectTarget(getReference(), holder.isInterface());
+                          }
+                        })
+                    .build())
+            .modifyAccessFlags(
+                accessFlags -> {
+                  accessFlags.setSynthetic();
+                  accessFlags.setStatic();
+                  accessFlags.unsetPrivate();
+                  if (holder.isInterface()) {
+                    accessFlags.setPublic();
+                  }
+                })
+            .build());
   }
 
   public DexEncodedMethod toPrivateSyntheticMethod(DexMethod method) {
@@ -1587,12 +1572,18 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return this;
     }
 
+    public Builder modifyAccessFlags(Consumer<MethodAccessFlags> consumer) {
+      consumer.accept(accessFlags);
+      return this;
+    }
+
     public void setAccessFlags(MethodAccessFlags accessFlags) {
       this.accessFlags = accessFlags.copy();
     }
 
-    public void setMethod(DexMethod method) {
+    public Builder setMethod(DexMethod method) {
       this.method = method;
+      return this;
     }
 
     public Builder setCompilationState(CompilationState compilationState) {
@@ -1677,8 +1668,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return this;
     }
 
-    public void setCode(Code code) {
+    public Builder setCode(Code code) {
       this.code = code;
+      return this;
     }
 
     public DexEncodedMethod build() {

@@ -107,11 +107,7 @@ public class FullNestOnProgramPathTest extends TestBase {
           .addKeepAllAttributes()
           .setMinApi(parameters.getApiLevel())
           .addProgramFiles(classesOfNest(nestID))
-          .addOptionsModification(
-              options -> {
-                options.enableNestBasedAccessDesugaring = true;
-                options.enableNestReduction = false;
-              })
+          .addOptionsModification(options -> options.enableNestReduction = false)
           .compile()
           .run(parameters.getRuntime(), getMainClass(nestID))
           .assertSuccessWithOutput(getExpectedResult(nestID));
@@ -125,7 +121,6 @@ public class FullNestOnProgramPathTest extends TestBase {
       testForD8()
           .setMinApi(parameters.getApiLevel())
           .addProgramFiles(classesOfNest(nestID))
-          .addOptionsModification(options -> options.enableNestBasedAccessDesugaring = true)
           .compile()
           .run(parameters.getRuntime(), getMainClass(nestID))
           .assertSuccessWithOutput(getExpectedResult(nestID));
@@ -136,10 +131,6 @@ public class FullNestOnProgramPathTest extends TestBase {
       throws CompilationFailedException {
     return testForD8(getStaticTemp())
         .addProgramFiles(JAR)
-        .addOptionsModification(
-            options -> {
-              options.enableNestBasedAccessDesugaring = true;
-            })
         .setMinApi(minApi)
         .compile();
   }
@@ -150,11 +141,7 @@ public class FullNestOnProgramPathTest extends TestBase {
         .noTreeShaking()
         .noMinification()
         .addKeepAllAttributes()
-        .addOptionsModification(
-            options -> {
-              options.enableNestBasedAccessDesugaring = true;
-              options.enableNestReduction = false;
-            })
+        .addOptionsModification(options -> options.enableNestReduction = false)
         .addProgramFiles(JAR)
         .setMinApi(minApi)
         .compile();

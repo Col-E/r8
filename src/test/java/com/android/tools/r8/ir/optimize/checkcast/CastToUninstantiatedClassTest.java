@@ -25,8 +25,7 @@ public class CastToUninstantiatedClassTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    // TODO(b/172194277): Add support for synthetics when generating CF.
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public CastToUninstantiatedClassTest(TestParameters parameters) {

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.utils;
 
+import java.util.function.BooleanSupplier;
+
 public class BooleanBox {
 
   private boolean value;
@@ -14,8 +16,22 @@ public class BooleanBox {
     set(initialValue);
   }
 
+  public void computeIfNotSet(BooleanSupplier supplier) {
+    if (isFalse()) {
+      set(supplier.getAsBoolean());
+    }
+  }
+
   public boolean get() {
     return value;
+  }
+
+  public boolean isFalse() {
+    return !get();
+  }
+
+  public boolean isTrue() {
+    return get();
   }
 
   public void set() {

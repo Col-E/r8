@@ -1476,19 +1476,16 @@ public class CodeRewriter {
       UtilityMethodForCodeOptimizations throwClassCastExceptionIfNotNullMethod =
           UtilityMethodsForCodeOptimizations.synthesizeThrowClassCastExceptionIfNotNullMethod(
               appView, context, methodProcessingId);
-      // TODO(b/172194277): Allow synthetics when generating CF.
-      if (throwClassCastExceptionIfNotNullMethod != null) {
-        throwClassCastExceptionIfNotNullMethod.optimize(methodProcessor);
-        InvokeStatic replacement =
-            InvokeStatic.builder()
-                .setMethod(throwClassCastExceptionIfNotNullMethod.getMethod())
-                .setSingleArgument(checkCast.object())
-                .setPosition(checkCast)
-                .build();
-        it.replaceCurrentInstruction(replacement);
-        assert replacement.lookupSingleTarget(appView, context) != null;
-        return RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW;
-      }
+      throwClassCastExceptionIfNotNullMethod.optimize(methodProcessor);
+      InvokeStatic replacement =
+          InvokeStatic.builder()
+              .setMethod(throwClassCastExceptionIfNotNullMethod.getMethod())
+              .setSingleArgument(checkCast.object())
+              .setPosition(checkCast)
+              .build();
+      it.replaceCurrentInstruction(replacement);
+      assert replacement.lookupSingleTarget(appView, context) != null;
+      return RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW;
     }
 
     // Otherwise, keep the checkcast to preserve verification errors. E.g., down-cast:

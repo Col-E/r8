@@ -15,7 +15,6 @@ import com.android.tools.r8.retrace.RetracedField;
 import com.android.tools.r8.retrace.RetracedType;
 import com.android.tools.r8.retrace.StackTraceElementProxy;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.android.tools.r8.utils.TriFunction;
 import java.util.ArrayList;
 import java.util.List;
@@ -287,7 +286,7 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
                   return original.getMethodArguments();
                 }
                 return StringUtils.join(
-                    retraced.getMethodArguments(), ",", BraceType.NONE, RetracedType::getTypeName);
+                    ",", retraced.getMethodArguments(), RetracedType::getTypeName);
               });
       orderedIndices.add(methodArguments);
       return this;

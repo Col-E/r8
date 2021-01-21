@@ -20,8 +20,10 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import java.util.function.Consumer;
 import org.objectweb.asm.Opcodes;
 
 public class ForwardMethodBuilder {
@@ -41,6 +43,7 @@ public class ForwardMethodBuilder {
   private DexMethod sourceMethod = null;
   private DexMethod targetMethod = null;
 
+  private boolean sourceMethodHasExtraUnusedParameter = false;
   private boolean staticSource = false;
 
   private InvokeType invokeType = null;
@@ -53,9 +56,21 @@ public class ForwardMethodBuilder {
     this.factory = factory;
   }
 
+  public ForwardMethodBuilder apply(Consumer<ForwardMethodBuilder> fn) {
+    fn.accept(this);
+    return this;
+  }
+
   public ForwardMethodBuilder setNonStaticSource(DexMethod method) {
     sourceMethod = method;
     staticSource = false;
+    return this;
+  }
+
+  public ForwardMethodBuilder setNonStaticSourceWithExtraUnusedParameter(DexMethod method) {
+    sourceMethod = method;
+    staticSource = false;
+    sourceMethodHasExtraUnusedParameter = true;
     return this;
   }
 
@@ -77,6 +92,10 @@ public class ForwardMethodBuilder {
     invokeType = InvokeType.VIRTUAL;
     this.isInterface = isInterface;
     return this;
+  }
+
+  public ForwardMethodBuilder setConstructorTarget(DexMethod method) {
+    return setDirectTarget(method, false);
   }
 
   public ForwardMethodBuilder setDirectTarget(DexMethod method, boolean isInterface) {
@@ -126,7 +145,9 @@ public class ForwardMethodBuilder {
       maxLocals += 1;
     }
     DexType[] sourceParameters = getSourceParameters();
-    for (int i = 0; i < sourceParameters.length; i++) {
+    for (int i = 0;
+        i < sourceParameters.length - BooleanUtils.intValue(sourceMethodHasExtraUnusedParameter);
+        i++) {
       DexType parameter = sourceParameters[i];
       ValueType parameterType = ValueType.fromDexType(parameter);
       instructions.add(new CfLoad(parameterType, maxLocals));
@@ -212,7 +233,9 @@ public class ForwardMethodBuilder {
   }
 
   private int sourceArguments() {
-    return sourceMethod.getParameters().size() + (isStaticSource() ? 0 : 1);
+    return sourceMethod.getParameters().size()
+        + (isStaticSource() ? 0 : 1)
+        - BooleanUtils.intValue(sourceMethodHasExtraUnusedParameter);
   }
 
   private int targetArguments() {

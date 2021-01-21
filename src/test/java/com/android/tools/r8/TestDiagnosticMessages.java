@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.not;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -62,6 +63,11 @@ public interface TestDiagnosticMessages {
 
   default TestDiagnosticMessages assertWarningsMatch(Matcher<Diagnostic> matcher) {
     return assertWarningsMatch(Collections.singletonList(matcher));
+  }
+
+  @SuppressWarnings("unchecked")
+  default TestDiagnosticMessages assertWarningsMatch(Matcher<Diagnostic>... matchers) {
+    return assertWarningsMatch(Arrays.asList(matchers));
   }
 
   TestDiagnosticMessages assertWarningsMatch(Collection<Matcher<Diagnostic>> matchers);

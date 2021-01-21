@@ -130,7 +130,7 @@ public class MethodCollection {
     return backing.methods();
   }
 
-  public Iterable<DexEncodedMethod> methods(Predicate<DexEncodedMethod> predicate) {
+  public Iterable<DexEncodedMethod> methods(Predicate<? super DexEncodedMethod> predicate) {
     return IterableUtils.filter(methods(), predicate);
   }
 

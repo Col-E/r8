@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.google.common.base.Predicates.alwaysTrue;
+
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.MixedSectionCollection;
@@ -12,6 +14,7 @@ import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -58,6 +61,24 @@ public class DexClasspathClass extends DexClass implements Supplier<DexClasspath
   }
 
   @Override
+  public void accept(
+      Consumer<DexProgramClass> programClassConsumer,
+      Consumer<DexClasspathClass> classpathClassConsumer,
+      Consumer<DexLibraryClass> libraryClassConsumer) {
+    classpathClassConsumer.accept(this);
+  }
+
+  public void forEachClasspathMethod(Consumer<? super ClasspathMethod> consumer) {
+    forEachClasspathMethodMatching(alwaysTrue(), consumer);
+  }
+
+  public void forEachClasspathMethodMatching(
+      Predicate<DexEncodedMethod> predicate, Consumer<? super ClasspathMethod> consumer) {
+    methodCollection.forEachMethodMatching(
+        predicate, method -> consumer.accept(new ClasspathMethod(this, method)));
+  }
+
+  @Override
   public String toString() {
     return type.toString() + "(classpath class)";
   }
@@ -76,6 +97,10 @@ public class DexClasspathClass extends DexClass implements Supplier<DexClasspath
   @Override
   public DexClasspathClass asClasspathClass() {
     return this;
+  }
+
+  public static DexClasspathClass asClasspathClassOrNull(DexClass clazz) {
+    return clazz != null ? clazz.asClasspathClass() : null;
   }
 
   @Override

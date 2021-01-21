@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.staticinterfacemethod;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,33 +27,19 @@ public class MissingMethodTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    TestRunResult<?> result =
-        testForRuntime(parameters)
-            .addProgramClassFileData(InterfaceDump.dump(), MainDump.dump())
-            .run(parameters.getRuntime(), "Main");
-    if (parameters.isDexRuntime()
-        && parameters.getApiLevel().isLessThan(apiLevelWithStaticInterfaceMethodsSupport())) {
-      // TODO(b/69835274): Desugaring should preserve exception.
-      result.assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
-    } else {
-      result.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
-    }
+    testForRuntime(parameters)
+        .addProgramClassFileData(InterfaceDump.dump(), MainDump.dump())
+        .run(parameters.getRuntime(), "Main")
+        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
   }
 
   @Test
   public void testR8() throws Exception {
-    TestRunResult<?> result =
-        testForR8(parameters.getBackend())
-            .addProgramClassFileData(InterfaceDump.dump(), MainDump.dump())
-            .addKeepMainRule("Main")
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), "Main");
-    if (parameters.isDexRuntime()
-        && parameters.getApiLevel().isLessThan(apiLevelWithStaticInterfaceMethodsSupport())) {
-      // TODO(b/69835274): Desugaring should preserve exception.
-      result.assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
-    } else {
-      result.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(InterfaceDump.dump(), MainDump.dump())
+        .addKeepMainRule("Main")
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), "Main")
+        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
   }
 }

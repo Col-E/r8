@@ -122,6 +122,11 @@ public abstract class DexClass extends DexDefinition {
     }
   }
 
+  public abstract void accept(
+      Consumer<DexProgramClass> programClassConsumer,
+      Consumer<DexClasspathClass> classpathClassConsumer,
+      Consumer<DexLibraryClass> libraryClassConsumer);
+
   public void forEachClassMethod(Consumer<? super DexClassAndMethod> consumer) {
     forEachClassMethodMatching(alwaysTrue(), consumer);
   }
@@ -163,6 +168,10 @@ public abstract class DexClass extends DexDefinition {
     return Iterables.concat(fields(), methods());
   }
 
+  public Iterable<DexEncodedMember<?, ?>> members(Predicate<DexEncodedMember<?, ?>> predicate) {
+    return Iterables.concat(fields(predicate), methods(predicate));
+  }
+
   public MethodCollection getMethodCollection() {
     return methodCollection;
   }
@@ -171,7 +180,7 @@ public abstract class DexClass extends DexDefinition {
     return methodCollection.methods();
   }
 
-  public Iterable<DexEncodedMethod> methods(Predicate<DexEncodedMethod> predicate) {
+  public Iterable<DexEncodedMethod> methods(Predicate<? super DexEncodedMethod> predicate) {
     return methodCollection.methods(predicate);
   }
 
@@ -443,6 +452,15 @@ public abstract class DexClass extends DexDefinition {
       }
     }
     return field;
+  }
+
+  /** Find method in this class matching {@param method}. */
+  public DexClassAndField lookupClassField(DexField field) {
+    return toClassFieldOrNull(lookupField(field));
+  }
+
+  private DexClassAndField toClassFieldOrNull(DexEncodedField field) {
+    return field != null ? DexClassAndField.create(this, field) : null;
   }
 
   /** Find field in this class matching {@param field}. */
@@ -848,6 +866,10 @@ public abstract class DexClass extends DexDefinition {
     nestHost = null;
   }
 
+  public void clearNestMembers() {
+    nestMembers.clear();
+  }
+
   public void setNestHost(DexType type) {
     assert type != null;
     this.nestHost = new NestHostClassAttribute(type);
@@ -886,6 +908,10 @@ public abstract class DexClass extends DexDefinition {
 
   /** Returns kotlin class info if the class is synthesized by kotlin compiler. */
   public abstract KotlinClassLevelInfo getKotlinInfo();
+
+  public final String getTypeName() {
+    return getType().getTypeName();
+  }
 
   public boolean hasStaticFields() {
     return staticFields.length > 0;

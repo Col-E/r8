@@ -25,7 +25,7 @@ import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
+import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -417,6 +417,8 @@ public class DexItemFactory {
   public final DexType noClassDefFoundErrorType =
       createStaticallyKnownType(noClassDefFoundErrorDescriptor);
   public final DexType noSuchFieldErrorType = createStaticallyKnownType(noSuchFieldErrorDescriptor);
+  public final DexType noSuchMethodErrorType =
+      createStaticallyKnownType("Ljava/lang/NoSuchMethodError;");
   public final DexType npeType = createStaticallyKnownType(npeDescriptor);
   public final DexType reflectiveOperationExceptionType =
       createStaticallyKnownType(reflectiveOperationExceptionDescriptor);

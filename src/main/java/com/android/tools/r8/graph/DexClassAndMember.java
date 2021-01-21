@@ -51,6 +51,18 @@ public abstract class DexClassAndMember<
     return holder.origin;
   }
 
+  public boolean isClasspathMember() {
+    return false;
+  }
+
+  public boolean isLibraryMember() {
+    return false;
+  }
+
+  public boolean isProgramMember() {
+    return false;
+  }
+
   public String toSourceString() {
     return getReference().toSourceString();
   }

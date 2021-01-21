@@ -203,10 +203,6 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return accessFlags.isPackagePrivate();
   }
 
-  public boolean isPrivate() {
-    return accessFlags.isPrivate();
-  }
-
   public boolean isProtected() {
     return accessFlags.isProtected();
   }

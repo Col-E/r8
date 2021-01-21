@@ -4,10 +4,23 @@
 package com.android.tools.r8.graph;
 
 /** Type representing a method definition from the library and its holder. */
-public final class LibraryMethod extends DexClassAndMethod {
+public final class LibraryMethod extends DexClassAndMethod
+    implements LibraryMember<DexEncodedMethod, DexMethod> {
 
   public LibraryMethod(DexLibraryClass holder, DexEncodedMethod method) {
     super(holder, method);
+  }
+
+  @Override
+  public DexLibraryClass getHolder() {
+    DexClass holder = super.getHolder();
+    assert holder.isLibraryClass();
+    return holder.asLibraryClass();
+  }
+
+  @Override
+  public boolean isLibraryMember() {
+    return true;
   }
 
   @Override
@@ -18,12 +31,5 @@ public final class LibraryMethod extends DexClassAndMethod {
   @Override
   public LibraryMethod asLibraryMethod() {
     return this;
-  }
-
-  @Override
-  public DexLibraryClass getHolder() {
-    DexClass holder = super.getHolder();
-    assert holder.isLibraryClass();
-    return holder.asLibraryClass();
   }
 }

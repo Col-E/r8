@@ -8,25 +8,13 @@ import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 
 public abstract class MethodProcessor {
 
-  public enum Phase {
-    ONE_TIME,
-    PRIMARY,
-    POST
-  }
-
   protected SortedProgramMethodSet wave;
   protected SortedProgramMethodSet waveExtension = SortedProgramMethodSet.createConcurrent();
 
-  public abstract Phase getPhase();
-
   public abstract boolean shouldApplyCodeRewritings(ProgramMethod method);
 
-  public boolean isPrimary() {
-    return getPhase() == Phase.PRIMARY;
-  }
-
-  public boolean isPost() {
-    return getPhase() == Phase.POST;
+  public boolean isPrimaryMethodProcessor() {
+    return false;
   }
 
   public CallSiteInformation getCallSiteInformation() {

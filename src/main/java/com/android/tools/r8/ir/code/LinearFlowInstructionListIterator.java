@@ -100,6 +100,18 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public void replaceCurrentInstructionWithThrow(
+      AppView<?> appView,
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      Value exceptionValue,
+      Set<BasicBlock> blocksToRemove,
+      Set<Value> affectedValues) {
+    currentBlockIterator.replaceCurrentInstructionWithThrow(
+        appView, code, blockIterator, exceptionValue, blocksToRemove, affectedValues);
+  }
+
+  @Override
   public void replaceCurrentInstructionWithThrowNull(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       IRCode code,

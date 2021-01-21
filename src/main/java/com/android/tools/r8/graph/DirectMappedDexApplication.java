@@ -213,6 +213,12 @@ public class DirectMappedDexApplication extends DexApplication {
       return self();
     }
 
+    public Builder addProgramClasses(Collection<DexProgramClass> classes) {
+      programClasses =
+          ImmutableList.<DexProgramClass>builder().addAll(programClasses).addAll(classes).build();
+      return self();
+    }
+
     public Builder addClasspathClasses(Collection<DexClasspathClass> classes) {
       classpathClasses =
           ImmutableList.<DexClasspathClass>builder()

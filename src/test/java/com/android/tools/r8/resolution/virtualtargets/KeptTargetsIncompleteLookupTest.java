@@ -232,7 +232,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     // ----- Program -----
     // B extends A { } <-- initial
     AppView<AppInfoWithClassHierarchy> appView =
-        computeAppViewWithSubtyping(
+        computeAppViewWithClassHierachy(
             buildClasses(Collections.singletonList(B.class), Arrays.asList(A.class, I.class))
                 .build());
     AppInfoWithClassHierarchy appInfo = appView.appInfo();

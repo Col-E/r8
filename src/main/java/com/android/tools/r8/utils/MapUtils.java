@@ -45,6 +45,6 @@ public class MapUtils {
 
   public static String toString(Map<?, ?> map) {
     return StringUtils.join(
-        map.entrySet(), ",", BraceType.TUBORG, entry -> entry.getKey() + ":" + entry.getValue());
+        ",", map.entrySet(), entry -> entry.getKey() + ":" + entry.getValue(), BraceType.TUBORG);
   }
 }

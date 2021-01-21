@@ -17,4 +17,8 @@ public class CfUtilityMethodsForCodeOptimizationsTemplates {
       throw new ClassCastException();
     }
   }
+
+  public static NoSuchMethodError throwNoSuchMethodError() {
+    throw new NoSuchMethodError();
+  }
 }

@@ -33,9 +33,9 @@ public class StringUtilsTest {
 
   private void assertListEquals(List<String> xs, List<String> ys) {
     assertEquals(
-        StringUtils.join(xs, ", ", BraceType.SQUARE, s -> '"' + StringUtils.toASCIIString(s) + '"'),
-        StringUtils.join(ys, ", ", BraceType.SQUARE, s -> '"' + StringUtils.toASCIIString(s) + '"')
-    );
+        StringUtils.join(", ", xs, s -> '"' + StringUtils.toASCIIString(s) + '"', BraceType.SQUARE),
+        StringUtils.join(
+            ", ", ys, s -> '"' + StringUtils.toASCIIString(s) + '"', BraceType.SQUARE));
   }
 
   @Test
