@@ -279,7 +279,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.getMainDexClasses(),
         previous.deadProtoTypes,
         previous.getMissingClasses(),
-        CollectionUtils.mergeSets(previous.liveTypes, committedItems.getCommittedTypes()),
+        CollectionUtils.mergeSets(previous.liveTypes, committedItems.getCommittedProgramTypes()),
         previous.targetedMethods,
         previous.failedResolutionTargets,
         previous.bootstrapMethods,

@@ -3,53 +3,35 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
-import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
-import com.android.tools.r8.utils.structural.RepresentativeMap;
-import com.google.common.hash.Hasher;
 
 /**
  * Definition of a synthetic class item.
  *
  * <p>This class is internal to the synthetic items collection, thus package-protected.
  */
-class SyntheticClassDefinition
-    extends SyntheticDefinition<SyntheticClassReference, SyntheticClassDefinition> {
+public abstract class SyntheticClassDefinition<
+        R extends SyntheticClassReference<R, D, C>,
+        D extends SyntheticClassDefinition<R, D, C>,
+        C extends DexClass>
+    extends SyntheticDefinition<R, D, C> {
 
-  private final DexProgramClass clazz;
+  final C clazz;
 
-  SyntheticClassDefinition(SyntheticKind kind, SynthesizingContext context, DexProgramClass clazz) {
+  SyntheticClassDefinition(SyntheticKind kind, SynthesizingContext context, C clazz) {
     super(kind, context);
     this.clazz = clazz;
   }
 
-  public DexProgramClass getProgramClass() {
-    return clazz;
-  }
-
   @Override
-  SyntheticClassReference toReference() {
-    return new SyntheticClassReference(getKind(), getContext(), clazz.getType());
-  }
-
-  @Override
-  DexProgramClass getHolder() {
+  public final C getHolder() {
     return clazz;
   }
 
   @Override
   public boolean isValid() {
     return clazz.isPublic() && clazz.isFinal() && clazz.accessFlags.isSynthetic();
-  }
-
-  @Override
-  void internalComputeHash(Hasher hasher, RepresentativeMap map) {
-    clazz.hashWithTypeEquivalence(hasher, map);
-  }
-
-  @Override
-  int internalCompareTo(SyntheticClassDefinition o, RepresentativeMap map) {
-    return clazz.compareWithTypeEquivalenceTo(o.clazz, map);
   }
 
   @Override

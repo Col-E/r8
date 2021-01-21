@@ -26,7 +26,8 @@ class CommittedSyntheticsCollection {
 
   static class Builder {
     private final CommittedSyntheticsCollection parent;
-    private ImmutableMap.Builder<DexType, SyntheticClassReference> newNonLegacyClasses = null;
+    private ImmutableMap.Builder<DexType, SyntheticProgramClassReference> newNonLegacyClasses =
+        null;
     private ImmutableMap.Builder<DexType, SyntheticMethodReference> newNonLegacyMethods = null;
     private ImmutableSet.Builder<DexType> newLegacyClasses = null;
 
@@ -34,16 +35,18 @@ class CommittedSyntheticsCollection {
       this.parent = parent;
     }
 
-    public Builder addItem(SyntheticDefinition<?, ?> definition) {
-      definition.toReference().apply(this::addNonLegacyMethod, this::addNonLegacyClass);
+    public Builder addItem(SyntheticDefinition<?, ?, ?> definition) {
+      if (definition.isProgramDefinition()) {
+        definition.asProgramDefinition().apply(this::addNonLegacyMethod, this::addNonLegacyClass);
+      }
       return this;
     }
 
-    public Builder addNonLegacyClass(SyntheticClassDefinition definition) {
+    public Builder addNonLegacyClass(SyntheticProgramClassDefinition definition) {
       return addNonLegacyClass(definition.toReference());
     }
 
-    public Builder addNonLegacyClass(SyntheticClassReference reference) {
+    public Builder addNonLegacyClass(SyntheticProgramClassReference reference) {
       if (newNonLegacyClasses == null) {
         newNonLegacyClasses = ImmutableMap.builder();
       }
@@ -83,7 +86,7 @@ class CommittedSyntheticsCollection {
       if (newNonLegacyClasses == null && newNonLegacyMethods == null && newLegacyClasses == null) {
         return parent;
       }
-      ImmutableMap<DexType, SyntheticClassReference> allNonLegacyClasses =
+      ImmutableMap<DexType, SyntheticProgramClassReference> allNonLegacyClasses =
           newNonLegacyClasses == null
               ? parent.nonLegacyClasses
               : newNonLegacyClasses.putAll(parent.nonLegacyClasses).build();
@@ -114,12 +117,12 @@ class CommittedSyntheticsCollection {
   private final ImmutableMap<DexType, SyntheticMethodReference> nonLegacyMethods;
 
   /** Mapping from synthetic type to its synthetic class item description. */
-  private final ImmutableMap<DexType, SyntheticClassReference> nonLegacyClasses;
+  private final ImmutableMap<DexType, SyntheticProgramClassReference> nonLegacyClasses;
 
   public CommittedSyntheticsCollection(
       ImmutableSet<DexType> legacyTypes,
       ImmutableMap<DexType, SyntheticMethodReference> nonLegacyMethods,
-      ImmutableMap<DexType, SyntheticClassReference> nonLegacyClasses) {
+      ImmutableMap<DexType, SyntheticProgramClassReference> nonLegacyClasses) {
     this.legacyTypes = legacyTypes;
     this.nonLegacyMethods = nonLegacyMethods;
     this.nonLegacyClasses = nonLegacyClasses;
@@ -160,11 +163,11 @@ class CommittedSyntheticsCollection {
     return nonLegacyMethods;
   }
 
-  public ImmutableMap<DexType, SyntheticClassReference> getNonLegacyClasses() {
+  public ImmutableMap<DexType, SyntheticProgramClassReference> getNonLegacyClasses() {
     return nonLegacyClasses;
   }
 
-  public SyntheticReference<?, ?> getNonLegacyItem(DexType type) {
+  public SyntheticReference<?, ?, ?> getNonLegacyItem(DexType type) {
     SyntheticMethodReference reference = nonLegacyMethods.get(type);
     if (reference != null) {
       return reference;
@@ -172,7 +175,7 @@ class CommittedSyntheticsCollection {
     return nonLegacyClasses.get(type);
   }
 
-  public void forEachNonLegacyItem(Consumer<SyntheticReference<?, ?>> fn) {
+  public void forEachNonLegacyItem(Consumer<SyntheticReference<?, ?, ?>> fn) {
     nonLegacyMethods.forEach((t, r) -> fn.accept(r));
     nonLegacyClasses.forEach((t, r) -> fn.accept(r));
   }
@@ -198,7 +201,7 @@ class CommittedSyntheticsCollection {
         builder.addNonLegacyMethod(reference);
       }
     }
-    for (SyntheticClassReference reference : nonLegacyClasses.values()) {
+    for (SyntheticProgramClassReference reference : nonLegacyClasses.values()) {
       if (removed.contains(reference.getHolder())) {
         changed = true;
       } else {
@@ -215,7 +218,7 @@ class CommittedSyntheticsCollection {
         rewriteItems(nonLegacyClasses, lens));
   }
 
-  private static <R extends SyntheticReference<R, ?>> ImmutableMap<DexType, R> rewriteItems(
+  private static <R extends SyntheticReference<R, ?, ?>> ImmutableMap<DexType, R> rewriteItems(
       Map<DexType, R> items, NonIdentityGraphLens lens) {
     ImmutableMap.Builder<DexType, R> rewrittenItems = ImmutableMap.builder();
     for (R reference : items.values()) {

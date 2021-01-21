@@ -4,38 +4,31 @@
 package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.structural.RepresentativeMap;
 import com.google.common.hash.Hasher;
 import java.util.function.Consumer;
 
 /**
- * Definition of a synthetic method item.
+ * Definition of a synthetic class item.
  *
  * <p>This class is internal to the synthetic items collection, thus package-protected.
  */
-class SyntheticMethodDefinition
-    extends SyntheticDefinition<
-        SyntheticMethodReference, SyntheticMethodDefinition, DexProgramClass>
+class SyntheticProgramClassDefinition
+    extends SyntheticClassDefinition<
+        SyntheticProgramClassReference, SyntheticProgramClassDefinition, DexProgramClass>
     implements SyntheticProgramDefinition {
 
-  private final ProgramMethod method;
-
-  SyntheticMethodDefinition(SyntheticKind kind, SynthesizingContext context, ProgramMethod method) {
-    super(kind, context);
-    this.method = method;
+  SyntheticProgramClassDefinition(
+      SyntheticKind kind, SynthesizingContext context, DexProgramClass clazz) {
+    super(kind, context, clazz);
   }
 
   @Override
   public void apply(
       Consumer<SyntheticMethodDefinition> onMethod,
       Consumer<SyntheticProgramClassDefinition> onClass) {
-    onMethod.accept(this);
-  }
-
-  public ProgramMethod getMethod() {
-    return method;
+    onClass.accept(this);
   }
 
   @Override
@@ -49,32 +42,33 @@ class SyntheticMethodDefinition
   }
 
   @Override
-  SyntheticMethodReference toReference() {
-    return new SyntheticMethodReference(getKind(), getContext(), method.getReference());
-  }
-
-  @Override
-  public DexProgramClass getHolder() {
-    return method.getHolder();
-  }
-
-  @Override
-  void internalComputeHash(Hasher hasher, RepresentativeMap map) {
-    method.getDefinition().hashWithTypeEquivalence(hasher, map);
-  }
-
-  @Override
-  int internalCompareTo(SyntheticMethodDefinition other, RepresentativeMap map) {
-    return method.getDefinition().compareWithTypeEquivalenceTo(other.method.getDefinition(), map);
+  SyntheticProgramClassReference toReference() {
+    return new SyntheticProgramClassReference(getKind(), getContext(), clazz.getType());
   }
 
   @Override
   public boolean isValid() {
-    return SyntheticMethodBuilder.isValidSyntheticMethod(method.getDefinition());
+    return clazz.isPublic() && clazz.isFinal() && clazz.accessFlags.isSynthetic();
+  }
+
+  @Override
+  void internalComputeHash(Hasher hasher, RepresentativeMap map) {
+    clazz.hashWithTypeEquivalence(hasher, map);
+  }
+
+  @Override
+  int internalCompareTo(SyntheticProgramClassDefinition o, RepresentativeMap map) {
+    return clazz.compareWithTypeEquivalenceTo(o.clazz, map);
   }
 
   @Override
   public String toString() {
-    return "SyntheticMethodDefinition{" + method + '}';
+    return "SyntheticProgramClass{ clazz = "
+        + clazz.type.toSourceString()
+        + ", kind = "
+        + getKind()
+        + ", context = "
+        + getContext()
+        + " }";
   }
 }

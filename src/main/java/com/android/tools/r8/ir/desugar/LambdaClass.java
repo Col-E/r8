@@ -34,7 +34,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
-import com.android.tools.r8.synthesis.SyntheticClassBuilder;
+import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
 import com.android.tools.r8.utils.OptionalBool;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -72,7 +72,7 @@ public final class LambdaClass {
   private DexProgramClass clazz = null;
 
   LambdaClass(
-      SyntheticClassBuilder builder,
+      SyntheticProgramClassBuilder builder,
       AppView<?> appView,
       LambdaRewriter rewriter,
       ProgramMethod accessedFrom,
@@ -115,7 +115,7 @@ public final class LambdaClass {
     this.clazz = clazz;
   }
 
-  private void synthesizeLambdaClass(SyntheticClassBuilder builder) {
+  private void synthesizeLambdaClass(SyntheticProgramClassBuilder builder) {
     builder.setInterfaces(descriptor.interfaces);
     synthesizeStaticFields(builder);
     synthesizeInstanceFields(builder);
@@ -137,7 +137,7 @@ public final class LambdaClass {
   }
 
   // Synthesize virtual methods.
-  private void synthesizeVirtualMethods(SyntheticClassBuilder builder) {
+  private void synthesizeVirtualMethods(SyntheticProgramClassBuilder builder) {
     DexMethod mainMethod =
         appView.dexItemFactory().createMethod(type, descriptor.erasedProto, descriptor.name);
 
@@ -178,7 +178,7 @@ public final class LambdaClass {
   }
 
   // Synthesize direct methods.
-  private void synthesizeDirectMethods(SyntheticClassBuilder builder) {
+  private void synthesizeDirectMethods(SyntheticProgramClassBuilder builder) {
     boolean stateless = isStateless();
     List<DexEncodedMethod> methods = new ArrayList<>(stateless ? 2 : 1);
 
@@ -214,7 +214,7 @@ public final class LambdaClass {
   }
 
   // Synthesize instance fields to represent captured values.
-  private void synthesizeInstanceFields(SyntheticClassBuilder builder) {
+  private void synthesizeInstanceFields(SyntheticProgramClassBuilder builder) {
     DexType[] fieldTypes = descriptor.captures.values;
     int fieldCount = fieldTypes.length;
     List<DexEncodedField> fields = new ArrayList<>(fieldCount);
@@ -234,7 +234,7 @@ public final class LambdaClass {
   }
 
   // Synthesize static fields to represent singleton instance.
-  private void synthesizeStaticFields(SyntheticClassBuilder builder) {
+  private void synthesizeStaticFields(SyntheticProgramClassBuilder builder) {
     if (isStateless()) {
       // Create instance field for stateless lambda.
       assert this.lambdaField != null;

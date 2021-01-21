@@ -67,7 +67,8 @@ public class DirectMappedDexApplication extends DexApplication {
     return libraryClasses;
   }
 
-  public Collection<DexClasspathClass> classpathClasses() {
+  @Override
+  public List<DexClasspathClass> classpathClasses() {
     return classpathClasses;
   }
 
@@ -181,21 +182,19 @@ public class DirectMappedDexApplication extends DexApplication {
   public static class Builder extends DexApplication.Builder<Builder> {
 
     private ImmutableList<DexLibraryClass> libraryClasses;
-    private ImmutableList<DexClasspathClass> classpathClasses;
 
     Builder(LazyLoadedDexApplication application) {
       super(application);
       // As a side-effect, this will force-load all classes.
       AllClasses allClasses = application.loadAllClasses();
       libraryClasses = allClasses.getLibraryClasses();
-      classpathClasses = allClasses.getClasspathClasses();
       replaceProgramClasses(allClasses.getProgramClasses());
+      replaceClasspathClasses(allClasses.getClasspathClasses());
     }
 
     private Builder(DirectMappedDexApplication application) {
       super(application);
       libraryClasses = application.libraryClasses;
-      classpathClasses = application.classpathClasses;
     }
 
     @Override
@@ -205,26 +204,6 @@ public class DirectMappedDexApplication extends DexApplication {
 
     public Builder replaceLibraryClasses(Collection<DexLibraryClass> libraryClasses) {
       this.libraryClasses = ImmutableList.copyOf(libraryClasses);
-      return self();
-    }
-
-    public Builder replaceClasspathClasses(Collection<DexClasspathClass> classpathClasses) {
-      this.classpathClasses = ImmutableList.copyOf(classpathClasses);
-      return self();
-    }
-
-    public Builder addProgramClasses(Collection<DexProgramClass> classes) {
-      programClasses =
-          ImmutableList.<DexProgramClass>builder().addAll(programClasses).addAll(classes).build();
-      return self();
-    }
-
-    public Builder addClasspathClasses(Collection<DexClasspathClass> classes) {
-      classpathClasses =
-          ImmutableList.<DexClasspathClass>builder()
-              .addAll(classpathClasses)
-              .addAll(classes)
-              .build();
       return self();
     }
 
@@ -240,17 +219,17 @@ public class DirectMappedDexApplication extends DexApplication {
       // TODO(zerny): Consider not rebuilding the map if no program classes are added.
       Map<DexType, DexClass> allClasses =
           new IdentityHashMap<>(
-              programClasses.size() + classpathClasses.size() + libraryClasses.size());
+              getProgramClasses().size() + getClasspathClasses().size() + libraryClasses.size());
       // Note: writing classes in reverse priority order, so a duplicate will be correctly ordered.
       // There should never be duplicates and that is asserted in the addAll subroutine.
       addAll(allClasses, libraryClasses);
-      addAll(allClasses, classpathClasses);
-      addAll(allClasses, programClasses);
+      addAll(allClasses, getClasspathClasses());
+      addAll(allClasses, getProgramClasses());
       return new DirectMappedDexApplication(
           proguardMap,
           allClasses,
-          ImmutableList.copyOf(programClasses),
-          classpathClasses,
+          ImmutableList.copyOf(getProgramClasses()),
+          ImmutableList.copyOf(getClasspathClasses()),
           libraryClasses,
           ImmutableList.copyOf(dataResourceProviders),
           options,

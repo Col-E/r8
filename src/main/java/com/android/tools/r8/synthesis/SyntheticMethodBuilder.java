@@ -20,14 +20,14 @@ public class SyntheticMethodBuilder {
     Code generate(DexMethod method);
   }
 
-  private final SyntheticClassBuilder parent;
+  private final SyntheticClassBuilder<?, ?> parent;
   private DexString name = null;
   private DexProto proto = null;
   private CfVersion classFileVersion;
   private SyntheticCodeGenerator codeGenerator = null;
   private MethodAccessFlags accessFlags = null;
 
-  SyntheticMethodBuilder(SyntheticClassBuilder parent) {
+  SyntheticMethodBuilder(SyntheticClassBuilder<?, ?> parent) {
     this.parent = parent;
   }
 

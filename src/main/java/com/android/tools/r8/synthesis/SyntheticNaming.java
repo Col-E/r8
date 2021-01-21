@@ -22,12 +22,14 @@ public class SyntheticNaming {
    */
   public enum SyntheticKind {
     // Class synthetics.
+    COMPANION_CLASS("CompanionClass", false),
     LAMBDA("Lambda", false),
     // Method synthetics.
     BACKPORT("Backport", true),
     STATIC_INTERFACE_CALL("StaticInterfaceCall", true),
     TO_STRING_IF_NOT_NULL("ToStringIfNotNull", true),
     THROW_CCE_IF_NOT_NULL("ThrowCCEIfNotNull", true),
+    THROW_ICCE("ThrowICCE", true),
     THROW_NSME("ThrowNSME", true),
     TWR_CLOSE_RESOURCE("TwrCloseResource", true),
     SERVICE_LOADER("ServiceLoad", true);

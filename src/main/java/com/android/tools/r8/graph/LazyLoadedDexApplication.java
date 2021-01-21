@@ -54,6 +54,12 @@ public class LazyLoadedDexApplication extends DexApplication {
   }
 
   @Override
+  List<DexClasspathClass> classpathClasses() {
+    classpathClasses.forceLoad(t -> true);
+    return classpathClasses.getAllClasses();
+  }
+
+  @Override
   public DexClass definitionFor(DexType type) {
     assert type.isClassType() : "Cannot lookup definition for type: " + type;
     DexClass clazz = null;
@@ -199,7 +205,7 @@ public class LazyLoadedDexApplication extends DexApplication {
     Builder(ProgramClassConflictResolver resolver, InternalOptions options, Timing timing) {
       super(options, timing);
       this.resolver = resolver;
-      this.classpathClasses = null;
+      this.classpathClasses = ClasspathClassCollection.empty();
       this.libraryClasses = null;
     }
 
@@ -229,7 +235,7 @@ public class LazyLoadedDexApplication extends DexApplication {
     public LazyLoadedDexApplication build() {
       return new LazyLoadedDexApplication(
           proguardMap,
-          ProgramClassCollection.create(programClasses, resolver),
+          ProgramClassCollection.create(getProgramClasses(), resolver),
           ImmutableList.copyOf(dataResourceProviders),
           classpathClasses,
           libraryClasses,

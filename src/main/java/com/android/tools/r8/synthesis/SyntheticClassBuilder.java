@@ -1,16 +1,18 @@
 // Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
+
 package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
@@ -25,12 +27,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class SyntheticClassBuilder {
+abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C extends DexClass> {
+
   private final DexItemFactory factory;
 
   private final DexType type;
   private final Origin origin;
 
+  private Kind originKind;
   private DexType superType;
   private DexTypeList interfaces = DexTypeList.empty();
   private List<DexEncodedField> staticFields = new ArrayList<>();
@@ -46,6 +50,10 @@ public class SyntheticClassBuilder {
     this.superType = factory.objectType;
   }
 
+  public abstract B self();
+
+  public abstract ClassKind<C> getClassKind();
+
   public DexItemFactory getFactory() {
     return factory;
   }
@@ -54,50 +62,54 @@ public class SyntheticClassBuilder {
     return type;
   }
 
-  public SyntheticClassBuilder setInterfaces(List<DexType> interfaces) {
+  public B setInterfaces(List<DexType> interfaces) {
     this.interfaces =
         interfaces.isEmpty()
             ? DexTypeList.empty()
             : new DexTypeList(interfaces.toArray(DexType.EMPTY_ARRAY));
-    return this;
+    return self();
   }
 
-  public SyntheticClassBuilder setStaticFields(List<DexEncodedField> fields) {
+  public B setOriginKind(Kind originKind) {
+    this.originKind = originKind;
+    return self();
+  }
+
+  public B setStaticFields(List<DexEncodedField> fields) {
     staticFields.clear();
     staticFields.addAll(fields);
-    return this;
+    return self();
   }
 
-  public SyntheticClassBuilder setInstanceFields(List<DexEncodedField> fields) {
+  public B setInstanceFields(List<DexEncodedField> fields) {
     instanceFields.clear();
     instanceFields.addAll(fields);
-    return this;
+    return self();
   }
 
-  public SyntheticClassBuilder setDirectMethods(Iterable<DexEncodedMethod> methods) {
+  public B setDirectMethods(Iterable<DexEncodedMethod> methods) {
     directMethods.clear();
     methods.forEach(directMethods::add);
-    return this;
+    return self();
   }
 
-  public SyntheticClassBuilder setVirtualMethods(Iterable<DexEncodedMethod> methods) {
+  public B setVirtualMethods(Iterable<DexEncodedMethod> methods) {
     virtualMethods.clear();
     methods.forEach(virtualMethods::add);
-    return this;
+    return self();
   }
 
-  public SyntheticClassBuilder addMethod(Consumer<SyntheticMethodBuilder> fn) {
+  public B addMethod(Consumer<SyntheticMethodBuilder> fn) {
     SyntheticMethodBuilder method = new SyntheticMethodBuilder(this);
     fn.accept(method);
     methods.add(method);
-    return this;
+    return self();
   }
 
-  DexProgramClass build() {
+  public C build() {
     ClassAccessFlags accessFlags =
         ClassAccessFlags.fromSharedAccessFlags(
             Constants.ACC_FINAL | Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
-    Kind originKind = null;
     DexString sourceFile = null;
     NestHostClassAttribute nestHost = null;
     List<NestMemberClassAttribute> nestMembers = Collections.emptyList();
@@ -116,25 +128,26 @@ public class SyntheticClassBuilder {
             + 11 * (long) virtualMethods.hashCode()
             + 13 * (long) staticFields.hashCode()
             + 17 * (long) instanceFields.hashCode();
-    return new DexProgramClass(
-        type,
-        originKind,
-        origin,
-        accessFlags,
-        superType,
-        interfaces,
-        sourceFile,
-        nestHost,
-        nestMembers,
-        enclosingMembers,
-        innerClasses,
-        ClassSignature.noSignature(),
-        DexAnnotationSet.empty(),
-        staticFields.toArray(new DexEncodedField[staticFields.size()]),
-        instanceFields.toArray(new DexEncodedField[instanceFields.size()]),
-        directMethods.toArray(new DexEncodedMethod[directMethods.size()]),
-        virtualMethods.toArray(new DexEncodedMethod[virtualMethods.size()]),
-        factory.getSkipNameValidationForTesting(),
-        c -> checksum);
+    return getClassKind()
+        .create(
+            type,
+            originKind,
+            origin,
+            accessFlags,
+            superType,
+            interfaces,
+            sourceFile,
+            nestHost,
+            nestMembers,
+            enclosingMembers,
+            innerClasses,
+            ClassSignature.noSignature(),
+            DexAnnotationSet.empty(),
+            staticFields.toArray(DexEncodedField.EMPTY_ARRAY),
+            instanceFields.toArray(DexEncodedField.EMPTY_ARRAY),
+            directMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
+            virtualMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
+            factory.getSkipNameValidationForTesting(),
+            c -> checksum);
   }
 }

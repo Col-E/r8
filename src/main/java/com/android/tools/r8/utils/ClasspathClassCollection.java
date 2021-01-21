@@ -10,8 +10,17 @@ import java.util.function.Supplier;
 
 /** Represents a collection of classpath classes. */
 public class ClasspathClassCollection extends ClassMap<DexClasspathClass> {
+
+  private ClasspathClassCollection() {
+    this(null);
+  }
+
   public ClasspathClassCollection(ClassProvider<DexClasspathClass> classProvider) {
     super(null, classProvider);
+  }
+
+  public static ClasspathClassCollection empty() {
+    return new ClasspathClassCollection();
   }
 
   @Override

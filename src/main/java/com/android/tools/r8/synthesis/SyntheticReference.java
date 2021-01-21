@@ -7,7 +7,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -16,7 +15,9 @@ import java.util.function.Function;
  * <p>This class is internal to the synthetic items collection, thus package-protected.
  */
 abstract class SyntheticReference<
-    R extends SyntheticReference<R, D>, D extends SyntheticDefinition<R, D>> {
+    R extends SyntheticReference<R, D, C>,
+    D extends SyntheticDefinition<R, D, C>,
+    C extends DexClass> {
 
   private final SyntheticKind kind;
   private final SynthesizingContext context;
@@ -41,7 +42,4 @@ abstract class SyntheticReference<
   abstract DexType getHolder();
 
   abstract R rewrite(NonIdentityGraphLens lens);
-
-  abstract void apply(
-      Consumer<SyntheticMethodReference> onMethod, Consumer<SyntheticClassReference> onClass);
 }

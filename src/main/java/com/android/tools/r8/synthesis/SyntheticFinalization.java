@@ -172,7 +172,7 @@ public class SyntheticFinalization {
     }
   }
 
-  public static class EquivalenceGroup<T extends SyntheticDefinition<?, T>> {
+  public static class EquivalenceGroup<T extends SyntheticDefinition<?, T, ?>> {
     private final List<T> members;
 
     public EquivalenceGroup(T representative, List<T> members) {
@@ -260,7 +260,7 @@ public class SyntheticFinalization {
             .build());
   }
 
-  private <R extends SyntheticReference<R, D>, D extends SyntheticDefinition<R, D>>
+  private <R extends SyntheticReference<R, D, ?>, D extends SyntheticDefinition<R, D, ?>>
       Map<DexType, EquivalenceGroup<D>> computeEquivalences(
           AppView<?> appView,
           ImmutableCollection<R> references,
@@ -380,7 +380,7 @@ public class SyntheticFinalization {
   private static DexApplication buildLensAndProgram(
       AppView<?> appView,
       Map<DexType, EquivalenceGroup<SyntheticMethodDefinition>> syntheticMethodGroups,
-      Map<DexType, EquivalenceGroup<SyntheticClassDefinition>> syntheticClassGroups,
+      Map<DexType, EquivalenceGroup<SyntheticProgramClassDefinition>> syntheticClassGroups,
       MainDexClasses mainDexClasses,
       Builder lensBuilder,
       List<DexProgramClass> newSyntheticClasses) {
@@ -426,14 +426,14 @@ public class SyntheticFinalization {
     List<DexProgramClass> deduplicatedClasses = new ArrayList<>();
     syntheticClassGroups.forEach(
         (syntheticType, syntheticGroup) -> {
-          SyntheticClassDefinition representative = syntheticGroup.getRepresentative();
+          SyntheticProgramClassDefinition representative = syntheticGroup.getRepresentative();
           SynthesizingContext context = representative.getContext();
           context.registerPrefixRewriting(syntheticType, appView);
-          DexProgramClass externalSyntheticClass = representative.getProgramClass();
+          DexProgramClass externalSyntheticClass = representative.getHolder();
           newSyntheticClasses.add(externalSyntheticClass);
           addSyntheticMarker(representative.getKind(), externalSyntheticClass, context, appView);
-          for (SyntheticClassDefinition member : syntheticGroup.getMembers()) {
-            DexProgramClass memberClass = member.getProgramClass();
+          for (SyntheticProgramClassDefinition member : syntheticGroup.getMembers()) {
+            DexProgramClass memberClass = member.getHolder();
             DexType memberType = memberClass.getType();
             pruned.add(memberType);
             if (memberType != syntheticType) {
@@ -495,7 +495,7 @@ public class SyntheticFinalization {
         (syntheticType, syntheticGroup) -> {
           DexProgramClass externalSyntheticClass = appForLookup.programDefinitionFor(syntheticType);
           newSyntheticClasses.add(externalSyntheticClass);
-          for (SyntheticClassDefinition member : syntheticGroup.getMembers()) {
+          for (SyntheticProgramClassDefinition member : syntheticGroup.getMembers()) {
             addMainDexAndSynthesizedFromForMember(
                 member,
                 externalSyntheticClass,
@@ -542,8 +542,8 @@ public class SyntheticFinalization {
 
   private static DexProgramClass createExternalMethodClass(
       DexType syntheticType, SyntheticMethodDefinition representative, DexItemFactory factory) {
-    SyntheticClassBuilder builder =
-        new SyntheticClassBuilder(syntheticType, representative.getContext(), factory);
+    SyntheticProgramClassBuilder builder =
+        new SyntheticProgramClassBuilder(syntheticType, representative.getContext(), factory);
     // TODO(b/158159959): Support grouping multiple methods per synthetic class.
     builder.addMethod(
         methodBuilder -> {
@@ -560,7 +560,7 @@ public class SyntheticFinalization {
   }
 
   private static void addMainDexAndSynthesizedFromForMember(
-      SyntheticDefinition<?, ?> member,
+      SyntheticDefinition<?, ?, ?> member,
       DexProgramClass externalSyntheticClass,
       MainDexClasses mainDexClasses,
       Set<DexType> derivedMainDexTypes,
@@ -584,7 +584,7 @@ public class SyntheticFinalization {
     return options.intermediate && !options.cfToCfDesugar;
   }
 
-  private <T extends SyntheticDefinition<?, T>>
+  private <T extends SyntheticDefinition<?, T, ?>>
       Map<DexType, EquivalenceGroup<T>> computeActualEquivalences(
           Collection<List<T>> potentialEquivalences,
           Map<DexType, NumberGenerator> generators,
@@ -627,7 +627,7 @@ public class SyntheticFinalization {
     return equivalences;
   }
 
-  private static <T extends SyntheticDefinition<?, T>> List<List<T>> groupEquivalent(
+  private static <T extends SyntheticDefinition<?, T, ?>> List<List<T>> groupEquivalent(
       List<T> potentialEquivalence, boolean intermediate, GraphLens graphLens) {
     List<List<T>> groups = new ArrayList<>();
     // Each other member is in a shared group if it is actually equivalent to the first member.
@@ -649,7 +649,7 @@ public class SyntheticFinalization {
     return groups;
   }
 
-  private static <T extends SyntheticDefinition<?, T>> boolean checkGroupsAreDistinct(
+  private static <T extends SyntheticDefinition<?, T, ?>> boolean checkGroupsAreDistinct(
       EquivalenceGroup<T> g1, EquivalenceGroup<T> g2, GraphLens graphLens) {
     int order = g1.compareToIncludingContext(g2, graphLens);
     assert order != 0;
@@ -657,7 +657,7 @@ public class SyntheticFinalization {
     return true;
   }
 
-  private static <T extends SyntheticDefinition<?, T>> T findDeterministicRepresentative(
+  private static <T extends SyntheticDefinition<?, T, ?>> T findDeterministicRepresentative(
       List<T> members, GraphLens graphLens) {
     // Pick a deterministic member as representative.
     T smallest = members.get(0);
@@ -695,7 +695,7 @@ public class SyntheticFinalization {
     return externalType;
   }
 
-  private static <T extends SyntheticDefinition<?, T>>
+  private static <T extends SyntheticDefinition<?, T, ?>>
       Collection<List<T>> computePotentialEquivalences(
           Map<DexType, T> definitions,
           boolean intermediate,
@@ -729,7 +729,7 @@ public class SyntheticFinalization {
     return equivalences.values();
   }
 
-  private <R extends SyntheticReference<R, D>, D extends SyntheticDefinition<R, D>>
+  private <R extends SyntheticReference<R, D, ?>, D extends SyntheticDefinition<R, D, ?>>
       Map<DexType, D> lookupDefinitions(AppView<?> appView, Collection<R> references) {
     Map<DexType, D> definitions = new IdentityHashMap<>(references.size());
     for (R reference : references) {

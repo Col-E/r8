@@ -27,17 +27,17 @@ public class CommittedItems implements SyntheticDefinitionsProvider {
   final DexApplication application;
   final int nextSyntheticId;
   final CommittedSyntheticsCollection committed;
-  final ImmutableList<DexType> committedTypes;
+  final ImmutableList<DexType> committedProgramTypes;
 
   CommittedItems(
       int nextSyntheticId,
       DexApplication application,
       CommittedSyntheticsCollection committed,
-      ImmutableList<DexType> committedTypes) {
+      ImmutableList<DexType> committedProgramTypes) {
     this.nextSyntheticId = nextSyntheticId;
     this.application = application;
     this.committed = committed;
-    this.committedTypes = committedTypes;
+    this.committedProgramTypes = committedProgramTypes;
     committed.verifyTypesAreInApp(application);
   }
 
@@ -50,8 +50,8 @@ public class CommittedItems implements SyntheticDefinitionsProvider {
     return application;
   }
 
-  public Collection<DexType> getCommittedTypes() {
-    return committedTypes;
+  public Collection<DexType> getCommittedProgramTypes() {
+    return committedProgramTypes;
   }
 
   @Deprecated

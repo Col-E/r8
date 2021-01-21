@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescri
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassBinaryName;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -38,6 +39,13 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
   // input context but it will have a distinct synthesizing context (encoded in its annotation).
   private final DexType inputContextType;
   private final Origin inputContextOrigin;
+
+  static SynthesizingContext fromNonSyntheticInputContext(DexClass context) {
+    // A context that is itself non-synthetic is the single context, thus both the input context
+    // and synthesizing context coincide.
+    return new SynthesizingContext(
+        context.getContextType(), context.getContextType(), context.getOrigin());
+  }
 
   static SynthesizingContext fromNonSyntheticInputContext(ProgramDefinition context) {
     // A context that is itself non-synthetic is the single context, thus both the input context

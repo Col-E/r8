@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
-import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
@@ -18,7 +18,9 @@ import com.google.common.hash.Hashing;
  * <p>This class is internal to the synthetic items collection, thus package-protected.
  */
 abstract class SyntheticDefinition<
-    R extends SyntheticReference<R, D>, D extends SyntheticDefinition<R, D>> {
+    R extends SyntheticReference<R, D, C>,
+    D extends SyntheticDefinition<R, D, C>,
+    C extends DexClass> {
 
   private final SyntheticKind kind;
   private final SynthesizingContext context;
@@ -28,6 +30,22 @@ abstract class SyntheticDefinition<
     assert context != null;
     this.kind = kind;
     this.context = context;
+  }
+
+  public boolean isClasspathDefinition() {
+    return false;
+  }
+
+  public SyntheticClasspathDefinition asClasspathDefinition() {
+    return null;
+  }
+
+  public boolean isProgramDefinition() {
+    return false;
+  }
+
+  public SyntheticProgramDefinition asProgramDefinition() {
+    return null;
   }
 
   abstract R toReference();
@@ -40,7 +58,7 @@ abstract class SyntheticDefinition<
     return context;
   }
 
-  abstract DexProgramClass getHolder();
+  public abstract C getHolder();
 
   final HashCode computeHash(RepresentativeMap map, boolean intermediate) {
     Hasher hasher = Hashing.murmur3_128().newHasher();
