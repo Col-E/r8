@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.ir.analysis.type.InterfaceCollection.Builder;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -554,6 +555,14 @@ public class TypeLatticeTest extends TestBase {
         Nullability.bottom(), ReferenceTypeElement.getNull().asMeetWithNotNull().nullability());
   }
 
+  private static InterfaceCollection itfs(DexType... types) {
+    Builder builder = InterfaceCollection.builder();
+    for (DexType type : types) {
+      builder.addInterface(type, true);
+    }
+    return builder.build();
+  }
+
   @Test
   public void testLeastUpperBoundOfInterfaces() {
     DexType collection = factory.createType("Ljava/util/Collection;");
@@ -561,37 +570,32 @@ public class TypeLatticeTest extends TestBase {
     DexType list = factory.createType("Ljava/util/List;");
     DexType serializable = factory.serializableType;
 
-    Set<DexType> lub =
-        computeLeastUpperBoundOfInterfaces(appView, ImmutableSet.of(set), ImmutableSet.of(list));
+    InterfaceCollection lub = computeLeastUpperBoundOfInterfaces(appView, itfs(set), itfs(list));
     assertEquals(1, lub.size());
-    assertTrue(lub.contains(collection));
-    verifyViaPairwiseJoin(lub,
-        ImmutableSet.of(set), ImmutableSet.of(list));
+    assertTrue(lub.containsKnownInterface(collection));
+    assertEquals(collection, lub.getSingleKnownInterface());
+    verifyViaPairwiseJoin(lub, ImmutableSet.of(set), ImmutableSet.of(list));
 
     lub =
         computeLeastUpperBoundOfInterfaces(
-            appView, ImmutableSet.of(set, serializable), ImmutableSet.of(list, serializable));
+            appView, itfs(set, serializable), itfs(list, serializable));
     assertEquals(2, lub.size());
-    assertTrue(lub.contains(collection));
-    assertTrue(lub.contains(serializable));
+    assertTrue(lub.containsKnownInterface(collection));
+    assertTrue(lub.containsKnownInterface(serializable));
     verifyViaPairwiseJoin(lub,
         ImmutableSet.of(set, serializable), ImmutableSet.of(list, serializable));
 
-    lub =
-        computeLeastUpperBoundOfInterfaces(
-            appView, ImmutableSet.of(set), ImmutableSet.of(list, serializable));
+    lub = computeLeastUpperBoundOfInterfaces(appView, itfs(set), itfs(list, serializable));
     assertEquals(1, lub.size());
-    assertTrue(lub.contains(collection));
-    assertFalse(lub.contains(serializable));
+    assertTrue(lub.containsKnownInterface(collection));
+    assertFalse(lub.containsKnownInterface(serializable));
     verifyViaPairwiseJoin(lub,
         ImmutableSet.of(set), ImmutableSet.of(list, serializable));
 
-    lub =
-        computeLeastUpperBoundOfInterfaces(
-            appView, ImmutableSet.of(set, serializable), ImmutableSet.of(list));
+    lub = computeLeastUpperBoundOfInterfaces(appView, itfs(set, serializable), itfs(list));
     assertEquals(1, lub.size());
-    assertTrue(lub.contains(collection));
-    assertFalse(lub.contains(serializable));
+    assertTrue(lub.containsKnownInterface(collection));
+    assertFalse(lub.containsKnownInterface(serializable));
     verifyViaPairwiseJoin(lub,
         ImmutableSet.of(set, serializable), ImmutableSet.of(list));
 
@@ -599,16 +603,14 @@ public class TypeLatticeTest extends TestBase {
     DexType wType = factory.createType("Ljava/lang/reflect/WildcardType;");
     DexType pType = factory.createType("Ljava/lang/reflect/ParameterizedType;");
 
-    lub =
-        computeLeastUpperBoundOfInterfaces(appView, ImmutableSet.of(wType), ImmutableSet.of(pType));
+    lub = computeLeastUpperBoundOfInterfaces(appView, itfs(wType), itfs(pType));
     assertEquals(1, lub.size());
-    assertTrue(lub.contains(type));
+    assertTrue(lub.containsKnownInterface(type));
+    assertEquals(type, lub.getSingleKnownInterface());
     verifyViaPairwiseJoin(lub,
         ImmutableSet.of(wType), ImmutableSet.of(pType));
 
-    lub =
-        computeLeastUpperBoundOfInterfaces(
-            appView, ImmutableSet.of(list, serializable), ImmutableSet.of(pType));
+    lub = computeLeastUpperBoundOfInterfaces(appView, itfs(list, serializable), itfs(pType));
     assertEquals(0, lub.size());
     verifyViaPairwiseJoin(lub,
         ImmutableSet.of(list, serializable), ImmutableSet.of(pType));
@@ -621,41 +623,36 @@ public class TypeLatticeTest extends TestBase {
         DescriptorUtils.javaTypeToDescriptor(I3.class.getCanonicalName()));
     DexType i4 = factory.createType(
         DescriptorUtils.javaTypeToDescriptor(I4.class.getCanonicalName()));
-    lub = computeLeastUpperBoundOfInterfaces(appView, ImmutableSet.of(i3), ImmutableSet.of(i4));
+    lub = computeLeastUpperBoundOfInterfaces(appView, itfs(i3), itfs(i4));
     assertEquals(2, lub.size());
-    assertTrue(lub.contains(i1));
-    assertTrue(lub.contains(i2));
+    assertTrue(lub.containsKnownInterface(i1));
+    assertTrue(lub.containsKnownInterface(i2));
     verifyViaPairwiseJoin(lub,
         ImmutableSet.of(i3), ImmutableSet.of(i4));
   }
 
-  private void verifyViaPairwiseJoin(Set<DexType> lub, Set<DexType> s1, Set<DexType>s2) {
-    ImmutableSet.Builder<DexType> builder = ImmutableSet.builder();
+  private void verifyViaPairwiseJoin(InterfaceCollection lub, Set<DexType> s1, Set<DexType> s2) {
+    InterfaceCollection.Builder builder = InterfaceCollection.builder();
     for (DexType i1 : s1) {
       for (DexType i2 : s2) {
-        Set<DexType> lubPerPair =
-            computeLeastUpperBoundOfInterfaces(appView, ImmutableSet.of(i1), ImmutableSet.of(i2));
-        for (DexType lubInterface : lubPerPair) {
-          builder.add(lubInterface);
-        }
+        InterfaceCollection lubPerPair =
+            computeLeastUpperBoundOfInterfaces(
+                appView, InterfaceCollection.singleton(i1), InterfaceCollection.singleton(i2));
+        lubPerPair.forEach(builder::addInterface);
       }
     }
-    Set<DexType> pairwiseJoin = builder.build();
-    ImmutableSet.Builder<DexType> lubBuilder = ImmutableSet.builder();
-    for (DexType itf : pairwiseJoin) {
-      // If there is a strict sub interface of this interface, it is not the least element.
-      if (pairwiseJoin.stream()
-          .anyMatch(other -> appView.appInfo().isStrictSubtypeOf(other, itf))) {
-        continue;
-      }
-      lubBuilder.add(itf);
-    }
-    Set<DexType> pairwiseLub = lubBuilder.build();
-
-    assertEquals(pairwiseLub.size(), lub.size());
-    for (DexType i : pairwiseLub) {
-      assertTrue(lub.contains(i));
-    }
+    InterfaceCollection pairwiseJoin = builder.build();
+    InterfaceCollection.Builder lubBuilder = InterfaceCollection.builder();
+    pairwiseJoin.forEach(
+        (itf, isKnown) -> {
+          // If there is a strict sub interface of this interface, it is not the least element.
+          if (!pairwiseJoin.anyMatch(
+              (other, ignoredOtherIsKnown) -> appView.appInfo().isStrictSubtypeOf(other, itf))) {
+            lubBuilder.addInterface(itf, isKnown);
+          }
+        });
+    InterfaceCollection pairwiseLub = lubBuilder.build();
+    assertEquals(pairwiseLub, lub);
   }
 
 }

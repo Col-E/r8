@@ -1352,12 +1352,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         // The type java.lang.Object could be any instantiated type. Assume a finalizer exists.
         return true;
       }
-      for (DexType iface : type.getInterfaces()) {
-        if (mayHaveFinalizer(iface)) {
-          return true;
-        }
-      }
-      return false;
+      return type.getInterfaces().anyMatch((iface, isKnown) -> mayHaveFinalizer(iface));
     }
     return mayHaveFinalizer(type.getClassType());
   }

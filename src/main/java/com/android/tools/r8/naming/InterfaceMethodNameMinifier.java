@@ -643,19 +643,26 @@ class InterfaceMethodNameMinifier {
             clazz -> {
               // TODO(b/133091438): Extend the if check to test for !clazz.isLibrary().
               if (!clazz.isInterface()) {
-                for (DexType directlyImplemented :
-                    appView.appInfo().implementedInterfaces(clazz.type)) {
-                  InterfaceReservationState iState = interfaceStateMap.get(directlyImplemented);
-                  if (iState != null) {
-                    DexType frontierType = minifierState.getFrontier(clazz.type);
-                    iState.addReservationType(frontierType);
-                    // The reservation state should already be added, but if a class is extending
-                    // an interface, we will not visit the class during the sub-type traversel
-                    if (minifierState.getReservationState(clazz.type) == null) {
-                      minifierState.allocateReservationStateAndReserve(clazz.type, frontierType);
-                    }
-                  }
-                }
+                appView
+                    .appInfo()
+                    .implementedInterfaces(clazz.type)
+                    .forEach(
+                        (directlyImplemented, ignoreIsKnownAndReserveInAllCases) -> {
+                          InterfaceReservationState iState =
+                              interfaceStateMap.get(directlyImplemented);
+                          if (iState != null) {
+                            DexType frontierType = minifierState.getFrontier(clazz.type);
+                            iState.addReservationType(frontierType);
+                            // The reservation state should already be added, but if a class is
+                            // extending
+                            // an interface, we will not visit the class during the sub-type
+                            // traversel
+                            if (minifierState.getReservationState(clazz.type) == null) {
+                              minifierState.allocateReservationStateAndReserve(
+                                  clazz.type, frontierType);
+                            }
+                          }
+                        });
               }
             });
   }

@@ -147,11 +147,7 @@ public abstract class TypeElement {
    * @return {@code true} if {@param this} is strictly less than {@param other}.
    */
   public boolean strictlyLessThan(TypeElement other, AppView<?> appView) {
-    if (equals(other)) {
-      return false;
-    }
-    TypeElement lub = join(other, appView);
-    return !equals(lub) && other.equals(lub);
+    return !equals(other) && internalLessThan(other, appView);
   }
 
   /**
@@ -163,7 +159,13 @@ public abstract class TypeElement {
    * @return {@code true} if {@param this} is less than or equal to {@param other}.
    */
   public boolean lessThanOrEqual(TypeElement other, AppView<?> appView) {
-    return equals(other) || strictlyLessThan(other, appView);
+    return equals(other) || internalLessThan(other, appView);
+  }
+
+  private boolean internalLessThan(TypeElement other, AppView<?> appView) {
+    // The equals check has already been done by callers, so only the join is computed.
+    TypeElement lub = join(other, appView);
+    return !equals(lub) && other.equals(lub);
   }
 
   /**

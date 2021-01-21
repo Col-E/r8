@@ -955,7 +955,7 @@ public class Outliner {
         return true;
       }
       if (arrayBaseType.isClassType()) {
-        return arrayBaseType.asClassType().getInterfaces().size() == 0;
+        return arrayBaseType.asClassType().getInterfaces().isEmpty();
       }
       return false;
     }
@@ -972,8 +972,8 @@ public class Outliner {
         // have a common super interface nor are they implemented by a common superclass so the
         // argument type of the outline will be java.lang.Object.
         if (valueClassType.getClassType() == objectType
-            && valueClassType.getInterfaces().size() == 1) {
-          return valueClassType.getInterfaces().iterator().next();
+            && valueClassType.getInterfaces().hasSingleKnownInterface()) {
+          return valueClassType.getInterfaces().getSingleKnownInterface();
         } else {
           return valueClassType.getClassType();
         }

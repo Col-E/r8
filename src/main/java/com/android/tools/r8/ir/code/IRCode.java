@@ -596,9 +596,13 @@ public class IRCode implements ValueFactory {
       if (instruction.outValue != null && instruction.outValue.getType().isClassType()) {
         ClassTypeElement classTypeLattice = instruction.outValue.getType().asClassType();
         assert !verticallyMergedClasses.hasBeenMergedIntoSubtype(classTypeLattice.getClassType());
-        for (DexType itf : classTypeLattice.getInterfaces()) {
-          assert !verticallyMergedClasses.hasBeenMergedIntoSubtype(itf);
-        }
+        assert !classTypeLattice
+            .getInterfaces()
+            .anyMatch(
+                (itf, isKnown) -> {
+                  assert !verticallyMergedClasses.hasBeenMergedIntoSubtype(itf);
+                  return false;
+                });
       }
     }
     return true;

@@ -10,7 +10,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
 public class TypeElementWidthTest extends TestBase {
@@ -78,7 +77,7 @@ public class TypeElementWidthTest extends TestBase {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ClassTypeElement referenceType =
         ClassTypeElement.create(
-            dexItemFactory.objectType, Nullability.maybeNull(), ImmutableSet.of());
+            dexItemFactory.objectType, Nullability.maybeNull(), InterfaceCollection.empty());
     assertFalse(referenceType.isSinglePrimitive());
     assertFalse(referenceType.isWidePrimitive());
     assertEquals(1, referenceType.requiredRegisters());

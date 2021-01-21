@@ -2016,4 +2016,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean canHaveDalvikIntUsedAsNonIntPrimitiveTypeBug() {
     return isGeneratingClassFiles() || minApiLevel < AndroidApiLevel.L.getLevel();
   }
+
+  // The standard library prior to API 19 did not contain a ZipFile that implemented Closable.
+  //
+  // See b/177532008.
+  public boolean canHaveZipFileWithMissingCloseableBug() {
+    return isGeneratingClassFiles() || minApiLevel < AndroidApiLevel.K.getLevel();
+  }
 }

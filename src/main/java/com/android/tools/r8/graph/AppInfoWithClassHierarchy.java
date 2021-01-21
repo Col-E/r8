@@ -15,12 +15,15 @@ import com.android.tools.r8.graph.ResolutionResult.IllegalAccessOrNoSuchMethodRe
 import com.android.tools.r8.graph.ResolutionResult.IncompatibleClassResult;
 import com.android.tools.r8.graph.ResolutionResult.NoSuchMethodResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
+import com.android.tools.r8.ir.analysis.type.InterfaceCollection.Builder;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.TriConsumer;
@@ -287,31 +290,78 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   /** Collect all interfaces that this type directly or indirectly implements. */
-  public Set<DexType> implementedInterfaces(DexType type) {
+  public InterfaceCollection implementedInterfaces(DexType type) {
     assert type.isClassType();
     DexClass clazz = definitionFor(type);
     if (clazz == null) {
-      return Collections.emptySet();
+      return InterfaceCollection.empty();
     }
 
     // Fast path for a type below object with no interfaces.
     if (clazz.superType == dexItemFactory().objectType && clazz.interfaces.isEmpty()) {
-      return clazz.isInterface() ? Collections.singleton(type) : Collections.emptySet();
+      return clazz.isInterface()
+          ? InterfaceCollection.singleton(type)
+          : InterfaceCollection.empty();
     }
 
     // Slow path traverses the full super type hierarchy.
-    Set<DexType> interfaces = Sets.newIdentityHashSet();
+    Builder builder = InterfaceCollection.builder();
     if (clazz.isInterface()) {
-      interfaces.add(type);
+      builder.addInterface(type, true);
     }
-    forEachSuperType(
-        clazz,
-        (superType, subclass, isInterface) -> {
-          if (isInterface) {
-            interfaces.add(superType);
+    // First find all interface leafs from the class super-type chain.
+    Set<DexType> seenAndKnown = Sets.newIdentityHashSet();
+    Deque<Pair<DexClass, Boolean>> worklist = new ArrayDeque<>();
+    {
+      DexClass implementor = clazz;
+      while (implementor != null) {
+        for (DexType iface : implementor.interfaces) {
+          if (seenAndKnown.contains(iface)) {
+            continue;
           }
-        });
-    return interfaces;
+          boolean isKnown =
+              InterfaceCollection.isKnownToImplement(iface, implementor.getType(), options());
+          builder.addInterface(iface, isKnown);
+          if (isKnown) {
+            seenAndKnown.add(iface);
+          }
+          DexClass definition = definitionFor(iface);
+          if (definition != null && !definition.interfaces.isEmpty()) {
+            worklist.add(new Pair<>(definition, isKnown));
+          }
+        }
+        if (implementor.superType == null
+            || implementor.superType == options().dexItemFactory().objectType) {
+          break;
+        }
+        implementor = definitionFor(implementor.superType);
+      }
+    }
+    // Second complete the worklist of interfaces. All paths must be visited as an interface may
+    // be unknown on one but not on another.
+    while (!worklist.isEmpty()) {
+      Pair<DexClass, Boolean> item = worklist.poll();
+      DexClass implementor = item.getFirst();
+      assert !implementor.interfaces.isEmpty();
+      for (DexType itf : implementor.interfaces) {
+        if (seenAndKnown.contains(itf)) {
+          continue;
+        }
+        // A derived interface is known only if the full chain leading to it is known.
+        boolean isKnown =
+            item.getSecond()
+                && InterfaceCollection.isKnownToImplement(itf, implementor.getType(), options());
+        builder.addInterface(itf, isKnown);
+        if (isKnown) {
+          seenAndKnown.add(itf);
+        }
+        DexClass definition = definitionFor(itf);
+        if (definition != null && !definition.interfaces.isEmpty()) {
+          worklist.add(new Pair<>(definition, isKnown));
+        }
+      }
+    }
+    return builder.build();
   }
 
   public boolean isExternalizable(DexType type) {

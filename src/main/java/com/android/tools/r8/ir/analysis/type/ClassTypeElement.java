@@ -8,19 +8,21 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.InterfaceCollection.Builder;
+import com.android.tools.r8.utils.BooleanBox;
+import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.SetUtils;
-import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -28,14 +30,14 @@ public class ClassTypeElement extends ReferenceTypeElement {
 
   // Least upper bound of interfaces that this class type is implementing.
   // Lazily computed on demand via DexItemFactory, where the canonicalized set will be maintained.
-  private Set<DexType> lazyInterfaces;
+  private InterfaceCollection lazyInterfaces;
   private AppView<? extends AppInfoWithClassHierarchy> appView;
   // On-demand link between other nullability-variants.
   private final NullabilityVariants<ClassTypeElement> variants;
   private final DexType type;
 
   public static ClassTypeElement create(
-      DexType classType, Nullability nullability, Set<DexType> interfaces) {
+      DexType classType, Nullability nullability, InterfaceCollection interfaces) {
     assert interfaces != null;
     return NullabilityVariants.create(
         nullability,
@@ -55,7 +57,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
   private ClassTypeElement(
       DexType classType,
       Nullability nullability,
-      Set<DexType> interfaces,
+      InterfaceCollection interfaces,
       NullabilityVariants<ClassTypeElement> variants,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     super(nullability);
@@ -71,7 +73,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
     return type;
   }
 
-  public Set<DexType> getInterfaces() {
+  public InterfaceCollection getInterfaces() {
     if (lazyInterfaces == null) {
       assert appView != null;
       lazyInterfaces =
@@ -105,8 +107,8 @@ public class ClassTypeElement extends ReferenceTypeElement {
   @Override
   public boolean isBasedOnMissingClass(AppView<? extends AppInfoWithClassHierarchy> appView) {
     return appView.appInfo().isMissingOrHasMissingSuperType(getClassType())
-        || getInterfaces().stream()
-            .anyMatch(type -> appView.appInfo().isMissingOrHasMissingSuperType(type));
+        || getInterfaces()
+            .anyMatch((iface, isKnown) -> appView.appInfo().isMissingOrHasMissingSuperType(iface));
   }
 
   @Override
@@ -131,13 +133,17 @@ public class ClassTypeElement extends ReferenceTypeElement {
     builder.append(" ");
     builder.append(type);
     builder.append(" {");
-    Set<DexType> interfaces = getInterfaces();
-    if (interfaces != null) {
-      List<DexType> sortedInterfaces = new ArrayList<>(interfaces);
-      sortedInterfaces.sort(DexType::compareTo);
-      builder.append(
-          sortedInterfaces.stream().map(DexType::toString).collect(Collectors.joining(", ")));
-    }
+    InterfaceCollection interfaces = getInterfaces();
+    List<Pair<DexType, Boolean>> sortedInterfaces = interfaces.getInterfaceList();
+    sortedInterfaces.sort(Comparator.comparing(Pair::getFirst));
+    builder.append(
+        sortedInterfaces.stream()
+            .map(
+                pair ->
+                    pair.getSecond()
+                        ? pair.getFirst().toString()
+                        : ("maybe(" + pair.getFirst() + ")"))
+            .collect(Collectors.joining(", ")));
     builder.append("}");
     return builder.toString();
   }
@@ -165,36 +171,42 @@ public class ClassTypeElement extends ReferenceTypeElement {
 
     // For most types there will not have been a change thus we iterate without allocating a new
     // set for holding modified interfaces.
-    boolean hasChangedInterfaces = false;
-    DexClass interfaceToClassChange = null;
-    for (DexType iface : getInterfaces()) {
-      DexType substitutedType = mapping.apply(iface);
-      if (iface != substitutedType) {
-        hasChangedInterfaces = true;
-        DexClass mappedClass = appView.definitionFor(substitutedType);
-        if (!mappedClass.isInterface()) {
-          if (interfaceToClassChange != null && mappedClass != interfaceToClassChange) {
-            throw new CompilationError(
-                "More than one interface has changed to a class: "
-                    + interfaceToClassChange
-                    + " and "
-                    + mappedClass);
-          }
-          interfaceToClassChange = mappedClass;
-        }
-      }
-    }
-    if (hasChangedInterfaces) {
-      if (interfaceToClassChange != null) {
-        assert !interfaceToClassChange.isInterface();
+    BooleanBox hasChangedInterfaces = new BooleanBox();
+    Box<DexClass> interfaceToClassChange = new Box<>();
+    getInterfaces()
+        .forEach(
+            (iface, isKnown) -> {
+              DexType substitutedType = mapping.apply(iface);
+              if (iface != substitutedType) {
+                hasChangedInterfaces.set();
+                DexClass mappedClass = appView.definitionFor(substitutedType);
+                if (!mappedClass.isInterface()) {
+                  if (interfaceToClassChange.isSet()
+                      && mappedClass != interfaceToClassChange.get()) {
+                    throw new CompilationError(
+                        "More than one interface has changed to a class: "
+                            + interfaceToClassChange.get()
+                            + " and "
+                            + mappedClass);
+                  }
+                  interfaceToClassChange.set(mappedClass);
+                }
+              }
+            });
+    if (hasChangedInterfaces.get()) {
+      if (interfaceToClassChange.isSet()) {
+        assert !interfaceToClassChange.get().isInterface();
         assert type == appView.dexItemFactory().objectType;
-        return create(interfaceToClassChange.type, nullability, appView);
+        return create(interfaceToClassChange.get().type, nullability, appView);
       } else {
-        Set<DexType> newInterfaces = new HashSet<>();
-        for (DexType iface : lazyInterfaces) {
-          newInterfaces.add(mapping.apply(iface));
-        }
-        return create(mappedType, nullability, newInterfaces);
+        Builder builder = InterfaceCollection.builder();
+        lazyInterfaces.forEach(
+            (iface, isKnown) -> {
+              DexType rewritten = mapping.apply(iface);
+              assert iface == rewritten || isKnown : "Rewritten implies program types thus known.";
+              builder.addInterface(rewritten, isKnown);
+            });
+        return create(mappedType, nullability, builder.build());
       }
     }
     return this;
@@ -210,15 +222,15 @@ public class ClassTypeElement extends ReferenceTypeElement {
               ? getClassType()
               : appView.dexItemFactory().objectType,
           nullability,
-          Collections.emptySet());
+          InterfaceCollection.empty());
     }
     DexType lubType =
         computeLeastUpperBoundOfClasses(
             appView.appInfo().withClassHierarchy(), getClassType(), other.getClassType());
-    Set<DexType> c1lubItfs = getInterfaces();
-    Set<DexType> c2lubItfs = other.getInterfaces();
-    Set<DexType> lubItfs = null;
-    if (c1lubItfs.size() == c2lubItfs.size() && c1lubItfs.containsAll(c2lubItfs)) {
+    InterfaceCollection c1lubItfs = getInterfaces();
+    InterfaceCollection c2lubItfs = other.getInterfaces();
+    InterfaceCollection lubItfs = null;
+    if (c1lubItfs.equals(c2lubItfs)) {
       lubItfs = c1lubItfs;
     }
     if (lubItfs == null) {
@@ -228,9 +240,85 @@ public class ClassTypeElement extends ReferenceTypeElement {
     return ClassTypeElement.create(lubType, nullability, lubItfs);
   }
 
-  private enum InterfaceMarker {
-    LEFT,
-    RIGHT
+  /**
+   * Internal marker for finding the LUB between sets of interfaces.
+   *
+   * <p>The marker is used both as the identification of which side the traversal is on and if that
+   * item is known to always be present. That use denotes a immutable use fo the marker and reuses
+   * the static constants defined below. When traversing the interface super chains each point is
+   * mapped to a mutable marking that keeps track of what paths have reached it. The mutable use is
+   * allocated with 'createEmpty' and updated with 'merge'.
+   */
+  private static class InterfaceMarker {
+
+    // Each side is tracked with a three-valued marking.
+    // Note that the value FALSE is not part of the possible three values, only:
+    //   FALSE: not marked / not present.
+    //   TRUE: marked and known to be present.
+    //   UNKNOWN: marked and unknown if actually present.
+    private OptionalBool left;
+    private OptionalBool right;
+
+    static final InterfaceMarker LEFT_KNOWN =
+        new InterfaceMarker(OptionalBool.TRUE, OptionalBool.FALSE);
+    static final InterfaceMarker LEFT_UNKNOWN =
+        new InterfaceMarker(OptionalBool.UNKNOWN, OptionalBool.FALSE);
+    static final InterfaceMarker RIGHT_KNOWN =
+        new InterfaceMarker(OptionalBool.FALSE, OptionalBool.TRUE);
+    static final InterfaceMarker RIGHT_UNKNOWN =
+        new InterfaceMarker(OptionalBool.FALSE, OptionalBool.UNKNOWN);
+
+    static InterfaceMarker forLeft(boolean isKnown) {
+      return isKnown ? LEFT_KNOWN : LEFT_UNKNOWN;
+    }
+
+    static InterfaceMarker forRight(boolean isKnown) {
+      return isKnown ? RIGHT_KNOWN : RIGHT_UNKNOWN;
+    }
+
+    static InterfaceMarker createUnmarked() {
+      return new InterfaceMarker(OptionalBool.FALSE, OptionalBool.FALSE);
+    }
+
+    public InterfaceMarker(OptionalBool left, OptionalBool right) {
+      this.left = left;
+      this.right = right;
+      assert !isMarkedOnBothSides();
+    }
+
+    boolean isMarked() {
+      return left.isPossiblyTrue() || right.isPossiblyTrue();
+    }
+
+    boolean isMarkedOnBothSides() {
+      return left.isPossiblyTrue() && right.isPossiblyTrue();
+    }
+
+    static OptionalBool knownIfAnyIsKnown(OptionalBool v1, OptionalBool v2) {
+      assert v1.isPossiblyTrue() || v2.isPossiblyTrue();
+      return v1.isTrue() || v2.isTrue() ? OptionalBool.TRUE : OptionalBool.UNKNOWN;
+    }
+
+    boolean knownIfBothAreKnown() {
+      assert isMarkedOnBothSides();
+      return left.isTrue() && right.isTrue();
+    }
+
+    boolean merge(InterfaceMarker marker) {
+      assert marker.isMarked();
+      assert !marker.isMarkedOnBothSides();
+      if (marker.left.isPossiblyTrue()) {
+        OptionalBool oldLeft = left;
+        left = knownIfAnyIsKnown(left, marker.left);
+        // Only continue if the other side is absent and this side changed.
+        return right.isFalse() && left != oldLeft;
+      } else {
+        OptionalBool oldRight = right;
+        right = knownIfAnyIsKnown(right, marker.right);
+        // Only continue if the other side is absent and this side changed.
+        return left.isFalse() && right != oldRight;
+      }
+    }
   }
 
   private static class InterfaceWithMarker {
@@ -287,12 +375,15 @@ public class ClassTypeElement extends ReferenceTypeElement {
     return objectType;
   }
 
-  public static Set<DexType> computeLeastUpperBoundOfInterfaces(
-      AppView<? extends AppInfoWithClassHierarchy> appView, Set<DexType> s1, Set<DexType> s2) {
+  public static InterfaceCollection computeLeastUpperBoundOfInterfaces(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      InterfaceCollection s1,
+      InterfaceCollection s2) {
     if (s1.isEmpty() || s2.isEmpty()) {
-      return Collections.emptySet();
+      return InterfaceCollection.empty();
     }
-    Set<DexType> cached = appView.dexItemFactory().leastUpperBoundOfInterfacesTable.get(s1, s2);
+    InterfaceCollection cached =
+        appView.dexItemFactory().leastUpperBoundOfInterfacesTable.get(s1, s2);
     if (cached != null) {
       return cached;
     }
@@ -300,58 +391,46 @@ public class ClassTypeElement extends ReferenceTypeElement {
     if (cached != null) {
       return cached;
     }
-    Map<DexType, Set<InterfaceMarker>> seen = new IdentityHashMap<>();
+    Map<DexType, InterfaceMarker> seen = new IdentityHashMap<>();
     Queue<InterfaceWithMarker> worklist = new ArrayDeque<>();
-    for (DexType itf1 : s1) {
-      worklist.add(new InterfaceWithMarker(itf1, InterfaceMarker.LEFT));
-    }
-    for (DexType itf2 : s2) {
-      worklist.add(new InterfaceWithMarker(itf2, InterfaceMarker.RIGHT));
-    }
+    s1.forEach(
+        (itf1, isKnown) ->
+            worklist.add(new InterfaceWithMarker(itf1, InterfaceMarker.forLeft(isKnown))));
+    s2.forEach(
+        (itf2, isKnown) ->
+            worklist.add(new InterfaceWithMarker(itf2, InterfaceMarker.forRight(isKnown))));
+
     while (!worklist.isEmpty()) {
       InterfaceWithMarker item = worklist.poll();
       DexType itf = item.itf;
       InterfaceMarker marker = item.marker;
-      Set<InterfaceMarker> markers = seen.computeIfAbsent(itf, k -> new HashSet<>());
-      // If this interface is a lower one in this set, skip.
-      if (markers.contains(marker)) {
-        continue;
-      }
-      // If this interface is already visited by the other set, add marker for this set and skip.
-      if (markers.size() == 1) {
-        markers.add(marker);
-        continue;
-      }
-      // Otherwise, this type is freshly visited.
-      markers.add(marker);
-      // Put super interfaces into the worklist.
-      DexClass itfClass = appView.definitionFor(itf);
-      if (itfClass != null) {
-        for (DexType superItf : itfClass.interfaces.values) {
-          markers = seen.computeIfAbsent(superItf, k -> new HashSet<>());
-          if (!markers.contains(marker)) {
+      InterfaceMarker marking = seen.computeIfAbsent(itf, k -> InterfaceMarker.createUnmarked());
+      if (marking.merge(marker)) {
+        // Put super interfaces into the worklist.
+        DexClass itfClass = appView.definitionFor(itf);
+        if (itfClass != null) {
+          for (DexType superItf : itfClass.interfaces.values) {
             worklist.add(new InterfaceWithMarker(superItf, marker));
           }
         }
       }
     }
 
-    ImmutableSet.Builder<DexType> commonBuilder = ImmutableSet.builder();
-    for (Map.Entry<DexType, Set<InterfaceMarker>> entry : seen.entrySet()) {
-      // Keep commonly visited interfaces only
-      if (entry.getValue().size() < 2) {
-        continue;
-      }
-      commonBuilder.add(entry.getKey());
-    }
-    Set<DexType> commonlyVisited = commonBuilder.build();
+    List<Pair<DexType, Boolean>> commonlyVisited = new ArrayList<>(seen.size());
+    seen.forEach(
+        (itf, marking) -> {
+          // Keep commonly visited interfaces only
+          if (marking.isMarkedOnBothSides()) {
+            commonlyVisited.add(new Pair<>(itf, marking.knownIfBothAreKnown()));
+          }
+        });
 
-    ImmutableSet.Builder<DexType> lubBuilder = ImmutableSet.builder();
-    for (DexType itf : commonlyVisited) {
+    Builder lubBuilder = InterfaceCollection.builder();
+    for (Pair<DexType, Boolean> entry : commonlyVisited) {
       // If there is a strict sub interface of this interface, it is not the least element.
       boolean notTheLeast = false;
-      for (DexType other : commonlyVisited) {
-        if (appView.appInfo().isStrictSubtypeOf(other, itf)) {
+      for (Pair<DexType, Boolean> other : commonlyVisited) {
+        if (appView.appInfo().isStrictSubtypeOf(other.getFirst(), entry.getFirst())) {
           notTheLeast = true;
           break;
         }
@@ -359,11 +438,11 @@ public class ClassTypeElement extends ReferenceTypeElement {
       if (notTheLeast) {
         continue;
       }
-      lubBuilder.add(itf);
+      lubBuilder.addInterface(entry.getFirst(), entry.getSecond());
     }
-    Set<DexType> lub = lubBuilder.build();
+    InterfaceCollection lub = lubBuilder.build();
     // Cache the computation result only if the given two sets of interfaces are different.
-    if (s1.size() != s2.size() || !s1.containsAll(s2)) {
+    if (!s1.equals(s2)) {
       synchronized (appView.dexItemFactory().leastUpperBoundOfInterfacesTable) {
         appView.dexItemFactory().leastUpperBoundOfInterfacesTable.put(s1, s2, lub);
       }
@@ -386,14 +465,6 @@ public class ClassTypeElement extends ReferenceTypeElement {
     if (!type.equals(other.type)) {
       return false;
     }
-    Set<DexType> thisInterfaces = getInterfaces();
-    Set<DexType> otherInterfaces = other.getInterfaces();
-    if (thisInterfaces == otherInterfaces) {
-      return true;
-    }
-    if (thisInterfaces.size() != otherInterfaces.size()) {
-      return false;
-    }
-    return thisInterfaces.containsAll(otherInterfaces);
+    return getInterfaces().equals(other.getInterfaces());
   }
 }

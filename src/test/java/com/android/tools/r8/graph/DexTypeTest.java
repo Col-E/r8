@@ -9,9 +9,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
+import java.util.HashSet;
 import java.util.Set;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -53,7 +55,7 @@ public class DexTypeTest {
 
     // class ArrayList implements List
     DexType arrayList = factory.createType("Ljava/util/ArrayList;");
-    Set<DexType> interfaces = appInfo.implementedInterfaces(arrayList);
+    Set<DexType> interfaces = setOfAll(appInfo.implementedInterfaces(arrayList));
     assertThat(interfaces, hasItems(serializable));
     assertThat(interfaces, hasItems(iterable));
     assertThat(interfaces, hasItems(collection));
@@ -62,13 +64,19 @@ public class DexTypeTest {
 
     // class LinkedList implements List, Deque
     DexType linkedList = factory.createType("Ljava/util/LinkedList;");
-    interfaces = appInfo.implementedInterfaces(linkedList);
+    interfaces = setOfAll(appInfo.implementedInterfaces(linkedList));
     assertThat(interfaces, hasItems(serializable));
     assertThat(interfaces, hasItems(iterable));
     assertThat(interfaces, hasItems(collection));
     assertThat(interfaces, hasItems(list));
     assertThat(interfaces, hasItems(deque));
     assertThat(interfaces, hasItems(queue));
+  }
+
+  private static Set<DexType> setOfAll(InterfaceCollection interfaces) {
+    HashSet<DexType> set = new HashSet<>(interfaces.size());
+    interfaces.forEach((iface, ignoredIsKnown) -> set.add(iface));
+    return set;
   }
 
   @Test
@@ -84,13 +92,13 @@ public class DexTypeTest {
     DexType ktAbsList = factory.createType("Lkotlin/collections/AbstractList;");
     DexType ktAbsSet = factory.createType("Lkotlin/collections/AbstractSet;");
 
-    Set<DexType> interfaces = appInfo.implementedInterfaces(ktAbsList);
+    Set<DexType> interfaces = setOfAll(appInfo.implementedInterfaces(ktAbsList));
     assertThat(interfaces, hasItems(iterable));
     assertThat(interfaces, hasItems(collection));
     assertThat(interfaces, hasItems(list));
     assertThat(interfaces, not(hasItems(set)));
 
-    interfaces = appInfo.implementedInterfaces(ktAbsSet);
+    interfaces = setOfAll(appInfo.implementedInterfaces(ktAbsSet));
     assertThat(interfaces, hasItems(iterable));
     assertThat(interfaces, hasItems(collection));
     assertThat(interfaces, hasItems(set));
@@ -107,7 +115,7 @@ public class DexTypeTest {
     DexType pType = factory.createType("Ljava/lang/reflect/ParameterizedType;");
     DexType klass = factory.createType("Ljava/lang/Class;");
 
-    Set<DexType> interfaces = appInfo.implementedInterfaces(klass);
+    Set<DexType> interfaces = setOfAll(appInfo.implementedInterfaces(klass));
     assertThat(interfaces, hasItems(serializable));
     assertThat(interfaces, hasItems(annotatedElement));
     assertThat(interfaces, hasItems(genericDeclaration));
@@ -130,7 +138,7 @@ public class DexTypeTest {
     DexType mutableReference0 =
         factory.createType("Lkotlin/jvm/internal/MutablePropertyReference0;");
 
-    Set<DexType> interfaces = appInfo.implementedInterfaces(mutableReference0);
+    Set<DexType> interfaces = setOfAll(appInfo.implementedInterfaces(mutableReference0));
     assertThat(interfaces, hasItems(kCallable));
     assertThat(interfaces, hasItems(kProperty));
     assertThat(interfaces, hasItems(kMutableProperty));
@@ -147,15 +155,14 @@ public class DexTypeTest {
     // interface Function0 : Function
     DexType function0 = factory.createType("Lkotlin/jvm/functions/Function0;");
 
-    Set<DexType> interfaces = appInfo.implementedInterfaces(lambda);
+    Set<DexType> interfaces = setOfAll(appInfo.implementedInterfaces(lambda));
     assertThat(interfaces, not(hasItems(lambda)));
     assertThat(interfaces, hasItems(function));
     assertThat(interfaces, hasItems(functionBase));
 
-    interfaces = appInfo.implementedInterfaces(function0);
+    interfaces = setOfAll(appInfo.implementedInterfaces(function0));
     assertThat(interfaces, hasItems(function0));
     assertThat(interfaces, hasItems(function));
     assertThat(interfaces, not(hasItems(functionBase)));
   }
-
 }

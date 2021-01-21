@@ -12,6 +12,8 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
+import com.android.tools.r8.ir.analysis.type.InterfaceCollection.Builder;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -19,9 +21,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.google.common.collect.ImmutableSet;
 import java.util.List;
-import java.util.Set;
 
 public final class InvokeCustom extends Invoke {
 
@@ -44,19 +44,18 @@ public final class InvokeCustom extends Invoke {
   }
 
   private static boolean verifyLambdaInterfaces(
-      TypeElement returnType, Set<DexType> lambdaInterfaceSet, DexType objectType) {
-    Set<DexType> primaryInterfaces = returnType.asClassType().getInterfaces();
+      TypeElement returnType, InterfaceCollection lambdaInterfaceSet, DexType objectType) {
+    InterfaceCollection primaryInterfaces = returnType.asClassType().getInterfaces();
     if (returnType.asClassType().getClassType() == objectType) {
-      assert primaryInterfaces.size() == 1;
       // The interfaces returned by the LambdaDescriptor assumed to already contain the primary
       // interface. If they're both singleton lists they must be identical and we can return the
       // primary return type.
-      assert lambdaInterfaceSet.contains(primaryInterfaces.iterator().next());
+      assert lambdaInterfaceSet.containsKnownInterface(primaryInterfaces.getSingleKnownInterface());
     } else {
       // We arrive here if the primary interface is a missing class. In that case the
       // returnType will be the missing type as the class type.
       assert primaryInterfaces.isEmpty();
-      assert lambdaInterfaceSet.contains(returnType.asClassType().getClassType());
+      assert lambdaInterfaceSet.containsKnownInterface(returnType.asClassType().getClassType());
     }
     return true;
   }
@@ -76,20 +75,21 @@ public final class InvokeCustom extends Invoke {
     // The primary return type is either an interface or a missing type.
     assert returnType instanceof ClassTypeElement;
 
-    Set<DexType> primaryInterfaces = returnType.asClassType().getInterfaces();
+    InterfaceCollection primaryInterfaces = returnType.asClassType().getInterfaces();
     DexType objectType = appView.dexItemFactory().objectType;
 
     if (returnType.asClassType().getClassType() == objectType) {
-      assert primaryInterfaces.size() == 1;
+      assert primaryInterfaces.hasSingleKnownInterface();
       // Shortcut for the common case: single interface. Save creating a new lattice type.
       if (lambdaInterfaces.size() == 1) {
-        assert lambdaInterfaces.get(0) == primaryInterfaces.iterator().next();
+        assert lambdaInterfaces.get(0) == primaryInterfaces.getSingleKnownInterface();
         return returnType;
       }
     }
 
-    Set<DexType> lambdaInterfaceSet =
-        ImmutableSet.<DexType>builder().addAll(lambdaInterfaces).build();
+    Builder builder = InterfaceCollection.builder();
+    lambdaInterfaces.forEach(iface -> builder.addInterface(iface, true));
+    InterfaceCollection lambdaInterfaceSet = builder.build();
 
     assert verifyLambdaInterfaces(returnType, lambdaInterfaceSet, objectType);
 

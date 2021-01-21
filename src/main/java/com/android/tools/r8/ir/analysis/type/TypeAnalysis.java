@@ -18,7 +18,6 @@ import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
-import java.util.Set;
 
 public class TypeAnalysis {
 
@@ -181,9 +180,9 @@ public class TypeAnalysis {
       ClassTypeElement classType = receiverUpperBoundType.asClassType();
       DexType refinedType = classType.getClassType();
       if (refinedType == appView.dexItemFactory().objectType) {
-        Set<DexType> interfaces = classType.getInterfaces();
-        if (interfaces.size() == 1) {
-          refinedType = interfaces.iterator().next();
+        DexType singleKnownInterface = classType.getInterfaces().getSingleKnownInterface();
+        if (singleKnownInterface != null) {
+          refinedType = singleKnownInterface;
         }
       }
       if (appView.appInfo().isSubtype(refinedType, staticReceiverType)) {

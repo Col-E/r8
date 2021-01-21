@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -44,7 +45,6 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -90,9 +90,9 @@ public class DexItemFactory {
   // ReferenceTypeElement canonicalization.
   private final ConcurrentHashMap<DexType, ReferenceTypeElement> referenceTypes =
       new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<DexType, Set<DexType>> classTypeInterfaces =
+  private final ConcurrentHashMap<DexType, InterfaceCollection> classTypeInterfaces =
       new ConcurrentHashMap<>();
-  public final LRUCacheTable<Set<DexType>, Set<DexType>, Set<DexType>>
+  public final LRUCacheTable<InterfaceCollection, InterfaceCollection, InterfaceCollection>
       leastUpperBoundOfInterfacesTable = LRUCacheTable.create(8, 8);
 
   boolean sorted = false;
@@ -231,6 +231,8 @@ public class DexItemFactory {
   public final DexString iterableDescriptor = createString("Ljava/lang/Iterable;");
   public final DexString mathDescriptor = createString("Ljava/lang/Math;");
   public final DexString strictMathDescriptor = createString("Ljava/lang/StrictMath;");
+  public final DexString closeableDescriptor = createString("Ljava/io/Closeable;");
+  public final DexString zipFileDescriptor = createString("Ljava/util/zip/ZipFile;");
 
   public final DexString stringBuilderDescriptor = createString("Ljava/lang/StringBuilder;");
   public final DexString stringBufferDescriptor = createString("Ljava/lang/StringBuffer;");
@@ -360,6 +362,9 @@ public class DexItemFactory {
   public final DexType fieldType = createStaticallyKnownType(fieldDescriptor);
   public final DexType methodType = createStaticallyKnownType(methodDescriptor);
   public final DexType autoCloseableType = createStaticallyKnownType(autoCloseableDescriptor);
+
+  public final DexType closeableType = createStaticallyKnownType(closeableDescriptor);
+  public final DexType zipFileType = createStaticallyKnownType(zipFileDescriptor);
 
   public final DexType stringBuilderType = createStaticallyKnownType(stringBuilderDescriptor);
   public final DexType stringBufferType = createStaticallyKnownType(stringBufferDescriptor);
@@ -2421,12 +2426,12 @@ public class DexItemFactory {
               if (type.isClassType()) {
                 if (!appView.enableWholeProgramOptimizations()) {
                   // Don't reason at the level of interfaces in D8.
-                  return ClassTypeElement.create(type, nullability, Collections.emptySet());
+                  return ClassTypeElement.create(type, nullability, InterfaceCollection.empty());
                 }
                 assert appView.appInfo().hasClassHierarchy();
                 if (appView.isInterface(type).isTrue()) {
                   return ClassTypeElement.create(
-                      objectType, nullability, Collections.singleton(type));
+                      objectType, nullability, InterfaceCollection.singleton(type));
                 }
                 // In theory, `interfaces` is the least upper bound of implemented interfaces.
                 // It is expensive to walk through type hierarchy; collect implemented interfaces;
@@ -2441,12 +2446,12 @@ public class DexItemFactory {
         .getOrCreateVariant(nullability);
   }
 
-  public Set<DexType> getOrComputeLeastUpperBoundOfImplementedInterfaces(
+  public InterfaceCollection getOrComputeLeastUpperBoundOfImplementedInterfaces(
       DexType type, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return classTypeInterfaces.computeIfAbsent(
         type,
         t -> {
-          Set<DexType> itfs = appView.appInfo().implementedInterfaces(t);
+          InterfaceCollection itfs = appView.appInfo().implementedInterfaces(t);
           return computeLeastUpperBoundOfInterfaces(appView, itfs, itfs);
         });
   }
