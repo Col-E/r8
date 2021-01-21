@@ -41,7 +41,7 @@ public abstract class MethodProcessor {
     waveExtension.add(method);
   }
 
-  protected final void prepareForWaveExtensionProcessing() {
+  protected void prepareForWaveExtensionProcessing() {
     if (waveExtension.isEmpty()) {
       wave = SortedProgramMethodSet.empty();
     } else {

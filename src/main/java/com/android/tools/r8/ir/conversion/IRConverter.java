@@ -762,6 +762,7 @@ public class IRConverter {
     } else {
       appView.setUnboxedEnums(EnumDataMap.empty());
     }
+
     if (!options.debug) {
       new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)
           .run(executorService, feedback, timing);
@@ -770,7 +771,7 @@ public class IRConverter {
     timing.begin("IR conversion phase 2");
     graphLensForIR = appView.graphLens();
     PostMethodProcessor postMethodProcessor =
-        postMethodProcessorBuilder.build(appView.withLiveness(), executorService, timing);
+        postMethodProcessorBuilder.build(appView, executorService, timing);
     if (postMethodProcessor != null) {
       assert !options.debug;
       postMethodProcessor.forEachWaveWithExtension(feedback, executorService);

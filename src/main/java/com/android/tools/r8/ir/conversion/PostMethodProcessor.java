@@ -37,14 +37,14 @@ public class PostMethodProcessor extends MethodProcessor {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Collection<CodeOptimization> defaultCodeOptimizations;
-  private final Map<DexEncodedMethod, Collection<CodeOptimization>> methodsMap;
+  private final Map<DexMethod, Collection<CodeOptimization>> methodsMap;
   private final Deque<SortedProgramMethodSet> waves;
   private final ProgramMethodSet processed = ProgramMethodSet.create();
 
   private PostMethodProcessor(
       AppView<AppInfoWithLiveness> appView,
       Collection<CodeOptimization> defaultCodeOptimizations,
-      Map<DexEncodedMethod, Collection<CodeOptimization>> methodsMap,
+      Map<DexMethod, Collection<CodeOptimization>> methodsMap,
       CallGraph callGraph) {
     this.appView = appView;
     this.defaultCodeOptimizations = defaultCodeOptimizations;
@@ -68,7 +68,7 @@ public class PostMethodProcessor extends MethodProcessor {
     private final Collection<CodeOptimization> defaultCodeOptimizations;
     private final LongLivedProgramMethodSetBuilder<?> methodsToReprocess =
         LongLivedProgramMethodSetBuilder.createForIdentitySet();
-    private final Map<DexEncodedMethod, Collection<CodeOptimization>> optimizationsMap =
+    private final Map<DexMethod, Collection<CodeOptimization>> optimizationsMap =
         new IdentityHashMap<>();
 
     Builder(Collection<CodeOptimization> defaultCodeOptimizations) {
@@ -85,7 +85,7 @@ public class PostMethodProcessor extends MethodProcessor {
         methodsToReprocess.add(method);
         optimizationsMap
             .computeIfAbsent(
-                method.getDefinition(),
+                method.getReference(),
                 // Optimization order might matter, hence a collection that preserves orderings.
                 k -> new LinkedHashSet<>())
             .addAll(codeOptimizations);
@@ -110,13 +110,11 @@ public class PostMethodProcessor extends MethodProcessor {
     // according to the graph lens.
     public void rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens applied) {
       methodsToReprocess.rewrittenWithLens(appView, applied);
-      Map<DexEncodedMethod, Collection<CodeOptimization>> newOptimizationsMap =
-          new IdentityHashMap<>();
+      Map<DexMethod, Collection<CodeOptimization>> newOptimizationsMap = new IdentityHashMap<>();
       optimizationsMap.forEach(
           (method, optimizations) ->
               newOptimizationsMap.put(
-                  appView.graphLens().mapDexEncodedMethod(method, appView, applied),
-                  optimizations));
+                  appView.graphLens().getRenamedMethodSignature(method, applied), optimizations));
       optimizationsMap.clear();
       optimizationsMap.putAll(newOptimizationsMap);
     }
@@ -164,9 +162,13 @@ public class PostMethodProcessor extends MethodProcessor {
   }
 
   @Override
-  public void scheduleMethodForProcessingAfterCurrentWave(ProgramMethod method) {
-    super.scheduleMethodForProcessingAfterCurrentWave(method);
-    methodsMap.put(method.getDefinition(), defaultCodeOptimizations);
+  protected void prepareForWaveExtensionProcessing() {
+    waveExtension.forEach(
+        method -> {
+          assert !methodsMap.containsKey(method.getReference());
+          methodsMap.put(method.getReference(), defaultCodeOptimizations);
+        });
+    super.prepareForWaveExtensionProcessing();
   }
 
   void forEachWaveWithExtension(OptimizationFeedback feedback, ExecutorService executorService)
@@ -182,7 +184,7 @@ public class PostMethodProcessor extends MethodProcessor {
             wave,
             (method, index) -> {
               Collection<CodeOptimization> codeOptimizations =
-                  methodsMap.get(method.getDefinition());
+                  methodsMap.get(method.getReference());
               assert codeOptimizations != null && !codeOptimizations.isEmpty();
               forEachMethod(
                   method, codeOptimizations, feedback, methodProcessingIds.get(method, index));
