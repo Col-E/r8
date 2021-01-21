@@ -39,14 +39,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
-import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
@@ -77,7 +76,7 @@ public class LambdaRewriter {
   // NOTE: synchronize concurrent access on `knownLambdaClasses`.
   private final List<LambdaClass> knownLambdaClasses = new ArrayList<>();
 
-  private final Reference2IntMap<DexMethod> methodIds = new Reference2IntOpenHashMap<>();
+  private final Map<DexMethod, Integer> methodIds = new ConcurrentHashMap<>();
 
   public LambdaRewriter(AppView<?> appView) {
     this.appView = appView;
