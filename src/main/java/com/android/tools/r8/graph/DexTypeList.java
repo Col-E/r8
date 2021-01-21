@@ -54,6 +54,10 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
     return values.isEmpty() ? DexTypeList.empty() : new DexTypeList(values);
   }
 
+  public DexType get(int index) {
+    return values[index];
+  }
+
   public DexTypeList keepIf(Predicate<DexType> predicate) {
     DexType[] filtered = ArrayUtils.filter(DexType[].class, values, predicate);
     if (filtered != values) {

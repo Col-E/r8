@@ -1758,7 +1758,7 @@ public class Enqueuer {
 
     KeepReason reason = KeepReason.reachableFromLiveType(clazz.type);
 
-    for (DexType iface : clazz.interfaces.values) {
+    for (DexType iface : clazz.getInterfaces()) {
       markInterfaceTypeAsLiveViaInheritanceClause(iface, clazz);
     }
 
@@ -1846,31 +1846,38 @@ public class Enqueuer {
         || rootSet.noUnusedInterfaceRemoval.contains(type)
         || mode.isMainDexTracing()) {
       markTypeAsLive(clazz, implementer);
-    } else {
-      if (liveTypes.contains(clazz)) {
-        // The interface is already live, so make sure to report this implements-edge.
-        graphReporter.reportClassReferencedFrom(clazz, implementer);
-      } else {
-        // No need to mark the type as live. If an interface type is only reachable via the
-        // inheritance clause of another type it can simply be removed from the inheritance clause.
-        // The interface is needed if it has a live default interface method or field, though.
-        // Therefore, we record that this implemented-by edge has not been reported, such that we
-        // can report it in the future if one its members becomes live.
-        WorkList<DexProgramClass> worklist = WorkList.newIdentityWorkList();
-        worklist.addIfNotSeen(clazz);
-        while (worklist.hasNext()) {
-          DexProgramClass current = worklist.next();
-          if (liveTypes.contains(current)) {
-            continue;
-          }
-          Set<DexProgramClass> implementors =
-              unusedInterfaceTypes.computeIfAbsent(current, ignore -> Sets.newIdentityHashSet());
-          if (implementors.add(implementer)) {
-            for (DexType iface : current.interfaces.values) {
-              DexProgramClass definition = getProgramClassOrNull(iface, current);
-              if (definition != null) {
-                worklist.addIfNotSeen(definition);
-              }
+      return;
+    }
+
+    if (liveTypes.contains(clazz)) {
+      // The interface is already live, so make sure to report this implements-edge.
+      graphReporter.reportClassReferencedFrom(clazz, implementer);
+      return;
+    }
+
+    // No need to mark the type as live. If an interface type is only reachable via the
+    // inheritance clause of another type it can simply be removed from the inheritance clause.
+    // The interface is needed if it has a live default interface method or field, though.
+    // Therefore, we record that this implemented-by edge has not been reported, such that we
+    // can report it in the future if one its members becomes live.
+    WorkList<DexProgramClass> worklist = WorkList.newIdentityWorkList();
+    worklist.addIfNotSeen(clazz);
+    while (worklist.hasNext()) {
+      DexProgramClass current = worklist.next();
+      if (liveTypes.contains(current)) {
+        continue;
+      }
+      Set<DexProgramClass> implementors =
+          unusedInterfaceTypes.computeIfAbsent(current, ignore -> Sets.newIdentityHashSet());
+      if (implementors.add(implementer)) {
+        for (DexType iface : current.getInterfaces()) {
+          DexProgramClass definition = getProgramClassOrNull(iface, current);
+          if (definition != null) {
+            if (definition.isPublic()
+                || implementer.getType().isSamePackage(definition.getType())) {
+              worklist.addIfNotSeen(definition);
+            } else {
+              markTypeAsLive(current, implementer);
             }
           }
         }
