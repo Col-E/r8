@@ -52,6 +52,7 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
         .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
+        .addDontWarnJetBrains()
         .apply(consumer)
         .compile();
   }

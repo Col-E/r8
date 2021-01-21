@@ -133,7 +133,8 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
             .addKeepAllClassesRule()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .setMinApi(parameters.getApiLevel())
-            .allowDiagnosticWarningMessages();
+            .allowDiagnosticWarningMessages()
+            .addDontWarnJetBrains();
     KeepRuleConsumer keepRuleConsumer = null;
     if (desugarLibrary) {
       keepRuleConsumer = createKeepRuleConsumer(parameters);

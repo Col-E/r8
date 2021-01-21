@@ -51,6 +51,7 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
         .addKeepRuntimeVisibleAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
+        .enableMemberValuePropagationAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .allowDiagnosticInfoMessages()

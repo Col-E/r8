@@ -11,6 +11,7 @@ import com.android.tools.r8.R8CompatTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -26,9 +27,9 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class KeepDeserializeLambdaMethodTestRunner extends TestBase {
 
-  private static final Class TEST_CLASS_CF =
+  private static final Class<?> TEST_CLASS_CF =
       com.android.tools.r8.cf.KeepDeserializeLambdaMethodTestCf.class;
-  private static final Class TEST_CLASS_DEX =
+  private static final Class<?> TEST_CLASS_DEX =
       com.android.tools.r8.cf.KeepDeserializeLambdaMethodTestDex.class;
 
   private static final String EXPECTED =
@@ -89,8 +90,10 @@ public class KeepDeserializeLambdaMethodTestRunner extends TestBase {
           // TODO(b/148836254): Support deserialized lambdas without the need of additional rules.
           "-keep class * { private static synthetic void lambda$*(); }");
     } else {
-      builder.noMinification();
-      builder.noTreeShaking();
+      builder
+          .applyIf(parameters.isDexRuntime(), TestShrinkerBuilder::addDontWarnSerializedLambda)
+          .noMinification()
+          .noTreeShaking();
     }
     builder
         .run(parameters.getRuntime(), getMainClass())

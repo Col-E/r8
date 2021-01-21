@@ -57,6 +57,7 @@ public class MainDexWarningsTest extends TestBase {
         .addKeepMainRule(mainClass)
         // Include main dex rule for class Static.
         .addMainDexClassRules(Main.class, Static.class)
+        .enableForceInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::classStaticGone)
@@ -69,9 +70,11 @@ public class MainDexWarningsTest extends TestBase {
         .setMinApi(AndroidApiLevel.K)
         .addProgramClasses(testClassesWithoutStatic)
         .addKeepMainRule(mainClass)
+        .addDontWarn(Static.class)
         // Include explicit main dex entry for class Static.
         .addMainDexListClasses(Static.class)
         .allowDiagnosticWarningMessages()
+        .enableForceInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::classStaticGone)
@@ -91,7 +94,9 @@ public class MainDexWarningsTest extends TestBase {
         .addMainDexListClasses(Main.class, Static.class)
         // Include main dex rule for class Static2.
         .addMainDexClassRules(Static2.class)
+        .addDontWarn(Static.class)
         .allowDiagnosticWarningMessages()
+        .enableForceInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::classStaticGone)

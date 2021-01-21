@@ -143,6 +143,7 @@ public class SplitterTestBase extends TestBase {
         .addProgramClasses(baseClasses)
         .addFeatureSplit(
             builder -> simpleSplitProvider(builder, featureOutput, temp, featureClasses))
+        .addInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(SplitRunner.class)
         .addKeepClassRules(toRun);
@@ -182,6 +183,7 @@ public class SplitterTestBase extends TestBase {
             .addClasspathClasses(baseClasses)
             .addClasspathClasses(RunInterface.class)
             .addKeepAllClassesRule()
+            .addInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .writeToZip();

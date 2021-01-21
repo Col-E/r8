@@ -86,6 +86,7 @@ public class SubsumedCatchHandlerTest extends TestBase {
         testForR8(backend)
             .addInnerClasses(SubsumedCatchHandlerTest.class)
             .addKeepMainRule(TestClass.class)
+            .enableForceInliningAnnotations()
             .enableInliningAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expected)

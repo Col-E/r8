@@ -50,6 +50,7 @@ public class OutlineFromStaticInterfaceMethodTest extends TestBase {
               options.outline.minSize = 2;
             })
         .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

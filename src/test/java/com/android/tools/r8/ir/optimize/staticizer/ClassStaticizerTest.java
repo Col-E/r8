@@ -116,6 +116,7 @@ public class ClassStaticizerTest extends TestBase {
         .addKeepMainRule(main)
         .addKeepAttributes("InnerClasses", "EnclosingMethod")
         .addOptionsModification(this::configure)
+        .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), main)
         .assertSuccessWithOutput(EXPECTED);

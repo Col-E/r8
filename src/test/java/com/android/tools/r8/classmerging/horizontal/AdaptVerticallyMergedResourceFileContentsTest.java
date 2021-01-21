@@ -12,7 +12,6 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DataResourceConsumerForTesting;
@@ -51,9 +50,11 @@ public class AdaptVerticallyMergedResourceFileContentsTest extends HorizontalCla
             .addHorizontallyMergedClassesInspectorIf(
                 enableHorizontalClassMerging,
                 inspector -> inspector.assertMergedInto(B.class, A.class))
+            .addVerticallyMergedClassesInspector(
+                inspector -> inspector.assertMergedIntoSubtype(Parent.class))
             .compile()
             .run(parameters.getRuntime(), Main.class)
-            .assertSuccessWithOutputLines("a", "foo parent", "b")
+            .assertSuccessWithOutputLines("a", "b")
             .inspector();
 
     assertThat(codeInspector.clazz(Parent.class), not(isPresent()));
@@ -72,13 +73,7 @@ public class AdaptVerticallyMergedResourceFileContentsTest extends HorizontalCla
         ImmutableList.of(aClassSubject.getFinalName(), aClassSubject.getFinalName(), newClassName));
   }
 
-  @NeverClassInline
-  public static class Parent {
-    @NeverInline
-    public void foo() {
-      System.out.println("foo parent");
-    }
-  }
+  public static class Parent {}
 
   @NeverClassInline
   public static class A extends Parent {
@@ -95,13 +90,8 @@ public class AdaptVerticallyMergedResourceFileContentsTest extends HorizontalCla
   }
 
   public static class Main {
-    @NeverInline
-    public static void parent(Parent p) {
-      p.foo();
-    }
-
     public static void main(String[] args) {
-      parent(new A());
+      new A();
       new B();
     }
   }

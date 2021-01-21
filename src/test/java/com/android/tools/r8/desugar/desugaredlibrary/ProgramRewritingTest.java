@@ -120,6 +120,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
           testForR8(parameters.getBackend())
               .minification(minifying)
               .addKeepMainRule(TEST_CLASS)
+              .addDontWarnEmulatedLibraryClasses()
               .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
               .setMinApi(parameters.getApiLevel())
               .addOptionsModification(

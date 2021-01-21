@@ -52,6 +52,7 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(UnusedAnnotatedArgumentsTest.class)
+        .addUnusedArgumentAnnotations()
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(Used.class, Unused.class)
         .addKeepAttributes("RuntimeVisibleParameterAnnotations")

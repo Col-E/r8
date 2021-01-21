@@ -20,7 +20,7 @@ public class UnusedMultiNewArrayTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public UnusedMultiNewArrayTest(TestParameters parameters) {
@@ -32,7 +32,8 @@ public class UnusedMultiNewArrayTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .addDontWarn(A.class)
+        .setMinApi(parameters.getApiLevel())
         .compile();
   }
 

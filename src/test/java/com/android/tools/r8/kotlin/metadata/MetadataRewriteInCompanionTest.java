@@ -93,6 +93,7 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             // To keep ...$Companion structure
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
             .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(codeInspector -> inspect(codeInspector, true))
             .writeToZip();
@@ -135,6 +136,7 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             // To keep ...$Companion structure
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
             .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(codeInspector -> inspect(codeInspector, false))
             .writeToZip();

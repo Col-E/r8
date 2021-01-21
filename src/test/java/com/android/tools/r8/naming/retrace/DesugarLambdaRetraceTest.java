@@ -144,7 +144,6 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
 }
 
 // Custom consumer functional interface, as java.util.function.Consumer is not present on Android.
-@FunctionalInterface
 interface ConsumerDesugarLambdaRetraceTest<T> {
   void accept(T value);
 }

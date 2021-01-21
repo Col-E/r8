@@ -66,6 +66,7 @@ public class SourceDebugExtensionTest extends TestBase {
         .addProgramFiles(kotlinSources)
         .addKeepAttributes(ProguardKeepAttributes.SOURCE_DEBUG_EXTENSION)
         .addKeepAllClassesRule()
+        .addDontWarnJetBrainsAnnotations()
         .setMode(CompilationMode.RELEASE)
         .setMinApi(parameters.getApiLevel())
         .compile()

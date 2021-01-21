@@ -46,7 +46,7 @@ public class CheckDiscardedTest extends TestBase {
   }
 
   private void compile(
-      Class annotation,
+      Class<?> annotation,
       boolean checkMembers,
       Consumer<TestDiagnosticMessages> onCompilationFailure) {
     R8FullTestBuilder builder = testForR8(Backend.DEX);
@@ -54,7 +54,8 @@ public class CheckDiscardedTest extends TestBase {
     try {
       R8TestCompileResult result =
           builder
-              .addProgramClasses(UnusedClass.class, UsedClass.class, Main.class)
+              .addProgramClasses(
+                  UnusedClass.class, UsedClass.class, Main.class, WillBeGone.class, WillStay.class)
               .addKeepMainRule(Main.class)
               .addKeepRules(checkDiscardRule(checkMembers, annotation))
               .minification(minify)
@@ -122,5 +123,4 @@ public class CheckDiscardedTest extends TestBase {
                             containsString("is invoked from"))));
     compile(WillStay.class, true, check);
   }
-
 }

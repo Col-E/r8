@@ -26,13 +26,15 @@ public class InterfaceRenewalInLoopDebugTestRunner extends DebugTestBase {
 
   @Test
   public void test() throws Throwable {
-    R8TestCompileResult result = testForR8(Backend.CF)
-        .setMode(CompilationMode.DEBUG)
-        .addProgramClasses(TestInterface.class, IMPL, MAIN)
-        .addKeepMainRule(MAIN)
-        .addKeepRules(ImmutableList.of("-keepattributes SourceFile,LineNumberTable"))
-        .noMinification()
-        .compile();
+    R8TestCompileResult result =
+        testForR8(Backend.CF)
+            .setMode(CompilationMode.DEBUG)
+            .addProgramClasses(TestInterface.class, IMPL, MAIN)
+            .addKeepMainRule(MAIN)
+            .addKeepRules(ImmutableList.of("-keepattributes SourceFile,LineNumberTable"))
+            .enableNoVerticalClassMergingAnnotations()
+            .noMinification()
+            .compile();
 
     CodeInspector inspector = result.inspector();
     ClassSubject mainSubject = inspector.clazz(MAIN);

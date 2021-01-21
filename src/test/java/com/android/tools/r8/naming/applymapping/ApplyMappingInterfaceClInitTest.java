@@ -86,7 +86,6 @@ public class ApplyMappingInterfaceClInitTest extends TestBase {
     void foo();
   }
 
-  @NeverClassInline
   public static class Main implements TestInterface {
 
     public static void main(String[] args) {
@@ -94,7 +93,6 @@ public class ApplyMappingInterfaceClInitTest extends TestBase {
     }
 
     @Override
-    @NeverInline
     public void foo() {
       System.out.println("Hello World!");
     }

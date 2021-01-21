@@ -12,7 +12,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.Predicate;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -46,6 +45,7 @@ public class MinimalInterfaceSuperTest extends DesugaredLibraryTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(MinimalInterfaceSuperTest.class)
         .addKeepMainRule(Main.class)
+        .addDontWarnVivifiedClasses()
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()
@@ -71,7 +71,6 @@ public class MinimalInterfaceSuperTest extends DesugaredLibraryTestBase {
   }
 
   static class Col1<E> extends AbstractCollection<E> implements Col1Itf<E> {
-    @NotNull
     @Override
     public Iterator<E> iterator() {
       return Collections.emptyIterator();

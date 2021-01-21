@@ -86,6 +86,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
             // Keep the BKt method, which will be called from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectMerged)
             .writeToZip();
@@ -147,6 +148,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
             // Keep the BKt method, which will be called from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectRenamed)
             .writeToZip();

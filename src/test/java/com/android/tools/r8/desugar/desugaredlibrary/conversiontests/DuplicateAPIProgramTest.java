@@ -84,6 +84,7 @@ public class DuplicateAPIProgramTest extends DesugaredLibraryTestBase {
             .addKeepMainRule(Executor.class)
             .addProgramClasses(Executor.class, MyMap.class)
             .addLibraryClasses(CustomLibClass.class)
+            .addDontWarnVivifiedClasses()
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
             .inspect(this::assertDupMethod)

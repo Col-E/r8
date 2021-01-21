@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.graph.DexApplication.classesWithDeterministicOrder;
+
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -35,7 +37,9 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,9 +77,8 @@ public class ProguardMapMinifier {
   private final SeedMapper seedMapper;
   private final BiMap<DexType, DexString> mappedNames = HashBiMap.create();
   // To keep the order deterministic, we sort the classes by their type, which is a unique key.
-  private final Set<DexClass> mappedClasses = new TreeSet<>((a, b) -> a.type.compareTo(b.type));
+  private final Set<DexClass> mappedClasses = Sets.newIdentityHashSet();
   private final Map<DexReference, MemberNaming> memberNames = Maps.newIdentityHashMap();
-  private final Map<DexType, DexString> syntheticCompanionClasses = Maps.newIdentityHashMap();
   private final Map<DexMethod, DexString> defaultInterfaceMethodImplementationNames =
       Maps.newIdentityHashMap();
   private final Map<DexMethod, DexString> additionalMethodNamings = Maps.newIdentityHashMap();
@@ -95,15 +98,15 @@ public class ProguardMapMinifier {
     Set<DexReference> notMappedReferences = new HashSet<>();
 
     timing.begin("MappingInterfaces");
-    Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.compareTo(b.type));
+    Set<DexClass> interfaces = new TreeSet<>(Comparator.comparing(DexClass::getType));
     Consumer<DexClass> consumer =
-        dexClass -> {
-          if (dexClass.isInterface()) {
+        clazz -> {
+          if (clazz.isInterface()) {
             // Only visit top level interfaces because computeMapping will visit the hierarchy.
-            if (dexClass.interfaces.isEmpty()) {
-              computeMapping(dexClass.type, nonPrivateMembers, notMappedReferences, subtypingInfo);
+            if (clazz.interfaces.isEmpty()) {
+              computeMapping(clazz.type, nonPrivateMembers, notMappedReferences, subtypingInfo);
             }
-            interfaces.add(dexClass);
+            interfaces.add(clazz);
           }
         };
     // For union-find of interface methods we also need to add the library types above live types.
@@ -141,9 +144,8 @@ public class ProguardMapMinifier {
             // in the ClassNameMinifier that the strategy should produce a "fresh" name so we just
             // use the existing strategy.
             new MinificationPackageNamingStrategy(appView),
-            mappedClasses);
-    ClassRenaming classRenaming =
-        classNameMinifier.computeRenaming(timing, syntheticCompanionClasses);
+            classesWithDeterministicOrder(mappedClasses));
+    ClassRenaming classRenaming = classNameMinifier.computeRenaming(timing);
     timing.end();
 
     ApplyMappingMemberNamingStrategy nameStrategy =
@@ -341,11 +343,10 @@ public class ProguardMapMinifier {
       }
       // TODO(b/150736225): Is this sound? What if the type is a library type that has been pruned?
       DexClass dexClass = appView.appInfo().definitionForWithoutExistenceAssert(type);
-      if (dexClass == null) {
+      if (dexClass == null || dexClass.isClasspathClass()) {
         computeDefaultInterfaceMethodMappingsForType(
             type,
             classNaming,
-            syntheticCompanionClasses,
             defaultInterfaceMethodImplementationNames);
       }
     }
@@ -354,7 +355,6 @@ public class ProguardMapMinifier {
   private void computeDefaultInterfaceMethodMappingsForType(
       DexType type,
       ClassNamingForMapApplier classNaming,
-      Map<DexType, DexString> syntheticCompanionClasses,
       Map<DexMethod, DexString> defaultInterfaceMethodImplementationNames) {
     // If the class does not resolve, then check if it is a companion class for an interface on
     // the class path.
@@ -366,7 +366,6 @@ public class ProguardMapMinifier {
     if (interfaceType == null || !interfaceType.isClasspathClass()) {
       return;
     }
-    syntheticCompanionClasses.put(type, factory.createString(classNaming.renamedName));
     for (List<MemberNaming> namings : classNaming.getQualifiedMethodMembers().values()) {
       // If the qualified name has been mapped to multiple names we can't compute a mapping (and it
       // should not be possible that this is a default interface method in that case.)

@@ -8,6 +8,7 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -21,7 +22,10 @@ public class Regress63935662 extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters()
+        .withAllRuntimes()
+        .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
+        .build();
   }
 
   public Regress63935662(TestParameters parameters) {

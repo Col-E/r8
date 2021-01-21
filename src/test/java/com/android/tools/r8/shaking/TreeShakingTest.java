@@ -152,6 +152,24 @@ public abstract class TreeShakingTest extends TestBase {
       BiConsumer<CodeInspector, CodeInspector> dexComparator,
       List<String> keepRulesFiles,
       Consumer<InternalOptions> optionsConsumer,
+      ThrowableConsumer<R8FullTestBuilder> testBuilderConsumer)
+      throws Exception {
+    runTest(
+        inspection,
+        outputComparator,
+        dexComparator,
+        keepRulesFiles,
+        optionsConsumer,
+        testBuilderConsumer,
+        null);
+  }
+
+  protected void runTest(
+      ThrowingConsumer<CodeInspector, Exception> inspection,
+      BiConsumer<String, String> outputComparator,
+      BiConsumer<CodeInspector, CodeInspector> dexComparator,
+      List<String> keepRulesFiles,
+      Consumer<InternalOptions> optionsConsumer,
       ThrowableConsumer<R8FullTestBuilder> testBuilderConsumer,
       DiagnosticsConsumer diagnosticsConsumer)
       throws Exception {

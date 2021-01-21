@@ -28,7 +28,10 @@ public class TestBuilderMinAndroidJarTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
+    return getTestParameters()
+        .withAllRuntimes()
+        .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
+        .build();
   }
 
   public TestBuilderMinAndroidJarTest(TestParameters parameters) {

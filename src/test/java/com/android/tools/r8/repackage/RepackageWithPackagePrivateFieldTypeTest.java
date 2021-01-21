@@ -63,7 +63,6 @@ public class RepackageWithPackagePrivateFieldTypeTest extends RepackageTestBase 
 
   public static class IneligibleForRepackaging {
 
-    @NeverPropagateValue
     private static NonPublicKeptClass FIELD =
         System.currentTimeMillis() > 0 ? new PublicSubClass() : null;
 

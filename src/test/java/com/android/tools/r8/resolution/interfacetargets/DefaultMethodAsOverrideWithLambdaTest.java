@@ -93,7 +93,6 @@ public class DefaultMethodAsOverrideWithLambdaTest extends TestBase {
         .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  @FunctionalInterface
   @NoVerticalClassMerging
   public interface I {
     void foo();

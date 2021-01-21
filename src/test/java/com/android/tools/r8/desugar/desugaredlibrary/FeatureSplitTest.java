@@ -247,6 +247,7 @@ public class FeatureSplitTest extends DesugaredLibraryTestBase {
                   SplitterTestBase.simpleSplitProvider(
                       builder, feature2Path, temp, FeatureClass2.class))
           .addKeepAllClassesRule()
+          .addDontWarnEmulatedLibraryClasses()
           .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
           .compile()
           .writeToZip(basePath);

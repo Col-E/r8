@@ -62,6 +62,7 @@ public class KeptByAnnotatedMethodTestRunner extends TestBase {
             .enableGraphInspector()
             .enableInliningAnnotations()
             .addProgramClasses(CLASSES)
+            .addKeepAnnotation()
             .addKeepMainRule(CLASS)
             .addKeepRules(keepAnnotatedMethodsRule, keepClassesOfAnnotatedMethodsRule)
             .run(CLASS)

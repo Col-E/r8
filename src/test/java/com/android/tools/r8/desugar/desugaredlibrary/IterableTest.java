@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -138,7 +137,6 @@ public class IterableTest extends DesugaredLibraryTestBase {
       this.collection = collection;
     }
 
-    @NotNull
     @Override
     public Iterator<E> iterator() {
       return collection.iterator();

@@ -210,7 +210,11 @@ public class MainDexTracingTest extends TestBase {
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules.txt"),
         Paths.get(EXAMPLE_O_SRC_DIR, "multidex004", "ref-list-1.txt"),
         Paths.get(EXAMPLE_O_SRC_DIR, "multidex004", "ref-list-1.txt"),
-        AndroidApiLevel.I);
+        AndroidApiLevel.I,
+        builder ->
+            builder
+                .addDontWarnCompilerSynthesizedAnnotations()
+                .addOptionsModification(options -> options.enableInlining = false));
   }
 
   @Test

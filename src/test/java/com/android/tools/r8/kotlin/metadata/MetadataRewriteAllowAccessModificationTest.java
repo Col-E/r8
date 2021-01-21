@@ -104,7 +104,6 @@ public class MetadataRewriteAllowAccessModificationTest extends KotlinMetadataTe
             .addKeepRules("-keepclassmembers,allowaccessmodification class **.Lib$Comp { *; }")
             .addKeepRules("-keep,allowaccessmodification,allowobfuscation class **.Lib$Comp { *; }")
             .addKeepRules("-keep,allowaccessmodification,allowobfuscation class **.LibKt { *; }")
-            .addKeepRules("-allowaccessmodification")
             .addApplyMapping(
                 StringUtils.lines(
                     PKG_LIB + ".Lib -> " + PKG_LIB + ".LibReference:",
@@ -115,6 +114,9 @@ public class MetadataRewriteAllowAccessModificationTest extends KotlinMetadataTe
                     "  void staticPrivate() -> staticPrivateReference",
                     "  void staticInternal() -> staticInternalReference"))
             .addKeepRuntimeVisibleAnnotations()
+            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnKotlin()
+            .allowAccessModification()
             .compile()
             .inspect(this::inspect)
             .writeToZip();

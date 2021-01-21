@@ -48,12 +48,12 @@ public abstract class RetraceTestBase extends TestBase {
 
   public void runTest(List<String> keepRules, BiConsumer<StackTrace, StackTrace> checker)
       throws Exception {
-
     R8TestRunResult result =
         (compat ? testForR8Compat(backend) : testForR8(backend))
             .setMode(mode)
             .enableProguardTestOptions()
             .addProgramClasses(getClasses())
+            .addForceInliningAnnotations()
             .addKeepMainRule(getMainClass())
             .addKeepRules(keepRules)
             .apply(this::configure)

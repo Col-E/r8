@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.enumunboxing.kotlin;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.KotlinTestBase.getCompileMemoizer;
 import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
@@ -68,18 +70,25 @@ public class SimpleKotlinEnumUnboxingTest extends EnumUnboxingTestBase {
   public void testEnumUnboxing() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForR8(parameters.getBackend())
-        .addProgramFiles(jars.getForConfiguration(kotlinCompiler, targetVersion))
+        .addProgramFiles(
+            jars.getForConfiguration(kotlinCompiler, targetVersion),
+            ToolHelper.getKotlinStdlibJar(kotlinCompiler))
         .addKeepMainRule(PKG + ".MainKt")
         .addKeepRules(enumKeepRules.getKeepRules())
         .addKeepRuntimeVisibleAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .allowDiagnosticInfoMessages()
+        .allowDiagnosticMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspectDiagnosticMessages(
-            m -> {
+            messages -> {
+              messages
+                  .assertNoErrors()
+                  .assertAllWarningsMatch(
+                      diagnosticMessage(
+                          containsString("Resource 'META-INF/MANIFEST.MF' already exists.")));
               assertEnumIsUnboxed(
-                  PKG + ".Color", SimpleKotlinEnumUnboxingTest.class.getSimpleName(), m);
+                  PKG + ".Color", SimpleKotlinEnumUnboxingTest.class.getSimpleName(), messages);
             })
         .run(parameters.getRuntime(), PKG + ".MainKt")
         .assertSuccessWithOutputLines("RED", "GREEN", "BLUE");

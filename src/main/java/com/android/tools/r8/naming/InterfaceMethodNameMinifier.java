@@ -23,7 +23,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -397,7 +396,7 @@ class InterfaceMethodNameMinifier {
     return Comparator.comparing(globalStateMap::get);
   }
 
-  private void reserveNamesInInterfaces(Collection<DexClass> interfaces) {
+  private void reserveNamesInInterfaces(Iterable<DexClass> interfaces) {
     for (DexClass iface : interfaces) {
       assert iface.isInterface();
       minifierState.allocateReservationStateAndReserve(iface.type, iface.type);
@@ -407,7 +406,7 @@ class InterfaceMethodNameMinifier {
     }
   }
 
-  void assignNamesToInterfaceMethods(Timing timing, Collection<DexClass> interfaces) {
+  void assignNamesToInterfaceMethods(Timing timing, Iterable<DexClass> interfaces) {
     timing.begin("Interface minification");
     // Reserve all the names that are required for interfaces.
     timing.begin("Reserve direct and compute hierarchy");

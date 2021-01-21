@@ -42,6 +42,7 @@ public class NoIllegalClassAccessWithAccessModificationsTest extends VerticalCla
         .addKeepMainRule(TestClass.class)
         .addVerticallyMergedClassesInspector(this::inspectVerticallyMergedClasses)
         .allowAccessModification()
+        .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

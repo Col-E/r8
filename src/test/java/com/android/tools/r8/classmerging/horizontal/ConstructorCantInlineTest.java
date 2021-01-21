@@ -50,7 +50,6 @@ public class ConstructorCantInlineTest extends HorizontalClassMergingTestBase {
     }
   }
 
-  @NoHorizontalClassMerging
   @NeverClassInline
   public static class B extends A {}
 

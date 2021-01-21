@@ -56,6 +56,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .addDontWarnJetBrainsAnnotations()
         .compile()
         .inspect(inspector -> inspectMetadataVersion(inspector, "1.4.0"));
   }
@@ -68,6 +69,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .addDontWarnJetBrainsAnnotations()
         .compile()
         .inspect(inspector -> inspectMetadataVersion(inspector, "1.4.0"));
   }
@@ -80,6 +82,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .addDontWarnJetBrainsAnnotations()
         .compile()
         .inspect(inspector -> inspectMetadataVersion(inspector, "1.4.2"));
   }

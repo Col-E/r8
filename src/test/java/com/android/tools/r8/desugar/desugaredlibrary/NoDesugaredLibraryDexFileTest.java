@@ -16,8 +16,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedSet;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -97,25 +95,21 @@ public class NoDesugaredLibraryDexFileTest extends DesugaredLibraryTestBase {
   // Implements directly a core library interface which implements other library interfaces.
   static class CustomSortedSet<E> implements SortedSet<E> {
 
-    @Nullable
     @Override
     public Comparator<? super E> comparator() {
       return null;
     }
 
-    @NotNull
     @Override
     public SortedSet<E> subSet(E fromElement, E toElement) {
       return new CustomSortedSet<>();
     }
 
-    @NotNull
     @Override
     public SortedSet<E> headSet(E toElement) {
       return new CustomSortedSet<>();
     }
 
-    @NotNull
     @Override
     public SortedSet<E> tailSet(E fromElement) {
       return new CustomSortedSet<>();
@@ -146,21 +140,18 @@ public class NoDesugaredLibraryDexFileTest extends DesugaredLibraryTestBase {
       return false;
     }
 
-    @NotNull
     @Override
     public Iterator<E> iterator() {
       return Collections.emptyIterator();
     }
 
-    @NotNull
     @Override
     public Object[] toArray() {
       return new Object[0];
     }
 
-    @NotNull
     @Override
-    public <T> T[] toArray(@NotNull T[] a) {
+    public <T> T[] toArray(T[] a) {
       return a;
     }
 
@@ -175,7 +166,7 @@ public class NoDesugaredLibraryDexFileTest extends DesugaredLibraryTestBase {
     }
 
     @Override
-    public boolean addAll(@NotNull Collection c) {
+    public boolean addAll(Collection c) {
       return false;
     }
 
@@ -183,17 +174,17 @@ public class NoDesugaredLibraryDexFileTest extends DesugaredLibraryTestBase {
     public void clear() {}
 
     @Override
-    public boolean removeAll(@NotNull Collection c) {
+    public boolean removeAll(Collection c) {
       return false;
     }
 
     @Override
-    public boolean retainAll(@NotNull Collection c) {
+    public boolean retainAll(Collection c) {
       return false;
     }
 
     @Override
-    public boolean containsAll(@NotNull Collection c) {
+    public boolean containsAll(Collection c) {
       return false;
     }
   }

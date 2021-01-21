@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -75,6 +73,7 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
         testForR8(Backend.DEX)
             .addInnerClasses(GetGenericInterfaceTest.class)
             .addKeepMainRule(Executor.class)
+            .addDontWarnRetargetLibraryMembers()
             .noMinification()
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -301,7 +300,6 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
       return null;
     }
 
-    @Nullable
     @Override
     public V put(K k, V v) {
       return null;
@@ -313,46 +311,43 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
     }
 
     @Override
-    public void putAll(@NotNull Map<? extends K, ? extends V> map) {}
+    public void putAll(Map<? extends K, ? extends V> map) {}
 
     @Override
     public void clear() {}
 
-    @NotNull
     @Override
     public Set<K> keySet() {
       return null;
     }
 
-    @NotNull
     @Override
     public Collection<V> values() {
       return null;
     }
 
-    @NotNull
     @Override
     public Set<Entry<K, V>> entrySet() {
       return null;
     }
 
     @Override
-    public V putIfAbsent(@NotNull K k, V v) {
+    public V putIfAbsent(K k, V v) {
       return null;
     }
 
     @Override
-    public boolean remove(@NotNull Object o, Object o1) {
+    public boolean remove(Object o, Object o1) {
       return false;
     }
 
     @Override
-    public boolean replace(@NotNull K k, @NotNull V v, @NotNull V v1) {
+    public boolean replace(K k, V v, V v1) {
       return false;
     }
 
     @Override
-    public V replace(@NotNull K k, @NotNull V v) {
+    public V replace(K k, V v) {
       return null;
     }
   }
@@ -394,7 +389,6 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
       return null;
     }
 
-    @Nullable
     @Override
     public V put(K k, V v) {
       return null;
@@ -406,46 +400,43 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
     }
 
     @Override
-    public void putAll(@NotNull Map<? extends K, ? extends V> map) {}
+    public void putAll(Map<? extends K, ? extends V> map) {}
 
     @Override
     public void clear() {}
 
-    @NotNull
     @Override
     public Set<K> keySet() {
       return null;
     }
 
-    @NotNull
     @Override
     public Collection<V> values() {
       return null;
     }
 
-    @NotNull
     @Override
     public Set<Entry<K, V>> entrySet() {
       return null;
     }
 
     @Override
-    public V putIfAbsent(@NotNull K k, V v) {
+    public V putIfAbsent(K k, V v) {
       return null;
     }
 
     @Override
-    public boolean remove(@NotNull Object o, Object o1) {
+    public boolean remove(Object o, Object o1) {
       return false;
     }
 
     @Override
-    public boolean replace(@NotNull K k, @NotNull V v, @NotNull V v1) {
+    public boolean replace(K k, V v, V v1) {
       return false;
     }
 
     @Override
-    public V replace(@NotNull K k, @NotNull V v) {
+    public V replace(K k, V v) {
       return null;
     }
 
@@ -475,21 +466,18 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
       return false;
     }
 
-    @NotNull
     @Override
     public Iterator<E> iterator() {
       return null;
     }
 
-    @NotNull
     @Override
     public Object[] toArray() {
       return new Object[0];
     }
 
-    @NotNull
     @Override
-    public <T> T[] toArray(@NotNull T[] ts) {
+    public <T> T[] toArray(T[] ts) {
       return null;
     }
 
@@ -504,27 +492,27 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
     }
 
     @Override
-    public boolean containsAll(@NotNull Collection<?> collection) {
+    public boolean containsAll(Collection<?> collection) {
       return false;
     }
 
     @Override
-    public boolean addAll(@NotNull Collection<? extends E> collection) {
+    public boolean addAll(Collection<? extends E> collection) {
       return false;
     }
 
     @Override
-    public boolean addAll(int i, @NotNull Collection<? extends E> collection) {
+    public boolean addAll(int i, Collection<? extends E> collection) {
       return false;
     }
 
     @Override
-    public boolean removeAll(@NotNull Collection<?> collection) {
+    public boolean removeAll(Collection<?> collection) {
       return false;
     }
 
     @Override
-    public boolean retainAll(@NotNull Collection<?> collection) {
+    public boolean retainAll(Collection<?> collection) {
       return false;
     }
 
@@ -559,19 +547,16 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
       return 0;
     }
 
-    @NotNull
     @Override
     public ListIterator<E> listIterator() {
       return null;
     }
 
-    @NotNull
     @Override
     public ListIterator<E> listIterator(int i) {
       return null;
     }
 
-    @NotNull
     @Override
     public List<E> subList(int i, int i1) {
       return null;
@@ -603,21 +588,18 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
       return false;
     }
 
-    @NotNull
     @Override
     public Iterator<E> iterator() {
       return null;
     }
 
-    @NotNull
     @Override
     public Object[] toArray() {
       return new Object[0];
     }
 
-    @NotNull
     @Override
-    public <T> T[] toArray(@NotNull T[] ts) {
+    public <T> T[] toArray(T[] ts) {
       return null;
     }
 
@@ -632,27 +614,27 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
     }
 
     @Override
-    public boolean containsAll(@NotNull Collection<?> collection) {
+    public boolean containsAll(Collection<?> collection) {
       return false;
     }
 
     @Override
-    public boolean addAll(@NotNull Collection<? extends E> collection) {
+    public boolean addAll(Collection<? extends E> collection) {
       return false;
     }
 
     @Override
-    public boolean addAll(int i, @NotNull Collection<? extends E> collection) {
+    public boolean addAll(int i, Collection<? extends E> collection) {
       return false;
     }
 
     @Override
-    public boolean removeAll(@NotNull Collection<?> collection) {
+    public boolean removeAll(Collection<?> collection) {
       return false;
     }
 
     @Override
-    public boolean retainAll(@NotNull Collection<?> collection) {
+    public boolean retainAll(Collection<?> collection) {
       return false;
     }
 
@@ -687,19 +669,16 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
       return 0;
     }
 
-    @NotNull
     @Override
     public ListIterator<E> listIterator() {
       return null;
     }
 
-    @NotNull
     @Override
     public ListIterator<E> listIterator(int i) {
       return null;
     }
 
-    @NotNull
     @Override
     public List<E> subList(int i, int i1) {
       return null;
@@ -710,7 +689,6 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
   }
 
   static class CollectionMapImplements2<R, C> implements Iterable<R>, Map<R, C> {
-    @NotNull
     @Override
     public Iterator<R> iterator() {
       return null;
@@ -741,7 +719,6 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
       return null;
     }
 
-    @Nullable
     @Override
     public C put(R r, C c) {
       return null;
@@ -753,24 +730,21 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
     }
 
     @Override
-    public void putAll(@NotNull Map<? extends R, ? extends C> map) {}
+    public void putAll(Map<? extends R, ? extends C> map) {}
 
     @Override
     public void clear() {}
 
-    @NotNull
     @Override
     public Set<R> keySet() {
       return null;
     }
 
-    @NotNull
     @Override
     public Collection<C> values() {
       return null;
     }
 
-    @NotNull
     @Override
     public Set<Entry<R, C>> entrySet() {
       return null;
@@ -778,7 +752,6 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
   }
 
   static class CollectionMapExtendImplement<R, C> extends HashMap<R, C> implements Iterable<R> {
-    @NotNull
     @Override
     public Iterator<R> iterator() {
       return null;
@@ -809,7 +782,6 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
       return null;
     }
 
-    @Nullable
     @Override
     public C put(R r, C c) {
       return null;
@@ -821,24 +793,21 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
     }
 
     @Override
-    public void putAll(@NotNull Map<? extends R, ? extends C> map) {}
+    public void putAll(Map<? extends R, ? extends C> map) {}
 
     @Override
     public void clear() {}
 
-    @NotNull
     @Override
     public Set<R> keySet() {
       return null;
     }
 
-    @NotNull
     @Override
     public Collection<C> values() {
       return null;
     }
 
-    @NotNull
     @Override
     public Set<Entry<R, C>> entrySet() {
       return null;
@@ -847,7 +816,6 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
 
   static class CollectionMapImplements2Integer1<C>
       implements Iterable<PathClassLoader>, Map<PathClassLoader, C> {
-    @NotNull
     @Override
     public Iterator<PathClassLoader> iterator() {
       return null;
@@ -878,7 +846,6 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
       return null;
     }
 
-    @Nullable
     @Override
     public C put(PathClassLoader unsafe, C c) {
       return null;
@@ -890,24 +857,21 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
     }
 
     @Override
-    public void putAll(@NotNull Map<? extends PathClassLoader, ? extends C> map) {}
+    public void putAll(Map<? extends PathClassLoader, ? extends C> map) {}
 
     @Override
     public void clear() {}
 
-    @NotNull
     @Override
     public Set<PathClassLoader> keySet() {
       return null;
     }
 
-    @NotNull
     @Override
     public Collection<C> values() {
       return null;
     }
 
-    @NotNull
     @Override
     public Set<Entry<PathClassLoader, C>> entrySet() {
       return null;
@@ -916,7 +880,6 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
 
   static class CollectionMapExtendImplementInteger1<C> extends HashMap<PathClassLoader, C>
       implements Iterable<PathClassLoader> {
-    @NotNull
     @Override
     public Iterator<PathClassLoader> iterator() {
       return null;
@@ -924,7 +887,6 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
   }
 
   static class CollectionMapImplements2Integer2<R> implements Iterable<R>, Map<R, PathClassLoader> {
-    @NotNull
     @Override
     public Iterator<R> iterator() {
       return null;
@@ -955,7 +917,6 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
       return null;
     }
 
-    @Nullable
     @Override
     public PathClassLoader put(R r, PathClassLoader unsafe) {
       return null;
@@ -967,24 +928,21 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
     }
 
     @Override
-    public void putAll(@NotNull Map<? extends R, ? extends PathClassLoader> map) {}
+    public void putAll(Map<? extends R, ? extends PathClassLoader> map) {}
 
     @Override
     public void clear() {}
 
-    @NotNull
     @Override
     public Set<R> keySet() {
       return null;
     }
 
-    @NotNull
     @Override
     public Collection<PathClassLoader> values() {
       return null;
     }
 
-    @NotNull
     @Override
     public Set<Entry<R, PathClassLoader>> entrySet() {
       return null;
@@ -993,7 +951,6 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
 
   static class CollectionMapExtendImplementInteger2<R> extends HashMap<R, PathClassLoader>
       implements Iterable<R> {
-    @NotNull
     @Override
     public Iterator<R> iterator() {
       return null;

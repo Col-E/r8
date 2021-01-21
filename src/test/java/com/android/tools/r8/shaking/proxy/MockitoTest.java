@@ -5,14 +5,12 @@ package com.android.tools.r8.shaking.proxy;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -53,13 +51,10 @@ public class MockitoTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramFiles(MOCKITO_INTERFACE_JAR)
             .addKeepRuleFiles(flagToKeepTestRunner)
-            .allowDiagnosticWarningMessages(
-                parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N))
+            .addDontWarn("org.junit.**", "org.mockito.**")
             .minification(minify)
             .setMinApi(parameters.getApiLevel())
             .compile()
-            .assertAllWarningMessagesMatch(
-                containsString("required for default or static interface methods desugaring"))
             .inspector();
     ClassSubject itf = inspector.clazz(M_I);
     assertThat(itf, isPresent());
@@ -75,13 +70,10 @@ public class MockitoTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramFiles(MOCKITO_INTERFACE_JAR)
             .addKeepRuleFiles(flagToKeepInterfaceConditionally)
-            .allowDiagnosticWarningMessages(
-                parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N))
+            .addDontWarn("org.junit.**", "org.mockito.**")
             .minification(minify)
             .setMinApi(parameters.getApiLevel())
             .compile()
-            .assertAllWarningMessagesMatch(
-                containsString("required for default or static interface methods desugaring"))
             .inspector();
     ClassSubject itf = inspector.clazz(M_I);
     assertThat(itf, isPresent());

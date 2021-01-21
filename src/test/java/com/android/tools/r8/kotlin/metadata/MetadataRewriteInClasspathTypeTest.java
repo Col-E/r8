@@ -94,6 +94,7 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.ImplKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectRenamed)
             .writeToZip();

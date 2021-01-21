@@ -55,6 +55,7 @@ public class KStyleKotlinLambdaMergingWithEnumUnboxingTest extends TestBase {
         .addHorizontallyMergedLambdaClassesInspector(
             inspector -> inspector.assertMerged(Lambda1.class, Lambda2.class))
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(EnumUnboxingCandidate.class))
+        .addDontWarnJetBrainsAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()

@@ -4,15 +4,12 @@
 
 package com.android.tools.r8.rewrite.serviceloaders;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.DataEntryResource;
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -59,6 +56,7 @@ public class MissingServiceImplementationClassTest extends TestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(TestClass.class, Service.class)
+            .addDontWarn(ServiceImpl.class)
             .addKeepMainRule(TestClass.class)
             .addKeepClassAndMembersRulesWithAllowObfuscation(Service.class)
             .addDataEntryResources(
@@ -72,22 +70,8 @@ public class MissingServiceImplementationClassTest extends TestBase {
                       new DataResourceConsumerForTesting(options.dataResourceConsumer));
                   options.dataResourceConsumer = dataResourceConsumer.get();
                 })
-            .allowDiagnosticWarningMessages()
             .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                inspector -> {
-                  inspector.assertWarningsCount(1);
-                  inspector.assertAllWarningsMatch(
-                      diagnosticMessage(
-                          containsString(
-                              "Unexpected reference to missing service implementation class in "
-                                  + AppServices.SERVICE_DIRECTORY_NAME
-                                  + Service.class.getTypeName()
-                                  + ": "
-                                  + ServiceImpl.class.getTypeName()
-                                  + ".")));
-                });
+            .compile();
 
     CodeInspector inspector = compileResult.inspector();
     ClassSubject serviceClassSubject = inspector.clazz(Service.class);
@@ -171,7 +155,6 @@ public class MissingServiceImplementationClassTest extends TestBase {
   public static class ServiceImpl implements Service {
 
     @Override
-    @NeverInline
     public void greet() {
       System.out.println("Hello world!");
     }

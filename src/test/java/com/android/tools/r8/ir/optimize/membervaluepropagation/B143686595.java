@@ -39,6 +39,7 @@ public class B143686595 extends TestBase {
         .addProgramClasses(TestClass.class)
         .addClasspathClasses(I.class)
         .addKeepMainRule(TestClass.class)
+        .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())

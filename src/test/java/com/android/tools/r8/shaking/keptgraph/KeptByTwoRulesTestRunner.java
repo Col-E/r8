@@ -54,6 +54,7 @@ public class KeptByTwoRulesTestRunner extends TestBase {
         testForR8(backend)
             .enableGraphInspector()
             .addProgramClasses(CLASSES)
+            .addKeepAnnotation()
             .addKeepRules(keepPublicRule, keepFooRule)
             .run(CLASS)
             .assertSuccessWithOutput(EXPECTED)

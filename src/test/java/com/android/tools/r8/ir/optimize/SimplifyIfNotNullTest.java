@@ -5,7 +5,9 @@ package com.android.tools.r8.ir.optimize;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ir.optimize.nonnull.FieldAccessTest;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterArrayAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
@@ -32,10 +34,19 @@ public class SimplifyIfNotNullTest extends TestBase {
   }
 
   private void testR8(Class<?> testClass, List<MethodSignature> signatures) throws Exception {
+    testR8(testClass, signatures, null);
+  }
+
+  private void testR8(
+      Class<?> testClass,
+      List<MethodSignature> signatures,
+      ThrowableConsumer<R8FullTestBuilder> configuration)
+      throws Exception {
     CodeInspector codeInspector =
         testForR8(Backend.DEX)
             .addProgramClasses(testClass)
             .addKeepRules("-keep class " + testClass.getCanonicalName() + " { *; }")
+            .apply(configuration)
             .compile()
             .inspector();
     verifyAbsenceOfIf(codeInspector, testClass, signatures);
@@ -67,6 +78,9 @@ public class SimplifyIfNotNullTest extends TestBase {
         new String[]{FieldAccessTest.class.getCanonicalName()});
     MethodSignature foo2 = new MethodSignature("foo2", "int",
         new String[]{FieldAccessTest.class.getCanonicalName()});
-    testR8(NonNullAfterFieldAccess.class, ImmutableList.of(foo, bar, foo2));
+    testR8(
+        NonNullAfterFieldAccess.class,
+        ImmutableList.of(foo, bar, foo2),
+        testBuilder -> testBuilder.addProgramClasses(FieldAccessTest.class));
   }
 }

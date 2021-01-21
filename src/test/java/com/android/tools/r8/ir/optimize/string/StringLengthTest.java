@@ -96,6 +96,7 @@ public class StringLengthTest extends TestBase {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(MAIN)
+            .enableForceInliningAnnotations()
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .setMinApi(parameters.getApiLevel())

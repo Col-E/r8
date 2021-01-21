@@ -47,10 +47,10 @@ public class KeepAttributesDotsTest extends TestBase {
   @Test
   public void testProguard() throws ExecutionException, CompilationFailedException, IOException {
     testForProguard()
-        .addProgramClassesAndInnerClasses(Main.class)
+        .addInnerClasses(getClass())
         .addKeepAllClassesRule()
         .addKeepAttributes(keepAttributes)
-        .addKeepRules("-dontwarn com.android.tools.r8.shaking.attributes.*")
+        .addDontWarn(KeepAttributesDotsTest.class)
         .run(TestRuntime.getCheckedInJdk9(), Main.class)
         .assertSuccessWithOutputLines("Hello World!")
         .inspect(this::inspect);
@@ -59,7 +59,7 @@ public class KeepAttributesDotsTest extends TestBase {
   @Test
   public void testR8() throws IOException, CompilationFailedException, ExecutionException {
     testForR8(Backend.CF)
-        .addProgramClassesAndInnerClasses(Main.class)
+        .addInnerClasses(getClass())
         .addKeepAttributes(keepAttributes)
         .addKeepAllClassesRule()
         .run(TestRuntime.getCheckedInJdk9(), Main.class)

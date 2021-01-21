@@ -26,7 +26,7 @@ public class ApplyMappingInnerClassesPreserveTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ApplyMappingInnerClassesPreserveTest(TestParameters parameters) {
@@ -41,7 +41,7 @@ public class ApplyMappingInnerClassesPreserveTest extends TestBase {
             .addProgramClassesAndInnerClasses(InnerLibraryClass.class)
             .addKeepAllClassesRuleWithAllowObfuscation()
             .addKeepClassAndMembersRulesWithAllowObfuscation(InnerLibraryClass.class)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile();
     testForR8(parameters.getBackend())
         .addProgramClassesAndInnerClasses(ProgramClassWithSimpleLibraryReference.class)
@@ -49,7 +49,7 @@ public class ApplyMappingInnerClassesPreserveTest extends TestBase {
         .addKeepMainRule(ProgramClassWithSimpleLibraryReference.class)
         .addApplyMapping(libraryCompileResult.getProguardMap())
         .addKeepAttributes("EnclosingMethod", "InnerClasses")
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .noTreeShaking()
         .compile()
         .addRunClasspathFiles(libraryCompileResult.writeToZip())

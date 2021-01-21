@@ -63,7 +63,7 @@ public class DirectMappedDexApplication extends DexApplication {
     return programClasses;
   }
 
-  public Collection<DexLibraryClass> libraryClasses() {
+  public List<DexLibraryClass> libraryClasses() {
     return libraryClasses;
   }
 

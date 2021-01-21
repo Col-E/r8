@@ -66,8 +66,12 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
   }
 
   public RR assertSuccessWithOutputLinesIf(boolean condition, String... expected) {
+    return assertSuccessWithOutputLinesIf(condition, Arrays.asList(expected));
+  }
+
+  public RR assertSuccessWithOutputLinesIf(boolean condition, List<String> expected) {
     if (condition) {
-      return assertSuccessWithOutputLines(Arrays.asList(expected));
+      return assertSuccessWithOutputLines(expected);
     }
     return self();
   }

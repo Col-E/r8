@@ -77,6 +77,7 @@ public class MetadataRewriteInSealedClassNestedTest extends KotlinMetadataTestBa
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addKeepAttributes(
                 ProguardKeepAttributes.INNER_CLASSES, ProguardKeepAttributes.ENCLOSING_METHOD)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .writeToZip();
     Path output =

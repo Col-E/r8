@@ -51,6 +51,7 @@ public class MetadataRewriteDependentKeep extends KotlinMetadataTestBase {
         .addKeepKotlinMetadata()
         .addKeepRules(StringUtils.joinLines("-if class *.Metadata", "-keep class <1>.io.** { *; }"))
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .addDontWarnJetBrainsAnnotations()
         .compile()
         .inspect(this::inspect);
   }

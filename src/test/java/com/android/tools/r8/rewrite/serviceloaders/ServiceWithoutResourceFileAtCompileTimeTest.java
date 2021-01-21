@@ -69,6 +69,7 @@ public class ServiceWithoutResourceFileAtCompileTimeTest extends TestBase {
         .addClasspathClasses(Service.class)
         .addKeepAllClassesRule()
         .addApplyMapping(compileResult.getProguardMap())
+        .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(

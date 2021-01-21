@@ -69,6 +69,7 @@ public class MissingClassesJoinTest extends TestBase {
               .addProgramClasses(A.class, ASub1.class, Box.class, TestClass.class)
               .addKeepAllClassesRule()
               .addOptionsModification(options -> options.testing.allowTypeErrors = allowTypeErrors)
+              .addDontWarn(ASub2.class)
               .allowDiagnosticWarningMessages()
               .enableNoVerticalClassMergingAnnotations()
               .setMinApi(parameters.getApiLevel())

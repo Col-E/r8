@@ -76,6 +76,7 @@ public class MetadataRewriteAnonymousTest extends KotlinMetadataTestBase {
                 ProguardKeepAttributes.SIGNATURE,
                 ProguardKeepAttributes.INNER_CLASSES,
                 ProguardKeepAttributes.ENCLOSING_METHOD)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspect)
             .writeToZip();

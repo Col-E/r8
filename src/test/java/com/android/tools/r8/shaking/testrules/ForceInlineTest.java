@@ -42,6 +42,7 @@ public class ForceInlineTest extends TestBase {
     return testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, A.class, B.class, C.class)
         .addKeepRules(proguardConfiguration)
+        .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoStaticClassMergingAnnotations()
         .enableProguardTestOptions()

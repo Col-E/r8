@@ -87,14 +87,12 @@ public class LibraryMethodOverrideInLambdaMarkingTest extends TestBase {
     }
   }
 
-  @FunctionalInterface
   @NoVerticalClassMerging
   interface I {
 
     Iterator<Object> iterator();
   }
 
-  @FunctionalInterface
   @NoVerticalClassMerging
   interface J extends Iterable<Object> {
 

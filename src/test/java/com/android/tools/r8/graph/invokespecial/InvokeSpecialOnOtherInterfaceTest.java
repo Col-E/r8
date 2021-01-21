@@ -34,20 +34,20 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
   @Test
   public void testRuntime() throws Exception {
     testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-        .addProgramClasses(I.class, Main.class)
+        .addProgramClassesAndInnerClasses(Main.class)
+        .addProgramClasses(I.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatThrows(
-            parameters.isCfRuntime()
-                ? VerifyError.class
-                // TODO(b/144410139): Consider making this a compilation failure.
-                : NoClassDefFoundError.class);
+        // TODO(b/144410139): Consider making this a compilation failure when generating DEX.
+        .assertSuccessWithOutputLinesIf(parameters.isDexRuntime(), "Hello World!")
+        .assertFailureWithErrorThatThrowsIf(parameters.isCfRuntime(), VerifyError.class);
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(I.class, Main.class)
+        .addProgramClassesAndInnerClasses(Main.class)
+        .addProgramClasses(I.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
@@ -56,7 +56,7 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
             parameters.isCfRuntime()
                 ? VerifyError.class
                 // TODO(b/144410139): Consider making this a compilation failure.
-                : NoClassDefFoundError.class);
+                : NullPointerException.class);
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {

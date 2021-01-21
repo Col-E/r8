@@ -49,6 +49,7 @@ public class NonFinalFinalFieldTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(TestClass.class)
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)

@@ -25,6 +25,7 @@ public class VerticallyMergedClassDistinguishedByCheckCastTest
         .addOptionsModification(
             options ->
                 options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
+        .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)

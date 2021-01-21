@@ -79,6 +79,7 @@ public class SynchronizedCollectionTest extends DesugaredLibraryTestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(INPUT_JAR)
         .addKeepMainRule(MAIN_CLASS)
+        .addDontWarnEmulatedLibraryClasses()
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()

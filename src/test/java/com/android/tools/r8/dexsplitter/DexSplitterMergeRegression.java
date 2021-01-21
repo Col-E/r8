@@ -62,8 +62,7 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
             r8FullTestBuilder
                 .enableNoVerticalClassMergingAnnotations()
                 .enableInliningAnnotations()
-                .noMinification()
-                .addOptionsModification(o -> o.testing.deterministicSortingBasedOnDexType = true);
+                .noMinification();
     ProcessResult processResult =
         testDexSplitter(
             parameters,

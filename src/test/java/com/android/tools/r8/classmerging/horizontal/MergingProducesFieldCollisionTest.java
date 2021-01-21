@@ -59,7 +59,6 @@ public class MergingProducesFieldCollisionTest extends HorizontalClassMergingTes
             });
   }
 
-  @NoVerticalClassMerging
   public static class Parent {
     @NeverInline
     public void foo() {

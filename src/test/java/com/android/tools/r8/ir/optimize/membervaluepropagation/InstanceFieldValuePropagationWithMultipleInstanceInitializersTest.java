@@ -40,6 +40,7 @@ public class InstanceFieldValuePropagationWithMultipleInstanceInitializersTest e
     testForR8(parameters.getBackend())
         .addInnerClasses(InstanceFieldValuePropagationWithMultipleInstanceInitializersTest.class)
         .addKeepMainRule(TestClass.class)
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

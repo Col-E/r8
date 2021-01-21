@@ -100,13 +100,6 @@ class ClassNameMinifier {
   }
 
   ClassRenaming computeRenaming(Timing timing) {
-    return computeRenaming(timing, Collections.emptyMap());
-  }
-
-  ClassRenaming computeRenaming(Timing timing, Map<DexType, DexString> syntheticClasses) {
-    // Externally defined synthetic classes populate an initial renaming.
-    renaming.putAll(syntheticClasses);
-
     // Collect names we have to keep.
     timing.begin("reserve");
     for (DexClass clazz : classes) {

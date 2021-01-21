@@ -53,12 +53,12 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
   }
 
   // Simple mock implementation of class android.os.Build$VERSION with just the SDK_INT field.
-  private Path mockAndroidRuntimeLibrary(int sdkInt) throws Exception {
+  private Path mockAndroidRuntimeLibrary(AndroidApiLevel apiLevel) throws Exception {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder;
 
     classBuilder = builder.addClass("android.os.Build$VERSION");
-    classBuilder.addStaticFinalField("SDK_INT", "I", Integer.toString(sdkInt));
+    classBuilder.addStaticFinalField("SDK_INT", "I", Integer.toString(apiLevel.getLevel()));
 
     classBuilder = builder.addClass("android.os.Native");
     classBuilder.addStaticMethod("method", ImmutableList.of(), "V",
@@ -71,13 +71,12 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
     return writeToJar(builder);
   }
 
-  private Path buildMockAndroidRuntimeLibrary(AndroidApiLevel apiLevel) throws Exception {
+  private Path buildMockAndroidRuntimeLibrary(Path mockAndroidRuntimeLibrary) throws Exception {
     // Build the mock library containing android.os.Build.VERSION with D8.
     Path library = temp.newFolder().toPath().resolve("library.jar");
     D8.run(
-        D8Command
-            .builder()
-            .addProgramFiles(mockAndroidRuntimeLibrary(apiLevel.getLevel()))
+        D8Command.builder()
+            .addProgramFiles(mockAndroidRuntimeLibrary)
             .setOutput(library, OutputMode.DexIndexed)
             .build());
     return library;
@@ -164,9 +163,11 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
       throws Exception {
     assertTrue(runtimeApiLevel.getLevel() >= buildApiLevel.getLevel());
     if (backend == Backend.DEX) {
+      Path androidRuntimeLibraryMock = mockAndroidRuntimeLibrary(runtimeApiLevel);
       testForR8(backend)
           .setMinApi(buildApiLevel)
           .addProgramFiles(buildApp(nativeApiLevel))
+          .addClasspathFiles(androidRuntimeLibraryMock)
           .enableProguardTestOptions()
           .addKeepRules("-neverinline class " + compatLibraryClassName + " { *; }")
           .addKeepMainRule(mainClassName)
@@ -177,20 +178,21 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
               syntheticProguardRules ->
                   checkSynthesizedRuleExpectation(syntheticProguardRules, synthesizedRule))
           .inspect(inspector)
-          .addRunClasspathFiles(ImmutableList.of(buildMockAndroidRuntimeLibrary(runtimeApiLevel)))
+          .addRunClasspathFiles(buildMockAndroidRuntimeLibrary(androidRuntimeLibraryMock))
           .run(mainClassName)
           .assertSuccessWithOutput(expectedOutput);
     } else {
       assert backend == Backend.CF;
+      Path androidRuntimeLibraryMock = mockAndroidRuntimeLibrary(AndroidApiLevel.D);
       testForR8(backend)
           .addProgramFiles(buildApp(nativeApiLevel))
           .addKeepMainRule(mainClassName)
           .addKeepRules(additionalKeepRules)
+          .addDontWarn("android.os.Build$VERSION", "android.os.Native")
           .apply(configuration)
           .compile()
           .inspectSyntheticProguardRules(this::noSynthesizedRules)
-          .addRunClasspathFiles(
-              ImmutableList.of(mockAndroidRuntimeLibrary(AndroidApiLevel.D.getLevel())))
+          .addRunClasspathFiles(androidRuntimeLibraryMock)
           .run(mainClassName)
           .assertSuccessWithOutput(expectedResultForCompat(AndroidApiLevel.D));
     }

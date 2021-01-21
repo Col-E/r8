@@ -94,6 +94,7 @@ public class NestAttributesUpdateTest extends TestBase {
               options.enableClassInlining = false;
             })
         .addProgramFiles(classesMatching(outerNestName))
+        .addInliningAnnotations()
         .compile()
         .inspect(
             inspector -> {

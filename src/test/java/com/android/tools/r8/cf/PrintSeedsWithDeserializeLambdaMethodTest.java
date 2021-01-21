@@ -53,6 +53,7 @@ public class PrintSeedsWithDeserializeLambdaMethodTest extends TestBase {
         .addProgramClasses(getClasses())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(getMainClass())
+        .addDontWarnSerializedLambda()
         .addPrintSeeds()
         .allowStdoutMessages()
         .noMinification()

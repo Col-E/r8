@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.FieldAccessInfoImpl.MISSING_FIELD_ACCESS_INFO;
+import static com.android.tools.r8.ir.desugar.LambdaDescriptor.isLambdaMetafactoryMethod;
 import static com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator.ENUM_UNBOXING_UTILITY_CLASS_SUFFIX;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
@@ -553,10 +554,15 @@ public class Enqueuer {
   }
 
   private void recordMethodReference(DexMethod method, ProgramDefinition context) {
-    recordTypeReference(method.holder, context);
-    recordTypeReference(method.proto.returnType, context);
+    recordMethodReference(method, context, this::reportMissingClass);
+  }
+
+  private void recordMethodReference(
+      DexMethod method, ProgramDefinition context, Consumer<DexType> missingClassConsumer) {
+    recordTypeReference(method.holder, context, missingClassConsumer);
+    recordTypeReference(method.proto.returnType, context, missingClassConsumer);
     for (DexType type : method.proto.parameters.values) {
-      recordTypeReference(type, context);
+      recordTypeReference(type, context, missingClassConsumer);
     }
   }
 
@@ -941,13 +947,17 @@ public class Enqueuer {
   }
 
   void traceCallSite(DexCallSite callSite, ProgramMethod context) {
-    DexProgramClass bootstrapClass =
-        getProgramHolderOrNull(callSite.bootstrapMethod.asMethod(), context);
-    if (bootstrapClass != null) {
-      bootstrapMethods.add(callSite.bootstrapMethod.asMethod());
+    // Do not lookup java.lang.invoke.LambdaMetafactory when compiling for DEX to avoid reporting
+    // the class as missing.
+    if (options.isGeneratingClassFiles() || !isLambdaMetafactoryMethod(callSite, appInfo())) {
+      DexProgramClass bootstrapClass =
+          getProgramHolderOrNull(callSite.bootstrapMethod.asMethod(), context);
+      if (bootstrapClass != null) {
+        bootstrapMethods.add(callSite.bootstrapMethod.asMethod());
+      }
     }
 
-    LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, context);
+    LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo(), context);
     if (descriptor == null) {
       return;
     }
@@ -1735,9 +1745,10 @@ public class Enqueuer {
     if (enclosingMethodAttribute != null) {
       DexMethod enclosingMethod = enclosingMethodAttribute.getEnclosingMethod();
       if (enclosingMethod != null) {
-        recordMethodReference(enclosingMethod, clazz);
+        recordMethodReference(enclosingMethod, clazz, this::ignoreMissingClass);
       } else {
-        recordTypeReference(enclosingMethodAttribute.getEnclosingClass(), clazz);
+        recordTypeReference(
+            enclosingMethodAttribute.getEnclosingClass(), clazz, this::ignoreMissingClass);
       }
     }
 
@@ -2312,20 +2323,24 @@ public class Enqueuer {
   private void checkLambdaInterface(DexType itf, ProgramMethod context) {
     DexClass clazz = definitionFor(itf, context);
     if (clazz == null) {
-      StringDiagnostic message =
-          new StringDiagnostic(
-              "Lambda expression implements missing interface `" + itf.toSourceString() + "`",
-              context.getOrigin());
-      options.reporter.warning(message);
+      if (!options.getProguardConfiguration().getDontWarnPatterns().matches(itf)) {
+        StringDiagnostic message =
+            new StringDiagnostic(
+                "Lambda expression implements missing interface `" + itf.toSourceString() + "`",
+                context.getOrigin());
+        options.reporter.warning(message);
+      }
     } else if (!clazz.isInterface()) {
-      StringDiagnostic message =
-          new StringDiagnostic(
-              "Lambda expression expected to implement an interface, but found "
-                  + "`"
-                  + itf.toSourceString()
-                  + "`",
-              context.getOrigin());
-      options.reporter.warning(message);
+      if (!options.getProguardConfiguration().getDontWarnPatterns().matches(itf)) {
+        StringDiagnostic message =
+            new StringDiagnostic(
+                "Lambda expression expected to implement an interface, but found "
+                    + "`"
+                    + itf.toSourceString()
+                    + "`",
+                context.getOrigin());
+        options.reporter.warning(message);
+      }
     }
   }
 
@@ -4664,7 +4679,7 @@ public class Enqueuer {
     }
 
     public DexClass definitionFor(DexType type, ProgramDefinition context) {
-      return enqueuer.definitionFor(type, context);
+      return enqueuer.definitionFor(type, context, enqueuer::ignoreMissingClass);
     }
   }
 }

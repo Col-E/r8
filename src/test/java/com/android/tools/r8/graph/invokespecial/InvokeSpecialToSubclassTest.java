@@ -42,25 +42,21 @@ public class InvokeSpecialToSubclassTest extends TestBase {
   @Test
   public void testRuntime() throws Exception {
     testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-        .addProgramClasses(EmptySubC.class, C.class, Main.class)
+        .addProgramClasses(EmptySubC.class, C.class, D.class, Main.class)
         .addProgramClassFileData(getClassBWithTransformedInvoked(holder))
         .run(parameters.getRuntime(), Main.class)
-        // The failures are very different from one back-end to another: verification error,
-        // invalid invoke-super, segmentation fault, NoSuchMethod, etc.
-        .assertFailure();
+        .assertSuccessWithOutputLines("Should not be called.");
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(EmptySubC.class, C.class, Main.class)
+        .addProgramClasses(EmptySubC.class, C.class, D.class, Main.class)
         .addProgramClassFileData(getClassBWithTransformedInvoked(holder))
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // The failures are very different from one back-end to another: verification error,
-        // invalid invoke-super, segmentation fault, NoSuchMethod, etc.
-        .assertFailure();
+        .assertSuccessWithOutputLines("Should not be called.");
   }
 
   private byte[] getClassBWithTransformedInvoked(Class<?> holder) throws IOException {

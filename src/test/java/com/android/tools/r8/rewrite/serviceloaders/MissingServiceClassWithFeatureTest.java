@@ -38,7 +38,7 @@ public class MissingServiceClassWithFeatureTest extends TestBase {
         .addProgramClasses(TestClass.class, ServiceImpl.class)
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(FeatureClass.class)
-        .addKeepRules("-dontwarn " + Service.class.getTypeName())
+        .addDontWarn(Service.class.getTypeName())
         .addDataEntryResources(
             DataEntryResource.fromBytes(
                 StringUtils.lines("java.lang.Object").getBytes(),

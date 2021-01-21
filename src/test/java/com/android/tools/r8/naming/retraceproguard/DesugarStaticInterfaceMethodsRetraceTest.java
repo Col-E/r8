@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
@@ -30,6 +31,11 @@ public class DesugarStaticInterfaceMethodsRetraceTest extends RetraceTestBase {
   public DesugarStaticInterfaceMethodsRetraceTest(
       Backend backend, CompilationMode mode, boolean compat) {
     super(backend, mode, compat);
+  }
+
+  @Override
+  public void configure(R8TestBuilder builder) {
+    builder.enableInliningAnnotations();
   }
 
   @Override

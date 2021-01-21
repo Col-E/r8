@@ -139,6 +139,7 @@ public class B148525512 extends KotlinTestBase {
                         .setProgramConsumer(new ArchiveConsumer(featureCode, false))
                         .build())
             .allowDiagnosticWarningMessages()
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))

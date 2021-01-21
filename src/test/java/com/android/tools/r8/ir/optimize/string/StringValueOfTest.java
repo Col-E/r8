@@ -111,6 +111,7 @@ public class StringValueOfTest extends TestBase {
     SingleTestRunResult<?> result =
         testForR8(parameters.getBackend())
             .addProgramClassesAndInnerClasses(MAIN)
+            .enableForceInliningAnnotations()
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(MAIN)

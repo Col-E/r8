@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ir.optimize.inliner.testclasses.InliningIntoVisibilityBridgeTestClasses;
@@ -47,10 +48,10 @@ public class InliningIntoVisibilityBridgeTest extends TestBase {
             .addInnerClasses(InliningIntoVisibilityBridgeTest.class)
             .addInnerClasses(InliningIntoVisibilityBridgeTestClasses.class)
             .addKeepMainRule(TestClass.class)
-            .addKeepRules(
-                neverInline
-                    ? ("-neverinline class " + getClassA().getTypeName() + " { method(); }")
-                    : "")
+            .addForceInliningAnnotations()
+            .addInliningAnnotations()
+            .applyIf(neverInline, R8TestBuilder::enableInliningAnnotations)
+            .applyIf(!neverInline, R8TestBuilder::enableForceInliningAnnotations)
             .enableNoVerticalClassMergingAnnotations()
             .enableProguardTestOptions()
             .compile()

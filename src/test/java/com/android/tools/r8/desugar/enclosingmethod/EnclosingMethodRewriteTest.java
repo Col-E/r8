@@ -3,20 +3,26 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.enclosingmethod;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
+import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.DEFAULT_METHOD_PREFIX;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -52,11 +58,6 @@ class TestClass implements A {
 @RunWith(Parameterized.class)
 public class EnclosingMethodRewriteTest extends TestBase {
   private static final Class<?> MAIN = TestClass.class;
-  private static final String JAVA_OUTPUT = StringUtils.lines(
-      "interface " + A.class.getName(),
-      "public default int " + A.class.getName() + ".def()",
-      "42"
-  );
 
   private final TestParameters parameters;
   private final boolean enableMinification;
@@ -64,8 +65,7 @@ public class EnclosingMethodRewriteTest extends TestBase {
   @Parameterized.Parameters(name = "{0} minification: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevels().build(),
-        BooleanUtils.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   public EnclosingMethodRewriteTest(TestParameters parameters, boolean enableMinification) {
@@ -79,7 +79,7 @@ public class EnclosingMethodRewriteTest extends TestBase {
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+        .assertSuccessWithOutputLines(getExpectedOutput());
   }
 
   @Test
@@ -88,7 +88,8 @@ public class EnclosingMethodRewriteTest extends TestBase {
     Path desugared = temp.newFile("desugared.jar").toPath().toAbsolutePath();
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
-            .addProgramClasses(A.class, C.class, MAIN)
+            .addProgramClassesAndInnerClasses(A.class)
+            .addProgramClasses(C.class, MAIN)
             .addKeepMainRule(MAIN)
             .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
             .setProgramConsumer(new ArchiveConsumer(desugared))
@@ -99,41 +100,100 @@ public class EnclosingMethodRewriteTest extends TestBase {
       builder.addKeepAllClassesRule();
     }
     builder.compile().assertNoMessages();
-    try {
-      testForProguard()
-          .addProgramFiles(desugared)
-          .addKeepMainRule(MAIN)
-          .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
-          .run(parameters.getRuntime(), MAIN)
-          .assertSuccessWithOutput(JAVA_OUTPUT);
-    } catch (CompilationFailedException e) {
-      // TODO(b/70293332)
-      assertThat(e.getMessage(), containsString("unresolved references"));
-      assertThat(e.getMessage(), containsString(A.class.getName() + "$1"));
-    }
+    testForProguard()
+        .addProgramFiles(desugared)
+        .addKeepMainRule(MAIN)
+        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccess();
   }
 
   @Test
   public void testR8() throws Exception {
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
-            .addProgramClasses(A.class, C.class, MAIN)
+            .addProgramClassesAndInnerClasses(A.class)
+            .addProgramClasses(C.class, MAIN)
             .addKeepMainRule(MAIN)
             .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
             .setMinApi(parameters.getApiLevel());
     if (enableMinification) {
       builder.addKeepAllClassesRuleWithAllowObfuscation();
     } else {
-      builder.addKeepAllClassesRule();
-    }
-    String errorType = "ClassNotFoundException";
-    if (parameters.isDexRuntime()
-        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
-      errorType = "NoClassDefFoundError";
+      builder.noTreeShaking().noMinification();
     }
     builder
+        .compile()
+        .inspect(
+            inspect -> {
+              ClassSubject cImplSubject = inspect.clazz(A.class.getTypeName() + "$1");
+              assertThat(cImplSubject, isPresent());
+
+              ClassSubject enclosingClassSubject =
+                  inspect.clazz(
+                      parameters.canUseDefaultAndStaticInterfaceMethods()
+                          ? A.class.getTypeName()
+                          : A.class.getTypeName() + COMPANION_CLASS_NAME_SUFFIX);
+              assertThat(enclosingClassSubject, isPresent());
+              assertEquals(
+                  enclosingClassSubject.getDexProgramClass().getType(),
+                  cImplSubject
+                      .getDexProgramClass()
+                      .getEnclosingMethodAttribute()
+                      .getEnclosingMethod()
+                      .getHolderType());
+            })
         .run(parameters.getRuntime(), MAIN)
-        // TODO(b/70293332)
-        .assertFailureWithErrorThatMatches(containsString(errorType));
+        .apply(
+            result -> result.assertSuccessWithOutputLines(getExpectedOutput(result.inspector())));
+  }
+
+  private List<String> getExpectedOutput() {
+    return ImmutableList.of(
+        "interface " + A.class.getTypeName(),
+        "public default int " + A.class.getTypeName() + ".def()",
+        "42");
+  }
+
+  private List<String> getExpectedOutput(CodeInspector inspector) {
+    ClassSubject aClassSubject = inspector.clazz(A.class);
+    assertThat(aClassSubject, isPresent());
+
+    MethodSubject defMethodSubject = aClassSubject.uniqueMethodWithName("def");
+    assertThat(defMethodSubject, isPresent());
+
+    if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+      String modifiers =
+          parameters.isCfRuntime()
+                  || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V8_1_0)
+              ? "public default"
+              : "public";
+      return ImmutableList.of(
+          "interface " + aClassSubject.getFinalName(),
+          modifiers
+              + " int "
+              + aClassSubject.getFinalName()
+              + "."
+              + defMethodSubject.getFinalName()
+              + "()",
+          "42");
+    }
+
+    ClassSubject aCompanionClassSubject =
+        inspector.clazz(A.class.getTypeName() + COMPANION_CLASS_NAME_SUFFIX);
+    assertThat(aCompanionClassSubject, isPresent());
+
+    String methodNamePrefix = enableMinification ? "" : DEFAULT_METHOD_PREFIX;
+    return ImmutableList.of(
+        "class " + aCompanionClassSubject.getFinalName(),
+        "public static int "
+            + aCompanionClassSubject.getFinalName()
+            + "."
+            + methodNamePrefix
+            + defMethodSubject.getFinalName()
+            + "("
+            + aClassSubject.getFinalName()
+            + ")",
+        "42");
   }
 }

@@ -12,7 +12,6 @@ public class ProgramClassWithSimpleLibraryReference {
   public static class SubLibraryClass extends LibraryClass {
 
     @Override
-    @NeverInline
     public void foo() {
       System.out.println("SubLibraryClass.foo()");
       super.foo();

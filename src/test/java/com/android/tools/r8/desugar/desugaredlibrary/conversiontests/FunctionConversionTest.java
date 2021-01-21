@@ -174,7 +174,7 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
 
       private Object1 field;
 
-      private Object2(Object1 o) {
+      Object2(Object1 o) {
         this.field = o;
       }
     }
@@ -183,7 +183,7 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
 
       private Object2 field;
 
-      private Object3(Object2 o) {
+      Object3(Object2 o) {
         this.field = o;
       }
 

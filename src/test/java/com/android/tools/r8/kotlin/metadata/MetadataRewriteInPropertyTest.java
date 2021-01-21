@@ -84,6 +84,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .addKeepRules("-keep class **.Person { <init>(...); }")
             .addKeepRules("-keepclassmembers class **.Person { *** get*(); }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectGetterOnly)
             .writeToZip();
@@ -179,6 +180,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             // Keep LibKt extension methods
             .addKeepRules("-keep class **.LibKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectSetterOnly)
             .writeToZip();

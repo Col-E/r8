@@ -4,12 +4,9 @@
 
 package com.android.tools.r8.naming.applymapping.shared;
 
-import com.android.tools.r8.NeverInline;
-
 public class InnerLibraryClass {
 
   public static class LibraryClass {
-    @NeverInline
     public void foo() {
       System.out.println("LibraryClass.foo()");
     }

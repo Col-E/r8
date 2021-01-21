@@ -44,6 +44,7 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
         .addKeepAllClassesRule()
         .addKeepKotlinMetadata()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .addDontWarnJetBrainsAnnotations()
         .compile()
         .inspect(
             inspector ->

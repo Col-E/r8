@@ -61,6 +61,7 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
             .addKeepMainRule(mainClassName)
             .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
             .allowDiagnosticWarningMessages()
             .setMinApi(parameters.getApiLevel())
             .compile()

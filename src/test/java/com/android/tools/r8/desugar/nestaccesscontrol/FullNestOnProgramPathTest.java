@@ -50,7 +50,7 @@ public class FullNestOnProgramPathTest extends TestBase {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
         .withDexRuntimes()
-        .withAllApiLevels()
+        .withApiLevelsStartingAtIncluding(apiLevelWithInvokeCustomSupport())
         .build();
   }
 
@@ -143,6 +143,7 @@ public class FullNestOnProgramPathTest extends TestBase {
         .addKeepAllAttributes()
         .addOptionsModification(options -> options.enableNestReduction = false)
         .addProgramFiles(JAR)
+        .addInliningAnnotations()
         .setMinApi(minApi)
         .compile();
   }

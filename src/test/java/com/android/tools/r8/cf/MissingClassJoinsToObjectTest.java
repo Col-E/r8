@@ -51,6 +51,7 @@ public class MissingClassJoinsToObjectTest extends TestBase {
             .enableInliningAnnotations()
             .addProgramClasses(TestClass.class, A.class)
             .addKeepMainRule(TestClass.class)
+            .addDontWarn(B.class)
             .setMinApi(parameters.getApiLevel())
             .compile()
             .addRunClasspathFiles(getRuntimeClasspath())

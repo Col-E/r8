@@ -23,7 +23,7 @@ public class IfWithFieldValuePropagationTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public IfWithFieldValuePropagationTest(TestParameters parameters) {
@@ -48,8 +48,9 @@ public class IfWithFieldValuePropagationTest extends TestBase {
         .addRunClasspathFiles(
             testForR8(parameters.getBackend())
                 .addProgramClasses(Library.class)
+                .addClasspathClasses(Layout.class)
                 .addKeepAllClassesRule()
-                .setMinApi(parameters.getRuntime())
+                .setMinApi(parameters.getApiLevel())
                 .compile()
                 .writeToZip())
         .run(parameters.getRuntime(), TestClass.class)

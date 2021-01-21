@@ -48,6 +48,7 @@ public class IfWithMethodValuePropagationTest extends TestBase {
         .addRunClasspathFiles(
             testForR8(parameters.getBackend())
                 .addProgramClasses(Library.class)
+                .addClasspathClasses(Layout.class)
                 .addKeepAllClassesRule()
                 .setMinApi(parameters.getRuntime())
                 .compile()

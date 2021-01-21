@@ -49,6 +49,7 @@ public class RepackageWithInitClassTest extends RepackageTestBase {
         .addInnerClasses(getClass())
         .addClassObfuscationDictionary("a")
         .addKeepMainRule(TestClass.class)
+        .addMemberValuePropagationAnnotations()
         .apply(this::configureRepackaging)
         .enableMemberValuePropagationAnnotations(enableMemberValuePropagationAnnotations)
         .setMinApi(parameters.getApiLevel())

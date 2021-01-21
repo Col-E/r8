@@ -45,6 +45,7 @@ public class SwitchMapInvalidOrdinalTest extends TestBase {
                 + "com.android.tools.r8.ir.optimize.switches.SwitchMapInvalidOrdinalTest$MyEnum {"
                 + " static <fields>; }")
         .addInnerClasses(SwitchMapInvalidOrdinalTest.class)
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)

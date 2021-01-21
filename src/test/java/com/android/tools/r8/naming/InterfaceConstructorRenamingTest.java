@@ -6,7 +6,6 @@ package com.android.tools.r8.naming;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -16,10 +15,8 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -44,17 +41,11 @@ public class InterfaceConstructorRenamingTest extends TestBase {
   @ClassRule public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
 
   private static R8TestCompileResult compile(Backend backend)
-      throws com.android.tools.r8.CompilationFailedException, IOException, ExecutionException {
+      throws com.android.tools.r8.CompilationFailedException, IOException {
     R8TestCompileResult compileResult =
         testForR8(staticTemp, backend)
             .addProgramClasses(TestInterface.class, TestClass.class)
             .addKeepMainRule(TestClass.class)
-            .addLibraryProvider(
-                new ArchiveClassFileProvider(
-                    ToolHelper.getJava8RuntimeJar(),
-                    name ->
-                        ImmutableSet.of("java/lang/Object", "java/lang/System")
-                            .contains(name.replace(".class", ""))))
             .setMinApi(AndroidApiLevel.B)
             .compile()
             .assertNoMessages();

@@ -106,7 +106,6 @@ public class InvokeSuperToRewrittenDefaultMethodTest extends DesugaredLibraryTes
     }
   }
 
-  @FunctionalInterface
   public interface CharConsumer extends Consumer<Character>, IntConsumer {
 
     void accept(char c);

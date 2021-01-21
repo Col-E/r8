@@ -35,6 +35,7 @@ public class NonReboundFieldAccessOnMergedClassTest extends HorizontalClassMergi
               }
             })
         .enableNeverClassInliningAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)

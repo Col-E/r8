@@ -48,12 +48,11 @@ public class ModifyDiagnosticsLevelTest extends TestBase {
             })
         .allowDiagnosticInfoMessages()
         .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics
-                  .assertOnlyInfos()
-                  .assertInfosCount(1)
-                  .assertInfosMatch(diagnosticMessage(startsWith(MISSING_CLASS_MESSAGE_PREFIX)));
-            });
+            diagnostics ->
+                diagnostics
+                    .assertOnlyInfos()
+                    .assertInfosCount(1)
+                    .assertInfosMatch(diagnosticMessage(startsWith(MISSING_CLASS_MESSAGE_PREFIX))));
   }
 
   @Test

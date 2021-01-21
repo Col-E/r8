@@ -88,6 +88,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectMerged)
             .writeToZip();
@@ -151,6 +152,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectRenamed)
             .writeToZip();

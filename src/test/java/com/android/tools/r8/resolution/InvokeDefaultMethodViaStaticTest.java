@@ -6,7 +6,6 @@ package com.android.tools.r8.resolution;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.resolution.invokestaticinterfacedefault.InterfaceDump;
 import com.android.tools.r8.resolution.invokestaticinterfacedefault.MainDump;
 import com.google.common.collect.ImmutableList;
@@ -35,34 +34,20 @@ public class InvokeDefaultMethodViaStaticTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    TestRunResult<?> result =
-        testForRuntime(parameters)
-            .addProgramClassFileData(CLASSES)
-            .run(parameters.getRuntime(), "Main");
-    if (parameters.isDexRuntime()
-        && parameters.getApiLevel().isLessThan(apiLevelWithDefaultInterfaceMethodsSupport())) {
-      // TODO(b/167535447): Desugaring should preserve the error.
-      result.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
-    } else {
-      result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
-    }
+    testForRuntime(parameters)
+        .addProgramClassFileData(CLASSES)
+        .run(parameters.getRuntime(), "Main")
+        .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
   }
 
   @Test
   public void testR8() throws Exception {
-    TestRunResult<?> result =
-        testForR8(parameters.getBackend())
-            .addProgramClassFileData(CLASSES)
-            .addKeepMainRule("Main")
-            .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(o -> o.testing.allowInvokeErrors = true)
-            .run(parameters.getRuntime(), "Main");
-    if (parameters.isDexRuntime()
-        && parameters.getApiLevel().isLessThan(apiLevelWithDefaultInterfaceMethodsSupport())) {
-      // TODO(b/167535447): Desugaring should preserve the error.
-      result.assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
-    } else {
-      result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(CLASSES)
+        .addKeepMainRule("Main")
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(o -> o.testing.allowInvokeErrors = true)
+        .run(parameters.getRuntime(), "Main")
+        .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
   }
 }

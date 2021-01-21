@@ -107,13 +107,16 @@ public abstract class DexApplication {
   }
 
   public List<DexProgramClass> classesWithDeterministicOrder() {
-    List<DexProgramClass> classes = new ArrayList<>(programClasses());
-    // We never actually sort by anything but the DexType, this is just here in case we ever change
-    // that.
-    if (options.testing.deterministicSortingBasedOnDexType) {
-      // To keep the order deterministic, we sort the classes by their type, which is a unique key.
-      classes.sort(Comparator.comparing(DexClass::getType));
-    }
+    return classesWithDeterministicOrder(new ArrayList<>(programClasses()));
+  }
+
+  public static <T extends DexClass> List<T> classesWithDeterministicOrder(Collection<T> classes) {
+    return classesWithDeterministicOrder(new ArrayList<>(classes));
+  }
+
+  public static <T extends DexClass> List<T> classesWithDeterministicOrder(List<T> classes) {
+    // To keep the order deterministic, we sort the classes by their type, which is a unique key.
+    classes.sort(Comparator.comparing(DexClass::getType));
     return classes;
   }
 
@@ -129,15 +132,9 @@ public abstract class DexApplication {
   }
 
   public abstract static class Builder<T extends Builder<T>> {
-    // We handle program class collection separately from classpath
-    // and library class collections. Since while we assume program
-    // class collection should always be fully loaded and thus fully
-    // represented by the map (making it easy, for example, adding
-    // new or removing existing classes), classpath and library
-    // collections will be considered monolithic collections.
 
-    private List<DexProgramClass> programClasses = new ArrayList<>();
-    private List<DexClasspathClass> classpathClasses = new ArrayList<>();
+    private final List<DexProgramClass> programClasses = new ArrayList<>();
+    private final List<DexClasspathClass> classpathClasses = new ArrayList<>();
 
     final List<DataResourceProvider> dataResourceProviders = new ArrayList<>();
 

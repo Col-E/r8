@@ -567,18 +567,14 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
     public LookupTarget lookupVirtualDispatchTarget(
         LambdaDescriptor lambdaInstance, AppInfoWithClassHierarchy appInfo) {
       if (lambdaInstance.getMainMethod().match(resolvedMethod)) {
-        DexMethod method = lambdaInstance.implHandle.asMethod();
-        DexClass holder = appInfo.definitionForHolder(method);
-        if (holder == null) {
-          assert false;
-          return null;
-        }
-        DexEncodedMethod definition = holder.lookupMethod(method);
-        if (definition == null) {
+        DexMethod methodReference = lambdaInstance.implHandle.asMethod();
+        DexClass holder = appInfo.definitionForHolder(methodReference);
+        DexClassAndMethod method = methodReference.lookupMemberOnClass(holder);
+        if (method == null) {
           // The targeted method might not exist, eg, Throwable.addSuppressed in an old library.
           return null;
         }
-        return new LookupLambdaTarget(lambdaInstance, DexClassAndMethod.create(holder, definition));
+        return new LookupLambdaTarget(lambdaInstance, method);
       }
       return lookupMaximallySpecificDispatchTarget(lambdaInstance, appInfo);
     }

@@ -93,6 +93,7 @@ public class MissingClasses {
     public MissingClasses reportMissingClasses(InternalOptions options) {
       Set<DexType> newMissingClassesWithoutDontWarn =
           options.getProguardConfiguration().getDontWarnPatterns().getNonMatches(newMissingClasses);
+      newMissingClassesWithoutDontWarn.removeAll(alreadyMissingClasses);
       newMissingClassesWithoutDontWarn.removeAll(
           getAllowedMissingClasses(options.dexItemFactory()));
       if (!newMissingClassesWithoutDontWarn.isEmpty()) {
@@ -111,7 +112,15 @@ public class MissingClasses {
     }
 
     private static Collection<DexType> getAllowedMissingClasses(DexItemFactory dexItemFactory) {
-      return ImmutableList.of(dexItemFactory.annotationThrows);
+      return ImmutableList.of(
+          dexItemFactory.annotationDefault,
+          dexItemFactory.annotationMethodParameters,
+          dexItemFactory.annotationSourceDebugExtension,
+          dexItemFactory.annotationThrows,
+          // TODO(b/176133674) StringConcatFactory is backported, but the class is reported as
+          //  missing because the enqueuer runs prior to backporting and thus sees the non-desugared
+          //  code.
+          dexItemFactory.stringConcatFactoryType);
     }
 
     /** Intentionally private, use {@link Builder#reportMissingClasses(InternalOptions)}. */

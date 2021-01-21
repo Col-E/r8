@@ -13,6 +13,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -218,6 +219,8 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
     testForR8(parameters.getBackend())
         .setMode(mode)
         .addInnerClasses(GetClassTest.class)
+        .addForceInliningAnnotations()
+        .applyIf(mode == CompilationMode.RELEASE, R8TestBuilder::enableForceInliningAnnotations)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .addKeepMainRule(MAIN)

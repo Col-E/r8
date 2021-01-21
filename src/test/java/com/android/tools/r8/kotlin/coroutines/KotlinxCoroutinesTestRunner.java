@@ -80,10 +80,15 @@ public class KotlinxCoroutinesTestRunner extends KotlinMetadataTestBase {
             .addKeepAllAttributes()
             // The BASE_LIBRARY contains proguard rules that do not match.
             .allowUnusedProguardConfigurationRules()
-            .addKeepRules(
-                "-dontwarn reactor.blockhound.integration.BlockHoundIntegration",
-                "-dontwarn org.junit.runners.model.Statement",
-                "-dontwarn org.junit.rules.TestRule")
+            .addDontWarnKotlinx()
+            .addDontWarn(
+                "edu.umd.cs.findbugs.annotations.SuppressFBWarnings",
+                "reactor.blockhound.BlockHound$Builder",
+                "reactor.blockhound.integration.BlockHoundIntegration",
+                "org.junit.rules.TestRule",
+                "org.junit.runner.Description",
+                "org.junit.runners.model.Statement",
+                "org.junit.runners.model.TestTimedOutException")
             .compile()
             .inspect(inspector -> assertEqualMetadata(new CodeInspector(BASE_LIBRARY), inspector))
             .writeToZip();

@@ -18,6 +18,8 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.checkdiscarded.testclasses.Main;
 import com.android.tools.r8.checkdiscarded.testclasses.UnusedClass;
 import com.android.tools.r8.checkdiscarded.testclasses.UsedClass;
+import com.android.tools.r8.checkdiscarded.testclasses.WillBeGone;
+import com.android.tools.r8.checkdiscarded.testclasses.WillStay;
 import com.android.tools.r8.errors.CheckDiscardDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -79,7 +81,8 @@ public class CheckDiscardModifyDiagnosticsLevelTest extends TestBase {
   public void dontFailCompilationOnCheckDiscardedFailure() {
     try {
       testForR8(Backend.DEX)
-          .addProgramClasses(UnusedClass.class, UsedClass.class, Main.class)
+          .addProgramClasses(
+              UnusedClass.class, UsedClass.class, Main.class, WillBeGone.class, WillStay.class)
           .addKeepMainRule(Main.class)
           .addKeepRules("-checkdiscard class " + UsedClass.class.getTypeName())
           .addOptionsModification(this::noInlining)

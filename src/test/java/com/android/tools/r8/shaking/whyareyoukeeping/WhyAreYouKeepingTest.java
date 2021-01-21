@@ -79,6 +79,7 @@ public class WhyAreYouKeepingTest extends TestBase {
         .addKeepRules("-whyareyoukeeping class " + A.class.getTypeName())
         // Redirect the compilers stdout to intercept the '-whyareyoukeeping' output
         .collectStdout()
+        .addInliningAnnotations()
         .compile()
         .assertStdoutThatMatches(equalTo(expected));
   }
@@ -90,6 +91,7 @@ public class WhyAreYouKeepingTest extends TestBase {
         .addProgramClasses(A.class)
         .addKeepMethodRules(Reference.methodFromMethod(A.class.getMethod("foo")))
         .setKeptGraphConsumer(graphConsumer)
+        .addInliningAnnotations()
         .compile();
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -139,13 +141,13 @@ public class WhyAreYouKeepingTest extends TestBase {
         .allowUnusedProguardConfigurationRules()
         // Redirect the compilers stdout to intercept the '-whyareyoukeeping' output
         .collectStdout()
+        .addInliningAnnotations()
         .compile()
         .assertNoStdout();
   }
 
   @Test
   public void testNonExistentMethodWhyAreYouKeepingViaProguardConfig() throws Exception {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
     String aName = A.class.getTypeName();
     testForR8(backend)
         .addProgramClasses(A.class)
@@ -153,6 +155,7 @@ public class WhyAreYouKeepingTest extends TestBase {
         .addKeepRules("-whyareyoukeeping class " + aName + " { nonExistentMethod(); }")
         // Redirect the compilers stdout to intercept the '-whyareyoukeeping' output
         .collectStdout()
+        .addInliningAnnotations()
         .compile()
         .assertStdoutThatMatches(not(equalTo("")));
   }

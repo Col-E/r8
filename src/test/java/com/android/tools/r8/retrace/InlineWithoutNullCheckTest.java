@@ -12,7 +12,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.AlwaysInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -110,6 +109,7 @@ public class InlineWithoutNullCheckTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InlineWithoutNullCheckTest.class)
         .addKeepMainRule(TestClassForInlineMethod.class)
+        .enableAlwaysInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE)
         .setMinApi(parameters.getApiLevel())
@@ -137,6 +137,7 @@ public class InlineWithoutNullCheckTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InlineWithoutNullCheckTest.class)
         .addKeepMainRule(TestClassForInlineField.class)
+        .enableAlwaysInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE)
         .setMinApi(parameters.getApiLevel())
@@ -165,6 +166,7 @@ public class InlineWithoutNullCheckTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InlineWithoutNullCheckTest.class)
         .addKeepMainRule(TestClassForInlineStaticField.class)
+        .enableAlwaysInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE)
         .setMinApi(parameters.getApiLevel())
@@ -232,7 +234,7 @@ public class InlineWithoutNullCheckTest extends TestBase {
   }
 
   static class A {
-    @NeverPropagateValue Result result;
+    Result result;
 
     A(Result result) {
       this.result = result;
@@ -260,8 +262,8 @@ public class InlineWithoutNullCheckTest extends TestBase {
   }
 
   static class Result {
-    @NeverPropagateValue int x = 1;
-    @NeverPropagateValue static int y = 1;
+    int x = 1;
+    static int y = 1;
 
     @AlwaysInline
     int methodWhichAccessInstanceMethod() {

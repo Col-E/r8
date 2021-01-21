@@ -47,6 +47,7 @@ public class MetadataRewriteKeepTest extends KotlinMetadataTestBase {
         .addKeepKotlinMetadata()
         .addKeepRules("-keep class kotlin.io.** { *; }")
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .addDontWarnJetBrainsAnnotations()
         .compile()
         .inspect(this::inspect);
   }
@@ -59,6 +60,7 @@ public class MetadataRewriteKeepTest extends KotlinMetadataTestBase {
         .addKeepRules("-keep class kotlin.io.** { *; }")
         .addKeepRules("-if class *", "-keep class kotlin.Metadata { *; }")
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .addDontWarnJetBrainsAnnotations()
         .compile()
         .inspect(this::inspect);
   }

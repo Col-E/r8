@@ -68,29 +68,33 @@ public class EventPublisher$bDump implements Opcodes {
       {
         AnnotationVisitor annotationVisitor1 = annotationVisitor0.visitArray("d2");
         annotationVisitor1.visit(null, "<anonymous>");
-        annotationVisitor1.visit(null, "Lio/reactivex/Flowable;");
+        annotationVisitor1.visit(null, "Lcom/android/tools/r8/shaking/b134858535/Flowable;");
         annotationVisitor1.visit(null, "Lkotlin/Pair;");
-        annotationVisitor1.visit(null, "Lcom/permutive/android/event/db/model/EventEntity;");
+        annotationVisitor1.visit(null, "Lcom/android/tools/r8/shaking/b134858535/EventEntity;");
         annotationVisitor1.visit(null, "kotlin.jvm.PlatformType");
         annotationVisitor1.visit(
-            null, "Lcom/permutive/android/event/api/model/TrackBatchEventResponse;");
+            null, "Lcom/android/tools/r8/shaking/b134858535/TrackBatchEventResponse;");
         annotationVisitor1.visit(null, "<name for destructuring parameter 0>");
         annotationVisitor1.visit(null, "");
-        annotationVisitor1.visit(null, "Lcom/permutive/android/config/api/model/SdkConfiguration;");
+        annotationVisitor1.visit(
+            null, "Lcom/android/tools/r8/shaking/b134858535/SdkConfiguration;");
         annotationVisitor1.visit(null, "apply");
         annotationVisitor1.visitEnd();
       }
       annotationVisitor0.visitEnd();
     }
     classWriter.visitInnerClass(
-        "com/permutive/android/event/EventPublisher$b", null, null, ACC_FINAL | ACC_STATIC);
+        "com/android/tools/r8/shaking/b134858535/EventPublisher$b",
+        null,
+        null,
+        ACC_FINAL | ACC_STATIC);
 
     {
       fieldVisitor =
           classWriter.visitField(
               ACC_FINAL | ACC_SYNTHETIC,
               "a",
-              "Lcom/permutive/android/event/EventPublisher;",
+              "Lcom/android/tools/r8/shaking/b134858535/EventPublisher;",
               null,
               null);
       fieldVisitor.visitEnd();

@@ -91,6 +91,8 @@ public class AnnotationShakingBehaviorTest extends TestBase {
         .addKeepMainRule(MainWithNewB.class)
         .addKeepClassAndMembersRules(Factory.class)
         .addKeepAttributes("*Annotation*")
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MainWithNewB.class)
         .assertSuccessWithOutputLines("Hello World!")

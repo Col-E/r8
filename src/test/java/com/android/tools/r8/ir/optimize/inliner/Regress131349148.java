@@ -26,7 +26,10 @@ public class Regress131349148 extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection params() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+    return getTestParameters()
+        .withDexRuntimes()
+        .withApiLevelsStartingAtIncluding(AndroidApiLevel.K)
+        .build();
   }
 
   public Regress131349148(TestParameters parameters) {

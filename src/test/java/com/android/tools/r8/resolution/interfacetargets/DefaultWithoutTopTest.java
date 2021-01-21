@@ -86,6 +86,9 @@ public class DefaultWithoutTopTest extends TestBase {
         .addProgramClasses(I.class, J.class, Main.class)
         .addProgramClassFileData(setAImplementsIAndJ())
         .addKeepMainRule(Main.class)
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
@@ -131,6 +134,9 @@ public class DefaultWithoutTopTest extends TestBase {
         .addProgramClasses(I.class, J.class, K.class, Main.class)
         .addProgramClassFileData(setAimplementsIandK())
         .addKeepMainRule(Main.class)
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);

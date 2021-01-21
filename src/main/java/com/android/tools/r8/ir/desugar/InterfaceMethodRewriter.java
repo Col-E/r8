@@ -481,7 +481,7 @@ public final class InterfaceMethodRewriter {
             .appInfoForDesugaring()
             .resolveMethodOnInterface(clazz, invokedMethod)
             .asSingleResolution();
-    if (resolutionResult != null) {
+    if (resolutionResult != null && resolutionResult.getResolvedMethod().isStatic()) {
       instructions.replaceCurrentInstruction(
           new InvokeStatic(
               staticAsMethodOfCompanionClass(resolutionResult.getResolutionPair()),
@@ -490,28 +490,26 @@ public final class InterfaceMethodRewriter {
       return;
     }
 
-    // Replace by throw new NoSuchMethodError.
-    UtilityMethodForCodeOptimizations throwNoSuchMethodErrorMethod =
-        UtilityMethodsForCodeOptimizations.synthesizeThrowNoSuchMethodErrorMethod(
-            appView, context, methodProcessingId);
-    throwNoSuchMethodErrorMethod.optimize(methodProcessor);
+    // Replace by throw new IncompatibleClassChangeError/NoSuchMethodError.
+    UtilityMethodForCodeOptimizations throwMethod =
+        resolutionResult == null
+            ? UtilityMethodsForCodeOptimizations.synthesizeThrowNoSuchMethodErrorMethod(
+                appView, context, methodProcessingId)
+            : UtilityMethodsForCodeOptimizations.synthesizeThrowIncompatibleClassChangeErrorMethod(
+                appView, context, methodProcessingId);
+    throwMethod.optimize(methodProcessor);
 
-    InvokeStatic throwNoSuchMethodErrorInvoke =
+    InvokeStatic throwInvoke =
         InvokeStatic.builder()
-            .setMethod(throwNoSuchMethodErrorMethod.getMethod())
+            .setMethod(throwMethod.getMethod())
             .setFreshOutValue(appView, code)
             .setPosition(invoke)
             .build();
     instructions.previous();
-    instructions.add(throwNoSuchMethodErrorInvoke);
+    instructions.add(throwInvoke);
     instructions.next();
     instructions.replaceCurrentInstructionWithThrow(
-        appView,
-        code,
-        blockIterator,
-        throwNoSuchMethodErrorInvoke.outValue(),
-        blocksToRemove,
-        affectedValues);
+        appView, code, blockIterator, throwInvoke.outValue(), blocksToRemove, affectedValues);
   }
 
   private void rewriteInvokeSuper(

@@ -39,6 +39,7 @@ public class EnumSideEffect extends TestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .addInnerClasses(EnumSideEffect.class)
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)

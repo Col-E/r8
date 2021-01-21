@@ -4,21 +4,36 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
-import static org.hamcrest.CoreMatchers.containsString;
 
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class ExtraMethodNullTest extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  public ExtraMethodNullTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void test() throws Exception {
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
         .addProgramClassesAndInnerClasses(One.class)
         .addKeepMainRule(One.class)
-        .run(One.class)
-        .assertFailureWithErrorThatMatches(containsString("java.lang.NullPointerException"));
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), One.class)
+        .assertFailureWithErrorThatThrows(NullPointerException.class);
   }
 
   public static class One {
@@ -30,7 +45,6 @@ public class ExtraMethodNullTest extends TestBase {
     }
 
     static class Other {
-      @NeverInline
       Object print(Object one) {
         return one;
       }

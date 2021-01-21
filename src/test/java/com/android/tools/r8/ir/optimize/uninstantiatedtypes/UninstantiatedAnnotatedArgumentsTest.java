@@ -54,6 +54,7 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(UninstantiatedAnnotatedArgumentsTest.class)
+        .addConstantArgumentAnnotations()
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(Instantiated.class, Uninstantiated.class)
         .addKeepAttributes("RuntimeVisibleParameterAnnotations")

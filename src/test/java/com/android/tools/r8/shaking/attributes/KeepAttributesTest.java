@@ -27,11 +27,11 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class KeepAttributesTest extends TestBase {
 
-  private static final Class CLASS = TestKeepAttributes.class;
+  private static final Class<?> CLASS = TestKeepAttributes.class;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection parameters() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -111,7 +111,8 @@ public class KeepAttributesTest extends TestBase {
         .addProgramClassesAndInnerClasses(CLASS)
         .addKeepAllClassesRule()
         .addKeepRules(keepRules)
-        .setMinApi(parameters.getRuntime())
+        .enableSideEffectAnnotations()
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), CLASS)
         .inspector()
         .clazz(CLASS)

@@ -5,13 +5,11 @@
 package com.android.tools.r8.shaking.annotations.b137392797;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -64,16 +62,14 @@ public class B137392797 extends TestBase implements Opcodes {
             classWireFieldLabel(),
             classTest(defaultEnumValueInAnnotation))
         .addProgramClasses(TestClass.class)
+        .addDontWarnKotlin()
+        .addDontWarnJetBrainsAnnotations()
         .addKeepClassAndMembersRules(
             "com.squareup.wire.WireField", "com.squareup.demo.myapplication.Test")
         .addKeepMainRule(TestClass.class)
         .addKeepAttributes("*Annotation*")
-        .allowDiagnosticWarningMessages(
-            parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N))
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .assertAllWarningMessagesMatch(
-            containsString("required for default or static interface methods desugaring"))
         .inspect(this::checkEnumUses)
         .run(parameters.getRuntime(), TestClass.class, "com.squareup.demo.myapplication.Test")
         .assertSuccessWithOutputLines(

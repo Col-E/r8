@@ -40,6 +40,8 @@ public class EffectivelyFinalFieldCanonicalizationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(EffectivelyFinalFieldCanonicalizationTest.class)
         .addKeepMainRule(TestClass.class)
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

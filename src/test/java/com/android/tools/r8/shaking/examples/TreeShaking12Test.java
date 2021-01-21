@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.shaking.TreeShakingTest;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -25,7 +26,13 @@ public class TreeShaking12Test extends TreeShakingTest {
 
   @Parameters(name = "mode:{0}-{1} minify:{2}")
   public static List<Object[]> data() {
-    return defaultTreeShakingParameters();
+    return buildParameters(
+        Frontend.values(),
+        getTestParameters()
+            .withAllRuntimes()
+            .withApiLevelsStartingAtIncluding(AndroidApiLevel.K)
+            .build(),
+        MinifyMode.values());
   }
 
   public TreeShaking12Test(Frontend frontend, TestParameters parameters, MinifyMode minify) {

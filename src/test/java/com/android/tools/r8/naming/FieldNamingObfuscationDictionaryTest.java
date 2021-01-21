@@ -99,6 +99,7 @@ public class FieldNamingObfuscationDictionaryTest extends TestBase {
         .addInnerClasses(FieldNamingObfuscationDictionaryTest.class)
         .addKeepRules("-overloadaggressively", "-obfuscationdictionary " + dictionary.toString())
         .addKeepMainRule(Runner.class)
+        .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())

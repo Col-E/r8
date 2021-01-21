@@ -91,6 +91,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             .addKeepRules("-keep class **.UtilKt")
             .addKeepRules("-keepclassmembers class * { ** comma*Join*(...); }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectMerged)
             .writeToZip();
@@ -135,6 +136,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             // Keep yet rename joinOf*(String).
             .addKeepRules("-keepclassmembers,allowobfuscation class * { ** joinOf*(...); }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectRenamed)
             .writeToZip();

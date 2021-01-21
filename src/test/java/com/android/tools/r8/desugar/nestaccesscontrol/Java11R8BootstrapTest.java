@@ -68,6 +68,8 @@ public class Java11R8BootstrapTest extends TestBase {
         .addKeepRuleFiles(MAIN_KEEP)
         .addOptionsModification(
             options -> options.testing.enableForceNestBasedAccessDesugaringForTest = desugar)
+        .addDontWarnGoogle()
+        .addDontWarnJavax()
         .compile()
         .inspect(inspector -> assertNests(inspector, desugar))
         .writeToZip();

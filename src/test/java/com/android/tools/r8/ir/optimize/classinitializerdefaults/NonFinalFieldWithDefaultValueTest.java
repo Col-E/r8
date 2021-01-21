@@ -58,6 +58,7 @@ public class NonFinalFieldWithDefaultValueTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(NonFinalFieldWithDefaultValueTest.class)
         .addKeepMainRule(TestClass.class)
+        .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

@@ -106,6 +106,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
             .addKeepMainRule(MAIN_CLASS_NAME)
             .addKeepRules(KEEP_ANNOTATIONS)
             .addKeepRules("-keep @interface " + ANNOTATION_NAME + " {", "  *;", "}")
+            .addDontWarnJetBrainsAnnotations()
             .allowDiagnosticWarningMessages()
             .minification(minify)
             .setMinApi(parameters.getApiLevel())
@@ -145,6 +146,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
                 "-keep,allowobfuscation @interface " + ANNOTATION_NAME + " {",
                 "  java.lang.String *f2();",
                 "}")
+            .addDontWarnJetBrainsAnnotations()
             .allowDiagnosticWarningMessages()
             .minification(minify)
             .setMinApi(parameters.getApiLevel())
@@ -181,6 +183,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
             .addKeepRules(KEEP_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
             .allowDiagnosticWarningMessages()
             .minification(minify)
             .setMinApi(parameters.getApiLevel())
@@ -216,6 +219,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
             .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
+            .addDontWarnJetBrainsAnnotations()
             .allowDiagnosticWarningMessages()
             .minification(minify)
             .setMinApi(parameters.getApiLevel())

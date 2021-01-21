@@ -54,6 +54,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
         .noMinification()
         .noTreeShaking()
         .addKeepAllAttributes()
+        .addDontWarnJetBrainsAnnotations()
         .setMode(CompilationMode.DEBUG)
         .setMinApi(parameters.getApiLevel())
         .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages);

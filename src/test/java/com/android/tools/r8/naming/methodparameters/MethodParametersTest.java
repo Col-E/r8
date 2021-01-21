@@ -14,6 +14,7 @@ import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -58,7 +59,10 @@ public class MethodParametersTest extends TestBase {
             .addKeepClassAndMembersRulesWithAllowObfuscation(MethodParametersTest.class)
             .addKeepMainRule(MethodParametersTest.class)
             .addKeepRules(keepMethodParameters ? "-keepattributes MethodParameters" : "")
-            .setMinApi(AndroidApiLevel.L)
+            .setMinApi(keepMethodParameters ? AndroidApiLevel.O : AndroidApiLevel.L)
+            // java.lang.reflect.Parameter was introduced in API level 26 (O).
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O))
+            .compile()
             .run(parameters.getRuntime(), MethodParametersTest.class);
     if (keepMethodParameters) {
       checkOutputContainsAll(runResult.getStdOut());

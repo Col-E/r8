@@ -112,6 +112,7 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
             .addProgramClassesAndInnerClasses(Main.class, A.class, T.class)
             .addKeepMethodRules(mainMethod)
             .enableMemberValuePropagationAnnotations()
+            .enableNeverClassInliningAnnotations()
             .setMinApi(AndroidApiLevel.N)
             .apply(
                 b -> {

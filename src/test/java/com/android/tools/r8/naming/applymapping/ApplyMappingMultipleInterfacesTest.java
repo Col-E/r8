@@ -5,7 +5,6 @@
 package com.android.tools.r8.naming.applymapping;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -46,7 +45,6 @@ public class ApplyMappingMultipleInterfacesTest extends TestBase {
 
   public static class ImplementsI2I3 implements I2, I3 {
     @Override
-    @NeverInline
     public String foo(String bar) {
       System.out.print("Hello" + bar);
       return bar;
@@ -55,7 +53,6 @@ public class ApplyMappingMultipleInterfacesTest extends TestBase {
 
   public static class ImplementsI3 implements I3 {
     @Override
-    @NeverInline
     public String foo(String bar) {
       System.out.print("Goodbye");
       return bar;
@@ -84,7 +81,7 @@ public class ApplyMappingMultipleInterfacesTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ApplyMappingMultipleInterfacesTest(TestParameters parameters) {
@@ -98,19 +95,24 @@ public class ApplyMappingMultipleInterfacesTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(I2Minified.class, I3Minified.class)
             .addKeepAllClassesRule()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile();
     testForR8(parameters.getBackend())
         .addClasspathClasses(I2.class, I3.class)
         .addProgramClasses(MainForImplements.class, ImplementsI2I3.class, ImplementsI3.class)
         .addKeepMainRule(MainForImplements.class)
         .addApplyMapping(
-            I2.class.getTypeName() + " -> " + I2Minified.class.getTypeName() + ":\n" +
-            "  java.lang.String foo(java.lang.String) -> a\n" +
-            I3.class.getTypeName() + " -> " + I3Minified.class.getTypeName() + ":\n" +
-                "  java.lang.String foo(java.lang.String) -> a"
-        )
-        .setMinApi(parameters.getRuntime())
+            I2.class.getTypeName()
+                + " -> "
+                + I2Minified.class.getTypeName()
+                + ":\n"
+                + "  java.lang.String foo(java.lang.String) -> a\n"
+                + I3.class.getTypeName()
+                + " -> "
+                + I3Minified.class.getTypeName()
+                + ":\n"
+                + "  java.lang.String foo(java.lang.String) -> a")
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), MainForImplements.class)

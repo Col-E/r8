@@ -44,7 +44,10 @@ public class DefaultMethodsTest extends TestBase {
       throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(
-            InterfaceWithDefaultMethods.class, ClassImplementingInterface.class, TestClass.class)
+            InterfaceWithDefaultMethods.class,
+            ClassImplementingInterface.class,
+            OtherClassImplementingInterface.class,
+            TestClass.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClass.class)
         .addKeepRules(additionalKeepRules)

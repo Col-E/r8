@@ -104,7 +104,6 @@ public class ApplyMappingDesugarLambdaTest extends TestBase {
     }
   }
 
-  @FunctionalInterface
   public interface I {
 
     void doStuff();

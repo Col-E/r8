@@ -46,7 +46,9 @@ public class KeptByAnnotatedClassTestRunner extends TestBase {
             .enableGraphInspector()
             .enableInliningAnnotations()
             .addProgramClasses(CLASS)
+            .addKeepAnnotation()
             .addKeepRules("-keep @com.android.tools.r8.Keep class * { public *; }")
+            .addInliningAnnotations()
             .run(CLASS)
             .assertSuccessWithOutput(EXPECTED)
             .graphInspector();

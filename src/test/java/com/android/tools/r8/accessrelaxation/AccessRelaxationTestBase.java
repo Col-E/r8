@@ -23,7 +23,7 @@ abstract class AccessRelaxationTestBase extends TestBase {
     this.parameters = parameters;
   }
 
-  static void assertPublic(CodeInspector codeInspector, Class clazz, MethodSignature signature) {
+  static void assertPublic(CodeInspector codeInspector, Class<?> clazz, MethodSignature signature) {
     ClassSubject classSubject = codeInspector.clazz(clazz);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(signature);
@@ -31,12 +31,12 @@ abstract class AccessRelaxationTestBase extends TestBase {
     assertThat(methodSubject, isPublic());
   }
 
-  static void assertNotPublic(CodeInspector codeInspector, Class clazz, MethodSignature signature) {
+  static void assertNotPublic(
+      CodeInspector codeInspector, Class<?> clazz, MethodSignature signature) {
     ClassSubject classSubject = codeInspector.clazz(clazz);
     assertThat(classSubject, isPresent());
     MethodSubject methodSubject = classSubject.method(signature);
     assertThat(methodSubject, isPresent());
     assertThat(methodSubject, not(isPublic()));
   }
-
 }

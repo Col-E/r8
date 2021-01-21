@@ -77,6 +77,35 @@ public class UtilityMethodsForCodeOptimizations {
             options, method);
   }
 
+  public static UtilityMethodForCodeOptimizations synthesizeThrowIncompatibleClassChangeErrorMethod(
+      AppView<?> appView, ProgramMethod context, MethodProcessingId methodProcessingId) {
+    InternalOptions options = appView.options();
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexProto proto = dexItemFactory.createProto(dexItemFactory.icceType);
+    SyntheticItems syntheticItems = appView.getSyntheticItems();
+    ProgramMethod syntheticMethod =
+        syntheticItems.createMethod(
+            SyntheticNaming.SyntheticKind.THROW_ICCE,
+            context,
+            dexItemFactory,
+            builder ->
+                builder
+                    .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                    .setClassFileVersion(CfVersion.V1_8)
+                    .setCode(
+                        method -> getThrowIncompatibleClassChangeErrorCodeTemplate(method, options))
+                    .setProto(proto),
+            methodProcessingId);
+    return new UtilityMethodForCodeOptimizations(syntheticMethod);
+  }
+
+  private static CfCode getThrowIncompatibleClassChangeErrorCodeTemplate(
+      DexMethod method, InternalOptions options) {
+    return CfUtilityMethodsForCodeOptimizations
+        .CfUtilityMethodsForCodeOptimizationsTemplates_throwIncompatibleClassChangeError(
+            options, method);
+  }
+
   public static UtilityMethodForCodeOptimizations synthesizeThrowNoSuchMethodErrorMethod(
       AppView<?> appView, ProgramMethod context, MethodProcessingId methodProcessingId) {
     InternalOptions options = appView.options();

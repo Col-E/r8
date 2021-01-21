@@ -44,7 +44,7 @@ public class B126592786 extends TestBase {
     Class<?> mainClass = genericTypeLive ? MainGenericTypeLive.class : MainGenericTypeNotLive.class;
     testForR8(backend)
         .minification(minify)
-        .addProgramClasses(GetClassUtil.class, A.class, GenericType.class, mainClass)
+        .addProgramClasses(GetClassUtil.class, A.class, GenericType.class, mainClass, Marker.class)
         .addKeepMainRule(mainClass)
         .addKeepRules(
             "-keep class " + GetClassUtil.class.getTypeName() + " {",

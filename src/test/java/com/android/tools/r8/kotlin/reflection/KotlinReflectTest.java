@@ -96,6 +96,7 @@ public class KotlinReflectTest extends KotlinTestBase {
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticWarningMessages()
+        .addDontWarnJetBrains()
         .compile()
         .writeToZip(foo.toPath())
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.graph.DexApplication.classesWithDeterministicOrder;
 import static com.android.tools.r8.utils.StringUtils.EMPTY_CHAR_ARRAY;
 import static com.android.tools.r8.utils.SymbolGenerationUtils.PRIMITIVE_TYPE_NAMES;
 
@@ -26,11 +27,10 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.SymbolGenerationUtils;
 import com.android.tools.r8.utils.SymbolGenerationUtils.MixedCasing;
 import com.android.tools.r8.utils.Timing;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiPredicate;
@@ -48,8 +48,7 @@ public class Minifier {
     assert appView.options().isMinifying();
     SubtypingInfo subtypingInfo = appView.appInfo().computeSubtypingInfo();
     timing.begin("ComputeInterfaces");
-    Set<DexClass> interfaces = new TreeSet<>(Comparator.comparing(a -> a.type));
-    interfaces.addAll(appView.appInfo().computeReachableInterfaces());
+    List<DexClass> interfaces = computeReachableInterfacesWithDeterministicOrder();
     timing.end();
     timing.begin("MinifyClasses");
     ClassNameMinifier classNameMinifier =
@@ -90,6 +89,12 @@ public class Minifier {
     timing.end();
 
     return lens;
+  }
+
+  private List<DexClass> computeReachableInterfacesWithDeterministicOrder() {
+    List<DexClass> interfaces = new ArrayList<>();
+    appView.appInfo().forEachReachableInterface(interfaces::add);
+    return classesWithDeterministicOrder(interfaces);
   }
 
   abstract static class BaseMinificationNamingStrategy {

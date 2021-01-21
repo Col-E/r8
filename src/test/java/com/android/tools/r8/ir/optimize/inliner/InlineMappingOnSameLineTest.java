@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.retrace.RetraceTestBase;
 import com.android.tools.r8.naming.retrace.StackTrace;
@@ -43,6 +44,11 @@ public class InlineMappingOnSameLineTest extends RetraceTestBase {
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           assertThat(retracedStackTrace, isSame(expectedStackTrace));
         });
+  }
+
+  @Override
+  public void configure(R8TestBuilder<?> builder) {
+    builder.enableInliningAnnotations();
   }
 
   @Override

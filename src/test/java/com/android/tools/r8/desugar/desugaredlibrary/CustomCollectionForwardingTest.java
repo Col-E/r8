@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
@@ -15,7 +14,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Spliterator;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -64,6 +62,7 @@ public class CustomCollectionForwardingTest extends DesugaredLibraryTestBase {
         .addKeepMainRule(Executor.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .addDontWarnEmulatedLibraryClasses()
         .compile()
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
@@ -115,21 +114,18 @@ public class CustomCollectionForwardingTest extends DesugaredLibraryTestBase {
       return false;
     }
 
-    @NotNull
     @Override
     public Iterator<E> iterator() {
       return null;
     }
 
-    @NotNull
     @Override
     public Object[] toArray() {
       return new Object[0];
     }
 
-    @NotNull
     @Override
-    public <T> T[] toArray(@NotNull T[] a) {
+    public <T> T[] toArray(T[] a) {
       return null;
     }
 
@@ -144,27 +140,27 @@ public class CustomCollectionForwardingTest extends DesugaredLibraryTestBase {
     }
 
     @Override
-    public boolean containsAll(@NotNull Collection<?> c) {
+    public boolean containsAll(Collection<?> c) {
       return false;
     }
 
     @Override
-    public boolean addAll(@NotNull Collection<? extends E> c) {
+    public boolean addAll(Collection<? extends E> c) {
       return false;
     }
 
     @Override
-    public boolean addAll(int index, @NotNull Collection<? extends E> c) {
+    public boolean addAll(int index, Collection<? extends E> c) {
       return false;
     }
 
     @Override
-    public boolean removeAll(@NotNull Collection<?> c) {
+    public boolean removeAll(Collection<?> c) {
       return false;
     }
 
     @Override
-    public boolean retainAll(@NotNull Collection<?> c) {
+    public boolean retainAll(Collection<?> c) {
       return false;
     }
 
@@ -199,19 +195,16 @@ public class CustomCollectionForwardingTest extends DesugaredLibraryTestBase {
       return 0;
     }
 
-    @NotNull
     @Override
     public ListIterator<E> listIterator() {
       return null;
     }
 
-    @NotNull
     @Override
     public ListIterator<E> listIterator(int index) {
       return null;
     }
 
-    @NotNull
     @Override
     public List<E> subList(int fromIndex, int toIndex) {
       return null;

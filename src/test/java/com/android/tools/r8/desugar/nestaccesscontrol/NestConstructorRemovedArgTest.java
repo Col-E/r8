@@ -33,7 +33,7 @@ public class NestConstructorRemovedArgTest extends TestBase {
         .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
         .withDexRuntime(DexVm.Version.first())
         .withDexRuntime(DexVm.Version.last())
-        .withAllApiLevels()
+        .withApiLevelsStartingAtIncluding(apiLevelWithInvokeCustomSupport())
         .build();
   }
 

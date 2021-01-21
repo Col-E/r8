@@ -76,6 +76,7 @@ public class SealedClassTest extends KotlinTestBase {
         .allowAccessModification()
         .allowDiagnosticWarningMessages(parameters.isCfRuntime())
         .addKeepMainRule(MAIN)
+        .addDontWarnJetBrainsAnnotations()
         .compileWithExpectedDiagnostics(
             diagnostics ->
                 diagnostics.assertAllWarningsMatch(

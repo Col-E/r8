@@ -73,6 +73,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
     testForR8(Backend.CF)
         .addProgramFiles(R8_JAR)
         .addKeepRules("-keep class * { @" + PRESENT_ANNOTATION + " *; }")
+        .addDontWarnGoogle()
+        .addDontWarnJavax()
+        .addDontWarn("org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement")
         .compileWithExpectedDiagnostics(
             diagnostics ->
                 diagnostics.assertErrorsMatch(diagnosticException(AssertionError.class)));
@@ -85,6 +88,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .addProgramFiles(R8_JAR)
         .addKeepRules(
             "-keep class *", "-keepclassmembers class * { @" + PRESENT_ANNOTATION + " *; }")
+        .addDontWarnGoogle()
+        .addDontWarnJavax()
+        .addDontWarn("org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement")
         .compile();
   }
 
@@ -103,6 +109,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
     testForR8(Backend.CF)
         .addProgramFiles(R8_JAR)
         .addKeepRules("-keepclasseswithmembers class * { @" + PRESENT_ANNOTATION + " *** *(...); }")
+        .addDontWarnGoogle()
+        .addDontWarnJavax()
+        .addDontWarn("org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement")
         .compile()
         .inspect(
             inspector -> {
@@ -192,6 +201,8 @@ public class KeepAnnotatedMemberTest extends TestBase {
             // TODO(b/132318609): Remove keep annotation once fixed.
             .addKeepClassRules(PRESENT_ANNOTATION)
             .addKeepRules("-keepclassmembers class * { @" + PRESENT_ANNOTATION + " *** *(...); }")
+            .addDontWarnGoogle()
+            .addDontWarnJavax()
             .compile()
             .graphInspector();
 
@@ -208,6 +219,8 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + "-keepclassmembers class <1> { @"
                     + PRESENT_ANNOTATION
                     + " *** *(...); }")
+            .addDontWarnGoogle()
+            .addDontWarnJavax()
             .compile()
             .graphInspector();
     assertRetainedClassesEqual(referenceInspector, ifThenKeepClassMembersInspector, false, false);
@@ -225,6 +238,8 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + "-keepclasseswithmembers class <1> { @"
                     + PRESENT_ANNOTATION
                     + " *** *(...); }")
+            .addDontWarnGoogle()
+            .addDontWarnJavax()
             .compile()
             .graphInspector();
     assertRetainedClassesEqual(
@@ -245,6 +260,8 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + "-keep class <1> { @"
                     + PRESENT_ANNOTATION
                     + " *** <2>(...); }")
+            .addDontWarnGoogle()
+            .addDontWarnJavax()
             .compile()
             .graphInspector();
     // TODO(b/159418523): Should the reference be equal to the result with the conditional rule?

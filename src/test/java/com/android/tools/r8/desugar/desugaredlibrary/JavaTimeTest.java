@@ -264,6 +264,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(JavaTimeTest.class)
             .addKeepMainRule(TestClass.class)
+            .addDontWarnRetargetLibraryMembers()
             .enableNoVerticalClassMergingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)

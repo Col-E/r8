@@ -604,8 +604,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return reprocess;
   }
 
-  public Collection<DexClass> computeReachableInterfaces() {
-    Set<DexClass> interfaces = Sets.newIdentityHashSet();
+  public void forEachReachableInterface(Consumer<DexClass> consumer) {
     WorkList<DexType> worklist = WorkList.newIdentityWorkList();
     worklist.addIfNotSeen(objectAllocationInfoCollection.getInstantiatedLambdaInterfaces());
     for (DexProgramClass clazz : classes()) {
@@ -618,14 +617,13 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         continue;
       }
       if (definition.isInterface()) {
-        interfaces.add(definition);
+        consumer.accept(definition);
       }
       if (definition.superType != null) {
         worklist.addIfNotSeen(definition.superType);
       }
       worklist.addIfNotSeen(definition.interfaces.values);
     }
-    return interfaces;
   }
 
   /**

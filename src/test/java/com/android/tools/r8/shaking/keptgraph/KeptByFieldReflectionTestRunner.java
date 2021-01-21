@@ -30,16 +30,17 @@ public class KeptByFieldReflectionTestRunner extends TestBase {
 
   private static final Class<?> CLASS = KeptByFieldReflectionTest.class;
   private static final Collection<Class<?>> CLASSES = Arrays.asList(CLASS);
+  private static final String TYPE_NAME = CLASS.getTypeName();
 
   private final String EXPECTED_STDOUT = StringUtils.lines("got foo: 42");
 
   private final String EXPECTED_WHYAREYOUKEEPING =
       StringUtils.lines(
-          "int com.android.tools.r8.shaking.keptgraph.KeptByFieldReflectionTest.foo",
+          "int " + TYPE_NAME + ".foo",
           "|- is reflected from:",
-          "|  void com.android.tools.r8.shaking.keptgraph.KeptByFieldReflectionTest.main(java.lang.String[])",
+          "|  void " + TYPE_NAME + ".main(java.lang.String[])",
           "|- is referenced in keep rule:",
-          "|  -keep class com.android.tools.r8.shaking.keptgraph.KeptByFieldReflectionTest { public static void main(java.lang.String[]); }");
+          "|  -keep class " + TYPE_NAME + " { public static void main(java.lang.String[]); }");
 
   private final Backend backend;
 
@@ -67,6 +68,7 @@ public class KeptByFieldReflectionTestRunner extends TestBase {
         testForR8(backend)
             .enableGraphInspector(consumer)
             .addProgramClasses(CLASSES)
+            .addKeepAnnotation()
             .addKeepMainRule(CLASS)
             .run(CLASS)
             .assertSuccessWithOutput(EXPECTED_STDOUT)

@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.NotNull;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -155,6 +154,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
                 opt.desugaredLibraryConfiguration =
                     configurationWithSupportAllCallbacksFromLibrary(
                         opt, false, parameters, supportAllCallbacksFromLibrary))
+        .addDontWarnVivifiedClasses()
         .compile()
         .inspect(this::assertDoubleForEach)
         .inspect(this::assertWrapperMethodsPresent)
@@ -224,15 +224,13 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
       return Collections.<E>singletonList(null).iterator();
     }
 
-    @NotNull
     @Override
     public Object[] toArray() {
       return new Object[0];
     }
 
-    @NotNull
     @Override
-    public <T> T[] toArray(@NotNull T[] a) {
+    public <T> T[] toArray(T[] a) {
       return null;
     }
 
@@ -247,22 +245,22 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
     }
 
     @Override
-    public boolean containsAll(@NotNull Collection<?> c) {
+    public boolean containsAll(Collection<?> c) {
       return false;
     }
 
     @Override
-    public boolean addAll(@NotNull Collection<? extends E> c) {
+    public boolean addAll(Collection<? extends E> c) {
       return false;
     }
 
     @Override
-    public boolean removeAll(@NotNull Collection<?> c) {
+    public boolean removeAll(Collection<?> c) {
       return false;
     }
 
     @Override
-    public boolean retainAll(@NotNull Collection<?> c) {
+    public boolean retainAll(Collection<?> c) {
       return false;
     }
 

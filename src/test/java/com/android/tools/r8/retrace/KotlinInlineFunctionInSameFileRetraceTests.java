@@ -91,6 +91,7 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends KotlinTestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
         .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addDontWarnJetBrainsAnnotations()
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(MAIN)

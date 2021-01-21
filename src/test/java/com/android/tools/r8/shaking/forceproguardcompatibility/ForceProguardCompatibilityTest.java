@@ -14,9 +14,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.R8CompatTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -68,12 +70,21 @@ public class ForceProguardCompatibilityTest extends TestBase {
   }
 
   private void test(Class<?> mainClass, Class<?> mentionedClass) throws Exception {
+    test(mainClass, mentionedClass, null);
+  }
+
+  private void test(
+      Class<?> mainClass,
+      Class<?> mentionedClass,
+      ThrowableConsumer<R8CompatTestBuilder> configuration)
+      throws Exception {
     CodeInspector inspector =
         testForR8Compat(parameters.getBackend(), forceProguardCompatibility)
             .noMinification()
             .allowAccessModification()
             .addProgramClasses(mainClass, mentionedClass)
             .addKeepMainRule(mainClass)
+            .apply(configuration)
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspector();
@@ -86,7 +97,12 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
   @Test
   public void testKeepDefaultInitializer() throws Exception {
-    test(TestMain.class, TestMain.MentionedClass.class);
+    test(
+        TestMain.class,
+        TestMain.MentionedClass.class,
+        testBuilder ->
+            testBuilder.addProgramClasses(
+                TestMain.MentionedClassWithAnnotation.class, TestAnnotation.class));
   }
 
   @Test

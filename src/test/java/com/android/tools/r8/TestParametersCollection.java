@@ -6,7 +6,6 @@ package com.android.tools.r8;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.stream.Stream;
-import org.jetbrains.annotations.NotNull;
 
 public class TestParametersCollection implements Iterable<TestParameters> {
 
@@ -17,7 +16,6 @@ public class TestParametersCollection implements Iterable<TestParameters> {
     this.parameters = parameters;
   }
 
-  @NotNull
   @Override
   public Iterator<TestParameters> iterator() {
     return parameters.iterator();

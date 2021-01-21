@@ -94,6 +94,7 @@ public class LambdaGroupGCLimitTest extends TestBase {
                     inspector.assertNoClassesMerged();
                   }
                 })
+            .addDontWarnJetBrainsAnnotations()
             .compile();
     Path path = compileResult.writeToZip();
     compileResult

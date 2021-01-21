@@ -35,6 +35,7 @@ public class SwitchMapInvalidInitTest extends TestBase {
     testForR8(parameters.getBackend())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .addInnerClasses(SwitchMapInvalidInitTest.class)
         .setMinApi(parameters.getApiLevel())
         .compile()

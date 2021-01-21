@@ -71,6 +71,8 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
             .addProgramFiles(jars.getForConfiguration(kotlinc, targetVersion))
             .addKeepAllClassesRule()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnKotlin()
             .compile()
             .inspect(
                 inspector ->

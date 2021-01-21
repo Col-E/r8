@@ -106,6 +106,7 @@ public class CustomCollectionSuperCallsTest extends DesugaredLibraryTestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(CustomCollectionSuperCallsTest.class)
             .addKeepMainRule(Executor.class)
+            .addDontWarnVivifiedClasses()
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()

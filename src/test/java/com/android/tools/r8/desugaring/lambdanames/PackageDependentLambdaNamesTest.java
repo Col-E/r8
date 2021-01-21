@@ -85,7 +85,6 @@ public class PackageDependentLambdaNamesTest extends TestBase {
     return transformer.transform();
   }
 
-  @FunctionalInterface
   public interface StringConsumer {
     void accept(String arg);
   }

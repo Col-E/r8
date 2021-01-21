@@ -13,7 +13,6 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -68,8 +67,7 @@ public class PreserveDesugaredLambdaTest extends TestBase {
         .addClasspathClasses(Interface.class)
         .addLibraryFiles(TestBase.runtimeJar(parameters.getBackend()))
         .addKeepAllClassesRule()
-        .allowDiagnosticWarningMessages(
-            parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N))
+        .addDontWarn(A.class)
         .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(libraryCompileResult.writeToZip())

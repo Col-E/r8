@@ -18,6 +18,10 @@ public class CfUtilityMethodsForCodeOptimizationsTemplates {
     }
   }
 
+  public static IncompatibleClassChangeError throwIncompatibleClassChangeError() {
+    throw new IncompatibleClassChangeError();
+  }
+
   public static NoSuchMethodError throwNoSuchMethodError() {
     throw new NoSuchMethodError();
   }

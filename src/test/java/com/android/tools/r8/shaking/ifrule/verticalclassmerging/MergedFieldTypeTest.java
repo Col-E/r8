@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -75,6 +76,11 @@ public class MergedFieldTypeTest extends MergedTypeBaseTest {
     public MergedFieldTypeWithCollisionTest(
         TestParameters parameters, boolean enableVerticalClassMerging) {
       super(parameters, enableVerticalClassMerging, ImmutableList.of(SuperTestClass.class));
+    }
+
+    @Override
+    public void configure(R8FullTestBuilder builder) {
+      builder.enableNeverClassInliningAnnotations();
     }
 
     @Override

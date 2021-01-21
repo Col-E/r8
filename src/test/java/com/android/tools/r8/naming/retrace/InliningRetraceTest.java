@@ -84,7 +84,9 @@ public class InliningRetraceTest extends RetraceTestBase {
 
   @Override
   public void configure(R8TestBuilder<?> builder) {
-    builder.applyIf(mode == CompilationMode.RELEASE, R8TestBuilder::enableForceInliningAnnotations);
+    builder
+        .addForceInliningAnnotations()
+        .applyIf(mode == CompilationMode.RELEASE, R8TestBuilder::enableForceInliningAnnotations);
   }
 
   @Override

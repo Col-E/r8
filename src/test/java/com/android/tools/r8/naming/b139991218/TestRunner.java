@@ -64,6 +64,7 @@ public class TestRunner extends TestBase {
               options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
               options.enableClassInlining = false;
             })
+        .addDontWarnJetBrainsAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(StringUtils.lines("11", "12"))

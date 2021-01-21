@@ -35,11 +35,10 @@ public class MissingInterfaceTest extends TestBase {
   public void test_missingInterface() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClassForB112849320.class)
+        .addDontWarn(GoingToBeMissed.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClassForB112849320.class)
         .addOptionsModification(options -> options.enableInlining = false)
-        .allowDiagnosticWarningMessages(
-            parameters.isCfRuntime() || !parameters.canUseDefaultAndStaticInterfaceMethods())
         .compile()
         .addRunClasspathFiles(
             buildOnDexRuntime(

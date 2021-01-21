@@ -5,7 +5,6 @@
 package com.android.tools.r8.rewrite.serviceloaders;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -55,10 +54,11 @@ public class MissingServiceClassTest extends TestBase {
                 AppServices.SERVICE_DIRECTORY_NAME + Service.class.getTypeName(),
                 Origin.unknown()))
         .addOptionsModification(o -> o.dataResourceConsumer = dataResourceConsumer)
+        .addDontWarn(ServiceImpl.class)
         .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectDiagnosticMessages(this::inspectDiagnosticMessages)
+        .inspectDiagnosticMessages(this::inspectDiagnosticMessagesWithDontWarn)
         .addRunClasspathClasses(Service.class, ServiceImpl.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithEmptyOutput();
@@ -80,26 +80,39 @@ public class MissingServiceClassTest extends TestBase {
                 AppServices.SERVICE_DIRECTORY_NAME + Service.class.getTypeName(),
                 Origin.unknown()))
         .run()
-        .inspectDiagnosticMessages(this::inspectDiagnosticMessages);
+        .inspectDiagnosticMessages(this::inspectDiagnosticMessagesWithoutDontWarn);
   }
 
-  private void inspectDiagnosticMessages(TestDiagnosticMessages inspector) {
-    inspector.assertWarningsCount(2);
-    inspector.assertAllWarningsMatch(
-        diagnosticMessage(
-            anyOf(
+  private void inspectDiagnosticMessagesWithDontWarn(TestDiagnosticMessages diagnostics) {
+    diagnostics
+        .assertOnlyWarnings()
+        .assertWarningsMatch(
+            diagnosticMessage(
                 containsString(
                     "Unexpected reference to missing service class: "
                         + AppServices.SERVICE_DIRECTORY_NAME
                         + Service.class.getTypeName()
-                        + "."),
+                        + ".")));
+  }
+
+  private void inspectDiagnosticMessagesWithoutDontWarn(TestDiagnosticMessages inspector) {
+    inspector
+        .assertOnlyWarnings()
+        .assertWarningsMatch(
+            diagnosticMessage(
+                containsString(
+                    "Unexpected reference to missing service class: "
+                        + AppServices.SERVICE_DIRECTORY_NAME
+                        + Service.class.getTypeName()
+                        + ".")),
+            diagnosticMessage(
                 containsString(
                     "Unexpected reference to missing service implementation class in "
                         + AppServices.SERVICE_DIRECTORY_NAME
                         + Service.class.getTypeName()
                         + ": "
                         + ServiceImpl.class.getTypeName()
-                        + "."))));
+                        + ".")));
   }
 
   private void inspectResource(List<String> contents) {

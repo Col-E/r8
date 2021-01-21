@@ -37,13 +37,12 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
     this.parameters = parameters;
   }
 
-  private void test(Collection<String> rules, boolean expectInvalidFoo) throws Exception {
-    test(rules, expectInvalidFoo, null);
+  private void test(Collection<String> rules) throws Exception {
+    test(rules, null);
   }
 
   private void test(
       Collection<String> rules,
-      boolean expectInvalidDebugInfo,
       ThrowableConsumer<R8FullTestBuilder> consumer)
       throws Exception {
     testForR8(parameters.getBackend())
@@ -52,25 +51,25 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
         .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
+        .addDontWarnJetBrainsAnnotations()
         .apply(consumer)
         .compile();
   }
 
   @Test
   public void testAsIs() throws Exception {
-    test(ImmutableList.of("-dontshrink", "-dontoptimize", "-dontobfuscate"), true);
+    test(ImmutableList.of("-dontshrink", "-dontoptimize", "-dontobfuscate"));
   }
 
   @Test
   public void testDontShrinkAndDontOptimize() throws Exception {
-    test(ImmutableList.of("-dontshrink", "-dontoptimize"), true);
+    test(ImmutableList.of("-dontshrink", "-dontoptimize"));
   }
 
   @Test
   public void testDontShrinkAndDontOptimizeDifferently() throws Exception {
     test(
         ImmutableList.of("-keep,allowobfuscation class **.*Exception*"),
-        true,
         tb -> {
           tb.noTreeShaking();
           tb.addOptionsModification(
@@ -85,29 +84,28 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
 
   @Test
   public void testDontShrinkAndDontObfuscate() throws Exception {
-    test(ImmutableList.of("-dontshrink", "-dontobfuscate"), true);
+    test(ImmutableList.of("-dontshrink", "-dontobfuscate"));
   }
 
   @Test
   public void testDontShrink() throws Exception {
-    test(ImmutableList.of("-dontshrink"), true);
+    test(ImmutableList.of("-dontshrink"));
   }
 
   @Test
   public void testDontShrinkDifferently() throws Exception {
     test(
         ImmutableList.of("-keep,allowobfuscation class **.*Exception*"),
-        true,
         tb -> tb.noTreeShaking());
   }
 
   @Test
   public void testDontOptimize() throws Exception {
-    test(ImmutableList.of("-dontoptimize"), false);
+    test(ImmutableList.of("-dontoptimize"));
   }
 
   @Test
   public void testDontObfuscate() throws Exception {
-    test(ImmutableList.of("-dontobfuscate"), false);
+    test(ImmutableList.of("-dontobfuscate"));
   }
 }

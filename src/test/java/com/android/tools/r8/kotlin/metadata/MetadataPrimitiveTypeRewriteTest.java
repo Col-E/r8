@@ -86,6 +86,7 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
             .addKeepAllClassesRuleWithAllowObfuscation()
             .addKeepRules("-keep class " + PKG_LIB + ".LibKt { *; }")
             .addKeepRules("-keep class kotlin.Metadata { *; }")
+            .addDontWarnJetBrainsAnnotations()
             .applyIf(keepUnit, b -> b.addKeepRules("-keep class kotlin.Unit { *; }"))
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .allowDiagnosticWarningMessages()

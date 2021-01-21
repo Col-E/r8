@@ -214,6 +214,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(classPaths)
+            .enableForceInliningAnnotations()
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .addKeepRules("-keep class **.ClassGetSimpleName*")
@@ -243,6 +244,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
             .addKeepRules("-keep,allowobfuscation class **.Outer*")
             .addKeepAttributes("InnerClasses", "EnclosingMethod")
             .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
+            .enableForceInliningAnnotations()
             .minification(enableMinification)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(this::configure)

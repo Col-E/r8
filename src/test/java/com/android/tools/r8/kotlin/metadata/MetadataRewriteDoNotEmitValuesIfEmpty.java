@@ -53,6 +53,7 @@ public class MetadataRewriteDoNotEmitValuesIfEmpty extends KotlinMetadataTestBas
         .addKeepAllClassesRule()
         .addKeepKotlinMetadata()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .addDontWarnJetBrainsAnnotations()
         .compile()
         .inspect(this::inspectEmptyValuesAreNotPresent);
   }

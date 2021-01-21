@@ -13,6 +13,7 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -103,7 +104,11 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
   @Parameterized.Parameters(name = "{0}, access-modification: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+        getTestParameters()
+            .withAllRuntimes()
+            .withApiLevelsStartingAtIncluding(AndroidApiLevel.K)
+            .build(),
+        BooleanUtils.values());
   }
 
   public NoRelaxationForSerializableTest(TestParameters parameters, boolean accessModification) {
@@ -141,6 +146,8 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
     R8TestCompileResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(CLASSES)
+            .addMemberValuePropagationAnnotations()
+            .addNoVerticalClassMergingAnnotations()
             .enableInliningAnnotations()
             .addKeepRuleFiles(configuration)
             .addKeepRules(KEEPMEMBER_RULES)
@@ -174,6 +181,7 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
     R8TestCompileResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(CLASSES)
+            .addNoVerticalClassMergingAnnotations()
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
             .addKeepRuleFiles(configuration)

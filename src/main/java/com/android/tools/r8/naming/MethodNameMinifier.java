@@ -16,7 +16,6 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -174,7 +173,7 @@ class MethodNameMinifier {
     }
   }
 
-  MethodRenaming computeRenaming(Collection<DexClass> interfaces, Timing timing) {
+  MethodRenaming computeRenaming(Iterable<DexClass> interfaces, Timing timing) {
     // Phase 1: Reserve all the names that need to be kept and allocate linked state in the
     //          library part.
     timing.begin("Phase 1");

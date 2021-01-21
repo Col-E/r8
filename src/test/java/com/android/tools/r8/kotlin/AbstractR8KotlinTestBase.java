@@ -270,6 +270,7 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
         .enableProguardTestOptions()
         .noMinification()
         .apply(configuration)
+        .addDontWarnJetBrainsAnnotations()
         .compile()
         .assertAllWarningMessagesMatch(
             containsString("Resource 'META-INF/MANIFEST.MF' already exists."))

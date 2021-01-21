@@ -87,6 +87,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
             // Keep the factory object and utils
             .addKeepRules("-keep class **.ExprFactory { *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectValid)
             .writeToZip();
@@ -152,6 +153,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
             // Keep the extension function
             .addKeepRules("-keep class **.LibKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectInvalid)
             .writeToZip();

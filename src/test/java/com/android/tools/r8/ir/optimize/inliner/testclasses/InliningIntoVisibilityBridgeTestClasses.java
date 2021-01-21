@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.inliner.testclasses;
 
 import com.android.tools.r8.ForceInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 
 public class InliningIntoVisibilityBridgeTestClasses {
@@ -17,6 +18,7 @@ public class InliningIntoVisibilityBridgeTestClasses {
   static class InliningIntoVisibilityBridgeTestClassA {
 
     @ForceInline
+    @NeverInline
     public static void method() {
       System.out.println("Hello world");
     }

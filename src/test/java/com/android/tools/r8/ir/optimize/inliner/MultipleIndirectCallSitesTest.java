@@ -29,7 +29,8 @@ public class MultipleIndirectCallSitesTest extends TestBase {
 
   @Parameterized.Parameters(name = "{1}, invoke A.m(): {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public MultipleIndirectCallSitesTest(boolean invokeMethodOnA, TestParameters parameters) {
@@ -47,6 +48,7 @@ public class MultipleIndirectCallSitesTest extends TestBase {
         // kept, there is a single call site that invokes A.m(). However, this does not mean that
         // A.m() has a single call site, so it should not allow inlining of A.m().
         .addKeepRules(getKeepRules())
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::verifyInlining)

@@ -174,6 +174,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
                     configurationAlternative3(options, false, parameters))
         .addInnerClasses(BufferedReaderTest.class)
         .addKeepMainRule(TestClass.class)
+        .addDontWarnRetargetLibraryMembers()
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .enableInliningAnnotations()

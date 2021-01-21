@@ -87,7 +87,6 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
     Path out =
         testForR8(parameters.getBackend())
             // Intentionally not providing baseLibJar as lib file nor classpath file.
-            .addClasspathFiles()
             .addProgramFiles(
                 extLibJarMap.getForConfiguration(kotlinc, targetVersion),
                 appJarMap.getForConfiguration(kotlinc, targetVersion))
@@ -97,6 +96,9 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
             // Keep the main entry.
             .addKeepMainRule(main)
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addDontWarn(PKG + ".**")
+            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnKotlin()
             .allowDiagnosticWarningMessages()
             // -dontoptimize so that basic code structure is kept.
             .noOptimization()

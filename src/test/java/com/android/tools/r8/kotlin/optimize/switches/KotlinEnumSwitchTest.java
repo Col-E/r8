@@ -46,6 +46,7 @@ public class KotlinEnumSwitchTest extends TestBase {
               options.enableEnumValueOptimization = enableSwitchMapRemoval;
               options.enableEnumSwitchMapRemoval = enableSwitchMapRemoval;
             })
+        .addDontWarnJetBrainsAnnotations()
         .setMinApi(parameters.getRuntime())
         .noMinification()
         .compile()
