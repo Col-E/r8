@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.File;
@@ -10,6 +11,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Consumer;
 
 public abstract class DexByteCodeWriter {
@@ -57,8 +59,12 @@ public abstract class DexByteCodeWriter {
   }
 
   public void write(PrintStream output) throws IOException {
-    write(x -> output, x -> {
-    });
+    List<Marker> markers = application.dexItemFactory.extractMarkers();
+    System.out.println("Number of markers: " + markers.size());
+    for (Marker marker : markers) {
+      output.println(marker.toString());
+    }
+    write(x -> output, x -> {});
   }
 
   private void write(OutputStreamProvider outputStreamProvider, Consumer<PrintStream> closer)
