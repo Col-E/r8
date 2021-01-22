@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -270,7 +271,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest(
             PROPERTIES_PACKAGE_NAME,
             mainClass,
-            builder -> builder.addDontWarnJetBrainsAnnotations())
+            TestShrinkerBuilder::addDontWarnJetBrainsAnnotations)
         .inspect(
             inspector -> {
               ClassSubject outerClass =
@@ -302,7 +303,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest(
             PROPERTIES_PACKAGE_NAME,
             mainClass,
-            builder -> builder.addDontWarnJetBrainsAnnotations())
+            TestShrinkerBuilder::addDontWarnJetBrainsAnnotations)
         .inspect(
             inspector -> {
               ClassSubject outerClass =
@@ -380,7 +381,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     String mainClass =
         addMainToClasspath(
             "accessors.PropertyAccessorForInnerClassKt", "noUseOfPropertyAccessorFromInnerClass");
-    runTest("accessors", mainClass, builder -> builder.addDontWarnJetBrainsNotNullAnnotation())
+    runTest("accessors", mainClass, TestShrinkerBuilder::addDontWarnJetBrainsNotNullAnnotation)
         .inspect(
             inspector -> {
               // Class is removed because the instantiation of the inner class has no side effects.

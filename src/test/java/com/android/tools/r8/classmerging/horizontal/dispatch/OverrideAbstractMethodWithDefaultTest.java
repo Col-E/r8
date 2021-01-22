@@ -11,6 +11,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.classmerging.horizontal.HorizontalClassMergingTestBase;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 
 public class OverrideAbstractMethodWithDefaultTest extends HorizontalClassMergingTestBase {
@@ -31,7 +32,7 @@ public class OverrideAbstractMethodWithDefaultTest extends HorizontalClassMergin
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, inspector -> inspector.assertNoClassesMerged())
+            enableHorizontalClassMerging, HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("J", "B2")
         .inspect(

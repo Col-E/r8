@@ -38,7 +38,7 @@ public class ReadProguardMap {
     if (args.length == 0) {
       readProguardMapFile(DEFAULT_MAP_FILE_NAME);
     } else {
-      Arrays.asList(args).forEach((String name) -> readProguardMapFile(name));
+      Arrays.asList(args).forEach(this::readProguardMapFile);
     }
     timing.report();
   }

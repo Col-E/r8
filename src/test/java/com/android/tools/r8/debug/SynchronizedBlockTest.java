@@ -28,8 +28,8 @@ public class SynchronizedBlockTest extends DebugTestBase {
   public static Collection<Object[]> setup() {
     DelayedDebugTestConfig cf =
         temp -> new CfDebugTestConfig().addPaths(DebugTestBase.DEBUGGEE_JAR);
-    DelayedDebugTestConfig r8cf = temp -> new R8CfDebugTestResourcesConfig(temp);
-    DelayedDebugTestConfig d8 = temp -> new D8DebugTestResourcesConfig(temp);
+    DelayedDebugTestConfig r8cf = R8CfDebugTestResourcesConfig::new;
+    DelayedDebugTestConfig d8 = D8DebugTestResourcesConfig::new;
     return ImmutableList.of(
         new Object[] {"CF", cf},
         new Object[] {"D8", d8},

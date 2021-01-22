@@ -289,7 +289,7 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
               parameters.getRuntime(), "TestNGMainRunner", verbosity, runnableTests.get(path));
       String stdout = result.getStdOut();
       if (stdout.contains("java.lang.NoSuchMethodError")
-          && Arrays.stream(missingDesugaredMethods()).anyMatch(method -> stdout.contains(method))) {
+          && Arrays.stream(missingDesugaredMethods()).anyMatch(stdout::contains)) {
         // TODO(b/134732760): support Java 9 APIs.
       } else if (stdout.contains("java.lang.NoSuchMethodError")
           && stdout.contains("org.openjdk.tests.java.util.stream.IterateTest.testIterate")) {

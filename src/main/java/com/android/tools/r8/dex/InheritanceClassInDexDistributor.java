@@ -548,7 +548,7 @@ public class InheritanceClassInDexDistributor {
   private void updateGroupsNumberOfIds(List<ClassGroup> groups) {
     Collection<Future<?>> updateIdsTasks = new ArrayList<>(groups.size());
     for (ClassGroup group : groups) {
-      updateIdsTasks.add(executorService.submit(() -> group.updateNumbersOfIds()));
+      updateIdsTasks.add(executorService.submit(group::updateNumbersOfIds));
     }
     try {
       ThreadUtils.awaitFutures(updateIdsTasks);

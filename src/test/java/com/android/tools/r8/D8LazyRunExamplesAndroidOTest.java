@@ -92,9 +92,7 @@ public class D8LazyRunExamplesAndroidOTest
     // Build each class individually using tmpClassesDir as classpath for desugaring.
     List<ProgramResource> individalDexes = new ArrayList<>();
     List<Path> individualClassFiles =
-        Files.walk(tmpClassesDir)
-        .filter(classFile -> FileUtils.isClassFile(classFile))
-        .collect(Collectors.toList());
+        Files.walk(tmpClassesDir).filter(FileUtils::isClassFile).collect(Collectors.toList());
     for (Path classFile : individualClassFiles) {
       D8Command.Builder builder =
           D8Command.builder()

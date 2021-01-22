@@ -108,7 +108,7 @@ public class KeptByConditionalRuleTestRunner extends TestBase {
 
     // Check baz is kept by the if rule.
     QueryNode barMethodNode = inspector.method(bazMethod).assertNotRenamed();
-    ifRuleInstances.assertAllMatch(n -> barMethodNode.isKeptBy(n));
+    ifRuleInstances.assertAllMatch(barMethodNode::isKeptBy);
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     whyAreYouKeepingConsumer.printWhyAreYouKeeping(bazMethod, new PrintStream(baos));

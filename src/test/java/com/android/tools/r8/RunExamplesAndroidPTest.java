@@ -248,10 +248,11 @@ public abstract class RunExamplesAndroidPTest<
     if (expectedToFail) {
       thrown.expect(Throwable.class);
     }
-    String output = ToolHelper.runArtNoVerificationErrors(
-        Arrays.stream(dexes).map(path -> path.toString()).collect(Collectors.toList()),
-        qualifiedMainClass,
-        null);
+    String output =
+        ToolHelper.runArtNoVerificationErrors(
+            Arrays.stream(dexes).map(Path::toString).collect(Collectors.toList()),
+            qualifiedMainClass,
+            null);
     if (!expectedToFail) {
       ToolHelper.ProcessResult javaResult =
           ToolHelper.runJava(ImmutableList.copyOf(jars), qualifiedMainClass);

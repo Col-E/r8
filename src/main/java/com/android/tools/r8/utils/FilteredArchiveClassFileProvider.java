@@ -10,6 +10,6 @@ import java.io.IOException;
 class FilteredArchiveClassFileProvider extends InternalArchiveClassFileProvider {
 
   FilteredArchiveClassFileProvider(FilteredClassPath archive) throws IOException {
-    super(archive.getPath(), entry -> archive.matchesFile(entry));
+    super(archive.getPath(), archive::matchesFile);
   }
 }

@@ -14,6 +14,7 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -266,7 +267,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
             .addKeepMainRule(TestClass.class)
             .applyIf(
                 parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
-                builder -> builder.addDontWarnRetargetLibraryMembers())
+                TestShrinkerBuilder::addDontWarnRetargetLibraryMembers)
             .enableNoVerticalClassMergingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)

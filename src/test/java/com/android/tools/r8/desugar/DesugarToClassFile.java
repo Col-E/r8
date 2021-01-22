@@ -10,6 +10,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,8 +48,7 @@ public class DesugarToClassFile extends TestBase {
 
   private void checkHasLambdaClass(CodeInspector inspector) {
     assertTrue(
-        inspector.allClasses().stream()
-            .anyMatch(subject -> subject.isSynthesizedJavaLambdaClass()));
+        inspector.allClasses().stream().anyMatch(FoundClassSubject::isSynthesizedJavaLambdaClass));
   }
 
   @Test

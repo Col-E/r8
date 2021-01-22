@@ -611,14 +611,15 @@ public abstract class RunExamplesAndroidOTest<
     Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
     boolean expectedToFail = expectedToFail(testName);
     try {
-      String output = ToolHelper.runArtNoVerificationErrors(
-          Arrays.stream(dexes).map(path -> path.toString()).collect(Collectors.toList()),
-          qualifiedMainClass,
-          builder -> {
-            for (String arg : args) {
-              builder.appendProgramArgument(arg);
-            }
-          });
+      String output =
+          ToolHelper.runArtNoVerificationErrors(
+              Arrays.stream(dexes).map(Path::toString).collect(Collectors.toList()),
+              qualifiedMainClass,
+              builder -> {
+                for (String arg : args) {
+                  builder.appendProgramArgument(arg);
+                }
+              });
       if (!expectedToFail
           && !skipRunningOnJvm(testName)
           && !ToolHelper.compareAgaintsGoldenFiles()) {

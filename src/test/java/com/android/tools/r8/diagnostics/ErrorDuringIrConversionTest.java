@@ -86,7 +86,8 @@ public class ErrorDuringIrConversionTest extends TestBase {
     try {
       testForD8()
           .apply(addTestClassWithOrigin())
-          .addOptionsModification(options -> options.testing.hookInIrConversion = () -> throwNPE())
+          .addOptionsModification(
+              options -> options.testing.hookInIrConversion = ErrorDuringIrConversionTest::throwNPE)
           .compileWithExpectedDiagnostics(
               diagnostics -> {
                 // Check that the error is reported as an error to the diagnostics handler.

@@ -17,6 +17,7 @@ import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,7 +66,8 @@ public class SingleStaticTargetLookupTestRunner extends TestBase {
               assertThat(clazz, isPresent());
               assertThat(main, isPresent());
               assertEquals(keepFoo, staticFoo.isPresent());
-              assertEquals(keepFoo, main.streamInstructions().anyMatch(i -> i.isInvokeStatic()));
+              assertEquals(
+                  keepFoo, main.streamInstructions().anyMatch(InstructionSubject::isInvokeStatic));
             });
   }
 

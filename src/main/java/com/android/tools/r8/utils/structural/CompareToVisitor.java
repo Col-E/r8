@@ -37,10 +37,7 @@ public abstract class CompareToVisitor {
 
   public final <S extends StructuralItem<S>> int visitItemCollection(
       Collection<S> items1, Collection<S> items2) {
-    return visitItemIterator(
-        items1.iterator(),
-        items2.iterator(),
-        (s, other, visitor) -> s.acceptCompareTo(other, visitor));
+    return visitItemIterator(items1.iterator(), items2.iterator(), StructuralItem::acceptCompareTo);
   }
 
   public abstract int visitDexString(DexString string1, DexString string2);

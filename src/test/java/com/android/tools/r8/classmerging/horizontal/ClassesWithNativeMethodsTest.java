@@ -12,6 +12,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 
 public class ClassesWithNativeMethodsTest extends HorizontalClassMergingTestBase {
@@ -31,7 +32,8 @@ public class ClassesWithNativeMethodsTest extends HorizontalClassMergingTestBase
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspector(inspector -> inspector.assertNoClassesMerged())
+        .addHorizontallyMergedClassesInspector(
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatMatches(
             allOf(

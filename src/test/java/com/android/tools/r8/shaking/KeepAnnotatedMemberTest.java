@@ -18,6 +18,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
@@ -276,12 +277,12 @@ public class KeepAnnotatedMemberTest extends TestBase {
     Set<String> referenceClasses =
         new TreeSet<>(
             referenceResult.codeInspector().allClasses().stream()
-                .map(c -> c.getOriginalName())
+                .map(FoundClassSubject::getOriginalName)
                 .collect(Collectors.toSet()));
 
     Set<String> conditionalClasses =
         conditionalResult.codeInspector().allClasses().stream()
-            .map(c -> c.getOriginalName())
+            .map(FoundClassSubject::getOriginalName)
             .collect(Collectors.toSet());
     {
       SetView<String> notInReference = Sets.difference(conditionalClasses, referenceClasses);

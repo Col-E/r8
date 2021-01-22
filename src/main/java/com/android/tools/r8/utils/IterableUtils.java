@@ -110,13 +110,13 @@ public class IterableUtils {
   }
 
   public static <F> int sumInt(Iterable<F> iterable, Function<? super F, Integer> fn) {
-    Iterable<Integer> integers = Iterables.transform(iterable, i -> fn.apply(i));
+    Iterable<Integer> integers = Iterables.transform(iterable, fn::apply);
     return sumInt(integers);
   }
 
   public static <T, U> Iterable<U> flatMap(
       Iterable<T> iterable, Function<? super T, Iterable<U>> map) {
-    return Iterables.concat(Iterables.transform(iterable, val -> map.apply(val)));
+    return Iterables.concat(Iterables.transform(iterable, map::apply));
   }
 
   public static <T> Iterable<T> empty() {

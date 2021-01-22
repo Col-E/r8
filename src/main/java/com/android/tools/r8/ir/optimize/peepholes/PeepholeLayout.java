@@ -35,9 +35,9 @@ public class PeepholeLayout {
 
   public Match test(InstructionListIterator it) {
     if (backwards) {
-      return testDirection(() -> it.hasPrevious(), () -> it.previous(), () -> it.next());
+      return testDirection(it::hasPrevious, it::previous, it::next);
     } else {
-      return testDirection(() -> it.hasNext(), () -> it.next(), () -> it.previous());
+      return testDirection(it::hasNext, it::next, it::previous);
     }
   }
 

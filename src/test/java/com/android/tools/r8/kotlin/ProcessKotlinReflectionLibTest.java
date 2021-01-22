@@ -9,6 +9,7 @@ import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -100,12 +101,12 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
 
   @Test
   public void testDontOptimize() throws Exception {
-    test(builder -> builder.noOptimization());
+    test(TestShrinkerBuilder::noOptimization);
   }
 
   @Test
   public void testDontObfuscate() throws Exception {
-    test(builder -> builder.noMinification());
+    test(TestShrinkerBuilder::noMinification);
   }
 
 }

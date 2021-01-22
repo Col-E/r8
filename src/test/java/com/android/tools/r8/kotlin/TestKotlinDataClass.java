@@ -36,18 +36,20 @@ class TestKotlinDataClass extends TestKotlinClass {
   }
 
   public MemberNaming.MethodSignature getCopySignature() {
-    List<String> propertiesTypes = properties.values().stream()
-        .sorted(Comparator.comparingInt(p -> p.getIndex()))
-        .map(p -> p.getType())
-        .collect(Collectors.toList());
+    List<String> propertiesTypes =
+        properties.values().stream()
+            .sorted(Comparator.comparingInt(KotlinProperty::getIndex))
+            .map(KotlinProperty::getType)
+            .collect(Collectors.toList());
     return new MemberNaming.MethodSignature("copy", className, propertiesTypes);
   }
 
   public MemberNaming.MethodSignature getCopyDefaultSignature() {
-    List<String> propertiesTypes = properties.values().stream()
-        .sorted(Comparator.comparingInt(p -> p.getIndex()))
-        .map(p -> p.getType())
-        .collect(Collectors.toList());
+    List<String> propertiesTypes =
+        properties.values().stream()
+            .sorted(Comparator.comparingInt(KotlinProperty::getIndex))
+            .map(KotlinProperty::getType)
+            .collect(Collectors.toList());
 
     List<String> copyDefaultParameterTypes = new ArrayList<>(propertiesTypes.size() + 3);
     copyDefaultParameterTypes.add(className);

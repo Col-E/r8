@@ -16,6 +16,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.code.NewInstance;
@@ -287,7 +288,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
     runTestWithDefaults(
             "class_inliner_data_class",
             mainClassName,
-            builder -> builder.addDontWarnJetBrainsAnnotations())
+            TestShrinkerBuilder::addDontWarnJetBrainsAnnotations)
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(mainClassName);

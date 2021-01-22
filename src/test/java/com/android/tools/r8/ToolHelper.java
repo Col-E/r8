@@ -510,7 +510,7 @@ public class ToolHelper {
   }
 
   private static List<File> toFileList(List<String> filePathList) {
-    return filePathList.stream().map(path -> new File(path)).collect(Collectors.toList());
+    return filePathList.stream().map(File::new).collect(Collectors.toList());
   }
 
   public static class DXCommandBuilder extends CommandBuilder {
@@ -1541,7 +1541,7 @@ public class ToolHelper {
       assert goldenFileDir.isDirectory();
       processResult =
           compareAgainstGoldenFiles(
-              files.stream().map(f -> new File(f)).collect(Collectors.toList()), goldenFileDir);
+              files.stream().map(File::new).collect(Collectors.toList()), goldenFileDir);
       if (processResult.exitCode == 0) {
         processResult = readProcessResult(goldenFileDir);
       }
@@ -1553,8 +1553,7 @@ public class ToolHelper {
     if (goldenFilesDirToProp != null) {
       File goldenFileDir = new File(goldenFilesDirToProp);
       assert goldenFileDir.isDirectory();
-      storeAsGoldenFiles(
-          files.stream().map(f -> new File(f)).collect(Collectors.toList()), goldenFileDir);
+      storeAsGoldenFiles(files.stream().map(File::new).collect(Collectors.toList()), goldenFileDir);
       storeProcessResult(processResult, goldenFileDir);
     }
 

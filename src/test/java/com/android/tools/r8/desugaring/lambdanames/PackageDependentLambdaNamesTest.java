@@ -12,6 +12,7 @@ import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,7 +52,7 @@ public class PackageDependentLambdaNamesTest extends TestBase {
             assertEquals(
                 2,
                 inspector.allClasses().stream()
-                    .filter(c -> c.isSynthesizedJavaLambdaClass())
+                    .filter(FoundClassSubject::isSynthesizedJavaLambdaClass)
                     .count());
           });
     }

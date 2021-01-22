@@ -10,6 +10,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,7 +54,8 @@ public class SillyBlockOrderTest extends TestBase {
     try {
       MethodSubject method =
           inspector.method(TestClass.class.getMethod("doubleConditional", boolean.class));
-      assertEquals(expected, method.streamInstructions().filter(i -> i.isGoto()).count());
+      assertEquals(
+          expected, method.streamInstructions().filter(InstructionSubject::isGoto).count());
     } catch (NoSuchMethodException e) {
       throw new RuntimeException(e);
     }

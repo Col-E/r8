@@ -75,12 +75,12 @@ public class TestParametersBuilder {
 
   /** Add all available CF runtimes starting from and including {@param startInclusive}. */
   public TestParametersBuilder withCfRuntimesStartingFromIncluding(CfVm startInclusive) {
-    return withCfRuntimeFilter(vm -> startInclusive.lessThanOrEqual(vm));
+    return withCfRuntimeFilter(startInclusive::lessThanOrEqual);
   }
 
   /** Add all available CF runtimes starting from and excluding {@param startExcluding}. */
   public TestParametersBuilder withCfRuntimesStartingFromExcluding(CfVm startExcluding) {
-    return withCfRuntimeFilter(vm -> startExcluding.lessThan(vm));
+    return withCfRuntimeFilter(startExcluding::lessThan);
   }
 
   /** Add all available CF runtimes ending at and including {@param endInclusive}. */
@@ -122,7 +122,7 @@ public class TestParametersBuilder {
 
   /** Add all available DEX runtimes starting from and including {@param startInclusive}. */
   public TestParametersBuilder withDexRuntimesStartingFromIncluding(DexVm.Version startInclusive) {
-    return withDexRuntimeFilter(vm -> startInclusive.isOlderThanOrEqual(vm));
+    return withDexRuntimeFilter(startInclusive::isOlderThanOrEqual);
   }
 
   /** Add all available DEX runtimes starting from and excluding {@param startExcluding}. */

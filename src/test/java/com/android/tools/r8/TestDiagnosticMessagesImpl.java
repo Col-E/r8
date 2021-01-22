@@ -92,7 +92,7 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
         "Expected no "
             + type
             + " messages, got:\n"
-            + String.join("\n", ListUtils.map(messages, m -> m.getDiagnosticMessage())),
+            + String.join("\n", ListUtils.map(messages, Diagnostic::getDiagnosticMessage)),
         0,
         messages.size());
   }

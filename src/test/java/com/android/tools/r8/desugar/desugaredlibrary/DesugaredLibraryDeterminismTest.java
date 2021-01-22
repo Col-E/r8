@@ -69,9 +69,13 @@ public class DesugaredLibraryDeterminismTest extends DesugaredLibraryTestBase {
       assertTrue(clazz.isPresent());
       FoundClassSubject clazz2 = clazz.asFoundClassSubject();
       Set<String> methods1 =
-          clazz1.allMethods().stream().map(m -> m.toString()).collect(Collectors.toSet());
+          clazz1.allMethods().stream()
+              .map(FoundMethodSubject::toString)
+              .collect(Collectors.toSet());
       Set<String> methods2 =
-          clazz2.allMethods().stream().map(m -> m.toString()).collect(Collectors.toSet());
+          clazz2.allMethods().stream()
+              .map(FoundMethodSubject::toString)
+              .collect(Collectors.toSet());
       SetView<String> union = Sets.union(methods1, methods2);
       assertEquals(
           "Inspector 1 contains more methods",

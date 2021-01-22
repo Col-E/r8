@@ -285,41 +285,46 @@ public class LocalsTest extends DebugTestBase {
         "Locals",
         breakpoint("Locals", "breakpoint"),
         run(),
-        inspect(state -> {
-          // 1st breakpoint: all lengthOfArray[N] are set to 0
-          FrameInspector outerFrame = state.getFrame(1);
+        inspect(
+            state -> {
+              // 1st breakpoint: all lengthOfArray[N] are set to 0
+              FrameInspector outerFrame = state.getFrame(1);
 
-          Map<String, Value> localValues = outerFrame.getLocalValues();
+              Map<String, Value> localValues = outerFrame.getLocalValues();
 
-          for (int i = minIndex; i <= maxIndex; ++i) {
-            String varName = "lengthOfArray" + i;
-            Assert.assertTrue(localValues.containsKey(varName));
-            Assert.assertEquals(Value.createInt(0), localValues.get(varName));
-          }
+              for (int i = minIndex; i <= maxIndex; ++i) {
+                String varName = "lengthOfArray" + i;
+                Assert.assertTrue(localValues.containsKey(varName));
+                Assert.assertEquals(Value.createInt(0), localValues.get(varName));
+              }
 
-          // Capture IDs of arrays.
-          for (int i = minIndex; i <= maxIndex; ++i) {
-            String varName = "array" + i;
-            Assert.assertTrue(localValues.containsKey(varName));
-            arrayLocals.put(varName, localValues.get(varName));
-          }
-        }),
+              // Capture IDs of arrays.
+              for (int i = minIndex; i <= maxIndex; ++i) {
+                String varName = "array" + i;
+                Assert.assertTrue(localValues.containsKey(varName));
+                arrayLocals.put(varName, localValues.get(varName));
+              }
+            }),
         // Step out to reach next instructions in the tested method
         stepOut(),
-        inspect(state -> {
-          Assert.assertEquals("Locals.java", state.getSourceFile());
-          Assert.assertEquals(107, state.getLineNumber());
-          // Verify that all arrays have the same value.
-          arrayLocals.forEach((name, value) -> state.checkLocal(name, value));
-        }),
+        inspect(
+            state -> {
+              Assert.assertEquals("Locals.java", state.getSourceFile());
+              Assert.assertEquals(107, state.getLineNumber());
+              // Verify that all arrays have the same value.
+              arrayLocals.forEach(state::checkLocal);
+            }),
         // Step instruction by instruction to ensure all locals previously declared are safe.
-        stepUntil(StepKind.OVER, StepLevel.INSTRUCTION, state -> {
-          final String sourceFile = state.getSourceFile();
-          final int lineNumber = state.getLineNumber();
-          arrayLocals.forEach((name, value) -> state.checkLocal(name, value));
-          // Stop when we reach the expected line.
-          return lineNumber == 125 && sourceFile.equals("Locals.java");
-        }),
+        stepUntil(
+            StepKind.OVER,
+            StepLevel.INSTRUCTION,
+            state -> {
+              final String sourceFile = state.getSourceFile();
+              final int lineNumber = state.getLineNumber();
+              arrayLocals.forEach(state::checkLocal);
+              // Stop when we reach the expected line.
+              return lineNumber == 125 && sourceFile.equals("Locals.java");
+            }),
         run());
   }
 

@@ -9,6 +9,7 @@ import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -59,14 +60,14 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
   public void testAsIs() throws Exception {
     test(
         ImmutableList.of("-dontshrink", "-dontoptimize", "-dontobfuscate"),
-        builder -> builder.addDontWarnJetBrainsAnnotations());
+        TestShrinkerBuilder::addDontWarnJetBrainsAnnotations);
   }
 
   @Test
   public void testDontShrinkAndDontOptimize() throws Exception {
     test(
         ImmutableList.of("-dontshrink", "-dontoptimize"),
-        builder -> builder.addDontWarnJetBrainsAnnotations());
+        TestShrinkerBuilder::addDontWarnJetBrainsAnnotations);
   }
 
   @Test
@@ -89,12 +90,12 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
   public void testDontShrinkAndDontObfuscate() throws Exception {
     test(
         ImmutableList.of("-dontshrink", "-dontobfuscate"),
-        builder -> builder.addDontWarnJetBrainsAnnotations());
+        TestShrinkerBuilder::addDontWarnJetBrainsAnnotations);
   }
 
   @Test
   public void testDontShrink() throws Exception {
-    test(ImmutableList.of("-dontshrink"), builder -> builder.addDontWarnJetBrainsAnnotations());
+    test(ImmutableList.of("-dontshrink"), TestShrinkerBuilder::addDontWarnJetBrainsAnnotations);
   }
 
   @Test

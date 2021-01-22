@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -82,7 +83,7 @@ public class SynchronizedCollectionTest extends DesugaredLibraryTestBase {
         .addKeepMainRule(MAIN_CLASS)
         .applyIf(
             parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
-            builder -> builder.addDontWarnEmulatedLibraryClasses())
+            TestShrinkerBuilder::addDontWarnEmulatedLibraryClasses)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()

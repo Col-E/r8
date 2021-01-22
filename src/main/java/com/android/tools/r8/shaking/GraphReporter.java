@@ -423,7 +423,7 @@ public class GraphReporter {
   }
 
   GraphEdgeInfo getEdgeInfo(EdgeKind kind) {
-    return reasonInfo.computeIfAbsent(kind, k -> new GraphEdgeInfo(k));
+    return reasonInfo.computeIfAbsent(kind, GraphEdgeInfo::new);
   }
 
   private DexClass definitionFor(DexType type) {

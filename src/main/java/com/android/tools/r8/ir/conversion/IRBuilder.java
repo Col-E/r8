@@ -2402,7 +2402,7 @@ public class IRBuilder {
     }
 
     // Move all normal successors to the new block.
-    currentBlockInfo.normalSuccessors.forEach((Integer offset) -> info.addNormalSuccessor(offset));
+    currentBlockInfo.normalSuccessors.forEach(info::addNormalSuccessor);
     currentBlockInfo.normalSuccessors.clear();
 
     // Link the two blocks.

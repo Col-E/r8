@@ -35,9 +35,9 @@ public class ClassMethodsBuilder {
 
   public void setClassMethods(DexProgramClass clazz) {
     assert virtualMethods.stream().allMatch(method -> method.getHolderType() == clazz.type);
-    assert virtualMethods.stream().allMatch(method -> method.belongsToVirtualPool());
+    assert virtualMethods.stream().allMatch(DexEncodedMethod::belongsToVirtualPool);
     assert directMethods.stream().allMatch(method -> method.getHolderType() == clazz.type);
-    assert directMethods.stream().allMatch(method -> method.belongsToDirectPool());
+    assert directMethods.stream().allMatch(DexEncodedMethod::belongsToDirectPool);
     clazz.setVirtualMethods(virtualMethods);
     clazz.setDirectMethods(directMethods);
   }

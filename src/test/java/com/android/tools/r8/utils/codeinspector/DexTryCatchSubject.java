@@ -54,7 +54,7 @@ class DexTryCatchSubject implements TryCatchSubject {
   @Override
   public Stream<TypeSubject> streamGuards() {
     return Arrays.stream(tryHandler.pairs)
-        .map(pair -> pair.getType())
+        .map(TypeAddrPair::getType)
         .map(type -> new TypeSubject(inspector, type));
   }
 

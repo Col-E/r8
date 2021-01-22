@@ -352,7 +352,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   private static void syntheticSpecify(StructuralSpecification<DexEncodedMethod, ?> spec) {
     spec.withItem(m -> m.method)
         .withItem(m -> m.accessFlags)
-        .withItem(m -> m.annotations())
+        .withItem(DexDefinition::annotations)
         .withItem(m -> m.parameterAnnotationsList)
         .withNullableItem(m -> m.classFileVersion)
         .withBool(m -> m.d8R8Synthesized)
