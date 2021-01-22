@@ -113,6 +113,7 @@ public class Jdk11MathTests extends TestBase {
         .addKeepMainRule(DIVMOD)
         .addKeepMainRule(EXACTARITH)
         .addProgramFiles(JDK_11_MATH_TEST_CLASS_FILES)
+        .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), EXACTARITH)
         .assertSuccessWithOutput("");
@@ -124,6 +125,7 @@ public class Jdk11MathTests extends TestBase {
         .addKeepMainRule(DIVMOD)
         .addKeepMainRule(EXACTARITH)
         .addProgramFiles(JDK_11_MATH_TEST_CLASS_FILES)
+        .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), DIVMOD)
         .assertSuccessWithOutput("");
@@ -134,6 +136,7 @@ public class Jdk11MathTests extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(JDK_11_STRICT_MATH_TEST_CLASS_FILES)
         .addKeepMainRule(EXACTARITH)
+        .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), EXACTARITH)
         .assertSuccessWithOutput("");

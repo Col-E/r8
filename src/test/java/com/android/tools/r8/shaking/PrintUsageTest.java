@@ -7,8 +7,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.PrintUsageTest.PrintUsageInspector.ClassSubject;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
@@ -38,18 +40,18 @@ public class PrintUsageTest extends TestBase {
 
   private static final String PRINT_USAGE_FILE_SUFFIX = "-print-usage.txt";
 
-  private final Backend backend;
+  private final TestParameters parameters;
   private final String test;
   private final String programFile;
   private final List<String> keepRulesFiles;
   private final Consumer<PrintUsageInspector> inspection;
 
   public PrintUsageTest(
-      Backend backend,
+      TestParameters parameters,
       String test,
       List<String> keepRulesFiles,
       Consumer<PrintUsageInspector> inspection) {
-    this.backend = backend;
+    this.parameters = parameters;
     this.test = test;
     this.programFile = ToolHelper.EXAMPLES_BUILD_DIR + test + ".jar";
     this.keepRulesFiles = keepRulesFiles;
@@ -59,13 +61,19 @@ public class PrintUsageTest extends TestBase {
   @Before
   public void runR8andGetPrintUsage() throws Exception {
     Path out = temp.getRoot().toPath();
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addProgramFiles(Paths.get(programFile))
         .addKeepRuleFiles(ListUtils.map(keepRulesFiles, Paths::get))
         .addKeepRules("-printusage " + out.resolve(test + PRINT_USAGE_FILE_SUFFIX))
+        .applyIf(
+            test.equals("shaking12")
+                && parameters.isDexRuntime()
+                && parameters.getApiLevel().isLessThan(AndroidApiLevel.K),
+            builder -> builder.addDontWarn(ReflectiveOperationException.class))
         // Disable inlining to make this test not depend on inlining decisions.
         .addOptionsModification(o -> o.enableInlining = false)
         .enableProguardTestOptions()
+        .setMinApi(parameters.getApiLevel())
         .compile();
   }
 
@@ -79,7 +87,7 @@ public class PrintUsageTest extends TestBase {
     }
   }
 
-  @Parameters(name = "test: {0} keep: {1}")
+  @Parameters(name = "{0}, test: {1} keep: {2}")
   public static Collection<Object[]> data() {
     List<String> tests = Arrays.asList(
         "shaking1", "shaking2", "shaking4", "shaking8", "shaking9", "shaking12");
@@ -93,7 +101,7 @@ public class PrintUsageTest extends TestBase {
     inspections.put("shaking12:keep-rules-printusage.txt", PrintUsageTest::inspectShaking12);
 
     List<Object[]> testCases = new ArrayList<>();
-    for (Backend backend : ToolHelper.getBackends()) {
+    for (TestParameters parameters : getTestParameters().withAllRuntimesAndApiLevels().build()) {
       Set<String> usedInspections = new HashSet<>();
       for (String test : tests) {
         File[] keepFiles = new File(ToolHelper.EXAMPLES_DIR + test)
@@ -103,8 +111,8 @@ public class PrintUsageTest extends TestBase {
           Consumer<PrintUsageInspector> inspection =
               getTestOptionalParameter(inspections, usedInspections, test, keepName);
           if (inspection != null) {
-              testCases.add(
-                  new Object[] {backend, test, ImmutableList.of(keepFile.getPath()), inspection});
+            testCases.add(
+                new Object[] {parameters, test, ImmutableList.of(keepFile.getPath()), inspection});
           }
         }
       }
