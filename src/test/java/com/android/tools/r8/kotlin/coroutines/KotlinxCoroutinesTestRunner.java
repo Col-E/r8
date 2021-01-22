@@ -80,7 +80,6 @@ public class KotlinxCoroutinesTestRunner extends KotlinMetadataTestBase {
             .addKeepAllAttributes()
             // The BASE_LIBRARY contains proguard rules that do not match.
             .allowUnusedProguardConfigurationRules()
-            .addDontWarnKotlinx()
             .addDontWarn(
                 "edu.umd.cs.findbugs.annotations.SuppressFBWarnings",
                 "reactor.blockhound.BlockHound$Builder",

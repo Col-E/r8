@@ -92,7 +92,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
             .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
-            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspectMerged)
             .writeToZip();
@@ -147,7 +147,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
             .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
-            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspectRenamed)
             .writeToZip();

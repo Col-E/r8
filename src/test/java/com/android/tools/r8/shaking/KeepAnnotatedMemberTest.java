@@ -202,7 +202,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .addKeepClassRules(PRESENT_ANNOTATION)
             .addKeepRules("-keepclassmembers class * { @" + PRESENT_ANNOTATION + " *** *(...); }")
             .addDontWarnGoogle()
-            .addDontWarnJavax()
+            .addDontWarnJavaxNullableAnnotation()
             .compile()
             .graphInspector();
 
@@ -220,7 +220,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + PRESENT_ANNOTATION
                     + " *** *(...); }")
             .addDontWarnGoogle()
-            .addDontWarnJavax()
+            .addDontWarnJavaxNullableAnnotation()
             .compile()
             .graphInspector();
     assertRetainedClassesEqual(referenceInspector, ifThenKeepClassMembersInspector, false, false);
@@ -239,7 +239,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + PRESENT_ANNOTATION
                     + " *** *(...); }")
             .addDontWarnGoogle()
-            .addDontWarnJavax()
+            .addDontWarnJavaxNullableAnnotation()
             .compile()
             .graphInspector();
     assertRetainedClassesEqual(
@@ -261,7 +261,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + PRESENT_ANNOTATION
                     + " *** <2>(...); }")
             .addDontWarnGoogle()
-            .addDontWarnJavax()
+            .addDontWarnJavaxNullableAnnotation()
             .compile()
             .graphInspector();
     // TODO(b/159418523): Should the reference be equal to the result with the conditional rule?

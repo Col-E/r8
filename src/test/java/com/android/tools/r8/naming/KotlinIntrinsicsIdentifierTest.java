@@ -88,7 +88,7 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
             .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(mainClassName)
-            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnJetBrainsNotNullAnnotation()
             .allowDiagnosticWarningMessages()
             .minification(minification)
             .compile()
@@ -150,7 +150,7 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
                     "-" + NoHorizontalClassMergingRule.RULE_NAME + " class **." + targetClassName,
                     "-" + NoStaticClassMergingRule.RULE_NAME + " class **." + targetClassName,
                     "-neverinline class **." + targetClassName + " { <methods>; }"))
-            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnJetBrainsNotNullAnnotation()
             .allowDiagnosticWarningMessages()
             .minification(minification)
             .compile()

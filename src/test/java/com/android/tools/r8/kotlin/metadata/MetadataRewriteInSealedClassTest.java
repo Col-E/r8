@@ -153,7 +153,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
             // Keep the extension function
             .addKeepRules("-keep class **.LibKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspectInvalid)
             .writeToZip();

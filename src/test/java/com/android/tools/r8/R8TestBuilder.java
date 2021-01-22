@@ -244,10 +244,6 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
-  public T allowClassInlinerGracefulExit() {
-    return addOptionsModification(options -> options.testing.allowClassInlinerGracefulExit = true);
-  }
-
   /**
    * Allow info, warning, and error diagnostics.
    *
@@ -312,6 +308,10 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
       allowedDiagnosticMessages = AllowedDiagnosticMessages.ERROR;
     }
     return self();
+  }
+
+  public T allowUnusedDontWarnPatterns() {
+    return addOptionsModification(options -> options.testing.allowUnusedDontWarnRules = true);
   }
 
   public T allowUnusedProguardConfigurationRules() {

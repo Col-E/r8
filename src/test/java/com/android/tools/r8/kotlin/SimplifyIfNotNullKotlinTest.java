@@ -43,7 +43,10 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
 
     final String mainClassName = ex1.getClassName();
     final String extraRules = neverInlineMethod(mainClassName, testMethodSignature);
-    runTest(FOLDER, mainClassName, testBuilder -> testBuilder.addKeepRules(extraRules))
+    runTest(
+            FOLDER,
+            mainClassName,
+            testBuilder -> testBuilder.addKeepRules(extraRules).addDontWarnJetBrainsAnnotations())
         .inspect(
             inspector -> {
               ClassSubject clazz = checkClassIsKept(inspector, ex1.getClassName());
@@ -67,7 +70,10 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
 
     final String mainClassName = ex2.getClassName();
     final String extraRules = neverInlineMethod(mainClassName, testMethodSignature);
-    runTest(FOLDER, mainClassName, testBuilder -> testBuilder.addKeepRules(extraRules))
+    runTest(
+            FOLDER,
+            mainClassName,
+            testBuilder -> testBuilder.addKeepRules(extraRules).addDontWarnJetBrainsAnnotations())
         .inspect(
             inspector -> {
               ClassSubject clazz = checkClassIsKept(inspector, ex2.getClassName());
@@ -91,7 +97,10 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
 
     final String mainClassName = ex3.getClassName();
     final String extraRules = neverInlineMethod(mainClassName, testMethodSignature);
-    runTest(FOLDER, mainClassName, testBuilder -> testBuilder.addKeepRules(extraRules))
+    runTest(
+            FOLDER,
+            mainClassName,
+            testBuilder -> testBuilder.addKeepRules(extraRules).addDontWarnJetBrainsAnnotations())
         .inspect(
             inspector -> {
               ClassSubject clazz = checkClassIsKept(inspector, ex3.getClassName());

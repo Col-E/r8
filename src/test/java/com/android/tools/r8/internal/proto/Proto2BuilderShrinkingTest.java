@@ -74,6 +74,7 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
             .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
             .allowAccessModification()
             .allowDiagnosticMessages()
+            .allowUnusedDontWarnPatterns()
             .allowUnusedProguardConfigurationRules()
             .enableInliningAnnotations()
             .enableProtoShrinking()

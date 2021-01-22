@@ -51,8 +51,10 @@ public class Java11R8CompilationTest extends TestBase {
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR)
         .addKeepRuleFiles(MAIN_KEEP)
         // TODO(b/177967938): Investigate why this is needed.
-        .addDontWarnJavaLangInvoke()
-        .addDontWarnJavaNioFile()
+        .applyIf(
+            parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
+            builder -> builder.addDontWarnJavaLangInvoke().addDontWarnJavaNioFile(),
+            builder -> builder.addDontWarnJavaLangInvoke("StringConcatFactory"))
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
         .compile()
         .inspect(this::assertNotEmpty)

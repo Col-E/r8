@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Collection;
@@ -80,8 +81,12 @@ public class CustomCollectionInterfaceSuperTest extends DesugaredLibraryTestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(CustomCollectionInterfaceSuperTest.class)
         .addKeepMainRule(Main.class)
-        .addDontWarnEmulatedLibraryClasses()
-        .addDontWarnVivifiedClasses()
+        .applyIf(
+            parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
+            builder ->
+                builder
+                    .addDontWarnEmulatedLibraryClass(Collection.class)
+                    .addDontWarnVivifiedClass(Predicate.class))
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()

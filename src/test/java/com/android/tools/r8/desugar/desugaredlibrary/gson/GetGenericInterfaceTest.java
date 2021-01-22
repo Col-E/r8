@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import dalvik.system.PathClassLoader;
 import java.sql.SQLDataException;
@@ -73,7 +74,11 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
         testForR8(Backend.DEX)
             .addInnerClasses(GetGenericInterfaceTest.class)
             .addKeepMainRule(Executor.class)
-            .addDontWarnRetargetLibraryMembers()
+            .applyIf(
+                parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
+                builder ->
+                    builder.addDontWarnRetargetLibraryMember(
+                        "virtualDispatch$Date$toInstant$dispatchInterface"))
             .noMinification()
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)

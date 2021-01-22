@@ -306,6 +306,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
                     .addKeepRules(
                         "-keepunusedarguments class * extends kotlin.jvm.internal.Lambda {"
                             + " invoke(int, short); }")
+                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(this::configure))
         .inspect(
             inspector -> {
@@ -356,7 +357,10 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     runTest(
             "lambdas_kstyle_captures",
             mainClassName,
-            testBuilder -> testBuilder.addOptionsModification(this::configure))
+            testBuilder ->
+                testBuilder
+                    .addDontWarnJetBrainsAnnotations()
+                    .addOptionsModification(this::configure))
         .inspect(
             inspector -> {
               if (enableUnusedInterfaceRemoval) {
@@ -390,7 +394,10 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     runTest(
             "lambdas_kstyle_generics",
             mainClassName,
-            testBuilder -> testBuilder.addOptionsModification(this::configure))
+            testBuilder ->
+                testBuilder
+                    .addDontWarnJetBrainsAnnotations()
+                    .addOptionsModification(this::configure))
         .inspect(
             inspector -> {
               if (enableUnusedInterfaceRemoval) {
@@ -422,6 +429,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
             mainClassName,
             testBuilder ->
                 testBuilder
+                    .addDontWarnJetBrainsAnnotations()
                     .addKeepAttributeInnerClassesAndEnclosingMethod()
                     .addOptionsModification(this::configure))
         .inspect(
@@ -458,6 +466,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
             // KEEP_SIGNATURE_INNER_ENCLOSING,
             testBuilder ->
                 testBuilder
+                    .addDontWarnJetBrainsAnnotations()
                     .addKeepAttributeInnerClassesAndEnclosingMethod()
                     .addKeepAttributeSignature()
                     .addOptionsModification(this::configure))
@@ -494,7 +503,10 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     runTest(
             "lambdas_jstyle_trivial",
             mainClassName,
-            testBuilder -> testBuilder.addOptionsModification(this::configure))
+            testBuilder ->
+                testBuilder
+                    .addDontWarnJetBrainsAnnotations()
+                    .addOptionsModification(this::configure))
         .inspect(
             inspector -> {
               Verifier verifier = new Verifier(inspector);
@@ -545,7 +557,10 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
             "lambdas_singleton",
             mainClassName,
             testBuilder ->
-                testBuilder.addOptionsModification(this::configure).noHorizontalClassMerging())
+                testBuilder
+                    .addDontWarnJetBrainsAnnotations()
+                    .addOptionsModification(this::configure)
+                    .noHorizontalClassMerging())
         .inspect(
             inspector -> {
               Verifier verifier = new Verifier(inspector);

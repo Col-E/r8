@@ -58,7 +58,7 @@ public class KotlinIntrinsicsInlineTest extends AbstractR8KotlinTestBase {
             StringUtils.lines(
                 "-keepclasseswithmembers class " + MAIN + "{", "  public static *** *(...);", "}"))
         .allowAccessModification(allowAccessModification)
-        .addDontWarnJetBrainsAnnotations()
+        .addDontWarnJetBrainsNotNullAnnotation()
         .noMinification()
         .setMinApi(parameters.getRuntime())
         .compile()
@@ -103,7 +103,7 @@ public class KotlinIntrinsicsInlineTest extends AbstractR8KotlinTestBase {
                 "-keepclasseswithmembers class " + MAIN + "{",
                 "  public static *** " + methodName + "(...);",
                 "}"))
-        .addDontWarnJetBrainsAnnotations()
+        .addDontWarnJetBrainsNotNullAnnotation()
         .allowAccessModification(allowAccessModification)
         .noMinification()
         .setMinApi(parameters.getRuntime())

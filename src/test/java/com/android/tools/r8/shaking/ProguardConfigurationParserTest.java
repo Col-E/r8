@@ -22,6 +22,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -56,6 +57,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
@@ -268,7 +270,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   private void testDontXXX(
-      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) {
+      String xxx, Function<ProguardConfiguration, Predicate<DexType>> matcherFactory) {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
@@ -276,19 +278,20 @@ public class ProguardConfigurationParserTest extends TestBase {
     parser.parse(createConfigurationForTesting(ImmutableList.of(configuration)));
     verifyParserEndsCleanly();
     ProguardConfiguration config = parser.getConfig();
-    assertFalse(pattern.apply(config).matches(dexItemFactory.createType("Lboobaz;")));
-    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lboobar;")));
-    assertFalse(pattern.apply(config).matches(dexItemFactory.createType("Lfoobar;")));
+    Predicate<DexType> matcher = matcherFactory.apply(config);
+    assertFalse(matcher.test(dexItemFactory.createType("Lboobaz;")));
+    assertTrue(matcher.test(dexItemFactory.createType("Lboobar;")));
+    assertFalse(matcher.test(dexItemFactory.createType("Lfoobar;")));
   }
 
   @Test
   public void testDontXXX() {
-    testDontXXX("warn", ProguardConfiguration::getDontWarnPatterns);
-    testDontXXX("note", ProguardConfiguration::getDontNotePatterns);
+    testDontXXX("warn", config -> DontWarnConfiguration.create(config)::matches);
+    testDontXXX("note", config -> config.getDontNotePatterns()::matches);
   }
 
   private void testDontXXXMultiple(
-      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) {
+      String xxx, Function<ProguardConfiguration, Predicate<DexType>> matcherFactory) {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
@@ -298,20 +301,21 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(createConfigurationForTesting(configuration));
       verifyParserEndsCleanly();
       ProguardConfiguration config = parser.getConfig();
-      assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lfoo/Bar;")));
-      assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lfoo/bar7Bar;")));
-      assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lbar/Foo;")));
+      Predicate<DexType> matcher = matcherFactory.apply(config);
+      assertTrue(matcher.test(dexItemFactory.createType("Lfoo/Bar;")));
+      assertTrue(matcher.test(dexItemFactory.createType("Lfoo/bar7Bar;")));
+      assertTrue(matcher.test(dexItemFactory.createType("Lbar/Foo;")));
     }
   }
 
   @Test
   public void testDontWarnMultiple() {
-    testDontXXXMultiple("warn", ProguardConfiguration::getDontWarnPatterns);
-    testDontXXXMultiple("note", ProguardConfiguration::getDontNotePatterns);
+    testDontXXXMultiple("warn", config -> DontWarnConfiguration.create(config)::matches);
+    testDontXXXMultiple("note", config -> config.getDontNotePatterns()::matches);
   }
 
   private void testDontXXXAllExplicitly(
-      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) {
+      String xxx, Function<ProguardConfiguration, Predicate<DexType>> matcherFactory) {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
@@ -319,19 +323,20 @@ public class ProguardConfigurationParserTest extends TestBase {
     parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarnAll)));
     verifyParserEndsCleanly();
     ProguardConfiguration config = parser.getConfig();
-    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lboobaz;")));
-    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lboobar;")));
-    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lfoobar;")));
+    Predicate<DexType> matcher = matcherFactory.apply(config);
+    assertTrue(matcher.test(dexItemFactory.createType("Lboobaz;")));
+    assertTrue(matcher.test(dexItemFactory.createType("Lboobar;")));
+    assertTrue(matcher.test(dexItemFactory.createType("Lfoobar;")));
   }
 
   @Test
   public void testDontWarnAllExplicitly() {
-    testDontXXXAllExplicitly("warn", ProguardConfiguration::getDontWarnPatterns);
-    testDontXXXAllExplicitly("note", ProguardConfiguration::getDontNotePatterns);
+    testDontXXXAllExplicitly("warn", config -> DontWarnConfiguration.create(config)::matches);
+    testDontXXXAllExplicitly("note", config -> config.getDontNotePatterns()::matches);
   }
 
   private void testDontXXXAllImplicitly(
-      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) {
+      String xxx, Function<ProguardConfiguration, Predicate<DexType>> matcherFactory) {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
@@ -339,15 +344,16 @@ public class ProguardConfigurationParserTest extends TestBase {
     String otherOption = "-keep class *";
     parser.parse(createConfigurationForTesting(ImmutableList.of(dontwarnAll, otherOption)));
     ProguardConfiguration config = parser.getConfig();
-    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lboobaz;")));
-    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lboobar;")));
-    assertTrue(pattern.apply(config).matches(dexItemFactory.createType("Lfoobar;")));
+    Predicate<DexType> matcher = matcherFactory.apply(config);
+    assertTrue(matcher.test(dexItemFactory.createType("Lboobaz;")));
+    assertTrue(matcher.test(dexItemFactory.createType("Lboobar;")));
+    assertTrue(matcher.test(dexItemFactory.createType("Lfoobar;")));
   }
 
   @Test
   public void testDontWarnAllImplicitly() {
-    testDontXXXAllImplicitly("warn", ProguardConfiguration::getDontWarnPatterns);
-    testDontXXXAllImplicitly("note", ProguardConfiguration::getDontNotePatterns);
+    testDontXXXAllImplicitly("warn", config -> DontWarnConfiguration.create(config)::matches);
+    testDontXXXAllImplicitly("note", config -> config.getDontNotePatterns()::matches);
   }
 
   @Test

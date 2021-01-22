@@ -45,7 +45,7 @@ public class KotlinLambdaMergingDebugTest extends AbstractR8KotlinTestBase {
         .setMode(CompilationMode.DEBUG)
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, KotlinTargetVersion.JAVA_6))
         .addProgramFiles(getJavaJarFile(FOLDER))
-        .addDontWarnJetBrainsAnnotations()
+        .addDontWarnJetBrainsNotNullAnnotation()
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_CLASS)
         .allowDiagnosticWarningMessages()

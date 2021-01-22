@@ -264,7 +264,9 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(JavaTimeTest.class)
             .addKeepMainRule(TestClass.class)
-            .addDontWarnRetargetLibraryMembers()
+            .applyIf(
+                parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
+                builder -> builder.addDontWarnRetargetLibraryMembers())
             .enableNoVerticalClassMergingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)

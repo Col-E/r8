@@ -107,7 +107,9 @@ public class LibraryAndMissingAnnotationsTest extends TestBase {
             .addKeepAttributes("*Annotation*")
             .addLibraryFiles(runtimeJar(parameters))
             .addKeepClassAndMembersRules(Foo.class)
-            .addKeepRules("-dontwarn " + LibraryAndMissingAnnotationsTest.class.getTypeName())
+            .applyIf(
+                builder.isProguardTestBuilder(),
+                ignore -> builder.addDontWarn(LibraryAndMissingAnnotationsTest.class))
             .addKeepMainRule(mainClass)
             .setMinApi(parameters.getApiLevel());
     if (includeOnLibraryPath) {

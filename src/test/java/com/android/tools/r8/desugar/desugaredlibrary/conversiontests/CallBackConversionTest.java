@@ -172,7 +172,9 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Impl.class)
         .addLibraryClasses(CustomLibClass.class)
-        .addDontWarnVivifiedClasses()
+        .applyIf(
+            parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
+            builder -> builder.addDontWarnVivifiedClass(Consumer.class))
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .inspect(this::assertLibraryOverridesThere)
@@ -190,7 +192,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Impl.class)
         .addLibraryClasses(CustomLibClass.class)
-        .addDontWarnVivifiedClasses()
+        .addDontWarnVivifiedClass(Consumer.class)
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .inspect(this::assertLibraryOverridesThere)

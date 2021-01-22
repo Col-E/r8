@@ -171,7 +171,10 @@ public class NestInvokeSpecialInterfaceMethodAccessWithIntermediateTest extends 
         .addProgramClassFileData(getTransformedClasses())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
-        .addDontWarnCompanionClasses()
+        .applyIf(
+            !parameters.canUseDefaultAndStaticInterfaceMethods()
+                && !symbolicReferenceIsDefiningType,
+            builder -> builder.addDontWarnCompanionClass(J.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(result -> checkExpectedResult(result, true));
   }

@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.ArrayList;
@@ -65,7 +66,9 @@ public class NoForwardingMethodsTest extends DesugaredLibraryTestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepClassAndMembersRules(Executor.class)
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .addDontWarnEmulatedLibraryClasses()
+        .applyIf(
+            parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
+            builder -> builder.addDontWarnEmulatedLibraryClass(Collection.class))
         .compile()
         .inspect(this::assertNoForwardingStreamMethod)
         .addDesugaredCoreLibraryRunClassPath(

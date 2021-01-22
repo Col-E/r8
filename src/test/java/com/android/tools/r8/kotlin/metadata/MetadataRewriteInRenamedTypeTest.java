@@ -68,7 +68,6 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
         .addProgramFiles(inputJarMap.getForConfiguration(kotlinc, targetVersion))
         .addKeepRules(OBFUSCATE_RENAMED, KEEP_KEPT)
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-        .addDontWarnJetBrainsAnnotations()
         .compile()
         .inspect(this::inspect);
   }
@@ -82,7 +81,6 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
         .addProgramFiles(inputJarMap.getForConfiguration(kotlinc, targetVersion))
         .addKeepRules(OBFUSCATE_RENAMED, KEEP_KEPT)
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-        .addDontWarnJetBrainsAnnotations()
         .compile()
         .inspect(this::inspect);
   }
@@ -99,7 +97,6 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
         .addKeepKotlinMetadata()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticWarningMessages()
-        .addDontWarnJetBrainsAnnotations()
         .compile()
         .assertWarningMessageThatMatches(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         // TODO(b/155536535): Enable this assert.

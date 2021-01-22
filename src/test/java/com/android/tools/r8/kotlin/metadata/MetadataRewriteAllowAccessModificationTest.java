@@ -114,7 +114,7 @@ public class MetadataRewriteAllowAccessModificationTest extends KotlinMetadataTe
                     "  void staticPrivate() -> staticPrivateReference",
                     "  void staticInternal() -> staticInternalReference"))
             .addKeepRuntimeVisibleAnnotations()
-            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnJetBrainsNotNullAnnotation()
             .addDontWarnKotlin()
             .allowAccessModification()
             .compile()

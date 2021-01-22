@@ -56,6 +56,7 @@ public class GsonOptionalTest extends GsonDesugaredLibraryTestBase {
         .addProgramFiles(GSON_2_8_1_JAR)
         .addKeepMainRule(OptionalTestClass.class)
         .addKeepRuleFiles(GSON_CONFIGURATION)
+        .allowUnusedDontWarnPatterns()
         .allowUnusedProguardConfigurationRules()
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
         .allowDiagnosticMessages()

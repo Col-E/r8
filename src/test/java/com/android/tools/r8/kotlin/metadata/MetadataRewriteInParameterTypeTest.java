@@ -78,7 +78,7 @@ public class MetadataRewriteInParameterTypeTest extends KotlinMetadataTestBase {
             // Keep Itf, but allow minification.
             .addKeepRules("-keep,allowobfuscation class **.Itf")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspect)
             .writeToZip();

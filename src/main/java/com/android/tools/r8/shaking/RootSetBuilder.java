@@ -1727,11 +1727,7 @@ public class RootSetBuilder {
   }
 
   private void generateAssumeNoSideEffectsWarnings() {
-    ProguardClassFilter dontWarnPatterns =
-        options.getProguardConfiguration() != null
-            ? options.getProguardConfiguration().getDontWarnPatterns()
-            : ProguardClassFilter.empty();
-    if (dontWarnPatterns.matches(options.itemFactory.objectType)) {
+    if (appView.getDontWarnConfiguration().matches(options.itemFactory.objectType)) {
       // Don't report any warnings since we don't apply -assumenosideeffects rules to notify() or
       // wait() anyway.
       return;

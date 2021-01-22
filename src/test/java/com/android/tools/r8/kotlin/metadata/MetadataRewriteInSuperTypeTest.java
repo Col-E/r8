@@ -79,7 +79,6 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
             // Keep non-private members except for ones in `internal` definitions.
             .addKeepRules("-keep public class !**.internal.**, * { !private *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectMerged)
             .writeToZip();
@@ -127,7 +126,6 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
             // Keep `internal` definitions, but allow minification.
             .addKeepRules("-keep,allowobfuscation class **.internal.** { *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectRenamed)
             .writeToZip();

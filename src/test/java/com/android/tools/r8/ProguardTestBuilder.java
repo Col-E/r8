@@ -53,6 +53,11 @@ public class ProguardTestBuilder
   }
 
   @Override
+  public boolean isProguardTestBuilder() {
+    return true;
+  }
+
+  @Override
   ProguardTestBuilder self() {
     return this;
   }

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.synthesis.CommittedItems;
@@ -90,12 +91,13 @@ public class MissingClasses {
       return build();
     }
 
-    public MissingClasses reportMissingClasses(InternalOptions options) {
+    public MissingClasses reportMissingClasses(AppView<?> appView) {
+      InternalOptions options = appView.options();
       Set<DexType> newMissingClassesWithoutDontWarn =
-          options.getProguardConfiguration().getDontWarnPatterns().getNonMatches(newMissingClasses);
+          appView.getDontWarnConfiguration().getNonMatches(newMissingClasses);
       newMissingClassesWithoutDontWarn.removeAll(alreadyMissingClasses);
       newMissingClassesWithoutDontWarn.removeAll(
-          getAllowedMissingClasses(options.dexItemFactory()));
+          getAllowedMissingClasses(appView.dexItemFactory()));
       if (!newMissingClassesWithoutDontWarn.isEmpty()) {
         MissingClassesDiagnostic diagnostic =
             new MissingClassesDiagnostic.Builder()
@@ -123,7 +125,7 @@ public class MissingClasses {
           dexItemFactory.stringConcatFactoryType);
     }
 
-    /** Intentionally private, use {@link Builder#reportMissingClasses(InternalOptions)}. */
+    /** Intentionally private, use {@link Builder#reportMissingClasses(AppView)}. */
     private MissingClasses build() {
       // Extend the newMissingClasses set with all other missing classes.
       //

@@ -73,7 +73,7 @@ public class MetadataRewriteKeepPathTest extends KotlinMetadataTestBase {
         .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .addKeepRules("-keep class " + LIB_CLASS_NAME)
         .addKeepRuntimeVisibleAnnotations()
-        .addDontWarnJetBrainsAnnotations()
+        .addDontWarnJetBrainsNotNullAnnotation()
         .compile()
         .inspect(inspector -> inspect(inspector, true));
   }
@@ -86,7 +86,7 @@ public class MetadataRewriteKeepPathTest extends KotlinMetadataTestBase {
         .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
         .addKeepRules("-keep class " + LIB_CLASS_NAME)
         .addKeepRuntimeVisibleAnnotations()
-        .addDontWarnJetBrainsAnnotations()
+        .addDontWarnJetBrainsNotNullAnnotation()
         .compile()
         .inspect(inspector -> inspect(inspector, true));
   }
@@ -97,7 +97,7 @@ public class MetadataRewriteKeepPathTest extends KotlinMetadataTestBase {
         .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
         .addKeepRules("-keep class " + LIB_CLASS_NAME)
         .addKeepRuntimeVisibleAnnotations()
-        .addDontWarnJetBrainsAnnotations()
+        .addDontWarnJetBrainsNotNullAnnotation()
         .addDontWarnKotlin()
         .compile()
         .inspect(inspector -> inspect(inspector, true));

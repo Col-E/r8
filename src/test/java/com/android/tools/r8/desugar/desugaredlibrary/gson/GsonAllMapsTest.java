@@ -61,6 +61,7 @@ public class GsonAllMapsTest extends GsonDesugaredLibraryTestBase {
         .addProgramFiles(GSON_2_8_1_JAR)
         .addKeepMainRule(AllMapsTestClass.class)
         .addKeepRuleFiles(GSON_CONFIGURATION)
+        .allowUnusedDontWarnPatterns()
         .allowUnusedProguardConfigurationRules()
         .allowDiagnosticMessages()
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)

@@ -81,7 +81,7 @@ public class MetadataRewriteInlinePropertyTest extends KotlinMetadataTestBase {
                 ProguardKeepAttributes.SIGNATURE,
                 ProguardKeepAttributes.INNER_CLASSES,
                 ProguardKeepAttributes.ENCLOSING_METHOD)
-            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspect)
             .writeToZip();

@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -45,7 +46,10 @@ public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
   public void b110196118() throws Exception {
     final String mainClassName = "unused_singleton.MainKt";
     final String moduleName = "unused_singleton.TestModule";
-    runTest("unused_singleton", mainClassName)
+    runTest(
+            "unused_singleton",
+            mainClassName,
+            TestShrinkerBuilder::addDontWarnJetBrainsNotNullAnnotation)
         .inspect(
             inspector -> {
               ClassSubject main = inspector.clazz(mainClassName);

@@ -133,8 +133,9 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
             .addInnerClasses(CustomCollectionTest.class)
             .setMinApi(parameters.getApiLevel())
             .addKeepClassAndMembersRules(Executor.class)
-            .addDontWarnEmulatedLibraryClasses()
-            .addDontWarnVivifiedClasses()
+            .applyIf(
+                requiresEmulatedInterfaceCoreLibDesugaring(parameters),
+                builder -> builder.addDontWarnEmulatedLibraryClasses().addDontWarnVivifiedClasses())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
             .inspect(this::assertCustomCollectionCallsCorrect)

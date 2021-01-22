@@ -195,9 +195,11 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
   public void testWithDontWarn() throws Exception {
     testForR8(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())
+        .addProgramClasses(TestClass.class)
         .addProgramClassFileData(junitClasses)
         .addKeepAllClassesRule()
-        .addKeepRules("-dontwarn android.test.**")
+        .applyIf(
+            libraryContainsJUnit(), builder -> builder.addKeepRules("-dontwarn android.test.**"))
         .addOptionsModification(options -> options.lookupLibraryBeforeProgram = false)
         .compile()
         .assertNoMessages();

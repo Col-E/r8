@@ -329,7 +329,7 @@ public class R8 {
                   .rebuildWithClassHierarchy(
                       MissingClasses.builderForInitialMissingClasses()
                           .addNewMissingClasses(new SubtypingInfo(appView).getMissingClasses())
-                          .reportMissingClasses(options)));
+                          .reportMissingClasses(appView)));
         }
 
         // Add synthesized -assumenosideeffects from min api if relevant.
@@ -687,7 +687,6 @@ public class R8 {
           appView.setAppInfo(
               enqueuer.traceApplication(
                   appView.rootSet(),
-                  options.getProguardConfiguration().getDontWarnPatterns(),
                   executorService,
                   timing));
           // Rerunning the enqueuer should not give rise to any method rewritings.
@@ -927,6 +926,8 @@ public class R8 {
           options,
           ProguardMapSupplier.create(classNameMapper, options));
 
+      assert appView.getDontWarnConfiguration().validate(options);
+
       options.printWarnings();
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);
@@ -1018,7 +1019,6 @@ public class R8 {
         appView.setAppInfo(
             enqueuer.traceApplication(
                 appView.rootSet(),
-                options.getProguardConfiguration().getDontWarnPatterns(),
                 executorService,
                 timing));
     NestedGraphLens lens = enqueuer.buildGraphLens();
@@ -1081,7 +1081,6 @@ public class R8 {
                 appView, executorService, subtypingInfo, whyAreYouKeepingConsumer);
         enqueuer.traceApplication(
             rootSet,
-            options.getProguardConfiguration().getDontWarnPatterns(),
             executorService,
             timing);
       }

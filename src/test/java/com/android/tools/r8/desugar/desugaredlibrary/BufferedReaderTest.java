@@ -174,7 +174,11 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
                     configurationAlternative3(options, false, parameters))
         .addInnerClasses(BufferedReaderTest.class)
         .addKeepMainRule(TestClass.class)
-        .addDontWarnRetargetLibraryMembers()
+        .applyIf(
+            parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
+            builder ->
+                builder.addDontWarnRetargetLibraryMember(
+                    "virtualDispatch$BufferedReader$lines$dispatchHolder"))
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .enableInliningAnnotations()

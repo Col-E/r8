@@ -90,6 +90,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                 testBuilder
                     // TODO(jsjeon): Introduce @NeverInline to kotlinR8TestResources
                     .addKeepRules("-neverinline class * { void test*State*(...); }")
+                    .addDontWarnJetBrainsNotNullAnnotation()
                     .noClassInlining())
         .inspect(
             inspector -> {
@@ -110,7 +111,8 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
             testBuilder ->
                 testBuilder
                     // TODO(jsjeon): Introduce @NeverInline to kotlinR8TestResources
-                    .addKeepRules("-neverinline class * { void test*State*(...); }"))
+                    .addKeepRules("-neverinline class * { void test*State*(...); }")
+                    .addDontWarnJetBrainsNotNullAnnotation())
         .inspect(
             inspector -> {
               Predicate<DexType> lambdaCheck = createLambdaCheck(inspector);
@@ -156,6 +158,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                         "-neverinline class * { void test*State*(...); }",
                         "-neverinline class * { void testBigExtraMethod(...); }",
                         "-neverinline class * { void testBigExtraMethodReturningLambda(...); }")
+                    .addDontWarnJetBrainsAnnotations()
                     .noClassInlining())
         .inspect(
             inspector -> {
@@ -197,9 +200,10 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                 testBuilder
                     // TODO(jsjeon): Introduce @NeverInline to kotlinR8TestResources
                     .addKeepRules(
-                    "-neverinline class * { void test*State*(...); }",
-                    "-neverinline class * { void testBigExtraMethod(...); }",
-                    "-neverinline class * { void testBigExtraMethodReturningLambda(...); }"))
+                        "-neverinline class * { void test*State*(...); }",
+                        "-neverinline class * { void testBigExtraMethod(...); }",
+                        "-neverinline class * { void testBigExtraMethodReturningLambda(...); }")
+                    .addDontWarnJetBrainsAnnotations())
         .inspect(
             inspector -> {
               Predicate<DexType> lambdaCheck = createLambdaCheck(inspector);
@@ -280,7 +284,10 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
   public void testDataClass() throws Exception {
     assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
     final String mainClassName = "class_inliner_data_class.MainKt";
-    runTestWithDefaults("class_inliner_data_class", mainClassName)
+    runTestWithDefaults(
+            "class_inliner_data_class",
+            mainClassName,
+            builder -> builder.addDontWarnJetBrainsAnnotations())
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(mainClassName);

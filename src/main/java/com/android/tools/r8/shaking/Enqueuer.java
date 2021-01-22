@@ -222,7 +222,6 @@ public class Enqueuer {
   private SubtypingInfo subtypingInfo;
   private final InternalOptions options;
   private RootSet rootSet;
-  private ProguardClassFilter dontWarnPatterns;
   private final EnqueuerUseRegistryFactory useRegistryFactory;
   private AnnotationRemover.Builder annotationRemoverBuilder;
   private final EnqueuerDefinitionSupplier enqueuerDefinitionSupplier =
@@ -2156,7 +2155,7 @@ public class Enqueuer {
             }
           });
     }
-    if (dontWarnPatterns.matches(context.type)) {
+    if (appView.getDontWarnConfiguration().matches(context)) {
       // Ignore.
       return;
     }
@@ -2330,7 +2329,7 @@ public class Enqueuer {
   private void checkLambdaInterface(DexType itf, ProgramMethod context) {
     DexClass clazz = definitionFor(itf, context);
     if (clazz == null) {
-      if (!options.getProguardConfiguration().getDontWarnPatterns().matches(itf)) {
+      if (!appView.getDontWarnConfiguration().matches(itf)) {
         StringDiagnostic message =
             new StringDiagnostic(
                 "Lambda expression implements missing interface `" + itf.toSourceString() + "`",
@@ -2338,7 +2337,7 @@ public class Enqueuer {
         options.reporter.warning(message);
       }
     } else if (!clazz.isInterface()) {
-      if (!options.getProguardConfiguration().getDontWarnPatterns().matches(itf)) {
+      if (!appView.getDontWarnConfiguration().matches(itf)) {
         StringDiagnostic message =
             new StringDiagnostic(
                 "Lambda expression expected to implement an interface, but found "
@@ -2991,12 +2990,10 @@ public class Enqueuer {
 
   public AppInfoWithLiveness traceApplication(
       RootSet rootSet,
-      ProguardClassFilter dontWarnPatterns,
       ExecutorService executorService,
       Timing timing)
       throws ExecutionException {
     this.rootSet = rootSet;
-    this.dontWarnPatterns = dontWarnPatterns;
     // Translate the result of root-set computation into enqueuer actions.
     if (appView.options().getProguardConfiguration() != null
         && !options.kotlinOptimizationOptions().disableKotlinSpecificOptimizations) {
@@ -3460,7 +3457,7 @@ public class Enqueuer {
             appInfo.getMainDexClasses(),
             deadProtoTypes,
             appView.testing().enableExperimentalMissingClassesReporting
-                ? missingClassesBuilder.reportMissingClasses(options)
+                ? missingClassesBuilder.reportMissingClasses(appView)
                 : missingClassesBuilder.ignoreMissingClasses(),
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toDescriptorSet(targetedMethods.getItems()),

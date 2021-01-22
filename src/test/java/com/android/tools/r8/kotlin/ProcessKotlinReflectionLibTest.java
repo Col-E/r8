@@ -13,7 +13,6 @@ import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
-import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,75 +37,75 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
     this.parameters = parameters;
   }
 
-  private void test(Collection<String> rules) throws Exception {
-    test(rules, null);
-  }
-
-  private void test(
-      Collection<String> rules, ThrowableConsumer<R8FullTestBuilder> consumer) throws Exception {
+  private void test(ThrowableConsumer<R8FullTestBuilder> consumer) throws Exception {
     testForR8(parameters.getBackend())
         .addLibraryFiles(
             ToolHelper.getMostRecentAndroidJar(), ToolHelper.getKotlinStdlibJar(kotlinc))
         .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinc))
-        .addKeepRules(rules)
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
         .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
-        .addDontWarnJetBrains()
         .apply(consumer)
         .compile();
   }
 
   @Test
   public void testAsIs() throws Exception {
-    test(ImmutableList.of("-dontshrink", "-dontoptimize", "-dontobfuscate"));
+    test(
+        builder ->
+            builder.addDontWarnJetBrains().noMinification().noOptimization().noTreeShaking());
   }
 
   @Test
   public void testDontShrinkAndDontOptimize() throws Exception {
-    test(ImmutableList.of("-dontshrink", "-dontoptimize"));
+    test(builder -> builder.addDontWarnJetBrains().noOptimization().noTreeShaking());
   }
 
   @Test
   public void testDontShrinkAndDontOptimizeDifferently() throws Exception {
-     test(
-         ImmutableList.of("-keep,allowobfuscation class **.*KClasses*"),
-         tb -> {
-           tb.noTreeShaking();
-           tb.addOptionsModification(o -> {
-             // Randomly choose a couple of optimizations.
-             o.enableVerticalClassMerging = false;
-             o.enableClassStaticizer = false;
-             o.outline.enabled = false;
-           });
-         });
+    test(
+        builder ->
+            builder
+                .addKeepRules("-keep,allowobfuscation class **.*KClasses*")
+                .addDontWarnJetBrains()
+                .noTreeShaking()
+                .addOptionsModification(
+                    o -> {
+                      // Randomly choose a couple of optimizations.
+                      o.enableVerticalClassMerging = false;
+                      o.enableClassStaticizer = false;
+                      o.outline.enabled = false;
+                    }));
   }
 
   @Test
   public void testDontShrinkAndDontObfuscate() throws Exception {
-    test(ImmutableList.of("-dontshrink", "-dontobfuscate"));
+    test(builder -> builder.addDontWarnJetBrains().noMinification().noTreeShaking());
   }
 
   @Test
   public void testDontShrink() throws Exception {
-    test(ImmutableList.of("-dontshrink"));
+    test(builder -> builder.addDontWarnJetBrains().noTreeShaking());
   }
 
   @Test
   public void testDontShrinkDifferently() throws Exception {
     test(
-        ImmutableList.of("-keep,allowobfuscation class **.*KClasses*"),
-        tb -> tb.noTreeShaking());
+        builder ->
+            builder
+                .addKeepRules("-keep,allowobfuscation class **.*KClasses*")
+                .addDontWarnJetBrains()
+                .noTreeShaking());
   }
 
   @Test
   public void testDontOptimize() throws Exception {
-    test(ImmutableList.of("-dontoptimize"));
+    test(builder -> builder.noOptimization());
   }
 
   @Test
   public void testDontObfuscate() throws Exception {
-    test(ImmutableList.of("-dontobfuscate"));
+    test(builder -> builder.noMinification());
   }
 
 }

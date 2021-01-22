@@ -49,6 +49,7 @@ public class Proto2BuilderOnlyReferencedFromDynamicMethodTest extends ProtoShrin
         .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
         .allowAccessModification()
         .allowDiagnosticMessages()
+        .allowUnusedDontWarnPatterns()
         .allowUnusedProguardConfigurationRules()
         .enableProtoShrinking()
         .setMinApi(parameters.getApiLevel())

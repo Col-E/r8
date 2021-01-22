@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.DictionaryReader;
 import com.android.tools.r8.origin.Origin;
@@ -627,7 +628,12 @@ public class ProguardConfiguration {
     return keepPackageNamesPatterns;
   }
 
-  public ProguardClassFilter getDontWarnPatterns() {
+  public boolean hasDontWarnPatterns() {
+    return !dontWarnPatterns.isEmpty();
+  }
+
+  public ProguardClassFilter getDontWarnPatterns(DontWarnConfiguration.Witness witness) {
+    assert witness != null;
     return dontWarnPatterns;
   }
 

@@ -76,7 +76,7 @@ public class MetadataRewriteInPropertyTypeTest extends KotlinMetadataTestBase {
             // Keep non-private members of Impl
             .addKeepRules("-keep public class **.Impl { !private *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspect)
             .writeToZip();

@@ -87,7 +87,7 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
             .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
             .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
-            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspect)
             .writeToZip();

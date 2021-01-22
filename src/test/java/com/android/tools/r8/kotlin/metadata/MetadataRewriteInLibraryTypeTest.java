@@ -97,7 +97,7 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
             .addKeepMainRule(main)
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addDontWarn(PKG + ".**")
-            .addDontWarnJetBrainsAnnotations()
+            .addDontWarnJetBrainsNotNullAnnotation()
             .addDontWarnKotlin()
             .allowDiagnosticWarningMessages()
             // -dontoptimize so that basic code structure is kept.

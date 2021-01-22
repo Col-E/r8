@@ -1312,9 +1312,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         !Version.isDevelopmentVersion()
             || System.getProperty("com.android.tools.r8.allowTypeErrors") != null;
     public boolean allowInvokeErrors = false;
+    public boolean allowUnnecessaryDontWarnWildcards = true;
+    public boolean allowUnusedDontWarnRules = true;
     public boolean disableL8AnnotationRemoval = false;
-    public boolean allowClassInlinerGracefulExit =
-        System.getProperty("com.android.tools.r8.disallowClassInlinerGracefulExit") == null;
     public boolean reportUnusedProguardConfigurationRules = false;
     public boolean alwaysUseExistingAccessInfoCollectionsInMemberRebinding = true;
     public boolean alwaysUsePessimisticRegisterAllocation = false;

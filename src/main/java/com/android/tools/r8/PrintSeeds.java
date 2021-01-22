@@ -94,9 +94,7 @@ public class PrintSeeds {
               .run(executor);
       Enqueuer enqueuer =
           EnqueuerFactory.createForInitialTreeShaking(appView, executor, subtypingInfo);
-      AppInfoWithLiveness appInfo =
-          enqueuer.traceApplication(
-              rootSet, options.getProguardConfiguration().getDontWarnPatterns(), executor, timing);
+      AppInfoWithLiveness appInfo = enqueuer.traceApplication(rootSet, executor, timing);
       RootSetBuilder.writeSeeds(
           appInfo, System.out, type -> descriptors.contains(type.toDescriptorString()));
     } catch (ExecutionException e) {

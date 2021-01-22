@@ -154,7 +154,10 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
                 opt.desugaredLibraryConfiguration =
                     configurationWithSupportAllCallbacksFromLibrary(
                         opt, false, parameters, supportAllCallbacksFromLibrary))
-        .addDontWarnVivifiedClasses()
+        .applyIf(
+            parameters.getApiLevel().isLessThan(AndroidApiLevel.N)
+                && supportAllCallbacksFromLibrary,
+            builder -> builder.addDontWarnVivifiedClass(Consumer.class))
         .compile()
         .inspect(this::assertDoubleForEach)
         .inspect(this::assertWrapperMethodsPresent)

@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.AbstractCollection;
 import java.util.Collection;
@@ -45,7 +46,9 @@ public class MinimalInterfaceSuperTest extends DesugaredLibraryTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(MinimalInterfaceSuperTest.class)
         .addKeepMainRule(Main.class)
-        .addDontWarnVivifiedClasses()
+        .applyIf(
+            parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
+            builder -> builder.addDontWarnVivifiedClass(Predicate.class))
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()

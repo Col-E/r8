@@ -74,6 +74,10 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
     return runTest(
         folder,
         mainClass,
-        testBuilder -> testBuilder.noClassInlining().noClassStaticizing(noClassStaticizing));
+        testBuilder ->
+            testBuilder
+                .addDontWarnJetBrainsNotNullAnnotation()
+                .noClassInlining()
+                .noClassStaticizing(noClassStaticizing));
   }
 }

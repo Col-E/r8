@@ -49,7 +49,6 @@ import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.NoStaticClassMergingRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
-import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.shaking.ProguardClassNameList;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
@@ -770,7 +769,7 @@ public class TestBase {
     appView.setRootSet(rootSet);
     AppInfoWithLiveness appInfoWithLiveness =
         EnqueuerFactory.createForInitialTreeShaking(appView, executor, subtypingInfo)
-            .traceApplication(rootSet, ProguardClassFilter.empty(), executor, Timing.empty());
+            .traceApplication(rootSet, executor, Timing.empty());
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
     // due to liveness.
     return appView.setAppInfo(appInfoWithLiveness);

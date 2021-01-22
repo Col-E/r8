@@ -66,7 +66,10 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             "dataclass",
             mainClassName,
             testBuilder ->
-                testBuilder.addKeepRules(extraRules).addOptionsModification(disableClassInliner))
+                testBuilder
+                    .addKeepRules(extraRules)
+                    .addDontWarnJetBrainsAnnotations()
+                    .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
               ClassSubject dataClass = checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
@@ -107,7 +110,10 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             "dataclass",
             mainClassName,
             testBuilder ->
-                testBuilder.addKeepRules(extraRules).addOptionsModification(disableClassInliner))
+                testBuilder
+                    .addKeepRules(extraRules)
+                    .addDontWarnJetBrainsAnnotations()
+                    .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
               ClassSubject dataClass = checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
@@ -147,7 +153,10 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             "dataclass",
             mainClassName,
             testBuilder ->
-                testBuilder.addKeepRules(extraRules).addOptionsModification(disableClassInliner))
+                testBuilder
+                    .addKeepRules(extraRules)
+                    .addDontWarnJetBrainsAnnotations()
+                    .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
               ClassSubject dataClass = checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
@@ -187,7 +196,10 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             "dataclass",
             mainClassName,
             testBuilder ->
-                testBuilder.addKeepRules(extraRules).addOptionsModification(disableClassInliner))
+                testBuilder
+                    .addKeepRules(extraRules)
+                    .addDontWarnJetBrainsAnnotations()
+                    .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
               ClassSubject dataClass = checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
@@ -207,7 +219,10 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             "dataclass",
             mainClassName,
             testBuilder ->
-                testBuilder.addKeepRules(extraRules).addOptionsModification(disableClassInliner))
+                testBuilder
+                    .addKeepRules(extraRules)
+                    .addDontWarnJetBrainsAnnotations()
+                    .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
               ClassSubject dataClass = checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());

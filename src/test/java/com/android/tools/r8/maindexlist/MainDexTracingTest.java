@@ -22,6 +22,7 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.references.Reference;
@@ -213,7 +214,8 @@ public class MainDexTracingTest extends TestBase {
         AndroidApiLevel.I,
         builder ->
             builder
-                .addDontWarnCompilerSynthesizedAnnotations()
+                .applyIf(
+                    backend.isDex(), TestShrinkerBuilder::addDontWarnCompilerSynthesizedAnnotations)
                 .addOptionsModification(options -> options.enableInlining = false));
   }
 

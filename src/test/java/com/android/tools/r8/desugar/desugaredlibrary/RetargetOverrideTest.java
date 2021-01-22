@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -62,9 +63,13 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
         testForR8(Backend.DEX)
             .addKeepMainRule(Executor.class)
             .addInnerClasses(RetargetOverrideTest.class)
-            .addDontWarnRetargetLibraryMembers()
-            .addDontWarnTimeConversions()
-            .addDontWarnVivifiedClasses()
+            .applyIf(
+                parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
+                builder ->
+                    builder
+                        .addDontWarnRetargetLibraryMembers()
+                        .addDontWarnTimeConversions()
+                        .addDontWarnVivifiedClasses())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .setMinApi(parameters.getApiLevel())
             .compile()

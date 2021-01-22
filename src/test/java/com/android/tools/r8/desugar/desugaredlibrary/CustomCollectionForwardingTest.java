@@ -5,6 +5,8 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestShrinkerBuilder;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
@@ -62,7 +64,9 @@ public class CustomCollectionForwardingTest extends DesugaredLibraryTestBase {
         .addKeepMainRule(Executor.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .addDontWarnEmulatedLibraryClasses()
+        .applyIf(
+            parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
+            TestShrinkerBuilder::addDontWarnEmulatedLibraryClasses)
         .compile()
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,

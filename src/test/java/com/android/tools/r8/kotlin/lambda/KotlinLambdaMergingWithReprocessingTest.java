@@ -35,11 +35,13 @@ public class KotlinLambdaMergingWithReprocessingTest extends AbstractR8KotlinTes
         "reprocess_merged_lambdas_kstyle",
         mainClassName,
         testBuilder ->
-            testBuilder.addOptionsModification(
-                options -> {
-                  options.enableInlining = true;
-                  options.enableClassInlining = true;
-                  options.enableLambdaMerging = true;
-                }));
+            testBuilder
+                .addDontWarnJetBrainsNotNullAnnotation()
+                .addOptionsModification(
+                    options -> {
+                      options.enableInlining = true;
+                      options.enableClassInlining = true;
+                      options.enableLambdaMerging = true;
+                    }));
   }
 }

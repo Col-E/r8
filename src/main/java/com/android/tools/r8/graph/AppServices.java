@@ -342,8 +342,7 @@ public class AppServices {
       }
 
       private void warn(String message, DexType type, Origin origin) {
-        if (options.getProguardConfiguration() == null
-            || !options.getProguardConfiguration().getDontWarnPatterns().matches(type)) {
+        if (!appView.getDontWarnConfiguration().matches(type)) {
           options.reporter.warning(new StringDiagnostic(message, origin));
         }
       }

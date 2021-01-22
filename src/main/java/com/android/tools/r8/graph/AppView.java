@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
@@ -57,6 +58,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private T appInfo;
   private AppInfoWithClassHierarchy appInfoForDesugaring;
   private AppServices appServices;
+  private final DontWarnConfiguration dontWarnConfiguration;
   private final WholeProgramOptimizations wholeProgramOptimizations;
   private GraphLens graphLens;
   private InitClassLens initClassLens;
@@ -107,6 +109,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       PrefixRewritingMapper mapper) {
     assert appInfo != null;
     this.appInfo = appInfo;
+    this.dontWarnConfiguration = DontWarnConfiguration.create(options().getProguardConfiguration());
     this.wholeProgramOptimizations = wholeProgramOptimizations;
     this.graphLens = GraphLens.getIdentityLens();
     this.initClassLens = InitClassLens.getDefault();
@@ -249,6 +252,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public void setAppServices(AppServices appServices) {
     this.appServices = appServices;
+  }
+
+  public DontWarnConfiguration getDontWarnConfiguration() {
+    return dontWarnConfiguration;
   }
 
   public boolean isClassEscapingIntoLibrary(DexType type) {

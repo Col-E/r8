@@ -127,7 +127,9 @@ public class CompatKeepInterfaceAsInstantiatedTest extends TestBase {
       throws Exception {
     return builder
         // Add -dontwarn to avoid PG failing since this test runner class is not present.
-        .addKeepRules("-dontwarn " + CompatKeepInterfaceAsInstantiatedTest.class.getTypeName())
+        .applyIf(
+            builder.isProguardTestBuilder(),
+            b -> b.addDontWarn(CompatKeepInterfaceAsInstantiatedTest.class))
         .noMinification()
         .addProgramClasses(main, Foo.class)
         .addKeepMainRule(main)
