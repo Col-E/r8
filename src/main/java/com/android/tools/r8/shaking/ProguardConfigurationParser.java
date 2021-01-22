@@ -40,6 +40,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
 public class ProguardConfigurationParser {
@@ -1726,25 +1727,25 @@ public class ProguardConfigurationParser {
       return Integer.parseInt(s);
     }
 
-    private final Predicate<Integer> CLASS_NAME_PREDICATE =
-        codePoint ->
-            IdentifierUtils.isDexIdentifierPart(codePoint)
-                || codePoint == '.'
-                || codePoint == '*'
-                || codePoint == '?'
-                || codePoint == '%'
-                || codePoint == '['
-                || codePoint == ']';
+    private boolean isClassName(int codePoint) {
+      return IdentifierUtils.isDexIdentifierPart(codePoint)
+          || codePoint == '.'
+          || codePoint == '*'
+          || codePoint == '?'
+          || codePoint == '%'
+          || codePoint == '['
+          || codePoint == ']';
+    }
 
-    private final Predicate<Integer> PACKAGE_NAME_PREDICATE =
-        codePoint ->
-            IdentifierUtils.isDexIdentifierPart(codePoint)
-                || codePoint == '.'
-                || codePoint == '*'
-                || codePoint == '?';
+    private boolean isPackageName(int codePoint) {
+      return IdentifierUtils.isDexIdentifierPart(codePoint)
+          || codePoint == '.'
+          || codePoint == '*'
+          || codePoint == '?';
+    }
 
     private String acceptClassName() {
-      return acceptString(CLASS_NAME_PREDICATE);
+      return acceptString(this::isClassName);
     }
 
     private IdentifierPatternWithWildcards acceptIdentifierWithBackreference(IdentifierType kind) {
@@ -1842,8 +1843,8 @@ public class ProguardConfigurationParser {
           wildcardsCollector.add(new ProguardWildcard.Pattern(String.valueOf((char) current)));
           end += Character.charCount(current);
         } else if (kind == IdentifierType.PACKAGE_NAME
-            ? PACKAGE_NAME_PREDICATE.test(current)
-            : (CLASS_NAME_PREDICATE.test(current) || current == '>')) {
+            ? isPackageName(current)
+            : (isClassName(current) || current == '>')) {
           end += Character.charCount(current);
         } else if (kind != IdentifierType.PACKAGE_NAME && current == '<') {
           currentBackreference = new StringBuilder();
@@ -1942,7 +1943,7 @@ public class ProguardConfigurationParser {
                   || codePoint == '.');
     }
 
-    private String acceptString(Predicate<Integer> codepointAcceptor) {
+    private String acceptString(IntPredicate codepointAcceptor) {
       int start = position;
       int end = position;
       while (!eof(end)) {
