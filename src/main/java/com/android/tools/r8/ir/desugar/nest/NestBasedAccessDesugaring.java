@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.desugar.nest;
 
+import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
+
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -76,13 +78,17 @@ public class NestBasedAccessDesugaring {
   }
 
   void forEachNest(Consumer<Nest> consumer) {
+    forEachNest(consumer, emptyConsumer());
+  }
+
+  void forEachNest(Consumer<Nest> consumer, Consumer<DexClass> missingHostConsumer) {
     Set<DexType> seenNestHosts = Sets.newIdentityHashSet();
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       if (!clazz.isInANest() || !seenNestHosts.add(clazz.getNestHost())) {
         continue;
       }
 
-      Nest nest = Nest.create(appView, clazz);
+      Nest nest = Nest.create(appView, clazz, missingHostConsumer);
       if (nest != null) {
         consumer.accept(nest);
       }
@@ -225,7 +231,7 @@ public class NestBasedAccessDesugaring {
   private RuntimeException reportIncompleteNest(LibraryMember<?, ?> member) {
     Nest nest = Nest.create(appView, member.getHolder());
     assert nest != null : "Should be a compilation error if missing nest host on library class.";
-    throw appView.options().errorMissingClassIncompleteNest(nest);
+    throw appView.options().errorMissingNestMember(nest);
   }
 
   private DexProgramClass createNestAccessConstructor() {

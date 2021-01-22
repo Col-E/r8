@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class Nest {
 
@@ -25,13 +26,19 @@ public class Nest {
   }
 
   public static Nest create(AppView<?> appView, DexClass clazz) {
+    return create(appView, clazz, null);
+  }
+
+  public static Nest create(
+      AppView<?> appView, DexClass clazz, Consumer<DexClass> missingHostConsumer) {
     assert clazz.isInANest();
 
     DexClass hostClass = clazz.isNestHost() ? clazz : appView.definitionFor(clazz.getNestHost());
     if (hostClass == null) {
       // Missing nest host means the class is considered as not being part of a nest.
-      clazz.clearNestHost();
-      appView.options().nestDesugaringWarningMissingNestHost(clazz);
+      if (missingHostConsumer != null) {
+        missingHostConsumer.accept(clazz);
+      }
       return null;
     }
 

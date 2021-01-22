@@ -14,6 +14,7 @@ import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -120,7 +121,9 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
           testForR8(parameters.getBackend())
               .minification(minifying)
               .addKeepMainRule(TEST_CLASS)
-              .addDontWarnEmulatedLibraryClasses()
+              .applyIf(
+                  parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
+                  TestShrinkerBuilder::addDontWarnEmulatedLibraryClasses)
               .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
               .setMinApi(parameters.getApiLevel())
               .addOptionsModification(

@@ -21,6 +21,7 @@ import com.android.tools.r8.dex.Marker.Backend;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.ExperimentalClassFileVersionDiagnostic;
+import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.InvalidLibrarySuperclassDiagnostic;
@@ -602,6 +603,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean printCfg = false;
   public String printCfgFile;
   public boolean ignoreMissingClasses = false;
+
   // EXPERIMENTAL flag to get behaviour as close to Proguard as possible.
   public boolean forceProguardCompatibility = false;
   public AssertionConfigurationWithDefault assertionsConfiguration = null;
@@ -789,42 +791,28 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   private final Set<DexItem> invalidLibraryClasses = Sets.newConcurrentHashSet();
 
-  public RuntimeException errorMissingClassMissingNestHost(DexClass compiledClass) {
-    throw reporter.fatalError(messageErrorMissingNestHost(compiledClass));
-  }
-
-  public void nestDesugaringWarningMissingNestHost(DexClass compiledClass) {
-    if (compiledClass.isLibraryClass()) {
-      throw errorMissingClassMissingNestHost(compiledClass);
-    }
-    reporter.warning(
+  public RuntimeException errorMissingNestHost(DexClass clazz) {
+    throw reporter.fatalError(
         new MissingNestHostNestDesugarDiagnostic(
-            compiledClass.getOrigin(),
-            Position.UNKNOWN,
-            messageWarningMissingNestHost(compiledClass)));
+            clazz.getOrigin(), Position.UNKNOWN, messageErrorMissingNestHost(clazz)));
   }
 
-  public RuntimeException errorMissingClassIncompleteNest(Nest nest) {
-    throw reporter.fatalError(messageErrorIncompleteNest(nest));
-  }
-
-  private String messageErrorMissingNestHost(DexClass compiledClass) {
+  private static String messageErrorMissingNestHost(DexClass compiledClass) {
     String nestHostName = compiledClass.getNestHost().getName();
     return "Class "
         + compiledClass.type.getName()
         + " requires its nest host "
         + nestHostName
-        + " to be on program or class path. ";
+        + " to be on program or class path.";
   }
 
-  private String messageWarningMissingNestHost(DexClass compiledClass) {
-    return messageErrorMissingNestHost(compiledClass)
-        + "Class "
-        + compiledClass.type.getName()
-        + " is considered as not being part of any nest.";
+  public RuntimeException errorMissingNestMember(Nest nest) {
+    throw reporter.fatalError(
+        new IncompleteNestNestDesugarDiagnosic(
+            nest.getHostClass().getOrigin(), Position.UNKNOWN, messageErrorIncompleteNest(nest)));
   }
 
-  private String messageErrorIncompleteNest(Nest nest) {
+  private static String messageErrorIncompleteNest(Nest nest) {
     List<DexProgramClass> programClassesFromNest = new ArrayList<>();
     List<DexClasspathClass> classpathClassesFromNest = new ArrayList<>();
     List<DexLibraryClass> libraryClassesFromNest = new ArrayList<>();

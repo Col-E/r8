@@ -37,6 +37,9 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
   public void reportDesugarDependencies() {
     forEachNest(
         nest -> {
+          if (nest.hasMissingMembers()) {
+            throw appView.options().errorMissingNestMember(nest);
+          }
           DexClass hostClass = nest.getHostClass();
           for (DexClass memberClass : nest.getMembers()) {
             if (hostClass.isProgramClass() || memberClass.isProgramClass()) {
@@ -44,6 +47,9 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
               reportDependencyEdge(memberClass, hostClass, appView.options());
             }
           }
+        },
+        classWithoutHost -> {
+          throw appView.options().errorMissingNestHost(classWithoutHost);
         });
   }
 

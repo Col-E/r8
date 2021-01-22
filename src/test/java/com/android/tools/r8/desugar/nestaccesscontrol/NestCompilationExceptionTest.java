@@ -58,12 +58,14 @@ public class NestCompilationExceptionTest extends TestBase {
   }
 
   @Test
-  public void testWarningD8() throws Exception {
+  public void testD8() throws Exception {
     Assume.assumeTrue(parameters.isDexRuntime());
-    testIncompleteNestWarning(true, true);
-    testMissingNestHostWarning(true, true);
+    testMissingNestHostError(true);
+    testIncompleteNestError(true);
   }
-
+  // TODO R8:
+  // appView.options().reportMissingNestHost(clazz);
+  // clazz.clearNestHost();
   @Test
   public void testWarningR8() throws Exception {
     testIncompleteNestWarning(false, parameters.isDexRuntime());
@@ -72,8 +74,8 @@ public class NestCompilationExceptionTest extends TestBase {
 
   @Test
   public void testErrorR8() {
-    testMissingNestHostError();
-    testIncompleteNestError();
+    testMissingNestHostError(false);
+    testIncompleteNestError(false);
   }
 
   private TestCompilerBuilder<?, ?, ?, ?, ?> compileOnlyClassesMatching(
@@ -106,23 +108,38 @@ public class NestCompilationExceptionTest extends TestBase {
     }
   }
 
-  private void testMissingNestHostError() {
+  private void testMissingNestHostError(boolean d8) {
     try {
       Matcher<String> innerClassMatcher =
           containsString("BasicNestHostWithInnerClassMethods$BasicNestedClass");
-      compileOnlyClassesMatching(innerClassMatcher, false, false, false)
+      compileOnlyClassesMatching(innerClassMatcher, d8, false, false)
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                diagnostics
-                    .assertOnlyErrors()
-                    .assertErrorsMatch(diagnosticType(MissingClassesDiagnostic.class));
+                if (d8) {
+                  diagnostics
+                      .assertOnlyErrors()
+                      .assertErrorsMatch(
+                          diagnosticType(MissingNestHostNestDesugarDiagnostic.class));
 
-                MissingClassesDiagnostic diagnostic =
-                    (MissingClassesDiagnostic) diagnostics.getErrors().get(0);
-                assertEquals(1, diagnostic.getMissingClasses().size());
-                assertEquals(
-                    "nesthostexample.BasicNestHostWithInnerClassMethods",
-                    diagnostic.getMissingClasses().iterator().next().getTypeName());
+                  MissingNestHostNestDesugarDiagnostic diagnostic =
+                      (MissingNestHostNestDesugarDiagnostic) diagnostics.getErrors().get(0);
+                  assertEquals(
+                      "Class BasicNestHostWithInnerClassMethods$BasicNestedClass requires its nest "
+                          + "host BasicNestHostWithInnerClassMethods to be on program or class "
+                          + "path.",
+                      diagnostic.getDiagnosticMessage());
+                } else {
+                  diagnostics
+                      .assertOnlyErrors()
+                      .assertErrorsMatch(diagnosticType(MissingClassesDiagnostic.class));
+
+                  MissingClassesDiagnostic diagnostic =
+                      (MissingClassesDiagnostic) diagnostics.getErrors().get(0);
+                  assertEquals(1, diagnostic.getMissingClasses().size());
+                  assertEquals(
+                      "nesthostexample.BasicNestHostWithInnerClassMethods",
+                      diagnostic.getMissingClasses().iterator().next().getTypeName());
+                }
               });
     } catch (CompilationFailedException e) {
       // Expected failure.
@@ -131,22 +148,37 @@ public class NestCompilationExceptionTest extends TestBase {
     fail("Should have raised an exception for missing nest host");
   }
 
-  private void testIncompleteNestError() {
+  private void testIncompleteNestError(boolean d8) {
     try {
       Matcher<String> innerClassMatcher = endsWith("BasicNestHostWithInnerClassMethods");
-      compileOnlyClassesMatching(innerClassMatcher, false, false, false)
+      compileOnlyClassesMatching(innerClassMatcher, d8, false, false)
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                diagnostics
-                    .assertOnlyErrors()
-                    .assertErrorsMatch(diagnosticType(MissingClassesDiagnostic.class));
+                if (d8) {
+                  diagnostics
+                      .assertOnlyErrors()
+                      .assertErrorsMatch(diagnosticType(IncompleteNestNestDesugarDiagnosic.class));
 
-                MissingClassesDiagnostic diagnostic =
-                    (MissingClassesDiagnostic) diagnostics.getErrors().get(0);
-                assertEquals(1, diagnostic.getMissingClasses().size());
-                assertEquals(
-                    "nesthostexample.BasicNestHostWithInnerClassMethods$BasicNestedClass",
-                    diagnostic.getMissingClasses().iterator().next().getTypeName());
+                  IncompleteNestNestDesugarDiagnosic diagnostic =
+                      (IncompleteNestNestDesugarDiagnosic) diagnostics.getErrors().get(0);
+                  assertEquals(
+                      "Compilation of classes nesthostexample.BasicNestHostWithInnerClassMethods "
+                          + "requires its nest mates "
+                          + "nesthostexample.BasicNestHostWithInnerClassMethods$BasicNestedClass "
+                          + "(unavailable) to be on program or class path.",
+                      diagnostic.getDiagnosticMessage());
+                } else {
+                  diagnostics
+                      .assertOnlyErrors()
+                      .assertErrorsMatch(diagnosticType(MissingClassesDiagnostic.class));
+
+                  MissingClassesDiagnostic diagnostic =
+                      (MissingClassesDiagnostic) diagnostics.getErrors().get(0);
+                  assertEquals(1, diagnostic.getMissingClasses().size());
+                  assertEquals(
+                      "nesthostexample.BasicNestHostWithInnerClassMethods$BasicNestedClass",
+                      diagnostic.getMissingClasses().iterator().next().getTypeName());
+                }
               });
     } catch (Exception e) {
       // Expected failure.
