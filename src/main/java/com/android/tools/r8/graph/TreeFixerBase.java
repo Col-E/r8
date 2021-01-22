@@ -13,14 +13,14 @@ import java.util.Map;
 
 public abstract class TreeFixerBase {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
 
   private final Map<DexType, DexProgramClass> programClassCache = new IdentityHashMap<>();
   private final Map<DexType, DexProgramClass> synthesizedFromClasses = new IdentityHashMap<>();
   private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
-  public TreeFixerBase(AppView<AppInfoWithLiveness> appView) {
+  public TreeFixerBase(AppView<?> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
   }
@@ -51,8 +51,11 @@ public abstract class TreeFixerBase {
   public void recordFailedResolutionChanges() {
     // In order for optimizations to correctly rewrite field and method references that do not
     // resolve, we create a mapping from each failed resolution target to its reference reference.
-    appView
-        .appInfo()
+    if (!appView.appInfo().hasLiveness()) {
+      return;
+    }
+    AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
+    appInfoWithLiveness
         .getFailedFieldResolutionTargets()
         .forEach(
             field -> {
@@ -61,8 +64,7 @@ public abstract class TreeFixerBase {
                 recordFieldChange(field, fixedUpField);
               }
             });
-    appView
-        .appInfo()
+    appInfoWithLiveness
         .getFailedMethodResolutionTargets()
         .forEach(
             method -> {
