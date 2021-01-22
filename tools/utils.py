@@ -169,13 +169,12 @@ def RunCmd(cmd, env_vars=None, quiet=False, fail=True, logging=True):
   logger = ProgressLogger(quiet=quiet) if logging else None
   failed = False
   while True:
-    line = process.stdout.readline()
-    if line != b'':
+    line = process.stdout.readline().decode('utf-8')
+    if line != '':
       stripped = line.rstrip()
       stdout.append(stripped)
       if logger:
         logger.log(stripped)
-
       # TODO(christofferqa): r8 should fail with non-zero exit code.
       if ('AssertionError:' in stripped
           or 'CompilationError:' in stripped
