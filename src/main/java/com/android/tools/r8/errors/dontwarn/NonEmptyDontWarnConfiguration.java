@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.shaking.ProguardClassNameList;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -71,19 +70,19 @@ public class NonEmptyDontWarnConfiguration extends DontWarnConfiguration {
     for (ProguardClassNameList dontWarnPattern : dontWarnPatterns) {
       assert !dontWarnPattern.hasWildcards()
               || matchedDontWarnPatterns.getOrDefault(dontWarnPattern, emptySet()).size() != 1
-          : dontWarnPattern.toString()
-              + " only matched: "
-              + StringUtils.join(
-                  ", ",
-                  matchedDontWarnPatterns.getOrDefault(dontWarnPattern, emptySet()),
-                  DexType::getTypeName);
+          : "Unexpected unnecessary wildcard in -dontwarn "
+              + dontWarnPattern.toString()
+              + " (only matches "
+              + matchedDontWarnPatterns.get(dontWarnPattern).iterator().next().getTypeName()
+              + ")";
     }
     return true;
   }
 
   public boolean validateNoUnusedDontWarnPatterns() {
     for (ProguardClassNameList dontWarnPattern : dontWarnPatterns) {
-      assert matchedDontWarnPatterns.containsKey(dontWarnPattern) : dontWarnPattern.toString();
+      assert matchedDontWarnPatterns.containsKey(dontWarnPattern)
+          : "Unexpected unused rule -dontwarn " + dontWarnPattern.toString();
     }
     return true;
   }

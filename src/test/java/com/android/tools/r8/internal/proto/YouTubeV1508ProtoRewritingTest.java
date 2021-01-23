@@ -31,6 +31,7 @@ public class YouTubeV1508ProtoRewritingTest extends YouTubeCompilationBase {
 
   public YouTubeV1508ProtoRewritingTest(TestParameters parameters) {
     super(15, 8);
+    parameters.assertNoneRuntime();
   }
 
   @Test
@@ -55,6 +56,7 @@ public class YouTubeV1508ProtoRewritingTest extends YouTubeCompilationBase {
         .addMainDexRuleFiles(getMainDexRuleFiles())
         .allowCheckDiscardedErrors(true)
         .allowDiagnosticMessages()
+        .allowUnusedDontWarnPatterns()
         .allowUnusedProguardConfigurationRules()
         .setMinApi(AndroidApiLevel.H_MR2)
         .compile()
