@@ -1251,10 +1251,12 @@ public class IRConverter {
       timing.end();
     }
 
-    assert !method.isProcessed() || !isDebugMode;
+    assert !method.isProcessed() || !isDebugMode
+        : "Method already processed: " + context.toSourceString();
     assert !method.isProcessed()
-        || !appView.enableWholeProgramOptimizations()
-        || !appView.appInfo().withLiveness().isNeverReprocessMethod(method.method);
+            || !appView.enableWholeProgramOptimizations()
+            || !appView.appInfo().withLiveness().isNeverReprocessMethod(method.method)
+        : "Illegal reprocessing due to -neverreprocess rule: " + context.toSourceString();
 
     if (lambdaMerger != null) {
       timing.begin("Merge lambdas");
