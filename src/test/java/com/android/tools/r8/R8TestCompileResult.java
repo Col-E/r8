@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, R8TestRunResult> {
@@ -71,6 +72,11 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
 
   public List<Path> getFeatures() {
     return features;
+  }
+
+  @Override
+  public Set<String> getMainDexClasses() {
+    return state.getMainDexClasses();
   }
 
   @Override

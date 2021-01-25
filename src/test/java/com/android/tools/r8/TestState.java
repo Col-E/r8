@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.function.BiFunction;
 import org.junit.rules.TemporaryFolder;
 
@@ -12,6 +13,8 @@ public class TestState {
 
   private final TemporaryFolder temp;
   private final TestDiagnosticMessagesImpl messages = new TestDiagnosticMessagesImpl();
+
+  private Set<String> mainDexClasses;
 
   private String stdout;
   private String stderr;
@@ -38,6 +41,14 @@ public class TestState {
 
   public TestDiagnosticMessages getDiagnosticsMessages() {
     return messages;
+  }
+
+  public Set<String> getMainDexClasses() {
+    return mainDexClasses;
+  }
+
+  void setMainDexClasses(Set<String> mainDexClasses) {
+    this.mainDexClasses = mainDexClasses;
   }
 
   public String getStdout() {

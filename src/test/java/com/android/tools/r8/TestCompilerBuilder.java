@@ -14,6 +14,7 @@ import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ForwardingOutputStream;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingOutputStream;
@@ -30,10 +31,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class TestCompilerBuilder<
         C extends BaseCompilerCommand,
@@ -60,6 +64,7 @@ public abstract class TestCompilerBuilder<
   private boolean useDefaultRuntimeLibrary = true;
   private final List<Path> additionalRunClassPath = new ArrayList<>();
   private ProgramConsumer programConsumer;
+  private MainDexClassesCollector mainDexClassesCollector;
   private StringConsumer mainDexListConsumer;
   protected int minApiLevel = ToolHelper.getMinApiLevelForDexVm().getLevel();
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
@@ -174,7 +179,13 @@ public abstract class TestCompilerBuilder<
   public CR compile() throws CompilationFailedException {
     AndroidAppConsumers sink = new AndroidAppConsumers();
     builder.setProgramConsumer(sink.wrapProgramConsumer(programConsumer));
-    builder.setMainDexListConsumer(mainDexListConsumer);
+    if (mainDexClassesCollector != null || mainDexListConsumer != null) {
+      builder.setMainDexListConsumer(
+          ChainedStringConsumer.builder()
+              .addIfNotNull(mainDexClassesCollector)
+              .addIfNotNull(mainDexListConsumer)
+              .build());
+    }
     if (backend.isDex() || !isTestShrinkerBuilder()) {
       assert !builder.isMinApiLevelSet()
           : "Don't set the API level directly through BaseCompilerCommand.Builder in tests";
@@ -190,6 +201,7 @@ public abstract class TestCompilerBuilder<
         builder.addLibraryFiles(TestBase.runtimeJar(backend));
       }
     }
+    List<String> mainDexClasses = null;
     assertNull(oldStdout);
     oldStdout = System.out;
     assertNull(oldStderr);
@@ -222,6 +234,9 @@ public abstract class TestCompilerBuilder<
       }
       return cr;
     } finally {
+      if (mainDexClassesCollector != null) {
+        getState().setMainDexClasses(mainDexClassesCollector.getMainDexClasses());
+      }
       if (stdout != null) {
         getState().setStdout(stdout.toString());
       }
@@ -374,6 +389,12 @@ public abstract class TestCompilerBuilder<
     return self();
   }
 
+  public T collectMainDexClasses() {
+    assert mainDexClassesCollector == null;
+    mainDexClassesCollector = new MainDexClassesCollector();
+    return self();
+  }
+
   public T setMainDexListConsumer(StringConsumer consumer) {
     assert consumer != null;
     this.mainDexListConsumer = consumer;
@@ -468,5 +489,77 @@ public abstract class TestCompilerBuilder<
           assertionsConfigurationGenerator) {
     builder.addAssertionsConfiguration(assertionsConfigurationGenerator);
     return self();
+  }
+
+  private static class ChainedStringConsumer implements StringConsumer {
+
+    private final List<StringConsumer> consumers;
+
+    ChainedStringConsumer(List<StringConsumer> consumers) {
+      this.consumers = consumers;
+    }
+
+    static Builder builder() {
+      return new Builder();
+    }
+
+    @Override
+    public void accept(String string, DiagnosticsHandler handler) {
+      consumers.forEach(consumer -> consumer.accept(string, handler));
+    }
+
+    @Override
+    public void finished(DiagnosticsHandler handler) {
+      consumers.forEach(consumer -> consumer.finished(handler));
+    }
+
+    static class Builder {
+
+      private final List<StringConsumer> consumers = new ArrayList<>();
+
+      Builder add(StringConsumer consumer) {
+        assert consumer != null;
+        consumers.add(consumer);
+        return this;
+      }
+
+      Builder addIfNotNull(StringConsumer consumer) {
+        return consumer != null ? add(consumer) : this;
+      }
+
+      ChainedStringConsumer build() {
+        return new ChainedStringConsumer(consumers);
+      }
+    }
+  }
+
+  private static class MainDexClassesCollector implements StringConsumer {
+
+    private StringBuilder builder = new StringBuilder();
+    private Set<String> mainDexClasses;
+
+    public Set<String> getMainDexClasses() {
+      assert mainDexClasses != null;
+      return mainDexClasses;
+    }
+
+    @Override
+    public void accept(String string, DiagnosticsHandler handler) {
+      builder.append(string);
+    }
+
+    @Override
+    public void finished(DiagnosticsHandler handler) {
+      mainDexClasses =
+          Stream.of(builder.toString().split(System.lineSeparator()))
+              .map(
+                  line -> {
+                    assert line.endsWith(".class");
+                    return line.substring(0, line.length() - ".class".length());
+                  })
+              .map(DescriptorUtils::getJavaTypeFromBinaryName)
+              .collect(Collectors.toSet());
+      builder = null;
+    }
   }
 }

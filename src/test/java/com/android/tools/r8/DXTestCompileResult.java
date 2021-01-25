@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
+import java.util.Set;
 
 public class DXTestCompileResult extends TestCompileResult<DXTestCompileResult, DXTestRunResult> {
 
@@ -21,6 +22,11 @@ public class DXTestCompileResult extends TestCompileResult<DXTestCompileResult, 
   @Override
   public TestDiagnosticMessages getDiagnosticMessages() {
     throw new UnsupportedOperationException("No diagnostics messages from dx");
+  }
+
+  @Override
+  public Set<String> getMainDexClasses() {
+    throw new Unimplemented();
   }
 
   @Override

@@ -9,6 +9,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public class ProguardTestCompileResult
@@ -39,6 +40,11 @@ public class ProguardTestCompileResult
   @Override
   public TestDiagnosticMessages getDiagnosticMessages() {
     throw new UnsupportedOperationException("No diagnostics messages from Proguard");
+  }
+
+  @Override
+  public Set<String> getMainDexClasses() {
+    throw new Unimplemented();
   }
 
   @Override

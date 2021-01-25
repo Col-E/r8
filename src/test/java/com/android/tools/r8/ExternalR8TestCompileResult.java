@@ -5,10 +5,12 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public class ExternalR8TestCompileResult
@@ -48,6 +50,11 @@ public class ExternalR8TestCompileResult
   @Override
   public TestDiagnosticMessages getDiagnosticMessages() {
     throw new UnsupportedOperationException("No diagnostics messages from external R8");
+  }
+
+  @Override
+  public Set<String> getMainDexClasses() {
+    throw new Unimplemented();
   }
 
   @Override
