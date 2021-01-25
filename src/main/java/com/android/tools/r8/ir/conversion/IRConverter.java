@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -101,7 +100,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
-import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -838,9 +836,8 @@ public class IRConverter {
               outliner.identifyOutlineSites(code);
             },
             executorService);
-        DexProgramClass outlineClass = outliner.buildOutlinerClass(computeOutlineClassType());
-        appView.appInfo().addSynthesizedClass(outlineClass, true);
-        optimizeSynthesizedClass(outlineClass, executorService);
+        List<ProgramMethod> outlineMethods = outliner.buildOutlineMethods();
+        optimizeSynthesizedMethods(outlineMethods, executorService);
         forEachSelectedOutliningMethod(
             methodsSelectedForOutlining,
             code -> {
@@ -852,8 +849,7 @@ public class IRConverter {
             executorService);
         feedback.updateVisibleOptimizationInfo();
         assert outliner.checkAllOutlineSitesFoundAgain();
-        builder.addSynthesizedClass(outlineClass);
-        clearDexMethodCompilationState(outlineClass);
+        outlineMethods.forEach(m -> m.getDefinition().markNotProcessed());
       }
       timing.end();
     }
@@ -1037,27 +1033,11 @@ public class IRConverter {
     }
   }
 
-  // Find an unused name for the outlining class. When multiple runs produces additional
-  // outlining the default outlining class might already be present.
-  private DexType computeOutlineClassType() {
-    DexType result;
-    int count = 0;
-    String prefix = appView.options().synthesizedClassPrefix.replace('/', '.');
-    do {
-      String name =
-          prefix + OutlineOptions.CLASS_NAME + (count == 0 ? "" : Integer.toString(count));
-      count++;
-      result = appView.dexItemFactory().createType(DescriptorUtils.javaTypeToDescriptor(name));
-
-    } while (appView.appInfo().definitionForWithoutExistenceAssert(result) != null);
-    return result;
-  }
-
-  public void optimizeSynthesizedClass(
-      DexProgramClass clazz, ExecutorService executorService)
+  public void optimizeSynthesizedMethods(
+      List<ProgramMethod> programMethods, ExecutorService executorService)
       throws ExecutionException {
     // Process the generated class, but don't apply any outlining.
-    SortedProgramMethodSet methods = SortedProgramMethodSet.create(clazz::forEachProgramMethod);
+    SortedProgramMethodSet methods = SortedProgramMethodSet.create(programMethods::forEach);
     processMethodsConcurrently(methods, executorService);
   }
 

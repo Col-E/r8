@@ -11,7 +11,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -37,9 +37,13 @@ public class OutlinesWithPrimitiveArrayTypeArguments extends TestBase {
   }
 
   private void validateOutlining(CodeInspector inspector) {
-    ClassSubject outlineClass = inspector.clazz(OutlineOptions.CLASS_NAME);
+    ClassSubject outlineClass =
+        inspector.clazz(SyntheticItemsTestUtils.syntheticOutlineClass(TestClass.class, 0));
     MethodSubject outline0Method =
-        outlineClass.method("void", "outline0", ImmutableList.of("int[]", "int[]"));
+        outlineClass.method(
+            "void",
+            SyntheticItemsTestUtils.syntheticMethodName(),
+            ImmutableList.of("int[]", "int[]"));
     assertThat(outline0Method, isPresent());
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(

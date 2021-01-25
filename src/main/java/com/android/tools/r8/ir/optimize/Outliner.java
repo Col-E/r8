@@ -10,26 +10,16 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
-import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
@@ -65,8 +55,8 @@ import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNest
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -76,7 +66,6 @@ import com.android.tools.r8.utils.collections.LongLivedProgramMethodMultisetBuil
 import com.android.tools.r8.utils.collections.ProgramMethodMultiset;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -102,9 +91,9 @@ import java.util.function.Consumer;
  *       {@link OutlineOptions#threshold}). Each selected method is then converted back to IR and
  *       passed to {@link Outliner#identifyOutlineSites(IRCode)}, which then stores concrete
  *       outlining candidates in {@link Outliner#outlineSites}.
- *   <li>Third, {@link Outliner#buildOutlinerClass(DexType)} is called to construct the <em>outline
- *       support class</em> containing a static helper method for each outline candidate that occurs
- *       frequently enough. Each selected method is then converted to IR, passed to {@link
+ *   <li>Third, {@link Outliner#buildOutlineMethods()} is called to construct the <em>outline
+ *       support classes</em> containing a static helper method for each outline candidate that
+ *       occurs frequently enough. Each selected method is then converted to IR, passed to {@link
  *       Outliner#applyOutliningCandidate(IRCode)} to perform the outlining, and converted back to
  *       the output format (DEX or CF).
  * </ul>
@@ -116,7 +105,7 @@ public class Outliner {
       new ArrayList<>();
   /** Result of second step (see {@link Outliner#selectMethodsForOutlining()}. */
   private final Map<Outline, List<ProgramMethod>> outlineSites = new HashMap<>();
-  /** Result of third step (see {@link Outliner#buildOutlinerClass(DexType)}. */
+  /** Result of third step (see {@link Outliner#buildOutlineMethods()}. */
   private final Map<Outline, DexMethod> generatedOutlines = new HashMap<>();
 
   static final int MAX_IN_SIZE = 5;  // Avoid using ranged calls for outlined code.
@@ -579,11 +568,6 @@ public class Outliner {
         proto = appView.dexItemFactory().createProto(returnType, argumentTypesArray);
       }
       return proto;
-    }
-
-    // Build the DexMethod for this outline.
-    DexMethod buildMethod(DexType clazz, DexString name) {
-      return appView.dexItemFactory().createMethod(clazz, buildProto(), name);
     }
 
     @Override
@@ -1355,67 +1339,40 @@ public class Outliner {
     return methodsSelectedForOutlining;
   }
 
-  public DexProgramClass buildOutlinerClass(DexType type) {
-    // Build the outlined methods.
-    // By now the candidates are the actual selected outlines. Name the generated methods in a
-    // consistent order, to provide deterministic output.
+  public List<ProgramMethod> buildOutlineMethods() {
+    List<ProgramMethod> outlineMethods = new ArrayList<>();
+    // By now the candidates are the actual selected outlines. Iterate the outlines in a
+    // consistent order, to provide deterministic naming of the internal-synthetics.
+    // The choice of 'representative' will ensure deterministic naming of the external names.
     List<Outline> outlines = selectOutlines();
     outlines.sort(Comparator.naturalOrder());
-    DexEncodedMethod[] direct = new DexEncodedMethod[outlines.size()];
-    int count = 0;
     for (Outline outline : outlines) {
-      MethodAccessFlags methodAccess =
-          MethodAccessFlags.fromSharedAccessFlags(
-              Constants.ACC_PUBLIC | Constants.ACC_STATIC, false);
-      DexString methodName =
-          appView.dexItemFactory().createString(OutlineOptions.METHOD_PREFIX + count);
-      DexMethod method = outline.buildMethod(type, methodName);
       List<ProgramMethod> sites = outlineSites.get(outline);
       assert !sites.isEmpty();
-      direct[count] =
-          new DexEncodedMethod(
-              method,
-              methodAccess,
-              MethodTypeSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              ParameterAnnotationsList.empty(),
-              new OutlineCode(outline),
-              true);
-      if (appView.options().isGeneratingClassFiles()) {
-        direct[count].upgradeClassFileVersion(sites.get(0).getDefinition().getClassFileVersion());
-      }
-      generatedOutlines.put(outline, method);
-      count++;
+      ProgramMethod representative = findDeterministicRepresentative(sites);
+      ProgramMethod outlineMethod =
+          appView
+              .getSyntheticItems()
+              .createMethod(
+                  SyntheticKind.OUTLINE,
+                  representative,
+                  appView.dexItemFactory(),
+                  builder -> {
+                    builder
+                        .setAccessFlags(
+                            MethodAccessFlags.fromSharedAccessFlags(
+                                Constants.ACC_PUBLIC | Constants.ACC_STATIC, false))
+                        .setProto(outline.buildProto())
+                        .setCode(m -> new OutlineCode(outline));
+                    if (appView.options().isGeneratingClassFiles()) {
+                      builder.setClassFileVersion(
+                          representative.getDefinition().getClassFileVersion());
+                    }
+                  });
+      generatedOutlines.put(outline, outlineMethod.getReference());
+      outlineMethods.add(outlineMethod);
     }
-    // No need to sort the direct methods as they are generated in sorted order.
-
-    // Build the outliner class.
-    DexTypeList interfaces = DexTypeList.empty();
-    DexString sourceFile = appView.dexItemFactory().createString("outline");
-    ClassAccessFlags accessFlags = ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC);
-    assert !appView.options().encodeChecksums;
-    // The outliner is R8 only and checksum is not a supported part of R8 compilation.
-    ChecksumSupplier checksumSupplier = DexProgramClass::invalidChecksumRequest;
-    return new DexProgramClass(
-        type,
-        null,
-        new SynthesizedOrigin("outlining", getClass()),
-        accessFlags,
-        appView.dexItemFactory().objectType,
-        interfaces,
-        sourceFile,
-        null,
-        Collections.emptyList(),
-        null,
-        Collections.emptyList(),
-        ClassSignature.noSignature(),
-        DexAnnotationSet.empty(),
-        DexEncodedField.EMPTY_ARRAY, // Static fields.
-        DexEncodedField.EMPTY_ARRAY, // Instance fields.
-        direct,
-        DexEncodedMethod.EMPTY_ARRAY, // Virtual methods.
-        appView.dexItemFactory().getSkipNameValidationForTesting(),
-        checksumSupplier);
+    return outlineMethods;
   }
 
   private List<Outline> selectOutlines() {
@@ -1428,6 +1385,18 @@ public class Outliner {
       }
     }
     return result;
+  }
+
+  private static ProgramMethod findDeterministicRepresentative(List<ProgramMethod> members) {
+    // Pick a deterministic member as representative.
+    ProgramMethod smallest = members.get(0);
+    for (int i = 1; i < members.size(); i++) {
+      ProgramMethod next = members.get(i);
+      if (next.getReference().compareTo(smallest.getReference()) < 0) {
+        smallest = next;
+      }
+    }
+    return smallest;
   }
 
   public void applyOutliningCandidate(IRCode code) {

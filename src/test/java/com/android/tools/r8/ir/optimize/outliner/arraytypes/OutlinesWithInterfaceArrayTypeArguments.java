@@ -11,8 +11,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -44,12 +44,15 @@ public class OutlinesWithInterfaceArrayTypeArguments extends TestBase {
   private void validateOutlining(CodeInspector inspector) {
     // No outlining when arrays of interfaces are involved, see b/132420510 - unless the testing
     // option is set.
-    ClassSubject outlineClass = inspector.clazz(OutlineOptions.CLASS_NAME);
+    ClassSubject outlineClass =
+        inspector.clazz(SyntheticItemsTestUtils.syntheticOutlineClass(TestClass.class, 0));
     if (allowOutlinerInterfaceArrayArguments && parameters.isCfRuntime()) {
       assertThat(outlineClass, isPresent());
       MethodSubject outline0Method =
           outlineClass.method(
-              "void", "outline0", ImmutableList.of("java.lang.Object[]", "java.lang.Object[]"));
+              "void",
+              SyntheticItemsTestUtils.syntheticMethodName(),
+              ImmutableList.of("java.lang.Object[]", "java.lang.Object[]"));
       assertThat(outline0Method, isPresent());
       ClassSubject classSubject = inspector.clazz(TestClass.class);
       assertThat(

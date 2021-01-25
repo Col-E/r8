@@ -165,11 +165,9 @@ public final class BackportedMethodRewriter {
   public void processSynthesizedClasses(IRConverter converter, ExecutorService executor)
       throws ExecutionException {
     while (!synthesizedMethods.isEmpty()) {
-      List<ProgramMethod> methods = new ArrayList<>(synthesizedMethods);
+      ArrayList<ProgramMethod> methods = new ArrayList<>(synthesizedMethods);
       synthesizedMethods.clear();
-      for (ProgramMethod method : methods) {
-        converter.optimizeSynthesizedClass(method.getHolder(), executor);
-      }
+      converter.optimizeSynthesizedMethods(methods, executor);
     }
   }
 
