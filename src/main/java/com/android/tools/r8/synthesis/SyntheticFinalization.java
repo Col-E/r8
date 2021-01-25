@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 public class SyntheticFinalization {
@@ -215,8 +216,12 @@ public class SyntheticFinalization {
     assert verifyNoNestedSynthetics();
     DexApplication application;
     MainDexClasses mainDexClasses = appView.appInfo().getMainDexClasses();
-    List<DexProgramClass> finalSyntheticClasses = new ArrayList<>();
     Builder lensBuilder = new Builder();
+    ImmutableMap.Builder<DexType, SyntheticMethodReference> finalMethodsBuilder =
+        ImmutableMap.builder();
+    ImmutableMap.Builder<DexType, SyntheticProgramClassReference> finalClassesBuilder =
+        ImmutableMap.builder();
+    List<DexProgramClass> finalSyntheticProgramDefinitions = new ArrayList<>();
     {
       Map<DexType, NumberGenerator> generators = new IdentityHashMap<>();
       application =
@@ -226,22 +231,33 @@ public class SyntheticFinalization {
               computeEquivalences(appView, synthetics.getNonLegacyClasses().values(), generators),
               mainDexClasses,
               lensBuilder,
-              finalSyntheticClasses);
+              (clazz, reference) -> {
+                finalSyntheticProgramDefinitions.add(clazz);
+                finalClassesBuilder.put(clazz.getType(), reference);
+              },
+              (clazz, reference) -> {
+                finalSyntheticProgramDefinitions.add(clazz);
+                finalMethodsBuilder.put(clazz.getType(), reference);
+              });
     }
+    ImmutableMap<DexType, SyntheticMethodReference> finalMethods = finalMethodsBuilder.build();
+    ImmutableMap<DexType, SyntheticProgramClassReference> finalClasses =
+        finalClassesBuilder.build();
 
     handleSynthesizedClassMapping(
-        finalSyntheticClasses, application, options, mainDexClasses, lensBuilder.typeMap);
+        finalSyntheticProgramDefinitions,
+        application,
+        options,
+        mainDexClasses,
+        lensBuilder.typeMap);
 
     assert appView.appInfo().getMainDexClasses() == mainDexClasses;
-
-    Set<DexType> finalSyntheticTypes = Sets.newIdentityHashSet();
-    finalSyntheticClasses.forEach(clazz -> finalSyntheticTypes.add(clazz.getType()));
 
     Set<DexType> prunedSynthetics = Sets.newIdentityHashSet();
     synthetics.forEachNonLegacyItem(
         reference -> {
           DexType type = reference.getHolder();
-          if (!finalSyntheticTypes.contains(type)) {
+          if (!finalMethods.containsKey(type) && !finalClasses.containsKey(type)) {
             prunedSynthetics.add(type);
           }
         });
@@ -251,7 +267,7 @@ public class SyntheticFinalization {
             SyntheticItems.INVALID_ID_AFTER_SYNTHETIC_FINALIZATION,
             application,
             new CommittedSyntheticsCollection(
-                synthetics.getLegacyTypes(), ImmutableMap.of(), ImmutableMap.of()),
+                synthetics.getLegacyTypes(), finalMethods, finalClasses),
             ImmutableList.of()),
         lensBuilder.build(appView.graphLens(), appView.dexItemFactory()),
         PrunedItems.builder()
@@ -383,9 +399,11 @@ public class SyntheticFinalization {
       Map<DexType, EquivalenceGroup<SyntheticProgramClassDefinition>> syntheticClassGroups,
       MainDexClasses mainDexClasses,
       Builder lensBuilder,
-      List<DexProgramClass> newSyntheticClasses) {
+      BiConsumer<DexProgramClass, SyntheticProgramClassReference> addFinalSyntheticClass,
+      BiConsumer<DexProgramClass, SyntheticMethodReference> addFinalSyntheticMethod) {
     DexApplication application = appView.appInfo().app();
     DexItemFactory factory = appView.dexItemFactory();
+    List<DexProgramClass> newProgramClasses = new ArrayList<>();
 
     // TODO(b/168584485): Remove this once class-mapping support is removed.
     Set<DexType> derivedMainDexTypes = Sets.newIdentityHashSet();
@@ -409,7 +427,7 @@ public class SyntheticFinalization {
           context.registerPrefixRewriting(syntheticType, appView);
           DexProgramClass externalSyntheticClass =
               createExternalMethodClass(syntheticType, representative, factory);
-          newSyntheticClasses.add(externalSyntheticClass);
+          newProgramClasses.add(externalSyntheticClass);
           addSyntheticMarker(representative.getKind(), externalSyntheticClass, context, appView);
           assert externalSyntheticClass.getMethodCollection().size() == 1;
           DexEncodedMethod externalSyntheticMethod =
@@ -430,7 +448,7 @@ public class SyntheticFinalization {
           SynthesizingContext context = representative.getContext();
           context.registerPrefixRewriting(syntheticType, appView);
           DexProgramClass externalSyntheticClass = representative.getHolder();
-          newSyntheticClasses.add(externalSyntheticClass);
+          newProgramClasses.add(externalSyntheticClass);
           addSyntheticMarker(representative.getKind(), externalSyntheticClass, context, appView);
           for (SyntheticProgramClassDefinition member : syntheticGroup.getMembers()) {
             DexProgramClass memberClass = member.getHolder();
@@ -446,7 +464,6 @@ public class SyntheticFinalization {
           }
         });
 
-    List<DexProgramClass> newProgramClasses = new ArrayList<>(newSyntheticClasses);
     for (DexProgramClass clazz : application.classes()) {
       if (!pruned.contains(clazz.type)) {
         newProgramClasses.add(clazz);
@@ -459,8 +476,6 @@ public class SyntheticFinalization {
     for (DexType key : syntheticMethodGroups.keySet()) {
       assert application.definitionFor(key) != null;
     }
-
-    newSyntheticClasses.clear();
 
     DexApplication.Builder<?> builder = application.builder();
     TreeFixerBase treeFixer =
@@ -494,7 +509,8 @@ public class SyntheticFinalization {
     syntheticClassGroups.forEach(
         (syntheticType, syntheticGroup) -> {
           DexProgramClass externalSyntheticClass = appForLookup.programDefinitionFor(syntheticType);
-          newSyntheticClasses.add(externalSyntheticClass);
+          addFinalSyntheticClass.accept(
+              externalSyntheticClass, syntheticGroup.getRepresentative().toReference());
           for (SyntheticProgramClassDefinition member : syntheticGroup.getMembers()) {
             addMainDexAndSynthesizedFromForMember(
                 member,
@@ -507,7 +523,8 @@ public class SyntheticFinalization {
     syntheticMethodGroups.forEach(
         (syntheticType, syntheticGroup) -> {
           DexProgramClass externalSyntheticClass = appForLookup.programDefinitionFor(syntheticType);
-          newSyntheticClasses.add(externalSyntheticClass);
+          addFinalSyntheticMethod.accept(
+              externalSyntheticClass, syntheticGroup.getRepresentative().toReference());
           for (SyntheticMethodDefinition member : syntheticGroup.getMembers()) {
             addMainDexAndSynthesizedFromForMember(
                 member,
