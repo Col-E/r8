@@ -32,8 +32,7 @@ public class SyntheticNaming {
     THROW_ICCE("ThrowICCE", true),
     THROW_NSME("ThrowNSME", true),
     TWR_CLOSE_RESOURCE("TwrCloseResource", true),
-    SERVICE_LOADER("ServiceLoad", true),
-    OUTLINE("Outline", true);
+    SERVICE_LOADER("ServiceLoad", true);
 
     public final String descriptor;
     public final boolean isSingleSyntheticMethod;

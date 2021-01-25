@@ -10,7 +10,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -99,14 +98,11 @@ public class B112247415 extends TestBase {
         .inspector();
 
     for (FoundClassSubject clazz : inspector.allClasses()) {
-      if (!SyntheticItemsTestUtils.isExternalOutlineClass(clazz.getFinalReference())) {
-        clazz.forAllMethods(
-            method -> {
-              if (method.hasCode()) {
-                verifyAbsenceOfStringBuilderAppend(method.streamInstructions());
-              }
-            });
-      }
+      clazz.forAllMethods(method -> {
+        if (method.hasCode() && !method.getFinalName().startsWith("outline")) {
+          verifyAbsenceOfStringBuilderAppend(method.streamInstructions());
+        }
+      });
     }
   }
 

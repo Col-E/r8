@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralMapping;
@@ -43,7 +44,6 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
           "$r8$twr$utility",
           "$-DC",
           "$$ServiceLoaderMethods",
-          "com.android.tools.r8.GeneratedOutlineSupport",
           "-$$Lambda$");
 
   public final DexString descriptor;
@@ -338,6 +338,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
     // Any entry that is removed from here must be added to OLD_SYNTHESIZED_NAMES to ensure that
     // newer releases can be used to merge previous builds.
     return name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX) // Could collide.
+        || name.contains(OutlineOptions.CLASS_NAME) // Global singleton.
         || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME); // Global singleton.
   }
 

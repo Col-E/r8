@@ -9,7 +9,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
+import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -72,9 +72,8 @@ public class NoOutliningForClassFileBuildsTest extends TestBase {
     assertThat(classSubject.uniqueMethodWithName("foo"), isPresent());
     assertThat(classSubject.uniqueMethodWithName("bar"), isPresent());
     boolean hasOutlineClass =
-        inspector
-            .clazz(SyntheticItemsTestUtils.syntheticOutlineClass(TestClass.class, 0))
-            .isPresent();
+        inspector.allClasses().stream()
+            .anyMatch(c -> c.getFinalName().equals(OutlineOptions.CLASS_NAME));
     assertEquals(forceOutline || parameters.isDexRuntime(), hasOutlineClass);
   }
 

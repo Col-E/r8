@@ -16,10 +16,6 @@ import org.hamcrest.Matcher;
 
 public class SyntheticItemsTestUtils {
 
-  public static String syntheticMethodName() {
-    return SyntheticNaming.INTERNAL_SYNTHETIC_METHOD_PREFIX;
-  }
-
   public static ClassReference syntheticCompanionClass(Class<?> clazz) {
     return Reference.classFromDescriptor(
         InterfaceMethodRewriter.getCompanionClassDescriptor(
@@ -27,11 +23,8 @@ public class SyntheticItemsTestUtils {
   }
 
   private static ClassReference syntheticClass(Class<?> clazz, SyntheticKind kind, int id) {
-    return syntheticClass(Reference.classFromClass(clazz), kind, id);
-  }
-
-  private static ClassReference syntheticClass(ClassReference clazz, SyntheticKind kind, int id) {
-    return SyntheticNaming.makeSyntheticReferenceForTest(clazz, kind, "" + id);
+    return SyntheticNaming.makeSyntheticReferenceForTest(
+        Reference.classFromClass(clazz), kind, "" + id);
   }
 
   public static MethodReference syntheticBackportMethod(Class<?> clazz, int id, Method method) {
@@ -40,16 +33,8 @@ public class SyntheticItemsTestUtils {
     MethodReference originalMethod = Reference.methodFromMethod(method);
     return Reference.methodFromDescriptor(
         syntheticHolder.getDescriptor(),
-        syntheticMethodName(),
+        SyntheticNaming.INTERNAL_SYNTHETIC_METHOD_PREFIX,
         originalMethod.getMethodDescriptor());
-  }
-
-  public static ClassReference syntheticOutlineClass(Class<?> clazz, int id) {
-    return syntheticClass(clazz, SyntheticKind.OUTLINE, id);
-  }
-
-  public static ClassReference syntheticOutlineClass(ClassReference clazz, int id) {
-    return syntheticClass(clazz, SyntheticKind.OUTLINE, id);
   }
 
   public static ClassReference syntheticLambdaClass(Class<?> clazz, int id) {
@@ -80,10 +65,6 @@ public class SyntheticItemsTestUtils {
 
   public static boolean isExternalTwrCloseMethod(ClassReference reference) {
     return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, SyntheticKind.TWR_CLOSE_RESOURCE);
-  }
-
-  public static boolean isExternalOutlineClass(ClassReference reference) {
-    return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, SyntheticKind.OUTLINE);
   }
 
   public static Matcher<String> containsInternalSyntheticReference() {
