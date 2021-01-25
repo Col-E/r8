@@ -1252,7 +1252,10 @@ public class IRConverter {
     }
 
     assert !method.isProcessed() || !isDebugMode
-        : "Method already processed: " + context.toSourceString();
+        : "Method already processed: "
+            + context.toSourceString()
+            + System.lineSeparator()
+            + ExceptionUtils.getMainStackTrace();
     assert !method.isProcessed()
             || !appView.enableWholeProgramOptimizations()
             || !appView.appInfo().withLiveness().isNeverReprocessMethod(method.method)

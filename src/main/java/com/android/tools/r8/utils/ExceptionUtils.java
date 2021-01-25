@@ -22,8 +22,19 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class ExceptionUtils {
+
+  public static String getMainStackTrace() {
+    return Thread.getAllStackTraces().entrySet().stream()
+        .filter(x -> x.getKey().getName().equals("main"))
+        .map(x -> x.getValue())
+        .flatMap(x -> Stream.of(x))
+        .map(x -> x.toString())
+        .collect(Collectors.joining(System.lineSeparator()));
+  }
 
   public static void withConsumeResourceHandler(
       Reporter reporter, StringConsumer consumer, String data) {
