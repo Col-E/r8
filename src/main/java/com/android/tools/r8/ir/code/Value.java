@@ -328,8 +328,11 @@ public class Value implements Comparable<Value> {
   }
 
   public boolean onlyUsedInBlock(BasicBlock block) {
-    for (Instruction user : uniqueUsers()) {
-      if (user.getBlock() != block) {
+    if (hasPhiUsers() || hasDebugUsers()) {
+      return false;
+    }
+    for (Phi phiUser : uniquePhiUsers()) {
+      if (phiUser.getBlock() != block) {
         return false;
       }
     }
