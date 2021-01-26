@@ -1067,10 +1067,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public static class OutlineOptions {
-
-    public static final String CLASS_NAME = "com.android.tools.r8.GeneratedOutlineSupport";
-    public static final String METHOD_PREFIX = "outline";
-
     public boolean enabled = true;
     public int minSize = 3;
     public int maxSize = 99;

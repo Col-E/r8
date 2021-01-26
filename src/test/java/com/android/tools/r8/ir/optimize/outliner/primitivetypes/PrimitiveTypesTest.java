@@ -12,7 +12,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -38,10 +38,13 @@ public class PrimitiveTypesTest extends TestBase {
   }
 
   private void validateOutlining(CodeInspector inspector, Class<?> testClass, String argumentType) {
-    ClassSubject outlineClass = inspector.clazz(OutlineOptions.CLASS_NAME);
+    ClassSubject outlineClass =
+        inspector.clazz(SyntheticItemsTestUtils.syntheticOutlineClass(testClass, 0));
     MethodSubject outline0Method =
         outlineClass.method(
-            "java.lang.String", "outline0", ImmutableList.of(argumentType, argumentType));
+            "java.lang.String",
+            SyntheticItemsTestUtils.syntheticMethodName(),
+            ImmutableList.of(argumentType, argumentType));
     assertThat(outline0Method, isPresent());
     ClassSubject classSubject = inspector.clazz(testClass);
     assertThat(

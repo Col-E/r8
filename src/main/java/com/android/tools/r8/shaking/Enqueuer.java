@@ -109,7 +109,6 @@ import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleRes
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
-import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -1724,8 +1723,6 @@ public class Enqueuer {
             || !options.testing.checkForNotExpandingMainDexTracingResult
             || previousMainDexTracingResult.isRoot(clazz)
             || clazz.toSourceString().contains(ENUM_UNBOXING_UTILITY_CLASS_SUFFIX)
-            // TODO(b/177847090): Consider not outlining anything in main dex.
-            || clazz.toSourceString().contains(OutlineOptions.CLASS_NAME)
         : "Class " + clazz.toSourceString() + " was not a main dex root in the first round";
 
     // Mark types in inner-class attributes referenced.
@@ -3042,6 +3039,10 @@ public class Enqueuer {
       ImmutableSet<ProguardKeepRuleBase> keepAllSet =
           ImmutableSet.of(appView.options().getProguardConfiguration().getKeepAllRule());
       for (DexProgramClass clazz : appView.appInfo().classes()) {
+        if (appView.getSyntheticItems().isNonLegacySynthetic(clazz)) {
+          // Don't treat compiler synthesized classes as kept roots.
+          continue;
+        }
         enqueueRootClass(clazz, keepAllSet);
         clazz.forEachProgramMethod(method -> enqueueRootMethod(method, keepAllSet));
         clazz.forEachProgramField(field -> enqueueRootField(field, keepAllSet));

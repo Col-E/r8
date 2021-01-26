@@ -134,6 +134,7 @@ public class SyntheticFinalization {
       assert !syntheticMethodsMap.containsKey(from);
       syntheticMethodsMap.put(from, to);
       methodMap.put(from, to);
+      typeMap.put(from.getHolderType(), to.getHolderType());
     }
 
     void move(DexType from, DexType to) {

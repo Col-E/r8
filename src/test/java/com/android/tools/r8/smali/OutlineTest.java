@@ -30,14 +30,18 @@ import com.android.tools.r8.code.ReturnWide;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,6 +53,10 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class OutlineTest extends SmaliTestBase {
+
+  private static ClassReference OUTLINE_CLASS =
+      SyntheticItemsTestUtils.syntheticOutlineClass(
+          Reference.classFromTypeName(DEFAULT_CLASS_NAME), 0);
 
   private static final String stringBuilderAppendSignature =
       "Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;";
@@ -85,12 +93,13 @@ public class OutlineTest extends SmaliTestBase {
   }
 
   private String firstOutlineMethodName() {
-    return OutlineOptions.CLASS_NAME + '.' + OutlineOptions.METHOD_PREFIX + "0";
+    return OUTLINE_CLASS.getTypeName() + '.' + SyntheticItemsTestUtils.syntheticMethodName();
   }
 
-  private boolean isOutlineMethodName(String qualifiedName) {
-    String qualifiedPrefix = OutlineOptions.CLASS_NAME + '.' + OutlineOptions.METHOD_PREFIX;
-    return qualifiedName.indexOf(qualifiedPrefix) == 0;
+  private static boolean isOutlineMethodName(DexMethod method) {
+    return SyntheticItemsTestUtils.isExternalOutlineClass(
+            Reference.classFromDescriptor(method.holder.toDescriptorString()))
+        && method.name.toString().equals(SyntheticItemsTestUtils.syntheticMethodName());
   }
 
   @Test
@@ -142,7 +151,6 @@ public class OutlineTest extends SmaliTestBase {
 
       AndroidApp originalApplication = buildApplication(builder);
       AndroidApp processedApplication = processApplication(originalApplication, options);
-      assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
       // Return the processed method for inspection.
       DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -151,7 +159,7 @@ public class OutlineTest extends SmaliTestBase {
       assertTrue(code.instructions[0] instanceof ConstString);
       assertTrue(code.instructions[1] instanceof InvokeStatic);
       InvokeStatic invoke = (InvokeStatic) code.instructions[1];
-      assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+      assertTrue(isOutlineMethodName(invoke.getMethod()));
 
       // Run code and check result.
       String result = runArt(processedApplication);
@@ -211,7 +219,6 @@ public class OutlineTest extends SmaliTestBase {
 
       AndroidApp originalApplication = buildApplication(builder);
       AndroidApp processedApplication = processApplication(originalApplication, options);
-      assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
       // Return the processed method for inspection.
       DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -225,7 +232,7 @@ public class OutlineTest extends SmaliTestBase {
       }
       assertTrue(code.instructions[firstOutlineInvoke] instanceof InvokeStatic);
       InvokeStatic invoke = (InvokeStatic) code.instructions[firstOutlineInvoke];
-      assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+      assertTrue(isOutlineMethodName(invoke.getMethod()));
 
       // Run code and check result.
       String result = runArt(processedApplication);
@@ -273,7 +280,6 @@ public class OutlineTest extends SmaliTestBase {
     Consumer<InternalOptions> options = configureOutlineOptions(outline -> outline.threshold = 1);
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Return the processed method for inspection.
     DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -282,7 +288,7 @@ public class OutlineTest extends SmaliTestBase {
     assertTrue(code.instructions[0] instanceof ConstString);
     assertTrue(code.instructions[1] instanceof InvokeStatic);
     InvokeStatic invoke = (InvokeStatic) code.instructions[1];
-    assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke.getMethod()));
 
     // Run code and check result.
     String result = runArt(processedApplication);
@@ -336,7 +342,6 @@ public class OutlineTest extends SmaliTestBase {
     Consumer<InternalOptions> options = configureOutlineOptions(outline -> outline.threshold = 1);
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Return the processed method for inspection.
     DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -346,7 +351,7 @@ public class OutlineTest extends SmaliTestBase {
     assertTrue(code.instructions[1] instanceof ConstString);
     assertTrue(code.instructions[2] instanceof InvokeStatic);
     InvokeStatic invoke = (InvokeStatic) code.instructions[2];
-    assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke.getMethod()));
 
     // Run code and check result.
     String result = runArt(processedApplication);
@@ -402,7 +407,6 @@ public class OutlineTest extends SmaliTestBase {
 
       AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
       AndroidApp processedApplication = processApplication(originalApplication, options);
-      assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
       // Return the processed method for inspection.
       DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -412,13 +416,13 @@ public class OutlineTest extends SmaliTestBase {
       if (i < 3) {
         assertTrue(code.instructions[1] instanceof InvokeStatic);
         InvokeStatic invoke = (InvokeStatic) code.instructions[1];
-        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod()));
       } else {
         assertTrue(code.instructions[1] instanceof InvokeVirtual);
         assertTrue(code.instructions[2] instanceof InvokeVirtual);
         assertTrue(code.instructions[3] instanceof InvokeStatic);
         InvokeStatic invoke = (InvokeStatic) code.instructions[3];
-        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod()));
       }
 
       // Run code and check result.
@@ -480,7 +484,6 @@ public class OutlineTest extends SmaliTestBase {
 
       AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
       AndroidApp processedApplication = processApplication(originalApplication, options);
-      assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
       // Return the processed method for inspection.
       DexEncodedMethod method = getMethod(processedApplication, signature);
@@ -490,13 +493,13 @@ public class OutlineTest extends SmaliTestBase {
       if (i < 3) {
         assertTrue(code.instructions[1] instanceof InvokeStatic);
         InvokeStatic invoke = (InvokeStatic) code.instructions[1];
-        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod()));
       } else {
         assertTrue(code.instructions[1] instanceof InvokeVirtual);
         assertTrue(code.instructions[2] instanceof InvokeVirtual);
         assertTrue(code.instructions[3] instanceof InvokeStatic);
         InvokeStatic invoke = (InvokeStatic) code.instructions[3];
-        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod()));
       }
 
       // Run code and check result.
@@ -553,7 +556,6 @@ public class OutlineTest extends SmaliTestBase {
 
       AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
       AndroidApp processedApplication = processApplication(originalApplication, options);
-      assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
       // Return the processed main method for inspection.
       DexEncodedMethod mainMethod = getMethod(processedApplication, mainSignature);
@@ -569,14 +571,14 @@ public class OutlineTest extends SmaliTestBase {
       }
       if (i == 2) {
         InvokeStatic invoke = (InvokeStatic) mainCode.instructions[4];
-        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod()));
       } else if (i == 3) {
         InvokeStatic invoke = (InvokeStatic) mainCode.instructions[1];
-        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod()));
       } else {
         assert i == 4 || i == 5;
         InvokeStatic invoke = (InvokeStatic) mainCode.instructions[2];
-        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod()));
       }
 
       // Run code and check result.
@@ -653,19 +655,19 @@ public class OutlineTest extends SmaliTestBase {
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, getNumberOfProgramClasses(processedApplication));
+    assertEquals(3, getNumberOfProgramClasses(processedApplication));
 
     DexCode code1 = getMethod(processedApplication, signature1).getCode().asDexCode();
     assertEquals(4, code1.instructions.length);
     assertTrue(code1.instructions[1] instanceof InvokeStatic);
     InvokeStatic invoke1 = (InvokeStatic) code1.instructions[1];
-    assertTrue(isOutlineMethodName(invoke1.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke1.getMethod()));
 
     DexCode code2 = getMethod(processedApplication, signature2).getCode().asDexCode();
     assertEquals(5, code2.instructions.length);
     assertTrue(code2.instructions[2] instanceof InvokeStatic);
     InvokeStatic invoke2 = (InvokeStatic) code2.instructions[2];
-    assertTrue(isOutlineMethodName(invoke1.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke1.getMethod()));
 
     // Run code and check result.
     String result = runArt(processedApplication);
@@ -721,7 +723,6 @@ public class OutlineTest extends SmaliTestBase {
 
       AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
       AndroidApp processedApplication = processApplication(originalApplication, options);
-      assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
       DexCode code = getMethod(processedApplication, signature).getCode().asDexCode();
       int outlineInstructionIndex;
@@ -739,10 +740,10 @@ public class OutlineTest extends SmaliTestBase {
       Instruction instruction = code.instructions[outlineInstructionIndex];
       if (instruction instanceof InvokeStatic) {
         InvokeStatic invoke = (InvokeStatic) instruction;
-        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod()));
       } else {
         InvokeStaticRange invoke = (InvokeStaticRange) instruction;
-        assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+        assertTrue(isOutlineMethodName(invoke.getMethod()));
       }
 
       // Run code and check result.
@@ -791,7 +792,7 @@ public class OutlineTest extends SmaliTestBase {
     InvokeStatic invoke;
     assertTrue(code.instructions[0] instanceof InvokeStatic);
     invoke = (InvokeStatic) code.instructions[0];
-    assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke.getMethod()));
 
     // Run code and check result.
     String result = runArt(processedApplication);
@@ -859,16 +860,15 @@ public class OutlineTest extends SmaliTestBase {
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, getNumberOfProgramClasses(processedApplication));
+    assertEquals(4, getNumberOfProgramClasses(processedApplication));
 
     // Check that three outlining methods was created.
     CodeInspector inspector = new CodeInspector(processedApplication);
-    ClassSubject clazz = inspector.clazz(OutlineOptions.CLASS_NAME);
-    assertTrue(clazz.isPresent());
-    assertEquals(3, clazz.getDexProgramClass().getMethodCollection().numberOfDirectMethods());
+    List<DexEncodedMethod> outlineMethods = getOutlineMethods(inspector);
+    assertEquals(3, outlineMethods.size());
     // Collect the return types of the outlines for the body of method1 and method2.
     List<DexType> r = new ArrayList<>();
-    for (DexEncodedMethod directMethod : clazz.getDexProgramClass().directMethods()) {
+    for (DexEncodedMethod directMethod : outlineMethods) {
       if (directMethod.getCode().asDexCode().instructions[0] instanceof InvokeVirtual) {
         r.add(directMethod.method.proto.returnType);
       }
@@ -883,6 +883,16 @@ public class OutlineTest extends SmaliTestBase {
     // Run the code.
     String result = runArt(processedApplication);
     assertEquals("TestTestTestTestTest", result);
+  }
+
+  private static List<DexEncodedMethod> getOutlineMethods(CodeInspector inspector) {
+    List<DexEncodedMethod> outlineMethods = new ArrayList<>();
+    for (FoundClassSubject clazz : inspector.allClasses()) {
+      if (SyntheticItemsTestUtils.isExternalOutlineClass(clazz.getFinalReference())) {
+        clazz.forAllMethods(m -> outlineMethods.add(m.getMethod()));
+      }
+    }
+    return outlineMethods;
   }
 
   @Test
@@ -931,15 +941,18 @@ public class OutlineTest extends SmaliTestBase {
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, getNumberOfProgramClasses(processedApplication));
+    assertEquals(3, getNumberOfProgramClasses(processedApplication));
 
     final int count = 10;
-    // Process the application several times. Each time will outline the previous outline.
-    for (int i = 0; i < count; i++) {
+    // Process the application several times. Each time will outline the previous outlines.
+    for (int i = 1; i < count; i++) {
       // Build a new application with the Outliner class.
       originalApplication = processedApplication;
-      processedApplication = processApplication(originalApplication, options);
-      assertEquals(i + 3, getNumberOfProgramClasses(processedApplication));
+      processedApplication =
+          processApplication(
+              originalApplication,
+              options.andThen(o -> o.testing.allowConflictingSyntheticTypes = true));
+      assertEquals((i + 1) * 3, getNumberOfProgramClasses(processedApplication));
     }
 
     // Process the application several times. No more outlining as threshold has been raised.
@@ -954,7 +967,7 @@ public class OutlineTest extends SmaliTestBase {
       // Build a new application with the Outliner class.
       originalApplication = processedApplication;
       processedApplication = processApplication(originalApplication, options);
-      assertEquals(count - 1 + 3, getNumberOfProgramClasses(processedApplication));
+      assertEquals(count * 3, getNumberOfProgramClasses(processedApplication));
     }
 
     // Run the application with several levels of outlining.
@@ -1195,7 +1208,6 @@ public class OutlineTest extends SmaliTestBase {
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Return the processed method for inspection.
     DexEncodedMethod method1 = getMethod(processedApplication, signature1);
@@ -1205,7 +1217,7 @@ public class OutlineTest extends SmaliTestBase {
     assertTrue(code1.instructions[1] instanceof MoveResult);
     assertTrue(code1.instructions[2] instanceof Return);
     InvokeStatic invoke1 = (InvokeStatic) code1.instructions[0];
-    assertTrue(isOutlineMethodName(invoke1.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke1.getMethod()));
 
     DexEncodedMethod method2 = getMethod(processedApplication, signature2);
     DexCode code2 = method2.getCode().asDexCode();
@@ -1287,7 +1299,7 @@ public class OutlineTest extends SmaliTestBase {
     assertTrue(code.instructions[5] instanceof Const4);
     assertTrue(code.instructions[6] instanceof Return);
     InvokeStatic invoke = (InvokeStatic) code.instructions[1];
-    assertTrue(isOutlineMethodName(invoke.getMethod().qualifiedName()));
+    assertTrue(isOutlineMethodName(invoke.getMethod()));
 
     // Run code and check result.
     String result = runArt(processedApplication);
@@ -1614,15 +1626,13 @@ public class OutlineTest extends SmaliTestBase {
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
-    assertEquals(2, getNumberOfProgramClasses(processedApplication));
 
     // Verify the code.
     runDex2Oat(processedApplication);
   }
 
   private static boolean isOutlineInvoke(Instruction instruction) {
-    return instruction instanceof InvokeStatic
-        && instruction.getMethod().holder.toSourceString().equals(OutlineOptions.CLASS_NAME);
+    return instruction instanceof InvokeStatic && isOutlineMethodName(instruction.getMethod());
   }
 
   private void assertHasOutlineInvoke(DexEncodedMethod method) {
@@ -1699,10 +1709,10 @@ public class OutlineTest extends SmaliTestBase {
     assertHasOutlineInvoke(getMethod(processedApplication, signature2));
     assertThat(
         new CodeInspector(processedApplication)
-            .clazz(OutlineOptions.CLASS_NAME)
+            .clazz(OUTLINE_CLASS)
             .method(
                 "boolean",
-                "outline0",
+                SyntheticItemsTestUtils.syntheticMethodName(),
                 ImmutableList.of("java.io.PrintStream", "java.util.ArrayList")),
         isPresent());
 
@@ -1774,8 +1784,11 @@ public class OutlineTest extends SmaliTestBase {
     assertHasOutlineInvoke(getMethod(processedApplication, signature2));
     assertThat(
         new CodeInspector(processedApplication)
-            .clazz(OutlineOptions.CLASS_NAME)
-            .method("boolean", "outline0", ImmutableList.of("java.util.List")),
+            .clazz(OUTLINE_CLASS)
+            .method(
+                "boolean",
+                SyntheticItemsTestUtils.syntheticMethodName(),
+                ImmutableList.of("java.util.List")),
         isPresent());
 
     // Run code and check result.
@@ -1848,8 +1861,11 @@ public class OutlineTest extends SmaliTestBase {
     assertHasOutlineInvoke(getMethod(processedApplication, signature2));
     assertThat(
         new CodeInspector(processedApplication)
-            .clazz(OutlineOptions.CLASS_NAME)
-            .method("boolean", "outline0", ImmutableList.of("java.util.ArrayList")),
+            .clazz(OUTLINE_CLASS)
+            .method(
+                "boolean",
+                SyntheticItemsTestUtils.syntheticMethodName(),
+                ImmutableList.of("java.util.ArrayList")),
         isPresent());
 
     // Run code and check result.
@@ -1922,8 +1938,11 @@ public class OutlineTest extends SmaliTestBase {
     assertHasOutlineInvoke(getMethod(processedApplication, signature2));
     assertThat(
         new CodeInspector(processedApplication)
-            .clazz(OutlineOptions.CLASS_NAME)
-            .method("boolean", "outline0", ImmutableList.of("java.util.ArrayList")),
+            .clazz(OUTLINE_CLASS)
+            .method(
+                "boolean",
+                SyntheticItemsTestUtils.syntheticMethodName(),
+                ImmutableList.of("java.util.ArrayList")),
         isPresent());
 
     // Run code and check result.

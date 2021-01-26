@@ -12,7 +12,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -93,9 +93,10 @@ public class OutlinesWithNonNullTest extends TestBase {
   }
 
   private void validateOutlining(CodeInspector inspector, Class<?> main) {
-    ClassSubject outlineClass = inspector.clazz(OutlineOptions.CLASS_NAME);
-    assertThat(outlineClass, isPresent());
-    MethodSubject outlineMethod = outlineClass.uniqueMethodWithName("outline0");
+    ClassSubject outlineClass =
+        inspector.clazz(SyntheticItemsTestUtils.syntheticOutlineClass(main, 0));
+    MethodSubject outlineMethod =
+        outlineClass.uniqueMethodWithName(SyntheticItemsTestUtils.syntheticMethodName());
     assertThat(outlineMethod, isPresent());
 
     ClassSubject argClass = inspector.clazz(TestArg.class);

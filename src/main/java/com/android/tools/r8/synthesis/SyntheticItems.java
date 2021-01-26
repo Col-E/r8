@@ -201,6 +201,10 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return pending.legacyClasses.containsKey(type);
   }
 
+  public boolean isNonLegacySynthetic(DexProgramClass clazz) {
+    return isCommittedSynthetic(clazz.type) || isPendingSynthetic(clazz.type);
+  }
+
   public boolean isSyntheticClass(DexType type) {
     return isCommittedSynthetic(type)
         || isPendingSynthetic(type)
