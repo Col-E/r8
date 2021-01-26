@@ -120,9 +120,9 @@ class EnumUnboxingTreeFixer {
   }
 
   private DexEncodedMethod fixupEncodedMethod(DexEncodedMethod method) {
-    DexProto oldProto = method.proto();
+    DexProto oldProto = method.getProto();
     DexProto newProto = fixupProto(oldProto);
-    if (newProto == method.proto()) {
+    if (newProto == method.getProto()) {
       return method;
     }
     assert !method.isClassInitializer();

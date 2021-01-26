@@ -178,7 +178,7 @@ public class DesugaredLibraryAPIConverter {
         || definition.isLibraryMethodOverride().isFalse()) {
       return false;
     }
-    if (!appView.rewritePrefix.hasRewrittenTypeInSignature(definition.proto(), appView)
+    if (!appView.rewritePrefix.hasRewrittenTypeInSignature(definition.getProto(), appView)
         || appView
             .options()
             .desugaredLibraryConfiguration

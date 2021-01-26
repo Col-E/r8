@@ -385,7 +385,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public DexProto getProto() {
-    return getReference().proto;
+    return getReference().getProto();
   }
 
   @Override
@@ -400,10 +400,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public DexTypeList parameters() {
     return method.proto.parameters;
-  }
-
-  public DexProto proto() {
-    return method.proto;
   }
 
   public DexType returnType() {

@@ -172,7 +172,7 @@ public class ClassMerger {
     return dexItemFactory.createFreshMethodName(
         method.getDefinition().method.name.toSourceString(),
         method.getHolderType(),
-        method.getDefinition().proto(),
+        method.getDefinition().getProto(),
         group.getTarget().getType(),
         classMethodsBuilder::isFresh);
   }

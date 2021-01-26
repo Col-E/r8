@@ -45,7 +45,7 @@ public class ConstructorMerger {
 
     // Constructors should not be empty and all constructors should have the same prototype.
     assert !constructors.isEmpty();
-    assert constructors.stream().map(DexEncodedMethod::proto).distinct().count() == 1;
+    assert constructors.stream().map(DexEncodedMethod::getProto).distinct().count() == 1;
 
     this.dexItemFactory = appView.dexItemFactory();
   }
@@ -113,7 +113,7 @@ public class ConstructorMerger {
         dexItemFactory.createFreshMethodName(
             TEMPORARY_INSTANCE_INITIALIZER_PREFIX,
             constructor.getHolderType(),
-            constructor.proto(),
+            constructor.getProto(),
             group.getTarget().getType(),
             classMethodsBuilder::isFresh);
 

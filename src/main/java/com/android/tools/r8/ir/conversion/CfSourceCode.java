@@ -407,7 +407,7 @@ public class CfSourceCode implements SourceCode {
       if (!getMethod().isStatic()) {
         firstLocalIndex++;
       }
-      for (DexType value : getMethod().proto().parameters.values) {
+      for (DexType value : getMethod().getProto().parameters.values) {
         firstLocalIndex++;
         if (value.isLongType() || value.isDoubleType()) {
           firstLocalIndex++;
