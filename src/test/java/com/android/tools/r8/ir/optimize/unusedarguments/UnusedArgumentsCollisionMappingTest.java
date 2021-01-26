@@ -78,8 +78,8 @@ public class UnusedArgumentsCollisionMappingTest extends TestBase {
       if (method.getFinalName().equals("main")) {
         continue;
       }
-      foundZeroArgumentMethod |= method.getMethod().parameters().size() == 0;
-      foundOneArgumentMethod |= method.getMethod().parameters().size() == 1;
+      foundZeroArgumentMethod |= method.getMethod().getParameters().size() == 0;
+      foundOneArgumentMethod |= method.getMethod().getParameters().size() == 1;
     }
     assertTrue(foundZeroArgumentMethod);
     assertTrue(foundOneArgumentMethod);

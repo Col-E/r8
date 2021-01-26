@@ -4050,7 +4050,7 @@ public class Enqueuer {
   }
 
   private void markParameterAndReturnTypesAsLive(ProgramMethod method) {
-    for (DexType parameterType : method.getDefinition().parameters().values) {
+    for (DexType parameterType : method.getDefinition().getParameters()) {
       markTypeAsLive(parameterType, method);
     }
     markTypeAsLive(method.getDefinition().returnType(), method);

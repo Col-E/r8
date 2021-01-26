@@ -467,7 +467,7 @@ class Tracer {
       if (superTarget != null) {
         addMethod(superTarget.getReference());
       }
-      for (DexType type : method.getDefinition().parameters().values) {
+      for (DexType type : method.getDefinition().getParameters()) {
         registerTypeReference(type);
       }
       for (DexAnnotation annotation : method.getDefinition().annotations().annotations) {
