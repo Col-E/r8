@@ -331,8 +331,8 @@ public class Value implements Comparable<Value> {
     if (hasPhiUsers() || hasDebugUsers()) {
       return false;
     }
-    for (Phi phiUser : uniquePhiUsers()) {
-      if (phiUser.getBlock() != block) {
+    for (Instruction user : uniqueUsers()) {
+      if (user.getBlock() != block) {
         return false;
       }
     }
