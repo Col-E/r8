@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.string;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -22,7 +23,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -93,17 +93,17 @@ public class NameThenLengthTest extends TestBase {
   }
 
   private long countStringLength(MethodSubject method) {
-    return Streams.stream(method.iterateInstructions(instructionSubject -> {
-      if (instructionSubject.isInvoke()) {
-        return isStringLength(instructionSubject.getMethod());
-      }
-      return false;
-    })).count();
+    return method
+        .streamInstructions()
+        .filter(
+            instructionSubject ->
+                instructionSubject.isInvoke() && isStringLength(instructionSubject.getMethod()))
+        .count();
   }
 
   private long countNonZeroConstNumber(MethodSubject method) {
-    return Streams.stream(method.iterateInstructions(InstructionSubject::isConstNumber)).count()
-        - Streams.stream(method.iterateInstructions(instr -> instr.isConstNumber(0))).count();
+    return method.streamInstructions().filter(InstructionSubject::isConstNumber).count()
+        - method.streamInstructions().filter(instr -> instr.isConstNumber(0)).count();
   }
 
   private void test(
@@ -117,9 +117,13 @@ public class NameThenLengthTest extends TestBase {
     ClassSubject mainClass = codeInspector.clazz(MAIN);
 
     MethodSubject clinit = mainClass.clinit();
-    assertThat(clinit, isPresent());
-    assertEquals(expectedStringLengthCountInClinit, countStringLength(clinit));
-    assertEquals(expectedConstNumberCountInClinit, countNonZeroConstNumber(clinit));
+    if (result.isR8TestRunResult()) {
+      assertThat(clinit, isAbsent());
+    } else {
+      assertThat(clinit, isPresent());
+      assertEquals(expectedStringLengthCountInClinit, countStringLength(clinit));
+      assertEquals(expectedConstNumberCountInClinit, countNonZeroConstNumber(clinit));
+    }
 
     MethodSubject m = mainClass.uniqueMethodWithName("instanceMethod");
     assertThat(m, isPresent());
@@ -154,7 +158,7 @@ public class NameThenLengthTest extends TestBase {
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     // TODO(b/125303292): NAME_LENGTH is still not computed at compile time.
-    test(result, 1, 0, 0, 1);
+    test(result, 0, 0, 0, 1);
   }
 
   @Test
@@ -171,7 +175,6 @@ public class NameThenLengthTest extends TestBase {
             .assertSuccessWithOutput(JAVA_OUTPUT);
     // No canonicalization in CF.
     int expectedConstNumber = parameters.isCfRuntime() ? 2 : 1;
-    // TODO(b/125303292): NAME_LENGTH is still not computed at compile time.
-    test(result, 1, 0, 0, expectedConstNumber);
+    test(result, 0, 0, 0, expectedConstNumber);
   }
 }

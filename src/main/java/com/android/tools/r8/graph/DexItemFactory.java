@@ -440,6 +440,7 @@ public class DexItemFactory {
       createStaticallyKnownType("Ljava/util/logging/Logger;");
   public final DexType javaUtilSetType = createStaticallyKnownType("Ljava/util/Set;");
 
+  public final DexType androidAppActivity = createStaticallyKnownType("Landroid/app/Activity;");
   public final DexType androidOsBuildType = createStaticallyKnownType("Landroid/os/Build;");
   public final DexType androidOsBuildVersionType =
       createStaticallyKnownType("Landroid/os/Build$VERSION;");
@@ -683,6 +684,17 @@ public class DexItemFactory {
           createString("makeConcat")
       );
 
+  public Map<DexMethod, int[]> libraryMethodsNonNullParamOrThrow =
+      buildLibraryMethodsNonNullParamOrThrow();
+
+  private Map<DexMethod, int[]> buildLibraryMethodsNonNullParamOrThrow() {
+    ImmutableMap.Builder<DexMethod, int[]> builder = ImmutableMap.builder();
+    for (DexMethod requireNonNullMethod : objectsMethods.requireNonNullMethods()) {
+      builder.put(requireNonNullMethod, new int[] {0});
+    }
+    return builder.build();
+  }
+
   public Set<DexMethod> libraryMethodsReturningReceiver =
       ImmutableSet.<DexMethod>builder()
           .addAll(stringBufferMethods.appendMethods)
@@ -719,6 +731,7 @@ public class DexItemFactory {
   public Set<DexType> libraryTypesAssumedToBePresent =
       ImmutableSet.<DexType>builder()
           .add(
+              androidAppActivity,
               callableType,
               enumType,
               npeType,

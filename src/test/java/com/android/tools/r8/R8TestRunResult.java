@@ -38,6 +38,11 @@ public class R8TestRunResult extends SingleTestRunResult<R8TestRunResult> {
   }
 
   @Override
+  public boolean isR8TestRunResult() {
+    return true;
+  }
+
+  @Override
   protected R8TestRunResult self() {
     return this;
   }

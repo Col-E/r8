@@ -4,11 +4,13 @@
 
 package com.android.tools.r8.ir.optimize.library;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.library.sideeffects.JavaLangObjectsSideEffectCollection;
 import com.android.tools.r8.utils.BiPredicateUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -25,23 +27,31 @@ public class LibraryMethodSideEffectModelCollection {
 
   private final Set<DexMethod> nonFinalMethodsWithoutSideEffects;
 
-  public LibraryMethodSideEffectModelCollection(DexItemFactory dexItemFactory) {
-    finalMethodsWithoutSideEffects = buildFinalMethodsWithoutSideEffects(dexItemFactory);
+  public LibraryMethodSideEffectModelCollection(AppView<?> appView) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    finalMethodsWithoutSideEffects = buildFinalMethodsWithoutSideEffects(appView, dexItemFactory);
     unconditionalFinalMethodsWithoutSideEffects =
         buildUnconditionalFinalMethodsWithoutSideEffects(dexItemFactory);
     nonFinalMethodsWithoutSideEffects = buildNonFinalMethodsWithoutSideEffects(dexItemFactory);
   }
 
   private static Map<DexMethod, BiPredicate<DexMethod, List<Value>>>
-      buildFinalMethodsWithoutSideEffects(DexItemFactory dexItemFactory) {
+      buildFinalMethodsWithoutSideEffects(AppView<?> appView, DexItemFactory dexItemFactory) {
     ImmutableMap.Builder<DexMethod, BiPredicate<DexMethod, List<Value>>> builder =
         ImmutableMap.<DexMethod, BiPredicate<DexMethod, List<Value>>>builder()
+            .put(
+                dexItemFactory.objectsMethods.toStringWithObject,
+                (method, arguments) ->
+                    !JavaLangObjectsSideEffectCollection.toStringMayHaveSideEffects(
+                        appView, arguments))
             .put(
                 dexItemFactory.stringMembers.constructor,
                 (method, arguments) -> arguments.get(1).isNeverNull())
             .put(
                 dexItemFactory.stringMembers.valueOf,
-                (method, arguments) -> arguments.get(0).isNeverNull());
+                (method, arguments) ->
+                    !JavaLangObjectsSideEffectCollection.toStringMayHaveSideEffects(
+                        appView, arguments));
     putAll(
         builder,
         dexItemFactory.stringBufferMethods.constructorMethods,
@@ -71,8 +81,11 @@ public class LibraryMethodSideEffectModelCollection {
         .add(dexItemFactory.shortMembers.toString)
         .add(dexItemFactory.stringBufferMethods.toString)
         .add(dexItemFactory.stringBuilderMethods.toString)
+        .add(dexItemFactory.stringMembers.length)
         .add(dexItemFactory.stringMembers.hashCode)
+        .add(dexItemFactory.stringMembers.isEmpty)
         .add(dexItemFactory.stringMembers.toString)
+        .add(dexItemFactory.stringMembers.trim)
         .addAll(dexItemFactory.classMethods.getNames)
         .addAll(dexItemFactory.boxedValueOfMethods())
         .build();

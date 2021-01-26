@@ -52,6 +52,10 @@ public abstract class MethodOptimizationInfo {
 
   public abstract BitSet getNonNullParamOrThrow();
 
+  public final boolean hasNonNullParamOnNormalExits() {
+    return getNonNullParamOnNormalExits() != null;
+  }
+
   public abstract BitSet getNonNullParamOnNormalExits();
 
   public abstract boolean hasBeenInlinedIntoSingleCallSite();

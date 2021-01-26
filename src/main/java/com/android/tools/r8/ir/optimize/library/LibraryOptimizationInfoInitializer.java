@@ -45,6 +45,7 @@ public class LibraryOptimizationInfoInitializer {
   void run(Set<DexEncodedField> finalLibraryFields) {
     modelInstanceInitializers();
     modelStaticFinalLibraryFields(finalLibraryFields);
+    modelLibraryMethodsNonNullParamOrThrow();
     modelLibraryMethodsReturningNonNull();
     modelLibraryMethodsReturningReceiver();
     modelLibraryMethodsWithoutSideEffects();
@@ -85,6 +86,30 @@ public class LibraryOptimizationInfoInitializer {
             field, abstractValueFactory.createSingleFieldValue(field.field, ObjectState.empty()));
       }
     }
+  }
+
+  private void modelLibraryMethodsNonNullParamOrThrow() {
+    dexItemFactory.libraryMethodsNonNullParamOrThrow.forEach(
+        (method, nonNullParamOrThrow) -> {
+          DexEncodedMethod definition = lookupMethod(method);
+          if (definition != null) {
+            assert nonNullParamOrThrow.length > 0;
+            int size = nonNullParamOrThrow[nonNullParamOrThrow.length - 1] + 1;
+            BitSet bitSet = new BitSet(size);
+            for (int argumentIndex : nonNullParamOrThrow) {
+              assert argumentIndex < size;
+              bitSet.set(argumentIndex);
+            }
+            feedback.setNonNullParamOrThrow(definition, bitSet);
+
+            // Also set non-null-param-on-normal-exits info.
+            if (definition.getOptimizationInfo().hasNonNullParamOnNormalExits()) {
+              definition.getOptimizationInfo().getNonNullParamOnNormalExits().or(bitSet);
+            } else {
+              feedback.setNonNullParamOnNormalExits(definition, (BitSet) bitSet.clone());
+            }
+          }
+        });
   }
 
   private void modelLibraryMethodsReturningNonNull() {
@@ -131,14 +156,6 @@ public class LibraryOptimizationInfoInitializer {
       DexEncodedMethod definition = lookupMethod(requireNonNullMethod);
       if (definition != null) {
         feedback.methodReturnsArgument(definition, 0);
-
-        BitSet nonNullParamOrThrow = new BitSet();
-        nonNullParamOrThrow.set(0);
-        feedback.setNonNullParamOrThrow(definition, nonNullParamOrThrow);
-
-        BitSet nonNullParamOnNormalExits = new BitSet();
-        nonNullParamOnNormalExits.set(0);
-        feedback.setNonNullParamOnNormalExits(definition, nonNullParamOnNormalExits);
       }
     }
   }

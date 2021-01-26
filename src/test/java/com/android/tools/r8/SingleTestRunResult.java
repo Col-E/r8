@@ -34,6 +34,10 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
     this.result = result;
   }
 
+  public boolean isR8TestRunResult() {
+    return false;
+  }
+
   public AndroidApp app() {
     return app;
   }

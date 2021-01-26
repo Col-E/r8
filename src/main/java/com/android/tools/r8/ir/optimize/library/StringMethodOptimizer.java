@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -19,7 +20,6 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.utils.ValueUtils;
 import java.util.Set;
 
 public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection {
@@ -48,7 +48,7 @@ public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection
     if (singleTargetReference == dexItemFactory.stringMembers.equals) {
       optimizeEquals(code, instructionIterator, invoke.asInvokeVirtual());
     } else if (singleTargetReference == dexItemFactory.stringMembers.valueOf) {
-      optimizeValueOf(instructionIterator, invoke.asInvokeStatic());
+      optimizeValueOf(code, instructionIterator, invoke.asInvokeStatic(), affectedValues);
     }
   }
 
@@ -65,12 +65,30 @@ public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection
     }
   }
 
-  private void optimizeValueOf(InstructionListIterator instructionIterator, InvokeStatic invoke) {
-    // Optimize String.valueOf(stringBuilder) if unused.
-    if (ValueUtils.isNonNullStringBuilder(invoke.getFirstArgument(), dexItemFactory)) {
-      if (!invoke.hasOutValue() || !invoke.outValue().hasNonDebugUsers()) {
-        instructionIterator.removeOrReplaceByDebugLocalRead();
+  private void optimizeValueOf(
+      IRCode code,
+      InstructionListIterator instructionIterator,
+      InvokeStatic invoke,
+      Set<Value> affectedValues) {
+    Value object = invoke.getFirstArgument();
+    TypeElement type = object.getType();
+
+    // Optimize String.valueOf(null) into "null".
+    if (type.isDefinitelyNull()) {
+      instructionIterator.replaceCurrentInstructionWithConstString(appView, code, "null");
+      if (invoke.hasOutValue()) {
+        affectedValues.addAll(invoke.outValue().affectedValues());
       }
+      return;
+    }
+
+    // Optimize String.valueOf(nonNullString) into nonNullString.
+    if (type.isDefinitelyNotNull() && type.isStringType(dexItemFactory)) {
+      if (invoke.hasOutValue()) {
+        affectedValues.addAll(invoke.outValue().affectedValues());
+        invoke.outValue().replaceUsers(object);
+      }
+      instructionIterator.removeOrReplaceByDebugLocalRead();
     }
   }
 

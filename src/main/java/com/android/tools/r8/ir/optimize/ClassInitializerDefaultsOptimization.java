@@ -165,7 +165,7 @@ public class ClassInitializerDefaultsOptimization {
     finalFieldPuts.forEach(
         (field, put) -> {
           DexType fieldType = field.field.type;
-          Value value = put.value();
+          Value value = put.value().getAliasedValue();
           if (unnecessaryStaticPuts.contains(put)) {
             if (fieldType == dexItemFactory.stringType) {
               fieldsWithStaticValues.put(field, getDexStringValue(value, context.getHolderType()));
@@ -404,7 +404,7 @@ public class ClassInitializerDefaultsOptimization {
             }
             DexField fieldReference = put.getField();
             DexEncodedField field = context.getHolder().lookupField(fieldReference);
-            Value value = put.value();
+            Value value = put.value().getAliasedValue();
             TypeElement valueType = value.getType();
             if (field != null) {
               if (isReadBefore.contains(field)) {

@@ -156,8 +156,8 @@ public class MethodOptimizationInfoCollector {
         definition, code, feedback, instanceFieldInitializationInfos, timing);
     computeMayHaveSideEffects(feedback, definition, code, timing);
     computeReturnValueOnlyDependsOnArguments(feedback, definition, code, timing);
-    computeNonNullParamOrThrow(feedback, definition, code, timing);
-    computeNonNullParamOnNormalExits(feedback, code, timing);
+    BitSet nonNullParamOrThrow = computeNonNullParamOrThrow(feedback, definition, code, timing);
+    computeNonNullParamOnNormalExits(feedback, code, nonNullParamOrThrow, timing);
   }
 
   private void identifyBridgeInfo(
@@ -1165,18 +1165,19 @@ public class MethodOptimizationInfoCollector {
     }
   }
 
-  private void computeNonNullParamOrThrow(
+  private BitSet computeNonNullParamOrThrow(
       OptimizationFeedback feedback, DexEncodedMethod method, IRCode code, Timing timing) {
     timing.begin("Compute non-null-param-or-throw");
-    computeNonNullParamOrThrow(feedback, method, code);
+    BitSet nonNullParamOrThrow = computeNonNullParamOrThrow(feedback, method, code);
     timing.end();
+    return nonNullParamOrThrow;
   }
 
   // Track usage of parameters and compute their nullability and possibility of NPE.
-  private void computeNonNullParamOrThrow(
+  private BitSet computeNonNullParamOrThrow(
       OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
     if (method.getOptimizationInfo().getNonNullParamOrThrow() != null) {
-      return;
+      return null;
     }
     List<Value> arguments = code.collectArguments();
     BitSet paramsCheckedForNull = new BitSet();
@@ -1196,64 +1197,78 @@ public class MethodOptimizationInfoCollector {
         paramsCheckedForNull.set(index);
       }
     }
-    if (paramsCheckedForNull.length() > 0) {
+    if (!paramsCheckedForNull.isEmpty()) {
       feedback.setNonNullParamOrThrow(method, paramsCheckedForNull);
+      return paramsCheckedForNull;
     }
+    return null;
   }
 
   private void computeNonNullParamOnNormalExits(
-      OptimizationFeedback feedback, IRCode code, Timing timing) {
+      OptimizationFeedback feedback, IRCode code, BitSet nonNullParamOrThrow, Timing timing) {
     timing.begin("Compute non-null-param-on-normal-exits");
-    computeNonNullParamOnNormalExits(feedback, code);
+    computeNonNullParamOnNormalExits(feedback, code, nonNullParamOrThrow);
     timing.end();
   }
 
-  private void computeNonNullParamOnNormalExits(OptimizationFeedback feedback, IRCode code) {
+  private void computeNonNullParamOnNormalExits(
+      OptimizationFeedback feedback, IRCode code, BitSet nonNullParamOrThrow) {
     Set<BasicBlock> normalExits = Sets.newIdentityHashSet();
     normalExits.addAll(code.computeNormalExitBlocks());
     DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
     List<Value> arguments = code.collectArguments();
     BitSet facts = new BitSet();
-    Set<BasicBlock> nullCheckedBlocks = Sets.newIdentityHashSet();
+    if (nonNullParamOrThrow != null) {
+      facts.or(nonNullParamOrThrow);
+    }
     for (int index = 0; index < arguments.size(); index++) {
+      if (facts.get(index)) {
+        continue;
+      }
       Value argument = arguments.get(index);
-      // Consider reference-type parameter only.
-      if (!argument.getType().isReferenceType()) {
-        continue;
-      }
-      // The receiver is always non-null on normal exits.
-      if (argument.isThis()) {
+      if (argument.getType().isReferenceType()
+          && isNonNullOnNormalExit(code, argument, dominatorTree, normalExits)) {
         facts.set(index);
-        continue;
-      }
-      // Collect basic blocks that check nullability of the parameter.
-      nullCheckedBlocks.clear();
-      for (Instruction user : argument.uniqueUsers()) {
-        if (user.isAssumeWithNonNullAssumption()) {
-          nullCheckedBlocks.add(user.asAssume().getBlock());
-        }
-        if (user.isIf()
-            && user.asIf().isZeroTest()
-            && (user.asIf().getType() == If.Type.EQ || user.asIf().getType() == If.Type.NE)) {
-          nullCheckedBlocks.add(user.asIf().targetFromNonNullObject());
-        }
-      }
-      if (!nullCheckedBlocks.isEmpty()) {
-        boolean allExitsCovered = true;
-        for (BasicBlock normalExit : normalExits) {
-          if (!isNormalExitDominated(normalExit, code, dominatorTree, nullCheckedBlocks)) {
-            allExitsCovered = false;
-            break;
-          }
-        }
-        if (allExitsCovered) {
-          facts.set(index);
-        }
       }
     }
-    if (facts.length() > 0) {
+    if (!facts.isEmpty()) {
       feedback.setNonNullParamOnNormalExits(code.method(), facts);
     }
+  }
+
+  private boolean isNonNullOnNormalExit(
+      IRCode code, Value value, DominatorTree dominatorTree, Set<BasicBlock> normalExits) {
+    assert value.getType().isReferenceType();
+
+    // The receiver is always non-null on normal exits.
+    if (value.isThis()) {
+      return true;
+    }
+
+    // Collect basic blocks that check nullability of the parameter.
+    Set<BasicBlock> nullCheckedBlocks = Sets.newIdentityHashSet();
+    for (Instruction user : value.aliasedUsers()) {
+      if (user.isAssumeWithNonNullAssumption()
+          || user.throwsNpeIfValueIsNull(value, appView, code.context())) {
+        nullCheckedBlocks.add(user.getBlock());
+      }
+      if (user.isIf()
+          && user.asIf().isZeroTest()
+          && (user.asIf().getType() == If.Type.EQ || user.asIf().getType() == If.Type.NE)) {
+        nullCheckedBlocks.add(user.asIf().targetFromNonNullObject());
+      }
+    }
+
+    if (nullCheckedBlocks.isEmpty()) {
+      return false;
+    }
+
+    for (BasicBlock normalExit : normalExits) {
+      if (!isNormalExitDominated(normalExit, code, dominatorTree, nullCheckedBlocks)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private boolean isNormalExitDominated(

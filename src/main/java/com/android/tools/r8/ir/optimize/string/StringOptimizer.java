@@ -299,10 +299,6 @@ public class StringOptimizer {
 
   // Find Class#get*Name() with a constant-class and replace it with a const-string if possible.
   public void rewriteClassGetName(AppView<?> appView, IRCode code) {
-    // Conflict with {@link CodeRewriter#collectClassInitializerDefaults}.
-    if (code.method().isClassInitializer()) {
-      return;
-    }
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
@@ -363,10 +359,15 @@ public class StringOptimizer {
       // while its name is used to compute hash code, which won't be optimized, it's better not to
       // compute the name.
       if (!appView.options().testing.forceNameReflectionOptimization) {
-        EscapeAnalysis escapeAnalysis =
-            new EscapeAnalysis(appView, StringOptimizerEscapeAnalysisConfiguration.getInstance());
-        if (mayBeRenamed || escapeAnalysis.isEscaping(code, out)) {
+        if (mayBeRenamed) {
           continue;
+        }
+        if (invokedMethod != factory.classMethods.getSimpleName) {
+          EscapeAnalysis escapeAnalysis =
+              new EscapeAnalysis(appView, StringOptimizerEscapeAnalysisConfiguration.getInstance());
+          if (escapeAnalysis.isEscaping(code, out)) {
+            continue;
+          }
         }
       }
 
