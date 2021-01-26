@@ -9,7 +9,7 @@ import os.path
 import re
 import subprocess
 import sys
-import urllib
+import urllib.request
 import xml.etree.ElementTree
 import zipfile
 
@@ -70,7 +70,7 @@ def prepare_release(args):
 
         # Verify that the merge point from master is not empty.
         merge_diff_output = subprocess.check_output([
-          'git', 'diff', 'HEAD..%s' % commithash])
+          'git', 'diff', 'HEAD..%s' % commithash]).decode('utf-8')
         other_diff = version_change_diff(
             merge_diff_output, old_version, "master")
         if not other_diff:
@@ -94,14 +94,14 @@ def prepare_release(args):
           'git', 'commit', '-a', '-m', 'Version %s' % version])
 
         version_diff_output = subprocess.check_output([
-          'git', 'diff', '%s..HEAD' % commithash])
+          'git', 'diff', '%s..HEAD' % commithash]).decode('utf-8')
 
         validate_version_change_diff(version_diff_output, "master", version)
 
         # Double check that we want to push the release.
         if not args.dry_run:
-          input = raw_input('Publish dev release version %s [y/N]:' % version)
-          if input != 'y':
+          answer = input('Publish dev release version %s [y/N]:' % version)
+          if answer != 'y':
             print('Aborting dev release for %s' % version)
             sys.exit(1)
 
@@ -144,10 +144,10 @@ def validate_version_change_diff(version_diff_output, old_version, new_version):
     print(version_diff_output)
     print("=" * 80)
     accept_string = 'THE DIFF IS OK!'
-    input = raw_input(
+    answer = input(
       "Accept the additonal diff as part of the release? "
       "Type '%s' to accept: " % accept_string)
-    if input != accept_string:
+    if answer != accept_string:
       print("You did not type '%s'" % accept_string)
       print('Aborting dev release for %s' % version)
       sys.exit(1)
@@ -233,9 +233,9 @@ def prepare_maven(args):
         release_id, "com.android.tools:r8:%s" % args.version, "r8lib.jar")
 
     print
-    input = raw_input("Continue with publishing [y/N]:")
+    answer = input("Continue with publishing [y/N]:")
 
-    if input != 'y':
+    if answer != 'y':
       print('Aborting release to Google maven')
       sys.exit(1)
 
@@ -305,7 +305,7 @@ def g4_open(file):
 def g4_change(version):
   return subprocess.check_output(
       'g4 change --desc "Update R8 to version %s\n"' % (version),
-      shell=True)
+      shell=True).decode('utf-8')
 
 def get_cl_id(c4_change_output):
   startIndex = c4_change_output.find('Change ') + len('Change ')
@@ -323,7 +323,7 @@ def sed(pattern, replace, path):
 
 
 def download_file(version, file, dst):
-  urllib.urlretrieve(
+  urllib.request.urlretrieve(
       ('https://storage.googleapis.com/r8-releases/raw/%s/%s' % (version, file)),
       dst)
 
@@ -332,13 +332,13 @@ def download_gfile(gfile, dst):
     print('Unexpected gfile prefix for %s' % gfile)
     sys.exit(1)
 
-  urllib.urlretrieve(
+  urllib.request.urlretrieve(
       'https://storage.googleapis.com/%s' % gfile[len('/bigstore/'):],
       dst)
 
 def blaze_run(target):
   return subprocess.check_output(
-      'blaze run %s' % target, shell=True, stderr=subprocess.STDOUT)
+      'blaze run %s' % target, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
 
 
 def prepare_google3(args):
@@ -353,7 +353,7 @@ def prepare_google3(args):
       return 'DryRun: omitting g3 release for %s' % options.version
 
     google3_base = subprocess.check_output(
-        ['p4', 'g4d', '-f', args.p4_client]).rstrip()
+        ['p4', 'g4d', '-f', args.p4_client]).decode('utf-8').rstrip()
     third_party_r8 = os.path.join(google3_base, 'third_party', 'java', 'r8')
     today = datetime.date.today()
     with utils.ChangedWorkingDirectory(third_party_r8):
@@ -504,9 +504,9 @@ def prepare_desugar_library(args):
             library_jar)
 
         print("")
-        input = raw_input("Continue with publishing [y/N]:")
+        answer = input("Continue with publishing [y/N]:")
 
-        if input != 'y':
+        if answer != 'y':
           print('Aborting release to Google maven')
           sys.exit(1)
 
@@ -542,11 +542,11 @@ def check_configuration(configuration_archive):
 
 def check_no_google3_client(args, client_name):
   if not args.use_existing_work_branch:
-    clients = subprocess.check_output('g4 myclients', shell=True)
+    clients = subprocess.check_output('g4 myclients', shell=True).decode('utf-8')
     if ':%s:' % client_name in clients:
-      print("Remove the existing '%s' client before continuing " +
+      print(("Remove the existing '%s' client before continuing " +
              "(force delete: 'g4 citc -d -f %s'), " +
-             "or use option --use-existing-work-branch.") % (client_name, client_name)
+             "or use option --use-existing-work-branch.") % (client_name, client_name))
       sys.exit(1)
 
 
@@ -701,8 +701,8 @@ def prepare_branch(args):
 
         # Double check that we want to create a new release branch.
         if not options.dry_run:
-          input = raw_input('Create new branch for %s [y/N]:' % branch_version)
-          if input != 'y':
+          answer = input('Create new branch for %s [y/N]:' % branch_version)
+          if answer != 'y':
             print('Aborting new branch for %s' % branch_version)
             sys.exit(1)
 
