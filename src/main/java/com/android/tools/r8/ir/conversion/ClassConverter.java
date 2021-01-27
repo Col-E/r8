@@ -54,9 +54,9 @@ public abstract class ClassConverter {
         }
       }
       ThreadUtils.processItems(wave, this::convertClass, executorService);
+      methodProcessor.awaitMethodProcessing();
       classes = deferred;
     }
-    methodProcessor.awaitMethodProcessing();
   }
 
   abstract void convertClass(DexProgramClass clazz);
