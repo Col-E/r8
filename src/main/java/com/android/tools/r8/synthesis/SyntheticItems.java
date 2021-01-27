@@ -197,19 +197,28 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return pending.containsType(type);
   }
 
-  public boolean isLegacyPendingSynthetic(DexType type) {
+  private boolean isLegacyPendingSynthetic(DexType type) {
     return pending.legacyClasses.containsKey(type);
   }
 
+  public boolean isLegacySyntheticClass(DexType type) {
+    return isLegacyCommittedSynthetic(type) || isLegacyPendingSynthetic(type);
+  }
+
+  public boolean isLegacySyntheticClass(DexProgramClass clazz) {
+    return isLegacySyntheticClass(clazz.getType());
+  }
+
   public boolean isNonLegacySynthetic(DexProgramClass clazz) {
-    return isCommittedSynthetic(clazz.type) || isPendingSynthetic(clazz.type);
+    return isNonLegacySynthetic(clazz.type);
+  }
+
+  public boolean isNonLegacySynthetic(DexType type) {
+    return isCommittedSynthetic(type) || isPendingSynthetic(type);
   }
 
   public boolean isSyntheticClass(DexType type) {
-    return isCommittedSynthetic(type)
-        || isPendingSynthetic(type)
-        // TODO(b/158159959): Remove usage of name-based identification.
-        || type.isD8R8SynthesizedClassType();
+    return isLegacySyntheticClass(type) || isNonLegacySynthetic(type);
   }
 
   public boolean isSyntheticClass(DexProgramClass clazz) {
@@ -237,14 +246,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return true;
   }
 
-  public boolean isLegacySyntheticClass(DexType type) {
-    return isLegacyCommittedSynthetic(type) || isLegacyPendingSynthetic(type);
-  }
-
-  public boolean isLegacySyntheticClass(DexProgramClass clazz) {
-    return isLegacySyntheticClass(clazz.getType());
-  }
-
   public Collection<DexProgramClass> getLegacyPendingClasses() {
     return Collections.unmodifiableCollection(pending.legacyClasses.values());
   }
@@ -265,9 +266,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   // Addition and creation of synthetic items.
 
-  // TODO(b/158159959): Remove the usage of this direct class addition (and name-based id).
+  // TODO(b/158159959): Remove the usage of this direct class addition.
   public void addLegacySyntheticClass(DexProgramClass clazz) {
-    assert clazz.type.isD8R8SynthesizedClassType();
     assert !isCommittedSynthetic(clazz.type);
     assert !pending.nonLegacyDefinitions.containsKey(clazz.type);
     DexProgramClass previous = pending.legacyClasses.put(clazz.type, clazz);
@@ -428,7 +428,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   // Finalization of synthetic items.
 
-  public Result computeFinalSynthetics(AppView<?> appView) {
+  Result computeFinalSynthetics(AppView<?> appView) {
     assert !hasPendingSyntheticClasses();
     return new SyntheticFinalization(appView.options(), committed).computeFinalSynthetics(appView);
   }

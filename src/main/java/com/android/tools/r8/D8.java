@@ -266,15 +266,7 @@ public final class D8 {
       InspectorImpl.runInspections(options.outputInspections, appView.appInfo().classes());
       if (options.isGeneratingClassFiles()) {
         // TODO(b/158159959): Move this out so it is shared for both CF and DEX pipelines.
-        SyntheticFinalization.Result result =
-            appView.getSyntheticItems().computeFinalSynthetics(appView);
-        if (result != null) {
-          appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexClasses()));
-          appView.pruneItems(result.prunedItems);
-          if (result.lens != null) {
-            appView.setGraphLens(result.lens);
-          }
-        }
+        SyntheticFinalization.finalize(appView);
         new CfApplicationWriter(
                 appView,
                 marker,
@@ -313,15 +305,7 @@ public final class D8 {
         }
 
         // TODO(b/158159959): Move this out so it is shared for both CF and DEX pipelines.
-        SyntheticFinalization.Result result =
-            appView.getSyntheticItems().computeFinalSynthetics(appView);
-        if (result != null) {
-          appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexClasses()));
-          appView.pruneItems(result.prunedItems);
-          if (result.lens != null) {
-            appView.setGraphLens(result.lens);
-          }
-        }
+        SyntheticFinalization.finalize(appView);
 
         new ApplicationWriter(
                 appView,

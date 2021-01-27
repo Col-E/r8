@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
@@ -19,6 +21,7 @@ import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.ir.code.NumberGenerator;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
@@ -213,7 +216,35 @@ public class SyntheticFinalization {
     this.synthetics = synthetics;
   }
 
-  public Result computeFinalSynthetics(AppView<?> appView) {
+  public static void finalize(AppView<AppInfo> appView) {
+    assert !appView.appInfo().hasClassHierarchy();
+    assert !appView.appInfo().hasLiveness();
+    Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
+    appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexClasses()));
+    appView.pruneItems(result.prunedItems);
+    if (result.lens != null) {
+      appView.setGraphLens(result.lens);
+    }
+  }
+
+  public static void finalizeWithClassHierarchy(AppView<AppInfoWithClassHierarchy> appView) {
+    assert !appView.appInfo().hasLiveness();
+    Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
+    appView.setAppInfo(appView.appInfo().rebuildWithClassHierarchy(result.commit));
+    appView.pruneItems(result.prunedItems);
+    if (result.lens != null) {
+      appView.setGraphLens(result.lens);
+    }
+  }
+
+  public static void finalizeWithLiveness(AppView<AppInfoWithLiveness> appView) {
+    Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
+    appView.setAppInfo(appView.appInfo().rebuildWithLiveness(result.commit));
+    appView.rewriteWithLens(result.lens);
+    appView.pruneItems(result.prunedItems);
+  }
+
+  Result computeFinalSynthetics(AppView<?> appView) {
     assert verifyNoNestedSynthetics();
     DexApplication application;
     MainDexClasses mainDexClasses = appView.appInfo().getMainDexClasses();
@@ -510,8 +541,13 @@ public class SyntheticFinalization {
     syntheticClassGroups.forEach(
         (syntheticType, syntheticGroup) -> {
           DexProgramClass externalSyntheticClass = appForLookup.programDefinitionFor(syntheticType);
+          SyntheticProgramClassDefinition representative = syntheticGroup.getRepresentative();
           addFinalSyntheticClass.accept(
-              externalSyntheticClass, syntheticGroup.getRepresentative().toReference());
+              externalSyntheticClass,
+              new SyntheticProgramClassReference(
+                  representative.getKind(),
+                  representative.getContext(),
+                  externalSyntheticClass.type));
           for (SyntheticProgramClassDefinition member : syntheticGroup.getMembers()) {
             addMainDexAndSynthesizedFromForMember(
                 member,
@@ -524,8 +560,16 @@ public class SyntheticFinalization {
     syntheticMethodGroups.forEach(
         (syntheticType, syntheticGroup) -> {
           DexProgramClass externalSyntheticClass = appForLookup.programDefinitionFor(syntheticType);
+          SyntheticMethodDefinition representative = syntheticGroup.getRepresentative();
           addFinalSyntheticMethod.accept(
-              externalSyntheticClass, syntheticGroup.getRepresentative().toReference());
+              externalSyntheticClass,
+              new SyntheticMethodReference(
+                  representative.getKind(),
+                  representative.getContext(),
+                  representative
+                      .getMethod()
+                      .getReference()
+                      .withHolder(externalSyntheticClass.type, factory)));
           for (SyntheticMethodDefinition member : syntheticGroup.getMembers()) {
             addMainDexAndSynthesizedFromForMember(
                 member,

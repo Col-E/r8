@@ -743,7 +743,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     DexType type = clazz.type;
     return
     // TODO(b/165224388): Synthetic classes should be represented in the allocation info.
-    getSyntheticItems().isSyntheticClass(clazz)
+    getSyntheticItems().isLegacySyntheticClass(clazz)
         || (!clazz.isInterface() && objectAllocationInfoCollection.isInstantiatedDirectly(clazz))
         // TODO(b/145344105): Model annotations in the object allocation info.
         || (clazz.isAnnotation() && liveTypes.contains(type));

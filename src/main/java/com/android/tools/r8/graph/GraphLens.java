@@ -627,7 +627,7 @@ public abstract class GraphLens {
         // that they can be mapped back to the original program.
         DexField originalField = getOriginalFieldSignature(field.getReference());
         assert originalFields.contains(originalField)
-                || isD8R8SynthesizedField(originalField, appView)
+                || isD8R8SynthesizedField(field.getReference(), appView)
             : "Unable to map field `"
                 + field.getReference().toSourceString()
                 + "` back to original program";
@@ -654,7 +654,7 @@ public abstract class GraphLens {
     if (field.getName().toSourceString().equals(CLASS_ID_FIELD_NAME)) {
       return true;
     }
-    if (appView.getSyntheticItems().isSyntheticClass(field.getHolderType())
+    if (appView.getSyntheticItems().isNonLegacySynthetic(field.getHolderType())
         && field.getName().toSourceString().equals(LAMBDA_INSTANCE_FIELD_NAME)) {
       return true;
     }

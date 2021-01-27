@@ -4,20 +4,12 @@
 package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
-import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer.TYPE_WRAPPER_SUFFIX;
-import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer.VIVIFIED_TYPE_WRAPPER_SUFFIX;
-import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
-import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_NAME_PREFIX;
-import static com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator.ENUM_UNBOXING_UTILITY_CLASS_SUFFIX;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.horizontalclassmerging.SyntheticArgumentClass;
-import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
@@ -306,27 +298,6 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
 
   public boolean isWideType() {
     return isDoubleType() || isLongType();
-  }
-
-  // TODO(b/158159959): Remove usage of name-based identification.
-  public boolean isD8R8SynthesizedClassType() {
-    String name = toSourceString();
-    // The synthesized classes listed here must always be unique to a program context and thus
-    // never duplicated for distinct inputs.
-    return false
-        // Hygienic suffix.
-        || name.contains(COMPANION_CLASS_NAME_SUFFIX)
-        || name.contains(ENUM_UNBOXING_UTILITY_CLASS_SUFFIX)
-        || name.contains(SyntheticArgumentClass.SYNTHETIC_CLASS_SUFFIX)
-        // New and hygienic synthesis infrastructure.
-        || SyntheticNaming.isSyntheticName(name)
-        // Only generated in core lib.
-        || name.contains(EMULATE_LIBRARY_CLASS_NAME_SUFFIX)
-        || name.contains(TYPE_WRAPPER_SUFFIX)
-        || name.contains(VIVIFIED_TYPE_WRAPPER_SUFFIX)
-        || name.contains(DesugaredLibraryRetargeter.DESUGAR_LIB_RETARGET_CLASS_NAME_PREFIX)
-        // Non-hygienic types.
-        || isSynthesizedTypeThatCouldBeDuplicated(name);
   }
 
   public boolean isLegacySynthesizedTypeAllowedDuplication() {

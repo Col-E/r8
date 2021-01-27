@@ -138,15 +138,7 @@ public class L8 {
 
       new IRConverter(appView, timing).convert(appView, executor);
 
-      SyntheticFinalization.Result result =
-          appView.getSyntheticItems().computeFinalSynthetics(appView);
-      if (result != null) {
-        appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexClasses()));
-        appView.pruneItems(result.prunedItems);
-        if (result.lens != null) {
-          appView.setGraphLens(result.lens);
-        }
-      }
+      SyntheticFinalization.finalize(appView);
 
       NamingLens namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
       new GenericSignatureRewriter(appView, namingLens).run(appView.appInfo().classes(), executor);

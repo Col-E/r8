@@ -10,6 +10,8 @@ import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_SUPER;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
+import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer.TYPE_WRAPPER_SUFFIX;
+import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer.VIVIFIED_TYPE_WRAPPER_SUFFIX;
 
 import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.cf.CfVersion;
@@ -940,6 +942,11 @@ public final class InterfaceMethodRewriter {
     return type.descriptor.toString().endsWith(EMULATE_LIBRARY_CLASS_NAME_SUFFIX + ";");
   }
 
+  public static boolean isTypeWrapper(DexType type) {
+    String name = type.toBinaryName();
+    return name.endsWith(TYPE_WRAPPER_SUFFIX) || name.endsWith(VIVIFIED_TYPE_WRAPPER_SUFFIX);
+  }
+
   // Gets the interface class for a companion class `type`.
   private DexType getInterfaceClassType(DexType type) {
     return getInterfaceClassType(type, factory);
@@ -1274,7 +1281,7 @@ public final class InterfaceMethodRewriter {
 
   private boolean shouldIgnoreFromReports(DexType missing) {
     return appView.rewritePrefix.hasRewrittenType(missing, appView)
-        || missing.isD8R8SynthesizedClassType()
+        || isTypeWrapper(missing)
         || isCompanionClassType(missing)
         || emulatedInterfaces.containsValue(missing)
         || options.desugaredLibraryConfiguration.getCustomConversions().containsValue(missing)
