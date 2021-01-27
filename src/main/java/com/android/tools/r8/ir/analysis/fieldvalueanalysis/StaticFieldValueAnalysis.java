@@ -12,6 +12,9 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -23,7 +26,6 @@ import com.android.tools.r8.ir.analysis.value.EnumValuesObjectState;
 import com.android.tools.r8.ir.analysis.value.NullOrAbstractValue;
 import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
-import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
@@ -38,13 +40,10 @@ import com.android.tools.r8.ir.optimize.info.field.InstanceFieldArgumentInitiali
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
-import java.util.IdentityHashMap;
-import java.util.Map;
 
 public class StaticFieldValueAnalysis extends FieldValueAnalysis {
 
   private final StaticFieldValues.Builder builder;
-  private final Map<Value, AbstractValue> computedValues = new IdentityHashMap<>();
 
   private StaticFieldValueAnalysis(
       AppView<AppInfoWithLiveness> appView, IRCode code, OptimizationFeedback feedback) {
@@ -64,7 +63,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     timing.begin("Analyze class initializer");
     StaticFieldValues result =
         new StaticFieldValueAnalysis(appView.withLiveness(), code, feedback)
-            .analyze(classInitializerDefaultsResult);
+            .analyze(classInitializerDefaultsResult, code.context().getHolderType());
     timing.end();
     return result;
   }
@@ -79,7 +78,8 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     return this;
   }
 
-  StaticFieldValues analyze(ClassInitializerDefaultsResult classInitializerDefaultsResult) {
+  StaticFieldValues analyze(
+      ClassInitializerDefaultsResult classInitializerDefaultsResult, DexType holderType) {
     computeFieldOptimizationInfo(classInitializerDefaultsResult);
     return builder.build();
   }
@@ -218,41 +218,16 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       return null;
     }
     assert !value.hasAliasedValue();
-    if (value.isPhi()) {
-      return null;
-    }
-    if (value.definition.isNewArrayEmpty()) {
+    if (isEnumValuesArray(value)) {
       return computeSingleEnumFieldValueForValuesArray(value);
     }
-    if (value.definition.isNewInstance()) {
-      return computeSingleEnumFieldValueForInstance(value);
-    }
-    return null;
+    return computeSingleEnumFieldValueForInstance(value);
   }
 
   private SingleFieldValue computeSingleEnumFieldValueForValuesArray(Value value) {
-    if (!value.definition.isNewArrayEmpty()) {
+    if (!value.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmpty)) {
       return null;
     }
-    AbstractValue valuesValue = computedValues.get(value);
-    if (valuesValue != null) {
-      // This implicitely answers null if the value could not get computed.
-      if (valuesValue.isSingleFieldValue()) {
-        SingleFieldValue fieldValue = valuesValue.asSingleFieldValue();
-        if (fieldValue.getState().isEnumValuesObjectState()) {
-          return fieldValue;
-        }
-      }
-      return null;
-    }
-    SingleFieldValue singleFieldValue = internalComputeSingleEnumFieldValueForValuesArray(value);
-    computedValues.put(
-        value, singleFieldValue == null ? UnknownValue.getInstance() : singleFieldValue);
-    return singleFieldValue;
-  }
-
-  private SingleFieldValue internalComputeSingleEnumFieldValueForValuesArray(Value value) {
-    assert value.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmpty);
 
     NewArrayEmpty newArrayEmpty = value.definition.asNewArrayEmpty();
     if (newArrayEmpty.type.toBaseType(appView.dexItemFactory()) != context.getHolder().type) {
@@ -292,9 +267,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
             // We need the state of all fields for the analysis to be valuable.
             return null;
           }
-          if (!valuesArrayIndexMatchesOrdinal(index, objectState)) {
-            return null;
-          }
+          assert verifyValuesArrayIndexMatchesOrdinal(index, objectState);
           if (valuesState[index] != null) {
             return null;
           }
@@ -353,25 +326,24 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     return ObjectState.empty();
   }
 
-  private boolean valuesArrayIndexMatchesOrdinal(int ordinal, ObjectState objectState) {
+  private boolean verifyValuesArrayIndexMatchesOrdinal(int ordinal, ObjectState objectState) {
     DexEncodedField ordinalField =
         appView
             .appInfo()
             .resolveField(appView.dexItemFactory().enumMembers.ordinalField, context)
             .getResolvedField();
-    if (ordinalField == null) {
-      return false;
-    }
+    assert ordinalField != null;
     AbstractValue ordinalState = objectState.getAbstractFieldValue(ordinalField);
-    if (ordinalState == null || !ordinalState.isSingleNumberValue()) {
-      return false;
-    }
-    int intValue = ordinalState.asSingleNumberValue().getIntValue();
-    return intValue == ordinal;
+    assert ordinalState != null;
+    assert ordinalState.isSingleNumberValue();
+    assert ordinalState.asSingleNumberValue().getIntValue() == ordinal;
+    return true;
   }
 
   private SingleFieldValue computeSingleEnumFieldValueForInstance(Value value) {
-    assert value.isDefinedByInstructionSatisfying(Instruction::isNewInstance);
+    if (!value.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
+      return null;
+    }
 
     NewInstance newInstance = value.definition.asNewInstance();
     // Some enums have direct subclasses, and the subclass is instantiated here.
@@ -487,7 +459,30 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   private boolean isEnumValuesArray(Value value) {
-    SingleFieldValue singleFieldValue = computeSingleEnumFieldValueForValuesArray(value);
-    return singleFieldValue != null && singleFieldValue.getState().isEnumValuesObjectState();
+    assert context.getHolder().isEnum();
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexField valuesField =
+        dexItemFactory.createField(
+            context.getHolderType(),
+            context.getHolderType().toArrayType(1, dexItemFactory),
+            dexItemFactory.enumValuesFieldName);
+
+    Value root = value.getAliasedValue();
+    if (root.isPhi()) {
+      return false;
+    }
+
+    Instruction definition = root.definition;
+    if (definition.isNewArrayEmpty()) {
+      for (Instruction user : root.aliasedUsers()) {
+        if (user.isStaticPut() && user.asStaticPut().getField() == valuesField) {
+          return true;
+        }
+      }
+    } else if (definition.isStaticGet()) {
+      return definition.asStaticGet().getField() == valuesField;
+    }
+
+    return false;
   }
 }

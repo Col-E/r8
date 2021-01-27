@@ -97,6 +97,13 @@ public class EnumToStringLibTest extends EnumUnboxingTestBase {
     return testForR8(Backend.CF)
         .addProgramClasses(ToStringLib.class, ToStringLib.LibEnum.class)
         .addKeepRules(enumKeepRules.getKeepRules())
+        // TODO(b/160535629): Work-around on some optimizations relying on $VALUES name.
+        .addKeepRules(
+            "-keep enum "
+                + ToStringLib.LibEnum.class.getName()
+                + " { static "
+                + ToStringLib.LibEnum.class.getName()
+                + "[] $VALUES; }")
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .addKeepMethodRules(
             Reference.methodFromMethod(

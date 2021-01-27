@@ -37,10 +37,17 @@ public abstract class StaticFieldValues {
   // All the abstract values stored here may match a pinned field, using them requires therefore
   // to check the field is not pinned or prove it is no longer pinned.
   public static class EnumStaticFieldValues extends StaticFieldValues {
-    private final ImmutableMap<DexField, ObjectState> enumAbstractValues;
+    private final ImmutableMap<DexField, AbstractValue> enumAbstractValues;
+    private final DexField valuesField;
+    private final AbstractValue valuesAbstractValue;
 
-    public EnumStaticFieldValues(ImmutableMap<DexField, ObjectState> enumAbstractValues) {
+    public EnumStaticFieldValues(
+        ImmutableMap<DexField, AbstractValue> enumAbstractValues,
+        DexField valuesField,
+        AbstractValue valuesAbstractValue) {
       this.enumAbstractValues = enumAbstractValues;
+      this.valuesField = valuesField;
+      this.valuesAbstractValue = valuesAbstractValue;
     }
 
     static StaticFieldValues.Builder builder() {
@@ -48,38 +55,33 @@ public abstract class StaticFieldValues {
     }
 
     public static class Builder extends StaticFieldValues.Builder {
-      private final ImmutableMap.Builder<DexField, ObjectState> enumObjectStateBuilder =
+      private final ImmutableMap.Builder<DexField, AbstractValue> enumAbstractValuesBuilder =
           ImmutableMap.builder();
-      private AbstractValue valuesCandidateAbstractValue;
+      private DexField valuesFields;
+      private AbstractValue valuesAbstractValue;
 
       Builder() {}
 
       @Override
       public void recordStaticField(
           DexEncodedField staticField, AbstractValue value, DexItemFactory factory) {
-        if (factory.enumMembers.isValuesFieldCandidate(staticField, staticField.getHolderType())) {
-          if (value.isSingleFieldValue()
-              && value.asSingleFieldValue().getState().isEnumValuesObjectState()) {
-            assert valuesCandidateAbstractValue == null
-                || valuesCandidateAbstractValue.equals(value);
-            valuesCandidateAbstractValue = value;
-            enumObjectStateBuilder.put(staticField.field, value.asSingleFieldValue().getState());
-          }
-        } else if (factory.enumMembers.isEnumField(staticField, staticField.getHolderType())) {
-          if (value.isSingleFieldValue() && !value.asSingleFieldValue().getState().isEmpty()) {
-            enumObjectStateBuilder.put(staticField.field, value.asSingleFieldValue().getState());
-          }
+        // TODO(b/166532388): Stop relying on the values name.
+        if (staticField.getName() == factory.enumValuesFieldName) {
+          valuesFields = staticField.field;
+          valuesAbstractValue = value;
+        } else if (staticField.isEnum()) {
+          enumAbstractValuesBuilder.put(staticField.field, value);
         }
       }
 
       @Override
       public StaticFieldValues build() {
-        ImmutableMap<DexField, ObjectState> enumAbstractValues = enumObjectStateBuilder.build();
-        if (enumAbstractValues.isEmpty()) {
+        ImmutableMap<DexField, AbstractValue> enumAbstractValues =
+            enumAbstractValuesBuilder.build();
+        if (valuesAbstractValue == null && enumAbstractValues.isEmpty()) {
           return EmptyStaticValues.getInstance();
         }
-        assert enumAbstractValues.values().stream().noneMatch(ObjectState::isEmpty);
-        return new EnumStaticFieldValues(enumAbstractValues);
+        return new EnumStaticFieldValues(enumAbstractValues, valuesFields, valuesAbstractValue);
       }
     }
 
@@ -94,7 +96,20 @@ public abstract class StaticFieldValues {
     }
 
     public ObjectState getObjectStateForPossiblyPinnedField(DexField field) {
-      return enumAbstractValues.get(field);
+      AbstractValue fieldValue = enumAbstractValues.get(field);
+      if (fieldValue == null || fieldValue.isZero()) {
+        return null;
+      }
+      if (fieldValue.isSingleFieldValue()) {
+        return fieldValue.asSingleFieldValue().getState();
+      }
+      assert fieldValue.isUnknown();
+      return ObjectState.empty();
+    }
+
+    public AbstractValue getValuesAbstractValueForPossiblyPinnedField(DexField field) {
+      assert valuesField == field || valuesAbstractValue == null;
+      return valuesAbstractValue;
     }
   }
 

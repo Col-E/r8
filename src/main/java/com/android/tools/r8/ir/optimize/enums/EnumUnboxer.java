@@ -491,36 +491,34 @@ public class EnumUnboxer {
     // Step 1: We iterate over the field to find direct enum instance information and the values
     // fields.
     for (DexEncodedField staticField : enumClass.staticFields()) {
-      if (factory.enumMembers.isEnumField(staticField, enumClass.type)) {
+      if (EnumUnboxingCandidateAnalysis.isEnumField(staticField, enumClass.type)) {
         ObjectState enumState =
             enumStaticFieldValues.getObjectStateForPossiblyPinnedField(staticField.field);
-        if (enumState == null) {
-          if (!isFinalFieldInitialized(staticField, enumClass)) {
-            continue;
+        if (enumState != null) {
+          OptionalInt optionalOrdinal = getOrdinal(enumState);
+          if (!optionalOrdinal.isPresent()) {
+            return null;
           }
-          // Tracking the content of the field yielded either an empty object state, or something
-          // incoherent. We bail out.
+          int ordinal = optionalOrdinal.getAsInt();
+          unboxedValues.put(staticField.field, ordinalToUnboxedInt(ordinal));
+          ordinalToObjectState.put(ordinal, enumState);
+        }
+      } else if (EnumUnboxingCandidateAnalysis.matchesValuesField(
+          staticField, enumClass.type, factory)) {
+        AbstractValue valuesValue =
+            enumStaticFieldValues.getValuesAbstractValueForPossiblyPinnedField(staticField.field);
+        if (valuesValue == null || valuesValue.isZero()) {
+          // Unused field
+          continue;
+        }
+        if (valuesValue.isUnknown()) {
           return null;
         }
-        OptionalInt optionalOrdinal = getOrdinal(enumState);
-        if (!optionalOrdinal.isPresent()) {
+        assert valuesValue.isSingleFieldValue();
+        ObjectState valuesState = valuesValue.asSingleFieldValue().getState();
+        if (!valuesState.isEnumValuesObjectState()) {
           return null;
         }
-        int ordinal = optionalOrdinal.getAsInt();
-        unboxedValues.put(staticField.field, ordinalToUnboxedInt(ordinal));
-        ordinalToObjectState.put(ordinal, enumState);
-      } else if (factory.enumMembers.isValuesFieldCandidate(staticField, enumClass.type)) {
-        ObjectState valuesState =
-            enumStaticFieldValues.getObjectStateForPossiblyPinnedField(staticField.field);
-        if (valuesState == null) {
-          if (!isFinalFieldInitialized(staticField, enumClass)) {
-            continue;
-          }
-          // We could not track the content of that field, and the field could be a values field.
-          // We conservatively bail out.
-          return null;
-        }
-        assert valuesState.isEnumValuesObjectState();
         assert valuesContents == null
             || valuesContents.equals(valuesState.asEnumValuesObjectState());
         valuesContents = valuesState.asEnumValuesObjectState();
@@ -564,13 +562,6 @@ public class EnumUnboxer {
         unboxedValues.build(),
         valuesField.build(),
         valuesContents == null ? EnumData.INVALID_VALUES_SIZE : valuesContents.getEnumValuesSize());
-  }
-
-  private boolean isFinalFieldInitialized(DexEncodedField staticField, DexProgramClass enumClass) {
-    assert staticField.isFinal();
-    return appView
-        .appInfo()
-        .isFieldOnlyWrittenInMethodIgnoringPinning(staticField, enumClass.getClassInitializer());
   }
 
   private EnumInstanceFieldData computeEnumFieldData(
