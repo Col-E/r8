@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -40,14 +41,27 @@ public class MaxIntSwitchTest extends TestBase {
     this.mode = mode;
   }
 
+  private void checkSwitch(InstructionSubject instruction, boolean hasMaxIntKey) {
+    assertEquals(hasMaxIntKey, instruction.asSwitch().getKeys().contains(0x7fffffff));
+  }
+
   private void checkSwitch(MethodSubject method, boolean hasMaxIntKey) {
     assertTrue(method.streamInstructions().anyMatch(InstructionSubject::isSwitch));
     method
         .streamInstructions()
         .filter(InstructionSubject::isSwitch)
-        .forEach(
-            instruction ->
-                assertEquals(hasMaxIntKey, instruction.asSwitch().getKeys().contains(0x7fffffff)));
+        .forEach(instruction -> checkSwitch(instruction, hasMaxIntKey));
+  }
+
+  private void checkStringSwitch(MethodSubject method, boolean hasMaxIntKey) {
+    // String switch will have two switches.
+    List<InstructionSubject> switchInstructions =
+        method
+            .streamInstructions()
+            .filter(InstructionSubject::isSwitch)
+            .collect(Collectors.toList());
+    assertEquals(2, switchInstructions.size());
+    checkSwitch(switchInstructions.get(0), hasMaxIntKey);
   }
 
   public void checkSwitchKeys(CodeInspector inspector) {
@@ -57,7 +71,7 @@ public class MaxIntSwitchTest extends TestBase {
     checkSwitch(
         inspector.clazz(TestClass.class).uniqueMethodWithName("g"),
         parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K));
-    // Debug mode will not rewrite switch statements except when the MAX_INT but might be present.
+    // Debug mode will not rewrite switch statements except when the MAX_INT key is present.
     assertEquals(
         inspector
             .clazz(TestClass.class)
@@ -68,6 +82,10 @@ public class MaxIntSwitchTest extends TestBase {
         BooleanUtils.intValue(
             mode == CompilationMode.DEBUG
                 && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K)));
+
+    checkStringSwitch(
+        inspector.clazz(TestClass.class).uniqueMethodWithName("s"),
+        parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K));
   }
 
   @Test
@@ -95,7 +113,16 @@ public class MaxIntSwitchTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
-  static final String EXPECTED_OUTPUT = StringUtils.lines("good", "show", "!");
+  static final String EXPECTED_OUTPUT =
+      StringUtils.lines(
+          Integer.toString(0x7ffffffc),
+          Integer.toString(0x7ffffffd),
+          Integer.toString(0x7ffffffe),
+          Integer.toString(0x7fffffff),
+          "good",
+          "show",
+          "!",
+          "?");
 
   static class TestClass {
     @NeverInline
@@ -147,10 +174,36 @@ public class MaxIntSwitchTest extends TestBase {
       }
     }
 
+    @NeverInline
+    @NeverPropagateValue
+    public static void s(String s) {
+      switch (s) {
+        case "DAEFIDU":
+          System.out.println("a");
+          break;
+        case "DAEFIDV":
+          System.out.println("b");
+          break;
+        case "DAEFIDW":
+          System.out.println("c");
+          break;
+        case "DAEFIDX":
+          System.out.println("?");
+          break;
+        default:
+          throw new AssertionError();
+      }
+    }
+
     public static void main(String[] args) {
+      System.out.println("DAEFIDU".hashCode());
+      System.out.println("DAEFIDV".hashCode());
+      System.out.println("DAEFIDW".hashCode());
+      System.out.println("DAEFIDX".hashCode());
       f(0x7fffffff);
       g(0x7fffffff);
       h(0x7fffffff);
+      s("DAEFIDX");
     }
   }
 }
