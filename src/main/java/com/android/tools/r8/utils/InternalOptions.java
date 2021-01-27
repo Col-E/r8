@@ -1895,4 +1895,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean canHaveZipFileWithMissingCloseableBug() {
     return isGeneratingClassFiles() || minApiLevel < AndroidApiLevel.K.getLevel();
   }
+
+  // Some versions of Dalvik had a bug where a switch with a MAX_INT key would still go to
+  // the default case when switching on the value MAX_INT.
+  //
+  // See b/177790310.
+  public boolean canHaveSwitchMaxIntBug() {
+    return isGeneratingDex() && minApiLevel < AndroidApiLevel.K.getLevel();
+  }
 }

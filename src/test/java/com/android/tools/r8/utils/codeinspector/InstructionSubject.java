@@ -109,6 +109,10 @@ public interface InstructionSubject {
 
   boolean isSwitch();
 
+  default SwitchInstructionSubject asSwitch() {
+    return null;
+  }
+
   boolean isPackedSwitch();
 
   boolean isSparseSwitch();

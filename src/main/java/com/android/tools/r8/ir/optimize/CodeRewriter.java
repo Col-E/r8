@@ -961,7 +961,61 @@ public class CodeRewriter {
     if (!code.metadata().mayHaveSwitch()) {
       return false;
     }
+    return rewriteSwitchFull(code, switchCaseAnalyzer);
+  }
 
+  public void rewriteSwitchForMaxInt(IRCode code) {
+    if (options.canHaveSwitchMaxIntBug() && code.metadata().mayHaveSwitch()) {
+      // Always rewrite for workaround switch bug.
+      rewriteSwitchForMaxIntOnly(code);
+    }
+  }
+
+  private void rewriteSwitchForMaxIntOnly(IRCode code) {
+    boolean needToSplitCriticalEdges = false;
+    ListIterator<BasicBlock> blocksIterator = code.listIterator();
+    while (blocksIterator.hasNext()) {
+      BasicBlock block = blocksIterator.next();
+      InstructionListIterator iterator = block.listIterator(code);
+      while (iterator.hasNext()) {
+        Instruction instruction = iterator.next();
+        assert !instruction.isStringSwitch();
+        if (instruction.isIntSwitch()) {
+          IntSwitch intSwitch = instruction.asIntSwitch();
+          if (intSwitch.getKey(intSwitch.numberOfKeys() - 1) == Integer.MAX_VALUE) {
+            if (intSwitch.numberOfKeys() == 1) {
+              rewriteSingleKeySwitchToIf(code, block, iterator, intSwitch);
+            } else {
+              IntList newSwitchSequences = new IntArrayList(intSwitch.numberOfKeys() - 1);
+              for (int i = 0; i < intSwitch.numberOfKeys() - 1; i++) {
+                newSwitchSequences.add(intSwitch.getKey(i));
+              }
+              IntList outliers = new IntArrayList(1);
+              outliers.add(Integer.MAX_VALUE);
+              convertSwitchToSwitchAndIfs(
+                  code,
+                  blocksIterator,
+                  block,
+                  iterator,
+                  intSwitch,
+                  ImmutableList.of(newSwitchSequences),
+                  outliers);
+            }
+            needToSplitCriticalEdges = true;
+          }
+        }
+      }
+    }
+
+    // Rewriting of switches introduces new branching structure. It relies on critical edges
+    // being split on the way in but does not maintain this property. We therefore split
+    // critical edges at exit.
+    if (needToSplitCriticalEdges) {
+      code.splitCriticalEdges();
+    }
+  }
+
+  private boolean rewriteSwitchFull(IRCode code, SwitchCaseAnalyzer switchCaseAnalyzer) {
     boolean needToRemoveUnreachableBlocks = false;
     ListIterator<BasicBlock> blocksIterator = code.listIterator();
     while (blocksIterator.hasNext()) {
@@ -1010,6 +1064,29 @@ public class CodeRewriter {
     return !affectedValues.isEmpty();
   }
 
+  private void rewriteSingleKeySwitchToIf(
+      IRCode code, BasicBlock block, InstructionListIterator iterator, IntSwitch theSwitch) {
+    // Rewrite the switch to an if.
+    int fallthroughBlockIndex = theSwitch.getFallthroughBlockIndex();
+    int caseBlockIndex = theSwitch.targetBlockIndices()[0];
+    if (fallthroughBlockIndex < caseBlockIndex) {
+      block.swapSuccessorsByIndex(fallthroughBlockIndex, caseBlockIndex);
+    }
+    If replacement;
+    if (theSwitch.isIntSwitch() && theSwitch.asIntSwitch().getFirstKey() == 0) {
+      replacement = new If(Type.EQ, theSwitch.value());
+    } else {
+      Instruction labelConst = theSwitch.materializeFirstKey(appView, code);
+      labelConst.setPosition(theSwitch.getPosition());
+      iterator.previous();
+      iterator.add(labelConst);
+      Instruction dummy = iterator.next();
+      assert dummy == theSwitch;
+      replacement = new If(Type.EQ, ImmutableList.of(theSwitch.value(), labelConst.outValue()));
+    }
+    iterator.replaceCurrentInstruction(replacement);
+  }
+
   private void rewriteIntSwitch(
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
@@ -1017,25 +1094,7 @@ public class CodeRewriter {
       InstructionListIterator iterator,
       IntSwitch theSwitch) {
     if (theSwitch.numberOfKeys() == 1) {
-      // Rewrite the switch to an if.
-      int fallthroughBlockIndex = theSwitch.getFallthroughBlockIndex();
-      int caseBlockIndex = theSwitch.targetBlockIndices()[0];
-      if (fallthroughBlockIndex < caseBlockIndex) {
-        block.swapSuccessorsByIndex(fallthroughBlockIndex, caseBlockIndex);
-      }
-      If replacement;
-      if (theSwitch.isIntSwitch() && theSwitch.asIntSwitch().getFirstKey() == 0) {
-        replacement = new If(Type.EQ, theSwitch.value());
-      } else {
-        Instruction labelConst = theSwitch.materializeFirstKey(appView, code);
-        labelConst.setPosition(theSwitch.getPosition());
-        iterator.previous();
-        iterator.add(labelConst);
-        Instruction dummy = iterator.next();
-        assert dummy == theSwitch;
-        replacement = new If(Type.EQ, ImmutableList.of(theSwitch.value(), labelConst.outValue()));
-      }
-      iterator.replaceCurrentInstruction(replacement);
+      rewriteSingleKeySwitchToIf(code, block, iterator, theSwitch);
       return;
     }
 

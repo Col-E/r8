@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.SwitchPayloadResolver;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
@@ -330,7 +331,8 @@ public class CodeInspector {
     return originalTypeName != null ? originalTypeName : minifiedTypeName;
   }
 
-  InstructionSubject createInstructionSubject(Instruction instruction, MethodSubject method) {
+  InstructionSubject createInstructionSubject(
+      Instruction instruction, MethodSubject method, SwitchPayloadResolver switchPayloadResolver) {
     DexInstructionSubject dexInst = new DexInstructionSubject(instruction, method);
     if (dexInst.isInvoke()) {
       return new InvokeDexInstructionSubject(this, instruction, method);
@@ -342,6 +344,8 @@ public class CodeInspector {
       return new ConstStringDexInstructionSubject(instruction, method);
     } else if (dexInst.isCheckCast()) {
       return new CheckCastDexInstructionSubject(instruction, method);
+    } else if (dexInst.isSwitch()) {
+      return new SwitchDexInstructionSubject(instruction, method, switchPayloadResolver);
     } else {
       return dexInst;
     }
@@ -359,6 +363,8 @@ public class CodeInspector {
       return new ConstStringCfInstructionSubject(instruction, method);
     } else if (cfInst.isCheckCast()) {
       return new CheckCastCfInstructionSubject(instruction, method);
+    } else if (cfInst.isSwitch()) {
+      return new SwitchCfInstructionSubject(instruction, method);
     } else {
       return cfInst;
     }

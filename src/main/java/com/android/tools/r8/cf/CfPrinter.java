@@ -563,7 +563,7 @@ public class CfPrinter {
     indent();
     Kind kind = cfSwitch.getKind();
     builder.append(kind == Kind.LOOKUP ? "lookup" : "table").append("switch");
-    IntList keys = cfSwitch.getKeys();
+    IntList keys = (IntList) cfSwitch.getKeys();
     List<CfLabel> targets = cfSwitch.getSwitchTargets();
     for (int i = 0; i < targets.size(); i++) {
       indent();

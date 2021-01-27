@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.code.SwitchPayload;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexCode;
+import com.android.tools.r8.ir.conversion.SwitchPayloadResolver;
 import java.util.NoSuchElementException;
 
 class DexInstructionIterator implements InstructionIterator {
@@ -13,6 +16,7 @@ class DexInstructionIterator implements InstructionIterator {
   private final CodeInspector codeInspector;
   private final DexCode code;
   private final MethodSubject methodSubject;
+  private SwitchPayloadResolver switchPayloadResolver;
   private int index;
 
   DexInstructionIterator(CodeInspector codeInspector, MethodSubject method) {
@@ -35,6 +39,24 @@ class DexInstructionIterator implements InstructionIterator {
     if (index == code.instructions.length) {
       throw new NoSuchElementException();
     }
-    return codeInspector.createInstructionSubject(code.instructions[index++], methodSubject);
+    if (code.instructions[index].isIntSwitch()) {
+      ensureSwitchPayloadResolver();
+    }
+    return codeInspector.createInstructionSubject(
+        code.instructions[index++], methodSubject, switchPayloadResolver);
+  }
+
+  private void ensureSwitchPayloadResolver() {
+    if (switchPayloadResolver == null) {
+      switchPayloadResolver = new SwitchPayloadResolver();
+      for (Instruction instruction : code.instructions) {
+        if (instruction.isIntSwitch()) {
+          switchPayloadResolver.addPayloadUser(instruction);
+        }
+        if (instruction.isSwitchPayload()) {
+          switchPayloadResolver.resolve((SwitchPayload) instruction);
+        }
+      }
+    }
   }
 }

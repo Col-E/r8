@@ -1759,6 +1759,8 @@ public class IRConverter {
     DexEncodedMethod method = code.method();
     // Workaround massive dex2oat memory use for self-recursive methods.
     CodeRewriter.disableDex2OatInliningForSelfRecursiveMethods(appView, code);
+    // Workaround MAX_INT switch issue.
+    codeRewriter.rewriteSwitchForMaxInt(code);
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method, timing);
     timing.begin("Build DEX code");

@@ -210,6 +210,7 @@ public class SwitchRewritingJarTest extends JasminTestBase {
     Statistics stat =
         countInstructions(getMethodSubject(app, "Test", signature).iterateInstructions());
 
+    int expectedIfCount = 0;
     int expectedPackedSwitchCount, expectedSparseSwitchCount;
     if (keyStep <= 2) {
       expectedPackedSwitchCount = 1;
@@ -218,8 +219,13 @@ public class SwitchRewritingJarTest extends JasminTestBase {
       expectedPackedSwitchCount = 0;
       expectedSparseSwitchCount = 1;
     }
+    if (additionalLastKey != null && additionalLastKey == Integer.MAX_VALUE) {
+      expectedIfCount = 1;
+    }
 
-    assertEquals(new Statistics(0, expectedPackedSwitchCount, expectedSparseSwitchCount), stat);
+    assertEquals(
+        new Statistics(expectedIfCount, expectedPackedSwitchCount, expectedSparseSwitchCount),
+        stat);
   }
 
   @Test

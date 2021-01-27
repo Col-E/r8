@@ -152,8 +152,6 @@ public class SwitchRewritingTest extends SmaliTestBase {
     Consumer<InternalOptions> optionsConsumer =
         options -> {
           options.testing.enableDeadSwitchCaseElimination = false;
-          options.verbose = true;
-          options.printTimes = true;
         };
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication, optionsConsumer);
@@ -162,7 +160,12 @@ public class SwitchRewritingTest extends SmaliTestBase {
     if (keyStep <= 2) {
       assertTrue(code.instructions[0] instanceof PackedSwitch);
     } else {
-      assertTrue(code.instructions[0] instanceof SparseSwitch);
+      if (additionalLastKey != null && additionalLastKey == Integer.MAX_VALUE) {
+        assertTrue(code.instructions[0] instanceof Const);
+        assertTrue(code.instructions[1] instanceof IfEq);
+      } else {
+        assertTrue(code.instructions[0] instanceof SparseSwitch);
+      }
     }
   }
 
