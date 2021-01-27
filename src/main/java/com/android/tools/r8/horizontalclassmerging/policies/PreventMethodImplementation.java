@@ -79,7 +79,7 @@ public class PreventMethodImplementation extends MultiClassPolicy {
 
     DexMethodSignatureSet getOrComputeSignatures(DexType type) {
       DexClass clazz = appView.definitionFor(type);
-      return clazz != null ? getOrComputeSignatures(clazz) : null;
+      return clazz != null ? getOrComputeSignatures(clazz) : DexMethodSignatureSet.create();
     }
   }
 
