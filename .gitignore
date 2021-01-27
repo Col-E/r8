@@ -1,4 +1,5 @@
 
+!third_party/chrome/*.sha1
 !third_party/gmail/*.sha1
 !third_party/gmscore/*.sha1
 !third_party/internal/*.sha1
@@ -30,6 +31,8 @@ tests/2017-10-04/art
 tests/2017-10-04/art.tar.gz
 third_party/android_cts_baseline
 third_party/android_cts_baseline.tar.gz
+third_party/clank/clank_google3_prebuilt
+third_party/clank/clank_google3.tar.gz
 third_party/android_jar/lib
 third_party/android_jar/lib-v[0-9][0-9]
 third_party/android_jar/lib-v[0-9][0-9].tar.gz

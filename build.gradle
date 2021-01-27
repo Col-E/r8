@@ -420,6 +420,7 @@ def x20Dependencies = [
         "chrome/chrome_180917_ffbaa8",
         "chrome/chrome_200430",
         "chrome/monochrome_public_minimal_apks/chrome_200520",
+        "chrome/clank_google3_prebuilt",
         "classlib",
         "cf_segments",
         "desugar/desugar_20180308",
