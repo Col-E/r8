@@ -163,6 +163,10 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
     set(Constants.ACC_NATIVE);
   }
 
+  public void unsetNative() {
+    unset(Constants.ACC_NATIVE);
+  }
+
   public boolean isAbstract() {
     return isSet(Constants.ACC_ABSTRACT);
   }
@@ -223,6 +227,11 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
 
     Builder() {
       super(MethodAccessFlags.fromSharedAccessFlags(0, false));
+    }
+
+    public Builder setBridge() {
+      flags.setBridge();
+      return this;
     }
 
     public Builder setConstructor() {

@@ -1293,15 +1293,13 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
                           }
                         })
                     .build())
-            .modifyAccessFlags(
-                accessFlags -> {
-                  accessFlags.setSynthetic();
-                  accessFlags.setStatic();
-                  accessFlags.unsetPrivate();
-                  if (holder.isInterface()) {
-                    accessFlags.setPublic();
-                  }
-                })
+            .setAccessFlags(
+                MethodAccessFlags.builder()
+                    .setBridge()
+                    .setPublic(holder.isInterface())
+                    .setStatic()
+                    .setSynthetic()
+                    .build())
             .build());
   }
 
@@ -1581,8 +1579,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return this;
     }
 
-    public void setAccessFlags(MethodAccessFlags accessFlags) {
-      this.accessFlags = accessFlags.copy();
+    public Builder setAccessFlags(MethodAccessFlags accessFlags) {
+      this.accessFlags = accessFlags;
+      return this;
     }
 
     public Builder setMethod(DexMethod method) {
