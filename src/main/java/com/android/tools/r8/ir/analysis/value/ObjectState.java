@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 public abstract class ObjectState {
 
@@ -21,6 +22,8 @@ public abstract class ObjectState {
   public static ObjectState empty() {
     return EmptyObjectState.getInstance();
   }
+
+  public abstract void forEachAbstractFieldValue(BiConsumer<DexField, AbstractValue> consumer);
 
   public abstract AbstractValue getAbstractFieldValue(DexEncodedField field);
 

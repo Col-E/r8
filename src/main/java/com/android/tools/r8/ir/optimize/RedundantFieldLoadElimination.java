@@ -17,6 +17,8 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.value.ObjectState;
+import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
@@ -235,24 +237,7 @@ public class RedundantFieldLoadElimination {
                 activeState.putNonFinalInstanceField(fieldAndObject, value);
               }
             } else if (instruction.isStaticGet()) {
-              StaticGet staticGet = instruction.asStaticGet();
-              if (staticGet.outValue().hasLocalInfo()) {
-                continue;
-              }
-              FieldValue replacement = activeState.getStaticFieldValue(reference);
-              if (replacement != null) {
-                replacement.eliminateRedundantRead(it, staticGet);
-              } else {
-                // A field get on a different class can cause <clinit> to run and change static
-                // field values.
-                killNonFinalActiveFields(staticGet);
-                FieldValue value = new ExistingValue(staticGet.value());
-                if (isFinal(field)) {
-                  activeState.putFinalStaticField(reference, value);
-                } else {
-                  activeState.putNonFinalStaticField(reference, value);
-                }
-              }
+              handleStaticGet(it, instruction.asStaticGet(), field);
             } else if (instruction.isStaticPut()) {
               StaticPut staticPut = instruction.asStaticPut();
               // A field put on a different class can cause <clinit> to run and change static
@@ -405,6 +390,52 @@ public class RedundantFieldLoadElimination {
             }
           } else {
             assert info.isTypeInitializationInfo();
+          }
+        });
+  }
+
+  private void handleStaticGet(
+      InstructionListIterator instructionIterator, StaticGet staticGet, DexClassAndField field) {
+    if (staticGet.outValue().hasLocalInfo()) {
+      return;
+    }
+    FieldValue replacement = activeState.getStaticFieldValue(field.getReference());
+    if (replacement != null) {
+      replacement.eliminateRedundantRead(instructionIterator, staticGet);
+      return;
+    }
+
+    // A field get on a different class can cause <clinit> to run and change static field values.
+    if (staticGet.instructionMayHaveSideEffects(appView, method)) {
+      killNonFinalActiveFields(staticGet);
+    }
+
+    FieldValue value = new ExistingValue(staticGet.value());
+    if (isFinal(field)) {
+      activeState.putFinalStaticField(field.getReference(), value);
+    } else {
+      activeState.putNonFinalStaticField(field.getReference(), value);
+    }
+
+    if (appView.hasLiveness()) {
+      SingleFieldValue singleFieldValue =
+          field.getDefinition().getOptimizationInfo().getAbstractValue().asSingleFieldValue();
+      if (singleFieldValue != null) {
+        applyObjectState(staticGet.outValue(), singleFieldValue.getState());
+      }
+    }
+  }
+
+  private void applyObjectState(Value value, ObjectState objectState) {
+    objectState.forEachAbstractFieldValue(
+        (field, fieldValue) -> {
+          if (appView.appInfoWithLiveness().mayPropagateValueFor(field)
+              && fieldValue.isSingleValue()) {
+            SingleValue singleFieldValue = fieldValue.asSingleValue();
+            if (singleFieldValue.isMaterializableInContext(appView.withLiveness(), method)) {
+              activeState.putFinalInstanceField(
+                  new FieldAndObject(field, value), new MaterializableValue(singleFieldValue));
+            }
           }
         });
   }

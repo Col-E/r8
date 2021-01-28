@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 public class NonEmptyObjectState extends ObjectState {
 
@@ -21,6 +22,11 @@ public class NonEmptyObjectState extends ObjectState {
     assert !state.isEmpty();
     assert state.values().stream().noneMatch(AbstractValue::isUnknown);
     this.state = state;
+  }
+
+  @Override
+  public void forEachAbstractFieldValue(BiConsumer<DexField, AbstractValue> consumer) {
+    state.forEach(consumer);
   }
 
   @Override

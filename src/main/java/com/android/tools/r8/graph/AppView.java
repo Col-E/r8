@@ -202,8 +202,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public AppInfoWithLiveness appInfoWithLiveness() {
-    assert hasLiveness();
-    return appInfo().withLiveness();
+    return appInfo.hasLiveness() ? appInfo.withLiveness() : null;
   }
 
   public AppInfoWithClassHierarchy appInfoForDesugaring() {

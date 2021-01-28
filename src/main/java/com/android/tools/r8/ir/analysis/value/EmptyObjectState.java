@@ -6,8 +6,10 @@ package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.function.BiConsumer;
 
 public class EmptyObjectState extends ObjectState {
 
@@ -17,6 +19,11 @@ public class EmptyObjectState extends ObjectState {
 
   public static EmptyObjectState getInstance() {
     return INSTANCE;
+  }
+
+  @Override
+  public void forEachAbstractFieldValue(BiConsumer<DexField, AbstractValue> consumer) {
+    // Intentionally empty.
   }
 
   @Override

@@ -6,10 +6,12 @@ package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 
 public class EnumValuesObjectState extends ObjectState {
 
@@ -20,6 +22,9 @@ public class EnumValuesObjectState extends ObjectState {
     assert Arrays.stream(state).noneMatch(Objects::isNull);
     this.state = state;
   }
+
+  @Override
+  public void forEachAbstractFieldValue(BiConsumer<DexField, AbstractValue> consumer) {}
 
   @Override
   public AbstractValue getAbstractFieldValue(DexEncodedField field) {
