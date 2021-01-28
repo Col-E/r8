@@ -3,10 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static org.hamcrest.CoreMatchers.containsString;
-
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -33,7 +31,7 @@ public class ClankDepsTest extends TestBase {
   private static final Path CLASSES = DIR.resolve("classes.jar");
   private static final Path CONFIG = DIR.resolve("proguard.txt");
 
-  @Test(expected = AssertionError.class)
+  @Test
   public void test() throws Exception {
     testForR8(Backend.DEX)
         .addProgramFiles(CLASSES)
@@ -44,11 +42,8 @@ public class ClankDepsTest extends TestBase {
         .addDontWarn("zzz.com.facebook.litho.R$id")
         .addDontWarn("com.google.android.libraries.elements.R$id")
         .allowUnusedProguardConfigurationRules()
+        .allowUnusedDontWarnPatterns()
         .setMinApi(AndroidApiLevel.N)
-        .compileWithExpectedDiagnostics(
-            diagnostics ->
-                diagnostics.assertErrorsMatch(
-                    diagnosticMessage(
-                        containsString("java.lang.AssertionError: Invalid read to $VALUES"))));
+        .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertOnlyInfos);
   }
 }

@@ -20,9 +20,11 @@ import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.kotlin.KotlinFieldLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
+import java.util.function.Consumer;
 
 public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     implements StructuralItem<DexEncodedField> {
@@ -295,17 +297,14 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   public DexEncodedField toTypeSubstitutedField(DexField field) {
+    return toTypeSubstitutedField(field, ConsumerUtils.emptyConsumer());
+  }
+
+  public DexEncodedField toTypeSubstitutedField(DexField field, Consumer<Builder> consumer) {
     if (this.field == field) {
       return this;
     }
-    // TODO(b/169923358): Consider removing the fieldSignature here.
-    DexEncodedField result =
-        new DexEncodedField(field, accessFlags, genericSignature, annotations(), staticValue);
-    result.optimizationInfo =
-        optimizationInfo.isMutableFieldOptimizationInfo()
-            ? optimizationInfo.asMutableFieldOptimizationInfo().mutableCopy()
-            : DefaultFieldOptimizationInfo.getInstance();
-    return result;
+    return builder(this).setField(field).apply(consumer).build();
   }
 
   public boolean validateDexValue(DexItemFactory factory) {
@@ -334,5 +333,59 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
 
   public void clearGenericSignature() {
     this.genericSignature = FieldTypeSignature.noSignature();
+  }
+
+  private static Builder builder(DexEncodedField from) {
+    return new Builder(from);
+  }
+
+  public static class Builder {
+
+    private DexField field;
+    private DexAnnotationSet annotations;
+    private FieldAccessFlags accessFlags;
+    private FieldTypeSignature genericSignature;
+    private DexValue staticValue;
+    private FieldOptimizationInfo optimizationInfo;
+
+    Builder(DexEncodedField from) {
+      // Copy all the mutable state of a DexEncodedField here.
+      field = from.field;
+      accessFlags = from.accessFlags.copy();
+      // TODO(b/169923358): Consider removing the fieldSignature here.
+      genericSignature = from.getGenericSignature();
+      annotations = from.annotations();
+      staticValue = from.staticValue;
+      optimizationInfo =
+          from.optimizationInfo.isDefaultFieldOptimizationInfo()
+              ? DefaultFieldOptimizationInfo.getInstance()
+              : from.optimizationInfo.mutableCopy();
+    }
+
+    public Builder fixupOptimizationInfo(Consumer<MutableFieldOptimizationInfo> consumer) {
+      if (optimizationInfo.isMutableFieldOptimizationInfo()) {
+        consumer.accept(optimizationInfo.asMutableFieldOptimizationInfo());
+      }
+      return this;
+    }
+
+    public Builder apply(Consumer<Builder> consumer) {
+      consumer.accept(this);
+      return this;
+    }
+
+    public Builder setField(DexField field) {
+      this.field = field;
+      return this;
+    }
+
+    DexEncodedField build() {
+      DexEncodedField dexEncodedField =
+          new DexEncodedField(field, accessFlags, genericSignature, annotations, staticValue);
+      if (optimizationInfo.isMutableFieldOptimizationInfo()) {
+        dexEncodedField.setOptimizationInfo(optimizationInfo.asMutableFieldOptimizationInfo());
+      }
+      return dexEncodedField;
+    }
   }
 }

@@ -193,7 +193,15 @@ class EnumUnboxingTreeFixer {
       if (newType != field.type) {
         DexField newField = factory.createField(field.holder, newType, field.name);
         lensBuilder.move(field, newField);
-        DexEncodedField newEncodedField = encodedField.toTypeSubstitutedField(newField);
+        DexEncodedField newEncodedField =
+            encodedField.toTypeSubstitutedField(
+                newField,
+                builder ->
+                    builder.fixupOptimizationInfo(
+                        mutableFieldOptimizationInfo -> {
+                          mutableFieldOptimizationInfo.setAbstractValue(
+                              encodedField.getOptimizationInfo().getAbstractValue());
+                        }));
         setter.setField(i, newEncodedField);
         if (encodedField.isStatic() && encodedField.hasExplicitStaticValue()) {
           assert encodedField.getStaticValue() == DexValue.DexValueNull.NULL;
