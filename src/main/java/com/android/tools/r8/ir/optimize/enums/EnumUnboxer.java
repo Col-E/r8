@@ -63,6 +63,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationIn
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Reporter;
@@ -388,11 +389,17 @@ public class EnumUnboxer {
     // Update keep info on any of the enum methods of the removed classes.
     updateKeepInfo(enumsToUnbox);
     DirectMappedDexApplication.Builder appBuilder = appView.appInfo().app().asDirect().builder();
+    FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder =
+        FieldAccessInfoCollectionModifier.builder();
     UnboxedEnumMemberRelocator relocator =
         UnboxedEnumMemberRelocator.builder(appView)
             .synthesizeEnumUnboxingUtilityClasses(
-                enumClassesToUnbox, enumsToUnboxWithPackageRequirement, appBuilder)
+                enumClassesToUnbox,
+                enumsToUnboxWithPackageRequirement,
+                appBuilder,
+                fieldAccessInfoCollectionModifierBuilder)
             .build();
+    fieldAccessInfoCollectionModifierBuilder.build().modify(appView);
     enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumDataMap, relocator);
     EnumUnboxingLens enumUnboxingLens =
         new EnumUnboxingTreeFixer(appView, enumsToUnbox, relocator, enumUnboxerRewriter)

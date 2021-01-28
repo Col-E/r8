@@ -214,8 +214,7 @@ public class TrivialFieldAccessReprocessor {
 
     if (fieldAccessInfo.hasReflectiveAccess()
         || fieldAccessInfo.isAccessedFromMethodHandle()
-        || fieldAccessInfo.isReadFromAnnotation()
-        || appView.appInfo().getSyntheticItems().isSyntheticClass(field.getHolderType())) {
+        || fieldAccessInfo.isReadFromAnnotation()) {
       return false;
     }
 

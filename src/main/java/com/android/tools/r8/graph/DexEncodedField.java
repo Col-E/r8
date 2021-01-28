@@ -67,6 +67,10 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     assert GenericSignatureUtils.verifyNoDuplicateGenericDefinitions(genericSignature, annotations);
   }
 
+  public DexEncodedField(DexField field, FieldAccessFlags accessFlags) {
+    this(field, accessFlags, FieldTypeSignature.noSignature(), DexAnnotationSet.empty(), null);
+  }
+
   public DexEncodedField(
       DexField field,
       FieldAccessFlags accessFlags,

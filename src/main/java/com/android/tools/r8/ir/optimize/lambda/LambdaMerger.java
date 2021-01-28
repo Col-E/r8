@@ -50,6 +50,7 @@ import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaStructureError;
 import com.android.tools.r8.ir.optimize.lambda.kotlin.KotlinLambdaGroupIdFactory;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -364,6 +365,9 @@ public final class LambdaMerger {
     // Switch to APPLY strategy.
     this.mode = new ApplyMode(lambdaGroupsClasses.inverse(), optimizationInfoFixer);
 
+    FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder =
+        FieldAccessInfoCollectionModifier.builder();
+
     // Add synthesized lambda group classes to the builder.
     for (Entry<LambdaGroup, DexProgramClass> entry : lambdaGroupsClasses.entrySet()) {
       DexProgramClass synthesizedClass = entry.getValue();
@@ -371,6 +375,13 @@ public final class LambdaMerger {
           .appInfo()
           .addSynthesizedClass(synthesizedClass, entry.getKey().shouldAddToMainDex(appView));
       builder.addSynthesizedClass(synthesizedClass);
+
+      synthesizedClass.forEachField(
+          field ->
+              fieldAccessInfoCollectionModifierBuilder
+                  .recordFieldReadInUnknownContext(field.getReference())
+                  .recordFieldWriteInUnknownContext(field.getReference()));
+
       // Eventually, we need to process synthesized methods in the lambda group.
       // Otherwise, abstract SynthesizedCode will be flown to Enqueuer.
       // But that process should not see the holder. Otherwise, lambda calls in the main dispatch
@@ -382,6 +393,9 @@ public final class LambdaMerger {
       synthesizedClass.forEachMethod(
           encodedMethod -> encodedMethod.markProcessed(ConstraintWithTarget.NEVER));
     }
+
+    // Record field accesses for synthesized fields.
+    fieldAccessInfoCollectionModifierBuilder.build().modify(appView);
 
     converter.optimizeSynthesizedClasses(lambdaGroupsClasses.values(), executorService);
 

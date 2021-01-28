@@ -4,23 +4,32 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import static com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter.createValuesField;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -67,10 +76,21 @@ public class UnboxedEnumMemberRelocator {
     public Builder synthesizeEnumUnboxingUtilityClasses(
         Set<DexProgramClass> enumsToUnbox,
         ProgramPackageCollection enumsToUnboxWithPackageRequirement,
-        DirectMappedDexApplication.Builder appBuilder) {
-      defaultEnumUnboxingUtility = synthesizeUtilityClass(enumsToUnbox, appBuilder);
+        DirectMappedDexApplication.Builder appBuilder,
+        FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder) {
+      Set<DexProgramClass> enumsToUnboxWithoutPackageRequirement =
+          SetUtils.newIdentityHashSet(enumsToUnbox);
+      enumsToUnboxWithoutPackageRequirement.removeIf(enumsToUnboxWithPackageRequirement::contains);
+      defaultEnumUnboxingUtility =
+          synthesizeUtilityClass(
+              enumsToUnboxWithoutPackageRequirement,
+              appBuilder,
+              fieldAccessInfoCollectionModifierBuilder);
       if (!enumsToUnboxWithPackageRequirement.isEmpty()) {
-        synthesizeRelocationMap(enumsToUnboxWithPackageRequirement, appBuilder);
+        synthesizeRelocationMap(
+            enumsToUnboxWithPackageRequirement,
+            appBuilder,
+            fieldAccessInfoCollectionModifierBuilder);
       }
       return this;
     }
@@ -82,10 +102,13 @@ public class UnboxedEnumMemberRelocator {
 
     private void synthesizeRelocationMap(
         ProgramPackageCollection enumsToUnboxWithPackageRequirement,
-        DirectMappedDexApplication.Builder appBuilder) {
+        DirectMappedDexApplication.Builder appBuilder,
+        FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder) {
       for (ProgramPackage programPackage : enumsToUnboxWithPackageRequirement) {
         Set<DexProgramClass> enumsToUnboxInPackage = programPackage.classesInPackage();
-        DexType utilityType = synthesizeUtilityClass(enumsToUnboxInPackage, appBuilder);
+        DexType utilityType =
+            synthesizeUtilityClass(
+                enumsToUnboxInPackage, appBuilder, fieldAccessInfoCollectionModifierBuilder);
         for (DexProgramClass enumToUnbox : enumsToUnboxInPackage) {
           assert !relocationMap.containsKey(enumToUnbox.type);
           relocationMap.put(enumToUnbox.type, utilityType);
@@ -94,7 +117,9 @@ public class UnboxedEnumMemberRelocator {
     }
 
     private DexType synthesizeUtilityClass(
-        Set<DexProgramClass> contexts, DirectMappedDexApplication.Builder appBuilder) {
+        Set<DexProgramClass> contexts,
+        DirectMappedDexApplication.Builder appBuilder,
+        FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder) {
       DexType deterministicContextType = findDeterministicContextType(contexts);
       assert deterministicContextType.isClassType();
       String descriptorString = deterministicContextType.toDescriptorString();
@@ -108,6 +133,16 @@ public class UnboxedEnumMemberRelocator {
         return defaultEnumUnboxingUtility;
       }
       assert appView.appInfo().definitionForWithoutExistenceAssert(type) == null;
+      List<DexEncodedField> staticFields = new ArrayList<>(contexts.size());
+      for (DexProgramClass clazz : contexts) {
+        DexField reference = createValuesField(clazz.getType(), type, appView.dexItemFactory());
+        staticFields.add(
+            new DexEncodedField(reference, FieldAccessFlags.createPublicStaticSynthetic()));
+        fieldAccessInfoCollectionModifierBuilder
+            .recordFieldReadInUnknownContext(reference)
+            .recordFieldWriteInUnknownContext(reference);
+      }
+      staticFields.sort(Comparator.comparing(DexEncodedField::getReference));
       DexProgramClass syntheticClass =
           new DexProgramClass(
               type,
@@ -124,7 +159,7 @@ public class UnboxedEnumMemberRelocator {
               Collections.emptyList(),
               ClassSignature.noSignature(),
               DexAnnotationSet.empty(),
-              DexEncodedField.EMPTY_ARRAY,
+              staticFields.toArray(DexEncodedField.EMPTY_ARRAY),
               DexEncodedField.EMPTY_ARRAY,
               DexEncodedMethod.EMPTY_ARRAY,
               DexEncodedMethod.EMPTY_ARRAY,

@@ -35,6 +35,11 @@ public class ProgramPackageCollection implements Iterable<ProgramPackage> {
         .add(clazz);
   }
 
+  public boolean contains(DexProgramClass clazz) {
+    ProgramPackage pkg = packages.get(clazz.getType().getPackageDescriptor());
+    return pkg != null && pkg.contains(clazz);
+  }
+
   public boolean isEmpty() {
     return packages.isEmpty();
   }

@@ -774,11 +774,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (keepInfo.isPinned(field, this)) {
       return true;
     }
-    // Fields in the class that is synthesized by D8/R8 would be used soon.
-    // TODO(b/165229577): Do we need this special handling of synthetics?
-    if (getSyntheticItems().isSyntheticClass(field.holder)) {
-      return true;
-    }
     // For library classes we don't know whether a field is read.
     return isLibraryOrClasspathField(encodedField);
   }
@@ -794,10 +789,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     FieldAccessInfo info = getFieldAccessInfoCollection().get(field);
     if (info != null && info.isWritten()) {
       // The field is written directly by the program itself.
-      return true;
-    }
-    // TODO(b/165229577): Do we need this special handling of synthetics?
-    if (getSyntheticItems().isSyntheticClass(field.holder)) {
       return true;
     }
     // For library classes we don't know whether a field is rewritten.

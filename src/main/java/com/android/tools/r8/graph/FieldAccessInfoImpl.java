@@ -79,6 +79,10 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     this.readsWithContexts = readsWithContexts;
   }
 
+  public void setWritesWithContexts(AbstractAccessContexts writesWithContexts) {
+    this.writesWithContexts = writesWithContexts;
+  }
+
   @Override
   public int getNumberOfReadContexts() {
     return readsWithContexts.getNumberOfAccessContexts();

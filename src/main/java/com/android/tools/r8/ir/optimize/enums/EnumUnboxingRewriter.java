@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -21,8 +20,6 @@ import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -78,7 +75,6 @@ public class EnumUnboxingRewriter {
   private NestedGraphLens enumUnboxingLens;
 
   private final Map<DexMethod, DexEncodedMethod> utilityMethods = new ConcurrentHashMap<>();
-  private final Map<DexField, DexEncodedField> utilityFields = new ConcurrentHashMap<>();
 
   private final DexMethod ordinalUtilityMethod;
   private final DexMethod equalsUtilityMethod;
@@ -279,7 +275,6 @@ public class EnumUnboxingRewriter {
               utilityMethods.computeIfAbsent(
                   valuesUtilityMethod, m -> synthesizeValuesUtilityMethod());
               DexField fieldValues = createValuesField(holder);
-              utilityFields.computeIfAbsent(fieldValues, this::computeValuesEncodedField);
               DexMethod methodValues = createValuesMethod(holder);
               utilityMethods.computeIfAbsent(
                   methodValues,
@@ -426,25 +421,20 @@ public class EnumUnboxingRewriter {
     return unboxedEnumsData.isUnboxedEnum(enumType) ? enumType : null;
   }
 
-  public String compatibleName(DexType type) {
+  public static String compatibleName(DexType type) {
     return type.toSourceString().replace('.', '$');
   }
 
   private DexField createValuesField(DexType enumType) {
-    return factory.createField(
-        relocator.getNewMemberLocationFor(enumType),
-        factory.intArrayType,
-        "$$values$$field$" + compatibleName(enumType));
+    return createValuesField(enumType, relocator.getNewMemberLocationFor(enumType), factory);
   }
 
-  private DexEncodedField computeValuesEncodedField(DexField field) {
-    return new DexEncodedField(
-        field,
-        FieldAccessFlags.fromSharedAccessFlags(
-            Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC),
-        FieldTypeSignature.noSignature(),
-        DexAnnotationSet.empty(),
-        null);
+  static DexField createValuesField(
+      DexType enumType, DexType enumUtilityClass, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createField(
+        enumUtilityClass,
+        dexItemFactory.intArrayType,
+        "$$values$$field$" + compatibleName(enumType));
   }
 
   private DexMethod createValuesMethod(DexType enumType) {
@@ -533,7 +523,6 @@ public class EnumUnboxingRewriter {
     // fields required.
     Map<DexType, List<DexEncodedMethod>> methodMap = triageEncodedMembers(utilityMethods.values());
     if (methodMap.isEmpty()) {
-      assert utilityFields.isEmpty();
       return;
     }
     SortedProgramMethodSet wave = SortedProgramMethodSet.create();
@@ -545,13 +534,6 @@ public class EnumUnboxingRewriter {
           for (DexEncodedMethod dexEncodedMethod : methodsSorted) {
             wave.add(new ProgramMethod(utilityClass, dexEncodedMethod));
           }
-        });
-    Map<DexType, List<DexEncodedField>> fieldMap = triageEncodedMembers(utilityFields.values());
-    fieldMap.forEach(
-        (type, fieldsSorted) -> {
-          DexProgramClass utilityClass = appView.definitionFor(type).asProgramClass();
-          assert utilityClass != null;
-          utilityClass.appendStaticFields(fieldsSorted);
         });
     converter.processMethodsConcurrently(wave, executorService);
   }
