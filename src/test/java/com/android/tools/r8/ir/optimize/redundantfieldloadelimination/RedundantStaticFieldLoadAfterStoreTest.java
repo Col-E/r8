@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.redundantfieldloadelimination;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -26,7 +27,7 @@ public class RedundantStaticFieldLoadAfterStoreTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public RedundantStaticFieldLoadAfterStoreTest(TestParameters parameters) {
@@ -38,18 +39,15 @@ public class RedundantStaticFieldLoadAfterStoreTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(RedundantStaticFieldLoadAfterStoreTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             inspector -> {
               ClassSubject classSubject = inspector.clazz(TestClass.class);
               assertThat(classSubject, isPresent());
 
-              // Removing the actual field definition would require two optimization passes, because
-              // we would need another round of tree shaking to learn that the `greeting` field is
-              // no longer read after the field load in main() has been eliminated.
               FieldSubject fieldSubject = classSubject.uniqueFieldWithName("greeting");
-              assertThat(fieldSubject, isPresent());
+              assertThat(fieldSubject, isAbsent());
 
               MethodSubject methodSubject = classSubject.mainMethod();
               assertThat(methodSubject, isPresent());

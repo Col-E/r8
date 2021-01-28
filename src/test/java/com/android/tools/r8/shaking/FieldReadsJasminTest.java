@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -149,40 +150,18 @@ public class FieldReadsJasminTest extends JasminTestBase {
         "p:",
         "  putstatic Main/sField I",
         "  return");
-    MethodSignature mainMethod = main.addMainMethod(
-        ".limit stack 2",
-        ".limit locals 1",
-        "  getstatic Main/sField I",
-        "  return");
 
-    ensureFieldExistsButNoRead(builder, main, mainMethod, main, "sField");
-  }
+    main.addMainMethod(
+        ".limit stack 2", ".limit locals 1", "  getstatic Main/sField I", "  return");
 
-  private void ensureFieldExistsButNoRead(
-      JasminBuilder app,
-      ClassBuilder clazz,
-      MethodSignature method,
-      ClassBuilder fieldHolder,
-      String fieldName)
-      throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClassFileData(app.buildClasses())
+        .addProgramClassFileData(builder.buildClasses())
         .addKeepRules("-keep class * { <methods>; }")
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
-            inspector -> {
-              FieldSubject fld = inspector.clazz(fieldHolder.name).uniqueFieldWithName(fieldName);
-              assertThat(fld, isPresentAndRenamed());
-
-              ClassSubject classSubject = inspector.clazz(clazz.name);
-              assertThat(classSubject, isPresent());
-              MethodSubject methodSubject = classSubject.uniqueMethodWithName(method.name);
-              assertThat(methodSubject, isPresent());
-              Iterator<InstructionSubject> it =
-                  methodSubject.iterateInstructions(InstructionSubject::isFieldAccess);
-              assertFalse(it.hasNext());
-            });
+            inspector ->
+                assertThat(inspector.clazz(main.name).uniqueFieldWithName("sField"), isAbsent()));
   }
 
   @Test

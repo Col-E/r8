@@ -460,6 +460,14 @@ public abstract class TestShrinkerBuilder<
     return addTestingAnnotation(AlwaysInline.class);
   }
 
+  public final T addAssumeNotNullAnnotation() {
+    return addTestingAnnotation(AssumeNotNull.class);
+  }
+
+  public final T addAssumeNoClassInitializationSideEffectsAnnotation() {
+    return addTestingAnnotation(AssumeNoClassInitializationSideEffects.class);
+  }
+
   public final T addAssumeNoSideEffectsAnnotations() {
     return addTestingAnnotation(AssumeNoSideEffects.class);
   }

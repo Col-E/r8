@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -20,6 +21,7 @@ import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class DexItemBasedConstString extends ConstInstruction {
 
@@ -166,5 +168,13 @@ public class DexItemBasedConstString extends ConstInstruction {
   @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
+  }
+
+  @Override
+  public AbstractValue getAbstractValue(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+    return appView
+        .abstractValueFactory()
+        .createSingleDexItemBasedStringValue(item, nameComputationInfo);
   }
 }

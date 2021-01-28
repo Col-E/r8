@@ -1448,6 +1448,12 @@ public class Enqueuer {
       return;
     }
 
+    assert !mode.isFinalTreeShaking() || !field.getDefinition().getOptimizationInfo().isDead()
+        : "Unexpected reference in `"
+            + currentMethod.toSourceString()
+            + "` to field marked dead: "
+            + field.getReference().toSourceString();
+
     if (fromMethodHandle) {
       fieldAccessInfoCollection.get(field.getReference()).setReadFromMethodHandle();
     }
@@ -1497,6 +1503,12 @@ public class Enqueuer {
       // No need to trace into the non-program code.
       return;
     }
+
+    assert !mode.isFinalTreeShaking() || !field.getDefinition().getOptimizationInfo().isDead()
+        : "Unexpected reference in `"
+            + currentMethod.toSourceString()
+            + "` to field marked dead: "
+            + field.getReference().toSourceString();
 
     if (fromMethodHandle) {
       fieldAccessInfoCollection.get(field.getReference()).setWrittenFromMethodHandle();
@@ -1550,6 +1562,12 @@ public class Enqueuer {
       // No need to trace into the non-program code.
       return;
     }
+
+    assert !mode.isFinalTreeShaking() || !field.getDefinition().getOptimizationInfo().isDead()
+        : "Unexpected reference in `"
+            + currentMethod.toSourceString()
+            + "` to field marked dead: "
+            + field.getReference().toSourceString();
 
     if (fromMethodHandle) {
       fieldAccessInfoCollection.get(field.getReference()).setReadFromMethodHandle();
@@ -1607,6 +1625,12 @@ public class Enqueuer {
       // No need to trace into the non-program code.
       return;
     }
+
+    assert !mode.isFinalTreeShaking() || !field.getDefinition().getOptimizationInfo().isDead()
+        : "Unexpected reference in `"
+            + currentMethod.toSourceString()
+            + "` to field marked dead: "
+            + field.getReference().toSourceString();
 
     if (fromMethodHandle) {
       fieldAccessInfoCollection.get(field.getReference()).setWrittenFromMethodHandle();

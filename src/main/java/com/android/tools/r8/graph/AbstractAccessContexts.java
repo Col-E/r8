@@ -293,7 +293,7 @@ public abstract class AbstractAccessContexts {
       return accessesWithContexts.isEmpty();
     }
 
-    boolean recordAccess(DexField access, ProgramMethod context) {
+    public boolean recordAccess(DexField access, ProgramMethod context) {
       return accessesWithContexts
           .computeIfAbsent(access, ignore -> ProgramMethodSet.create())
           .add(context);

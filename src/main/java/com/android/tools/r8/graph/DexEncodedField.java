@@ -164,6 +164,10 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return getReference().getType();
   }
 
+  public TypeElement getTypeElement(AppView<?> appView) {
+    return getReference().getTypeElement(appView);
+  }
+
   @Override
   public boolean isDexEncodedField() {
     return true;

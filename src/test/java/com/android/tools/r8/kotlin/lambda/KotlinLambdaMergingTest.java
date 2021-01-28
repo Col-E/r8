@@ -113,8 +113,11 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   }
 
   private static Group kstyleImpl(String pkg, String capture, int arity, int singletons) {
-    assertEquals(capture.isEmpty(), singletons != 0);
     return new Group(pkg, capture, arity, KOTLIN_FUNCTION_IFACE_STR + arity, singletons);
+  }
+
+  static Group kstyle(String pkg, int arity) {
+    return kstyleImpl(pkg, "", arity, 0);
   }
 
   static Group kstyle(String pkg, int arity, int singletons) {
@@ -568,7 +571,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
               String grp = allowAccessModification ? "" : pkg;
 
               verifier.assertLambdaGroups(
-                  kstyle(grp, 1, 1 /* 1 out of 5 lambdas in the group */),
+                  kstyle(grp, 1 /* 1 out of 5 lambdas in the group */),
                   jstyle(grp, 2, "java.util.Comparator", 0 /* 0 out of 2 lambdas in the group */));
 
               verifier.assertLambdas(/* None */ );

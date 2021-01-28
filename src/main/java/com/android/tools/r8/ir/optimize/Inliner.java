@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -982,13 +983,8 @@ public class Inliner implements PostOptimization {
             continue;
           }
 
-          if (invoke.isInvokeMethodWithReceiver()) {
-            if (iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, context)) {
-              continue;
-            }
-          } else if (invoke.isInvokeStatic()
-              && iterator.replaceCurrentInstructionByInitClassIfPossible(
-                  appView, code, resolutionResult.getResolvedHolder().getType())) {
+          if (tryInlineMethodWithoutSideEffects(
+              code, iterator, invoke, resolutionResult.getResolutionPair(), assumeRemover)) {
             continue;
           }
 
@@ -1119,6 +1115,30 @@ public class Inliner implements PostOptimization {
     code.removeBlocks(blocksToRemove);
     code.removeAllDeadAndTrivialPhis();
     assert code.isConsistentSSA();
+  }
+
+  private boolean tryInlineMethodWithoutSideEffects(
+      IRCode code,
+      InstructionListIterator iterator,
+      InvokeMethod invoke,
+      DexClassAndMethod resolvedMethod,
+      AssumeRemover assumeRemover) {
+    if (invoke.isInvokeMethodWithReceiver()) {
+      if (!iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, code.context())) {
+        return false;
+      }
+    } else if (invoke.isInvokeStatic()) {
+      if (!iterator.replaceCurrentInstructionByInitClassIfPossible(
+          appView, code, resolvedMethod.getHolderType())) {
+        return false;
+      }
+    } else {
+      return false;
+    }
+
+    // Succeeded.
+    assumeRemover.markUnusedAssumeValuesForRemoval(invoke.arguments());
+    return true;
   }
 
   private boolean containsPotentialCatchHandlerVerificationError(IRCode code) {

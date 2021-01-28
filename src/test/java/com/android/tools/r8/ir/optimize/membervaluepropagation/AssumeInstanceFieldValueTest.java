@@ -4,10 +4,11 @@
 
 package com.android.tools.r8.ir.optimize.membervaluepropagation;
 
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithName;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -15,7 +16,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
-import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,7 +59,7 @@ public class AssumeInstanceFieldValueTest extends TestBase {
     assertThat(configClassSubject, isPresent());
 
     FieldSubject alwaysTrueFieldSubject = configClassSubject.uniqueFieldWithName("alwaysTrue");
-    assertThat(alwaysTrueFieldSubject, isPresent());
+    assertThat(alwaysTrueFieldSubject, isAbsent());
 
     FieldSubject alwaysTrueNoSideEffectsFieldSubject =
         configClassSubject.uniqueFieldWithName("alwaysTrueNoSideEffects");
@@ -70,14 +70,11 @@ public class AssumeInstanceFieldValueTest extends TestBase {
 
     MethodSubject mainMethodSubject = testClassSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
-    assertEquals(
-        1,
-        mainMethodSubject
-            .streamInstructions()
-            .filter(InstructionSubject::isInstanceGet)
-            .map(InstructionSubject::getField)
-            .filter(alwaysTrueFieldSubject.getField().field::equals)
-            .count());
+    if (canUseRequireNonNull(parameters)) {
+      assertThat(mainMethodSubject, invokesMethodWithName("requireNonNull"));
+    } else {
+      assertThat(mainMethodSubject, invokesMethodWithName("getClass"));
+    }
   }
 
   static class TestClass {

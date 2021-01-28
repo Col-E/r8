@@ -13,6 +13,7 @@ import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -592,6 +593,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return noSideEffects.containsKey(method);
   }
 
+  public boolean isAssumeNoSideEffectsMethod(DexClassAndMethod method) {
+    return isAssumeNoSideEffectsMethod(method.getReference());
+  }
+
   public boolean isWhyAreYouNotInliningMethod(DexMethod method) {
     return whyAreYouNotInlining.contains(method);
   }
@@ -853,9 +858,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         && !keepInfo.getMethodInfo(method).isPinned();
   }
 
-  public boolean mayPropagateValueFor(DexMember<?, ?> reference) {
+  public boolean mayPropagateValueFor(DexClassAndMember<?, ?> member) {
     assert checkIfObsolete();
-    return reference.apply(this::mayPropagateValueFor, this::mayPropagateValueFor);
+    return member.getReference().apply(this::mayPropagateValueFor, this::mayPropagateValueFor);
   }
 
   public boolean mayPropagateValueFor(DexField field) {
@@ -942,6 +947,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public boolean isPinned(DexDefinition definition) {
     assert definition != null;
     return isPinned(definition.getReference());
+  }
+
+  public boolean isPinned(DexClassAndMember<?, ?> member) {
+    assert member != null;
+    return isPinned(member.getReference());
   }
 
   public boolean hasPinnedInstanceInitializer(DexType type) {

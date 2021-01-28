@@ -170,7 +170,9 @@ public class MemberValuePropagation {
         assert replacement.outValue() != null;
         current.outValue().replaceUsers(replacement.outValue());
       }
-      if (current.isStaticGet()) {
+      if (current.isInstanceGet()) {
+        iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, code.context());
+      } else if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
         iterator.replaceCurrentInstructionByInitClassIfPossible(
             appView, code, staticGet.getField().holder);

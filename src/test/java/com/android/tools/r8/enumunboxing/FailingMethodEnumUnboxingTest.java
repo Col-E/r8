@@ -5,6 +5,7 @@ package com.android.tools.r8.enumunboxing;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
@@ -100,9 +101,14 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
       InstanceFieldPutObject fieldPut = new InstanceFieldPutObject();
       fieldPut.setA();
       Object obj = new Object();
-      fieldPut.e = obj;
+      put(fieldPut, obj);
       System.out.println(fieldPut.e);
       System.out.println(obj);
+    }
+
+    @NeverInline
+    static void put(InstanceFieldPutObject object, Object value) {
+      object.e = value;
     }
 
     void setA() {

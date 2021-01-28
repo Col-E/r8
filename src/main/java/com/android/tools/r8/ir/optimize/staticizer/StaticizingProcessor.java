@@ -454,7 +454,8 @@ final class StaticizingProcessor {
       }
     }
 
-    assert false : "Must always be able to find and remove the instantiation";
+    assert candidateInfo.singletonField.getOptimizationInfo().isDead()
+        : "Must always be able to find and remove the instantiation";
   }
 
   private void removeReferencesToThis(IRCode code, MethodProcessor methodProcessor) {

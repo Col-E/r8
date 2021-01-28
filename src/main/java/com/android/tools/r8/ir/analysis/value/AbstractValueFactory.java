@@ -5,8 +5,10 @@
 package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AbstractValueFactory {
@@ -37,5 +39,10 @@ public class AbstractValueFactory {
 
   public SingleStringValue createSingleStringValue(DexString string) {
     return singleStringValues.computeIfAbsent(string, SingleStringValue::new);
+  }
+
+  public SingleDexItemBasedStringValue createSingleDexItemBasedStringValue(
+      DexReference reference, NameComputationInfo<?> nameComputationInfo) {
+    return new SingleDexItemBasedStringValue(reference, nameComputationInfo);
   }
 }

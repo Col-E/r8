@@ -84,6 +84,14 @@ public abstract class AbstractValue {
     return null;
   }
 
+  public boolean isSingleDexItemBasedStringValue() {
+    return false;
+  }
+
+  public SingleDexItemBasedStringValue asSingleDexItemBasedStringValue() {
+    return null;
+  }
+
   public boolean isUnknown() {
     return false;
   }

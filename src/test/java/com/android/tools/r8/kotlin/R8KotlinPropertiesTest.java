@@ -464,8 +464,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             inspector -> {
               ClassSubject outerClass =
                   checkClassIsKept(inspector, "properties.CompanionProperties");
-              ClassSubject companionClass =
-                  checkClassIsKept(inspector, COMPANION_PROPERTY_CLASS.getClassName());
+              checkClassIsRemoved(inspector, COMPANION_PROPERTY_CLASS.getClassName());
               String propertyName = "primitiveProp";
               FieldSubject fieldSubject = checkFieldIsKept(outerClass, "int", propertyName);
               assertTrue(fieldSubject.getField().accessFlags.isStatic());
@@ -474,14 +473,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
               } else {
                 assertTrue(fieldSubject.getField().accessFlags.isPrivate());
               }
-
-              MemberNaming.MethodSignature getter =
-                  COMPANION_PROPERTY_CLASS.getGetterForProperty(propertyName);
-              checkMethodIsRemoved(companionClass, getter);
-
-              MemberNaming.MethodSignature setter =
-                  COMPANION_PROPERTY_CLASS.getSetterForProperty(propertyName);
-              checkMethodIsRemoved(companionClass, setter);
             });
   }
 
@@ -500,8 +491,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             inspector -> {
               ClassSubject outerClass =
                   checkClassIsKept(inspector, "properties.CompanionProperties");
-              ClassSubject companionClass =
-                  checkClassIsKept(inspector, COMPANION_PROPERTY_CLASS.getClassName());
+              checkClassIsRemoved(inspector, COMPANION_PROPERTY_CLASS.getClassName());
               String propertyName = "privateProp";
               FieldSubject fieldSubject =
                   checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
@@ -517,8 +507,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
               // known to be non-null, thus the getter/setter can be inlined if their code is small
               // enough. Because the backing field is private, they will call into an accessor
               // (static) method. If access relaxation is enabled, this accessor can be removed.
-              checkMethodIsAbsent(companionClass, getter);
-              checkMethodIsAbsent(companionClass, setter);
               if (allowAccessModification) {
                 assertTrue(fieldSubject.getField().accessFlags.isPublic());
               } else {
@@ -542,8 +530,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             inspector -> {
               ClassSubject outerClass =
                   checkClassIsKept(inspector, "properties.CompanionProperties");
-              ClassSubject companionClass =
-                  checkClassIsKept(inspector, COMPANION_PROPERTY_CLASS.getClassName());
+              checkClassIsRemoved(inspector, COMPANION_PROPERTY_CLASS.getClassName());
               String propertyName = "internalProp";
               FieldSubject fieldSubject =
                   checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
@@ -553,13 +540,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
               } else {
                 assertTrue(fieldSubject.getField().accessFlags.isPrivate());
               }
-
-              MemberNaming.MethodSignature getter =
-                  COMPANION_PROPERTY_CLASS.getGetterForProperty(propertyName);
-              checkMethodIsRemoved(companionClass, getter);
-              MemberNaming.MethodSignature setter =
-                  COMPANION_PROPERTY_CLASS.getSetterForProperty(propertyName);
-              checkMethodIsRemoved(companionClass, setter);
             });
   }
 
@@ -578,8 +558,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             inspector -> {
               ClassSubject outerClass =
                   checkClassIsKept(inspector, "properties.CompanionProperties");
-              ClassSubject companionClass =
-                  checkClassIsKept(inspector, COMPANION_PROPERTY_CLASS.getClassName());
+              checkClassIsRemoved(inspector, COMPANION_PROPERTY_CLASS.getClassName());
               String propertyName = "publicProp";
               FieldSubject fieldSubject =
                   checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
@@ -589,14 +568,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
               } else {
                 assertTrue(fieldSubject.getField().accessFlags.isPrivate());
               }
-
-              MemberNaming.MethodSignature getter =
-                  COMPANION_PROPERTY_CLASS.getGetterForProperty(propertyName);
-              checkMethodIsRemoved(companionClass, getter);
-
-              MemberNaming.MethodSignature setter =
-                  COMPANION_PROPERTY_CLASS.getSetterForProperty(propertyName);
-              checkMethodIsRemoved(companionClass, setter);
             });
   }
 
@@ -616,26 +587,21 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             inspector -> {
               ClassSubject outerClass =
                   checkClassIsKept(inspector, testedClass.getOuterClassName());
-              ClassSubject companionClass = checkClassIsKept(inspector, testedClass.getClassName());
+              checkClassIsRemoved(inspector, testedClass.getClassName());
               String propertyName = "privateLateInitProp";
               FieldSubject fieldSubject =
                   checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
               assertTrue(fieldSubject.getField().accessFlags.isStatic());
-
-              MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
-              MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
 
               // Because the getter/setter are private, they can only be called from another method
               // in the class. If this is an instance method, they will be called on 'this' which is
               // known to be non-null, thus the getter/setter can be inlined if their code is small
               // enough. Because the backing field is private, they will call into an accessor
               // (static) method. If access relaxation is enabled, this accessor can be removed.
-              checkMethodIsAbsent(companionClass, getter);
-              checkMethodIsAbsent(companionClass, setter);
               if (allowAccessModification) {
-                assertTrue(fieldSubject.getField().accessFlags.isPublic());
+                assertTrue(fieldSubject.getField().isPublic());
               } else {
-                assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+                assertTrue(fieldSubject.getField().isPrivate());
               }
             });
   }
@@ -656,18 +622,12 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             inspector -> {
               ClassSubject outerClass =
                   checkClassIsKept(inspector, testedClass.getOuterClassName());
-              ClassSubject companionClass = checkClassIsKept(inspector, testedClass.getClassName());
+              checkClassIsRemoved(inspector, testedClass.getClassName());
               String propertyName = "internalLateInitProp";
               FieldSubject fieldSubject =
                   checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
               assertTrue(fieldSubject.getField().accessFlags.isStatic());
               assertTrue(fieldSubject.getField().accessFlags.isPublic());
-
-              MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
-              checkMethodIsRemoved(companionClass, getter);
-
-              MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
-              checkMethodIsRemoved(companionClass, setter);
             });
   }
 
@@ -687,18 +647,12 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             inspector -> {
               ClassSubject outerClass =
                   checkClassIsKept(inspector, testedClass.getOuterClassName());
-              ClassSubject companionClass = checkClassIsKept(inspector, testedClass.getClassName());
+              checkClassIsRemoved(inspector, testedClass.getClassName());
               String propertyName = "publicLateInitProp";
               FieldSubject fieldSubject =
                   checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
               assertTrue(fieldSubject.getField().accessFlags.isStatic());
               assertTrue(fieldSubject.getField().accessFlags.isPublic());
-
-              MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
-              checkMethodIsRemoved(companionClass, getter);
-
-              MemberNaming.MethodSignature setter = testedClass.getSetterForProperty(propertyName);
-              checkMethodIsRemoved(companionClass, setter);
             });
   }
 

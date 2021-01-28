@@ -3,8 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
@@ -44,6 +47,10 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
 
   public DexType getType() {
     return type;
+  }
+
+  public TypeElement getTypeElement(AppView<?> appView) {
+    return TypeElement.fromDexType(getType(), maybeNull(), appView);
   }
 
   @Override

@@ -1358,9 +1358,7 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
 
     @Override
     public AbstractValue toAbstractValue(AbstractValueFactory factory) {
-      // TODO(b/150835624): Update once there is an abstract value to represent dex item based
-      //  strings.
-      return UnknownValue.getInstance();
+      return factory.createSingleDexItemBasedStringValue(value, nameComputationInfo);
     }
 
     @Override

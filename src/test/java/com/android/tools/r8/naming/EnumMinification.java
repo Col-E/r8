@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
@@ -50,7 +51,7 @@ public class EnumMinification extends TestBase {
         .addKeepMainRule(mainClass)
         .addKeepRules("-neverinline enum * extends java.lang.Enum { valueOf(...); }")
         .enableProguardTestOptions()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile();
   }
 
@@ -64,11 +65,11 @@ public class EnumMinification extends TestBase {
 
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(enumTypeName);
-    // The class and fields - including field $VALUES and method valueOf - can be renamed. Only
-    // the values() method needs to be
+    // The class and fields - including the method valueOf - can be renamed. Only the values()
+    // method needs to be.
     assertThat(clazz, isPresentAndRenamed());
-    assertThat(clazz.uniqueFieldWithName("VALUE1"), isPresentAndRenamed());
-    assertThat(clazz.uniqueFieldWithName("VALUE2"), isPresentAndRenamed());
+    assertThat(clazz.uniqueFieldWithName("VALUE1"), isAbsent());
+    assertThat(clazz.uniqueFieldWithName("VALUE2"), isAbsent());
     assertThat(clazz.uniqueFieldWithName("$VALUES"), isPresentAndRenamed());
     assertThat(
         clazz.uniqueMethodWithName("valueOf"),

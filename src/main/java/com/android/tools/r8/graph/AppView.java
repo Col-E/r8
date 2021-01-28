@@ -201,6 +201,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return appInfo;
   }
 
+  public AppInfoWithLiveness appInfoWithLiveness() {
+    assert hasLiveness();
+    return appInfo().withLiveness();
+  }
+
   public AppInfoWithClassHierarchy appInfoForDesugaring() {
     if (enableWholeProgramOptimizations()) {
       assert appInfo.hasClassHierarchy();
@@ -556,6 +561,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return appInfo.hasClassHierarchy()
         ? (AppView<AppInfoWithClassHierarchy>) this
         : null;
+  }
+
+  public boolean hasLiveness() {
+    return appInfo().hasLiveness();
   }
 
   public AppView<AppInfoWithLiveness> withLiveness() {

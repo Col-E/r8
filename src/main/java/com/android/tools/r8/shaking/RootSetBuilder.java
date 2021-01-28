@@ -33,6 +33,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AnnotationMatchResult.AnnotationsIgnoredMatchResult;
 import com.android.tools.r8.shaking.AnnotationMatchResult.ConcreteAnnotationMatchResult;
@@ -125,6 +126,8 @@ public class RootSetBuilder {
 
   private final Map<OriginWithPosition, Set<DexMethod>> assumeNoSideEffectsWarnings =
       new LinkedHashMap<>();
+
+  private final OptimizationFeedbackSimple feedback = OptimizationFeedbackSimple.getInstance();
 
   public RootSetBuilder(
       AppView<? extends AppInfoWithClassHierarchy> appView,
@@ -1186,6 +1189,12 @@ public class RootSetBuilder {
               member.asDexEncodedMethod(), (ProguardAssumeNoSideEffectRule) context);
         } else {
           noSideEffects.put(member.getReference(), rule);
+          if (member.isDexEncodedMethod()) {
+            DexEncodedMethod method = member.asDexEncodedMethod();
+            if (method.isClassInitializer()) {
+              feedback.classInitializerMayBePostponed(method);
+            }
+          }
         }
         context.markAsUsed();
       }

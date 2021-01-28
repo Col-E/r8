@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -16,9 +17,6 @@ import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.InstructionSubject;
-import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Streams;
 import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -76,9 +74,6 @@ public class EnumMinificationKotlinTest extends KotlinTestBase {
     ClassSubject enumClass = inspector.clazz(ENUM_CLASS_NAME);
     assertThat(enumClass, isPresent());
     assertEquals(minify, enumClass.isRenamed());
-    MethodSubject clinit = enumClass.clinit();
-    assertThat(clinit, isPresent());
-    assertEquals(
-        0, Streams.stream(clinit.iterateInstructions(InstructionSubject::isThrow)).count());
+    assertThat(enumClass.clinit(), isAbsent());
   }
 }

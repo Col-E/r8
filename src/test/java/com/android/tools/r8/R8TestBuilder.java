@@ -335,6 +335,34 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         "-alwaysinline class * { @" + annotationPackageName + ".AlwaysInline *; }");
   }
 
+  public T enableAssumeNotNullAnnotations() {
+    return addAssumeNotNullAnnotation()
+        .enableAssumeNotNullAnnotations(AssumeNotNull.class.getPackage().getName());
+  }
+
+  public T enableAssumeNotNullAnnotations(String annotationPackageName) {
+    return addInternalKeepRules(
+        "-assumevalues class * {",
+        "  @" + annotationPackageName + ".AssumeNotNull *** * return 1;",
+        "  @" + annotationPackageName + ".AssumeNotNull *** *(...) return 1;",
+        "}");
+  }
+
+  public T enableAssumeNoClassInitializationSideEffectsAnnotations() {
+    return addAssumeNoClassInitializationSideEffectsAnnotation()
+        .enableAssumeNoClassInitializationSideEffectsAnnotations(
+            AssumeNoClassInitializationSideEffects.class.getPackage().getName());
+  }
+
+  public T enableAssumeNoClassInitializationSideEffectsAnnotations(String annotationPackageName) {
+    return addInternalKeepRules(
+        "-assumenosideeffects @"
+            + annotationPackageName
+            + ".AssumeNoClassInitializationSideEffects class * {",
+        "  void <clinit>();",
+        "}");
+  }
+
   public T enableAssumeNoSideEffectsAnnotations() {
     return addAssumeNoSideEffectsAnnotations()
         .enableAssumeNoSideEffectsAnnotations(AssumeNoSideEffects.class.getPackage().getName());
@@ -342,9 +370,9 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T enableAssumeNoSideEffectsAnnotations(String annotationPackageName) {
     return addInternalKeepRules(
-        "-assumenosideeffects class * { @"
-            + annotationPackageName
-            + ".AssumeNoSideEffects <methods>; }");
+        "-assumenosideeffects class * {",
+        "  @" + annotationPackageName + ".AssumeNoSideEffects <methods>;",
+        "}");
   }
 
   public T enableInliningAnnotations() {
