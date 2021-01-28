@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.dexsplitter;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
@@ -18,6 +20,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableSet;
 import java.util.function.Consumer;
 import org.junit.Test;
@@ -56,9 +59,14 @@ public class SyntheticDistributionTest extends SplitterTestBase {
                 .enableInliningAnnotations()
                 .addInliningAnnotations()
                 .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O));
-    ThrowingConsumer<R8TestCompileResult, Exception> ensureInlined =
+    ThrowingConsumer<R8TestCompileResult, Exception> ensureLambdaNotInBase =
         r8TestCompileResult -> {
-          // TODO(b/178320316): Validate that the synthetic is not in the base.
+          r8TestCompileResult.inspect(
+              base ->
+                  assertFalse(base.allClasses().stream().anyMatch(FoundClassSubject::isSynthetic)),
+              feature ->
+                  assertTrue(
+                      feature.allClasses().stream().anyMatch(FoundClassSubject::isSynthetic)));
         };
     ProcessResult processResult =
         testR8Splitter(
@@ -66,20 +74,34 @@ public class SyntheticDistributionTest extends SplitterTestBase {
             ImmutableSet.of(BaseSuperClass.class),
             ImmutableSet.of(FeatureClass.class, MyFunction.class),
             FeatureClass.class,
-            ensureInlined,
+            ensureLambdaNotInBase,
             configurator);
-    // TODO(b/178320316): Should pass when synthetics are pushed down to the feature.
-    // Currently the Lambda class is placed in the base, but it is implementing the MyFunction
-    // interface, which is only in the feature. This leads to a verification error (art version
-    // specific, e.g., :
-    // dalvikvm I 01-25 13:05:54 416262 416262 class_linker.cc:215] Rejecting re-init on
-    //   previously-failed class
-    //   java.lang.Class<com.android.tools.r8.dexsplitter.SyntheticDistributionTest$FeatureClass
-    //   -$$ExternalSyntheticLambda0>: java.lang.NoClassDefFoundError:
-    //   Failed resolution of:
-    //   Lcom/android/tools/r8/dexsplitter/SyntheticDistributionTest$MyFunction;
-    assertFalse(processResult.exitCode == 0);
-    assertFalse(processResult.stdout.equals(StringUtils.lines("42foobar")));
+    assertEquals(processResult.exitCode, 0);
+    assertEquals(processResult.stdout, StringUtils.lines("42foobar"));
+  }
+
+  @Test
+  public void testNoMergingAcrossBoundaries() throws Exception {
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(BaseSuperClass.class, MyFunction.class)
+            .addFeatureSplitRuntime()
+            .addFeatureSplit(FeatureClass.class)
+            .addFeatureSplit(Feature2Class.class)
+            .addKeepFeatureMainRules(BaseSuperClass.class, FeatureClass.class, Feature2Class.class)
+            .enableNoStaticClassMergingAnnotations()
+            .noMinification()
+            .enableInliningAnnotations()
+            .setMinApi(parameters.getApiLevel())
+            .compile();
+
+    compileResult
+        .runFeature(parameters.getRuntime(), FeatureClass.class, compileResult.getFeature(0))
+        .assertSuccessWithOutputLines("42foobar");
+
+    compileResult
+        .runFeature(parameters.getRuntime(), Feature2Class.class, compileResult.getFeature(1))
+        .assertSuccessWithOutputLines("43barfoo");
   }
 
   public abstract static class BaseSuperClass implements RunInterface {
@@ -98,8 +120,13 @@ public class SyntheticDistributionTest extends SplitterTestBase {
   @NoStaticClassMerging
   public static class FeatureClass extends BaseSuperClass {
     @NeverInline
-    private static String getAString() {
+    public static String getAString() {
       return System.currentTimeMillis() < 2 ? "Not happening" : "foobar";
+    }
+
+    @Override
+    public void run() {
+      super.run();
     }
 
     @Override
@@ -111,6 +138,33 @@ public class SyntheticDistributionTest extends SplitterTestBase {
     @NeverInline
     private String useTheLambda(MyFunction f) {
       return f.apply("42");
+    }
+  }
+
+  @NoStaticClassMerging
+  public static class Feature2Class extends BaseSuperClass {
+    @NeverInline
+    public static String getAString() {
+      return System.currentTimeMillis() < 2 ? "Not happening" : "barfoo";
+    }
+
+    @Override
+    public void run() {
+      super.run();
+    }
+
+    @Override
+    public String getFromFeature() {
+      // The lambda is the same as in FeatureClass, but we should not share it since there is
+      // no way for Feature2Class to access code in Feature1Class (assuming either that
+      // Feature1Class is not installed of isolated splits are used).
+      String s = getAString();
+      return useTheLambda(a -> a.concat(s));
+    }
+
+    @NeverInline
+    private String useTheLambda(MyFunction f) {
+      return f.apply("43");
     }
   }
 }

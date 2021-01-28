@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.Sets;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -27,11 +28,18 @@ import java.util.Set;
 public class ClassToFeatureSplitMap {
 
   private final Map<DexType, FeatureSplit> classToFeatureSplitMap = new IdentityHashMap<>();
+  private final Map<FeatureSplit, String> representativeStringsForFeatureSplit;
 
-  private ClassToFeatureSplitMap() {}
+  private ClassToFeatureSplitMap() {
+    this(new HashMap<>());
+  }
+
+  private ClassToFeatureSplitMap(Map<FeatureSplit, String> representativeStringsForFeatureSplit) {
+    this.representativeStringsForFeatureSplit = representativeStringsForFeatureSplit;
+  }
 
   public static ClassToFeatureSplitMap createEmptyClassToFeatureSplitMap() {
-    return new ClassToFeatureSplitMap();
+    return new ClassToFeatureSplitMap(null);
   }
 
   public static ClassToFeatureSplitMap createInitialClassToFeatureSplitMap(
@@ -56,6 +64,7 @@ public class ClassToFeatureSplitMap {
     }
 
     for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
+      String representativeType = null;
       for (ProgramResourceProvider programResourceProvider :
           featureSplit.getProgramResourceProviders()) {
         try {
@@ -63,14 +72,40 @@ public class ClassToFeatureSplitMap {
             for (String classDescriptor : programResource.getClassDescriptors()) {
               DexType type = dexItemFactory.createType(classDescriptor);
               result.classToFeatureSplitMap.put(type, featureSplit);
+              if (representativeType == null || classDescriptor.compareTo(representativeType) > 0) {
+                representativeType = classDescriptor;
+              }
             }
           }
         } catch (ResourceException e) {
           throw reporter.fatalError(e.getMessage());
         }
       }
+      if (representativeType != null) {
+        result.representativeStringsForFeatureSplit.put(featureSplit, representativeType);
+      }
     }
     return result;
+  }
+
+  public int compareFeatureSplitsForDexTypes(DexType a, DexType b) {
+    FeatureSplit featureSplitA = getFeatureSplit(a);
+    FeatureSplit featureSplitB = getFeatureSplit(b);
+    assert featureSplitA != null;
+    assert featureSplitB != null;
+    if (featureSplitA == featureSplitB) {
+      return 0;
+    }
+    // Base bigger than any other feature
+    if (featureSplitA.isBase()) {
+      return 1;
+    }
+    if (featureSplitB.isBase()) {
+      return -1;
+    }
+    return representativeStringsForFeatureSplit
+        .get(featureSplitA)
+        .compareTo(representativeStringsForFeatureSplit.get(featureSplitB));
   }
 
   public Map<FeatureSplit, Set<DexProgramClass>> getFeatureSplitClasses(
@@ -118,8 +153,13 @@ public class ClassToFeatureSplitMap {
     return getFeatureSplit(a) == getFeatureSplit(b);
   }
 
+  public boolean isInSameFeatureOrBothInBase(DexType a, DexType b) {
+    return getFeatureSplit(a) == getFeatureSplit(b);
+  }
+
   public ClassToFeatureSplitMap rewrittenWithLens(GraphLens lens) {
-    ClassToFeatureSplitMap rewrittenClassToFeatureSplitMap = new ClassToFeatureSplitMap();
+    ClassToFeatureSplitMap rewrittenClassToFeatureSplitMap =
+        new ClassToFeatureSplitMap(representativeStringsForFeatureSplit);
     classToFeatureSplitMap.forEach(
         (type, featureSplit) -> {
           DexType rewrittenType = lens.lookupType(type);
@@ -137,7 +177,8 @@ public class ClassToFeatureSplitMap {
   }
 
   public ClassToFeatureSplitMap withoutPrunedItems(PrunedItems prunedItems) {
-    ClassToFeatureSplitMap classToFeatureSplitMapAfterPruning = new ClassToFeatureSplitMap();
+    ClassToFeatureSplitMap classToFeatureSplitMapAfterPruning =
+        new ClassToFeatureSplitMap(representativeStringsForFeatureSplit);
     classToFeatureSplitMap.forEach(
         (type, featureSplit) -> {
           if (!prunedItems.getRemovedClasses().contains(type)) {

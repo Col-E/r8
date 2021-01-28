@@ -36,6 +36,7 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -471,6 +472,20 @@ public class VirtualFile {
           classes.removeAll(featureClasses);
         }
       }
+      List<DexProgramClass> toRemove = new ArrayList<>();
+      for (DexProgramClass dexProgramClass : classes) {
+        Collection<DexProgramClass> synthesizedFrom = dexProgramClass.getSynthesizedFrom();
+        if (!synthesizedFrom.isEmpty()) {
+          DexProgramClass from = Iterables.getFirst(synthesizedFrom, null);
+          FeatureSplit featureSplit = classToFeatureSplitMap.getFeatureSplit(from);
+          if (!featureSplit.isBase()) {
+            Set<DexProgramClass> dexProgramClasses = featureSplitClasses.get(featureSplit);
+            dexProgramClasses.add(dexProgramClass);
+            toRemove.add(dexProgramClass);
+          }
+        }
+      }
+      classes.removeAll(toRemove);
       return featureSplitClasses;
     }
 

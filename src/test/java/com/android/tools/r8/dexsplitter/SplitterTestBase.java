@@ -127,8 +127,6 @@ public class SplitterTestBase extends TestBase {
       ThrowingConsumer<R8TestCompileResult, E> compileResultConsumer,
       Consumer<R8FullTestBuilder> r8TestConfigurator)
       throws IOException, CompilationFailedException, E {
-    Path featureOutput = temp.newFile("feature.zip").toPath();
-
     R8FullTestBuilder r8FullTestBuilder = testForR8(parameters.getBackend());
     if (parameters.isCfRuntime()) {
       // Compiling to jar we need to support the same way of loading code at runtime as
@@ -141,8 +139,7 @@ public class SplitterTestBase extends TestBase {
     r8FullTestBuilder
         .addProgramClasses(SplitRunner.class, RunInterface.class)
         .addProgramClasses(baseClasses)
-        .addFeatureSplit(
-            builder -> simpleSplitProvider(builder, featureOutput, temp, featureClasses))
+        .addFeatureSplit(featureClasses.toArray(new Class[0]))
         .addInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(SplitRunner.class)
@@ -153,8 +150,8 @@ public class SplitterTestBase extends TestBase {
     R8TestCompileResult r8TestCompileResult = r8FullTestBuilder.compile();
     compileResultConsumer.accept(r8TestCompileResult);
     Path baseOutput = r8TestCompileResult.writeToZip();
-
-    return runFeatureOnArt(toRun, baseOutput, featureOutput, parameters.getRuntime());
+    return runFeatureOnArt(
+        toRun, baseOutput, r8TestCompileResult.getFeature(0), parameters.getRuntime());
   }
 
   // Compile the passed in classes plus RunInterface and SplitRunner using R8, then split

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
@@ -60,27 +61,55 @@ abstract class SyntheticDefinition<
 
   public abstract C getHolder();
 
-  final HashCode computeHash(RepresentativeMap map, boolean intermediate) {
+  final HashCode computeHash(
+      RepresentativeMap map, boolean intermediate, ClassToFeatureSplitMap classToFeatureSplitMap) {
     Hasher hasher = Hashing.murmur3_128().newHasher();
     if (intermediate) {
       // If in intermediate mode, include the context type as sharing is restricted to within a
       // single context.
       getContext().getSynthesizingContextType().hashWithTypeEquivalence(hasher, map);
     }
+    if (!classToFeatureSplitMap.isEmpty()) {
+      hasher.putInt(
+          classToFeatureSplitMap
+              .getFeatureSplit(getContext().getSynthesizingContextType())
+              .hashCode());
+    }
+
     internalComputeHash(hasher, map);
     return hasher.hash();
   }
 
   abstract void internalComputeHash(Hasher hasher, RepresentativeMap map);
 
-  final boolean isEquivalentTo(D other, boolean includeContext, GraphLens graphLens) {
-    return compareTo(other, includeContext, graphLens) == 0;
+  final boolean isEquivalentTo(
+      D other,
+      boolean includeContext,
+      GraphLens graphLens,
+      ClassToFeatureSplitMap classToFeatureSplitMap) {
+    return compareTo(other, includeContext, graphLens, classToFeatureSplitMap) == 0;
   }
 
-  int compareTo(D other, boolean includeContext, GraphLens graphLens) {
+  int compareTo(
+      D other,
+      boolean includeContext,
+      GraphLens graphLens,
+      ClassToFeatureSplitMap classToFeatureSplitMap) {
     if (includeContext) {
       int order = getContext().compareTo(other.getContext());
       if (order != 0) {
+        return order;
+      }
+    }
+    if (!classToFeatureSplitMap.isEmpty()) {
+      DexType synthesizingContextType = this.getContext().getSynthesizingContextType();
+      DexType otherSynthesizingContextType = other.getContext().getSynthesizingContextType();
+      if (!classToFeatureSplitMap.isInSameFeatureOrBothInBase(
+          synthesizingContextType, otherSynthesizingContextType)) {
+        int order =
+            classToFeatureSplitMap.compareFeatureSplitsForDexTypes(
+                synthesizingContextType, otherSynthesizingContextType);
+        assert order != 0;
         return order;
       }
     }
