@@ -23,7 +23,7 @@ import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardKeepRule;
-import com.android.tools.r8.shaking.RootSetBuilder.BuilderTemp;
+import com.android.tools.r8.shaking.RootSetUtils.RootSet;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
@@ -68,11 +68,11 @@ public class InlineTest extends IrInjectionTestBase {
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
     appView.setRootSet(
-        new BuilderTemp(
+        RootSet.builder(
                 appView,
                 subtypingInfo,
                 ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})))
-            .run(executorService));
+            .build(executorService));
     Timing timing = Timing.empty();
     Enqueuer enqueuer =
         EnqueuerFactory.createForInitialTreeShaking(appView, executorService, subtypingInfo);

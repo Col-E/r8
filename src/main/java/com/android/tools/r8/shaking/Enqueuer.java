@@ -101,11 +101,12 @@ import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.shaking.KeepInfoCollection.MutableKeepInfoCollection;
-import com.android.tools.r8.shaking.RootSetBuilder.BuilderTemp;
-import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
-import com.android.tools.r8.shaking.RootSetBuilder.ItemsWithRules;
-import com.android.tools.r8.shaking.RootSetBuilder.MutableItemsWithRules;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSet;
+import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSetBuilder;
+import com.android.tools.r8.shaking.RootSetUtils.ItemsWithRules;
+import com.android.tools.r8.shaking.RootSetUtils.MutableItemsWithRules;
+import com.android.tools.r8.shaking.RootSetUtils.RootSet;
+import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.InternalOptions;
@@ -3698,8 +3699,8 @@ public class Enqueuer {
               activeIfRules.computeIfAbsent(wrap, ignore -> new LinkedHashSet<>()).add(ifRule);
             }
           }
-          ConsequentBuilderTemp consequentSetBuilder =
-              new ConsequentBuilderTemp(appView, subtypingInfo, this);
+          ConsequentRootSetBuilder consequentSetBuilder =
+              ConsequentRootSet.builder(appView, subtypingInfo, this);
           IfRuleEvaluator ifRuleEvaluator =
               new IfRuleEvaluator(
                   appView,
@@ -3843,7 +3844,7 @@ public class Enqueuer {
   }
 
   private ConsequentRootSet computeDelayedInterfaceMethodSyntheticBridges() {
-    BuilderTemp builder = new BuilderTemp(appView, subtypingInfo);
+    RootSetBuilder builder = RootSet.builder(appView, subtypingInfo);
     for (DelayedRootSetActionItem delayedRootSetActionItem : rootSet.delayedRootSetActionItems) {
       if (delayedRootSetActionItem.isInterfaceMethodSyntheticBridgeAction()) {
         handleInterfaceMethodSyntheticBridgeAction(
@@ -3857,7 +3858,7 @@ public class Enqueuer {
       new LinkedHashMap<>();
 
   private void handleInterfaceMethodSyntheticBridgeAction(
-      InterfaceMethodSyntheticBridgeAction action, BuilderTemp builder) {
+      InterfaceMethodSyntheticBridgeAction action, RootSetBuilder builder) {
     ProgramMethod methodToKeep = action.getMethodToKeep();
     ProgramMethod singleTarget = action.getSingleTarget();
     DexEncodedMethod singleTargetMethod = singleTarget.getDefinition();

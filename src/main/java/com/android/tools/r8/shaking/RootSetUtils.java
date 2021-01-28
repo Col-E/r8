@@ -79,9 +79,9 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class RootSetBuilder {
+public class RootSetUtils {
 
-  public static class BuilderTemp {
+  public static class RootSetBuilder {
 
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
     private final SubtypingInfo subtypingInfo;
@@ -132,7 +132,7 @@ public class RootSetBuilder {
 
     private final OptimizationFeedbackSimple feedback = OptimizationFeedbackSimple.getInstance();
 
-    public BuilderTemp(
+    private RootSetBuilder(
         AppView<? extends AppInfoWithClassHierarchy> appView,
         SubtypingInfo subtypingInfo,
         Iterable<? extends ProguardConfigurationRule> rules) {
@@ -143,7 +143,7 @@ public class RootSetBuilder {
       this.options = appView.options();
     }
 
-    public BuilderTemp(
+    private RootSetBuilder(
         AppView<? extends AppInfoWithClassHierarchy> appView, SubtypingInfo subtypingInfo) {
       this(appView, subtypingInfo, null);
     }
@@ -305,7 +305,7 @@ public class RootSetBuilder {
               }));
     }
 
-    public RootSet run(ExecutorService executorService) throws ExecutionException {
+    public RootSet build(ExecutorService executorService) throws ExecutionException {
       application.timing.begin("Build root set...");
       try {
         List<Future<?>> futures = new ArrayList<>();
@@ -1892,8 +1892,9 @@ public class RootSetBuilder {
       addDependentItems(consequentRootSet.dependentSoftPinned, dependentSoftPinned);
       consequentRootSet.dependentKeepClassCompatRule.forEach(
           (type, rules) ->
-              dependentKeepClassCompatRule.computeIfAbsent(
-                  type, k -> new HashSet<>()).addAll(rules));
+              dependentKeepClassCompatRule
+                  .computeIfAbsent(type, k -> new HashSet<>())
+                  .addAll(rules));
       delayedRootSetActionItems.addAll(consequentRootSet.delayedRootSetActionItems);
     }
 
@@ -2132,6 +2133,40 @@ public class RootSetBuilder {
       builder.append("\nifRules: " + ifRules.size());
       return builder.toString();
     }
+
+    public static RootSetBuilder builder(
+        AppView<? extends AppInfoWithClassHierarchy> appView, SubtypingInfo subtypingInfo) {
+      return new RootSetBuilder(appView, subtypingInfo);
+    }
+
+    public static RootSetBuilder builder(
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        SubtypingInfo subtypingInfo,
+        Iterable<? extends ProguardConfigurationRule> rules) {
+      return new RootSetBuilder(appView, subtypingInfo, rules);
+    }
+  }
+
+  static class ConsequentRootSetBuilder extends RootSetBuilder {
+
+    private final Enqueuer enqueuer;
+
+    private ConsequentRootSetBuilder(
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        SubtypingInfo subtypingInfo,
+        Enqueuer enqueuer) {
+      super(appView, subtypingInfo, null);
+      this.enqueuer = enqueuer;
+    }
+
+    @Override
+    void handleMatchedAnnotation(AnnotationMatchResult annotationMatchResult) {
+      if (enqueuer.getMode().isInitialTreeShaking()
+          && annotationMatchResult.isConcreteAnnotationMatchResult()) {
+        enqueuer.retainAnnotationForFinalTreeShaking(
+            annotationMatchResult.asConcreteAnnotationMatchResult().getMatchedAnnotations());
+      }
+    }
   }
 
   // A partial RootSet that becomes live due to the enabled -if rule or the addition of interface
@@ -2160,6 +2195,13 @@ public class RootSetBuilder {
           dependentSoftPinned,
           dependentKeepClassCompatRule,
           delayedRootSetActionItems);
+    }
+
+    static ConsequentRootSetBuilder builder(
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        SubtypingInfo subtypingInfo,
+        Enqueuer enqueuer) {
+      return new ConsequentRootSetBuilder(appView, subtypingInfo, enqueuer);
     }
   }
 }

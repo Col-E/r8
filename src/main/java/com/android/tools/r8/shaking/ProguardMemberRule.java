@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
-import com.android.tools.r8.shaking.RootSetBuilder.BuilderTemp;
+import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
@@ -196,7 +196,8 @@ public class ProguardMemberRule {
             break;
           }
           // Annotations check.
-          return BuilderTemp.containsAllAnnotations(annotations, field, matchedAnnotationsConsumer);
+          return RootSetBuilder.containsAllAnnotations(
+              annotations, field, matchedAnnotationsConsumer);
         }
 
       case FIELD:
@@ -216,7 +217,8 @@ public class ProguardMemberRule {
             break;
           }
           // Annotations check
-          return BuilderTemp.containsAllAnnotations(annotations, field, matchedAnnotationsConsumer);
+          return RootSetBuilder.containsAllAnnotations(
+              annotations, field, matchedAnnotationsConsumer);
         }
 
       case ALL_METHODS:
@@ -250,7 +252,7 @@ public class ProguardMemberRule {
             break;
           }
           // Annotations check.
-          return BuilderTemp.containsAllAnnotations(
+          return RootSetBuilder.containsAllAnnotations(
               annotations, method, matchedAnnotationsConsumer);
         }
 
@@ -276,7 +278,7 @@ public class ProguardMemberRule {
             break;
           }
           // Annotations check.
-          if (!BuilderTemp.containsAllAnnotations(
+          if (!RootSetBuilder.containsAllAnnotations(
               annotations, method, matchedAnnotationsConsumer)) {
             return false;
           }

@@ -16,8 +16,9 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.SubtypingInfo;
-import com.android.tools.r8.shaking.RootSetBuilder.BuilderTemp;
-import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
+import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSet;
+import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSetBuilder;
+import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions.ProguardIfRuleEvaluationData;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Equivalence.Wrapper;
@@ -43,7 +44,7 @@ public class IfRuleEvaluator {
   private final ExecutorService executorService;
   private final List<Future<?>> futures = new ArrayList<>();
   private final Map<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> ifRules;
-  private final ConsequentBuilderTemp rootSetBuilder;
+  private final ConsequentRootSetBuilder rootSetBuilder;
 
   IfRuleEvaluator(
       AppView<? extends AppInfoWithClassHierarchy> appView,
@@ -51,7 +52,7 @@ public class IfRuleEvaluator {
       Enqueuer enqueuer,
       ExecutorService executorService,
       Map<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> ifRules,
-      ConsequentBuilderTemp rootSetBuilder) {
+      ConsequentRootSetBuilder rootSetBuilder) {
     this.appView = appView;
     this.subtypingInfo = subtypingInfo;
     this.enqueuer = enqueuer;
@@ -195,13 +196,13 @@ public class IfRuleEvaluator {
 
   /** Determines if {@param clazz} satisfies the given if-rule class specification. */
   private boolean evaluateClassForIfRule(ProguardIfRule rule, DexProgramClass clazz) {
-    if (!BuilderTemp.satisfyClassType(rule, clazz)) {
+    if (!RootSetBuilder.satisfyClassType(rule, clazz)) {
       return false;
     }
-    if (!BuilderTemp.satisfyAccessFlag(rule, clazz)) {
+    if (!RootSetBuilder.satisfyAccessFlag(rule, clazz)) {
       return false;
     }
-    AnnotationMatchResult annotationMatchResult = BuilderTemp.satisfyAnnotation(rule, clazz);
+    AnnotationMatchResult annotationMatchResult = RootSetBuilder.satisfyAnnotation(rule, clazz);
     if (annotationMatchResult == null) {
       return false;
     }

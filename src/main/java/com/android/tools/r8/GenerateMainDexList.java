@@ -18,8 +18,7 @@ import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.MainDexTracingResult;
-import com.android.tools.r8.shaking.RootSetBuilder.BuilderTemp;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.shaking.RootSetUtils.RootSet;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.Box;
@@ -86,7 +85,7 @@ public class GenerateMainDexList {
     SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
 
     RootSet mainDexRootSet =
-        new BuilderTemp(appView, subtypingInfo, options.mainDexKeepRules).run(executor);
+        RootSet.builder(appView, subtypingInfo, options.mainDexKeepRules).build(executor);
 
     GraphConsumer graphConsumer = options.mainDexKeptGraphConsumer;
     WhyAreYouKeepingConsumer whyAreYouKeepingConsumer = null;

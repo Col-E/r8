@@ -6,7 +6,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.shaking.RootSetUtils.RootSet;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
