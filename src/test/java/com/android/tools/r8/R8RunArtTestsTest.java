@@ -737,19 +737,8 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_0_4)))
           // Illegal class flags in Dalvik 4.0.4.
           .put("121-modifiers", TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_0_4)))
-          // Switch regression still present in Dalvik 4.0.4.
-          .put(
-              "095-switch-MAX_INT",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.NONE),
-                  TestCondition.compilers(CompilerUnderTest.D8_AFTER_R8CF),
-                  TestCondition.runtimes(DexVm.Version.V4_0_4)))
-          .put(
-              "095-switch-MAX_INT",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.NONE),
-                  TestCondition.compilers(CompilerUnderTest.D8),
-                  TestCondition.runtimes(DexVm.Version.V4_0_4)))
+          // Switch regression still present in the DEX code produced by DX on Dalvik 4.0.4.
+          // The fix for b/177790310 is not applied for DEX input (when merging).
           .put(
               "095-switch-MAX_INT",
               TestCondition.match(

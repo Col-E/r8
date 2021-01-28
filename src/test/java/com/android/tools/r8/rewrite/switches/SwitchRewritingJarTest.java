@@ -219,7 +219,9 @@ public class SwitchRewritingJarTest extends JasminTestBase {
       expectedPackedSwitchCount = 0;
       expectedSparseSwitchCount = 1;
     }
-    if (additionalLastKey != null && additionalLastKey == Integer.MAX_VALUE) {
+    if (backend == Backend.DEX
+        && additionalLastKey != null
+        && additionalLastKey == Integer.MAX_VALUE) {
       expectedIfCount = 1;
     }
 
