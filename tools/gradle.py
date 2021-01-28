@@ -26,6 +26,9 @@ else:
 
 def ParseOptions():
   parser = argparse.ArgumentParser(description = 'Call gradle.')
+  parser.add_argument('--exclude-deps', '--exclude_deps',
+      help='Build without internalized dependencies.',
+      default=False, action='store_true')
   parser.add_argument('--no-internal', '--no_internal',
       help='Do not build with support for Google internal tests.',
       default=False, action='store_true')
@@ -107,6 +110,8 @@ def Main():
     args.append('-Dorg.gradle.java.home=' + options.java_home)
   if options.no_internal:
     args.append('-Pno_internal')
+  if options.exclude_deps:
+    args.append('-Pexclude_deps')
   if options.worktree:
     args.append('-g=' + os.path.join(utils.REPO_ROOT, ".gradle_user_home"))
   return RunGradle(args)
