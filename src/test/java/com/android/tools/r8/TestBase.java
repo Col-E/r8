@@ -58,7 +58,7 @@ import com.android.tools.r8.shaking.ProguardKeepRuleType;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.android.tools.r8.shaking.ProguardMemberType;
 import com.android.tools.r8.shaking.ProguardTypeMatcher;
-import com.android.tools.r8.shaking.RootSetBuilder;
+import com.android.tools.r8.shaking.RootSetBuilder.BuilderTemp;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.serviceloader.ServiceLoaderMultipleTest.Greeter;
 import com.android.tools.r8.transformers.ClassFileTransformer;
@@ -763,7 +763,7 @@ public class TestBase {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
     RootSet rootSet =
-        new RootSetBuilder(
+        new BuilderTemp(
                 appView, subtypingInfo, appView.options().getProguardConfiguration().getRules())
             .run(executor);
     appView.setRootSet(rootSet);

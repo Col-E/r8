@@ -101,6 +101,7 @@ import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.shaking.KeepInfoCollection.MutableKeepInfoCollection;
+import com.android.tools.r8.shaking.RootSetBuilder.BuilderTemp;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetBuilder.ItemsWithRules;
 import com.android.tools.r8.shaking.RootSetBuilder.MutableItemsWithRules;
@@ -3697,8 +3698,8 @@ public class Enqueuer {
               activeIfRules.computeIfAbsent(wrap, ignore -> new LinkedHashSet<>()).add(ifRule);
             }
           }
-          ConsequentRootSetBuilder consequentSetBuilder =
-              new ConsequentRootSetBuilder(appView, subtypingInfo, this);
+          ConsequentBuilderTemp consequentSetBuilder =
+              new ConsequentBuilderTemp(appView, subtypingInfo, this);
           IfRuleEvaluator ifRuleEvaluator =
               new IfRuleEvaluator(
                   appView,
@@ -3842,7 +3843,7 @@ public class Enqueuer {
   }
 
   private ConsequentRootSet computeDelayedInterfaceMethodSyntheticBridges() {
-    RootSetBuilder builder = new RootSetBuilder(appView, subtypingInfo);
+    BuilderTemp builder = new BuilderTemp(appView, subtypingInfo);
     for (DelayedRootSetActionItem delayedRootSetActionItem : rootSet.delayedRootSetActionItems) {
       if (delayedRootSetActionItem.isInterfaceMethodSyntheticBridgeAction()) {
         handleInterfaceMethodSyntheticBridgeAction(
@@ -3856,7 +3857,7 @@ public class Enqueuer {
       new LinkedHashMap<>();
 
   private void handleInterfaceMethodSyntheticBridgeAction(
-      InterfaceMethodSyntheticBridgeAction action, RootSetBuilder builder) {
+      InterfaceMethodSyntheticBridgeAction action, BuilderTemp builder) {
     ProgramMethod methodToKeep = action.getMethodToKeep();
     ProgramMethod singleTarget = action.getSingleTarget();
     DexEncodedMethod singleTargetMethod = singleTarget.getDefinition();

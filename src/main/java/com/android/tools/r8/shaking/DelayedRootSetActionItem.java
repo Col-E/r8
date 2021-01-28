@@ -5,6 +5,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.shaking.RootSetBuilder.BuilderTemp;
 import java.util.function.Consumer;
 
 public abstract class DelayedRootSetActionItem {
@@ -20,10 +21,10 @@ public abstract class DelayedRootSetActionItem {
   public static class InterfaceMethodSyntheticBridgeAction extends DelayedRootSetActionItem {
     private final ProgramMethod methodToKeep;
     private final ProgramMethod singleTarget;
-    private final Consumer<RootSetBuilder> action;
+    private final Consumer<BuilderTemp> action;
 
     InterfaceMethodSyntheticBridgeAction(
-        ProgramMethod methodToKeep, ProgramMethod singleTarget, Consumer<RootSetBuilder> action) {
+        ProgramMethod methodToKeep, ProgramMethod singleTarget, Consumer<BuilderTemp> action) {
       this.methodToKeep = methodToKeep;
       this.singleTarget = singleTarget;
       this.action = action;
@@ -37,7 +38,7 @@ public abstract class DelayedRootSetActionItem {
       return singleTarget;
     }
 
-    public Consumer<RootSetBuilder> getAction() {
+    public Consumer<BuilderTemp> getAction() {
       return action;
     }
 

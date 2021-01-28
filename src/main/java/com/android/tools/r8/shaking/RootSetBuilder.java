@@ -81,1267 +81,1321 @@ import java.util.stream.Collectors;
 
 public class RootSetBuilder {
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
-  private final SubtypingInfo subtypingInfo;
-  private final DirectMappedDexApplication application;
-  private final Iterable<? extends ProguardConfigurationRule> rules;
-  private final MutableItemsWithRules noShrinking = new MutableItemsWithRules();
-  private final MutableItemsWithRules softPinned = new MutableItemsWithRules();
-  private final Set<DexReference> noObfuscation = Sets.newIdentityHashSet();
-  private final LinkedHashMap<DexReference, DexReference> reasonAsked = new LinkedHashMap<>();
-  private final LinkedHashMap<DexReference, DexReference> checkDiscarded = new LinkedHashMap<>();
-  private final Set<DexMethod> alwaysInline = Sets.newIdentityHashSet();
-  private final Set<DexMethod> forceInline = Sets.newIdentityHashSet();
-  private final Set<DexMethod> neverInline = Sets.newIdentityHashSet();
-  private final Set<DexMethod> neverInlineDueToSingleCaller = Sets.newIdentityHashSet();
-  private final Set<DexMethod> bypassClinitforInlining = Sets.newIdentityHashSet();
-  private final Set<DexMethod> whyAreYouNotInlining = Sets.newIdentityHashSet();
-  private final Set<DexMethod> keepParametersWithConstantValue = Sets.newIdentityHashSet();
-  private final Set<DexMethod> keepUnusedArguments = Sets.newIdentityHashSet();
-  private final Set<DexMethod> reprocess = Sets.newIdentityHashSet();
-  private final Set<DexMethod> neverReprocess = Sets.newIdentityHashSet();
-  private final PredicateSet<DexType> alwaysClassInline = new PredicateSet<>();
-  private final Set<DexType> neverClassInline = Sets.newIdentityHashSet();
-  private final Set<DexType> noUnusedInterfaceRemoval = Sets.newIdentityHashSet();
-  private final Set<DexType> noVerticalClassMerging = Sets.newIdentityHashSet();
-  private final Set<DexType> noHorizontalClassMerging = Sets.newIdentityHashSet();
-  private final Set<DexType> noStaticClassMerging = Sets.newIdentityHashSet();
-  private final Set<DexReference> neverPropagateValue = Sets.newIdentityHashSet();
-  private final Map<DexReference, MutableItemsWithRules> dependentNoShrinking =
-      new IdentityHashMap<>();
-  private final Map<DexReference, MutableItemsWithRules> dependentSoftPinned =
-      new IdentityHashMap<>();
-  private final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule =
-      new IdentityHashMap<>();
-  private final Map<DexReference, ProguardMemberRule> mayHaveSideEffects = new IdentityHashMap<>();
-  private final Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
-  private final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues = new IdentityHashMap<>();
-  private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
-  private final Queue<DelayedRootSetActionItem> delayedRootSetActionItems =
-      new ConcurrentLinkedQueue<>();
-  private final InternalOptions options;
+  public static class BuilderTemp {
 
-  private final DexStringCache dexStringCache = new DexStringCache();
-  private final Set<ProguardIfRule> ifRules = Sets.newIdentityHashSet();
+    private final AppView<? extends AppInfoWithClassHierarchy> appView;
+    private final SubtypingInfo subtypingInfo;
+    private final DirectMappedDexApplication application;
+    private final Iterable<? extends ProguardConfigurationRule> rules;
+    private final MutableItemsWithRules noShrinking = new MutableItemsWithRules();
+    private final MutableItemsWithRules softPinned = new MutableItemsWithRules();
+    private final Set<DexReference> noObfuscation = Sets.newIdentityHashSet();
+    private final LinkedHashMap<DexReference, DexReference> reasonAsked = new LinkedHashMap<>();
+    private final LinkedHashMap<DexReference, DexReference> checkDiscarded = new LinkedHashMap<>();
+    private final Set<DexMethod> alwaysInline = Sets.newIdentityHashSet();
+    private final Set<DexMethod> forceInline = Sets.newIdentityHashSet();
+    private final Set<DexMethod> neverInline = Sets.newIdentityHashSet();
+    private final Set<DexMethod> neverInlineDueToSingleCaller = Sets.newIdentityHashSet();
+    private final Set<DexMethod> bypassClinitforInlining = Sets.newIdentityHashSet();
+    private final Set<DexMethod> whyAreYouNotInlining = Sets.newIdentityHashSet();
+    private final Set<DexMethod> keepParametersWithConstantValue = Sets.newIdentityHashSet();
+    private final Set<DexMethod> keepUnusedArguments = Sets.newIdentityHashSet();
+    private final Set<DexMethod> reprocess = Sets.newIdentityHashSet();
+    private final Set<DexMethod> neverReprocess = Sets.newIdentityHashSet();
+    private final PredicateSet<DexType> alwaysClassInline = new PredicateSet<>();
+    private final Set<DexType> neverClassInline = Sets.newIdentityHashSet();
+    private final Set<DexType> noUnusedInterfaceRemoval = Sets.newIdentityHashSet();
+    private final Set<DexType> noVerticalClassMerging = Sets.newIdentityHashSet();
+    private final Set<DexType> noHorizontalClassMerging = Sets.newIdentityHashSet();
+    private final Set<DexType> noStaticClassMerging = Sets.newIdentityHashSet();
+    private final Set<DexReference> neverPropagateValue = Sets.newIdentityHashSet();
+    private final Map<DexReference, MutableItemsWithRules> dependentNoShrinking =
+        new IdentityHashMap<>();
+    private final Map<DexReference, MutableItemsWithRules> dependentSoftPinned =
+        new IdentityHashMap<>();
+    private final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule =
+        new IdentityHashMap<>();
+    private final Map<DexReference, ProguardMemberRule> mayHaveSideEffects =
+        new IdentityHashMap<>();
+    private final Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
+    private final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues = new IdentityHashMap<>();
+    private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
+    private final Queue<DelayedRootSetActionItem> delayedRootSetActionItems =
+        new ConcurrentLinkedQueue<>();
+    private final InternalOptions options;
 
-  private final Map<OriginWithPosition, Set<DexMethod>> assumeNoSideEffectsWarnings =
-      new LinkedHashMap<>();
+    private final DexStringCache dexStringCache = new DexStringCache();
+    private final Set<ProguardIfRule> ifRules = Sets.newIdentityHashSet();
 
-  private final OptimizationFeedbackSimple feedback = OptimizationFeedbackSimple.getInstance();
+    private final Map<OriginWithPosition, Set<DexMethod>> assumeNoSideEffectsWarnings =
+        new LinkedHashMap<>();
 
-  public RootSetBuilder(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
-      SubtypingInfo subtypingInfo,
-      Iterable<? extends ProguardConfigurationRule> rules) {
-    this.appView = appView;
-    this.subtypingInfo = subtypingInfo;
-    this.application = appView.appInfo().app().asDirect();
-    this.rules = rules;
-    this.options = appView.options();
-  }
+    private final OptimizationFeedbackSimple feedback = OptimizationFeedbackSimple.getInstance();
 
-  public RootSetBuilder(
-      AppView<? extends AppInfoWithClassHierarchy> appView, SubtypingInfo subtypingInfo) {
-    this(appView, subtypingInfo, null);
-  }
-
-  void handleMatchedAnnotation(AnnotationMatchResult annotation) {
-    // Intentionally empty.
-  }
-
-  // Process a class with the keep rule.
-  private void process(
-      DexClass clazz,
-      ProguardConfigurationRule rule,
-      ProguardIfRule ifRule) {
-    if (!satisfyClassType(rule, clazz)) {
-      return;
-    }
-    if (!satisfyAccessFlag(rule, clazz)) {
-      return;
-    }
-    AnnotationMatchResult annotationMatchResult = satisfyAnnotation(rule, clazz);
-    if (annotationMatchResult == null) {
-      return;
-    }
-    handleMatchedAnnotation(annotationMatchResult);
-    // In principle it should make a difference whether the user specified in a class
-    // spec that a class either extends or implements another type. However, proguard
-    // seems not to care, so users have started to use this inconsistently. We are thus
-    // inconsistent, as well, but tell them.
-    // TODO(herhut): One day make this do what it says.
-    if (rule.hasInheritanceClassName() && !satisfyInheritanceRule(clazz, rule)) {
-      return;
+    public BuilderTemp(
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        SubtypingInfo subtypingInfo,
+        Iterable<? extends ProguardConfigurationRule> rules) {
+      this.appView = appView;
+      this.subtypingInfo = subtypingInfo;
+      this.application = appView.appInfo().app().asDirect();
+      this.rules = rules;
+      this.options = appView.options();
     }
 
-    if (!rule.getClassNames().matches(clazz.type)) {
-      return;
+    public BuilderTemp(
+        AppView<? extends AppInfoWithClassHierarchy> appView, SubtypingInfo subtypingInfo) {
+      this(appView, subtypingInfo, null);
     }
 
-    Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
-    Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier;
-    if (rule instanceof ProguardKeepRule) {
-      if (clazz.isNotProgramClass()) {
+    void handleMatchedAnnotation(AnnotationMatchResult annotation) {
+      // Intentionally empty.
+    }
+
+    // Process a class with the keep rule.
+    private void process(DexClass clazz, ProguardConfigurationRule rule, ProguardIfRule ifRule) {
+      if (!satisfyClassType(rule, clazz)) {
         return;
       }
-      switch (((ProguardKeepRule) rule).getType()) {
-        case KEEP_CLASS_MEMBERS:
-          // Members mentioned at -keepclassmembers always depend on their holder.
-          preconditionSupplier = ImmutableMap.of(definition -> true, clazz);
-          markMatchingVisibleMethods(
-              clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
-          markMatchingVisibleFields(
-              clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
-          break;
-        case KEEP_CLASSES_WITH_MEMBERS:
-          if (!allRulesSatisfied(memberKeepRules, clazz)) {
-            break;
-          }
-          // fall through;
-        case KEEP:
-          markClass(clazz, rule, ifRule);
-          preconditionSupplier = new HashMap<>();
-          if (ifRule != null) {
-            // Static members in -keep are pinned no matter what.
-            preconditionSupplier.put(DexDefinition::isStaticMember, null);
-            // Instance members may need to be kept even though the holder is not instantiated.
-            preconditionSupplier.put(definition -> !definition.isStaticMember(), clazz);
-          } else {
-            // Members mentioned at -keep should always be pinned as long as that -keep rule is
-            // not triggered conditionally.
-            preconditionSupplier.put((definition -> true), null);
-          }
-          markMatchingVisibleMethods(
-              clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
-          markMatchingVisibleFields(
-              clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
-          break;
-        case CONDITIONAL:
-          throw new Unreachable("-if rule will be evaluated separately, not here.");
+      if (!satisfyAccessFlag(rule, clazz)) {
+        return;
       }
-      return;
-    }
-    // Only the ordinary keep rules are supported in a conditional rule.
-    assert ifRule == null;
-    if (rule instanceof ProguardIfRule) {
-      throw new Unreachable("-if rule will be evaluated separately, not here.");
-    } else if (rule instanceof ProguardCheckDiscardRule) {
-      if (memberKeepRules.isEmpty()) {
-        markClass(clazz, rule, ifRule);
-      } else {
-        preconditionSupplier = ImmutableMap.of((definition -> true), clazz);
-        markMatchingVisibleMethods(
-            clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
-        markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
+      AnnotationMatchResult annotationMatchResult = satisfyAnnotation(rule, clazz);
+      if (annotationMatchResult == null) {
+        return;
       }
-    } else if (rule instanceof ProguardWhyAreYouKeepingRule) {
-      markClass(clazz, rule, ifRule);
-      markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
-      markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
-    } else if (rule instanceof ProguardAssumeMayHaveSideEffectsRule
-        || rule instanceof ProguardAssumeNoSideEffectRule
-        || rule instanceof ProguardAssumeValuesRule) {
-      markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
-      markMatchingOverriddenMethods(
-          appView.appInfo(), clazz, memberKeepRules, rule, null, true, ifRule);
-      markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
-    } else if (rule instanceof InlineRule
-        || rule instanceof ConstantArgumentRule
-        || rule instanceof UnusedArgumentRule
-        || rule instanceof ReprocessMethodRule
-        || rule instanceof WhyAreYouNotInliningRule) {
-      markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
-    } else if (rule instanceof ClassInlineRule
-        || rule instanceof NoUnusedInterfaceRemovalRule
-        || rule instanceof NoVerticalClassMergingRule
-        || rule instanceof NoHorizontalClassMergingRule
-        || rule instanceof NoStaticClassMergingRule
-        || rule instanceof ReprocessClassInitializerRule) {
-      if (allRulesSatisfied(memberKeepRules, clazz)) {
-        markClass(clazz, rule, ifRule);
+      handleMatchedAnnotation(annotationMatchResult);
+      // In principle it should make a difference whether the user specified in a class
+      // spec that a class either extends or implements another type. However, proguard
+      // seems not to care, so users have started to use this inconsistently. We are thus
+      // inconsistent, as well, but tell them.
+      // TODO(herhut): One day make this do what it says.
+      if (rule.hasInheritanceClassName() && !satisfyInheritanceRule(clazz, rule)) {
+        return;
       }
-    } else if (rule instanceof MemberValuePropagationRule) {
-      markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
-      markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
-    } else {
-      assert rule instanceof ProguardIdentifierNameStringRule;
-      markMatchingFields(clazz, memberKeepRules, rule, null, ifRule);
-      markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
-    }
-  }
 
-  void runPerRule(
-      ExecutorService executorService,
-      List<Future<?>> futures,
-      ProguardConfigurationRule rule,
-      ProguardIfRule ifRule) {
-    List<DexType> specifics = rule.getClassNames().asSpecificDexTypes();
-    if (specifics != null) {
-      // This keep rule only lists specific type matches.
-      // This means there is no need to iterate over all classes.
-      for (DexType type : specifics) {
-        DexClass clazz = application.definitionFor(type);
-        // Ignore keep rule iff it does not reference a class in the app.
-        if (clazz != null) {
-          process(clazz, rule, ifRule);
+      if (!rule.getClassNames().matches(clazz.type)) {
+        return;
+      }
+
+      Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
+      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier;
+      if (rule instanceof ProguardKeepRule) {
+        if (clazz.isNotProgramClass()) {
+          return;
         }
+        switch (((ProguardKeepRule) rule).getType()) {
+          case KEEP_CLASS_MEMBERS:
+            // Members mentioned at -keepclassmembers always depend on their holder.
+            preconditionSupplier = ImmutableMap.of(definition -> true, clazz);
+            markMatchingVisibleMethods(
+                clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
+            markMatchingVisibleFields(
+                clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
+            break;
+          case KEEP_CLASSES_WITH_MEMBERS:
+            if (!allRulesSatisfied(memberKeepRules, clazz)) {
+              break;
+            }
+            // fall through;
+          case KEEP:
+            markClass(clazz, rule, ifRule);
+            preconditionSupplier = new HashMap<>();
+            if (ifRule != null) {
+              // Static members in -keep are pinned no matter what.
+              preconditionSupplier.put(DexDefinition::isStaticMember, null);
+              // Instance members may need to be kept even though the holder is not instantiated.
+              preconditionSupplier.put(definition -> !definition.isStaticMember(), clazz);
+            } else {
+              // Members mentioned at -keep should always be pinned as long as that -keep rule is
+              // not triggered conditionally.
+              preconditionSupplier.put((definition -> true), null);
+            }
+            markMatchingVisibleMethods(
+                clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
+            markMatchingVisibleFields(
+                clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
+            break;
+          case CONDITIONAL:
+            throw new Unreachable("-if rule will be evaluated separately, not here.");
+        }
+        return;
       }
-      return;
+      // Only the ordinary keep rules are supported in a conditional rule.
+      assert ifRule == null;
+      if (rule instanceof ProguardIfRule) {
+        throw new Unreachable("-if rule will be evaluated separately, not here.");
+      } else if (rule instanceof ProguardCheckDiscardRule) {
+        if (memberKeepRules.isEmpty()) {
+          markClass(clazz, rule, ifRule);
+        } else {
+          preconditionSupplier = ImmutableMap.of((definition -> true), clazz);
+          markMatchingVisibleMethods(
+              clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
+          markMatchingVisibleFields(
+              clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
+        }
+      } else if (rule instanceof ProguardWhyAreYouKeepingRule) {
+        markClass(clazz, rule, ifRule);
+        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
+      } else if (rule instanceof ProguardAssumeMayHaveSideEffectsRule
+          || rule instanceof ProguardAssumeNoSideEffectRule
+          || rule instanceof ProguardAssumeValuesRule) {
+        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
+        markMatchingOverriddenMethods(
+            appView.appInfo(), clazz, memberKeepRules, rule, null, true, ifRule);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
+      } else if (rule instanceof InlineRule
+          || rule instanceof ConstantArgumentRule
+          || rule instanceof UnusedArgumentRule
+          || rule instanceof ReprocessMethodRule
+          || rule instanceof WhyAreYouNotInliningRule) {
+        markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
+      } else if (rule instanceof ClassInlineRule
+          || rule instanceof NoUnusedInterfaceRemovalRule
+          || rule instanceof NoVerticalClassMergingRule
+          || rule instanceof NoHorizontalClassMergingRule
+          || rule instanceof NoStaticClassMergingRule
+          || rule instanceof ReprocessClassInitializerRule) {
+        if (allRulesSatisfied(memberKeepRules, clazz)) {
+          markClass(clazz, rule, ifRule);
+        }
+      } else if (rule instanceof MemberValuePropagationRule) {
+        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
+      } else {
+        assert rule instanceof ProguardIdentifierNameStringRule;
+        markMatchingFields(clazz, memberKeepRules, rule, null, ifRule);
+        markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
+      }
     }
 
-    futures.add(
-        executorService.submit(
-            () -> {
-              for (DexProgramClass clazz :
-                  rule.relevantCandidatesForRule(appView, subtypingInfo, application.classes())) {
-                process(clazz, rule, ifRule);
-              }
-              if (rule.applyToNonProgramClasses()) {
-                for (DexLibraryClass clazz : application.libraryClasses()) {
+    void runPerRule(
+        ExecutorService executorService,
+        List<Future<?>> futures,
+        ProguardConfigurationRule rule,
+        ProguardIfRule ifRule) {
+      List<DexType> specifics = rule.getClassNames().asSpecificDexTypes();
+      if (specifics != null) {
+        // This keep rule only lists specific type matches.
+        // This means there is no need to iterate over all classes.
+        for (DexType type : specifics) {
+          DexClass clazz = application.definitionFor(type);
+          // Ignore keep rule iff it does not reference a class in the app.
+          if (clazz != null) {
+            process(clazz, rule, ifRule);
+          }
+        }
+        return;
+      }
+
+      futures.add(
+          executorService.submit(
+              () -> {
+                for (DexProgramClass clazz :
+                    rule.relevantCandidatesForRule(appView, subtypingInfo, application.classes())) {
                   process(clazz, rule, ifRule);
                 }
-              }
-            }));
-  }
+                if (rule.applyToNonProgramClasses()) {
+                  for (DexLibraryClass clazz : application.libraryClasses()) {
+                    process(clazz, rule, ifRule);
+                  }
+                }
+              }));
+    }
 
-  public RootSet run(ExecutorService executorService) throws ExecutionException {
-    application.timing.begin("Build root set...");
-    try {
-      List<Future<?>> futures = new ArrayList<>();
-      // Mark all the things explicitly listed in keep rules.
-      if (rules != null) {
-        for (ProguardConfigurationRule rule : rules) {
-          if (rule instanceof ProguardIfRule) {
-            ProguardIfRule ifRule = (ProguardIfRule) rule;
-            ifRules.add(ifRule);
-          } else {
-            runPerRule(executorService, futures, rule, null);
+    public RootSet run(ExecutorService executorService) throws ExecutionException {
+      application.timing.begin("Build root set...");
+      try {
+        List<Future<?>> futures = new ArrayList<>();
+        // Mark all the things explicitly listed in keep rules.
+        if (rules != null) {
+          for (ProguardConfigurationRule rule : rules) {
+            if (rule instanceof ProguardIfRule) {
+              ProguardIfRule ifRule = (ProguardIfRule) rule;
+              ifRules.add(ifRule);
+            } else {
+              runPerRule(executorService, futures, rule, null);
+            }
           }
+          ThreadUtils.awaitFutures(futures);
         }
-        ThreadUtils.awaitFutures(futures);
+      } finally {
+        application.timing.end();
       }
-    } finally {
-      application.timing.end();
-    }
-    generateAssumeNoSideEffectsWarnings();
-    if (!noSideEffects.isEmpty() || !assumedValues.isEmpty()) {
-      BottomUpClassHierarchyTraversal.forAllClasses(appView, subtypingInfo)
-          .visit(appView.appInfo().classes(), this::propagateAssumeRules);
-    }
-    if (appView.options().protoShrinking().enableGeneratedMessageLiteBuilderShrinking) {
-      GeneratedMessageLiteBuilderShrinker.addInliningHeuristicsForBuilderInlining(
-          appView,
-          subtypingInfo,
+      generateAssumeNoSideEffectsWarnings();
+      if (!noSideEffects.isEmpty() || !assumedValues.isEmpty()) {
+        BottomUpClassHierarchyTraversal.forAllClasses(appView, subtypingInfo)
+            .visit(appView.appInfo().classes(), this::propagateAssumeRules);
+      }
+      if (appView.options().protoShrinking().enableGeneratedMessageLiteBuilderShrinking) {
+        GeneratedMessageLiteBuilderShrinker.addInliningHeuristicsForBuilderInlining(
+            appView,
+            subtypingInfo,
+            alwaysClassInline,
+            noVerticalClassMerging,
+            noHorizontalClassMerging,
+            noStaticClassMerging,
+            alwaysInline,
+            bypassClinitforInlining);
+      }
+      assert Sets.intersection(neverInline, alwaysInline).isEmpty()
+              && Sets.intersection(neverInline, forceInline).isEmpty()
+          : "A method cannot be marked as both -neverinline and -forceinline/-alwaysinline.";
+      assert appView.options().isMinificationEnabled() || noObfuscation.isEmpty();
+      return new RootSet(
+          noShrinking,
+          softPinned,
+          noObfuscation,
+          ImmutableList.copyOf(reasonAsked.values()),
+          ImmutableList.copyOf(checkDiscarded.values()),
+          alwaysInline,
+          forceInline,
+          neverInline,
+          neverInlineDueToSingleCaller,
+          bypassClinitforInlining,
+          whyAreYouNotInlining,
+          keepParametersWithConstantValue,
+          keepUnusedArguments,
+          reprocess,
+          neverReprocess,
           alwaysClassInline,
+          neverClassInline,
+          noUnusedInterfaceRemoval,
           noVerticalClassMerging,
           noHorizontalClassMerging,
           noStaticClassMerging,
-          alwaysInline,
-          bypassClinitforInlining);
+          neverPropagateValue,
+          mayHaveSideEffects,
+          noSideEffects,
+          assumedValues,
+          dependentNoShrinking,
+          dependentSoftPinned,
+          dependentKeepClassCompatRule,
+          identifierNameStrings,
+          ifRules,
+          Lists.newArrayList(delayedRootSetActionItems));
     }
-    assert Sets.intersection(neverInline, alwaysInline).isEmpty()
-            && Sets.intersection(neverInline, forceInline).isEmpty()
-        : "A method cannot be marked as both -neverinline and -forceinline/-alwaysinline.";
-    assert appView.options().isMinificationEnabled() || noObfuscation.isEmpty();
-    return new RootSet(
-        noShrinking,
-        softPinned,
-        noObfuscation,
-        ImmutableList.copyOf(reasonAsked.values()),
-        ImmutableList.copyOf(checkDiscarded.values()),
-        alwaysInline,
-        forceInline,
-        neverInline,
-        neverInlineDueToSingleCaller,
-        bypassClinitforInlining,
-        whyAreYouNotInlining,
-        keepParametersWithConstantValue,
-        keepUnusedArguments,
-        reprocess,
-        neverReprocess,
-        alwaysClassInline,
-        neverClassInline,
-        noUnusedInterfaceRemoval,
-        noVerticalClassMerging,
-        noHorizontalClassMerging,
-        noStaticClassMerging,
-        neverPropagateValue,
-        mayHaveSideEffects,
-        noSideEffects,
-        assumedValues,
-        dependentNoShrinking,
-        dependentSoftPinned,
-        dependentKeepClassCompatRule,
-        identifierNameStrings,
-        ifRules,
-        Lists.newArrayList(delayedRootSetActionItems));
-  }
 
-  private void propagateAssumeRules(DexClass clazz) {
-    Set<DexType> subTypes = subtypingInfo.allImmediateSubtypes(clazz.type);
-    if (subTypes.isEmpty()) {
-      return;
-    }
-    for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
-      // If the method has a body, it may have side effects. Don't do bottom-up propagation.
-      if (encodedMethod.hasCode()) {
-        assert !encodedMethod.shouldNotHaveCode();
-        continue;
+    private void propagateAssumeRules(DexClass clazz) {
+      Set<DexType> subTypes = subtypingInfo.allImmediateSubtypes(clazz.type);
+      if (subTypes.isEmpty()) {
+        return;
       }
-      propagateAssumeRules(clazz.type, encodedMethod.method, subTypes, noSideEffects);
-      propagateAssumeRules(clazz.type, encodedMethod.method, subTypes, assumedValues);
+      for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
+        // If the method has a body, it may have side effects. Don't do bottom-up propagation.
+        if (encodedMethod.hasCode()) {
+          assert !encodedMethod.shouldNotHaveCode();
+          continue;
+        }
+        propagateAssumeRules(clazz.type, encodedMethod.method, subTypes, noSideEffects);
+        propagateAssumeRules(clazz.type, encodedMethod.method, subTypes, assumedValues);
+      }
     }
-  }
 
-  private void propagateAssumeRules(
-      DexType type,
-      DexMethod reference,
-      Set<DexType> subTypes,
-      Map<DexMember<?, ?>, ProguardMemberRule> assumeRulePool) {
-    ProguardMemberRule ruleToBePropagated = null;
-    for (DexType subType : subTypes) {
-      DexMethod referenceInSubType =
-          appView.dexItemFactory().createMethod(subType, reference.proto, reference.name);
-      // Those rules are bound to definitions, not references. If the current subtype does not
-      // override the method, and when the retrieval of bound rule fails, it is unclear whether it
-      // is due to the lack of the definition or it indeed means no matching rules. Similar to how
-      // we apply those assume rules, here we use a resolved target.
-      DexEncodedMethod target =
-          appView.appInfo().unsafeResolveMethodDueToDexFormat(referenceInSubType).getSingleTarget();
-      // But, the resolution should not be landed on the current type we are visiting.
-      if (target == null || target.getHolderType() == type) {
-        continue;
-      }
-      ProguardMemberRule ruleInSubType = assumeRulePool.get(target.method);
-      // We are looking for the greatest lower bound of assume rules from all sub types.
-      // If any subtype doesn't have a matching assume rule, the lower bound is literally nothing.
-      if (ruleInSubType == null) {
-        ruleToBePropagated = null;
-        break;
-      }
-      if (ruleToBePropagated == null) {
-        ruleToBePropagated = ruleInSubType;
-      } else {
-        // TODO(b/133208961): Introduce comparison/meet of assume rules.
-        if (!ruleToBePropagated.equals(ruleInSubType)) {
+    private void propagateAssumeRules(
+        DexType type,
+        DexMethod reference,
+        Set<DexType> subTypes,
+        Map<DexMember<?, ?>, ProguardMemberRule> assumeRulePool) {
+      ProguardMemberRule ruleToBePropagated = null;
+      for (DexType subType : subTypes) {
+        DexMethod referenceInSubType =
+            appView.dexItemFactory().createMethod(subType, reference.proto, reference.name);
+        // Those rules are bound to definitions, not references. If the current subtype does not
+        // override the method, and when the retrieval of bound rule fails, it is unclear whether it
+        // is due to the lack of the definition or it indeed means no matching rules. Similar to how
+        // we apply those assume rules, here we use a resolved target.
+        DexEncodedMethod target =
+            appView
+                .appInfo()
+                .unsafeResolveMethodDueToDexFormat(referenceInSubType)
+                .getSingleTarget();
+        // But, the resolution should not be landed on the current type we are visiting.
+        if (target == null || target.getHolderType() == type) {
+          continue;
+        }
+        ProguardMemberRule ruleInSubType = assumeRulePool.get(target.method);
+        // We are looking for the greatest lower bound of assume rules from all sub types.
+        // If any subtype doesn't have a matching assume rule, the lower bound is literally nothing.
+        if (ruleInSubType == null) {
           ruleToBePropagated = null;
           break;
         }
+        if (ruleToBePropagated == null) {
+          ruleToBePropagated = ruleInSubType;
+        } else {
+          // TODO(b/133208961): Introduce comparison/meet of assume rules.
+          if (!ruleToBePropagated.equals(ruleInSubType)) {
+            ruleToBePropagated = null;
+            break;
+          }
+        }
+      }
+      if (ruleToBePropagated != null) {
+        assumeRulePool.put(reference, ruleToBePropagated);
       }
     }
-    if (ruleToBePropagated != null) {
-      assumeRulePool.put(reference, ruleToBePropagated);
-    }
-  }
 
-  ConsequentRootSet buildConsequentRootSet() {
-    return new ConsequentRootSet(
-        neverInline,
-        neverInlineDueToSingleCaller,
-        neverClassInline,
-        noShrinking,
-        softPinned,
-        noObfuscation,
-        dependentNoShrinking,
-        dependentSoftPinned,
-        dependentKeepClassCompatRule,
-        Lists.newArrayList(delayedRootSetActionItems));
-  }
-
-  private static DexDefinition testAndGetPrecondition(
-      DexDefinition definition, Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
-    if (preconditionSupplier == null) {
-      return null;
+    ConsequentRootSet buildConsequentRootSet() {
+      return new ConsequentRootSet(
+          neverInline,
+          neverInlineDueToSingleCaller,
+          neverClassInline,
+          noShrinking,
+          softPinned,
+          noObfuscation,
+          dependentNoShrinking,
+          dependentSoftPinned,
+          dependentKeepClassCompatRule,
+          Lists.newArrayList(delayedRootSetActionItems));
     }
-    DexDefinition precondition = null;
-    boolean conditionEverMatched = false;
-    for (Entry<Predicate<DexDefinition>, DexDefinition> entry : preconditionSupplier.entrySet()) {
-      if (entry.getKey().test(definition)) {
-        precondition = entry.getValue();
-        conditionEverMatched = true;
-        break;
+
+    private static DexDefinition testAndGetPrecondition(
+        DexDefinition definition,
+        Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
+      if (preconditionSupplier == null) {
+        return null;
       }
-    }
-    // If precondition-supplier is given, there should be at least one predicate that holds.
-    // Actually, there should be only one predicate as we break the loop when it is found.
-    assert conditionEverMatched;
-    return precondition;
-  }
-
-  private void markMatchingVisibleMethods(
-      DexClass clazz,
-      Collection<ProguardMemberRule> memberKeepRules,
-      ProguardConfigurationRule rule,
-      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
-      boolean includeLibraryClasses,
-      ProguardIfRule ifRule) {
-    Set<Wrapper<DexMethod>> methodsMarked =
-        options.forceProguardCompatibility ? null : new HashSet<>();
-    Stack<DexClass> worklist = new Stack<>();
-    worklist.add(clazz);
-    while (!worklist.isEmpty()) {
-      DexClass currentClass = worklist.pop();
-      if (!includeLibraryClasses && currentClass.isNotProgramClass()) {
-        break;
+      DexDefinition precondition = null;
+      boolean conditionEverMatched = false;
+      for (Entry<Predicate<DexDefinition>, DexDefinition> entry : preconditionSupplier.entrySet()) {
+        if (entry.getKey().test(definition)) {
+          precondition = entry.getValue();
+          conditionEverMatched = true;
+          break;
+        }
       }
-      // In compat mode traverse all direct methods in the hierarchy.
-      if (currentClass == clazz || options.forceProguardCompatibility) {
+      // If precondition-supplier is given, there should be at least one predicate that holds.
+      // Actually, there should be only one predicate as we break the loop when it is found.
+      assert conditionEverMatched;
+      return precondition;
+    }
+
+    private void markMatchingVisibleMethods(
+        DexClass clazz,
+        Collection<ProguardMemberRule> memberKeepRules,
+        ProguardConfigurationRule rule,
+        Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
+        boolean includeLibraryClasses,
+        ProguardIfRule ifRule) {
+      Set<Wrapper<DexMethod>> methodsMarked =
+          options.forceProguardCompatibility ? null : new HashSet<>();
+      Stack<DexClass> worklist = new Stack<>();
+      worklist.add(clazz);
+      while (!worklist.isEmpty()) {
+        DexClass currentClass = worklist.pop();
+        if (!includeLibraryClasses && currentClass.isNotProgramClass()) {
+          break;
+        }
+        // In compat mode traverse all direct methods in the hierarchy.
+        if (currentClass == clazz || options.forceProguardCompatibility) {
+          currentClass
+              .directMethods()
+              .forEach(
+                  method -> {
+                    DexDefinition precondition =
+                        testAndGetPrecondition(method, preconditionSupplier);
+                    markMethod(method, memberKeepRules, methodsMarked, rule, precondition, ifRule);
+                  });
+        }
         currentClass
-            .directMethods()
+            .virtualMethods()
             .forEach(
                 method -> {
                   DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
                   markMethod(method, memberKeepRules, methodsMarked, rule, precondition, ifRule);
                 });
-      }
-      currentClass
-          .virtualMethods()
-          .forEach(
-              method -> {
-                DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-                markMethod(method, memberKeepRules, methodsMarked, rule, precondition, ifRule);
-              });
-      if (currentClass.superType != null) {
-        DexClass dexClass = application.definitionFor(currentClass.superType);
-        if (dexClass != null) {
-          worklist.add(dexClass);
-        }
-      }
-    }
-    // TODO(b/143643942): Generalize the below approach to also work for subtyping hierarchies in
-    //  fullmode.
-    if (clazz.isProgramClass()
-        && rule.isProguardKeepRule()
-        && !rule.asProguardKeepRule().getModifiers().allowsShrinking) {
-      new SynthesizeMissingInterfaceMethodsForMemberRules(
-              clazz.asProgramClass(), memberKeepRules, rule, preconditionSupplier, ifRule)
-          .run();
-    }
-  }
-
-  /**
-   * Utility class for visiting all super interfaces to ensure we keep method definitions specified
-   * by proguard rules. If possible, we generate a forwarding bridge to the resolved target. If not,
-   * we specifically synthesize a keep rule for the interface method.
-   */
-  private class SynthesizeMissingInterfaceMethodsForMemberRules {
-    private final DexProgramClass originalClazz;
-    private final Collection<ProguardMemberRule> memberKeepRules;
-    private final ProguardConfigurationRule context;
-    private final Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier;
-    private final ProguardIfRule ifRule;
-    private final Set<Wrapper<DexMethod>> seenMethods = Sets.newHashSet();
-    private final Set<DexType> seenTypes = Sets.newIdentityHashSet();
-
-    private SynthesizeMissingInterfaceMethodsForMemberRules(
-        DexProgramClass originalClazz,
-        Collection<ProguardMemberRule> memberKeepRules,
-        ProguardConfigurationRule context,
-        Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
-        ProguardIfRule ifRule) {
-      assert context.isProguardKeepRule();
-      assert !context.asProguardKeepRule().getModifiers().allowsShrinking;
-      this.originalClazz = originalClazz;
-      this.memberKeepRules = memberKeepRules;
-      this.context = context;
-      this.preconditionSupplier = preconditionSupplier;
-      this.ifRule = ifRule;
-    }
-
-    void handleMatchedAnnotation(AnnotationMatchResult annotationMatchResult) {
-      // Intentionally empty.
-    }
-
-    void run() {
-      visitAllSuperInterfaces(originalClazz.type);
-    }
-
-    private void visitAllSuperInterfaces(DexType type) {
-      DexClass clazz = appView.definitionFor(type);
-      if (clazz == null || clazz.isNotProgramClass() || !seenTypes.add(type)) {
-        return;
-      }
-      for (DexType iface : clazz.interfaces.values) {
-        visitAllSuperInterfaces(iface);
-      }
-      if (!clazz.isInterface()) {
-        visitAllSuperInterfaces(clazz.superType);
-        return;
-      }
-      if (originalClazz == clazz) {
-        return;
-      }
-      for (DexEncodedMethod method : clazz.virtualMethods()) {
-        // Check if we already added this.
-        Wrapper<DexMethod> wrapped = MethodSignatureEquivalence.get().wrap(method.method);
-        if (!seenMethods.add(wrapped)) {
-          continue;
-        }
-        for (ProguardMemberRule rule : memberKeepRules) {
-          if (rule.matches(method, appView, this::handleMatchedAnnotation, dexStringCache)) {
-            tryAndKeepMethodOnClass(method, rule);
+        if (currentClass.superType != null) {
+          DexClass dexClass = application.definitionFor(currentClass.superType);
+          if (dexClass != null) {
+            worklist.add(dexClass);
           }
         }
       }
+      // TODO(b/143643942): Generalize the below approach to also work for subtyping hierarchies in
+      //  fullmode.
+      if (clazz.isProgramClass()
+          && rule.isProguardKeepRule()
+          && !rule.asProguardKeepRule().getModifiers().allowsShrinking) {
+        new SynthesizeMissingInterfaceMethodsForMemberRules(
+                clazz.asProgramClass(), memberKeepRules, rule, preconditionSupplier, ifRule)
+            .run();
+      }
     }
 
-    private void tryAndKeepMethodOnClass(DexEncodedMethod method, ProguardMemberRule rule) {
-      SingleResolutionResult resolutionResult =
-          appView.appInfo().resolveMethodOn(originalClazz, method.method).asSingleResolution();
-      if (resolutionResult == null || !resolutionResult.isVirtualTarget()) {
-        return;
-      }
-      if (resolutionResult.getResolvedHolder() == originalClazz
-          || resolutionResult.getResolvedHolder().isNotProgramClass()) {
-        return;
-      }
-      if (!resolutionResult.getResolvedHolder().isInterface()) {
-        // TODO(b/143643942): For fullmode, this check should probably be removed.
-        return;
-      }
-      ProgramMethod resolutionMethod =
-          new ProgramMethod(
-              resolutionResult.getResolvedHolder().asProgramClass(),
-              resolutionResult.getResolvedMethod());
-      ProgramMethod methodToKeep =
-          canInsertForwardingMethod(originalClazz, resolutionMethod.getDefinition())
-              ? new ProgramMethod(
-                  originalClazz,
-                  resolutionMethod.getDefinition().toForwardingMethod(originalClazz, appView))
-              : resolutionMethod;
+    /**
+     * Utility class for visiting all super interfaces to ensure we keep method definitions
+     * specified by proguard rules. If possible, we generate a forwarding bridge to the resolved
+     * target. If not, we specifically synthesize a keep rule for the interface method.
+     */
+    private class SynthesizeMissingInterfaceMethodsForMemberRules {
 
-      delayedRootSetActionItems.add(
-          new InterfaceMethodSyntheticBridgeAction(
-              methodToKeep,
-              resolutionMethod,
-              (rootSetBuilder) -> {
-                if (Log.ENABLED) {
-                  Log.verbose(
-                      getClass(),
-                      "Marking method `%s` due to `%s { %s }`.",
-                      methodToKeep,
-                      context,
-                      rule);
-                }
-                DexDefinition precondition =
-                    testAndGetPrecondition(methodToKeep.getDefinition(), preconditionSupplier);
-                rootSetBuilder.addItemToSets(
-                    methodToKeep.getDefinition(), context, rule, precondition, ifRule);
-              }));
+      private final DexProgramClass originalClazz;
+      private final Collection<ProguardMemberRule> memberKeepRules;
+      private final ProguardConfigurationRule context;
+      private final Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier;
+      private final ProguardIfRule ifRule;
+      private final Set<Wrapper<DexMethod>> seenMethods = Sets.newHashSet();
+      private final Set<DexType> seenTypes = Sets.newIdentityHashSet();
+
+      private SynthesizeMissingInterfaceMethodsForMemberRules(
+          DexProgramClass originalClazz,
+          Collection<ProguardMemberRule> memberKeepRules,
+          ProguardConfigurationRule context,
+          Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
+          ProguardIfRule ifRule) {
+        assert context.isProguardKeepRule();
+        assert !context.asProguardKeepRule().getModifiers().allowsShrinking;
+        this.originalClazz = originalClazz;
+        this.memberKeepRules = memberKeepRules;
+        this.context = context;
+        this.preconditionSupplier = preconditionSupplier;
+        this.ifRule = ifRule;
+      }
+
+      void handleMatchedAnnotation(AnnotationMatchResult annotationMatchResult) {
+        // Intentionally empty.
+      }
+
+      void run() {
+        visitAllSuperInterfaces(originalClazz.type);
+      }
+
+      private void visitAllSuperInterfaces(DexType type) {
+        DexClass clazz = appView.definitionFor(type);
+        if (clazz == null || clazz.isNotProgramClass() || !seenTypes.add(type)) {
+          return;
+        }
+        for (DexType iface : clazz.interfaces.values) {
+          visitAllSuperInterfaces(iface);
+        }
+        if (!clazz.isInterface()) {
+          visitAllSuperInterfaces(clazz.superType);
+          return;
+        }
+        if (originalClazz == clazz) {
+          return;
+        }
+        for (DexEncodedMethod method : clazz.virtualMethods()) {
+          // Check if we already added this.
+          Wrapper<DexMethod> wrapped = MethodSignatureEquivalence.get().wrap(method.method);
+          if (!seenMethods.add(wrapped)) {
+            continue;
+          }
+          for (ProguardMemberRule rule : memberKeepRules) {
+            if (rule.matches(method, appView, this::handleMatchedAnnotation, dexStringCache)) {
+              tryAndKeepMethodOnClass(method, rule);
+            }
+          }
+        }
+      }
+
+      private void tryAndKeepMethodOnClass(DexEncodedMethod method, ProguardMemberRule rule) {
+        SingleResolutionResult resolutionResult =
+            appView.appInfo().resolveMethodOn(originalClazz, method.method).asSingleResolution();
+        if (resolutionResult == null || !resolutionResult.isVirtualTarget()) {
+          return;
+        }
+        if (resolutionResult.getResolvedHolder() == originalClazz
+            || resolutionResult.getResolvedHolder().isNotProgramClass()) {
+          return;
+        }
+        if (!resolutionResult.getResolvedHolder().isInterface()) {
+          // TODO(b/143643942): For fullmode, this check should probably be removed.
+          return;
+        }
+        ProgramMethod resolutionMethod =
+            new ProgramMethod(
+                resolutionResult.getResolvedHolder().asProgramClass(),
+                resolutionResult.getResolvedMethod());
+        ProgramMethod methodToKeep =
+            canInsertForwardingMethod(originalClazz, resolutionMethod.getDefinition())
+                ? new ProgramMethod(
+                    originalClazz,
+                    resolutionMethod.getDefinition().toForwardingMethod(originalClazz, appView))
+                : resolutionMethod;
+
+        delayedRootSetActionItems.add(
+            new InterfaceMethodSyntheticBridgeAction(
+                methodToKeep,
+                resolutionMethod,
+                (rootSetBuilder) -> {
+                  if (Log.ENABLED) {
+                    Log.verbose(
+                        getClass(),
+                        "Marking method `%s` due to `%s { %s }`.",
+                        methodToKeep,
+                        context,
+                        rule);
+                  }
+                  DexDefinition precondition =
+                      testAndGetPrecondition(methodToKeep.getDefinition(), preconditionSupplier);
+                  rootSetBuilder.addItemToSets(
+                      methodToKeep.getDefinition(), context, rule, precondition, ifRule);
+                }));
+      }
     }
-  }
 
-  private boolean canInsertForwardingMethod(DexClass holder, DexEncodedMethod target) {
-    return appView.options().isGeneratingDex()
-        || ArrayUtils.contains(holder.interfaces.values, target.getHolderType());
-  }
-
-  private void markMatchingOverriddenMethods(
-      AppInfoWithClassHierarchy appInfoWithSubtyping,
-      DexClass clazz,
-      Collection<ProguardMemberRule> memberKeepRules,
-      ProguardConfigurationRule rule,
-      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
-      boolean onlyIncludeProgramClasses,
-      ProguardIfRule ifRule) {
-    Set<DexType> visited = new HashSet<>();
-    Deque<DexType> worklist = new ArrayDeque<>();
-    // Intentionally skip the current `clazz`, assuming it's covered by markMatchingVisibleMethods.
-    worklist.addAll(subtypingInfo.allImmediateSubtypes(clazz.type));
-
-    while (!worklist.isEmpty()) {
-      DexType currentType = worklist.poll();
-      if (!visited.add(currentType)) {
-        continue;
-      }
-      DexClass currentClazz = appView.definitionFor(currentType);
-      if (currentClazz == null) {
-        continue;
-      }
-      if (!onlyIncludeProgramClasses && currentClazz.isNotProgramClass()) {
-        continue;
-      }
-      currentClazz
-          .virtualMethods()
-          .forEach(
-              method -> {
-                DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-                markMethod(method, memberKeepRules, null, rule, precondition, ifRule);
-              });
-      worklist.addAll(subtypingInfo.allImmediateSubtypes(currentClazz.type));
+    private boolean canInsertForwardingMethod(DexClass holder, DexEncodedMethod target) {
+      return appView.options().isGeneratingDex()
+          || ArrayUtils.contains(holder.interfaces.values, target.getHolderType());
     }
-  }
 
-  private void markMatchingMethods(
-      DexClass clazz,
-      Collection<ProguardMemberRule> memberKeepRules,
-      ProguardConfigurationRule rule,
-      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
-      ProguardIfRule ifRule) {
-    clazz.forEachMethod(
-        method -> {
-          DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-          markMethod(method, memberKeepRules, null, rule, precondition, ifRule);
-        });
-  }
+    private void markMatchingOverriddenMethods(
+        AppInfoWithClassHierarchy appInfoWithSubtyping,
+        DexClass clazz,
+        Collection<ProguardMemberRule> memberKeepRules,
+        ProguardConfigurationRule rule,
+        Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
+        boolean onlyIncludeProgramClasses,
+        ProguardIfRule ifRule) {
+      Set<DexType> visited = new HashSet<>();
+      Deque<DexType> worklist = new ArrayDeque<>();
+      // Intentionally skip the current `clazz`, assuming it's covered by
+      // markMatchingVisibleMethods.
+      worklist.addAll(subtypingInfo.allImmediateSubtypes(clazz.type));
 
-  private void markMatchingVisibleFields(
-      DexClass clazz,
-      Collection<ProguardMemberRule> memberKeepRules,
-      ProguardConfigurationRule rule,
-      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
-      boolean includeLibraryClasses,
-      ProguardIfRule ifRule) {
-    while (clazz != null) {
-      if (!includeLibraryClasses && clazz.isNotProgramClass()) {
-        return;
+      while (!worklist.isEmpty()) {
+        DexType currentType = worklist.poll();
+        if (!visited.add(currentType)) {
+          continue;
+        }
+        DexClass currentClazz = appView.definitionFor(currentType);
+        if (currentClazz == null) {
+          continue;
+        }
+        if (!onlyIncludeProgramClasses && currentClazz.isNotProgramClass()) {
+          continue;
+        }
+        currentClazz
+            .virtualMethods()
+            .forEach(
+                method -> {
+                  DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
+                  markMethod(method, memberKeepRules, null, rule, precondition, ifRule);
+                });
+        worklist.addAll(subtypingInfo.allImmediateSubtypes(currentClazz.type));
       }
+    }
+
+    private void markMatchingMethods(
+        DexClass clazz,
+        Collection<ProguardMemberRule> memberKeepRules,
+        ProguardConfigurationRule rule,
+        Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
+        ProguardIfRule ifRule) {
+      clazz.forEachMethod(
+          method -> {
+            DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
+            markMethod(method, memberKeepRules, null, rule, precondition, ifRule);
+          });
+    }
+
+    private void markMatchingVisibleFields(
+        DexClass clazz,
+        Collection<ProguardMemberRule> memberKeepRules,
+        ProguardConfigurationRule rule,
+        Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
+        boolean includeLibraryClasses,
+        ProguardIfRule ifRule) {
+      while (clazz != null) {
+        if (!includeLibraryClasses && clazz.isNotProgramClass()) {
+          return;
+        }
+        clazz.forEachField(
+            field -> {
+              DexDefinition precondition = testAndGetPrecondition(field, preconditionSupplier);
+              markField(field, memberKeepRules, rule, precondition, ifRule);
+            });
+        clazz = clazz.superType == null ? null : application.definitionFor(clazz.superType);
+      }
+    }
+
+    private void markMatchingFields(
+        DexClass clazz,
+        Collection<ProguardMemberRule> memberKeepRules,
+        ProguardConfigurationRule rule,
+        Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
+        ProguardIfRule ifRule) {
       clazz.forEachField(
           field -> {
             DexDefinition precondition = testAndGetPrecondition(field, preconditionSupplier);
             markField(field, memberKeepRules, rule, precondition, ifRule);
           });
-      clazz = clazz.superType == null ? null : application.definitionFor(clazz.superType);
     }
-  }
 
-  private void markMatchingFields(
-      DexClass clazz,
-      Collection<ProguardMemberRule> memberKeepRules,
-      ProguardConfigurationRule rule,
-      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
-      ProguardIfRule ifRule) {
-    clazz.forEachField(
-        field -> {
-          DexDefinition precondition = testAndGetPrecondition(field, preconditionSupplier);
-          markField(field, memberKeepRules, rule, precondition, ifRule);
-        });
-  }
-
-  // TODO(b/67934426): Test this code.
-  public static void writeSeeds(
-      AppInfoWithLiveness appInfo, PrintStream out, Predicate<DexType> include) {
-    appInfo
-        .getKeepInfo()
-        .forEachPinnedType(
-            type -> {
-              if (include.test(type)) {
-                out.println(type.toSourceString());
-              }
-            });
-    appInfo
-        .getKeepInfo()
-        .forEachPinnedField(
-            field -> {
-              if (include.test(field.holder)) {
-                out.println(
-                    field.holder.toSourceString()
-                        + ": "
-                        + field.type.toSourceString()
-                        + " "
-                        + field.name.toSourceString());
-              }
-            });
-    appInfo
-        .getKeepInfo()
-        .forEachPinnedMethod(
-            method -> {
-              if (!include.test(method.holder)) {
-                return;
-              }
-              DexProgramClass holder = asProgramClassOrNull(appInfo.definitionForHolder(method));
-              DexEncodedMethod definition = method.lookupOnClass(holder);
-              if (definition == null) {
-                assert method.match(appInfo.dexItemFactory().deserializeLambdaMethod);
-                return;
-              }
-              out.print(method.holder.toSourceString() + ": ");
-              if (definition.isClassInitializer()) {
-                out.print(Constants.CLASS_INITIALIZER_NAME);
-              } else if (definition.isInstanceInitializer()) {
-                String holderName = method.holder.toSourceString();
-                String constrName = holderName.substring(holderName.lastIndexOf('.') + 1);
-                out.print(constrName);
-              } else {
-                out.print(
-                    method.proto.returnType.toSourceString() + " " + method.name.toSourceString());
-              }
-              boolean first = true;
-              out.print("(");
-              for (DexType param : method.proto.parameters.values) {
-                if (!first) {
-                  out.print(",");
+    // TODO(b/67934426): Test this code.
+    public static void writeSeeds(
+        AppInfoWithLiveness appInfo, PrintStream out, Predicate<DexType> include) {
+      appInfo
+          .getKeepInfo()
+          .forEachPinnedType(
+              type -> {
+                if (include.test(type)) {
+                  out.println(type.toSourceString());
                 }
-                first = false;
-                out.print(param.toSourceString());
-              }
-              out.println(")");
-            });
-    out.close();
-  }
-
-  static boolean satisfyClassType(ProguardConfigurationRule rule, DexClass clazz) {
-    return rule.getClassType().matches(clazz) != rule.getClassTypeNegated();
-  }
-
-  static boolean satisfyAccessFlag(ProguardConfigurationRule rule, DexClass clazz) {
-    return rule.getClassAccessFlags().containsAll(clazz.accessFlags)
-        && rule.getNegatedClassAccessFlags().containsNone(clazz.accessFlags);
-  }
-
-  static AnnotationMatchResult satisfyAnnotation(ProguardConfigurationRule rule, DexClass clazz) {
-    return containsAllAnnotations(rule.getClassAnnotations(), clazz);
-  }
-
-  boolean satisfyInheritanceRule(DexClass clazz, ProguardConfigurationRule rule) {
-    if (satisfyExtendsRule(clazz, rule)) {
-      return true;
+              });
+      appInfo
+          .getKeepInfo()
+          .forEachPinnedField(
+              field -> {
+                if (include.test(field.holder)) {
+                  out.println(
+                      field.holder.toSourceString()
+                          + ": "
+                          + field.type.toSourceString()
+                          + " "
+                          + field.name.toSourceString());
+                }
+              });
+      appInfo
+          .getKeepInfo()
+          .forEachPinnedMethod(
+              method -> {
+                if (!include.test(method.holder)) {
+                  return;
+                }
+                DexProgramClass holder = asProgramClassOrNull(appInfo.definitionForHolder(method));
+                DexEncodedMethod definition = method.lookupOnClass(holder);
+                if (definition == null) {
+                  assert method.match(appInfo.dexItemFactory().deserializeLambdaMethod);
+                  return;
+                }
+                out.print(method.holder.toSourceString() + ": ");
+                if (definition.isClassInitializer()) {
+                  out.print(Constants.CLASS_INITIALIZER_NAME);
+                } else if (definition.isInstanceInitializer()) {
+                  String holderName = method.holder.toSourceString();
+                  String constrName = holderName.substring(holderName.lastIndexOf('.') + 1);
+                  out.print(constrName);
+                } else {
+                  out.print(
+                      method.proto.returnType.toSourceString()
+                          + " "
+                          + method.name.toSourceString());
+                }
+                boolean first = true;
+                out.print("(");
+                for (DexType param : method.proto.parameters.values) {
+                  if (!first) {
+                    out.print(",");
+                  }
+                  first = false;
+                  out.print(param.toSourceString());
+                }
+                out.println(")");
+              });
+      out.close();
     }
 
-    return satisfyImplementsRule(clazz, rule);
-  }
-
-  boolean satisfyExtendsRule(DexClass clazz, ProguardConfigurationRule rule) {
-    if (anySuperTypeMatchesExtendsRule(clazz.superType, rule)) {
-      return true;
+    static boolean satisfyClassType(ProguardConfigurationRule rule, DexClass clazz) {
+      return rule.getClassType().matches(clazz) != rule.getClassTypeNegated();
     }
-    // It is possible that this class used to inherit from another class X, but no longer does it,
-    // because X has been merged into `clazz`.
-    return anySourceMatchesInheritanceRuleDirectly(clazz, rule, false);
-  }
 
-  boolean anySuperTypeMatchesExtendsRule(DexType type, ProguardConfigurationRule rule) {
-    while (type != null) {
-      DexClass clazz = application.definitionFor(type);
-      if (clazz == null) {
-        // TODO(herhut): Warn about broken supertype chain?
-        return false;
-      }
-      // TODO(b/110141157): Should the vertical class merger move annotations from the source to
-      // the target class? If so, it is sufficient only to apply the annotation-matcher to the
-      // annotations of `class`.
-      if (rule.getInheritanceClassName().matches(clazz.type, appView)) {
-        AnnotationMatchResult annotationMatchResult =
-            containsAllAnnotations(rule.getInheritanceAnnotations(), clazz);
-        if (annotationMatchResult != null) {
-          handleMatchedAnnotation(annotationMatchResult);
-          return true;
-        }
-      }
-      type = clazz.superType;
+    static boolean satisfyAccessFlag(ProguardConfigurationRule rule, DexClass clazz) {
+      return rule.getClassAccessFlags().containsAll(clazz.accessFlags)
+          && rule.getNegatedClassAccessFlags().containsNone(clazz.accessFlags);
     }
-    return false;
-  }
 
-  boolean satisfyImplementsRule(DexClass clazz, ProguardConfigurationRule rule) {
-    if (anyImplementedInterfaceMatchesImplementsRule(clazz, rule)) {
-      return true;
+    static AnnotationMatchResult satisfyAnnotation(ProguardConfigurationRule rule, DexClass clazz) {
+      return containsAllAnnotations(rule.getClassAnnotations(), clazz);
     }
-    // It is possible that this class used to implement an interface I, but no longer does it,
-    // because I has been merged into `clazz`.
-    return anySourceMatchesInheritanceRuleDirectly(clazz, rule, true);
-  }
 
-  private boolean anyImplementedInterfaceMatchesImplementsRule(
-      DexClass clazz, ProguardConfigurationRule rule) {
-    // TODO(herhut): Maybe it would be better to do this breadth first.
-    if (clazz == null) {
-      return false;
-    }
-    for (DexType iface : clazz.interfaces.values) {
-      DexClass ifaceClass = application.definitionFor(iface);
-      if (ifaceClass == null) {
-        // TODO(herhut): Warn about broken supertype chain?
-        return false;
-      }
-      // TODO(b/110141157): Should the vertical class merger move annotations from the source to
-      // the target class? If so, it is sufficient only to apply the annotation-matcher to the
-      // annotations of `ifaceClass`.
-      if (rule.getInheritanceClassName().matches(iface, appView)) {
-        AnnotationMatchResult annotationMatchResult =
-            containsAllAnnotations(rule.getInheritanceAnnotations(), ifaceClass);
-        if (annotationMatchResult != null) {
-          handleMatchedAnnotation(annotationMatchResult);
-          return true;
-        }
-      }
-      if (anyImplementedInterfaceMatchesImplementsRule(ifaceClass, rule)) {
+    boolean satisfyInheritanceRule(DexClass clazz, ProguardConfigurationRule rule) {
+      if (satisfyExtendsRule(clazz, rule)) {
         return true;
       }
+
+      return satisfyImplementsRule(clazz, rule);
     }
-    if (clazz.superType == null) {
+
+    boolean satisfyExtendsRule(DexClass clazz, ProguardConfigurationRule rule) {
+      if (anySuperTypeMatchesExtendsRule(clazz.superType, rule)) {
+        return true;
+      }
+      // It is possible that this class used to inherit from another class X, but no longer does it,
+      // because X has been merged into `clazz`.
+      return anySourceMatchesInheritanceRuleDirectly(clazz, rule, false);
+    }
+
+    boolean anySuperTypeMatchesExtendsRule(DexType type, ProguardConfigurationRule rule) {
+      while (type != null) {
+        DexClass clazz = application.definitionFor(type);
+        if (clazz == null) {
+          // TODO(herhut): Warn about broken supertype chain?
+          return false;
+        }
+        // TODO(b/110141157): Should the vertical class merger move annotations from the source to
+        // the target class? If so, it is sufficient only to apply the annotation-matcher to the
+        // annotations of `class`.
+        if (rule.getInheritanceClassName().matches(clazz.type, appView)) {
+          AnnotationMatchResult annotationMatchResult =
+              containsAllAnnotations(rule.getInheritanceAnnotations(), clazz);
+          if (annotationMatchResult != null) {
+            handleMatchedAnnotation(annotationMatchResult);
+            return true;
+          }
+        }
+        type = clazz.superType;
+      }
       return false;
     }
-    DexClass superClass = application.definitionFor(clazz.superType);
-    if (superClass == null) {
-      // TODO(herhut): Warn about broken supertype chain?
-      return false;
+
+    boolean satisfyImplementsRule(DexClass clazz, ProguardConfigurationRule rule) {
+      if (anyImplementedInterfaceMatchesImplementsRule(clazz, rule)) {
+        return true;
+      }
+      // It is possible that this class used to implement an interface I, but no longer does it,
+      // because I has been merged into `clazz`.
+      return anySourceMatchesInheritanceRuleDirectly(clazz, rule, true);
     }
-    return anyImplementedInterfaceMatchesImplementsRule(superClass, rule);
-  }
 
-  private boolean anySourceMatchesInheritanceRuleDirectly(
-      DexClass clazz, ProguardConfigurationRule rule, boolean isInterface) {
-    // TODO(b/110141157): Figure out what to do with annotations. Should the annotations of
-    // the DexClass corresponding to `sourceType` satisfy the `annotation`-matcher?
-    return appView.verticallyMergedClasses() != null
-        && appView.verticallyMergedClasses().getSourcesFor(clazz.type).stream()
-            .filter(
-                sourceType ->
-                    appView.definitionFor(sourceType).accessFlags.isInterface() == isInterface)
-            .anyMatch(rule.getInheritanceClassName()::matches);
-  }
-
-  private boolean allRulesSatisfied(Collection<ProguardMemberRule> memberKeepRules,
-      DexClass clazz) {
-    for (ProguardMemberRule rule : memberKeepRules) {
-      if (!ruleSatisfied(rule, clazz)) {
+    private boolean anyImplementedInterfaceMatchesImplementsRule(
+        DexClass clazz, ProguardConfigurationRule rule) {
+      // TODO(herhut): Maybe it would be better to do this breadth first.
+      if (clazz == null) {
         return false;
       }
-    }
-    return true;
-  }
-
-  /**
-   * Checks whether the given rule is satisfied by this clazz, not taking superclasses into
-   * account.
-   */
-  private boolean ruleSatisfied(ProguardMemberRule rule, DexClass clazz) {
-    return ruleSatisfiedByMethods(rule, clazz.directMethods())
-        || ruleSatisfiedByMethods(rule, clazz.virtualMethods())
-        || ruleSatisfiedByFields(rule, clazz.staticFields())
-        || ruleSatisfiedByFields(rule, clazz.instanceFields());
-  }
-
-  boolean ruleSatisfiedByMethods(ProguardMemberRule rule, Iterable<DexEncodedMethod> methods) {
-    if (rule.getRuleType().includesMethods()) {
-      for (DexEncodedMethod method : methods) {
-        if (rule.matches(method, appView, this::handleMatchedAnnotation, dexStringCache)) {
+      for (DexType iface : clazz.interfaces.values) {
+        DexClass ifaceClass = application.definitionFor(iface);
+        if (ifaceClass == null) {
+          // TODO(herhut): Warn about broken supertype chain?
+          return false;
+        }
+        // TODO(b/110141157): Should the vertical class merger move annotations from the source to
+        // the target class? If so, it is sufficient only to apply the annotation-matcher to the
+        // annotations of `ifaceClass`.
+        if (rule.getInheritanceClassName().matches(iface, appView)) {
+          AnnotationMatchResult annotationMatchResult =
+              containsAllAnnotations(rule.getInheritanceAnnotations(), ifaceClass);
+          if (annotationMatchResult != null) {
+            handleMatchedAnnotation(annotationMatchResult);
+            return true;
+          }
+        }
+        if (anyImplementedInterfaceMatchesImplementsRule(ifaceClass, rule)) {
           return true;
         }
       }
+      if (clazz.superType == null) {
+        return false;
+      }
+      DexClass superClass = application.definitionFor(clazz.superType);
+      if (superClass == null) {
+        // TODO(herhut): Warn about broken supertype chain?
+        return false;
+      }
+      return anyImplementedInterfaceMatchesImplementsRule(superClass, rule);
     }
-    return false;
-  }
 
-  boolean ruleSatisfiedByFields(ProguardMemberRule rule, Iterable<DexEncodedField> fields) {
-    if (rule.getRuleType().includesFields()) {
-      for (DexEncodedField field : fields) {
-        if (rule.matches(field, appView, this::handleMatchedAnnotation, dexStringCache)) {
-          return true;
+    private boolean anySourceMatchesInheritanceRuleDirectly(
+        DexClass clazz, ProguardConfigurationRule rule, boolean isInterface) {
+      // TODO(b/110141157): Figure out what to do with annotations. Should the annotations of
+      // the DexClass corresponding to `sourceType` satisfy the `annotation`-matcher?
+      return appView.verticallyMergedClasses() != null
+          && appView.verticallyMergedClasses().getSourcesFor(clazz.type).stream()
+              .filter(
+                  sourceType ->
+                      appView.definitionFor(sourceType).accessFlags.isInterface() == isInterface)
+              .anyMatch(rule.getInheritanceClassName()::matches);
+    }
+
+    private boolean allRulesSatisfied(
+        Collection<ProguardMemberRule> memberKeepRules, DexClass clazz) {
+      for (ProguardMemberRule rule : memberKeepRules) {
+        if (!ruleSatisfied(rule, clazz)) {
+          return false;
         }
       }
-    }
-    return false;
-  }
-
-  static AnnotationMatchResult containsAllAnnotations(
-      List<ProguardTypeMatcher> annotationMatchers, DexClass clazz) {
-    return containsAllAnnotations(annotationMatchers, clazz.annotations());
-  }
-
-  static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
-      boolean containsAllAnnotations(
-          List<ProguardTypeMatcher> annotationMatchers,
-          DexEncodedMember<D, R> member,
-          Consumer<AnnotationMatchResult> matchedAnnotationsConsumer) {
-    AnnotationMatchResult annotationMatchResult =
-        containsAllAnnotations(annotationMatchers, member.annotations());
-    if (annotationMatchResult != null) {
-      matchedAnnotationsConsumer.accept(annotationMatchResult);
       return true;
     }
-    if (member.isDexEncodedMethod()) {
-      DexEncodedMethod method = member.asDexEncodedMethod();
-      for (int i = 0; i < method.parameterAnnotationsList.size(); i++) {
-        annotationMatchResult =
-            containsAllAnnotations(annotationMatchers, method.parameterAnnotationsList.get(i));
-        if (annotationMatchResult != null) {
-          matchedAnnotationsConsumer.accept(annotationMatchResult);
-          return true;
+
+    /**
+     * Checks whether the given rule is satisfied by this clazz, not taking superclasses into
+     * account.
+     */
+    private boolean ruleSatisfied(ProguardMemberRule rule, DexClass clazz) {
+      return ruleSatisfiedByMethods(rule, clazz.directMethods())
+          || ruleSatisfiedByMethods(rule, clazz.virtualMethods())
+          || ruleSatisfiedByFields(rule, clazz.staticFields())
+          || ruleSatisfiedByFields(rule, clazz.instanceFields());
+    }
+
+    boolean ruleSatisfiedByMethods(ProguardMemberRule rule, Iterable<DexEncodedMethod> methods) {
+      if (rule.getRuleType().includesMethods()) {
+        for (DexEncodedMethod method : methods) {
+          if (rule.matches(method, appView, this::handleMatchedAnnotation, dexStringCache)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    boolean ruleSatisfiedByFields(ProguardMemberRule rule, Iterable<DexEncodedField> fields) {
+      if (rule.getRuleType().includesFields()) {
+        for (DexEncodedField field : fields) {
+          if (rule.matches(field, appView, this::handleMatchedAnnotation, dexStringCache)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    static AnnotationMatchResult containsAllAnnotations(
+        List<ProguardTypeMatcher> annotationMatchers, DexClass clazz) {
+      return containsAllAnnotations(annotationMatchers, clazz.annotations());
+    }
+
+    static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
+        boolean containsAllAnnotations(
+            List<ProguardTypeMatcher> annotationMatchers,
+            DexEncodedMember<D, R> member,
+            Consumer<AnnotationMatchResult> matchedAnnotationsConsumer) {
+      AnnotationMatchResult annotationMatchResult =
+          containsAllAnnotations(annotationMatchers, member.annotations());
+      if (annotationMatchResult != null) {
+        matchedAnnotationsConsumer.accept(annotationMatchResult);
+        return true;
+      }
+      if (member.isDexEncodedMethod()) {
+        DexEncodedMethod method = member.asDexEncodedMethod();
+        for (int i = 0; i < method.parameterAnnotationsList.size(); i++) {
+          annotationMatchResult =
+              containsAllAnnotations(annotationMatchers, method.parameterAnnotationsList.get(i));
+          if (annotationMatchResult != null) {
+            matchedAnnotationsConsumer.accept(annotationMatchResult);
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    private static AnnotationMatchResult containsAllAnnotations(
+        List<ProguardTypeMatcher> annotationMatchers, DexAnnotationSet annotations) {
+      if (annotationMatchers.isEmpty()) {
+        return AnnotationsIgnoredMatchResult.getInstance();
+      }
+      List<DexAnnotation> matchedAnnotations = new ArrayList<>();
+      for (ProguardTypeMatcher annotationMatcher : annotationMatchers) {
+        DexAnnotation matchedAnnotation =
+            getFirstAnnotationThatMatches(annotationMatcher, annotations);
+        if (matchedAnnotation == null) {
+          return null;
+        }
+        matchedAnnotations.add(matchedAnnotation);
+      }
+      return new ConcreteAnnotationMatchResult(matchedAnnotations);
+    }
+
+    private static DexAnnotation getFirstAnnotationThatMatches(
+        ProguardTypeMatcher annotationMatcher, DexAnnotationSet annotations) {
+      for (DexAnnotation annotation : annotations.annotations) {
+        if (annotationMatcher.matches(annotation.getAnnotationType())) {
+          return annotation;
+        }
+      }
+      return null;
+    }
+
+    private void markMethod(
+        DexEncodedMethod method,
+        Collection<ProguardMemberRule> rules,
+        Set<Wrapper<DexMethod>> methodsMarked,
+        ProguardConfigurationRule context,
+        DexDefinition precondition,
+        ProguardIfRule ifRule) {
+      if (methodsMarked != null
+          && methodsMarked.contains(MethodSignatureEquivalence.get().wrap(method.method))) {
+        // Ignore, method is overridden in sub class.
+        return;
+      }
+      for (ProguardMemberRule rule : rules) {
+        if (rule.matches(method, appView, this::handleMatchedAnnotation, dexStringCache)) {
+          if (Log.ENABLED) {
+            Log.verbose(
+                getClass(), "Marking method `%s` due to `%s { %s }`.", method, context, rule);
+          }
+          if (methodsMarked != null) {
+            methodsMarked.add(MethodSignatureEquivalence.get().wrap(method.method));
+          }
+          addItemToSets(method, context, rule, precondition, ifRule);
         }
       }
     }
-    return false;
-  }
 
-  private static AnnotationMatchResult containsAllAnnotations(
-      List<ProguardTypeMatcher> annotationMatchers, DexAnnotationSet annotations) {
-    if (annotationMatchers.isEmpty()) {
-      return AnnotationsIgnoredMatchResult.getInstance();
-    }
-    List<DexAnnotation> matchedAnnotations = new ArrayList<>();
-    for (ProguardTypeMatcher annotationMatcher : annotationMatchers) {
-      DexAnnotation matchedAnnotation =
-          getFirstAnnotationThatMatches(annotationMatcher, annotations);
-      if (matchedAnnotation == null) {
-        return null;
-      }
-      matchedAnnotations.add(matchedAnnotation);
-    }
-    return new ConcreteAnnotationMatchResult(matchedAnnotations);
-  }
-
-  private static DexAnnotation getFirstAnnotationThatMatches(
-      ProguardTypeMatcher annotationMatcher, DexAnnotationSet annotations) {
-    for (DexAnnotation annotation : annotations.annotations) {
-      if (annotationMatcher.matches(annotation.getAnnotationType())) {
-        return annotation;
+    private void markField(
+        DexEncodedField field,
+        Collection<ProguardMemberRule> rules,
+        ProguardConfigurationRule context,
+        DexDefinition precondition,
+        ProguardIfRule ifRule) {
+      for (ProguardMemberRule rule : rules) {
+        if (rule.matches(field, appView, this::handleMatchedAnnotation, dexStringCache)) {
+          if (Log.ENABLED) {
+            Log.verbose(getClass(), "Marking field `%s` due to `%s { %s }`.", field, context, rule);
+          }
+          addItemToSets(field, context, rule, precondition, ifRule);
+        }
       }
     }
-    return null;
-  }
 
-  private void markMethod(
-      DexEncodedMethod method,
-      Collection<ProguardMemberRule> rules,
-      Set<Wrapper<DexMethod>> methodsMarked,
-      ProguardConfigurationRule context,
-      DexDefinition precondition,
-      ProguardIfRule ifRule) {
-    if (methodsMarked != null
-        && methodsMarked.contains(MethodSignatureEquivalence.get().wrap(method.method))) {
-      // Ignore, method is overridden in sub class.
-      return;
+    private void markClass(DexClass clazz, ProguardConfigurationRule rule, ProguardIfRule ifRule) {
+      if (Log.ENABLED) {
+        Log.verbose(getClass(), "Marking class `%s` due to `%s`.", clazz.type, rule);
+      }
+      addItemToSets(clazz, rule, null, null, ifRule);
     }
-    for (ProguardMemberRule rule : rules) {
-      if (rule.matches(method, appView, this::handleMatchedAnnotation, dexStringCache)) {
-        if (Log.ENABLED) {
-          Log.verbose(getClass(), "Marking method `%s` due to `%s { %s }`.", method, context,
-              rule);
-        }
-        if (methodsMarked != null) {
-          methodsMarked.add(MethodSignatureEquivalence.get().wrap(method.method));
-        }
-        addItemToSets(method, context, rule, precondition, ifRule);
+
+    private void includeDescriptor(DexDefinition item, DexType type, ProguardKeepRuleBase context) {
+      if (type.isVoidType()) {
+        return;
+      }
+      if (type.isArrayType()) {
+        type = type.toBaseType(appView.dexItemFactory());
+      }
+      if (type.isPrimitiveType()) {
+        return;
+      }
+      DexClass definition = appView.definitionFor(type);
+      if (definition == null || definition.isNotProgramClass()) {
+        return;
+      }
+      // Keep the type if the item is also kept.
+      dependentNoShrinking
+          .computeIfAbsent(item.getReference(), x -> new MutableItemsWithRules())
+          .addClassWithRule(type, context);
+      // Unconditionally add to no-obfuscation, as that is only checked for surviving items.
+      if (appView.options().isMinificationEnabled()) {
+        noObfuscation.add(type);
       }
     }
-  }
 
-  private void markField(
-      DexEncodedField field,
-      Collection<ProguardMemberRule> rules,
-      ProguardConfigurationRule context,
-      DexDefinition precondition,
-      ProguardIfRule ifRule) {
-    for (ProguardMemberRule rule : rules) {
-      if (rule.matches(field, appView, this::handleMatchedAnnotation, dexStringCache)) {
-        if (Log.ENABLED) {
-          Log.verbose(getClass(), "Marking field `%s` due to `%s { %s }`.", field, context,
-              rule);
+    private void includeDescriptorClasses(DexDefinition item, ProguardKeepRuleBase context) {
+      if (item.isDexEncodedMethod()) {
+        DexMethod method = item.asDexEncodedMethod().method;
+        includeDescriptor(item, method.proto.returnType, context);
+        for (DexType value : method.proto.parameters.values) {
+          includeDescriptor(item, value, context);
         }
-        addItemToSets(field, context, rule, precondition, ifRule);
+      } else if (item.isDexEncodedField()) {
+        DexField field = item.asDexEncodedField().field;
+        includeDescriptor(item, field.type, context);
+      } else {
+        assert item.isDexClass();
       }
     }
-  }
 
-  private void markClass(DexClass clazz, ProguardConfigurationRule rule, ProguardIfRule ifRule) {
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Marking class `%s` due to `%s`.", clazz.type, rule);
-    }
-    addItemToSets(clazz, rule, null, null, ifRule);
-  }
-
-  private void includeDescriptor(DexDefinition item, DexType type, ProguardKeepRuleBase context) {
-    if (type.isVoidType()) {
-      return;
-    }
-    if (type.isArrayType()) {
-      type = type.toBaseType(appView.dexItemFactory());
-    }
-    if (type.isPrimitiveType()) {
-      return;
-    }
-    DexClass definition = appView.definitionFor(type);
-    if (definition == null || definition.isNotProgramClass()) {
-      return;
-    }
-    // Keep the type if the item is also kept.
-    dependentNoShrinking
-        .computeIfAbsent(item.getReference(), x -> new MutableItemsWithRules())
-        .addClassWithRule(type, context);
-    // Unconditionally add to no-obfuscation, as that is only checked for surviving items.
-    if (appView.options().isMinificationEnabled()) {
-      noObfuscation.add(type);
-    }
-  }
-
-  private void includeDescriptorClasses(DexDefinition item, ProguardKeepRuleBase context) {
-    if (item.isDexEncodedMethod()) {
-      DexMethod method = item.asDexEncodedMethod().method;
-      includeDescriptor(item, method.proto.returnType, context);
-      for (DexType value : method.proto.parameters.values) {
-        includeDescriptor(item, value, context);
-      }
-    } else if (item.isDexEncodedField()) {
-      DexField field = item.asDexEncodedField().field;
-      includeDescriptor(item, field.type, context);
-    } else {
-      assert item.isDexClass();
-    }
-  }
-
-  private synchronized void addItemToSets(
-      DexDefinition item,
-      ProguardConfigurationRule context,
-      ProguardMemberRule rule,
-      DexDefinition precondition,
-      ProguardIfRule ifRule) {
-    if (context instanceof ProguardKeepRule) {
-      if (item.isDexEncodedField()) {
-        DexEncodedField encodedField = item.asDexEncodedField();
-        if (encodedField.getOptimizationInfo().cannotBeKept()) {
-          // We should only ever get here with if rules.
-          assert ifRule != null;
-          return;
-        }
-      } else if (item.isDexEncodedMethod()) {
-        DexEncodedMethod encodedMethod = item.asDexEncodedMethod();
-        if (encodedMethod.isClassInitializer() && !options.debug) {
-          // Don't keep class initializers.
-          return;
-        }
-        if (encodedMethod.getOptimizationInfo().cannotBeKept()) {
-          // We should only ever get here with if rules.
-          assert ifRule != null;
-          return;
-        }
-        if (options.isGeneratingDex()
-            && encodedMethod.method.isLambdaDeserializeMethod(appView.dexItemFactory())) {
-          // Don't keep lambda deserialization methods.
-          return;
-        }
-        // If desugaring is enabled, private and static interface methods will be moved to a
-        // companion class. So we don't need to add them to the root set in the beginning.
-        if (options.isInterfaceMethodDesugaringEnabled()
-            && encodedMethod.hasCode()
-            && (encodedMethod.isPrivateMethod() || encodedMethod.isStaticMember())) {
-          DexClass holder = appView.definitionFor(encodedMethod.getHolderType());
-          if (holder != null && holder.isInterface()) {
-            if (rule.isSpecific()) {
-              options.reporter.warning(
-                  new StringDiagnostic(
-                      "The rule `" + rule + "` is ignored because the targeting interface method `"
-                          + encodedMethod.method.toSourceString() + "` will be desugared."));
-            }
+    private synchronized void addItemToSets(
+        DexDefinition item,
+        ProguardConfigurationRule context,
+        ProguardMemberRule rule,
+        DexDefinition precondition,
+        ProguardIfRule ifRule) {
+      if (context instanceof ProguardKeepRule) {
+        if (item.isDexEncodedField()) {
+          DexEncodedField encodedField = item.asDexEncodedField();
+          if (encodedField.getOptimizationInfo().cannotBeKept()) {
+            // We should only ever get here with if rules.
+            assert ifRule != null;
             return;
           }
+        } else if (item.isDexEncodedMethod()) {
+          DexEncodedMethod encodedMethod = item.asDexEncodedMethod();
+          if (encodedMethod.isClassInitializer() && !options.debug) {
+            // Don't keep class initializers.
+            return;
+          }
+          if (encodedMethod.getOptimizationInfo().cannotBeKept()) {
+            // We should only ever get here with if rules.
+            assert ifRule != null;
+            return;
+          }
+          if (options.isGeneratingDex()
+              && encodedMethod.method.isLambdaDeserializeMethod(appView.dexItemFactory())) {
+            // Don't keep lambda deserialization methods.
+            return;
+          }
+          // If desugaring is enabled, private and static interface methods will be moved to a
+          // companion class. So we don't need to add them to the root set in the beginning.
+          if (options.isInterfaceMethodDesugaringEnabled()
+              && encodedMethod.hasCode()
+              && (encodedMethod.isPrivateMethod() || encodedMethod.isStaticMember())) {
+            DexClass holder = appView.definitionFor(encodedMethod.getHolderType());
+            if (holder != null && holder.isInterface()) {
+              if (rule.isSpecific()) {
+                options.reporter.warning(
+                    new StringDiagnostic(
+                        "The rule `"
+                            + rule
+                            + "` is ignored because the targeting interface method `"
+                            + encodedMethod.method.toSourceString()
+                            + "` will be desugared."));
+              }
+              return;
+            }
+          }
         }
-      }
 
-      // The reason for keeping should link to the conditional rule as a whole, if present.
-      ProguardKeepRuleBase keepRule = ifRule != null ? ifRule : (ProguardKeepRuleBase) context;
-      // The modifiers are specified on the actual keep rule (ie, the consequent/context).
-      ProguardKeepRuleModifiers modifiers = ((ProguardKeepRule) context).getModifiers();
-      // In compatibility mode, for a match on instance members a referenced class becomes live.
-      if (options.forceProguardCompatibility
-          && !modifiers.allowsShrinking
-          && precondition != null
-          && precondition.isDexClass()) {
-        if (!item.isDexClass() && !item.isStaticMember()) {
-          dependentKeepClassCompatRule
-              .computeIfAbsent(precondition.asDexClass().getType(), i -> new HashSet<>())
-              .add(keepRule);
+        // The reason for keeping should link to the conditional rule as a whole, if present.
+        ProguardKeepRuleBase keepRule = ifRule != null ? ifRule : (ProguardKeepRuleBase) context;
+        // The modifiers are specified on the actual keep rule (ie, the consequent/context).
+        ProguardKeepRuleModifiers modifiers = ((ProguardKeepRule) context).getModifiers();
+        // In compatibility mode, for a match on instance members a referenced class becomes live.
+        if (options.forceProguardCompatibility
+            && !modifiers.allowsShrinking
+            && precondition != null
+            && precondition.isDexClass()) {
+          if (!item.isDexClass() && !item.isStaticMember()) {
+            dependentKeepClassCompatRule
+                .computeIfAbsent(precondition.asDexClass().getType(), i -> new HashSet<>())
+                .add(keepRule);
+            context.markAsUsed();
+          }
+        }
+        if (!modifiers.allowsShrinking) {
+          if (precondition != null) {
+            dependentNoShrinking
+                .computeIfAbsent(precondition.getReference(), x -> new MutableItemsWithRules())
+                .addReferenceWithRule(item.getReference(), keepRule);
+          } else {
+            noShrinking.addReferenceWithRule(item.getReference(), keepRule);
+          }
+          context.markAsUsed();
+        } else if (!modifiers.allowsOptimization) {
+          if (precondition != null) {
+            dependentSoftPinned
+                .computeIfAbsent(precondition.getReference(), x -> new MutableItemsWithRules())
+                .addReferenceWithRule(item.getReference(), keepRule);
+          } else {
+            softPinned.addReferenceWithRule(item.getReference(), keepRule);
+          }
+        }
+        if (!modifiers.allowsOptimization) {
+          // The -dontoptimize flag has only effect through the keep all rule, but we still
+          // need to mark the rule as used.
           context.markAsUsed();
         }
-      }
-      if (!modifiers.allowsShrinking) {
-        if (precondition != null) {
-          dependentNoShrinking
-              .computeIfAbsent(precondition.getReference(), x -> new MutableItemsWithRules())
-              .addReferenceWithRule(item.getReference(), keepRule);
-        } else {
-          noShrinking.addReferenceWithRule(item.getReference(), keepRule);
-        }
-        context.markAsUsed();
-      } else if (!modifiers.allowsOptimization) {
-        if (precondition != null) {
-          dependentSoftPinned
-              .computeIfAbsent(precondition.getReference(), x -> new MutableItemsWithRules())
-              .addReferenceWithRule(item.getReference(), keepRule);
-        } else {
-          softPinned.addReferenceWithRule(item.getReference(), keepRule);
-        }
-      }
-      if (!modifiers.allowsOptimization) {
-        // The -dontoptimize flag has only effect through the keep all rule, but we still
-        // need to mark the rule as used.
-        context.markAsUsed();
-      }
 
-      if (appView.options().isMinificationEnabled() && !modifiers.allowsObfuscation) {
-        noObfuscation.add(item.getReference());
+        if (appView.options().isMinificationEnabled() && !modifiers.allowsObfuscation) {
+          noObfuscation.add(item.getReference());
+          context.markAsUsed();
+        }
+        if (modifiers.includeDescriptorClasses) {
+          includeDescriptorClasses(item, keepRule);
+          context.markAsUsed();
+        }
+      } else if (context instanceof ProguardAssumeMayHaveSideEffectsRule) {
+        mayHaveSideEffects.put(item.getReference(), rule);
         context.markAsUsed();
-      }
-      if (modifiers.includeDescriptorClasses) {
-        includeDescriptorClasses(item, keepRule);
-        context.markAsUsed();
-      }
-    } else if (context instanceof ProguardAssumeMayHaveSideEffectsRule) {
-      mayHaveSideEffects.put(item.getReference(), rule);
-      context.markAsUsed();
-    } else if (context instanceof ProguardAssumeNoSideEffectRule) {
-      if (item.isDexEncodedMember()) {
-        DexEncodedMember<?, ?> member = item.asDexEncodedMember();
-        if (member.getHolderType() == appView.dexItemFactory().objectType) {
-          assert member.isDexEncodedMethod();
-          reportAssumeNoSideEffectsWarningForJavaLangClassMethod(
-              member.asDexEncodedMethod(), (ProguardAssumeNoSideEffectRule) context);
-        } else {
-          noSideEffects.put(member.getReference(), rule);
-          if (member.isDexEncodedMethod()) {
-            DexEncodedMethod method = member.asDexEncodedMethod();
-            if (method.isClassInitializer()) {
-              feedback.classInitializerMayBePostponed(method);
+      } else if (context instanceof ProguardAssumeNoSideEffectRule) {
+        if (item.isDexEncodedMember()) {
+          DexEncodedMember<?, ?> member = item.asDexEncodedMember();
+          if (member.getHolderType() == appView.dexItemFactory().objectType) {
+            assert member.isDexEncodedMethod();
+            reportAssumeNoSideEffectsWarningForJavaLangClassMethod(
+                member.asDexEncodedMethod(), (ProguardAssumeNoSideEffectRule) context);
+          } else {
+            noSideEffects.put(member.getReference(), rule);
+            if (member.isDexEncodedMethod()) {
+              DexEncodedMethod method = member.asDexEncodedMethod();
+              if (method.isClassInitializer()) {
+                feedback.classInitializerMayBePostponed(method);
+              }
             }
           }
+          context.markAsUsed();
         }
+      } else if (context instanceof ProguardWhyAreYouKeepingRule) {
+        reasonAsked.computeIfAbsent(item.getReference(), i -> i);
         context.markAsUsed();
-      }
-    } else if (context instanceof ProguardWhyAreYouKeepingRule) {
-      reasonAsked.computeIfAbsent(item.getReference(), i -> i);
-      context.markAsUsed();
-    } else if (context instanceof ProguardAssumeValuesRule) {
-      if (item.isDexEncodedMember()) {
-        assumedValues.put(item.asDexEncodedMember().getReference(), rule);
+      } else if (context instanceof ProguardAssumeValuesRule) {
+        if (item.isDexEncodedMember()) {
+          assumedValues.put(item.asDexEncodedMember().getReference(), rule);
+          context.markAsUsed();
+        }
+      } else if (context instanceof ProguardCheckDiscardRule) {
+        checkDiscarded.computeIfAbsent(item.getReference(), i -> i);
         context.markAsUsed();
-      }
-    } else if (context instanceof ProguardCheckDiscardRule) {
-      checkDiscarded.computeIfAbsent(item.getReference(), i -> i);
-      context.markAsUsed();
-    } else if (context instanceof InlineRule) {
-      if (item.isDexEncodedMethod()) {
-        DexMethod reference = item.asDexEncodedMethod().getReference();
-        switch (((InlineRule) context).getType()) {
+      } else if (context instanceof InlineRule) {
+        if (item.isDexEncodedMethod()) {
+          DexMethod reference = item.asDexEncodedMethod().getReference();
+          switch (((InlineRule) context).getType()) {
+            case ALWAYS:
+              alwaysInline.add(reference);
+              break;
+            case FORCE:
+              forceInline.add(reference);
+              break;
+            case NEVER:
+              neverInline.add(reference);
+              break;
+            case NEVER_SINGLE_CALLER:
+              neverInlineDueToSingleCaller.add(reference);
+              break;
+            default:
+              throw new Unreachable();
+          }
+          context.markAsUsed();
+        }
+      } else if (context instanceof WhyAreYouNotInliningRule) {
+        if (!item.isDexEncodedMethod()) {
+          throw new Unreachable();
+        }
+        whyAreYouNotInlining.add(item.asDexEncodedMethod().method);
+        context.markAsUsed();
+      } else if (context.isClassInlineRule()) {
+        ClassInlineRule classInlineRule = context.asClassInlineRule();
+        DexClass clazz = item.asDexClass();
+        if (clazz == null) {
+          throw new IllegalStateException(
+              "Unexpected -"
+                  + classInlineRule.typeString()
+                  + " rule for a non-class type: `"
+                  + item.getReference().toSourceString()
+                  + "`");
+        }
+        switch (classInlineRule.getType()) {
           case ALWAYS:
-            alwaysInline.add(reference);
-            break;
-          case FORCE:
-            forceInline.add(reference);
+            alwaysClassInline.addElement(item.asDexClass().type);
             break;
           case NEVER:
-            neverInline.add(reference);
-            break;
-          case NEVER_SINGLE_CALLER:
-            neverInlineDueToSingleCaller.add(reference);
+            neverClassInline.add(item.asDexClass().type);
             break;
           default:
             throw new Unreachable();
         }
         context.markAsUsed();
-      }
-    } else if (context instanceof WhyAreYouNotInliningRule) {
-      if (!item.isDexEncodedMethod()) {
+      } else if (context instanceof NoUnusedInterfaceRemovalRule) {
+        noUnusedInterfaceRemoval.add(item.asDexClass().type);
+        context.markAsUsed();
+      } else if (context instanceof NoVerticalClassMergingRule) {
+        noVerticalClassMerging.add(item.asDexClass().type);
+        context.markAsUsed();
+      } else if (context instanceof NoHorizontalClassMergingRule) {
+        noHorizontalClassMerging.add(item.asDexClass().type);
+        context.markAsUsed();
+      } else if (context instanceof NoStaticClassMergingRule) {
+        noStaticClassMerging.add(item.asDexClass().type);
+        context.markAsUsed();
+      } else if (context instanceof MemberValuePropagationRule) {
+        switch (((MemberValuePropagationRule) context).getType()) {
+          case NEVER:
+            // Only add members from propgram classes to `neverPropagateValue` since class member
+            // values from library types are not propagated by default.
+            if (item.isDexEncodedField()) {
+              DexEncodedField field = item.asDexEncodedField();
+              if (field.isProgramField(appView)) {
+                neverPropagateValue.add(item.asDexEncodedField().field);
+                context.markAsUsed();
+              }
+            } else if (item.isDexEncodedMethod()) {
+              DexEncodedMethod method = item.asDexEncodedMethod();
+              if (method.isProgramMethod(appView)) {
+                neverPropagateValue.add(item.asDexEncodedMethod().method);
+                context.markAsUsed();
+              }
+            }
+            break;
+          default:
+            throw new Unreachable();
+        }
+      } else if (context instanceof ProguardIdentifierNameStringRule) {
+        if (item.isDexEncodedField()) {
+          identifierNameStrings.add(item.asDexEncodedField().field);
+          context.markAsUsed();
+        } else if (item.isDexEncodedMethod()) {
+          identifierNameStrings.add(item.asDexEncodedMethod().method);
+          context.markAsUsed();
+        }
+      } else if (context instanceof ConstantArgumentRule) {
+        if (item.isDexEncodedMethod()) {
+          keepParametersWithConstantValue.add(item.asDexEncodedMethod().method);
+          context.markAsUsed();
+        }
+      } else if (context instanceof ReprocessClassInitializerRule) {
+        DexProgramClass clazz = item.asProgramClass();
+        if (clazz != null && clazz.hasClassInitializer()) {
+          switch (context.asReprocessClassInitializerRule().getType()) {
+            case ALWAYS:
+              reprocess.add(clazz.getClassInitializer().method);
+              break;
+            case NEVER:
+              neverReprocess.add(clazz.getClassInitializer().method);
+              break;
+            default:
+              throw new Unreachable();
+          }
+          context.markAsUsed();
+        }
+      } else if (context.isReprocessMethodRule()) {
+        if (item.isDexEncodedMethod()) {
+          DexEncodedMethod method = item.asDexEncodedMethod();
+          switch (context.asReprocessMethodRule().getType()) {
+            case ALWAYS:
+              reprocess.add(method.method);
+              break;
+            case NEVER:
+              neverReprocess.add(method.method);
+              break;
+            default:
+              throw new Unreachable();
+          }
+          context.markAsUsed();
+        }
+      } else if (context instanceof UnusedArgumentRule) {
+        if (item.isDexEncodedMethod()) {
+          keepUnusedArguments.add(item.asDexEncodedMethod().method);
+          context.markAsUsed();
+        }
+      } else {
         throw new Unreachable();
       }
-      whyAreYouNotInlining.add(item.asDexEncodedMethod().method);
-      context.markAsUsed();
-    } else if (context.isClassInlineRule()) {
-      ClassInlineRule classInlineRule = context.asClassInlineRule();
-      DexClass clazz = item.asDexClass();
-      if (clazz == null) {
-        throw new IllegalStateException(
-            "Unexpected -"
-                + classInlineRule.typeString()
-                + " rule for a non-class type: `"
-                + item.getReference().toSourceString()
-                + "`");
+    }
+
+    private void reportAssumeNoSideEffectsWarningForJavaLangClassMethod(
+        DexEncodedMethod method, ProguardAssumeNoSideEffectRule context) {
+      assert method.getHolderType() == options.dexItemFactory().objectType;
+      OriginWithPosition key = new OriginWithPosition(context.getOrigin(), context.getPosition());
+      assumeNoSideEffectsWarnings
+          .computeIfAbsent(key, ignore -> new TreeSet<>(DexMethod::compareTo))
+          .add(method.getReference());
+    }
+
+    private boolean isWaitOrNotifyMethod(DexMethod method) {
+      return method.name == options.itemFactory.waitMethodName
+          || method.name == options.itemFactory.notifyMethodName
+          || method.name == options.itemFactory.notifyAllMethodName;
+    }
+
+    private void generateAssumeNoSideEffectsWarnings() {
+      if (appView.getDontWarnConfiguration().matches(options.itemFactory.objectType)) {
+        // Don't report any warnings since we don't apply -assumenosideeffects rules to notify() or
+        // wait() anyway.
+        return;
       }
-      switch (classInlineRule.getType()) {
-        case ALWAYS:
-          alwaysClassInline.addElement(item.asDexClass().type);
-          break;
-        case NEVER:
-          neverClassInline.add(item.asDexClass().type);
-          break;
-        default:
-          throw new Unreachable();
-      }
-      context.markAsUsed();
-    } else if (context instanceof NoUnusedInterfaceRemovalRule) {
-      noUnusedInterfaceRemoval.add(item.asDexClass().type);
-      context.markAsUsed();
-    } else if (context instanceof NoVerticalClassMergingRule) {
-      noVerticalClassMerging.add(item.asDexClass().type);
-      context.markAsUsed();
-    } else if (context instanceof NoHorizontalClassMergingRule) {
-      noHorizontalClassMerging.add(item.asDexClass().type);
-      context.markAsUsed();
-    } else if (context instanceof NoStaticClassMergingRule) {
-      noStaticClassMerging.add(item.asDexClass().type);
-      context.markAsUsed();
-    } else if (context instanceof MemberValuePropagationRule) {
-      switch (((MemberValuePropagationRule) context).getType()) {
-        case NEVER:
-          // Only add members from propgram classes to `neverPropagateValue` since class member
-          // values from library types are not propagated by default.
-          if (item.isDexEncodedField()) {
-            DexEncodedField field = item.asDexEncodedField();
-            if (field.isProgramField(appView)) {
-              neverPropagateValue.add(item.asDexEncodedField().field);
-              context.markAsUsed();
+
+      assumeNoSideEffectsWarnings.forEach(
+          (originWithPosition, methods) -> {
+            boolean matchesWaitOrNotifyMethods =
+                methods.stream().anyMatch(this::isWaitOrNotifyMethod);
+            if (!matchesWaitOrNotifyMethods) {
+              // We model the remaining methods on java.lang.Object, and thus there should be no
+              // need
+              // to warn in this case.
+              return;
             }
-          } else if (item.isDexEncodedMethod()) {
-            DexEncodedMethod method = item.asDexEncodedMethod();
-            if (method.isProgramMethod(appView)) {
-              neverPropagateValue.add(item.asDexEncodedMethod().method);
-              context.markAsUsed();
-            }
-          }
-          break;
-        default:
-          throw new Unreachable();
-      }
-    } else if (context instanceof ProguardIdentifierNameStringRule) {
-      if (item.isDexEncodedField()) {
-        identifierNameStrings.add(item.asDexEncodedField().field);
-        context.markAsUsed();
-      } else if (item.isDexEncodedMethod()) {
-        identifierNameStrings.add(item.asDexEncodedMethod().method);
-        context.markAsUsed();
-      }
-    } else if (context instanceof ConstantArgumentRule) {
-      if (item.isDexEncodedMethod()) {
-        keepParametersWithConstantValue.add(item.asDexEncodedMethod().method);
-        context.markAsUsed();
-      }
-    } else if (context instanceof ReprocessClassInitializerRule) {
-      DexProgramClass clazz = item.asProgramClass();
-      if (clazz != null && clazz.hasClassInitializer()) {
-        switch (context.asReprocessClassInitializerRule().getType()) {
-          case ALWAYS:
-            reprocess.add(clazz.getClassInitializer().method);
-            break;
-          case NEVER:
-            neverReprocess.add(clazz.getClassInitializer().method);
-            break;
-          default:
-            throw new Unreachable();
-        }
-        context.markAsUsed();
-      }
-    } else if (context.isReprocessMethodRule()) {
-      if (item.isDexEncodedMethod()) {
-        DexEncodedMethod method = item.asDexEncodedMethod();
-        switch (context.asReprocessMethodRule().getType()) {
-          case ALWAYS:
-            reprocess.add(method.method);
-            break;
-          case NEVER:
-            neverReprocess.add(method.method);
-            break;
-          default:
-            throw new Unreachable();
-        }
-        context.markAsUsed();
-      }
-    } else if (context instanceof UnusedArgumentRule) {
-      if (item.isDexEncodedMethod()) {
-        keepUnusedArguments.add(item.asDexEncodedMethod().method);
-        context.markAsUsed();
-      }
-    } else {
-      throw new Unreachable();
+            options.reporter.warning(
+                new AssumeNoSideEffectsRuleForObjectMembersDiagnostic.Builder()
+                    .addMatchedMethods(methods)
+                    .setOrigin(originWithPosition.getOrigin())
+                    .setPosition(originWithPosition.getPosition())
+                    .build());
+          });
     }
   }
 
@@ -1718,46 +1772,6 @@ public class RootSetBuilder {
     public int size() {
       return classesWithRules.size() + fieldsWithRules.size() + methodsWithRules.size();
     }
-  }
-
-  private void reportAssumeNoSideEffectsWarningForJavaLangClassMethod(
-      DexEncodedMethod method, ProguardAssumeNoSideEffectRule context) {
-    assert method.getHolderType() == options.dexItemFactory().objectType;
-    OriginWithPosition key = new OriginWithPosition(context.getOrigin(), context.getPosition());
-    assumeNoSideEffectsWarnings
-        .computeIfAbsent(key, ignore -> new TreeSet<>(DexMethod::compareTo))
-        .add(method.getReference());
-  }
-
-  private boolean isWaitOrNotifyMethod(DexMethod method) {
-    return method.name == options.itemFactory.waitMethodName
-        || method.name == options.itemFactory.notifyMethodName
-        || method.name == options.itemFactory.notifyAllMethodName;
-  }
-
-  private void generateAssumeNoSideEffectsWarnings() {
-    if (appView.getDontWarnConfiguration().matches(options.itemFactory.objectType)) {
-      // Don't report any warnings since we don't apply -assumenosideeffects rules to notify() or
-      // wait() anyway.
-      return;
-    }
-
-    assumeNoSideEffectsWarnings.forEach(
-        (originWithPosition, methods) -> {
-          boolean matchesWaitOrNotifyMethods =
-              methods.stream().anyMatch(this::isWaitOrNotifyMethod);
-          if (!matchesWaitOrNotifyMethods) {
-            // We model the remaining methods on java.lang.Object, and thus there should be no need
-            // to warn in this case.
-            return;
-          }
-          options.reporter.warning(
-              new AssumeNoSideEffectsRuleForObjectMembersDiagnostic.Builder()
-                  .addMatchedMethods(methods)
-                  .setOrigin(originWithPosition.getOrigin())
-                  .setPosition(originWithPosition.getPosition())
-                  .build());
-        });
   }
 
   public static class RootSet extends RootSetBase {

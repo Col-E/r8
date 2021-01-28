@@ -95,7 +95,7 @@ import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardConfigurationUtils;
-import com.android.tools.r8.shaking.RootSetBuilder;
+import com.android.tools.r8.shaking.RootSetBuilder.BuilderTemp;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
 import com.android.tools.r8.shaking.StaticClassMerger;
@@ -343,7 +343,7 @@ public class R8 {
         }
         SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
         appView.setRootSet(
-            new RootSetBuilder(
+            new BuilderTemp(
                     appView,
                     subtypingInfo,
                     Iterables.concat(
@@ -370,7 +370,7 @@ public class R8 {
         if (options.proguardSeedsConsumer != null) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
-          RootSetBuilder.writeSeeds(appView.appInfo().withLiveness(), out, type -> true);
+          BuilderTemp.writeSeeds(appView.appInfo().withLiveness(), out, type -> true);
           out.flush();
           ExceptionUtils.withConsumeResourceHandler(
               options.reporter, options.proguardSeedsConsumer, bytes.toString());
@@ -430,8 +430,7 @@ public class R8 {
         // Find classes which may have code executed before secondary dex files installation.
         SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
         mainDexRootSet =
-            new RootSetBuilder(appView, subtypingInfo, options.mainDexKeepRules)
-                .run(executorService);
+            new BuilderTemp(appView, subtypingInfo, options.mainDexKeepRules).run(executorService);
         // Live types is the tracing result.
         Set<DexProgramClass> mainDexBaseClasses =
             EnqueuerFactory.createForInitialMainDexTracing(appView, executorService, subtypingInfo)
