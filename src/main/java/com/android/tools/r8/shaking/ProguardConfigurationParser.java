@@ -500,11 +500,6 @@ public class ProguardConfigurationParser {
           configurationBuilder.addRule(rule);
           return true;
         }
-        if (acceptString(NoStaticClassMergingRule.RULE_NAME)) {
-          ProguardConfigurationRule rule = parseNoStaticClassMergingRule(optionStart);
-          configurationBuilder.addRule(rule);
-          return true;
-        }
         if (acceptString("neverpropagatevalue")) {
           MemberValuePropagationRule rule =
               parseMemberValuePropagationRule(MemberValuePropagationRule.Type.NEVER, optionStart);
@@ -798,17 +793,6 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       NoHorizontalClassMergingRule.Builder keepRuleBuilder =
           NoHorizontalClassMergingRule.builder().setOrigin(origin).setStart(start);
-      parseClassSpec(keepRuleBuilder, false);
-      Position end = getPosition();
-      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
-      keepRuleBuilder.setEnd(end);
-      return keepRuleBuilder.build();
-    }
-
-    private NoStaticClassMergingRule parseNoStaticClassMergingRule(Position start)
-        throws ProguardRuleParserException {
-      NoStaticClassMergingRule.Builder keepRuleBuilder =
-          NoStaticClassMergingRule.builder().setOrigin(origin).setStart(start);
       parseClassSpec(keepRuleBuilder, false);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));

@@ -89,7 +89,7 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
 
     public boolean tryAdd(AppView<AppInfoWithLiveness> appView, DexProgramClass clazz) {
       Map<DexMethodSignature, MethodCharacteristics> newMethods = new HashMap<>();
-      for (DexEncodedMethod method : clazz.methods()) {
+      for (DexEncodedMethod method : clazz.methods(this::isSubjectToMethodMerging)) {
         DexMethodSignature signature = method.getSignature();
         MethodCharacteristics existingCharacteristics = methodMap.get(signature);
         MethodCharacteristics methodCharacteristics = MethodCharacteristics.create(appView, method);
@@ -103,6 +103,14 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
       }
       methodMap.putAll(newMethods);
       group.add(clazz);
+      return true;
+    }
+
+    private boolean isSubjectToMethodMerging(DexEncodedMethod method) {
+      if (method.isStatic() || (method.isPrivate() && !method.isInstanceInitializer())) {
+        // Static and private instance methods can easily be renamed and do not require merging.
+        return false;
+      }
       return true;
     }
   }

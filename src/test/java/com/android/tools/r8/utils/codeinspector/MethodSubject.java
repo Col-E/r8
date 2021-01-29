@@ -38,15 +38,13 @@ public abstract class MethodSubject extends MemberSubject {
     return null;
   }
 
+  @Override
   public abstract MethodAccessFlags getAccessFlags();
 
   @Override
   public abstract MethodSignature getOriginalSignature();
 
   public abstract String getOriginalSignatureAttribute();
-
-  @Override
-  public abstract String getFinalSignatureAttribute();
 
   public abstract DexEncodedMethod getMethod();
 

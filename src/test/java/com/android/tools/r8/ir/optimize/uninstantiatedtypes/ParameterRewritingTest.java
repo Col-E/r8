@@ -9,7 +9,7 @@ import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NoStaticClassMerging;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
@@ -53,7 +53,7 @@ public class ParameterRewritingTest extends TestBase {
             .addInnerClasses(ParameterRewritingTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .enableNoStaticClassMergingAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
             .addOptionsModification(options -> options.enableClassInlining = false)
             .noMinification()
             .run(TestClass.class)
@@ -114,10 +114,10 @@ public class ParameterRewritingTest extends TestBase {
     }
   }
 
-  @NoStaticClassMerging
+  @NoHorizontalClassMerging
   static class Uninstantiated {}
 
-  @NoStaticClassMerging
+  @NoHorizontalClassMerging
   static class Factory {
 
     @NeverInline

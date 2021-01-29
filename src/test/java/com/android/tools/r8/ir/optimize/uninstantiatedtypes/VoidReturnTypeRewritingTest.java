@@ -8,7 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NoStaticClassMerging;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -52,7 +52,7 @@ public class VoidReturnTypeRewritingTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
-            .enableNoStaticClassMergingAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
             .addKeepRules("-dontobfuscate")
             .addOptionsModification(options -> options.enableClassInlining = false)
             .run(TestClass.class)
@@ -104,7 +104,7 @@ public class VoidReturnTypeRewritingTest extends TestBase {
     }
   }
 
-  @NoStaticClassMerging
+  @NoHorizontalClassMerging
   @NoVerticalClassMerging
   static class Uninstantiated {}
 

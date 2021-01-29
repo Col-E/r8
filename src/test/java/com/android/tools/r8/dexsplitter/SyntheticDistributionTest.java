@@ -10,7 +10,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NoStaticClassMerging;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
@@ -55,7 +54,6 @@ public class SyntheticDistributionTest extends SplitterTestBase {
         r8FullTestBuilder ->
             r8FullTestBuilder
                 .noMinification()
-                .enableNoStaticClassMergingAnnotations()
                 .enableInliningAnnotations()
                 .addInliningAnnotations()
                 .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O));
@@ -89,7 +87,6 @@ public class SyntheticDistributionTest extends SplitterTestBase {
             .addFeatureSplit(FeatureClass.class)
             .addFeatureSplit(Feature2Class.class)
             .addKeepFeatureMainRules(BaseSuperClass.class, FeatureClass.class, Feature2Class.class)
-            .enableNoStaticClassMergingAnnotations()
             .noMinification()
             .enableInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
@@ -117,7 +114,6 @@ public class SyntheticDistributionTest extends SplitterTestBase {
     String apply(String s);
   }
 
-  @NoStaticClassMerging
   public static class FeatureClass extends BaseSuperClass {
     @NeverInline
     public static String getAString() {
@@ -141,7 +137,6 @@ public class SyntheticDistributionTest extends SplitterTestBase {
     }
   }
 
-  @NoStaticClassMerging
   public static class Feature2Class extends BaseSuperClass {
     @NeverInline
     public static String getAString() {

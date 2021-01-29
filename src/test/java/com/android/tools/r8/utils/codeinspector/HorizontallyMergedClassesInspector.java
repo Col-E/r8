@@ -14,6 +14,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -71,6 +73,17 @@ public class HorizontallyMergedClassesInspector {
     assertFalse(
         horizontallyMergedClasses.hasBeenMergedIntoDifferentType(toDexType(clazz, dexItemFactory)));
     return this;
+  }
+
+  public HorizontallyMergedClassesInspector assertClassesNotMerged(Collection<Class<?>> classes) {
+    for (Class<?> clazz : classes) {
+      assertClassNotMerged(clazz);
+    }
+    return this;
+  }
+
+  public HorizontallyMergedClassesInspector assertClassesNotMerged(Class<?>... classes) {
+    return assertClassesNotMerged(Arrays.asList(classes));
   }
 
   public HorizontallyMergedClassesInspector assertClassNotMergedIntoDifferentType(Class<?> clazz) {

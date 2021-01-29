@@ -47,7 +47,7 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.MainDexClasses;
-import com.android.tools.r8.shaking.NoStaticClassMergingRule;
+import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
 import com.android.tools.r8.shaking.ProguardClassNameList;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -1127,8 +1127,9 @@ public class TestBase {
   }
 
   @Deprecated
-  public static String noStaticClassMergingRule() {
-    return matchInterfaceRule(NoStaticClassMergingRule.RULE_NAME, NoStaticClassMerging.class);
+  public static String noHorizontalClassMerging() {
+    return matchInterfaceRule(
+        NoHorizontalClassMergingRule.RULE_NAME, NoHorizontalClassMerging.class);
   }
 
   /**

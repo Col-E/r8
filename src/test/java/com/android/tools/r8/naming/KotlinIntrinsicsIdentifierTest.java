@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.kotlin.TestKotlinClass;
 import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
-import com.android.tools.r8.shaking.NoStaticClassMergingRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -148,7 +147,6 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
                     "-neverclassinline class **." + targetClassName,
                     "-" + NoVerticalClassMergingRule.RULE_NAME + " class **." + targetClassName,
                     "-" + NoHorizontalClassMergingRule.RULE_NAME + " class **." + targetClassName,
-                    "-" + NoStaticClassMergingRule.RULE_NAME + " class **." + targetClassName,
                     "-neverinline class **." + targetClassName + " { <methods>; }"))
             .addDontWarnJetBrainsNotNullAnnotation()
             .allowDiagnosticWarningMessages()

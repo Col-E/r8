@@ -12,7 +12,6 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
-import com.android.tools.r8.NoStaticClassMerging;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -79,7 +78,7 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
             .collectMainDexClasses()
             .enableInliningAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
-            .enableNoStaticClassMergingAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile();
 
@@ -130,7 +129,6 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
   }
 
   @NoHorizontalClassMerging
-  @NoStaticClassMerging
   static class A {
 
     static void bar() {
@@ -139,7 +137,6 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
   }
 
   @NoHorizontalClassMerging
-  @NoStaticClassMerging
   static class B {
 
     @NeverInline

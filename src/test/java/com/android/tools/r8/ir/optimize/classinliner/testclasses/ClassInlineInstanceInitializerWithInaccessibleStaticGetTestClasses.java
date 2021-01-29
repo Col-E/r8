@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.testclasses;
 
-import com.android.tools.r8.NoStaticClassMerging;
+import com.android.tools.r8.NoHorizontalClassMerging;
 
 public class ClassInlineInstanceInitializerWithInaccessibleStaticGetTestClasses {
 
-  @NoStaticClassMerging
+  @NoHorizontalClassMerging
   public static class CandidateBase {
 
     public final String f;

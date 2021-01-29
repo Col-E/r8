@@ -512,10 +512,6 @@ public abstract class TestShrinkerBuilder<
     return addTestingAnnotation(NoHorizontalClassMerging.class);
   }
 
-  public final T addNoStaticClassMergingAnnotations() {
-    return addTestingAnnotation(NoStaticClassMerging.class);
-  }
-
   public final T addNoUnusedInterfaceRemovalAnnotations() {
     return addTestingAnnotation(NoUnusedInterfaceRemoval.class);
   }

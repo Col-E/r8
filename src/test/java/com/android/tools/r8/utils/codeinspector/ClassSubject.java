@@ -165,8 +165,6 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract boolean isAnnotation();
 
-  public abstract boolean isPublic();
-
   public abstract boolean isImplementing(ClassSubject subject);
 
   public abstract boolean isImplementing(Class<?> clazz);

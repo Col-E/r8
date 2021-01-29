@@ -6,7 +6,7 @@ package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NoStaticClassMerging;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
@@ -43,7 +43,7 @@ public class ClInitSideEffectEnumUnboxingTest extends EnumUnboxingTestBase {
             .addKeepMainRule(classToTest)
             .addKeepRules(enumKeepRules.getKeepRules())
             .enableInliningAnnotations()
-            .enableNoStaticClassMergingAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
             .enableNeverClassInliningAnnotations()
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
@@ -69,7 +69,7 @@ public class ClInitSideEffectEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   @NeverClassInline
-  @NoStaticClassMerging
+  @NoHorizontalClassMerging
   static class OtherClass {
     static {
       Switch.otherClassInit = true;

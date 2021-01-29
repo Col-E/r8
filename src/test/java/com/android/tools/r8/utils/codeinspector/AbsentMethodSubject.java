@@ -30,41 +30,6 @@ public class AbsentMethodSubject extends MethodSubject {
   }
 
   @Override
-  public boolean isPublic() {
-    throw new Unreachable("Cannot determine if an absent method is public");
-  }
-
-  @Override
-  public boolean isProtected() {
-    throw new Unreachable("Cannot determine if an absent method is protected");
-  }
-
-  @Override
-  public boolean isPrivate() {
-    throw new Unreachable("Cannot determine if an absent method is private");
-  }
-
-  @Override
-  public boolean isPackagePrivate() {
-    throw new Unreachable("Cannot determine if an absent method is package-private");
-  }
-
-  @Override
-  public boolean isStatic() {
-    throw new Unreachable("Cannot determine if an absent method is static");
-  }
-
-  @Override
-  public boolean isSynthetic() {
-    throw new Unreachable("Cannot determine if an absent method is synthetic");
-  }
-
-  @Override
-  public boolean isFinal() {
-    throw new Unreachable("Cannot determine if an absent method is final");
-  }
-
-  @Override
   public boolean isAbstract() {
     throw new Unreachable("Cannot determine if an absent method is abstract");
   }

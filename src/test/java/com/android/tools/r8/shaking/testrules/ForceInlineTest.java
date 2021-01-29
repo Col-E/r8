@@ -44,7 +44,7 @@ public class ForceInlineTest extends TestBase {
         .addKeepRules(proguardConfiguration)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .enableNoStaticClassMergingAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableProguardTestOptions()
         .compile()
         .inspector();

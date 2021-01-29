@@ -6,10 +6,8 @@ package com.android.tools.r8.repackage.testclasses.repackagetest;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
-import com.android.tools.r8.NoStaticClassMerging;
 
 @NoHorizontalClassMerging
-@NoStaticClassMerging
 public class AccessPackagePrivateKeptMethodOnReachableClassDirect {
 
   @NeverInline

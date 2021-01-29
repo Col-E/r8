@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis.InitializedClassesInInstanceMethods;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
-import com.android.tools.r8.graph.classmerging.StaticallyMergedClasses;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraintFactory;
@@ -91,7 +90,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private InitializedClassesInInstanceMethods initializedClassesInInstanceMethods;
   private HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses;
   private HorizontallyMergedClasses horizontallyMergedClasses;
-  private StaticallyMergedClasses staticallyMergedClasses;
   private VerticallyMergedClasses verticallyMergedClasses;
   private EnumDataMap unboxedEnums = EnumDataMap.empty();
   // TODO(b/169115389): Remove
@@ -506,19 +504,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     assert this.horizontallyMergedClasses == null;
     this.horizontallyMergedClasses = horizontallyMergedClasses;
     testing().horizontallyMergedClassesConsumer.accept(dexItemFactory(), horizontallyMergedClasses);
-  }
-
-  /**
-   * Get the result of static class merging. Returns null if static class merging has not been run.
-   */
-  public StaticallyMergedClasses staticallyMergedClasses() {
-    return staticallyMergedClasses;
-  }
-
-  public void setStaticallyMergedClasses(StaticallyMergedClasses staticallyMergedClasses) {
-    assert this.staticallyMergedClasses == null;
-    this.staticallyMergedClasses = staticallyMergedClasses;
-    testing().staticallyMergedClassesConsumer.accept(dexItemFactory(), staticallyMergedClasses);
   }
 
   /**

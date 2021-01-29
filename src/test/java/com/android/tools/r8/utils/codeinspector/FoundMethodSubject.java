@@ -78,41 +78,6 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   @Override
-  public boolean isPublic() {
-    return dexMethod.accessFlags.isPublic();
-  }
-
-  @Override
-  public boolean isProtected() {
-    return dexMethod.accessFlags.isProtected();
-  }
-
-  @Override
-  public boolean isPrivate() {
-    return dexMethod.accessFlags.isPrivate();
-  }
-
-  @Override
-  public boolean isPackagePrivate() {
-    return !isPublic() && !isProtected() && !isPrivate();
-  }
-
-  @Override
-  public boolean isStatic() {
-    return dexMethod.accessFlags.isStatic();
-  }
-
-  @Override
-  public boolean isSynthetic() {
-    return dexMethod.accessFlags.isSynthetic();
-  }
-
-  @Override
-  public boolean isFinal() {
-    return dexMethod.accessFlags.isFinal();
-  }
-
-  @Override
   public boolean isAbstract() {
     return dexMethod.accessFlags.isAbstract();
   }

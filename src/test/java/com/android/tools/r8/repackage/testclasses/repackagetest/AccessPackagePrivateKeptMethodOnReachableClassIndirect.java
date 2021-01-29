@@ -6,10 +6,8 @@ package com.android.tools.r8.repackage.testclasses.repackagetest;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
-import com.android.tools.r8.NoStaticClassMerging;
 
 @NoHorizontalClassMerging
-@NoStaticClassMerging
 public class AccessPackagePrivateKeptMethodOnReachableClassIndirect {
 
   @NeverInline
@@ -18,7 +16,6 @@ public class AccessPackagePrivateKeptMethodOnReachableClassIndirect {
   }
 
   @NoHorizontalClassMerging
-  @NoStaticClassMerging
   public static class Helper {
 
     @NeverInline

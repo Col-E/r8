@@ -113,7 +113,7 @@ public class RepackageTest extends RepackageTestBase {
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .enableNoStaticClassMergingAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

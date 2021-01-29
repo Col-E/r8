@@ -8,16 +8,6 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 
 public abstract class MemberSubject extends ClassOrMemberSubject {
 
-  public abstract boolean isPublic();
-
-  public abstract boolean isProtected();
-
-  public abstract boolean isPrivate();
-
-  public abstract boolean isPackagePrivate();
-
-  public abstract boolean isStatic();
-
   public abstract Signature getOriginalSignature();
 
   public abstract Signature getFinalSignature();

@@ -8,7 +8,7 @@ import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NoStaticClassMerging;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -24,10 +24,10 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class MissingClassThrowingTest extends TestBase {
 
-  @NoStaticClassMerging
+  @NoHorizontalClassMerging
   public static class MissingException extends Exception {}
 
-  @NoStaticClassMerging
+  @NoHorizontalClassMerging
   public static class Program {
 
     public static final String EXPECTED_OUTPUT = "Hello world!";
@@ -76,7 +76,7 @@ public class MissingClassThrowingTest extends TestBase {
                 .noMinification()
                 .noTreeShaking()
                 .enableInliningAnnotations()
-                .enableNoStaticClassMergingAnnotations()
+                .enableNoHorizontalClassMergingAnnotations()
                 .debug()
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {

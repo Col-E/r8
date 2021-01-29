@@ -471,7 +471,6 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.enableInlining;
     assert !internal.enableClassInlining;
     assert internal.horizontalClassMergerOptions().isDisabled();
-    assert !internal.enableStaticClassMerging;
     assert !internal.enableVerticalClassMerging;
     assert !internal.enableClassStaticizer;
     assert !internal.enableEnumValueOptimization;

@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -64,18 +65,8 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
-  public boolean isFinal() {
-    return dexClass.isFinal();
-  }
-
-  @Override
   public boolean isPresent() {
     return true;
-  }
-
-  @Override
-  public boolean isSynthetic() {
-    return dexClass.accessFlags.isSynthetic();
   }
 
   @Override
@@ -296,11 +287,6 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
-  public boolean isPublic() {
-    return dexClass.accessFlags.isPublic();
-  }
-
-  @Override
   public boolean isImplementing(ClassSubject subject) {
     assertTrue(subject.isPresent());
     for (DexType itf : getDexProgramClass().interfaces) {
@@ -360,6 +346,11 @@ public class FoundClassSubject extends ClassSubject {
     return annotation == null
         ? new AbsentAnnotationSubject()
         : new FoundAnnotationSubject(annotation);
+  }
+
+  @Override
+  public AccessFlags<?> getAccessFlags() {
+    return getDexProgramClass().getAccessFlags();
   }
 
   @Override

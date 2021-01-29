@@ -266,7 +266,6 @@ public class GeneratedMessageLiteBuilderShrinker {
       PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverMergeClassVertically,
       Set<DexType> neverMergeClassHorizontally,
-      Set<DexType> neverMergeStaticClassHorizontally,
       Set<DexMethod> alwaysInline,
       Set<DexMethod> bypassClinitforInlining) {
     new RootSetExtension(
@@ -274,7 +273,6 @@ public class GeneratedMessageLiteBuilderShrinker {
             alwaysClassInline,
             neverMergeClassVertically,
             neverMergeClassHorizontally,
-            neverMergeStaticClassHorizontally,
             alwaysInline,
             bypassClinitforInlining)
         .extend(subtypingInfo);
@@ -393,7 +391,6 @@ public class GeneratedMessageLiteBuilderShrinker {
     private final PredicateSet<DexType> alwaysClassInline;
     private final Set<DexType> neverMergeClassVertically;
     private final Set<DexType> neverMergeClassHorizontally;
-    private final Set<DexType> neverMergeStaticClassHorizontally;
 
     private final Set<DexMethod> alwaysInline;
     private final Set<DexMethod> bypassClinitforInlining;
@@ -403,7 +400,6 @@ public class GeneratedMessageLiteBuilderShrinker {
         PredicateSet<DexType> alwaysClassInline,
         Set<DexType> neverMergeClassVertically,
         Set<DexType> neverMergeClassHorizontally,
-        Set<DexType> neverMergeStaticClassHorizontally,
         Set<DexMethod> alwaysInline,
         Set<DexMethod> bypassClinitforInlining) {
       this.appView = appView;
@@ -411,7 +407,6 @@ public class GeneratedMessageLiteBuilderShrinker {
       this.alwaysClassInline = alwaysClassInline;
       this.neverMergeClassVertically = neverMergeClassVertically;
       this.neverMergeClassHorizontally = neverMergeClassHorizontally;
-      this.neverMergeStaticClassHorizontally = neverMergeStaticClassHorizontally;
       this.alwaysInline = alwaysInline;
       this.bypassClinitforInlining = bypassClinitforInlining;
     }
@@ -478,7 +473,6 @@ public class GeneratedMessageLiteBuilderShrinker {
     private void neverMergeClass(DexType type) {
       neverMergeClassVertically.add(type);
       neverMergeClassHorizontally.add(type);
-      neverMergeStaticClassHorizontally.add(type);
     }
   }
 }

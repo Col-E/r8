@@ -17,7 +17,6 @@ import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
-import com.android.tools.r8.shaking.NoStaticClassMergingRule;
 import com.android.tools.r8.shaking.NoUnusedInterfaceRemovalRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -463,19 +462,13 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   public T enableNoHorizontalClassMergingAnnotations() {
-    return addProgramClasses(NoHorizontalClassMerging.class)
+    return addNoHorizontalClassMergingAnnotations()
         .addInternalMatchInterfaceRule(
             NoHorizontalClassMergingRule.RULE_NAME, NoHorizontalClassMerging.class);
   }
 
   public T addNoHorizontalClassMergingRule(String clazz) {
     return addInternalKeepRules("-nohorizontalclassmerging class " + clazz);
-  }
-
-  public T enableNoStaticClassMergingAnnotations() {
-    return addNoStaticClassMergingAnnotations()
-        .addInternalMatchInterfaceRule(
-            NoStaticClassMergingRule.RULE_NAME, NoStaticClassMerging.class);
   }
 
   public T enableMemberValuePropagationAnnotations() {

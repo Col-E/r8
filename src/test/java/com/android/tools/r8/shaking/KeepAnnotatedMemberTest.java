@@ -224,7 +224,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .addDontWarnJavaxNullableAnnotation()
             .compile()
             .graphInspector();
-    assertRetainedClassesEqual(referenceInspector, ifThenKeepClassMembersInspector, false, false);
+    assertRetainedClassesEqual(referenceInspector, ifThenKeepClassMembersInspector);
 
     GraphInspector ifThenKeepClassesWithMembersInspector =
         testForR8(Backend.CF)
@@ -243,8 +243,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .addDontWarnJavaxNullableAnnotation()
             .compile()
             .graphInspector();
-    assertRetainedClassesEqual(
-        referenceInspector, ifThenKeepClassesWithMembersInspector, false, false);
+    assertRetainedClassesEqual(referenceInspector, ifThenKeepClassesWithMembersInspector);
 
     GraphInspector ifHasMemberThenKeepClassInspector =
         testForR8(Backend.CF)
@@ -265,8 +264,12 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .addDontWarnJavaxNullableAnnotation()
             .compile()
             .graphInspector();
-    // TODO(b/159418523): Should the reference be equal to the result with the conditional rule?
-    assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector, true, true);
+    assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector);
+  }
+
+  private void assertRetainedClassesEqual(
+      GraphInspector referenceResult, GraphInspector conditionalResult) {
+    assertRetainedClassesEqual(referenceResult, conditionalResult, false, false);
   }
 
   private void assertRetainedClassesEqual(

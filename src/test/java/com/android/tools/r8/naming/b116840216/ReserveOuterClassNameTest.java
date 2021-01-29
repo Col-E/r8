@@ -9,7 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NoStaticClassMerging;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -24,10 +24,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-@NoStaticClassMerging
+@NoHorizontalClassMerging
 class Outer {
 
-  @NoStaticClassMerging
+  @NoHorizontalClassMerging
   static class Inner {
     @NeverInline
     static void foo() {
@@ -80,7 +80,7 @@ public class ReserveOuterClassNameTest extends TestBase {
             // the visiting of classes during class minification to be Outer$Inner before Outer.
             "-keepnames class " + Outer.class.getCanonicalName() + "$Inner",
             keepOuterName ? "-keepnames class " + Outer.class.getCanonicalName() : "",
-            noStaticClassMergingRule()),
+            noHorizontalClassMerging()),
         Origin.unknown());
 
     ToolHelper.allowTestProguardOptions(builder);

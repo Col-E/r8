@@ -107,7 +107,6 @@ public class RootSetUtils {
     private final Set<DexType> noUnusedInterfaceRemoval = Sets.newIdentityHashSet();
     private final Set<DexType> noVerticalClassMerging = Sets.newIdentityHashSet();
     private final Set<DexType> noHorizontalClassMerging = Sets.newIdentityHashSet();
-    private final Set<DexType> noStaticClassMerging = Sets.newIdentityHashSet();
     private final Set<DexReference> neverPropagateValue = Sets.newIdentityHashSet();
     private final Map<DexReference, MutableItemsWithRules> dependentNoShrinking =
         new IdentityHashMap<>();
@@ -256,7 +255,6 @@ public class RootSetUtils {
           || rule instanceof NoUnusedInterfaceRemovalRule
           || rule instanceof NoVerticalClassMergingRule
           || rule instanceof NoHorizontalClassMergingRule
-          || rule instanceof NoStaticClassMergingRule
           || rule instanceof ReprocessClassInitializerRule) {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
           markClass(clazz, rule, ifRule);
@@ -336,7 +334,6 @@ public class RootSetUtils {
             alwaysClassInline,
             noVerticalClassMerging,
             noHorizontalClassMerging,
-            noStaticClassMerging,
             alwaysInline,
             bypassClinitforInlining);
       }
@@ -365,7 +362,6 @@ public class RootSetUtils {
           noUnusedInterfaceRemoval,
           noVerticalClassMerging,
           noHorizontalClassMerging,
-          noStaticClassMerging,
           neverPropagateValue,
           mayHaveSideEffects,
           noSideEffects,
@@ -1279,9 +1275,6 @@ public class RootSetUtils {
       } else if (context instanceof NoHorizontalClassMergingRule) {
         noHorizontalClassMerging.add(item.asDexClass().type);
         context.markAsUsed();
-      } else if (context instanceof NoStaticClassMergingRule) {
-        noStaticClassMerging.add(item.asDexClass().type);
-        context.markAsUsed();
       } else if (context instanceof MemberValuePropagationRule) {
         switch (((MemberValuePropagationRule) context).getType()) {
           case NEVER:
@@ -1790,7 +1783,6 @@ public class RootSetUtils {
     public final Set<DexType> noUnusedInterfaceRemoval;
     public final Set<DexType> noVerticalClassMerging;
     public final Set<DexType> noHorizontalClassMerging;
-    public final Set<DexType> noStaticClassMerging;
     public final Set<DexReference> neverPropagateValue;
     public final Map<DexReference, ProguardMemberRule> mayHaveSideEffects;
     public final Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects;
@@ -1819,7 +1811,6 @@ public class RootSetUtils {
         Set<DexType> noUnusedInterfaceRemoval,
         Set<DexType> noVerticalClassMerging,
         Set<DexType> noHorizontalClassMerging,
-        Set<DexType> noStaticClassMerging,
         Set<DexReference> neverPropagateValue,
         Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
         Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects,
@@ -1855,7 +1846,6 @@ public class RootSetUtils {
       this.noUnusedInterfaceRemoval = noUnusedInterfaceRemoval;
       this.noVerticalClassMerging = noVerticalClassMerging;
       this.noHorizontalClassMerging = noHorizontalClassMerging;
-      this.noStaticClassMerging = noStaticClassMerging;
       this.neverPropagateValue = neverPropagateValue;
       this.mayHaveSideEffects = mayHaveSideEffects;
       this.noSideEffects = noSideEffects;
@@ -1939,7 +1929,6 @@ public class RootSetUtils {
       pruneDeadReferences(noUnusedInterfaceRemoval, definitions, enqueuer);
       pruneDeadReferences(noVerticalClassMerging, definitions, enqueuer);
       pruneDeadReferences(noHorizontalClassMerging, definitions, enqueuer);
-      pruneDeadReferences(noStaticClassMerging, definitions, enqueuer);
       pruneDeadReferences(alwaysInline, definitions, enqueuer);
       pruneDeadReferences(noSideEffects.keySet(), definitions, enqueuer);
     }

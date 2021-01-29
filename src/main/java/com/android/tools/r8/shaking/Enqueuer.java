@@ -3525,7 +3525,6 @@ public class Enqueuer {
             noClassMerging,
             rootSet.noVerticalClassMerging,
             rootSet.noHorizontalClassMerging,
-            rootSet.noStaticClassMerging,
             rootSet.neverPropagateValue,
             joinIdentifierNameStrings(rootSet.identifierNameStrings, identifierNameStrings),
             Collections.emptySet(),

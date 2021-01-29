@@ -858,7 +858,6 @@ public final class R8Command extends BaseCompilerCommand {
 
     assert proguardConfiguration.isOptimizing()
         || internal.horizontalClassMergerOptions().isDisabled();
-    assert internal.enableStaticClassMerging || !proguardConfiguration.isOptimizing();
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
     assert internal.enableVerticalClassMerging || !proguardConfiguration.isOptimizing();
     if (internal.debug) {
@@ -868,7 +867,6 @@ public final class R8Command extends BaseCompilerCommand {
       internal.enableInlining = false;
       internal.enableClassInlining = false;
       internal.horizontalClassMergerOptions().disable();
-      internal.enableStaticClassMerging = false;
       internal.enableVerticalClassMerging = false;
       internal.enableClassStaticizer = false;
       internal.outline.enabled = false;
@@ -881,7 +879,6 @@ public final class R8Command extends BaseCompilerCommand {
       internal.enableEnumUnboxing = false;
       internal.horizontalClassMergerOptions().disable();
       internal.enableLambdaMerging = false;
-      internal.enableStaticClassMerging = false;
       internal.enableVerticalClassMerging = false;
     }
 

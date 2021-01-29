@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
@@ -18,11 +19,6 @@ public class AbsentClassSubject extends ClassSubject {
 
   public AbsentClassSubject(CodeInspector codeInspector, ClassReference reference) {
     super(codeInspector, reference);
-  }
-
-  @Override
-  public boolean isFinal() {
-    throw new Unreachable("Cannot determine if an absent class is final");
   }
 
   @Override
@@ -91,11 +87,6 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
-  public boolean isPublic() {
-    throw new Unreachable("Cannot determine if an absent class is public");
-  }
-
-  @Override
   public boolean isImplementing(ClassSubject subject) {
     throw new Unreachable("Cannot determine if an absent class is implementing a given interface");
   }
@@ -118,6 +109,11 @@ public class AbsentClassSubject extends ClassSubject {
   @Override
   public AnnotationSubject annotation(String name) {
     return new AbsentAnnotationSubject();
+  }
+
+  @Override
+  public AccessFlags<?> getAccessFlags() {
+    throw new Unreachable("Absent class has no access flags");
   }
 
   @Override
@@ -178,11 +174,6 @@ public class AbsentClassSubject extends ClassSubject {
   @Override
   public boolean isAnonymousClass() {
     throw new Unreachable("Cannot determine if an absent class is an anonymous class");
-  }
-
-  @Override
-  public boolean isSynthetic() {
-    throw new Unreachable("Cannot determine if an absent class is synthetic");
   }
 
   @Override

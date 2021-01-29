@@ -21,7 +21,6 @@ import com.android.tools.r8.utils.ThrowingOutputStream;
 import com.android.tools.r8.utils.codeinspector.EnumUnboxingInspector;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedLambdaClassesInspector;
-import com.android.tools.r8.utils.codeinspector.StaticallyMergedClassesInspector;
 import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import com.google.common.base.Suppliers;
 import java.io.ByteArrayOutputStream;
@@ -152,17 +151,6 @@ public abstract class TestCompilerBuilder<
                     inspector.accept(
                         new HorizontallyMergedLambdaClassesInspector(
                             dexItemFactory, horizontallyMergedLambdaClasses))));
-  }
-
-  public T addStaticallyMergedClassesInspector(
-      Consumer<StaticallyMergedClassesInspector> inspector) {
-    return addOptionsModification(
-        options ->
-            options.testing.staticallyMergedClassesConsumer =
-                ((dexItemFactory, staticallyMergedClasses) ->
-                    inspector.accept(
-                        new StaticallyMergedClassesInspector(
-                            dexItemFactory, staticallyMergedClasses))));
   }
 
   public T addVerticallyMergedClassesInspector(

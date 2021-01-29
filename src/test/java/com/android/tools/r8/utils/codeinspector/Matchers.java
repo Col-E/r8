@@ -304,11 +304,11 @@ public class Matchers {
     return hasVisibility(Visibility.PACKAGE_PRIVATE);
   }
 
-  public static <T extends MemberSubject> Matcher<T> isPublic() {
+  public static <T extends ClassOrMemberSubject> Matcher<T> isPublic() {
     return hasVisibility(Visibility.PUBLIC);
   }
 
-  private static <T extends MemberSubject> Matcher<T> hasVisibility(Visibility visibility) {
+  private static <T extends ClassOrMemberSubject> Matcher<T> hasVisibility(Visibility visibility) {
     return new TypeSafeMatcher<T>() {
       @Override
       public boolean matchesSafely(final T subject) {
@@ -340,15 +340,9 @@ public class Matchers {
 
       @Override
       public void describeMismatchSafely(final T subject, Description description) {
-        description
-            .appendText("method ")
-            .appendValue(subject.getOriginalName())
-            .appendText(" was ");
+        description.appendText("item ").appendValue(subject.getOriginalName()).appendText(" was ");
         if (subject.isPresent()) {
-          AccessFlags<?> accessFlags =
-              subject.isMethodSubject()
-                  ? subject.asMethodSubject().getMethod().accessFlags
-                  : subject.asFieldSubject().getField().accessFlags;
+          AccessFlags<?> accessFlags = subject.getAccessFlags();
           if (accessFlags.isPublic()) {
             description.appendText("public");
           } else if (accessFlags.isProtected()) {

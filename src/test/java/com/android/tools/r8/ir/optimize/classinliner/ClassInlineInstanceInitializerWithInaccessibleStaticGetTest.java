@@ -41,7 +41,7 @@ public class ClassInlineInstanceInitializerWithInaccessibleStaticGetTest extends
             ClassInlineInstanceInitializerWithInaccessibleStaticGetTestClasses.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .enableNoStaticClassMergingAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

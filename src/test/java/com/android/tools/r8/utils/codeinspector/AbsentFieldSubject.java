@@ -5,41 +5,12 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 
 public class AbsentFieldSubject extends FieldSubject {
-
-  @Override
-  public boolean isPublic() {
-    throw new Unreachable("Cannot determine if an absent field is public");
-  }
-
-  @Override
-  public boolean isProtected() {
-    throw new Unreachable("Cannot determine if an absent field is protected");
-  }
-
-  @Override
-  public boolean isPrivate() {
-    throw new Unreachable("Cannot determine if an absent field is private");
-  }
-
-  @Override
-  public boolean isPackagePrivate() {
-    throw new Unreachable("Cannot determine if an absent field is package-private");
-  }
-
-  @Override
-  public boolean isStatic() {
-    throw new Unreachable("Cannot determine if an absent field is static");
-  }
-
-  @Override
-  public boolean isFinal() {
-    throw new Unreachable("Cannot determine if an absent field is final");
-  }
 
   @Override
   public boolean isPresent() {
@@ -49,11 +20,6 @@ public class AbsentFieldSubject extends FieldSubject {
   @Override
   public boolean isRenamed() {
     throw new Unreachable("Cannot determine if an absent field has been renamed");
-  }
-
-  @Override
-  public boolean isSynthetic() {
-    throw new Unreachable("Cannot determine if an absent field is synthetic");
   }
 
   @Override
@@ -99,5 +65,10 @@ public class AbsentFieldSubject extends FieldSubject {
   @Override
   public String getJvmFieldSignatureAsString() {
     return null;
+  }
+
+  @Override
+  public AccessFlags<?> getAccessFlags() {
+    throw new Unreachable("Absent field has no access flags");
   }
 }

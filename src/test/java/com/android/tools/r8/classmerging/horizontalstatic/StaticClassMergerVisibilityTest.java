@@ -5,17 +5,15 @@
 package com.android.tools.r8.classmerging.horizontalstatic;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,38 +35,32 @@ public class StaticClassMergerVisibilityTest extends TestBase {
 
   @Test
   public void testStaticClassIsRemoved() throws Exception {
-    CodeInspector inspector =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(StaticClassMergerVisibilityTest.class)
-            .addKeepMainRule(Main.class)
-            .enableInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), Main.class)
-            .assertSuccessWithOutputLines("A.print()", "B.print()", "C.print()", "D.print()")
-            .inspector();
-
-    // The global group will have one representative, which is C.
-    ClassSubject clazzC = inspector.clazz(C.class);
-    assertThat(clazzC, isPresent());
-    assertEquals(1, clazzC.allMethods().size());
-
-    // The package group will be merged into one of A, B or C.
-    assertExactlyOneIsPresent(
-        inspector.clazz(A.class), inspector.clazz(B.class), inspector.clazz(D.class));
+    testForR8(parameters.getBackend())
+        .addInnerClasses(StaticClassMergerVisibilityTest.class)
+        .addKeepMainRule(Main.class)
+        .addHorizontallyMergedClassesInspector(
+            inspector ->
+                inspector
+                    .assertMergedInto(A.class, D.class)
+                    .assertMergedInto(B.class, D.class)
+                    .assertMergedInto(C.class, D.class))
+        .enableInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .noMinification()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("A.print()", "B.print()", "C.print()", "D.print()")
+        .inspect(
+            inspector -> {
+              // All classes are merged into D.
+              ClassSubject clazzD = inspector.clazz(D.class);
+              assertThat(clazzD, isPresent());
+              assertThat(clazzD, isPublic());
+              // D now has 5 methods (there is a synthetic access bridge for the private A.print()).
+              assertEquals(5, clazzD.allMethods().size());
+            });
   }
 
-  private void assertExactlyOneIsPresent(ClassSubject... subjects) {
-    boolean seenPresent = false;
-    for (ClassSubject subject : subjects) {
-      if (subject.isPresent()) {
-        assertFalse(seenPresent);
-        seenPresent = true;
-      }
-    }
-    assertTrue(seenPresent);
-  }
-
-  // Will be merged into the package group.
+  // Will be merged into D.
   private static class A {
     @NeverInline
     private static void print() {
@@ -76,7 +68,7 @@ public class StaticClassMergerVisibilityTest extends TestBase {
     }
   }
 
-  // Will be merged into the package group.
+  // Will be merged into D.
   static class B {
     @NeverInline
     static void print() {
@@ -84,7 +76,7 @@ public class StaticClassMergerVisibilityTest extends TestBase {
     }
   }
 
-  // Will be merged into global group
+  // Will be merged into D
   public static class C {
     @NeverInline
     public static void print() {
@@ -92,7 +84,6 @@ public class StaticClassMergerVisibilityTest extends TestBase {
     }
   }
 
-  // Will be merged into the package group.
   protected static class D {
     @NeverInline
     protected static void print() {

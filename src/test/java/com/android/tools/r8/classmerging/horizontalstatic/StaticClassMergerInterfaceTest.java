@@ -4,17 +4,17 @@
 
 package com.android.tools.r8.classmerging.horizontalstatic;
 
+import static com.android.tools.r8.synthesis.SyntheticItemsTestUtils.syntheticCompanionClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNot.not;
 
-import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -23,82 +23,78 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class StaticClassMergerInterfaceTest extends TestBase {
 
-  private final Backend backend;
+  private final TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public StaticClassMergerInterfaceTest(Backend backend) {
-    this.backend = backend;
+  public StaticClassMergerInterfaceTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
-    String expectedOutput = StringUtils.lines("In A.a()", "In B.b()", "In C.c()");
+    String expectedOutput = StringUtils.lines("In I.a()", "In J.b()", "In A.c()");
 
     CodeInspector inspector =
-        testForR8(backend)
-            .addInnerClasses(StaticClassMergerInterfaceTest.class)
+        testForR8(parameters.getBackend())
+            .addInnerClasses(getClass())
             .addKeepMainRule(TestClass.class)
-            .addKeepRules("-dontobfuscate")
+            // TODO(b/173990042): Extend horizontal class merging to interfaces.
+            .addHorizontallyMergedClassesInspector(
+                HorizontallyMergedClassesInspector::assertNoClassesMerged)
             .enableInliningAnnotations()
-            .enableNeverClassInliningAnnotations()
-            .run(TestClass.class)
+            .setMinApi(parameters.getApiLevel())
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
 
-    // Check that A has not been merged into B. The static class merger visits classes in alpha-
-    // betical order. By the time A is processed, there is no merge representative and A is not
-    // a valid merge representative itself, because it is an interface.
-    if (ToolHelper.getDexVm().getVersion().isNewerThan(Version.V6_0_1) || backend == Backend.CF) {
-      assertThat(inspector.clazz(A.class), isPresent());
+    // We do not allow horizontal class merging of interfaces and classes. Therefore, A should
+    // remain in the output.
+    assertThat(inspector.clazz(A.class), isPresent());
+
+    // TODO(b/173990042): I and J should be merged.
+    if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+      assertThat(inspector.clazz(I.class), isPresent());
+      assertThat(inspector.clazz(J.class), isPresent());
     } else {
-      assertThat(inspector.clazz(A.class.getTypeName() + "$-CC"), isPresent());
+      assertThat(inspector.clazz(syntheticCompanionClass(I.class)), isPresent());
+      assertThat(inspector.clazz(syntheticCompanionClass(I.class)), isPresent());
     }
-
-    // By the time B is processed, there is no merge representative, so it should be present.
-    assertThat(inspector.clazz(B.class), isPresent());
-
-    // By the time C is processed, B should be merge candidate. Therefore, we should allow C.c() to
-    // be moved to B *although C is an interface*.
-    assertThat(inspector.clazz(C.class), not(isPresent()));
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
-      A.a();
-      B.b();
-      C.c();
+      I.a();
+      J.b();
+      A.c();
     }
   }
 
-  @NeverClassInline
-  interface A {
+  interface I {
 
     @NeverInline
     static void a() {
-      System.out.println("In A.a()");
+      System.out.println("In I.a()");
     }
   }
 
-  @NeverClassInline
-  static class B {
+  interface J {
 
     @NeverInline
     static void b() {
-      System.out.println("In B.b()");
+      System.out.println("In J.b()");
     }
   }
 
-  @NeverClassInline
-  interface C {
+  static class A {
 
     @NeverInline
     static void c() {
-      System.out.println("In C.c()");
+      System.out.println("In A.c()");
     }
   }
 }

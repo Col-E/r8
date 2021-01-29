@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.NoStaticClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -53,7 +52,11 @@ public class HorizontalClassMergerSynchronizedMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(HorizontalClassMergerSynchronizedMethodTest.class)
         .addKeepMainRule(Main.class)
-        .enableNoStaticClassMergingAnnotations()
+        .addHorizontallyMergedClassesInspector(
+            inspector ->
+                inspector
+                    .assertClassesNotMerged(LockOne.class, LockTwo.class, LockThree.class)
+                    .assertMergedInto(AcquireThree.class, AcquireOne.class))
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
@@ -66,7 +69,7 @@ public class HorizontalClassMergerSynchronizedMethodTest extends TestBase {
     void action();
   }
 
-  // Will be merged with LockTwo.
+  // Must not be merged with LockTwo or LockThree.
   static class LockOne {
 
     static synchronized void acquire(I c) {
@@ -74,6 +77,7 @@ public class HorizontalClassMergerSynchronizedMethodTest extends TestBase {
     }
   }
 
+  // Must not be merged with LockOne or LockThree.
   public static class LockTwo {
 
     static synchronized void acquire(I c) {
@@ -83,7 +87,7 @@ public class HorizontalClassMergerSynchronizedMethodTest extends TestBase {
     }
   }
 
-  @NoStaticClassMerging
+  // Must not be merged with LockOne or LockTwo.
   public static class LockThree {
 
     static synchronized void acquire(I c) {

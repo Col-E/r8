@@ -38,7 +38,6 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis;
-import com.android.tools.r8.graph.classmerging.StaticallyMergedClasses;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerResult;
@@ -98,7 +97,6 @@ import com.android.tools.r8.shaking.ProguardConfigurationUtils;
 import com.android.tools.r8.shaking.RootSetUtils.RootSet;
 import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
-import com.android.tools.r8.shaking.StaticClassMerger;
 import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.TreePrunerConfiguration;
 import com.android.tools.r8.shaking.VerticalClassMerger;
@@ -477,18 +475,6 @@ public class R8 {
       RuntimeTypeCheckInfo runtimeTypeCheckInfo = classMergingEnqueuerExtensionBuilder.build();
       if (!isKotlinLibraryCompilationWithInlinePassThrough
           && options.getProguardConfiguration().isOptimizing()) {
-        if (options.enableStaticClassMerging) {
-          timing.begin("HorizontalStaticClassMerger");
-          StaticClassMerger staticClassMerger =
-              new StaticClassMerger(appViewWithLiveness, options, mainDexTracingResult);
-          NestedGraphLens lens = staticClassMerger.run();
-          appView.rewriteWithLens(lens);
-          timing.end();
-        } else {
-          appView.setStaticallyMergedClasses(StaticallyMergedClasses.empty());
-        }
-        assert appView.staticallyMergedClasses() != null;
-
         if (options.enableVerticalClassMerging) {
           timing.begin("VerticalClassMerger");
           VerticalClassMerger verticalClassMerger =

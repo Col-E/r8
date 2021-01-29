@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
@@ -32,36 +33,6 @@ public class FoundFieldSubject extends FieldSubject {
   }
 
   @Override
-  public boolean isPublic() {
-    return dexField.accessFlags.isPublic();
-  }
-
-  @Override
-  public boolean isProtected() {
-    return dexField.accessFlags.isProtected();
-  }
-
-  @Override
-  public boolean isPrivate() {
-    return dexField.accessFlags.isPrivate();
-  }
-
-  @Override
-  public boolean isPackagePrivate() {
-    return !isPublic() && !isProtected() && !isPrivate();
-  }
-
-  @Override
-  public boolean isStatic() {
-    return dexField.accessFlags.isStatic();
-  }
-
-  @Override
-  public boolean isFinal() {
-    return dexField.accessFlags.isFinal();
-  }
-
-  @Override
   public boolean isPresent() {
     return true;
   }
@@ -69,11 +40,6 @@ public class FoundFieldSubject extends FieldSubject {
   @Override
   public boolean isRenamed() {
     return clazz.naming != null && !getFinalSignature().name.equals(getOriginalSignature().name);
-  }
-
-  @Override
-  public boolean isSynthetic() {
-    return dexField.accessFlags.isSynthetic();
   }
 
   public TypeSubject type() {
@@ -158,5 +124,10 @@ public class FoundFieldSubject extends FieldSubject {
   @Override
   public String getJvmFieldSignatureAsString() {
     return dexField.field.name.toString() + ":" + dexField.field.type.toDescriptorString();
+  }
+
+  @Override
+  public AccessFlags<?> getAccessFlags() {
+    return getField().getAccessFlags();
   }
 }
