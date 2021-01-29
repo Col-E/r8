@@ -746,6 +746,9 @@ public class Inliner implements PostOptimization {
       if (lambdaMerger != null) {
         lambdaMerger.rewriteCodeForInlining(target, code, context, inliningIRProvider);
       }
+      if (options.testing.inlineeIrModifier != null) {
+        options.testing.inlineeIrModifier.accept(code);
+      }
       assert code.isConsistentSSA();
       return new InlineeWithReason(code, reason);
     }
