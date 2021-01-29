@@ -42,7 +42,8 @@ public class ClassInlinerDirectWithUnknownReturnTest extends TestBase {
             diagnostics -> {
               diagnostics.assertErrorsMatch(
                   diagnosticMessage(
-                      containsString("Unexpected values live at entry to first block: [v1]")));
+                      containsString(
+                          "Unexpected non-trivial phi in method eligible for class inlining")));
             });
   }
 
