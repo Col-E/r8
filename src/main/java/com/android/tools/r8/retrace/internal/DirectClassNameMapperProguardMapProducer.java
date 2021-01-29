@@ -5,7 +5,7 @@
 package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.retrace.RetraceCommand.ProguardMapProducer;
+import com.android.tools.r8.retrace.ProguardMapProducer;
 
 public interface DirectClassNameMapperProguardMapProducer extends ProguardMapProducer {
 

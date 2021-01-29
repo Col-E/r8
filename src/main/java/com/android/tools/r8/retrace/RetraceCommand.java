@@ -145,7 +145,4 @@ public class RetraceCommand {
     }
   }
 
-  public interface ProguardMapProducer {
-    String get();
-  }
 }

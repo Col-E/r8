@@ -10,7 +10,6 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.retrace.RetraceCommand.ProguardMapProducer;
 import com.android.tools.r8.retrace.internal.RetracerImpl;
 
 /** This is the main api interface for retrace. */

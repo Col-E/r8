@@ -11,7 +11,7 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.InvalidMappingFileException;
-import com.android.tools.r8.retrace.RetraceCommand.ProguardMapProducer;
+import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.Retracer;
 
 /** A default implementation for the retrace api using the ClassNameMapper defined in R8. */

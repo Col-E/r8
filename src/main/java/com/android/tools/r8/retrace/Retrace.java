@@ -12,7 +12,6 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
-import com.android.tools.r8.retrace.RetraceCommand.ProguardMapProducer;
 import com.android.tools.r8.retrace.internal.PlainStackTraceVisitor;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
 import com.android.tools.r8.retrace.internal.RetraceRegularExpression;
