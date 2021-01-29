@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
+import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
+import static com.android.tools.r8.ir.code.Invoke.Type.SUPER;
+import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_CUSTOM;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
@@ -49,6 +53,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -228,13 +233,10 @@ public final class InterfaceMethodRewriter {
     return emulatedInterfaces.containsKey(itf);
   }
 
-  public boolean needsRewriting(DexMethod method, boolean isInvokeSuper, AppView<?> appView) {
-    if (isInvokeSuper) {
+  public boolean needsRewriting(DexMethod method, Type invokeType, AppView<?> appView) {
+    if (invokeType == SUPER || invokeType == STATIC || invokeType == DIRECT) {
       DexClass clazz = appView.appInfo().definitionFor(method.getHolderType());
-      if (clazz != null
-          && clazz.isLibraryClass()
-          && clazz.isInterface()
-          && appView.rewritePrefix.hasRewrittenType(clazz.type, appView)) {
+      if (clazz != null && clazz.isInterface()) {
         return true;
       }
     }
@@ -366,6 +368,7 @@ public final class InterfaceMethodRewriter {
       // This can be a private instance method call. Note that the referenced
       // method is expected to be in the current class since it is private, but desugaring
       // may move some methods or their code into other classes.
+      assert needsRewriting(method, DIRECT, appView);
       instructions.replaceCurrentInstruction(
           new InvokeStatic(
               directTarget.getDefinition().isPrivateMethod()
@@ -379,6 +382,7 @@ public final class InterfaceMethodRewriter {
           appView.appInfoForDesugaring().lookupMaximallySpecificMethod(clazz, method);
       if (virtualTarget != null) {
         // This is a invoke-direct call to a virtual method.
+        assert needsRewriting(method, DIRECT, appView);
         instructions.replaceCurrentInstruction(
             new InvokeStatic(
                 defaultAsMethodOfCompanionClass(virtualTarget),
@@ -461,6 +465,7 @@ public final class InterfaceMethodRewriter {
                                         .setStaticTarget(invokedMethod, true)
                                         .setStaticSource(m)
                                         .build()));
+        assert needsRewriting(invokedMethod, STATIC, appView);
         instructions.replaceCurrentInstruction(
             new InvokeStatic(
                 newProgramMethod.getReference(), invoke.outValue(), invoke.arguments()));
@@ -483,6 +488,7 @@ public final class InterfaceMethodRewriter {
             .resolveMethodOnInterface(clazz, invokedMethod)
             .asSingleResolution();
     if (resolutionResult != null && resolutionResult.getResolvedMethod().isStatic()) {
+      assert needsRewriting(invokedMethod, STATIC, appView);
       instructions.replaceCurrentInstruction(
           new InvokeStatic(
               staticAsMethodOfCompanionClass(resolutionResult.getResolutionPair()),
@@ -509,6 +515,7 @@ public final class InterfaceMethodRewriter {
     instructions.previous();
     instructions.add(throwInvoke);
     instructions.next();
+    assert needsRewriting(invokedMethod, STATIC, appView);
     instructions.replaceCurrentInstructionWithThrow(
         appView, code, blockIterator, throwInvoke.outValue(), blocksToRemove, affectedValues);
   }
@@ -535,6 +542,7 @@ public final class InterfaceMethodRewriter {
       //
       // WARNING: This may result in incorrect code on older platforms!
       // Retarget call to an appropriate method of companion class.
+      assert needsRewriting(invokedMethod, SUPER, appView);
       DexMethod amendedMethod = amendDefaultMethod(context.getHolder(), invokedMethod);
       instructions.replaceCurrentInstruction(
           new InvokeStatic(
@@ -550,6 +558,7 @@ public final class InterfaceMethodRewriter {
           if (target != null && target.getDefinition().isDefaultMethod()) {
             DexClass holder = target.getHolder();
             if (holder.isLibraryClass() && holder.isInterface()) {
+              assert needsRewriting(invokedMethod, SUPER, appView);
               instructions.replaceCurrentInstruction(
                   new InvokeStatic(
                       defaultAsMethodOfCompanionClass(target),
@@ -579,9 +588,11 @@ public final class InterfaceMethodRewriter {
                     factory.protoWithDifferentFirstParameter(
                         originalCompanionMethod.proto, emulatedItf),
                     originalCompanionMethod.name);
+            assert needsRewriting(invokedMethod, SUPER, appView);
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(companionMethod, invoke.outValue(), invoke.arguments()));
           } else {
+            assert needsRewriting(invokedMethod, SUPER, appView);
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(retargetMethod, invoke.outValue(), invoke.arguments()));
           }
@@ -608,6 +619,7 @@ public final class InterfaceMethodRewriter {
     if (resolution != null
         && (resolution.getResolvedHolder().isLibraryClass()
             || appView.options().isDesugaredLibraryCompilation())) {
+      assert needsRewriting(invokedMethod, VIRTUAL, appView);
       rewriteCurrentInstructionToEmulatedInterfaceCall(
           emulatedItf, invokedMethod, invoke, instructions);
     }

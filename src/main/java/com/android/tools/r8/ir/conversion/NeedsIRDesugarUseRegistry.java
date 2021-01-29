@@ -4,12 +4,19 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
+import static com.android.tools.r8.ir.code.Invoke.Type.INTERFACE;
+import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
+import static com.android.tools.r8.ir.code.Invoke.Type.SUPER;
+import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
@@ -56,14 +63,14 @@ class NeedsIRDesugarUseRegistry extends UseRegistry {
   public void registerInvokeVirtual(DexMethod method) {
     registerBackportedMethodRewriting(method);
     registerLibraryRetargeting(method, false);
-    registerInterfaceMethodRewriting(method, false);
+    registerInterfaceMethodRewriting(method, VIRTUAL);
     registerDesugaredLibraryAPIConverter(method);
   }
 
   @Override
   public void registerInvokeDirect(DexMethod method) {
     registerLibraryRetargeting(method, false);
-    registerInterfaceMethodRewriting(method, false);
+    registerInterfaceMethodRewriting(method, DIRECT);
     registerDesugaredLibraryAPIConverter(method);
   }
 
@@ -80,11 +87,11 @@ class NeedsIRDesugarUseRegistry extends UseRegistry {
     }
   }
 
-  private void registerInterfaceMethodRewriting(DexMethod method, boolean isInvokeSuper) {
+  private void registerInterfaceMethodRewriting(DexMethod method, Type invokeType) {
     if (!needsDesugaring) {
       needsDesugaring =
           interfaceMethodRewriter != null
-              && interfaceMethodRewriter.needsRewriting(method, isInvokeSuper, appView);
+              && interfaceMethodRewriter.needsRewriting(method, invokeType, appView);
     }
   }
 
@@ -109,14 +116,14 @@ class NeedsIRDesugarUseRegistry extends UseRegistry {
     registerTwrCloseResourceRewriting(method);
     registerBackportedMethodRewriting(method);
     registerLibraryRetargeting(method, false);
-    registerInterfaceMethodRewriting(method, false);
+    registerInterfaceMethodRewriting(method, STATIC);
     registerDesugaredLibraryAPIConverter(method);
   }
 
   @Override
   public void registerInvokeInterface(DexMethod method) {
     registerLibraryRetargeting(method, true);
-    registerInterfaceMethodRewriting(method, false);
+    registerInterfaceMethodRewriting(method, INTERFACE);
     registerDesugaredLibraryAPIConverter(method);
   }
 
@@ -137,7 +144,7 @@ class NeedsIRDesugarUseRegistry extends UseRegistry {
   @Override
   public void registerInvokeSuper(DexMethod method) {
     registerLibraryRetargeting(method, false);
-    registerInterfaceMethodRewriting(method, true);
+    registerInterfaceMethodRewriting(method, SUPER);
     registerDesugaredLibraryAPIConverter(method);
   }
 
