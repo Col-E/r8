@@ -6,7 +6,7 @@ package com.android.tools.r8.graph.invokespecial;
 
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromJavaType;
 import static org.junit.Assert.assertEquals;
-import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
+import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -45,7 +45,25 @@ public class InvokeSpecialToSubclassTest extends TestBase {
         .addProgramClasses(EmptySubC.class, C.class, D.class, Main.class)
         .addProgramClassFileData(getClassBWithTransformedInvoked(holder))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Should not be called.");
+        .assertSuccessWithOutputLinesIf(isExpectedToSucceedWithD8(), "D")
+        .assertFailureWithErrorThatThrowsIf(!isExpectedToSucceedWithD8(), VerifyError.class);
+  }
+
+  private boolean isExpectedToSucceedWithD8() {
+    if (holder == C.class) {
+      // Should always succeed.
+      return true;
+    }
+    // TODO(b/144410139): Consider making this a compilation failure instead.
+    if (holder == EmptySubC.class && parameters.isDexRuntime()) {
+      // Fails with verification error due to "Bad type on operand stack" on the JVM.
+      //
+      // D8 replaces the invoke in B.callPrint() with an invoke-virtual to EmptySubC.print().
+      // Strictly speaking this doesn't type check, since '(C) this' in B is not a subtype of
+      // EmptySubC, but the code still runs on Art and produces 'D'.
+      return true;
+    }
+    return false;
   }
 
   @Test
@@ -56,7 +74,7 @@ public class InvokeSpecialToSubclassTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Should not be called.");
+        .assertSuccessWithOutputLines("D");
   }
 
   private byte[] getClassBWithTransformedInvoked(Class<?> holder) throws IOException {
@@ -65,8 +83,8 @@ public class InvokeSpecialToSubclassTest extends TestBase {
             "callPrint",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               if (name.equals("replace")) {
-                assertEquals(INVOKESPECIAL, opcode);
-                assertEquals(getBinaryNameFromJavaType(B.class.getTypeName()), owner);
+                assertEquals(INVOKEVIRTUAL, opcode);
+                assertEquals(getBinaryNameFromJavaType(C.class.getTypeName()), owner);
                 continuation.visitMethodInsn(
                     opcode,
                     getBinaryNameFromJavaType(holder.getTypeName()),
@@ -93,7 +111,7 @@ public class InvokeSpecialToSubclassTest extends TestBase {
 
   public static class C extends B {
 
-    private void replace() {
+    void replace() {
       System.out.println("Should not be called.");
     }
 
@@ -108,7 +126,7 @@ public class InvokeSpecialToSubclassTest extends TestBase {
   public static class D extends EmptySubC {
     @Override
     void print() {
-      System.out.println("C");
+      System.out.println("D");
     }
   }
 
