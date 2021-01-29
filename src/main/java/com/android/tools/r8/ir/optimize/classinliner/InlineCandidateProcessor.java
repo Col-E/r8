@@ -62,6 +62,7 @@ import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.WorkList;
@@ -429,7 +430,8 @@ final class InlineCandidateProcessor {
 
     anyInlinedMethods |= forceInlineDirectMethodInvocations(code, inliningIRProvider);
     anyInlinedMethods |= forceInlineIndirectMethodInvocations(code, inliningIRProvider);
-    removeAliasIntroducingInstructionsLinkedToEligibleInstance();
+
+    rebindIndirectEligibleInstanceUsersFromPhis();
     removeMiscUsages(code, affectedValues);
     removeFieldReads(code);
     removeFieldWrites();
@@ -594,47 +596,65 @@ final class InlineCandidateProcessor {
     return true;
   }
 
-  private void removeAliasIntroducingInstructionsLinkedToEligibleInstance() {
-    Set<Instruction> currentUsers = eligibleInstance.uniqueUsers();
-    while (!currentUsers.isEmpty()) {
-      Set<Instruction> indirectOutValueUsers = Sets.newIdentityHashSet();
-      for (Instruction instruction : currentUsers) {
+  private void rebindIndirectEligibleInstanceUsersFromPhis() {
+    // Building the inlinee can cause some of the eligibleInstance users to be phi's. These phi's
+    // should be trivial.
+    // block X:
+    // vX <- NewInstance ...
+    // block Y:
+    // vZ : phi(vX, vY)
+    // block Z
+    // vY : phi(vX, vZ)
+    // These are not pruned by the trivial phi removal. We have to ensure that we rewrite all users
+    // also the indirect users directly using phi's, potentially through assumes and checkcast.
+    Set<Value> aliases = SetUtils.newIdentityHashSet(eligibleInstance);
+    Set<Phi> expectedDeadOrTrivialPhis = Sets.newIdentityHashSet();
+    WorkList<InstructionOrPhi> worklist = WorkList.newIdentityWorkList();
+    eligibleInstance.uniqueUsers().forEach(worklist::addIfNotSeen);
+    eligibleInstance.uniquePhiUsers().forEach(worklist::addIfNotSeen);
+    while (worklist.hasNext()) {
+      InstructionOrPhi instructionOrPhi = worklist.next();
+      if (instructionOrPhi.isPhi()) {
+        Phi phi = instructionOrPhi.asPhi();
+        expectedDeadOrTrivialPhis.add(phi);
+        phi.uniqueUsers().forEach(worklist::addIfNotSeen);
+        phi.uniquePhiUsers().forEach(worklist::addIfNotSeen);
+      } else {
+        Instruction instruction = instructionOrPhi.asInstruction();
         if (aliasesThroughAssumeAndCheckCasts.isIntroducingAnAlias(instruction)) {
-          Value src = aliasesThroughAssumeAndCheckCasts.getAliasForOutValue(instruction);
-          Value dest = instruction.outValue();
-          if (dest.hasPhiUsers()) {
-            // It is possible that a trivial phi is constructed upon IR building for the eligible
-            // value. It must actually be trivial so verify that it is indeed trivial and replace
-            // all of the phis involved with the value.
-            WorkList<Phi> worklist = WorkList.newIdentityWorkList(dest.uniquePhiUsers());
-            while (worklist.hasNext()) {
-              Phi phi = worklist.next();
-              for (Value operand : phi.getOperands()) {
-                operand = operand.getAliasedValue(aliasesThroughAssumeAndCheckCasts);
-                if (operand.isPhi()) {
-                  worklist.addIfNotSeen(operand.asPhi());
-                } else if (src != operand) {
-                  throw new InternalCompilerError(
-                      "Unexpected non-trivial phi in method eligible for class inlining");
-                }
-              }
-            }
-            // The only value flowing into any of the phis is src, so replace all phis by src.
-            for (Phi phi : worklist.getSeenSet()) {
-              indirectOutValueUsers.addAll(phi.uniqueUsers());
-              phi.replaceUsers(src);
-              phi.removeDeadPhi();
-            }
-          }
-          assert !dest.hasPhiUsers();
-          indirectOutValueUsers.addAll(dest.uniqueUsers());
-          dest.replaceUsers(src);
-          removeInstruction(instruction);
+          aliases.add(instruction.outValue());
+          instruction.outValue().uniqueUsers().forEach(worklist::addIfNotSeen);
+          instruction.outValue().uniquePhiUsers().forEach(worklist::addIfNotSeen);
         }
       }
-      currentUsers = indirectOutValueUsers;
     }
-
+    // Check that all phis are dead or trivial.
+    for (Phi deadTrivialPhi : expectedDeadOrTrivialPhis) {
+      for (Value operand : deadTrivialPhi.getOperands()) {
+        operand = operand.getAliasedValue(aliasesThroughAssumeAndCheckCasts);
+        // If the operand is a phi we should have found it in the search above.
+        if (operand.isPhi() && !expectedDeadOrTrivialPhis.contains(operand.asPhi())) {
+          throw new InternalCompilerError(
+              "Unexpected non-trivial phi in method eligible for class inlining");
+        }
+        // If the operand is not a phi, it should be an alias (or the eligibleInstance).
+        if (!operand.isPhi() && !aliases.contains(operand)) {
+          throw new InternalCompilerError(
+              "Unexpected non-trivial phi in method eligible for class inlining");
+        }
+      }
+      deadTrivialPhi.replaceUsers(eligibleInstance);
+      deadTrivialPhi.removeDeadPhi();
+    }
+    // We can now prune the aliases
+    for (Value alias : aliases) {
+      if (alias == eligibleInstance) {
+        continue;
+      }
+      assert alias.definition.isAssume() || alias.definition.isCheckCast();
+      alias.replaceUsers(eligibleInstance);
+      removeInstruction(alias.definition);
+    }
     // Verify that no more assume or check-cast instructions are left as users.
     assert eligibleInstance.aliasedUsers().stream().noneMatch(Instruction::isAssume);
     assert eligibleInstance.aliasedUsers().stream().noneMatch(Instruction::isCheckCast);

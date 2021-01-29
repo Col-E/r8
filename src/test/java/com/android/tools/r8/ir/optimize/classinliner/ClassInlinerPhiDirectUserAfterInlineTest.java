@@ -4,14 +4,14 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static org.hamcrest.CoreMatchers.containsString;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -23,8 +23,10 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,6 +37,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class ClassInlinerPhiDirectUserAfterInlineTest extends TestBase {
 
   private final TestParameters parameters;
+  private final List<String> EXPECTED = ImmutableList.of("0", "A::baz");
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -59,10 +62,10 @@ public class ClassInlinerPhiDirectUserAfterInlineTest extends TestBase {
               options.enableClassInlining = false;
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("0", "A::baz");
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
@@ -73,12 +76,13 @@ public class ClassInlinerPhiDirectUserAfterInlineTest extends TestBase {
               options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
               options.testing.inlineeIrModifier = this::modifyIr;
             })
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              // TODO(b/178608910): This should not fail.
-              diagnostics.assertErrorsMatch(
-                  diagnosticMessage(
-                      containsString("Unexpected values live at entry to first block")));
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED)
+        .inspect(
+            inspector -> {
+              // Assert that the A has been class-inlined into the caller.
+              ClassSubject aSubject = inspector.clazz(A.class);
+              assertThat(aSubject, not(isPresent()));
             });
   }
 
@@ -199,8 +203,6 @@ public class ClassInlinerPhiDirectUserAfterInlineTest extends TestBase {
       instanceGet.replaceValue(0, firstPhi);
     }
   }
-
-  public static class Outer {}
 
   public static class A {
 
