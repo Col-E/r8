@@ -65,7 +65,7 @@ public class UnboxedEnumMemberRelocator {
   }
 
   public static class Builder {
-    private DexType defaultEnumUnboxingUtility;
+    private DexProgramClass defaultEnumUnboxingUtility;
     private Map<DexType, DexType> relocationMap = new IdentityHashMap<>();
     private final AppView<?> appView;
 
@@ -99,7 +99,7 @@ public class UnboxedEnumMemberRelocator {
 
     public UnboxedEnumMemberRelocator build() {
       return new UnboxedEnumMemberRelocator(
-          defaultEnumUnboxingUtility, ImmutableMap.copyOf(relocationMap));
+          defaultEnumUnboxingUtility.getType(), ImmutableMap.copyOf(relocationMap));
     }
 
     private void synthesizeRelocationMap(
@@ -109,20 +109,22 @@ public class UnboxedEnumMemberRelocator {
         FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder) {
       for (ProgramPackage programPackage : enumsToUnboxWithPackageRequirement) {
         Set<DexProgramClass> enumsToUnboxInPackage = programPackage.classesInPackage();
-        DexType utilityType =
+        DexProgramClass enumUtilityClass =
             synthesizeUtilityClass(
                 contexts,
                 enumsToUnboxInPackage,
                 appBuilder,
                 fieldAccessInfoCollectionModifierBuilder);
-        for (DexProgramClass enumToUnbox : enumsToUnboxInPackage) {
-          assert !relocationMap.containsKey(enumToUnbox.type);
-          relocationMap.put(enumToUnbox.type, utilityType);
+        if (enumUtilityClass != defaultEnumUnboxingUtility) {
+          for (DexProgramClass enumToUnbox : enumsToUnboxInPackage) {
+            assert !relocationMap.containsKey(enumToUnbox.type);
+            relocationMap.put(enumToUnbox.type, enumUtilityClass.getType());
+          }
         }
       }
     }
 
-    private DexType synthesizeUtilityClass(
+    private DexProgramClass synthesizeUtilityClass(
         Set<DexProgramClass> contexts,
         Set<DexProgramClass> relocatedEnums,
         DirectMappedDexApplication.Builder appBuilder,
@@ -133,13 +135,8 @@ public class UnboxedEnumMemberRelocator {
       String descriptorPrefix = descriptorString.substring(0, descriptorString.length() - 1);
       String syntheticClassDescriptor = descriptorPrefix + ENUM_UNBOXING_UTILITY_CLASS_SUFFIX + ";";
       DexType type = appView.dexItemFactory().createType(syntheticClassDescriptor);
-      // The defaultEnumUnboxingUtility depends on all unboxable enums, and other synthetic types
-      // depend on a subset of the unboxable enums, the deterministicContextType can therefore
-      // be found twice, and in that case the same utility class can be used for both.
-      if (type == defaultEnumUnboxingUtility) {
-        return defaultEnumUnboxingUtility;
-      }
-      assert appView.appInfo().definitionForWithoutExistenceAssert(type) == null;
+
+      // Required fields.
       List<DexEncodedField> staticFields = new ArrayList<>(relocatedEnums.size());
       for (DexProgramClass relocatedEnum : relocatedEnums) {
         DexField reference =
@@ -151,6 +148,15 @@ public class UnboxedEnumMemberRelocator {
             .recordFieldWriteInUnknownContext(reference);
       }
       staticFields.sort(Comparator.comparing(DexEncodedField::getReference));
+
+      // The defaultEnumUnboxingUtility depends on all unboxable enums, and other synthetic types
+      // depend on a subset of the unboxable enums, the deterministicContextType can therefore
+      // be found twice, and in that case the same utility class can be used for both.
+      if (defaultEnumUnboxingUtility != null && type == defaultEnumUnboxingUtility.getType()) {
+        defaultEnumUnboxingUtility.appendStaticFields(staticFields);
+        return defaultEnumUnboxingUtility;
+      }
+      assert appView.appInfo().definitionForWithoutExistenceAssert(type) == null;
       DexProgramClass syntheticClass =
           new DexProgramClass(
               type,
@@ -178,7 +184,7 @@ public class UnboxedEnumMemberRelocator {
           .appInfo()
           .addSynthesizedClass(
               syntheticClass, appView.appInfo().getMainDexClasses().containsAnyOf(contexts));
-      return syntheticClass.type;
+      return syntheticClass;
     }
 
     private DexType findDeterministicContextType(Set<DexProgramClass> contexts) {
