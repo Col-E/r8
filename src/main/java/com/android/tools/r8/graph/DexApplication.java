@@ -98,8 +98,6 @@ public abstract class DexApplication {
 
   abstract List<DexProgramClass> programClasses();
 
-  abstract List<DexClasspathClass> classpathClasses();
-
   public List<DexProgramClass> classes() {
     ReorderBox<DexProgramClass> box = new ReorderBox<>(programClasses());
     assert box.reorderClasses();
@@ -134,7 +132,6 @@ public abstract class DexApplication {
   public abstract static class Builder<T extends Builder<T>> {
 
     private final List<DexProgramClass> programClasses = new ArrayList<>();
-    private final List<DexClasspathClass> classpathClasses = new ArrayList<>();
 
     final List<DataResourceProvider> dataResourceProviders = new ArrayList<>();
 
@@ -157,7 +154,6 @@ public abstract class DexApplication {
 
     public Builder(DexApplication application) {
       programClasses.addAll(application.programClasses());
-      classpathClasses.addAll(application.classpathClasses());
       dataResourceProviders.addAll(application.dataResourceProviders);
       proguardMap = application.getProguardMap();
       timing = application.timing;
@@ -165,6 +161,14 @@ public abstract class DexApplication {
       options = application.options;
       dexItemFactory = application.dexItemFactory;
       synthesizedClasses = new ArrayList<>();
+    }
+
+    public boolean isDirect() {
+      return false;
+    }
+
+    public DirectMappedDexApplication.Builder asDirect() {
+      return null;
     }
 
     public synchronized T setProguardMap(ClassNameMapper proguardMap) {
@@ -177,14 +181,6 @@ public abstract class DexApplication {
       assert newProgramClasses != null;
       this.programClasses.clear();
       this.programClasses.addAll(newProgramClasses);
-      return self();
-    }
-
-    public synchronized T replaceClasspathClasses(
-        Collection<DexClasspathClass> newClasspathClasses) {
-      assert newClasspathClasses != null;
-      classpathClasses.clear();
-      classpathClasses.addAll(newClasspathClasses);
       return self();
     }
 
@@ -208,16 +204,6 @@ public abstract class DexApplication {
       return self();
     }
 
-    public synchronized T addClasspathClass(DexClasspathClass clazz) {
-      classpathClasses.add(clazz);
-      return self();
-    }
-
-    public synchronized T addClasspathClasses(Collection<DexClasspathClass> classes) {
-      classpathClasses.addAll(classes);
-      return self();
-    }
-
     public synchronized T addSynthesizedClass(DexProgramClass synthesizedClass) {
       assert synthesizedClass.isProgramClass() : "All synthesized classes must be program classes";
       addProgramClass(synthesizedClass);
@@ -227,10 +213,6 @@ public abstract class DexApplication {
 
     public List<DexProgramClass> getProgramClasses() {
       return programClasses;
-    }
-
-    public List<DexClasspathClass> getClasspathClasses() {
-      return classpathClasses;
     }
 
     public Collection<DexProgramClass> getSynthesizedClasses() {

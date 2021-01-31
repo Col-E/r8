@@ -54,12 +54,6 @@ public class LazyLoadedDexApplication extends DexApplication {
   }
 
   @Override
-  List<DexClasspathClass> classpathClasses() {
-    classpathClasses.forceLoad(t -> true);
-    return classpathClasses.getAllClasses();
-  }
-
-  @Override
   public DexClass definitionFor(DexType type) {
     assert type.isClassType() : "Cannot lookup definition for type: " + type;
     DexClass clazz = null;

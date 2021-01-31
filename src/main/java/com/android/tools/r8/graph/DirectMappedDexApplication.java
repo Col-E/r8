@@ -13,6 +13,7 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -58,6 +59,10 @@ public class DirectMappedDexApplication extends DexApplication {
     return allClasses.values();
   }
 
+  public List<DexClasspathClass> classpathClasses() {
+    return classpathClasses;
+  }
+
   @Override
   List<DexProgramClass> programClasses() {
     return programClasses;
@@ -65,11 +70,6 @@ public class DirectMappedDexApplication extends DexApplication {
 
   public List<DexLibraryClass> libraryClasses() {
     return libraryClasses;
-  }
-
-  @Override
-  public List<DexClasspathClass> classpathClasses() {
-    return classpathClasses;
   }
 
   @Override
@@ -181,12 +181,16 @@ public class DirectMappedDexApplication extends DexApplication {
 
   public static class Builder extends DexApplication.Builder<Builder> {
 
+    private ImmutableList<DexClasspathClass> classpathClasses;
     private ImmutableList<DexLibraryClass> libraryClasses;
+
+    private final List<DexClasspathClass> pendingClasspathClasses = new ArrayList<>();
 
     Builder(LazyLoadedDexApplication application) {
       super(application);
       // As a side-effect, this will force-load all classes.
       AllClasses allClasses = application.loadAllClasses();
+      classpathClasses = allClasses.getClasspathClasses();
       libraryClasses = allClasses.getLibraryClasses();
       replaceProgramClasses(allClasses.getProgramClasses());
       replaceClasspathClasses(allClasses.getClasspathClasses());
@@ -194,12 +198,56 @@ public class DirectMappedDexApplication extends DexApplication {
 
     private Builder(DirectMappedDexApplication application) {
       super(application);
+      classpathClasses = application.classpathClasses;
       libraryClasses = application.libraryClasses;
+    }
+
+    @Override
+    public boolean isDirect() {
+      return true;
+    }
+
+    @Override
+    public Builder asDirect() {
+      return this;
     }
 
     @Override
     Builder self() {
       return this;
+    }
+
+    public Builder addClasspathClass(DexClasspathClass clazz) {
+      pendingClasspathClasses.add(clazz);
+      return self();
+    }
+
+    public Builder addClasspathClasses(Collection<DexClasspathClass> classes) {
+      pendingClasspathClasses.addAll(classes);
+      return self();
+    }
+
+    private void commitPendingClasspathClasses() {
+      if (!pendingClasspathClasses.isEmpty()) {
+        classpathClasses =
+            ImmutableList.<DexClasspathClass>builder()
+                .addAll(classpathClasses)
+                .addAll(pendingClasspathClasses)
+                .build();
+        pendingClasspathClasses.clear();
+      }
+    }
+
+    public List<DexClasspathClass> getClasspathClasses() {
+      commitPendingClasspathClasses();
+      return classpathClasses;
+    }
+
+    public Builder replaceClasspathClasses(Collection<DexClasspathClass> newClasspathClasses) {
+      assert newClasspathClasses != null;
+      classpathClasses = ImmutableList.copyOf(newClasspathClasses);
+      pendingClasspathClasses.clear();
+      return self();
     }
 
     public Builder replaceLibraryClasses(Collection<DexLibraryClass> libraryClasses) {
