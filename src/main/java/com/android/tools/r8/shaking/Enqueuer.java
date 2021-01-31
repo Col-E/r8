@@ -158,6 +158,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * Approximates the runtime dependencies for the given set of roots.
@@ -335,6 +336,8 @@ public class Enqueuer {
   /** A queue of items that need processing. Different items trigger different actions. */
   private final EnqueuerWorklist workList;
 
+  private final ProguardCompatibilityActions.Builder proguardCompatibilityActionsBuilder;
+
   /** A set of methods that need code inspection for Java reflection in use. */
   private final ProgramMethodSet pendingReflectiveUses = ProgramMethodSet.createLinked();
 
@@ -417,6 +420,10 @@ public class Enqueuer {
     this.options = options;
     this.useRegistryFactory = createUseRegistryFactory();
     this.workList = EnqueuerWorklist.createWorklist();
+    this.proguardCompatibilityActionsBuilder =
+        mode.isInitialTreeShaking() && options.forceProguardCompatibility
+            ? ProguardCompatibilityActions.builder()
+            : null;
     this.previousMainDexTracingResult = previousMainDexTracingResult;
 
     if (mode.isInitialOrFinalTreeShaking()) {
@@ -1093,7 +1100,7 @@ public class Enqueuer {
       if (baseClass != null) {
         // Don't require any constructor, see b/112386012.
         markClassAsInstantiatedWithCompatRule(
-            baseClass, graphReporter.reportCompatInstantiated(baseClass, currentMethod));
+            baseClass, () -> graphReporter.reportCompatInstantiated(baseClass, currentMethod));
       }
     }
   }
@@ -2215,7 +2222,7 @@ public class Enqueuer {
 
   private void keepClassAndAllMembers(DexProgramClass clazz, KeepReason keepReason) {
     KeepReasonWitness keepReasonWitness = graphReporter.registerClass(clazz, keepReason);
-    markClassAsInstantiatedWithCompatRule(clazz.asProgramClass(), keepReasonWitness);
+    markClassAsInstantiatedWithCompatRule(clazz.asProgramClass(), () -> keepReasonWitness);
     keepInfo.keepClass(clazz);
     shouldNotBeMinified(clazz.getReference());
     clazz.forEachProgramField(
@@ -2416,7 +2423,7 @@ public class Enqueuer {
       } else {
         markLibraryAndClasspathMethodOverridesAsLive(instantiation, clazz);
       }
-      worklist.addIfNotSeen(Arrays.asList(clazz.interfaces.values));
+      worklist.addIfNotSeen(clazz.interfaces);
       clazz = clazz.superType != null ? appInfo().definitionFor(clazz.superType) : null;
     }
     // The targets for methods on the type and its supertype that are reachable are now marked.
@@ -3079,6 +3086,11 @@ public class Enqueuer {
     finalizeLibraryMethodOverrideInformation();
     analyses.forEach(analyses -> analyses.done(this));
     assert verifyKeptGraph();
+    if (mode.isInitialTreeShaking() && forceProguardCompatibility) {
+      appView.setProguardCompatibilityActions(proguardCompatibilityActionsBuilder.build());
+    } else {
+      assert proguardCompatibilityActionsBuilder == null;
+    }
     if (mode.isWhyAreYouKeeping()) {
       // For why are you keeping the information is reported through the kept graph callbacks and
       // no AppInfo is returned.
@@ -4092,7 +4104,19 @@ public class Enqueuer {
   }
 
   private void markClassAsInstantiatedWithCompatRule(
-      DexProgramClass clazz, KeepReasonWitness witness) {
+      DexProgramClass clazz, Supplier<KeepReason> reasonSupplier) {
+    assert forceProguardCompatibility;
+
+    if (appView.hasProguardCompatibilityActions()
+        && !appView.getProguardCompatibilityActions().isCompatInstantiated(clazz)) {
+      return;
+    }
+
+    if (mode.isInitialTreeShaking()) {
+      proguardCompatibilityActionsBuilder.addCompatInstantiatedType(clazz);
+    }
+
+    KeepReasonWitness witness = graphReporter.registerClass(clazz, reasonSupplier.get());
     if (clazz.isAnnotation()) {
       markTypeAsLive(clazz, witness);
     } else if (clazz.isInterface()) {
@@ -4169,15 +4193,8 @@ public class Enqueuer {
       }
       markTypeAsLive(clazz, KeepReason.reflectiveUseIn(method));
       if (clazz.canBeInstantiatedByNewInstance()
-          && identifierTypeLookupResult.isTypeInstantiatedFromUse(options)) {
-        workList.enqueueMarkInstantiatedAction(
-            clazz, null, InstantiationReason.REFLECTION, KeepReason.reflectiveUseIn(method));
-        if (clazz.hasDefaultInitializer()) {
-          ProgramMethod initializer = clazz.getProgramDefaultInitializer();
-          KeepReason reason = KeepReason.reflectiveUseIn(method);
-          markMethodAsTargeted(initializer, reason);
-          markDirectStaticOrConstructorMethodAsLive(initializer, reason);
-        }
+          && identifierTypeLookupResult.isTypeCompatInstantiatedFromUse(options)) {
+        markClassAsInstantiatedWithCompatRule(clazz, () -> KeepReason.reflectiveUseIn(method));
       } else if (identifierTypeLookupResult.isTypeInitializedFromUse()) {
         markDirectAndIndirectClassInitializersAsLive(clazz);
       }

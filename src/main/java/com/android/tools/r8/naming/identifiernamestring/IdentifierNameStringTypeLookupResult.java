@@ -16,7 +16,7 @@ public abstract class IdentifierNameStringTypeLookupResult
 
   public abstract boolean isTypeInitializedFromUse();
 
-  public abstract boolean isTypeInstantiatedFromUse(InternalOptions options);
+  public abstract boolean isTypeCompatInstantiatedFromUse(InternalOptions options);
 
   @Override
   public boolean isTypeResult() {

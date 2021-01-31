@@ -20,7 +20,7 @@ public class ClassNameComparisonIdentifierNameStringLookupResult
   }
 
   @Override
-  public boolean isTypeInstantiatedFromUse(InternalOptions options) {
+  public boolean isTypeCompatInstantiatedFromUse(InternalOptions options) {
     return false;
   }
 }

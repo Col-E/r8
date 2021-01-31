@@ -20,7 +20,7 @@ public class ClassForNameIdentifierNameStringLookupResult
   }
 
   @Override
-  public boolean isTypeInstantiatedFromUse(InternalOptions options) {
+  public boolean isTypeCompatInstantiatedFromUse(InternalOptions options) {
     return options.isForceProguardCompatibilityEnabled();
   }
 }

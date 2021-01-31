@@ -38,6 +38,10 @@ public class PrunedItems {
     return removedClasses.isEmpty() && additionalPinnedItems.isEmpty();
   }
 
+  public boolean isRemoved(DexType type) {
+    return removedClasses.contains(type);
+  }
+
   public DexApplication getPrunedApp() {
     return prunedApp;
   }
