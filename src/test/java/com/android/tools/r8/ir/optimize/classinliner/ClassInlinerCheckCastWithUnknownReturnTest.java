@@ -19,7 +19,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 // This is a reproduction of b/176381203.
 @RunWith(Parameterized.class)
-public class ClassInlinerDirectWithUnknownReturnTest extends TestBase {
+public class ClassInlinerCheckCastWithUnknownReturnTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -28,7 +28,7 @@ public class ClassInlinerDirectWithUnknownReturnTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public ClassInlinerDirectWithUnknownReturnTest(TestParameters parameters) {
+  public ClassInlinerCheckCastWithUnknownReturnTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -40,8 +40,8 @@ public class ClassInlinerDirectWithUnknownReturnTest extends TestBase {
         .enableNeverSingleCallerInlineAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello World 0")
-        .inspect(
+        .assertFailureWithErrorThatThrows(ClassCastException.class)
+        .inspectFailure(
             inspector -> {
               ClassSubject aSubject = inspector.clazz(A.class);
               assertThat(aSubject, isPresent());
@@ -53,17 +53,11 @@ public class ClassInlinerDirectWithUnknownReturnTest extends TestBase {
     public int number;
 
     @NeverSingleCallerInline
-    public A abs() {
-      if (number > 0) {
-        return this;
+    public Object abs() {
+      if (number == 0) {
+        return new Object();
       }
-      return new A();
-    }
-
-    @Override
-    @NeverSingleCallerInline
-    public String toString() {
-      return "Hello World " + number;
+      return this;
     }
   }
 
@@ -72,7 +66,8 @@ public class ClassInlinerDirectWithUnknownReturnTest extends TestBase {
     public static void main(String[] args) {
       A a = new A();
       a.number = args.length;
-      System.out.println(a.abs().toString());
+      A returnedA = (A) (a.abs());
+      System.out.println("Hello World");
     }
   }
 }

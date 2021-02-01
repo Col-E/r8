@@ -919,6 +919,12 @@ final class InlineCandidateProcessor {
       return false;
     }
 
+    // We cannot guarantee the invoke returns the receiver or another instance and since the
+    // return value is used we have to bail out.
+    if (eligibility.returnsReceiver.isUnknown()) {
+      return false;
+    }
+
     // Add the out-value as a definite-alias if the invoke instruction is guaranteed to return the
     // receiver. Otherwise, the out-value may be an alias of the receiver, and it is added to the
     // may-alias set.
