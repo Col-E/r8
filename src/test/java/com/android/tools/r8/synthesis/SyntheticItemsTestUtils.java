@@ -86,6 +86,10 @@ public class SyntheticItemsTestUtils {
     return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, SyntheticKind.OUTLINE);
   }
 
+  public static boolean isInitializerTypeArgument(ClassReference reference) {
+    return SyntheticNaming.isSynthetic(reference, null, SyntheticKind.INIT_TYPE_ARGUMENT);
+  }
+
   public static Matcher<String> containsInternalSyntheticReference() {
     return containsString(SyntheticNaming.getPhaseSeparator(Phase.INTERNAL));
   }

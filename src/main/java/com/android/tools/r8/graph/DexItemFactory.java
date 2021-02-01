@@ -25,7 +25,6 @@ import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -453,10 +452,6 @@ public class DexItemFactory {
   public final DexType androidUtilPropertyType =
       createStaticallyKnownType("Landroid/util/Property;");
   public final DexType androidViewViewType = createStaticallyKnownType("Landroid/view/View;");
-
-  public final DexString nestConstructorDescriptor =
-      createString("L" + NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME + ";");
-  public final DexType nestConstructorType = createStaticallyKnownType(nestConstructorDescriptor);
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);

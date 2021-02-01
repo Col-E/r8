@@ -765,16 +765,17 @@ public class SyntheticFinalization {
       DexType representativeContext,
       Map<DexType, NumberGenerator> generators,
       AppView<?> appView) {
+    DexItemFactory factory = appView.dexItemFactory();
+    if (kind.isFixedSuffixSynthetic) {
+      return SyntheticNaming.createExternalType(kind, representativeContext, "", factory);
+    }
     NumberGenerator generator =
         generators.computeIfAbsent(representativeContext, k -> new NumberGenerator());
     DexType externalType;
     do {
       externalType =
           SyntheticNaming.createExternalType(
-              kind,
-              representativeContext,
-              Integer.toString(generator.next()),
-              appView.dexItemFactory());
+              kind, representativeContext, Integer.toString(generator.next()), factory);
       DexClass clazz = appView.appInfo().definitionForWithoutExistenceAssert(externalType);
       if (clazz != null && isNotSyntheticType(clazz.type)) {
         assert options.testing.allowConflictingSyntheticTypes

@@ -3155,8 +3155,6 @@ public class Enqueuer {
 
     Map<DexMethod, ProgramMethod> liveMethods = new IdentityHashMap<>();
 
-    Map<DexType, DexProgramClass> syntheticProgramClasses = new IdentityHashMap<>();
-
     Map<DexType, DexClasspathClass> syntheticClasspathClasses = new IdentityHashMap<>();
 
     // Subset of live methods that need have keep requirements.
@@ -3171,7 +3169,6 @@ public class Enqueuer {
           desugaredMethods.isEmpty()
               && syntheticInstantiations.isEmpty()
               && liveMethods.isEmpty()
-              && syntheticProgramClasses.isEmpty()
               && syntheticClasspathClasses.isEmpty();
       assert !empty || (liveMethodsWithKeepActions.isEmpty() && mainDexTypes.isEmpty());
       return empty;
@@ -3184,11 +3181,6 @@ public class Enqueuer {
 
     void addClasspathClass(DexClasspathClass clazz) {
       DexClasspathClass old = syntheticClasspathClasses.put(clazz.type, clazz);
-      assert old == null;
-    }
-
-    void addProgramClass(DexProgramClass clazz) {
-      DexProgramClass old = syntheticProgramClasses.put(clazz.type, clazz);
       assert old == null;
     }
 
@@ -3206,7 +3198,6 @@ public class Enqueuer {
 
     void amendApplication(Builder appBuilder) {
       assert !isEmpty();
-      appBuilder.addProgramClasses(syntheticProgramClasses.values());
       appBuilder.addClasspathClasses(syntheticClasspathClasses.values());
     }
 
@@ -3283,7 +3274,6 @@ public class Enqueuer {
     synthesizeLambdas(additions);
     synthesizeLibraryConversionWrappers(additions);
     synthesizeBackports(additions);
-    synthesizeNestConstructor(additions);
     synthesizeTwrCloseResource(additions);
     if (additions.isEmpty()) {
       return;
@@ -3369,16 +3359,6 @@ public class Enqueuer {
   private void synthesizeBackports(SyntheticAdditions additions) {
     for (ProgramMethod method : methodsWithBackports.values()) {
       backportRewriter.desugar(method, appInfo, additions::addLiveMethod);
-    }
-  }
-
-  private void synthesizeNestConstructor(SyntheticAdditions additions) {
-    if (nestBasedAccessRewriter != null) {
-      DexProgramClass nestConstructor = nestBasedAccessRewriter.synthesizeNestConstructor();
-      if (nestConstructor != null) {
-        // TODO(b/177638147): use getSyntheticItems().createClass().
-        additions.addProgramClass(nestConstructor);
-      }
     }
   }
 

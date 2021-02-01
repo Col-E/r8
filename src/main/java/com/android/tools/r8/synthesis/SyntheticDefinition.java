@@ -64,7 +64,7 @@ abstract class SyntheticDefinition<
   final HashCode computeHash(
       RepresentativeMap map, boolean intermediate, ClassToFeatureSplitMap classToFeatureSplitMap) {
     Hasher hasher = Hashing.murmur3_128().newHasher();
-    if (intermediate) {
+    if (intermediate || getKind().isFixedSuffixSynthetic) {
       // If in intermediate mode, include the context type as sharing is restricted to within a
       // single context.
       getContext().getSynthesizingContextType().hashWithTypeEquivalence(hasher, map);
@@ -95,7 +95,7 @@ abstract class SyntheticDefinition<
       boolean includeContext,
       GraphLens graphLens,
       ClassToFeatureSplitMap classToFeatureSplitMap) {
-    if (includeContext) {
+    if (includeContext || getKind().isFixedSuffixSynthetic) {
       int order = getContext().compareTo(other.getContext());
       if (order != 0) {
         return order;

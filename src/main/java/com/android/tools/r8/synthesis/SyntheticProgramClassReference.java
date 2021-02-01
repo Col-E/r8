@@ -53,7 +53,8 @@ class SyntheticProgramClassReference
     // Ensure that if a synthetic moves its context moves consistently.
     if (type != rewritten) {
       context =
-          SynthesizingContext.fromSyntheticContextChange(rewritten, context, lens.dexItemFactory());
+          SynthesizingContext.fromSyntheticContextChange(
+              getKind(), rewritten, context, lens.dexItemFactory());
       if (context == null) {
         return null;
       }

@@ -24,6 +24,7 @@ public class SyntheticNaming {
     // Class synthetics.
     COMPANION_CLASS("CompanionClass", false),
     LAMBDA("Lambda", false),
+    INIT_TYPE_ARGUMENT("-IA", false, true),
     // Method synthetics.
     BACKPORT("Backport", true),
     STATIC_INTERFACE_CALL("StaticInterfaceCall", true),
@@ -37,10 +38,17 @@ public class SyntheticNaming {
 
     public final String descriptor;
     public final boolean isSingleSyntheticMethod;
+    public final boolean isFixedSuffixSynthetic;
 
     SyntheticKind(String descriptor, boolean isSingleSyntheticMethod) {
+      this(descriptor, isSingleSyntheticMethod, false);
+    }
+
+    SyntheticKind(
+        String descriptor, boolean isSingleSyntheticMethod, boolean isFixedSuffixSynthetic) {
       this.descriptor = descriptor;
       this.isSingleSyntheticMethod = isSingleSyntheticMethod;
+      this.isFixedSuffixSynthetic = isFixedSuffixSynthetic;
     }
 
     public static SyntheticKind fromDescriptor(String descriptor) {
@@ -73,8 +81,15 @@ public class SyntheticNaming {
         || typeName.contains(EXTERNAL_SYNTHETIC_CLASS_SEPARATOR);
   }
 
+  public static DexType createFixedType(
+      SyntheticKind kind, SynthesizingContext context, DexItemFactory factory) {
+    assert kind.isFixedSuffixSynthetic;
+    return createType("", kind, context.getSynthesizingContextType(), "", factory);
+  }
+
   static DexType createInternalType(
       SyntheticKind kind, SynthesizingContext context, String id, DexItemFactory factory) {
+    assert !kind.isFixedSuffixSynthetic;
     return createType(
         INTERNAL_SYNTHETIC_CLASS_SEPARATOR,
         kind,
@@ -85,7 +100,13 @@ public class SyntheticNaming {
 
   static DexType createExternalType(
       SyntheticKind kind, DexType context, String id, DexItemFactory factory) {
-    return createType(EXTERNAL_SYNTHETIC_CLASS_SEPARATOR, kind, context, id, factory);
+    assert kind.isFixedSuffixSynthetic == id.isEmpty();
+    return createType(
+        kind.isFixedSuffixSynthetic ? "" : EXTERNAL_SYNTHETIC_CLASS_SEPARATOR,
+        kind,
+        context,
+        id,
+        factory);
   }
 
   private static DexType createType(
@@ -134,6 +155,10 @@ public class SyntheticNaming {
 
   static boolean isSynthetic(ClassReference clazz, Phase phase, SyntheticKind kind) {
     String typeName = clazz.getTypeName();
+    if (kind.isFixedSuffixSynthetic) {
+      assert phase == null;
+      return clazz.getBinaryName().endsWith(kind.descriptor);
+    }
     String separator = getPhaseSeparator(phase);
     int i = typeName.indexOf(separator);
     return i >= 0 && checkMatchFrom(kind, typeName, i, separator, phase == Phase.EXTERNAL);

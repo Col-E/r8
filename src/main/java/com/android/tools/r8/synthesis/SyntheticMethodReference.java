@@ -66,7 +66,7 @@ class SyntheticMethodReference
     if (method != rewritten) {
       context =
           SynthesizingContext.fromSyntheticContextChange(
-              rewritten.holder, context, lens.dexItemFactory());
+              getKind(), rewritten.holder, context, lens.dexItemFactory());
       if (context == null) {
         return null;
       }

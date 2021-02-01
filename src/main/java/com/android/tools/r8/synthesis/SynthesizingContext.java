@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.synthesis.SyntheticNaming.Phase;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import java.util.Comparator;
 import java.util.Set;
 
@@ -63,14 +64,27 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
   }
 
   static SynthesizingContext fromSyntheticContextChange(
-      DexType syntheticType, SynthesizingContext oldContext, DexItemFactory factory) {
+      SyntheticKind kind,
+      DexType syntheticType,
+      SynthesizingContext oldContext,
+      DexItemFactory factory) {
     String descriptor = syntheticType.toDescriptorString();
-    int i = descriptor.indexOf(SyntheticNaming.getPhaseSeparator(Phase.INTERNAL));
-    if (i <= 0) {
-      assert false : "Unexpected synthetic without internal separator: " + syntheticType;
-      return null;
+    DexType newContext;
+    if (kind.isFixedSuffixSynthetic) {
+      int i = descriptor.lastIndexOf(kind.descriptor);
+      if (i < 0 || descriptor.length() != i + kind.descriptor.length() + 1) {
+        assert false : "Unexpected fixed synthetic with invalid suffix: " + syntheticType;
+        return null;
+      }
+      newContext = factory.createType(descriptor.substring(0, i) + ";");
+    } else {
+      int i = descriptor.indexOf(SyntheticNaming.getPhaseSeparator(Phase.INTERNAL));
+      if (i <= 0) {
+        assert false : "Unexpected synthetic without internal separator: " + syntheticType;
+        return null;
+      }
+      newContext = factory.createType(descriptor.substring(0, i) + ";");
     }
-    DexType newContext = factory.createType(descriptor.substring(0, i) + ";");
     return newContext == oldContext.getSynthesizingContextType()
         ? oldContext
         : new SynthesizingContext(newContext, newContext, oldContext.inputContextOrigin);

@@ -48,7 +48,9 @@ class SyntheticProgramClassDefinition
 
   @Override
   public boolean isValid() {
-    return clazz.isPublic() && clazz.isFinal() && clazz.accessFlags.isSynthetic();
+    return clazz.isPublic()
+        && clazz.accessFlags.isSynthetic()
+        && (clazz.isFinal() || clazz.isAbstract());
   }
 
   @Override

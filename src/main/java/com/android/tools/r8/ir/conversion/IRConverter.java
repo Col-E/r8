@@ -398,12 +398,8 @@ public class IRConverter {
     }
   }
 
-  private void finalizeNestBasedAccessDesugaring(Builder<?> builder) {
+  private void reportNestDesugarDependencies() {
     if (d8NestBasedAccessDesugaring != null) {
-      DexProgramClass nestConstructor = d8NestBasedAccessDesugaring.synthesizeNestConstructor();
-      if (nestConstructor != null) {
-        builder.addProgramClass(nestConstructor);
-      }
       d8NestBasedAccessDesugaring.reportDesugarDependencies();
     }
   }
@@ -489,10 +485,7 @@ public class IRConverter {
 
     convertClasses(application, executor);
 
-    // Build a new application with jumbo string info,
-    Builder<?> builder = application.builder().setHighestSortingString(highestSortingString);
-
-    finalizeNestBasedAccessDesugaring(builder);
+    reportNestDesugarDependencies();
 
     // Synthesize lambda classes and commit to the app in full.
     synthesizeLambdaClasses(executor);
@@ -500,12 +493,13 @@ public class IRConverter {
     if (appView.getSyntheticItems().hasPendingSyntheticClasses()) {
       appView.setAppInfo(
           new AppInfo(
-              appView.appInfo().getSyntheticItems().commit(builder.build()),
+              appView.appInfo().getSyntheticItems().commit(application),
               appView.appInfo().getMainDexClasses()));
       application = appView.appInfo().app();
-      builder = application.builder();
-      builder.setHighestSortingString(highestSortingString);
     }
+
+    // Build a new application with jumbo string info,
+    Builder<?> builder = application.builder().setHighestSortingString(highestSortingString);
 
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
     processSynthesizedJava8UtilityClasses(executor);

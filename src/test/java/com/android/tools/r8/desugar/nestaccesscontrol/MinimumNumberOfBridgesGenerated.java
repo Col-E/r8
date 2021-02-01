@@ -13,7 +13,10 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
@@ -79,9 +82,14 @@ public class MinimumNumberOfBridgesGenerated extends TestBase {
   private boolean isNestBridge(FoundMethodSubject methodSubject) {
     DexEncodedMethod method = methodSubject.getMethod();
     if (method.isInstanceInitializer()) {
-      return method.method.proto.parameters.size() > 0 && method.method.proto.parameters.values[
-          method.method.proto.parameters.size() - 1].toSourceString()
-          .contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME);
+      if (method.method.proto.parameters.isEmpty()) {
+        return false;
+      }
+      DexType[] formals = method.method.proto.parameters.values;
+      DexType lastFormal = formals[formals.length - 1];
+      return lastFormal.isClassType()
+          && SyntheticItemsTestUtils.isInitializerTypeArgument(
+              Reference.classFromDescriptor(lastFormal.toDescriptorString()));
     }
     return method.method.name.toString()
         .startsWith(NestBasedAccessDesugaring.NEST_ACCESS_NAME_PREFIX);

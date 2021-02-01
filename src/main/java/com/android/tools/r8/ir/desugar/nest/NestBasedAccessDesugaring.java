@@ -10,18 +10,14 @@ import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMember;
@@ -30,21 +26,20 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.LibraryMember;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import org.objectweb.asm.Opcodes;
 
@@ -63,14 +58,10 @@ public class NestBasedAccessDesugaring {
   private static final String NEST_ACCESS_FIELD_PUT_NAME_PREFIX = NEST_ACCESS_NAME_PREFIX + "fput";
   private static final String NEST_ACCESS_STATIC_PUT_FIELD_NAME_PREFIX =
       NEST_ACCESS_NAME_PREFIX + "sfput";
-  public static final String NEST_CONSTRUCTOR_NAME = NEST_ACCESS_NAME_PREFIX + "Constructor";
 
   protected final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
-
-  // Common single empty class for nest based private constructors
-  private DexProgramClass nestConstructor;
-  private boolean nestConstructorUsed;
+  private final Map<DexType, DexType> syntheticNestConstructorTypes = new ConcurrentHashMap<>();
 
   public NestBasedAccessDesugaring(AppView<?> appView) {
     this.appView = appView;
@@ -234,40 +225,6 @@ public class NestBasedAccessDesugaring {
     throw appView.options().errorMissingNestMember(nest);
   }
 
-  private DexProgramClass createNestAccessConstructor() {
-    // TODO(b/176900254): ensure hygienic synthetic class.
-    return new DexProgramClass(
-        dexItemFactory.nestConstructorType,
-        null,
-        new SynthesizedOrigin("Nest based access desugaring", getClass()),
-        // Make the synthesized class public since shared in the whole program.
-        ClassAccessFlags.fromDexAccessFlags(
-            Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC),
-        dexItemFactory.objectType,
-        DexTypeList.empty(),
-        dexItemFactory.createString("nest"),
-        null,
-        Collections.emptyList(),
-        null,
-        Collections.emptyList(),
-        ClassSignature.noSignature(),
-        DexAnnotationSet.empty(),
-        DexEncodedField.EMPTY_ARRAY,
-        DexEncodedField.EMPTY_ARRAY,
-        DexEncodedMethod.EMPTY_ARRAY,
-        DexEncodedMethod.EMPTY_ARRAY,
-        dexItemFactory.getSkipNameValidationForTesting(),
-        DexProgramClass::checksumFromType);
-  }
-
-  public DexProgramClass synthesizeNestConstructor() {
-    if (nestConstructorUsed && nestConstructor == null) {
-      nestConstructor = createNestAccessConstructor();
-      return nestConstructor;
-    }
-    return null;
-  }
-
   DexMethod ensureFieldAccessBridge(
       DexClassAndField field, boolean isGet, NestBridgeConsumer bridgeConsumer) {
     if (field.isProgramField()) {
@@ -360,9 +317,31 @@ public class NestBasedAccessDesugaring {
 
   private DexMethod getMethodBridgeReference(DexClassAndMethod method) {
     if (method.getDefinition().isInstanceInitializer()) {
-      DexProto newProto =
-          dexItemFactory.appendTypeToProto(method.getProto(), dexItemFactory.nestConstructorType);
-      nestConstructorUsed = true;
+      DexType nestConstructorType =
+          syntheticNestConstructorTypes.computeIfAbsent(
+              method.getHolderType(),
+              holder -> {
+                if (method.isProgramMethod()) {
+                  return appView
+                      .getSyntheticItems()
+                      .createFixedClass(
+                          SyntheticKind.INIT_TYPE_ARGUMENT,
+                          method.asProgramMethod().getHolder(),
+                          dexItemFactory,
+                          builder -> {})
+                      .getType();
+                } else {
+                  assert method.isClasspathMethod();
+                  return appView
+                      .getSyntheticItems()
+                      .createFixedClasspathClass(
+                          SyntheticKind.INIT_TYPE_ARGUMENT,
+                          method.asClasspathMethod().getHolder(),
+                          dexItemFactory)
+                      .getType();
+                }
+              });
+      DexProto newProto = dexItemFactory.appendTypeToProto(method.getProto(), nestConstructorType);
       return method.getReference().withProto(newProto, dexItemFactory);
     }
     DexProto proto =

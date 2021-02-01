@@ -8,7 +8,6 @@ import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
@@ -36,6 +35,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
           "$-DC",
           "$$ServiceLoaderMethods",
           "com.android.tools.r8.GeneratedOutlineSupport",
+          "-$$Nest$Constructor",
           "-$$Lambda$");
 
   public final DexString descriptor;
@@ -308,8 +308,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   private static boolean isSynthesizedTypeThatCouldBeDuplicated(String name) {
     // Any entry that is removed from here must be added to OLD_SYNTHESIZED_NAMES to ensure that
     // newer releases can be used to merge previous builds.
-    return name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX) // Could collide.
-        || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME); // Global singleton.
+    return name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX);
   }
 
   private boolean oldSynthesizedName(String name) {
