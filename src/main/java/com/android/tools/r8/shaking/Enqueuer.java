@@ -1090,8 +1090,8 @@ public class Enqueuer {
   }
 
   private void traceConstClassOrCheckCast(DexType type, ProgramMethod currentMethod) {
+    traceTypeReference(type, currentMethod);
     if (!forceProguardCompatibility) {
-      traceTypeReference(type, currentMethod);
       return;
     }
     DexType baseType = type.toBaseType(appView.dexItemFactory());
