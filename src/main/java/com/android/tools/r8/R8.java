@@ -94,6 +94,7 @@ import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardConfigurationUtils;
+import com.android.tools.r8.shaking.RootSetUtils.MainDexRootSet;
 import com.android.tools.r8.shaking.RootSetUtils.RootSet;
 import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
@@ -421,19 +422,19 @@ public class R8 {
       // Build conservative main dex content after first round of tree shaking. This is used
       // by certain optimizations to avoid introducing additional class references into main dex
       // classes, as that can cause the final number of main dex methods to grow.
-      RootSet mainDexRootSet = null;
       MainDexTracingResult mainDexTracingResult = MainDexTracingResult.NONE;
       if (!options.mainDexKeepRules.isEmpty()) {
         assert appView.graphLens().isIdentityLens();
         // Find classes which may have code executed before secondary dex files installation.
         SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
-        mainDexRootSet =
-            RootSet.builder(appView, subtypingInfo, options.mainDexKeepRules)
+        MainDexRootSet mainDexRootSet =
+            MainDexRootSet.builder(appView, subtypingInfo, options.mainDexKeepRules)
                 .build(executorService);
+        appView.setMainDexRootSet(mainDexRootSet);
         // Live types is the tracing result.
         Set<DexProgramClass> mainDexBaseClasses =
             EnqueuerFactory.createForInitialMainDexTracing(appView, executorService, subtypingInfo)
-                .traceMainDex(mainDexRootSet, executorService, timing);
+                .traceMainDex(executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
         mainDexTracingResult = new MainDexListBuilder(mainDexBaseClasses, appView).run();
         appView.appInfo().unsetObsolete();
@@ -603,10 +604,10 @@ public class R8 {
 
       if (!options.mainDexKeepRules.isEmpty()) {
         // No need to build a new main dex root set
-        assert mainDexRootSet != null;
+        assert appView.getMainDexRootSet() != null;
         GraphConsumer mainDexKeptGraphConsumer = options.mainDexKeptGraphConsumer;
         WhyAreYouKeepingConsumer whyAreYouKeepingConsumer = null;
-        if (!mainDexRootSet.reasonAsked.isEmpty()) {
+        if (!appView.getMainDexRootSet().reasonAsked.isEmpty()) {
           whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(mainDexKeptGraphConsumer);
           mainDexKeptGraphConsumer = whyAreYouKeepingConsumer;
         }
@@ -620,14 +621,13 @@ public class R8 {
                 mainDexTracingResult);
         // Find classes which may have code executed before secondary dex files installation.
         // Live types is the tracing result.
-        Set<DexProgramClass> mainDexBaseClasses =
-            enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
+        Set<DexProgramClass> mainDexBaseClasses = enqueuer.traceMainDex(executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
         mainDexTracingResult = new MainDexListBuilder(mainDexBaseClasses, appView).run();
         final MainDexTracingResult finalMainDexClasses = mainDexTracingResult;
 
         processWhyAreYouKeepingAndCheckDiscarded(
-            mainDexRootSet,
+            appView.getMainDexRootSet(),
             () -> {
               ArrayList<DexProgramClass> classes = new ArrayList<>();
               // TODO(b/131668850): This is not a deterministic order!
@@ -1047,7 +1047,7 @@ public class R8 {
                 subtypingInfo,
                 whyAreYouKeepingConsumer,
                 MainDexTracingResult.NONE);
-        enqueuer.traceMainDex(rootSet, executorService, timing);
+        enqueuer.traceMainDex(executorService, timing);
       } else {
         enqueuer =
             EnqueuerFactory.createForWhyAreYouKeeping(

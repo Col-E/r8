@@ -3014,11 +3014,11 @@ public class Enqueuer {
   }
 
   // Returns the set of live types.
-  public Set<DexProgramClass> traceMainDex(
-      RootSet rootSet, ExecutorService executorService, Timing timing) throws ExecutionException {
+  public Set<DexProgramClass> traceMainDex(ExecutorService executorService, Timing timing)
+      throws ExecutionException {
     assert analyses.isEmpty();
     assert mode.isMainDexTracing();
-    this.rootSet = rootSet;
+    this.rootSet = appView.getMainDexRootSet();
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);
     trace(executorService, timing);

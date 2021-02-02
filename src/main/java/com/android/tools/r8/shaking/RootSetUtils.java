@@ -30,6 +30,7 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
@@ -1765,6 +1766,35 @@ public class RootSetUtils {
     public int size() {
       return classesWithRules.size() + fieldsWithRules.size() + methodsWithRules.size();
     }
+
+    public void forEachReference(
+        BiConsumer<? super DexReference, Set<ProguardKeepRuleBase>> consumer) {
+      forEachClass(consumer);
+      forEachMember(consumer);
+    }
+
+    private MutableItemsWithRules prune(Set<DexType> prunedClasses) {
+      MutableItemsWithRules prunedItemsWithRules = new MutableItemsWithRules();
+      forEachReference(
+          (reference, rules) -> {
+            if (!prunedClasses.contains(reference.getContextType())) {
+              prunedItemsWithRules.addReferenceWithRules(reference, rules);
+            }
+          });
+      return prunedItemsWithRules;
+    }
+
+    private MutableItemsWithRules rewrittenWithLens(GraphLens graphLens) {
+      if (graphLens.isIdentityLens()) {
+        return this;
+      }
+      MutableItemsWithRules rewrittenItemsWithRules = new MutableItemsWithRules();
+      forEachReference(
+          (reference, rules) ->
+              rewrittenItemsWithRules.addReferenceWithRules(
+                  graphLens.lookupReference(reference), rules));
+      return rewrittenItemsWithRules;
+    }
   }
 
   public static class RootSet extends RootSetBase {
@@ -1889,7 +1919,7 @@ public class RootSetUtils {
     }
 
     // Add dependent items that depend on -if rules.
-    private static void addDependentItems(
+    static void addDependentItems(
         Map<DexReference, ? extends ItemsWithRules> dependentItemsToAdd,
         Map<DexReference, MutableItemsWithRules> dependentItemsToAddTo) {
       dependentItemsToAdd.forEach(
@@ -2191,6 +2221,139 @@ public class RootSetUtils {
         SubtypingInfo subtypingInfo,
         Enqueuer enqueuer) {
       return new ConsequentRootSetBuilder(appView, subtypingInfo, enqueuer);
+    }
+  }
+
+  public static class MainDexRootSetBuilder extends RootSetBuilder {
+
+    private MainDexRootSetBuilder(
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        SubtypingInfo subtypingInfo,
+        Iterable<? extends ProguardConfigurationRule> rules) {
+      super(appView, subtypingInfo, rules);
+    }
+
+    @Override
+    public MainDexRootSet build(ExecutorService executorService) throws ExecutionException {
+      // Call the super builder to have if-tests calculated automatically.
+      RootSet rootSet = super.build(executorService);
+      assert rootSet.delayedRootSetActionItems.isEmpty();
+      return new MainDexRootSet(
+          rootSet.noShrinking,
+          rootSet.reasonAsked,
+          rootSet.checkDiscarded,
+          rootSet.dependentNoShrinking,
+          rootSet.ifRules);
+    }
+  }
+
+  public static class MainDexRootSet extends RootSet {
+
+    public MainDexRootSet(
+        MutableItemsWithRules noShrinking,
+        ImmutableList<DexReference> reasonAsked,
+        ImmutableList<DexReference> checkDiscarded,
+        Map<DexReference, MutableItemsWithRules> dependentNoShrinking,
+        Set<ProguardIfRule> ifRules) {
+      super(
+          noShrinking,
+          new MutableItemsWithRules(),
+          Collections.emptySet(),
+          reasonAsked,
+          checkDiscarded,
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          PredicateSet.empty(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptyMap(),
+          Collections.emptyMap(),
+          Collections.emptyMap(),
+          dependentNoShrinking,
+          Collections.emptyMap(),
+          Collections.emptyMap(),
+          Collections.emptySet(),
+          ifRules,
+          // This list can be modified during tracing but will be cleared after each round.
+          new ArrayList<>());
+    }
+
+    @Override
+    void addConsequentRootSet(ConsequentRootSet consequentRootSet, boolean addNoShrinking) {
+      if (addNoShrinking) {
+        noShrinking.addAll(consequentRootSet.noShrinking);
+      }
+      addDependentItems(consequentRootSet.dependentNoShrinking, dependentNoShrinking);
+      consequentRootSet.dependentKeepClassCompatRule.forEach(
+          (type, rules) ->
+              dependentKeepClassCompatRule
+                  .computeIfAbsent(type, k -> new HashSet<>())
+                  .addAll(rules));
+    }
+
+    public static MainDexRootSetBuilder builder(
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        SubtypingInfo subtypingInfo,
+        Iterable<? extends ProguardConfigurationRule> rules) {
+      return new MainDexRootSetBuilder(appView, subtypingInfo, rules);
+    }
+
+    public MainDexRootSet rewrittenWithLens(GraphLens graphLens) {
+      if (graphLens.isIdentityLens()) {
+        return this;
+      }
+      Map<DexReference, MutableItemsWithRules> rewrittenDependent = new IdentityHashMap<>();
+      dependentNoShrinking.forEach(
+          (reference, rules) -> {
+            // Rewriting a reference can result in us having to merge items with rules.
+            MutableItemsWithRules rewrittenRules =
+                rewrittenDependent.computeIfAbsent(
+                    graphLens.lookupReference(reference),
+                    rewrittenRef -> new MutableItemsWithRules());
+            rewrittenRules.addAll(rules.rewrittenWithLens(graphLens));
+          });
+      ImmutableList.Builder<DexReference> rewrittenCheckDiscarded = ImmutableList.builder();
+      checkDiscarded.forEach(ref -> rewrittenCheckDiscarded.add(graphLens.lookupReference(ref)));
+      ImmutableList.Builder<DexReference> rewrittenReasonAsked = ImmutableList.builder();
+      reasonAsked.forEach(ref -> rewrittenReasonAsked.add(graphLens.lookupReference(ref)));
+      return new MainDexRootSet(
+          noShrinking.rewrittenWithLens(graphLens),
+          rewrittenReasonAsked.build(),
+          rewrittenCheckDiscarded.build(),
+          rewrittenDependent,
+          ifRules);
+    }
+
+    public MainDexRootSet withoutPrunedItems(PrunedItems prunedItems) {
+      if (prunedItems.isEmpty()) {
+        return this;
+      }
+      Map<DexReference, MutableItemsWithRules> prunedDependent = new IdentityHashMap<>();
+      dependentNoShrinking.forEach(
+          (ref, rules) -> {
+            if (prunedItems.getRemovedClasses().contains(ref.getContextType())) {
+              // The dependent reference has been pruned and cannot lead to any additional items
+              return;
+            }
+            prunedDependent.put(ref, rules.prune(prunedItems.getRemovedClasses()));
+          });
+      return new MainDexRootSet(
+          noShrinking.prune(prunedItems.getRemovedClasses()),
+          reasonAsked,
+          checkDiscarded,
+          prunedDependent,
+          ifRules);
     }
   }
 }

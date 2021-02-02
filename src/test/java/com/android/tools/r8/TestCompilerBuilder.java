@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.google.common.base.Predicates.not;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -528,6 +529,7 @@ public abstract class TestCompilerBuilder<
     public void finished(DiagnosticsHandler handler) {
       mainDexClasses =
           Stream.of(builder.toString().split(System.lineSeparator()))
+              .filter(not(String::isEmpty))
               .map(
                   line -> {
                     assert line.endsWith(".class");

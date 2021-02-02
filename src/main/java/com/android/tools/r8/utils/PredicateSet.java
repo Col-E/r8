@@ -24,6 +24,10 @@ public class PredicateSet<T> {
     predicates.add(predicate);
   }
 
+  public static <T> PredicateSet<T> empty() {
+    return new PredicateSet<>();
+  }
+
   public PredicateSet<T> rewriteItems(Function<T, T> mapping) {
     PredicateSet<T> set = new PredicateSet<>();
     for (T item : elements) {

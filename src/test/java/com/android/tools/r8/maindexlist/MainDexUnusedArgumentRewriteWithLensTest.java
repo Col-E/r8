@@ -75,9 +75,12 @@ public class MainDexUnusedArgumentRewriteWithLensTest extends TestBase {
                       .anyMatch(
                           instructionSubject ->
                               instructionSubject.isNewInstance(Dependency.class.getTypeName())));
-              // TODO(b/179004314): Should have a reference to Dependency
               assertEquals(
-                  mainDex.get(), ImmutableSet.of(aSubject.getFinalName(), bSubject.getFinalName()));
+                  mainDex.get(),
+                  ImmutableSet.of(
+                      aSubject.getFinalName(),
+                      bSubject.getFinalName(),
+                      Dependency.class.getTypeName()));
             });
   }
 

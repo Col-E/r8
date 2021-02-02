@@ -33,6 +33,7 @@ import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.LibraryModeledPredicate;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.ProguardCompatibilityActions;
+import com.android.tools.r8.shaking.RootSetUtils.MainDexRootSet;
 import com.android.tools.r8.shaking.RootSetUtils.RootSet;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
@@ -63,6 +64,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private InitClassLens initClassLens;
   private ProguardCompatibilityActions proguardCompatibilityActions;
   private RootSet rootSet;
+  private MainDexRootSet mainDexRootSet = null;
   // This should perferably always be obtained via AppInfoWithLiveness.
   // Currently however the liveness may be downgraded thus loosing the computed keep info.
   private KeepInfoCollection keepInfo = null;
@@ -458,6 +460,15 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.rootSet = rootSet;
   }
 
+  public void setMainDexRootSet(MainDexRootSet mainDexRootSet) {
+    assert mainDexRootSet != null : "Root set should never be recomputed";
+    this.mainDexRootSet = mainDexRootSet;
+  }
+
+  public MainDexRootSet getMainDexRootSet() {
+    return mainDexRootSet;
+  }
+
   public KeepInfoCollection getKeepInfo() {
     return keepInfo;
   }
@@ -597,6 +608,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       setProguardCompatibilityActions(
           getProguardCompatibilityActions().withoutPrunedItems(prunedItems));
     }
+    if (mainDexRootSet != null) {
+      setMainDexRootSet(mainDexRootSet.withoutPrunedItems(prunedItems));
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -665,6 +679,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
           if (appView.hasProguardCompatibilityActions()) {
             appView.setProguardCompatibilityActions(
                 appView.getProguardCompatibilityActions().rewrittenWithLens(lens));
+          }
+          if (appView.getMainDexRootSet() != null) {
+            appView.setMainDexRootSet(appView.getMainDexRootSet().rewrittenWithLens(lens));
           }
         });
   }
