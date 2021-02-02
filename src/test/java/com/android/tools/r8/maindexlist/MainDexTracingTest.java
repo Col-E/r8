@@ -22,7 +22,6 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.references.Reference;
@@ -212,11 +211,7 @@ public class MainDexTracingTest extends TestBase {
         Paths.get(EXAMPLE_O_SRC_DIR, "multidex004", "ref-list-1.txt"),
         Paths.get(EXAMPLE_O_SRC_DIR, "multidex004", "ref-list-1.txt"),
         AndroidApiLevel.I,
-        builder ->
-            builder
-                .applyIf(
-                    backend.isDex(), TestShrinkerBuilder::addDontWarnCompilerSynthesizedAnnotations)
-                .addOptionsModification(options -> options.enableInlining = false));
+        builder -> builder.addOptionsModification(options -> options.enableInlining = false));
   }
 
   @Test

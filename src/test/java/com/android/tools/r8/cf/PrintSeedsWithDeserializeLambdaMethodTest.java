@@ -54,7 +54,6 @@ public class PrintSeedsWithDeserializeLambdaMethodTest extends TestBase {
         .addProgramClasses(getClasses())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(getMainClass())
-        .applyIf(parameters.isDexRuntime(), TestShrinkerBuilder::addDontWarnSerializedLambda)
         .addPrintSeeds()
         .allowStdoutMessages()
         .noMinification()

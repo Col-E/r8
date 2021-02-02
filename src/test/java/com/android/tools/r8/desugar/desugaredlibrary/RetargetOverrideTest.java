@@ -63,13 +63,6 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
         testForR8(Backend.DEX)
             .addKeepMainRule(Executor.class)
             .addInnerClasses(RetargetOverrideTest.class)
-            .applyIf(
-                parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
-                builder ->
-                    builder
-                        .addDontWarnRetargetLibraryMembers()
-                        .addDontWarnTimeConversions()
-                        .addDontWarnVivifiedClasses())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .setMinApi(parameters.getApiLevel())
             .compile()

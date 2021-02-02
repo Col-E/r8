@@ -53,8 +53,7 @@ public class Java11R8CompilationTest extends TestBase {
         // TODO(b/177967938): Investigate why this is needed.
         .applyIf(
             parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
-            builder -> builder.addDontWarnJavaLangInvoke().addDontWarnJavaNioFile(),
-            builder -> builder.addDontWarnJavaLangInvoke("StringConcatFactory"))
+            builder -> builder.addDontWarnJavaLangInvoke().addDontWarnJavaNioFile())
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
         .compile()
         .inspect(this::assertNotEmpty)

@@ -108,9 +108,6 @@ public class CustomCollectionSuperCallsTest extends DesugaredLibraryTestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(CustomCollectionSuperCallsTest.class)
             .addKeepMainRule(Executor.class)
-            .applyIf(
-                parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
-                TestShrinkerBuilder::addDontWarnVivifiedClasses)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()

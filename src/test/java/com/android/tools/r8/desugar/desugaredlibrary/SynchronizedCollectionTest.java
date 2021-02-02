@@ -81,9 +81,6 @@ public class SynchronizedCollectionTest extends DesugaredLibraryTestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(INPUT_JAR)
         .addKeepMainRule(MAIN_CLASS)
-        .applyIf(
-            parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
-            TestShrinkerBuilder::addDontWarnEmulatedLibraryClasses)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()

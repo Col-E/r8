@@ -81,12 +81,6 @@ public class CustomCollectionInterfaceSuperTest extends DesugaredLibraryTestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(CustomCollectionInterfaceSuperTest.class)
         .addKeepMainRule(Main.class)
-        .applyIf(
-            parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
-            builder ->
-                builder
-                    .addDontWarnEmulatedLibraryClass(Collection.class)
-                    .addDontWarnVivifiedClass(Predicate.class))
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()

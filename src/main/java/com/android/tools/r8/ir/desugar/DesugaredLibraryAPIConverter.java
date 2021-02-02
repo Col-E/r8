@@ -64,7 +64,7 @@ import java.util.function.Consumer;
 public class DesugaredLibraryAPIConverter {
 
   static final String VIVIFIED_PREFIX = "$-vivified-$.";
-  private static final String DESCRIPTOR_VIVIFIED_PREFIX = "L$-vivified-$/";
+  public static final String DESCRIPTOR_VIVIFIED_PREFIX = "L$-vivified-$/";
 
   private final AppView<?> appView;
   private final DexItemFactory factory;

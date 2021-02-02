@@ -422,6 +422,8 @@ public class DexItemFactory {
   public final DexType reflectiveOperationExceptionType =
       createStaticallyKnownType(reflectiveOperationExceptionDescriptor);
   public final DexType kotlinMetadataType = createStaticallyKnownType(kotlinMetadataDescriptor);
+  public final DexType timeConversionsType =
+      createStaticallyKnownType("Ljava/time/TimeConversions;");
 
   public final DexType javaIoFileType = createStaticallyKnownType("Ljava/io/File;");
   public final DexType javaMathBigIntegerType = createStaticallyKnownType("Ljava/math/BigInteger;");
@@ -535,8 +537,10 @@ public class DexItemFactory {
       createProto(voidType, throwableType, autoCloseableType);
 
   public final DexString deserializeLambdaMethodName = createString("$deserializeLambda$");
+  public final DexType serializedLambdaType =
+      createStaticallyKnownType("Ljava/lang/invoke/SerializedLambda;");
   public final DexProto deserializeLambdaMethodProto =
-      createProto(objectType, createStaticallyKnownType("Ljava/lang/invoke/SerializedLambda;"));
+      createProto(objectType, serializedLambdaType);
 
   // Dex system annotations.
   // See https://source.android.com/devices/tech/dalvik/dex-format.html#system-annotation

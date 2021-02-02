@@ -91,7 +91,6 @@ public class KeepDeserializeLambdaMethodTestRunner extends TestBase {
           "-keep class * { private static synthetic void lambda$*(); }");
     } else {
       builder
-          .applyIf(parameters.isDexRuntime(), TestShrinkerBuilder::addDontWarnSerializedLambda)
           .noMinification()
           .noTreeShaking();
     }

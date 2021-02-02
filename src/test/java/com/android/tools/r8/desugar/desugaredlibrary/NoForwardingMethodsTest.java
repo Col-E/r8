@@ -66,9 +66,6 @@ public class NoForwardingMethodsTest extends DesugaredLibraryTestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepClassAndMembersRules(Executor.class)
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .applyIf(
-            parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
-            builder -> builder.addDontWarnEmulatedLibraryClass(Collection.class))
         .compile()
         .inspect(this::assertNoForwardingStreamMethod)
         .addDesugaredCoreLibraryRunClassPath(

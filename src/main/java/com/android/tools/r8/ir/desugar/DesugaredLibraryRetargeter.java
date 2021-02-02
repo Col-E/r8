@@ -701,7 +701,7 @@ public class DesugaredLibraryRetargeter {
     return dispatchTypeFor(method, "dispatchHolder");
   }
 
-  private static String getRetargetPackageAndClassPrefixDescriptor(
+  public static String getRetargetPackageAndClassPrefixDescriptor(
       DesugaredLibraryConfiguration config) {
     return "L"
         + config.getSynthesizedLibraryClassesPackagePrefix()

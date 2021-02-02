@@ -4,8 +4,13 @@
 
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.DESCRIPTOR_VIVIFIED_PREFIX;
+import static com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter.getRetargetPackageAndClassPrefixDescriptor;
+import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.InternalOptions;
@@ -13,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public class MissingClasses {
 
@@ -98,6 +104,8 @@ public class MissingClasses {
       newMissingClassesWithoutDontWarn.removeAll(alreadyMissingClasses);
       newMissingClassesWithoutDontWarn.removeAll(
           getAllowedMissingClasses(appView.dexItemFactory()));
+      newMissingClassesWithoutDontWarn.removeIf(
+          isCompilerSynthesizedAllowedMissingClasses(appView));
       if (!newMissingClassesWithoutDontWarn.isEmpty()) {
         MissingClassesDiagnostic diagnostic =
             new MissingClassesDiagnostic.Builder()
@@ -118,12 +126,35 @@ public class MissingClasses {
           dexItemFactory.annotationDefault,
           dexItemFactory.annotationMethodParameters,
           dexItemFactory.annotationSourceDebugExtension,
+          dexItemFactory.annotationSynthesizedClass,
+          dexItemFactory.annotationSynthesizedClassMap,
           dexItemFactory.annotationThrows,
+          dexItemFactory.serializedLambdaType,
           // TODO(b/176133674) StringConcatFactory is backported, but the class is reported as
           //  missing because the enqueuer runs prior to backporting and thus sees the non-desugared
           //  code.
-          dexItemFactory.stringConcatFactoryType);
+          dexItemFactory.stringConcatFactoryType,
+          dexItemFactory.timeConversionsType);
     }
+
+    private Predicate<DexType> isCompilerSynthesizedAllowedMissingClasses(AppView<?> appView) {
+      DexItemFactory dexItemFactory = appView.dexItemFactory();
+      InternalOptions options = appView.options();
+      DexString emulatedLibraryClassNameSuffix =
+          dexItemFactory.createString(EMULATE_LIBRARY_CLASS_NAME_SUFFIX + ";");
+      DexString retargetPackageAndClassPrefixDescriptor =
+          dexItemFactory.createString(
+              getRetargetPackageAndClassPrefixDescriptor(options.desugaredLibraryConfiguration));
+      DexString vivifiedClassNamePrefix = dexItemFactory.createString(DESCRIPTOR_VIVIFIED_PREFIX);
+      return type -> {
+        DexString descriptor = type.getDescriptor();
+        return descriptor.startsWith(retargetPackageAndClassPrefixDescriptor)
+            || descriptor.startsWith(vivifiedClassNamePrefix)
+            || descriptor.endsWith(emulatedLibraryClassNameSuffix);
+      };
+    }
+
+
 
     /** Intentionally private, use {@link Builder#reportMissingClasses(AppView)}. */
     private MissingClasses build() {

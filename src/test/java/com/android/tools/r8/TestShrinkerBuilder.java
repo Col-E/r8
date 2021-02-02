@@ -126,39 +126,6 @@ public abstract class TestShrinkerBuilder<
     return addDontWarn(clazz.getTypeName() + COMPANION_CLASS_NAME_SUFFIX);
   }
 
-  @Deprecated
-  public T addDontWarnCompanionClasses() {
-    return addDontWarn("**" + COMPANION_CLASS_NAME_SUFFIX);
-  }
-
-  @Deprecated
-  public T addDontWarnCompilerSynthesizedAnnotations() {
-    return addDontWarnCompilerSynthesizedClassAnnotation()
-        .addDontWarnCompilerSynthesizedClassMapAnnotation();
-  }
-
-  @Deprecated
-  public T addDontWarnCompilerSynthesizedClassAnnotation() {
-    return addDontWarn("com.android.tools.r8.annotations.SynthesizedClass");
-  }
-
-  @Deprecated
-  public T addDontWarnCompilerSynthesizedClassMapAnnotation() {
-    return addDontWarn("com.android.tools.r8.annotations.SynthesizedClassMap");
-  }
-
-  // TODO(b/176143558): Should not report missing classes for compiler synthesized classes.
-  @Deprecated
-  public T addDontWarnEmulatedLibraryClass(Class<?> clazz) {
-    return addDontWarn(clazz.getTypeName() + "$-EL");
-  }
-
-  // TODO(b/176143558): Should not report missing classes for compiler synthesized classes.
-  @Deprecated
-  public T addDontWarnEmulatedLibraryClasses() {
-    return addDontWarn("**$-EL");
-  }
-
   public T addDontWarnGoogle() {
     return addDontWarn("com.google.**");
   }
@@ -173,10 +140,6 @@ public abstract class TestShrinkerBuilder<
 
   public T addDontWarnJavaLangInvoke() {
     return addDontWarn("java.lang.invoke.*");
-  }
-
-  public T addDontWarnJavaLangInvoke(String className) {
-    return addDontWarn("java.lang.invoke." + className);
   }
 
   public T addDontWarnJavaNioFile() {
@@ -217,40 +180,6 @@ public abstract class TestShrinkerBuilder<
   @Deprecated
   public T addDontWarnKotlinx() {
     return addDontWarn("kotlinx.**");
-  }
-
-  // TODO(b/176144018): Should not report compiler synthesized references as missing.
-  @Deprecated
-  public T addDontWarnRetargetLibraryMembers() {
-    return addDontWarn("j$.retarget.$r8$retargetLibraryMember**");
-  }
-
-  @Deprecated
-  public T addDontWarnRetargetLibraryMember(String suffix) {
-    return addDontWarn("j$.retarget.$r8$retargetLibraryMember$" + suffix);
-  }
-
-  // TODO(b/154849103): Should not warn about SerializedLambda.
-  @Deprecated
-  public T addDontWarnSerializedLambda() {
-    return addDontWarn("java.lang.invoke.SerializedLambda");
-  }
-
-  // TODO(b/176781593): Should not be reported missing.
-  @Deprecated
-  public T addDontWarnTimeConversions() {
-    return addDontWarn("java.time.TimeConversions");
-  }
-
-  // TODO(b/176144018): Should not report compiler synthesized references as missing.
-  @Deprecated
-  public T addDontWarnVivifiedClass(Class<?> clazz) {
-    return addDontWarn("$-vivified-$." + clazz.getTypeName());
-  }
-
-  @Deprecated
-  public T addDontWarnVivifiedClasses() {
-    return addDontWarn("$-vivified-$.**");
   }
 
   public T addKeepKotlinMetadata() {

@@ -74,11 +74,6 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
         testForR8(Backend.DEX)
             .addInnerClasses(GetGenericInterfaceTest.class)
             .addKeepMainRule(Executor.class)
-            .applyIf(
-                parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
-                builder ->
-                    builder.addDontWarnRetargetLibraryMember(
-                        "virtualDispatch$Date$toInstant$dispatchInterface"))
             .noMinification()
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)

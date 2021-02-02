@@ -64,9 +64,6 @@ public class CustomCollectionForwardingTest extends DesugaredLibraryTestBase {
         .addKeepMainRule(Executor.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .applyIf(
-            parameters.getApiLevel().isLessThan(AndroidApiLevel.N),
-            TestShrinkerBuilder::addDontWarnEmulatedLibraryClasses)
         .compile()
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
