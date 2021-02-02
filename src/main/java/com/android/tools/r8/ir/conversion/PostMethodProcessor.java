@@ -33,7 +33,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-public class PostMethodProcessor extends MethodProcessor {
+public class PostMethodProcessor extends MethodProcessorWithWave {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Collection<CodeOptimization> defaultCodeOptimizations;

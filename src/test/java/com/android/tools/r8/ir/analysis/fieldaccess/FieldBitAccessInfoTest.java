@@ -25,7 +25,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.conversion.MethodProcessorWithWave;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -209,7 +209,7 @@ public class FieldBitAccessInfoTest extends TestBase {
     }
   }
 
-  static class PrimaryMethodProcessorMock extends MethodProcessor {
+  static class PrimaryMethodProcessorMock extends MethodProcessorWithWave {
 
     @Override
     public boolean shouldApplyCodeRewritings(ProgramMethod method) {

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -24,9 +25,10 @@ public class D8MethodProcessor extends MethodProcessor {
     this.executorService = executorService;
   }
 
-  public void awaitMethodProcessing() throws ExecutionException {
-    ThreadUtils.awaitFutures(futures);
-    futures.clear();
+  @Override
+  public boolean isProcessedConcurrently(ProgramMethod method) {
+    // In D8 all methods are considered independently compiled.
+    return true;
   }
 
   @Override
@@ -43,8 +45,13 @@ public class D8MethodProcessor extends MethodProcessor {
             executorService));
   }
 
-  public boolean verifyAllMethodsProcessed() {
-    assert futures.isEmpty();
-    return true;
+  @Override
+  public CallSiteInformation getCallSiteInformation() {
+    throw new Unreachable("Invalid attempt to obtain call-site information in D8");
+  }
+
+  public void awaitMethodProcessing() throws ExecutionException {
+    ThreadUtils.awaitFutures(futures);
+    futures.clear();
   }
 }

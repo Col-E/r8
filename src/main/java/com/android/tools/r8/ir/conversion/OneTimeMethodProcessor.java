@@ -16,7 +16,7 @@ import java.util.concurrent.ExecutorService;
  * A {@link MethodProcessor} that doesn't persist; rather just processes the given methods one-time,
  * along with a default abstraction of concurrent processing.
  */
-public class OneTimeMethodProcessor extends MethodProcessor {
+public class OneTimeMethodProcessor extends MethodProcessorWithWave {
 
   private final MethodProcessingId.Factory methodProcessingIdFactory;
 

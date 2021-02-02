@@ -29,7 +29,7 @@ import java.util.function.Consumer;
  * A {@link MethodProcessor} that processes methods in the whole program in a bottom-up manner,
  * i.e., from leaves to roots.
  */
-class PrimaryMethodProcessor extends MethodProcessor {
+class PrimaryMethodProcessor extends MethodProcessorWithWave {
 
   interface WaveStartAction {
 
