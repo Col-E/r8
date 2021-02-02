@@ -4087,13 +4087,8 @@ public class Enqueuer {
       DexProgramClass clazz, Supplier<KeepReason> reasonSupplier) {
     assert forceProguardCompatibility;
 
-    if (appView.hasProguardCompatibilityActions()
-        && !appView.getProguardCompatibilityActions().isCompatInstantiated(clazz)) {
+    if (!addCompatInstantiatedClass(clazz)) {
       return;
-    }
-
-    if (mode.isInitialTreeShaking()) {
-      proguardCompatibilityActionsBuilder.addCompatInstantiatedType(clazz);
     }
 
     KeepReasonWitness witness = graphReporter.registerClass(clazz, reasonSupplier.get());
@@ -4111,6 +4106,25 @@ public class Enqueuer {
             graphReporter.reportCompatKeepDefaultInitializer(defaultInitializer));
       }
     }
+  }
+
+  private boolean addCompatInstantiatedClass(DexProgramClass clazz) {
+    assert forceProguardCompatibility;
+
+    // During the first round of tree shaking, we compat-instantiate all classes referenced from
+    // check-cast, const-class, and instance-of instructions.
+    if (mode.isInitialTreeShaking()) {
+      proguardCompatibilityActionsBuilder.addCompatInstantiatedType(clazz);
+      return true;
+    }
+
+    assert proguardCompatibilityActionsBuilder == null;
+
+    // Otherwise, we only compat-instantiate classes referenced from check-cast, const-class, and
+    // instance-of instructions that were also compat-instantiated during the first round of tree
+    // shaking.
+    return appView.hasProguardCompatibilityActions()
+        && appView.getProguardCompatibilityActions().isCompatInstantiated(clazz);
   }
 
   private void markMethodAsLiveWithCompatRule(ProgramMethod method) {
