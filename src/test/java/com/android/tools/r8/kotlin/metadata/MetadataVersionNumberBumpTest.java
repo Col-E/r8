@@ -9,9 +9,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.objectweb.asm.Opcodes.ASM7;
 
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexAnnotationElement;
@@ -25,6 +25,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.junit.Test;
@@ -39,12 +40,18 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
   private final TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        getKotlinTestParameters()
+            .withCompiler(getKotlinC_1_3_72())
+            .withTargetVersion(KotlinTargetVersion.JAVA_8)
+            .build());
   }
 
-  public MetadataVersionNumberBumpTest(TestParameters parameters) {
-    super(KotlinTargetVersion.JAVA_8, getKotlinC_1_3_72());
+  public MetadataVersionNumberBumpTest(
+      TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.parameters = parameters;
   }
 

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.rewrite.assertions;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
@@ -15,8 +14,8 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.AssertionsConfiguration;
 import com.android.tools.r8.D8TestBuilder;
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
@@ -63,24 +62,21 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
   private final boolean useJvmAssertions;
   private final KotlinCompileMemoizer compiledForAssertions;
 
-  @Parameterized.Parameters(
-      name = "{0}, target: {1}, kotlinc: {2}, kotlin-stdlib as library: {3}, -Xassertions=jvm: {4}")
+  @Parameterized.Parameters(name = "{0}, {1}, kotlin-stdlib as library: {2}, -Xassertions=jvm: {3}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers(),
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values(),
         BooleanUtils.values());
   }
 
   public AssertionConfigurationKotlinTest(
       TestParameters parameters,
-      KotlinTargetVersion targetVersion,
-      KotlinCompiler kotlinc,
+      KotlinTestParameters kotlinParameters,
       boolean kotlinStdlibAsClasspath,
       boolean useJvmAssertions) {
-    super(targetVersion, kotlinc);
+    super(kotlinParameters);
     this.parameters = parameters;
     this.kotlinStdlibAsLibrary = kotlinStdlibAsClasspath;
     this.useJvmAssertions = useJvmAssertions;

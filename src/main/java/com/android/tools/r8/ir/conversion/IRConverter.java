@@ -23,7 +23,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
@@ -82,7 +81,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
-import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
 import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
@@ -140,7 +138,6 @@ public class IRConverter {
   private final TwrCloseResourceRewriter twrCloseResourceRewriter;
   private final BackportedMethodRewriter backportedMethodRewriter;
   private final DesugaredLibraryRetargeter desugaredLibraryRetargeter;
-  private final LambdaMerger lambdaMerger;
   private final ClassInliner classInliner;
   private final ClassStaticizer classStaticizer;
   private final InternalOptions options;
@@ -242,7 +239,6 @@ public class IRConverter {
               : null;
       this.d8NestBasedAccessDesugaring =
           options.shouldDesugarNests() ? new D8NestBasedAccessDesugaring(appView) : null;
-      this.lambdaMerger = null;
       this.covariantReturnTypeAnnotationTransformer = null;
       this.dynamicTypeOptimization = null;
       this.classInliner = null;
@@ -305,12 +301,9 @@ public class IRConverter {
           options.enableTreeShakingOfLibraryMethodOverrides
               ? new LibraryMethodOverrideAnalysis(appViewWithLiveness)
               : null;
-      this.lambdaMerger =
-          options.enableLambdaMerging ? new LambdaMerger(appViewWithLiveness) : null;
       this.enumUnboxer = options.enableEnumUnboxing ? new EnumUnboxer(appViewWithLiveness) : null;
       this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, enumUnboxer);
-      this.inliner =
-          new Inliner(appViewWithLiveness, mainDexClasses, lambdaMerger, lensCodeRewriter);
+      this.inliner = new Inliner(appViewWithLiveness, mainDexClasses, lensCodeRewriter);
       this.outliner = new Outliner(appViewWithLiveness);
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
@@ -346,7 +339,6 @@ public class IRConverter {
       this.fieldAccessAnalysis = null;
       this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
-      this.lambdaMerger = null;
       this.outliner = null;
       this.memberValuePropagation = null;
       this.lensCodeRewriter = null;
@@ -674,7 +666,6 @@ public class IRConverter {
     DexApplication application = appView.appInfo().app();
 
     computeReachabilitySensitivity(application);
-    collectLambdaMergingCandidates(application);
     collectStaticizerCandidates(application);
     workaroundAbstractMethodOnNonAbstractClassVerificationBug(
         executorService, simpleOptimizationFeedback);
@@ -799,10 +790,6 @@ public class IRConverter {
     processSynthesizedJava8UtilityClasses(executorService);
     synthesizeRetargetClass(builder, executorService);
     synthesizeEnumUnboxingUtilityMethods(executorService);
-
-    printPhase("Lambda merging finalization");
-    // TODO(b/127694949): Adapt to PostOptimization.
-    finalizeLambdaMerging(application, feedback, builder, executorService, initialGraphLensForIR);
 
     printPhase("Desugared library API Conversion finalization");
     generateDesugaredLibraryAPIWrappers(builder, executorService);
@@ -960,28 +947,6 @@ public class IRConverter {
     codeRewriter.rewriteMoveResult(code);
     removeDeadCodeAndFinalizeIR(
         method, code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
-  }
-
-  private void collectLambdaMergingCandidates(DexApplication application) {
-    if (lambdaMerger != null) {
-      lambdaMerger.collectGroupCandidates(application);
-    }
-  }
-
-  private void finalizeLambdaMerging(
-      DexApplication application,
-      OptimizationFeedback feedback,
-      Builder<?> builder,
-      ExecutorService executorService,
-      GraphLens appliedGraphLens)
-      throws ExecutionException {
-    if (lambdaMerger != null) {
-      lambdaMerger.applyLambdaClassMapping(
-          application, this, feedback, builder, executorService, appliedGraphLens);
-    } else {
-      appView.setHorizontallyMergedLambdaClasses(HorizontallyMergedLambdaClasses.empty());
-    }
-    assert appView.horizontallyMergedLambdaClasses() != null;
   }
 
   private void generateDesugaredLibraryAPIWrappers(
@@ -1232,13 +1197,6 @@ public class IRConverter {
             || !appView.enableWholeProgramOptimizations()
             || !appView.appInfo().withLiveness().isNeverReprocessMethod(method.method)
         : "Illegal reprocessing due to -neverreprocess rule: " + context.toSourceString();
-
-    if (lambdaMerger != null) {
-      timing.begin("Merge lambdas");
-      lambdaMerger.rewriteCode(code.context(), code, inliner, methodProcessor);
-      timing.end();
-      assert code.isConsistentSSA();
-    }
 
     if (typeChecker != null && !typeChecker.check(code)) {
       assert appView.enableWholeProgramOptimizations();
@@ -1541,15 +1499,6 @@ public class IRConverter {
     assert code.verifyTypes(appView);
 
     previous = printMethod(code, "IR after twr close resource rewriter (SSA)", previous);
-
-    if (lambdaMerger != null) {
-      timing.begin("Analyze lambda merging");
-      lambdaMerger.analyzeCode(code.context(), code);
-      timing.end();
-      assert code.isConsistentSSA();
-    }
-
-    previous = printMethod(code, "IR after lambda merger (SSA)", previous);
 
     // TODO(b/140766440): an ideal solution would be puttting CodeOptimization for this into
     //  the list for primary processing only.

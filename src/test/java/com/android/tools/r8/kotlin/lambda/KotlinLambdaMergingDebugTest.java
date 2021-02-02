@@ -3,11 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.lambda;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
@@ -24,14 +23,19 @@ public class KotlinLambdaMergingDebugTest extends AbstractR8KotlinTestBase {
   private static final String FOLDER = "reprocess_merged_lambdas_kstyle";
   private static final String MAIN_CLASS = "reprocess_merged_lambdas_kstyle.MainKt";
 
-  @Parameters(name = "{0}")
+  @Parameters(name = "{0}, {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withDexRuntimes().withAllApiLevels().build(), getKotlinCompilers());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getKotlinTestParameters()
+            .withAllCompilers()
+            .withTargetVersion(KotlinTargetVersion.JAVA_6)
+            .build());
   }
 
-  public KotlinLambdaMergingDebugTest(TestParameters parameters, KotlinCompiler kotlinc) {
-    super(KotlinTargetVersion.JAVA_6, kotlinc);
+  public KotlinLambdaMergingDebugTest(
+      TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.parameters = parameters;
   }
 

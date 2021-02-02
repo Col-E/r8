@@ -20,7 +20,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingOutputStream;
 import com.android.tools.r8.utils.codeinspector.EnumUnboxingInspector;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedLambdaClassesInspector;
 import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import com.google.common.base.Suppliers;
 import java.io.ByteArrayOutputStream;
@@ -124,33 +123,22 @@ public abstract class TestCompilerBuilder<
   }
 
   public T addHorizontallyMergedClassesInspector(
-      Consumer<HorizontallyMergedClassesInspector> inspector) {
+      ThrowableConsumer<HorizontallyMergedClassesInspector> inspector) {
     return addOptionsModification(
         options ->
             options.testing.horizontallyMergedClassesConsumer =
                 ((dexItemFactory, horizontallyMergedClasses) ->
-                    inspector.accept(
+                    inspector.acceptWithRuntimeException(
                         new HorizontallyMergedClassesInspector(
                             dexItemFactory, horizontallyMergedClasses))));
   }
 
   public T addHorizontallyMergedClassesInspectorIf(
-      boolean condition, Consumer<HorizontallyMergedClassesInspector> inspector) {
+      boolean condition, ThrowableConsumer<HorizontallyMergedClassesInspector> inspector) {
     if (condition) {
       return addHorizontallyMergedClassesInspector(inspector);
     }
     return self();
-  }
-
-  public T addHorizontallyMergedLambdaClassesInspector(
-      Consumer<HorizontallyMergedLambdaClassesInspector> inspector) {
-    return addOptionsModification(
-        options ->
-            options.testing.horizontallyMergedLambdaClassesConsumer =
-                ((dexItemFactory, horizontallyMergedLambdaClasses) ->
-                    inspector.accept(
-                        new HorizontallyMergedLambdaClassesInspector(
-                            dexItemFactory, horizontallyMergedLambdaClasses))));
   }
 
   public T addVerticallyMergedClassesInspector(

@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 import org.junit.rules.TemporaryFolder;
 
@@ -128,9 +129,9 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
-  public MethodSubject uniqueInstanceInitializer() {
+  public MethodSubject uniqueMethodThatMatches(Predicate<FoundMethodSubject> predicate) {
     MethodSubject methodSubject = null;
-    for (FoundMethodSubject candidate : allMethods(FoundMethodSubject::isInstanceInitializer)) {
+    for (FoundMethodSubject candidate : allMethods(predicate)) {
       assert methodSubject == null;
       methodSubject = candidate;
     }

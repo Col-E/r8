@@ -18,12 +18,16 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.EnqueuerDefinitionSupplier;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
 public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
+
+  private static final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
   private final AppView<?> appView;
   private final EnqueuerDefinitionSupplier enqueuerDefinitionSupplier;
@@ -57,23 +61,27 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
       Set<DexProgramClass> localOrAnonymousClasses = Sets.newIdentityHashSet();
       enqueuer.forAllLiveClasses(
           clazz -> {
-            boolean onlyProcessLambdas = !keepMetadata || !enqueuer.isPinned(clazz.type);
             assert clazz.getKotlinInfo().isNoKotlinInformation();
-            clazz.setKotlinInfo(
-                KotlinClassMetadataReader.getKotlinInfo(
-                    appView.dexItemFactory().kotlin,
-                    clazz,
-                    appView.dexItemFactory(),
-                    appView.options().reporter,
-                    onlyProcessLambdas,
-                    method -> keepByteCodeFunctions.add(method.method)));
-            if (onlyProcessLambdas) {
+            if (!keepMetadata || !enqueuer.isPinned(clazz.getType())) {
+              if (KotlinClassMetadataReader.isLambda(appView, clazz)
+                  && clazz.hasClassInitializer()) {
+                feedback.classInitializerMayBePostponed(clazz.getClassInitializer());
+              }
+              clazz.setKotlinInfo(NO_KOTLIN_INFO);
               clazz.removeAnnotations(
                   annotation -> annotation.getAnnotationType() == kotlinMetadataType);
-            }
-            if (clazz.getEnclosingMethodAttribute() != null
-                && clazz.getEnclosingMethodAttribute().getEnclosingMethod() != null) {
-              localOrAnonymousClasses.add(clazz);
+            } else {
+              clazz.setKotlinInfo(
+                  KotlinClassMetadataReader.getKotlinInfo(
+                      appView.dexItemFactory().kotlin,
+                      clazz,
+                      appView.dexItemFactory(),
+                      appView.options().reporter,
+                      method -> keepByteCodeFunctions.add(method.getReference())));
+              if (clazz.getEnclosingMethodAttribute() != null
+                  && clazz.getEnclosingMethodAttribute().getEnclosingMethod() != null) {
+                localOrAnonymousClasses.add(clazz);
+              }
             }
           });
       appView.setCfByteCodePassThrough(keepByteCodeFunctions);

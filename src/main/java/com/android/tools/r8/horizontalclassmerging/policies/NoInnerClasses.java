@@ -11,6 +11,7 @@ public class NoInnerClasses extends SingleClassPolicy {
 
   @Override
   public boolean canMerge(DexProgramClass program) {
+    // TODO(b/179018501): allow merging classes with inner/outer classes.
     return program.getInnerClasses().isEmpty();
   }
 }

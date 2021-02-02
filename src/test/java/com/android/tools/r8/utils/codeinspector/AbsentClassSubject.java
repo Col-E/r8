@@ -12,6 +12,7 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.references.ClassReference;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 import org.junit.rules.TemporaryFolder;
 
@@ -38,7 +39,7 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
-  public MethodSubject uniqueInstanceInitializer() {
+  public MethodSubject uniqueMethodThatMatches(Predicate<FoundMethodSubject> predicate) {
     return new AbsentMethodSubject();
   }
 

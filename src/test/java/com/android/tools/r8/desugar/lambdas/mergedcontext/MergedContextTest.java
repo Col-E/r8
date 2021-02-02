@@ -42,7 +42,7 @@ public class MergedContextTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addHorizontallyMergedClassesInspector(
             inspector -> {
-              inspector.assertClassNotMerged(C.class);
+              inspector.assertClassesNotMerged(C.class);
               inspector.assertMergedInto(B.class, A.class);
             })
         .run(parameters.getRuntime(), TestClass.class)

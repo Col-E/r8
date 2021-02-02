@@ -174,7 +174,6 @@ public final class L8Command extends BaseCompilerCommand {
     assert !internal.enableEnumValueOptimization;
     assert !internal.outline.enabled;
     assert !internal.enableValuePropagation;
-    assert !internal.enableLambdaMerging;
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
 
     assert internal.desugarState == DesugarState.ON;

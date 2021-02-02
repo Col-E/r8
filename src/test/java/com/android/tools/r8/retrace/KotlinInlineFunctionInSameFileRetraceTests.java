@@ -5,7 +5,6 @@ package com.android.tools.r8.retrace;
 
 import static com.android.tools.r8.Collectors.toSingle;
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.containsLinePositions;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineFrame;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineStack;
@@ -16,11 +15,10 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -44,18 +42,17 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends KotlinTestBase {
 
   private final TestParameters parameters;
 
-  @Parameters(name = "{0}")
+  @Parameters(name = "{0}, {1}")
   public static List<Object[]> data() {
     // TODO(b/141817471): Extend with compilation modes.
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
   public KotlinInlineFunctionInSameFileRetraceTests(
-      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
-    super(targetVersion, kotlinc);
+      TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.parameters = parameters;
   }
 

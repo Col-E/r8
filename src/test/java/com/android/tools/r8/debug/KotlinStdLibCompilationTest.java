@@ -29,7 +29,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
   @Parameters(name = "{0}, kotlinc: {1}")
   public static List<Object[]> setup() {
     return buildParameters(
-        TestParametersBuilder.builder().withAllRuntimes().withAllApiLevels().build(),
+        TestParametersBuilder.builder().withAllRuntimesAndApiLevels().build(),
         getKotlinCompilers());
   }
 

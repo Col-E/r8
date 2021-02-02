@@ -4,28 +4,20 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
-import com.android.tools.r8.R8FullTestBuilder;
-import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.KotlinTestParameters;
+import com.android.tools.r8.KotlinTestParametersCollection;
 import com.android.tools.r8.TestShrinkerBuilder;
-import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.SgetObject;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -33,7 +25,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -46,29 +37,27 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
-  @Parameterized.Parameters(name = "target: {0}, kotlinc: {1}, allowAccessModification: {2}")
-  public static Collection<Object[]> data() {
-    return buildParameters(
-        KotlinTargetVersion.values(), getKotlinCompilers(), BooleanUtils.values());
+  @Parameterized.Parameters(name = "{0}")
+  public static KotlinTestParametersCollection data() {
+    return getKotlinTestParameters().withAllCompilersAndTargetVersions().build();
   }
 
-  public KotlinClassInlinerTest(
-      KotlinTargetVersion targetVersion, KotlinCompiler kotlinc, boolean allowAccessModification) {
-    super(targetVersion, kotlinc, allowAccessModification);
+  public KotlinClassInlinerTest(KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters, true);
   }
 
   private static boolean isLambda(DexClass clazz) {
-    return !clazz.type.getPackageDescriptor().startsWith("kotlin") &&
-        (isKStyleLambdaOrGroup(clazz) || isJStyleLambdaOrGroup(clazz));
+    return !clazz.getType().getPackageDescriptor().startsWith("kotlin")
+        && (isKStyleLambda(clazz) || isJStyleLambda(clazz));
   }
 
-  private static boolean isKStyleLambdaOrGroup(DexClass clazz) {
-    return clazz.superType.descriptor.toString().equals("Lkotlin/jvm/internal/Lambda;");
+  private static boolean isKStyleLambda(DexClass clazz) {
+    return clazz.getSuperType().getTypeName().equals("kotlin.jvm.internal.Lambda");
   }
 
-  private static boolean isJStyleLambdaOrGroup(DexClass clazz) {
-    return clazz.superType.descriptor.toString().equals("Ljava/lang/Object;") &&
-        clazz.interfaces.size() == 1;
+  private static boolean isJStyleLambda(DexClass clazz) {
+    return clazz.getSuperType().getTypeName().equals(Object.class.getTypeName())
+        && clazz.getInterfaces().size() == 1;
   }
 
   private static Predicate<DexType> createLambdaCheck(CodeInspector inspector) {
@@ -82,9 +71,8 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testJStyleLambdas() throws Exception {
-    assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
-    final String mainClassName = "class_inliner_lambda_j_style.MainKt";
-    runTestWithDefaults(
+    String mainClassName = "class_inliner_lambda_j_style.MainKt";
+    runTest(
             "class_inliner_lambda_j_style",
             mainClassName,
             testBuilder ->
@@ -92,21 +80,32 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                     // TODO(jsjeon): Introduce @NeverInline to kotlinR8TestResources
                     .addKeepRules("-neverinline class * { void test*State*(...); }")
                     .addDontWarnJetBrainsNotNullAnnotation()
+                    .addHorizontallyMergedClassesInspector(
+                        inspector ->
+                            inspector
+                                .assertIsCompleteMergeGroup(
+                                    "class_inliner_lambda_j_style.MainKt$testStateless$1",
+                                    "class_inliner_lambda_j_style.MainKt$testStateless$2",
+                                    "class_inliner_lambda_j_style.MainKt$testStateless$3")
+                                .assertIsCompleteMergeGroup(
+                                    "class_inliner_lambda_j_style.MainKt$testStateful$1",
+                                    "class_inliner_lambda_j_style.MainKt$testStateful$2",
+                                    "class_inliner_lambda_j_style.MainKt$testStateful$2$1",
+                                    "class_inliner_lambda_j_style.MainKt$testStateful$3",
+                                    "class_inliner_lambda_j_style.MainKt$testStateful2$1",
+                                    "class_inliner_lambda_j_style.MainKt$testStateful3$1"))
                     .noClassInlining())
         .inspect(
             inspector -> {
               assertThat(
+                  inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateless$1"),
+                  isPresent());
+              assertThat(
                   inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful$1"),
-                  isPresent());
-              assertThat(
-                  inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful2$1"),
-                  isPresent());
-              assertThat(
-                  inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful3$1"),
                   isPresent());
             });
 
-    runTestWithDefaults(
+    runTest(
             "class_inliner_lambda_j_style",
             mainClassName,
             testBuilder ->
@@ -116,40 +115,22 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                     .addDontWarnJetBrainsNotNullAnnotation())
         .inspect(
             inspector -> {
-              Predicate<DexType> lambdaCheck = createLambdaCheck(inspector);
-              ClassSubject clazz = inspector.clazz(mainClassName);
+              // TODO(b/173337498): MainKt$testStateless$1 should be class inlined.
+              assertThat(
+                  inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateless$1"),
+                  isPresent());
 
-              assertEquals(
-                  Sets.newHashSet(), collectAccessedTypes(lambdaCheck, clazz, "testStateless"));
-
-              assertEquals(
-                  Sets.newHashSet(), collectAccessedTypes(lambdaCheck, clazz, "testStateful"));
-
+              // TODO(b/173337498): MainKt$testStateful$1 should be class inlined.
               assertThat(
                   inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful$1"),
-                  not(isPresent()));
-
-              assertEquals(
-                  Sets.newHashSet(), collectAccessedTypes(lambdaCheck, clazz, "testStateful2"));
-
-              assertThat(
-                  inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful2$1"),
-                  not(isPresent()));
-
-              assertEquals(
-                  Sets.newHashSet(), collectAccessedTypes(lambdaCheck, clazz, "testStateful3"));
-
-              assertThat(
-                  inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful3$1"),
-                  not(isPresent()));
+                  isPresent());
             });
   }
 
   @Test
   public void testKStyleLambdas() throws Exception {
-    assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
-    final String mainClassName = "class_inliner_lambda_k_style.MainKt";
-    runTestWithDefaults(
+    String mainClassName = "class_inliner_lambda_k_style.MainKt";
+    runTest(
             "class_inliner_lambda_k_style",
             mainClassName,
             testBuilder ->
@@ -160,6 +141,15 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                         "-neverinline class * { void testBigExtraMethod(...); }",
                         "-neverinline class * { void testBigExtraMethodReturningLambda(...); }")
                     .addDontWarnJetBrainsAnnotations()
+                    .addHorizontallyMergedClassesInspector(
+                        inspector ->
+                            inspector.assertIsCompleteMergeGroup(
+                                "class_inliner_lambda_k_style.MainKt$testBigExtraMethod$1",
+                                "class_inliner_lambda_k_style.MainKt$testBigExtraMethod2$1",
+                                "class_inliner_lambda_k_style.MainKt$testBigExtraMethod3$1",
+                                "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda$1",
+                                "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda2$1",
+                                "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda3$1"))
                     .noClassInlining())
         .inspect(
             inspector -> {
@@ -174,27 +164,9 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
               assertThat(
                   inspector.clazz("class_inliner_lambda_k_style.MainKt$testBigExtraMethod$1"),
                   isPresent());
-              assertThat(
-                  inspector.clazz("class_inliner_lambda_k_style.MainKt$testBigExtraMethod2$1"),
-                  isPresent());
-              assertThat(
-                  inspector.clazz("class_inliner_lambda_k_style.MainKt$testBigExtraMethod3$1"),
-                  isPresent());
-              assertThat(
-                  inspector.clazz(
-                      "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda$1"),
-                  isPresent());
-              assertThat(
-                  inspector.clazz(
-                      "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda2$1"),
-                  isPresent());
-              assertThat(
-                  inspector.clazz(
-                      "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda3$1"),
-                  isPresent());
             });
 
-    runTestWithDefaults(
+    runTest(
             "class_inliner_lambda_k_style",
             mainClassName,
             testBuilder ->
@@ -207,39 +179,12 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                     .addDontWarnJetBrainsAnnotations())
         .inspect(
             inspector -> {
-              Predicate<DexType> lambdaCheck = createLambdaCheck(inspector);
-              ClassSubject clazz = inspector.clazz(mainClassName);
-
-              // TODO(b/173337498): Should be empty, but horizontal class merging interferes with
-              //  class inlining.
-              assertEquals(
-                  Sets.newHashSet(
-                      "class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateless$1"),
-                  collectAccessedTypes(
-                      lambdaCheck,
-                      clazz,
-                      "testKotlinSequencesStateless",
-                      "kotlin.sequences.Sequence"));
-
               // TODO(b/173337498): Should be absent, but horizontal class merging interferes with
               //  class inlining.
               assertThat(
                   inspector.clazz(
                       "class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateless$1"),
                   isPresent());
-
-              // TODO(b/173337498): Should be empty, but horizontal class merging interferes with
-              //  class inlining.
-              assertEquals(
-                  Sets.newHashSet(
-                      "class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateful$1"),
-                  collectAccessedTypes(
-                      lambdaCheck,
-                      clazz,
-                      "testKotlinSequencesStateful",
-                      "int",
-                      "int",
-                      "kotlin.sequences.Sequence"));
 
               // TODO(b/173337498): Should be absent, but horizontal class merging interferes with
               //  class inlining.
@@ -248,57 +193,33 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                       "class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateful$1"),
                   isPresent());
 
-              assertEquals(
-                  Sets.newHashSet(),
-                  collectAccessedTypes(lambdaCheck, clazz, "testBigExtraMethod"));
-
+              // TODO(b/173337498): Should be absent, but horizontal class merging interferes with
+              //  class inlining.
               assertThat(
                   inspector.clazz("class_inliner_lambda_k_style.MainKt$testBigExtraMethod$1"),
-                  not(isPresent()));
-              assertThat(
-                  inspector.clazz("class_inliner_lambda_k_style.MainKt$testBigExtraMethod2$1"),
-                  not(isPresent()));
-              assertThat(
-                  inspector.clazz("class_inliner_lambda_k_style.MainKt$testBigExtraMethod3$1"),
-                  not(isPresent()));
-
-              assertEquals(
-                  Sets.newHashSet(),
-                  collectAccessedTypes(lambdaCheck, clazz, "testBigExtraMethodReturningLambda"));
-
-              assertThat(
-                  inspector.clazz(
-                      "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda$1"),
-                  not(isPresent()));
-              assertThat(
-                  inspector.clazz(
-                      "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda2$1"),
-                  not(isPresent()));
-              assertThat(
-                  inspector.clazz(
-                      "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda3$1"),
-                  not(isPresent()));
+                  isPresent());
             });
   }
 
   @Test
   public void testDataClass() throws Exception {
-    assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
-    final String mainClassName = "class_inliner_data_class.MainKt";
-    runTestWithDefaults(
+    String mainClassName = "class_inliner_data_class.MainKt";
+    runTest(
             "class_inliner_data_class",
             mainClassName,
             TestShrinkerBuilder::addDontWarnJetBrainsAnnotations)
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(mainClassName);
-              assertTrue(
+
+              // TODO(b/141719453): Data class should maybe be class inlined.
+              assertEquals(
+                  Sets.newHashSet("class_inliner_data_class.Alpha"),
                   collectAccessedTypes(
-                          type -> !type.toSourceString().startsWith("java."),
-                          clazz,
-                          "main",
-                          String[].class.getCanonicalName())
-                      .isEmpty());
+                      type -> !type.toSourceString().startsWith("java."),
+                      clazz,
+                      "main",
+                      String[].class.getCanonicalName()));
               assertEquals(
                   Lists.newArrayList(
                       "void kotlin.jvm.internal.Intrinsics.throwParameterIsNullException(java.lang.String)"),
@@ -323,39 +244,6 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
         .filter(isTypeOfInterest)
         .map(DexType::toSourceString)
         .collect(Collectors.toSet());
-  }
-
-  private R8TestRunResult runTestWithDefaults(String folder, String mainClass) throws Exception {
-    return runTestWithDefaults(folder, mainClass, null);
-  }
-
-  private R8TestRunResult runTestWithDefaults(
-      String folder, String mainClass, ThrowableConsumer<R8FullTestBuilder> configuration)
-      throws Exception {
-    return runTest(
-        folder,
-        mainClass,
-        testBuilder ->
-            testBuilder
-                .addOptionsModification(
-                    options -> {
-                      options.enableInlining = true;
-                      options.enableLambdaMerging = false;
-
-                      // TODO(b/141719453): These limits should be removed if a possible or the test
-                      //  refactored. Tests check if specific lambdas are inlined or not, where some
-                      //  of target lambdas have at least 4 instructions.
-                      options.inliningInstructionLimit = 4;
-                      options.classInliningInstructionLimit = 40;
-
-                      // Class inlining depends on the processing order. We therefore insert all
-                      // call graph edges and verify that we can class inline everything under this
-                      // condition.
-                      options.testing.addCallEdgesForLibraryInvokes = true;
-
-                      options.horizontalClassMergerOptions().disableKotlinLambdaMerging();
-                    })
-                .apply(configuration));
   }
 
   private List<String> collectStaticCalls(ClassSubject clazz, String methodName, String... params) {

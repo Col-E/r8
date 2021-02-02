@@ -7,10 +7,8 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotR
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
-import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -21,11 +19,10 @@ public abstract class AbstractR8KotlinNamingTestBase extends AbstractR8KotlinTes
   protected final boolean minification;
 
   AbstractR8KotlinNamingTestBase(
-      KotlinTargetVersion kotlinTargetVersion,
-      KotlinCompiler kotlinc,
+      KotlinTestParameters kotlinParameters,
       boolean allowAccessModification,
       boolean minification) {
-    super(kotlinTargetVersion, kotlinc, allowAccessModification);
+    super(kotlinParameters, allowAccessModification);
     this.minification = minification;
   }
 
@@ -41,23 +38,9 @@ public abstract class AbstractR8KotlinNamingTestBase extends AbstractR8KotlinTes
     return classSubject;
   }
 
-  protected FieldSubject checkFieldIsRenamed(
-      ClassSubject classSubject, String fieldType, String fieldName) {
-    FieldSubject fieldSubject = checkFieldIsKept(classSubject, fieldType, fieldName);
-    assertThat(fieldSubject, isPresentAndRenamed());
-    return fieldSubject;
-  }
-
   protected FieldSubject checkFieldIsRenamed(ClassSubject classSubject, String fieldName) {
     FieldSubject fieldSubject = checkFieldIsKept(classSubject, fieldName);
     assertThat(fieldSubject, isPresentAndRenamed());
-    return fieldSubject;
-  }
-
-  protected FieldSubject checkFieldIsNotRenamed(
-      ClassSubject classSubject, String fieldType, String fieldName) {
-    FieldSubject fieldSubject = checkFieldIsKept(classSubject, fieldType, fieldName);
-    assertThat(fieldSubject, isPresentAndNotRenamed());
     return fieldSubject;
   }
 
@@ -67,23 +50,9 @@ public abstract class AbstractR8KotlinNamingTestBase extends AbstractR8KotlinTes
     return fieldSubject;
   }
 
-  protected MethodSubject checkMethodIsRenamed(
-      ClassSubject classSubject, MethodSignature methodSignature) {
-    MethodSubject methodSubject = checkMethodIsKept(classSubject, methodSignature);
-    assertThat(methodSubject, isPresentAndRenamed());
-    return methodSubject;
-  }
-
   protected MethodSubject checkMethodIsRenamed(ClassSubject classSubject, String methodName) {
     MethodSubject methodSubject = checkMethodIsKept(classSubject, methodName);
     assertThat(methodSubject, isPresentAndRenamed());
-    return methodSubject;
-  }
-
-  protected MethodSubject checkMethodIsNotRenamed(
-      ClassSubject classSubject, MethodSignature methodSignature) {
-    MethodSubject methodSubject = checkMethodIsKept(classSubject, methodSignature);
-    assertThat(methodSubject, isPresentAndNotRenamed());
     return methodSubject;
   }
 
@@ -92,5 +61,4 @@ public abstract class AbstractR8KotlinNamingTestBase extends AbstractR8KotlinTes
     assertThat(methodSubject, isPresentAndNotRenamed());
     return methodSubject;
   }
-
 }

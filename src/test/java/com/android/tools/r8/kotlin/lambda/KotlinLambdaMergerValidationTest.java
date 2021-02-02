@@ -3,16 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.lambda;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.nio.file.Path;
@@ -26,17 +24,16 @@ public class KotlinLambdaMergerValidationTest extends AbstractR8KotlinTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
+  @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
   public KotlinLambdaMergerValidationTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
-    super(targetVersion, kotlinc, false);
+      TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters, false);
     this.parameters = parameters;
   }
 

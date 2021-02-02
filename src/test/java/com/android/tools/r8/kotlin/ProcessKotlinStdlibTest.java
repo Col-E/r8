@@ -3,16 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -24,17 +22,15 @@ import org.junit.runners.Parameterized;
 public class ProcessKotlinStdlibTest extends KotlinTestBase {
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimes().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
-  public ProcessKotlinStdlibTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
-    super(targetVersion, kotlinc);
+  public ProcessKotlinStdlibTest(TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.parameters = parameters;
   }
 
@@ -71,22 +67,6 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
   }
 
   @Test
-  public void testDontShrinkAndDontOptimizeDifferently() throws Exception {
-    test(
-        ImmutableList.of("-keep,allowobfuscation class **.*Exception*"),
-        tb ->
-            tb.addDontWarnJetBrainsAnnotations()
-                .noTreeShaking()
-                .addOptionsModification(
-                    o -> {
-                      // Randomly choose a couple of optimizations.
-                      o.enableClassInlining = false;
-                      o.enableLambdaMerging = false;
-                      o.enableValuePropagation = false;
-                    }));
-  }
-
-  @Test
   public void testDontShrinkAndDontObfuscate() throws Exception {
     test(
         ImmutableList.of("-dontshrink", "-dontobfuscate"),
@@ -96,13 +76,6 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
   @Test
   public void testDontShrink() throws Exception {
     test(ImmutableList.of("-dontshrink"), TestShrinkerBuilder::addDontWarnJetBrainsAnnotations);
-  }
-
-  @Test
-  public void testDontShrinkDifferently() throws Exception {
-    test(
-        ImmutableList.of("-keep,allowobfuscation class **.*Exception*"),
-        tb -> tb.addDontWarnJetBrainsAnnotations().noTreeShaking());
   }
 
   @Test

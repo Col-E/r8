@@ -3,17 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestCompileResult;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.kotlin.TestKotlinClass;
@@ -39,21 +37,19 @@ import org.junit.runners.Parameterized.Parameters;
 public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBase {
   private static final String FOLDER = "intrinsics_identifiers";
 
-  @Parameters(name = "target: {0}, kotlinc: {1}, allowAccessModification: {2}, minification: {3}")
+  @Parameters(name = "{0}, allowAccessModification: {1}, minification: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        KotlinTargetVersion.values(),
-        getKotlinCompilers(),
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values(),
         BooleanUtils.values());
   }
 
   public KotlinIntrinsicsIdentifierTest(
-      KotlinTargetVersion targetVersion,
-      KotlinCompiler kotlinc,
+      KotlinTestParameters kotlinParameters,
       boolean allowAccessModification,
       boolean minification) {
-    super(targetVersion, kotlinc, allowAccessModification, minification);
+    super(kotlinParameters, allowAccessModification, minification);
   }
 
   private static final KotlinCompileMemoizer compiledJars =

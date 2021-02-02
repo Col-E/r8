@@ -351,6 +351,10 @@ public abstract class TestShrinkerBuilder<
   }
 
   public T addKeepAttributes(String... attributes) {
+    return addKeepAttributes(Arrays.asList(attributes));
+  }
+
+  public T addKeepAttributes(List<String> attributes) {
     return addKeepRules("-keepattributes " + String.join(",", attributes));
   }
 

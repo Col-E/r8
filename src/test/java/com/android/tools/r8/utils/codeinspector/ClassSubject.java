@@ -96,7 +96,11 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract MethodSubject method(String returnType, String name, List<String> parameters);
 
-  public abstract MethodSubject uniqueInstanceInitializer();
+  public final MethodSubject uniqueInstanceInitializer() {
+    return uniqueMethodThatMatches(FoundMethodSubject::isInstanceInitializer);
+  }
+
+  public abstract MethodSubject uniqueMethodThatMatches(Predicate<FoundMethodSubject> predicate);
 
   public abstract MethodSubject uniqueMethodWithName(String name);
 

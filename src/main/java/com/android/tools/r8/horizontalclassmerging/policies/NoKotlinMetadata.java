@@ -19,12 +19,8 @@ public class NoKotlinMetadata extends SingleClassPolicy {
   }
 
   private boolean verifyNoUnexpectedKotlinInfo(DexProgramClass clazz) {
-    if (clazz.getKotlinInfo().isNoKotlinInformation()) {
-      assert verifyNoUnexpectedKotlinMemberInfo(clazz);
-      return true;
-    }
-    assert clazz.getKotlinInfo().isSyntheticClass()
-        && clazz.getKotlinInfo().asSyntheticClass().isLambda();
+    assert clazz.getKotlinInfo().isNoKotlinInformation();
+    assert verifyNoUnexpectedKotlinMemberInfo(clazz);
     return true;
   }
 

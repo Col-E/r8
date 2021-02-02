@@ -51,8 +51,8 @@ public class EventPublisherTest extends TestBase {
         .addKeepClassRules(Interface.class)
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedLambdaClassesInspector(
-            inspector -> inspector.assertClassNotMerged(EventPublisher$b.class))
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertClassesNotMerged(EventPublisher$b.class))
         .compile();
   }
 

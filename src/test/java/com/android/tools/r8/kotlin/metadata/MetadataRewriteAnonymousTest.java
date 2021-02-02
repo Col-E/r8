@@ -4,14 +4,12 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -27,17 +25,16 @@ public class MetadataRewriteAnonymousTest extends KotlinMetadataTestBase {
 
   private final String EXPECTED = "foo";
 
-  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
+  @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
   public MetadataRewriteAnonymousTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
-    super(targetVersion, kotlinc);
+      TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.parameters = parameters;
   }
 

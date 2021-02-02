@@ -4,13 +4,11 @@
 
 package com.android.tools.r8.kotlin.coroutines;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.kotlin.metadata.KotlinMetadataTestBase;
 import com.android.tools.r8.utils.ZipUtils;
@@ -50,19 +48,18 @@ public class KotlinxCoroutinesTestRunner extends KotlinMetadataTestBase {
   private Set<String> notWorkingTests =
       Sets.newHashSet("kotlinx.coroutines.test.TestDispatchersTest");
 
-  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
+  @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
   private final TestParameters parameters;
 
   public KotlinxCoroutinesTestRunner(
-      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
-    super(targetVersion, kotlinc);
+      TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.parameters = parameters;
   }
 

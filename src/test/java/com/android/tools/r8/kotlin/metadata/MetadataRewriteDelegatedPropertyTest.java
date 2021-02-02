@@ -4,12 +4,9 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
-
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -33,17 +30,16 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
           "null",
           "New value has been read in CustomDelegate from 'x'");
 
-  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
+  @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
   public MetadataRewriteDelegatedPropertyTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
-    super(targetVersion, kotlinc);
+      TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.parameters = parameters;
   }
 

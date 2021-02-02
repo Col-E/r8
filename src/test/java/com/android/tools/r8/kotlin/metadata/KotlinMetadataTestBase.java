@@ -8,8 +8,7 @@ import static junit.framework.TestCase.assertNotNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNull;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -22,8 +21,8 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public abstract class KotlinMetadataTestBase extends AbstractR8KotlinTestBase {
 
-  public KotlinMetadataTestBase(KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
-    super(targetVersion, kotlinc);
+  public KotlinMetadataTestBase(KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
   }
 
   static final String PKG = KotlinMetadataTestBase.class.getPackage().getName();

@@ -4,31 +4,19 @@
 
 package com.android.tools.r8.kotlin.lambda.b148525512;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
-import com.android.tools.r8.utils.codeinspector.InstructionSubject;
-import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -57,17 +45,15 @@ public class B148525512 extends KotlinTestBase {
               });
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
+  @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
-  public B148525512(
-      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
-    super(targetVersion, kotlinc);
+  public B148525512(TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.parameters = parameters;
   }
 
@@ -84,35 +70,6 @@ public class B148525512 extends KotlinTestBase {
     }
   }
 
-  private void checkLambdaGroups(CodeInspector inspector) {
-    List<FoundClassSubject> lambdaGroups =
-        inspector.allClasses().stream()
-            .filter(clazz -> clazz.getOriginalName().contains("LambdaGroup"))
-            .collect(Collectors.toList());
-    assertEquals(1, lambdaGroups.size());
-    MethodSubject invokeMethod = lambdaGroups.get(0).uniqueMethodWithName("invoke");
-    assertThat(invokeMethod, isPresent());
-    // The lambda group has 2 captures which capture "Base".
-    assertEquals(
-        2,
-        invokeMethod
-            .streamInstructions()
-            .filter(InstructionSubject::isCheckCast)
-            .filter(
-                instruction ->
-                    instruction.asCheckCast().getType().toSourceString().contains("Base"))
-            .count());
-    // The lambda group has no captures which capture "Feature" (lambdas in the feature are not
-    // in this lambda group).
-    assertTrue(
-        invokeMethod
-            .streamInstructions()
-            .filter(InstructionSubject::isCheckCast)
-            .noneMatch(
-                instruction ->
-                    instruction.asCheckCast().getType().toSourceString().contains("Feature")));
-  }
-
   @Test
   public void test() throws Exception {
     Path featureCode = temp.newFile("feature.zip").toPath();
@@ -125,10 +82,16 @@ public class B148525512 extends KotlinTestBase {
             .addKeepClassAndMembersRules(baseClassName)
             .addKeepClassAndMembersRules(featureKtClassNamet)
             .addKeepClassAndMembersRules(FeatureAPI.class)
-            .addOptionsModification(
-                options -> options.horizontalClassMergerOptions().disableKotlinLambdaMerging())
+            .addHorizontallyMergedClassesInspector(
+                inspector ->
+                    inspector
+                        .assertIsCompleteMergeGroup(
+                            "com.android.tools.r8.kotlin.lambda.b148525512.BaseKt$main$1",
+                            "com.android.tools.r8.kotlin.lambda.b148525512.BaseKt$main$2")
+                        .assertIsCompleteMergeGroup(
+                            "com.android.tools.r8.kotlin.lambda.b148525512.FeatureKt$feature$1",
+                            "com.android.tools.r8.kotlin.lambda.b148525512.FeatureKt$feature$2"))
             .setMinApi(parameters.getApiLevel())
-            .noMinification() // The check cast inspection above relies on original names.
             .addFeatureSplit(
                 builder ->
                     builder
@@ -142,10 +105,9 @@ public class B148525512 extends KotlinTestBase {
             .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .assertAllWarningMessagesMatch(
-                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
-            .inspect(this::checkLambdaGroups);
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."));
 
-    // Run the code without the feature code present.
+    // Run the code without the feature code.
     compileResult
         .run(parameters.getRuntime(), baseKtClassName)
         .assertSuccessWithOutputLines("1", "2");

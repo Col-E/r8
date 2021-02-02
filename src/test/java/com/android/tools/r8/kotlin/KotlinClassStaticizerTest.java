@@ -4,16 +4,14 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8TestRunResult;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
@@ -26,15 +24,16 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
 
-  @Parameterized.Parameters(name = "target: {0}, kotlinc: {1}, allowAccessModification: {2}")
+  @Parameterized.Parameters(name = "{0}, allowAccessModification: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        KotlinTargetVersion.values(), getKotlinCompilers(), BooleanUtils.values());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
+        BooleanUtils.values());
   }
 
   public KotlinClassStaticizerTest(
-      KotlinTargetVersion targetVersion, KotlinCompiler kotlinc, boolean allowAccessModification) {
-    super(targetVersion, kotlinc, allowAccessModification);
+      KotlinTestParameters kotlinParameters, boolean allowAccessModification) {
+    super(kotlinParameters, allowAccessModification);
   }
 
   @Test

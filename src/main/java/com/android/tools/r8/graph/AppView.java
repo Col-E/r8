@@ -9,7 +9,6 @@ import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis.InitializedClassesInInstanceMethods;
-import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
@@ -91,7 +90,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private boolean allCodeProcessed = false;
   private Predicate<DexType> classesEscapingIntoLibrary = Predicates.alwaysTrue();
   private InitializedClassesInInstanceMethods initializedClassesInInstanceMethods;
-  private HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses;
   private HorizontallyMergedClasses horizontallyMergedClasses;
   private VerticallyMergedClasses verticallyMergedClasses;
   private EnumDataMap unboxedEnums = EnumDataMap.empty();
@@ -483,30 +481,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     if (horizontallyMergedClasses != null) {
       collection.add(horizontallyMergedClasses);
     }
-    if (horizontallyMergedLambdaClasses != null) {
-      collection.add(horizontallyMergedLambdaClasses);
-    }
     if (verticallyMergedClasses != null) {
       collection.add(verticallyMergedClasses);
     }
     return collection;
-  }
-
-  /**
-   * Get the result of horizontal lambda class merging. Returns null if horizontal lambda class
-   * merging has not been run.
-   */
-  public HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses() {
-    return horizontallyMergedLambdaClasses;
-  }
-
-  public void setHorizontallyMergedLambdaClasses(
-      HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses) {
-    assert this.horizontallyMergedLambdaClasses == null;
-    this.horizontallyMergedLambdaClasses = horizontallyMergedLambdaClasses;
-    testing()
-        .horizontallyMergedLambdaClassesConsumer
-        .accept(dexItemFactory(), horizontallyMergedLambdaClasses);
   }
 
   /**

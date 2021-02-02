@@ -40,7 +40,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
@@ -50,7 +49,6 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.nest.Nest;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
-import com.android.tools.r8.ir.optimize.lambda.kotlin.KotlinLambdaGroupIdFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.Reference;
@@ -201,7 +199,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     enableClassInlining = false;
     enableClassStaticizer = false;
     enableDevirtualization = false;
-    enableLambdaMerging = false;
     horizontalClassMergerOptions.disable();
     enableVerticalClassMerging = false;
     enableEnumUnboxing = false;
@@ -502,8 +499,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   // Flag to turn on/offLoad/store optimization in the Cf back-end.
   public boolean enableLoadStoreOptimization = true;
-  // Flag to turn on/off lambda class merging in R8.
-  public boolean enableLambdaMerging = false;
   // Flag to turn on/off desugaring in D8/R8.
   public DesugarState desugarState = DesugarState.ON;
   // Flag to turn on/off reduction of nest to improve class merging optimizations.
@@ -1139,18 +1134,15 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enableConstructorMerging = true;
     // TODO(b/174809311): Update or remove the option and its tests after new lambdas synthetics.
     public boolean enableJavaLambdaMerging = false;
-    public boolean enableKotlinLambdaMerging = true;
 
     public int syntheticArgumentCount = 3;
     public int maxGroupSize = 30;
 
+    // TODO(b/179019716): Add support for merging in presence of annotations.
+    public boolean skipNoClassesOrMembersWithAnnotationsPolicyForTesting = false;
+
     public void disable() {
       enable = false;
-    }
-
-    @Deprecated
-    public void disableKotlinLambdaMerging() {
-      enableKotlinLambdaMerging = false;
     }
 
     public void enable() {
@@ -1163,10 +1155,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public void enableJavaLambdaMerging() {
       enableJavaLambdaMerging = true;
-    }
-
-    public void enableKotlinLambdaMergingIf(boolean enableKotlinLambdaMerging) {
-      this.enableKotlinLambdaMerging = enableKotlinLambdaMerging;
     }
 
     public int getMaxGroupSize() {
@@ -1191,10 +1179,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean isJavaLambdaMergingEnabled() {
       return enableJavaLambdaMerging;
-    }
-
-    public boolean isKotlinLambdaMergingEnabled() {
-      return enableKotlinLambdaMerging;
     }
   }
 
@@ -1243,9 +1227,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public BiConsumer<AppInfoWithLiveness, Enqueuer.Mode> enqueuerInspector = null;
 
-    public Function<DexProgramClass, KotlinLambdaGroupIdFactory> kotlinLambdaMergerFactoryForClass =
-        KotlinLambdaGroupIdFactory::getFactoryForClass;
-
     public BiConsumer<ProgramMethod, MethodProcessingId> methodProcessingIdConsumer = null;
 
     public Function<AppView<AppInfoWithLiveness>, RepackagingConfiguration>
@@ -1256,9 +1237,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public BiConsumer<DexItemFactory, HorizontallyMergedClasses> horizontallyMergedClassesConsumer =
         ConsumerUtils.emptyBiConsumer();
-
-    public BiConsumer<DexItemFactory, HorizontallyMergedLambdaClasses>
-        horizontallyMergedLambdaClassesConsumer = ConsumerUtils.emptyBiConsumer();
 
     public BiConsumer<DexItemFactory, EnumDataMap> unboxedEnumsConsumer =
         ConsumerUtils.emptyBiConsumer();

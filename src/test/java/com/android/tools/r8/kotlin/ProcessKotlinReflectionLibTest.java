@@ -3,16 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import java.util.Collection;
 import org.junit.Test;
@@ -24,17 +22,16 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimes().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
   public ProcessKotlinReflectionLibTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
-    super(targetVersion, kotlinc);
+      TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.parameters = parameters;
   }
 

@@ -4,24 +4,25 @@
 
 package com.android.tools.r8.kotlin.lambda.b159688129;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,26 +32,20 @@ import org.junit.runners.Parameterized.Parameters;
 public class LambdaSplitByCodeCorrectnessTest extends AbstractR8KotlinTestBase {
 
   private final TestParameters parameters;
-  private final KotlinTargetVersion targetVersion;
   private final boolean splitGroup;
 
-  @Parameters(name = "{0}, kotlinc: {2} targetVersion: {1}, splitGroup: {3}")
+  @Parameters(name = "{0}, {1}, splitGroup: {2}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers(),
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
 
   public LambdaSplitByCodeCorrectnessTest(
-      TestParameters parameters,
-      KotlinTargetVersion targetVersion,
-      KotlinCompiler kotlinc,
-      boolean splitGroup) {
-    super(targetVersion, kotlinc);
+      TestParameters parameters, KotlinTestParameters kotlinParameters, boolean splitGroup) {
+    super(kotlinParameters);
     this.parameters = parameters;
-    this.targetVersion = targetVersion;
     this.splitGroup = splitGroup;
   }
 
@@ -67,8 +62,6 @@ public class LambdaSplitByCodeCorrectnessTest extends AbstractR8KotlinTestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .addProgramFiles(ktClasses)
-        .addOptionsModification(
-            options -> options.horizontalClassMergerOptions().disableKotlinLambdaMerging())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(PKG_NAME + ".SimpleKt")
         .addDontWarnJetBrainsNotNullAnnotation()
@@ -77,25 +70,40 @@ public class LambdaSplitByCodeCorrectnessTest extends AbstractR8KotlinTestBase {
             b ->
                 b.addOptionsModification(
                     internalOptions ->
-                        // Setting verificationSizeLimitInBytesOverride = 1 will force a a chain
-                        // having only a single implementation method in each.
-                        internalOptions.testing.verificationSizeLimitInBytesOverride =
-                            splitGroup ? 1 : -1))
-        .noMinification()
+                        // Setting inliningInstructionAllowance = 1 will force each switch branch to
+                        // contain an invoke instruction to a private method.
+                        internalOptions.inliningInstructionAllowance = 1))
+        .addHorizontallyMergedClassesInspector(
+            inspector ->
+                inspector.assertIsCompleteMergeGroup(
+                    "com.android.tools.r8.kotlin.lambda.b159688129.SimpleKt$main$1",
+                    "com.android.tools.r8.kotlin.lambda.b159688129.SimpleKt$main$2",
+                    "com.android.tools.r8.kotlin.lambda.b159688129.SimpleKt$main$3",
+                    "com.android.tools.r8.kotlin.lambda.b159688129.SimpleKt$main$4",
+                    "com.android.tools.r8.kotlin.lambda.b159688129.SimpleKt$main$5",
+                    "com.android.tools.r8.kotlin.lambda.b159688129.SimpleKt$main$6"))
         .allowDiagnosticWarningMessages()
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .inspect(
             codeInspector -> {
-              List<FoundClassSubject> lambdaGroups =
-                  codeInspector.allClasses().stream()
-                      .filter(c -> c.getFinalName().contains("LambdaGroup"))
-                      .collect(Collectors.toList());
-              assertEquals(1, lambdaGroups.size());
-              FoundClassSubject lambdaGroup = lambdaGroups.get(0);
-              List<FoundMethodSubject> invokeChain =
-                  lambdaGroup.allMethods(method -> method.getFinalName().contains("invoke$"));
-              assertEquals(splitGroup ? 5 : 0, invokeChain.size());
+              ClassSubject mergeTarget =
+                  codeInspector.clazz(
+                      "com.android.tools.r8.kotlin.lambda.b159688129.SimpleKt$main$1");
+              assertThat(mergeTarget, isPresent());
+
+              MethodSubject virtualMethodSubject =
+                  mergeTarget.uniqueMethodThatMatches(
+                      method -> method.isVirtual() && !method.isSynthetic());
+              assertThat(virtualMethodSubject, isPresent());
+
+              int found = 0;
+              for (FoundMethodSubject directMethodSubject :
+                  mergeTarget.allMethods(x -> x.isPrivate() && !x.isSynthetic())) {
+                assertThat(virtualMethodSubject, invokesMethod(directMethodSubject));
+                found++;
+              }
+              assertEquals(splitGroup ? 6 : 0, found);
             })
         .run(parameters.getRuntime(), PKG_NAME + ".SimpleKt")
         .assertSuccessWithOutputLines("Hello1", "Hello2", "Hello3", "Hello4", "Hello5", "Hello6");

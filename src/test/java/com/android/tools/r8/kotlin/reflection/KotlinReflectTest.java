@@ -4,16 +4,14 @@
 
 package com.android.tools.r8.kotlin.reflection;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -29,7 +27,6 @@ import org.junit.runners.Parameterized.Parameters;
 public class KotlinReflectTest extends KotlinTestBase {
 
   private final TestParameters parameters;
-  private final KotlinTargetVersion targetVersion;
   private static final String EXPECTED_OUTPUT = "Hello World!";
   private static final String PKG = KotlinReflectTest.class.getPackage().getName();
   private static final KotlinCompileMemoizer compiledJars =
@@ -40,19 +37,16 @@ public class KotlinReflectTest extends KotlinTestBase {
               DescriptorUtils.getBinaryNameFromJavaType(PKG),
               "SimpleReflect" + FileUtils.KT_EXTENSION));
 
-  @Parameters(name = "{0}, target: {1}, kotlinc: {2}")
+  @Parameters(name = "{0}, {1}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
-  public KotlinReflectTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
-    super(targetVersion, kotlinc);
+  public KotlinReflectTest(TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.parameters = parameters;
-    this.targetVersion = targetVersion;
   }
 
   @Test

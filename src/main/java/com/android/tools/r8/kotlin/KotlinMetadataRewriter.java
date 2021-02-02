@@ -139,7 +139,7 @@ public class KotlinMetadataRewriter {
           }
           final KotlinClassLevelInfo kotlinInfo =
               KotlinClassMetadataReader.getKotlinInfo(
-                  kotlin, clazz, factory, reporter, false, ConsumerUtils.emptyConsumer(), metadata);
+                  kotlin, clazz, factory, reporter, ConsumerUtils.emptyConsumer(), metadata);
           if (kotlinInfo == NO_KOTLIN_INFO) {
             return;
           }

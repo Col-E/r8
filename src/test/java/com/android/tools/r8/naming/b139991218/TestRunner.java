@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.naming.b139991218;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertFalse;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
@@ -14,8 +14,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -63,21 +61,25 @@ public class TestRunner extends TestBase {
             options -> {
               options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
               options.enableClassInlining = false;
+
+              // TODO(b/179019716): Add support for merging in presence of annotations.
+              options.horizontalClassMergerOptions()
+                      .skipNoClassesOrMembersWithAnnotationsPolicyForTesting =
+                  true;
             })
         .addDontWarnJetBrainsAnnotations()
+        .addHorizontallyMergedClassesInspector(
+            inspector ->
+                inspector.assertIsCompleteMergeGroup(
+                    "com.android.tools.r8.naming.b139991218.Lambda1",
+                    "com.android.tools.r8.naming.b139991218.Lambda2"))
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutput(StringUtils.lines("11", "12"))
+        .assertSuccessWithOutputLines("11", "12")
         .inspect(
-            inspector -> {
-              // Ensure that we have created a lambda group and that the lambda classes are now
-              // gone.
-              boolean foundLambdaGroup = false;
-              for (FoundClassSubject allClass : inspector.allClasses()) {
-                foundLambdaGroup |= allClass.getOriginalName().contains("LambdaGroup");
-                assertFalse(allClass.getOriginalName().contains("b139991218.Lambda"));
-              }
-              assertTrue(foundLambdaGroup);
-            });
+            inspector ->
+                assertThat(
+                    inspector.clazz("com.android.tools.r8.naming.b139991218.Lambda1"),
+                    isPresent()));
   }
 }

@@ -41,10 +41,12 @@ public abstract class KotlinTestBase extends TestBase {
 
   protected final KotlinCompiler kotlinc;
   protected final KotlinTargetVersion targetVersion;
+  protected final KotlinTestParameters kotlinParameters;
 
-  protected KotlinTestBase(KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
-    this.targetVersion = targetVersion;
-    this.kotlinc = kotlinc;
+  protected KotlinTestBase(KotlinTestParameters kotlinParameters) {
+    this.targetVersion = kotlinParameters.getTargetVersion();
+    this.kotlinc = kotlinParameters.getCompiler();
+    this.kotlinParameters = kotlinParameters;
   }
 
   protected static List<Path> getKotlinFilesInTestPackage(Package pkg) throws IOException {
@@ -123,6 +125,11 @@ public abstract class KotlinTestBase extends TestBase {
     public KotlinCompileMemoizer configure(Consumer<KotlinCompilerTool> consumer) {
       this.kotlinCompilerToolConsumer = consumer;
       return this;
+    }
+
+    public Path getForConfiguration(KotlinTestParameters kotlinParameters) {
+      return getForConfiguration(
+          kotlinParameters.getCompiler(), kotlinParameters.getTargetVersion());
     }
 
     public Path getForConfiguration(KotlinCompiler compiler, KotlinTargetVersion targetVersion) {

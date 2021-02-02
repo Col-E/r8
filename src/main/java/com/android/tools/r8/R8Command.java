@@ -834,10 +834,6 @@ public final class R8Command extends BaseCompilerCommand {
     internal.desugarState = getDesugarState();
     assert internal.isShrinking() == getEnableTreeShaking();
     assert internal.isMinifying() == getEnableMinification();
-    // In current implementation we only enable lambda merger if the tree
-    // shaking is enabled. This is caused by the fact that we rely on tree
-    // shaking for removing the lambda classes which should be revised later.
-    internal.enableLambdaMerging = getEnableTreeShaking();
     assert !internal.ignoreMissingClasses;
     internal.ignoreMissingClasses =
         proguardConfiguration.isIgnoreWarnings()
@@ -871,14 +867,12 @@ public final class R8Command extends BaseCompilerCommand {
       internal.enableClassStaticizer = false;
       internal.outline.enabled = false;
       internal.enableEnumUnboxing = false;
-      internal.enableLambdaMerging = false;
     }
     if (!internal.isShrinking()) {
       // If R8 is not shrinking, there is no point in running various optimizations since the
       // optimized classes will still remain in the program (the application size could increase).
       internal.enableEnumUnboxing = false;
       internal.horizontalClassMergerOptions().disable();
-      internal.enableLambdaMerging = false;
       internal.enableVerticalClassMerging = false;
     }
 

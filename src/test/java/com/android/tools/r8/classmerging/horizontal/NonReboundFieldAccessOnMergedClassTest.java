@@ -28,12 +28,8 @@ public class NonReboundFieldAccessOnMergedClassTest extends HorizontalClassMergi
         .addOptionsModification(
             options ->
                 options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
-        .addHorizontallyMergedClassesInspector(
-            inspector -> {
-              if (enableHorizontalClassMerging) {
-                inspector.assertMerged(C.class, D.class).assertMergedIntoDifferentType(D.class);
-              }
-            })
+        .addHorizontallyMergedClassesInspectorIf(
+            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(D.class, C.class))
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())

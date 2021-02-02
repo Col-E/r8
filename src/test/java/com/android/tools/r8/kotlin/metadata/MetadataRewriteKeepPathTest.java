@@ -4,17 +4,15 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -26,12 +24,11 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class MetadataRewriteKeepPathTest extends KotlinMetadataTestBase {
 
-  @Parameterized.Parameters(name = "{0} target: {1}, kotlinc: {2}, keep: {3}")
+  @Parameterized.Parameters(name = "{0}, {1}, keep: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers(),
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
 
@@ -42,11 +39,8 @@ public class MetadataRewriteKeepPathTest extends KotlinMetadataTestBase {
   private final boolean keepMetadata;
 
   public MetadataRewriteKeepPathTest(
-      TestParameters parameters,
-      KotlinTargetVersion targetVersion,
-      KotlinCompiler kotlinc,
-      boolean keepMetadata) {
-    super(targetVersion, kotlinc);
+      TestParameters parameters, KotlinTestParameters kotlinParameters, boolean keepMetadata) {
+    super(kotlinParameters);
     this.parameters = parameters;
     this.keepMetadata = keepMetadata;
   }

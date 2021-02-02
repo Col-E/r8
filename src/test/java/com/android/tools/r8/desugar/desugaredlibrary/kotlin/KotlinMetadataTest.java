@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary.kotlin;
 
 import static com.android.tools.r8.KotlinTestBase.getCompileMemoizer;
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -16,14 +15,13 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase.KotlinCompileMemoizer;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -45,30 +43,27 @@ import org.junit.runners.Parameterized.Parameters;
 public class KotlinMetadataTest extends DesugaredLibraryTestBase {
 
   private static final String PKG = KotlinMetadataTest.class.getPackage().getName();
-  private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
-  private final KotlinTargetVersion targetVersion;
-  private final KotlinCompiler kotlinCompiler;
   private static final String EXPECTED_OUTPUT = "Wuhuu, my special day is: 1997-8-29-2-14";
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}, target: {2}, kotlinc: {3}")
+  private final TestParameters parameters;
+  private final KotlinTestParameters kotlinParameters;
+  private final boolean shrinkDesugaredLibrary;
+
+  @Parameters(name = "{0}, {1}, shrinkDesugaredLibrary: {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(),
         getTestParameters().withAllRuntimesAndApiLevels().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
+        BooleanUtils.values());
   }
 
   public KotlinMetadataTest(
-      boolean shrinkDesugaredLibrary,
       TestParameters parameters,
-      KotlinTargetVersion targetVersion,
-      KotlinCompiler kotlinCompiler) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+      KotlinTestParameters kotlinParameters,
+      boolean shrinkDesugaredLibrary) {
     this.parameters = parameters;
-    this.targetVersion = targetVersion;
-    this.kotlinCompiler = kotlinCompiler;
+    this.kotlinParameters = kotlinParameters;
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
   }
 
   private static KotlinCompileMemoizer compiledJars =
@@ -83,9 +78,9 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
   public void testCf() throws Exception {
     assumeTrue(parameters.getRuntime().isCf());
     testForRuntime(parameters)
-        .addProgramFiles(compiledJars.getForConfiguration(kotlinCompiler, targetVersion))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinCompiler))
-        .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinCompiler))
+        .addProgramFiles(compiledJars.getForConfiguration(kotlinParameters))
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinParameters.getCompiler()))
+        .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinParameters.getCompiler()))
         .run(parameters.getRuntime(), PKG + ".MainKt")
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
   }
@@ -97,9 +92,9 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
     final File output = temp.newFile("output.zip");
     final D8TestRunResult d8TestRunResult =
         testForD8()
-            .addProgramFiles(compiledJars.getForConfiguration(kotlinCompiler, targetVersion))
-            .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinCompiler))
-            .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinCompiler))
+            .addProgramFiles(compiledJars.getForConfiguration(kotlinParameters))
+            .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinParameters.getCompiler()))
+            .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinParameters.getCompiler()))
             .setProgramConsumer(new ArchiveConsumer(output.toPath(), true))
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -126,9 +121,9 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
     boolean desugarLibrary = parameters.isDexRuntime() && requiresAnyCoreLibDesugaring(parameters);
     final R8FullTestBuilder testBuilder =
         testForR8(parameters.getBackend())
-            .addProgramFiles(compiledJars.getForConfiguration(kotlinCompiler, targetVersion))
-            .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinCompiler))
-            .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinCompiler))
+            .addProgramFiles(compiledJars.getForConfiguration(kotlinParameters))
+            .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinParameters.getCompiler()))
+            .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinParameters.getCompiler()))
             .addKeepMainRule(PKG + ".MainKt")
             .addKeepAllClassesRule()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)

@@ -7,6 +7,7 @@ import static com.android.tools.r8.kotlin.KotlinMetadataUtils.INVALID_KOTLIN_INF
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 import static com.android.tools.r8.kotlin.KotlinSyntheticClassInfo.getFlavour;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexClass;
@@ -35,11 +36,10 @@ public final class KotlinClassMetadataReader {
       DexClass clazz,
       DexItemFactory factory,
       Reporter reporter,
-      boolean onlyProcessLambda,
       Consumer<DexEncodedMethod> keepByteCode) {
     DexAnnotation meta = clazz.annotations().getFirstMatching(factory.kotlinMetadataType);
     if (meta != null) {
-      return getKotlinInfo(kotlin, clazz, factory, reporter, onlyProcessLambda, keepByteCode, meta);
+      return getKotlinInfo(kotlin, clazz, factory, reporter, keepByteCode, meta);
     }
     return NO_KOTLIN_INFO;
   }
@@ -49,14 +49,10 @@ public final class KotlinClassMetadataReader {
       DexClass clazz,
       DexItemFactory factory,
       Reporter reporter,
-      boolean onlyProcessLambda,
       Consumer<DexEncodedMethod> keepByteCode,
       DexAnnotation annotation) {
     try {
       KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, annotation.annotation);
-      if (onlyProcessLambda && !isSyntheticClassifiedLambda(kotlin, clazz, kMetadata)) {
-        return NO_KOTLIN_INFO;
-      }
       return createKotlinInfo(kotlin, clazz, kMetadata, factory, reporter, keepByteCode);
     } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
       reporter.info(
@@ -77,12 +73,18 @@ public final class KotlinClassMetadataReader {
     }
   }
 
-  private static boolean isSyntheticClassifiedLambda(
-      Kotlin kotlin, DexClass clazz, KotlinClassMetadata kMetadata) {
-    if (kMetadata instanceof SyntheticClass) {
-      SyntheticClass syntheticClass = (SyntheticClass) kMetadata;
-      return syntheticClass.isLambda()
-          && getFlavour(syntheticClass, clazz, kotlin) != Flavour.Unclassified;
+  public static boolean isLambda(AppView<?> appView, DexClass clazz) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    Kotlin kotlin = dexItemFactory.kotlin;
+    DexAnnotation metadataAnnotation =
+        clazz.annotations().getFirstMatching(dexItemFactory.kotlinMetadataType);
+    if (metadataAnnotation != null) {
+      KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, metadataAnnotation.annotation);
+      if (kMetadata instanceof SyntheticClass) {
+        SyntheticClass syntheticClass = (SyntheticClass) kMetadata;
+        return syntheticClass.isLambda()
+            && getFlavour(syntheticClass, clazz, kotlin) != Flavour.Unclassified;
+      }
     }
     return false;
   }

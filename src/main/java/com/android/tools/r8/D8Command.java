@@ -476,7 +476,6 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.enableEnumValueOptimization;
     assert !internal.outline.enabled;
     assert !internal.enableValuePropagation;
-    assert !internal.enableLambdaMerging;
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
 
     internal.desugarState = getDesugarState();

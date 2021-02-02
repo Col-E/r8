@@ -3,10 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.lambda;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
-
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.KotlinTestParameters;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.Collection;
@@ -17,15 +15,16 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class KotlinLambdaMergingWithReprocessingTest extends AbstractR8KotlinTestBase {
 
-  @Parameterized.Parameters(name = "target: {0}, kotlinc: {1}, allowAccessModification: {2}")
+  @Parameterized.Parameters(name = "{0}, allowAccessModification: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        KotlinTargetVersion.values(), getKotlinCompilers(), BooleanUtils.values());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
+        BooleanUtils.values());
   }
 
   public KotlinLambdaMergingWithReprocessingTest(
-      KotlinTargetVersion targetVersion, KotlinCompiler kotlinc, boolean allowAccessModification) {
-    super(targetVersion, kotlinc, allowAccessModification);
+      KotlinTestParameters kotlinParameters, boolean allowAccessModification) {
+    super(kotlinParameters, allowAccessModification);
   }
 
   @Test
@@ -34,14 +33,6 @@ public class KotlinLambdaMergingWithReprocessingTest extends AbstractR8KotlinTes
     runTest(
         "reprocess_merged_lambdas_kstyle",
         mainClassName,
-        testBuilder ->
-            testBuilder
-                .addDontWarnJetBrainsNotNullAnnotation()
-                .addOptionsModification(
-                    options -> {
-                      options.enableInlining = true;
-                      options.enableClassInlining = true;
-                      options.enableLambdaMerging = true;
-                    }));
+        TestShrinkerBuilder::addDontWarnJetBrainsNotNullAnnotation);
   }
 }

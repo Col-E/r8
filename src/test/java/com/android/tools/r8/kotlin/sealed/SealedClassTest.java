@@ -6,15 +6,13 @@ package com.android.tools.r8.kotlin.sealed;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -33,17 +31,15 @@ public class SealedClassTest extends KotlinTestBase {
 
   private final TestParameters parameters;
 
-  @Parameters(name = "{0}")
+  @Parameters(name = "{0}, {1}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),
-        KotlinTargetVersion.values(),
-        getKotlinCompilers());
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
-  public SealedClassTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
-    super(targetVersion, kotlinc);
+  public SealedClassTest(TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.parameters = parameters;
   }
 

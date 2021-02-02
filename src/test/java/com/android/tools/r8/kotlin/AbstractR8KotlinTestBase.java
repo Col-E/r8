@@ -14,19 +14,17 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -52,16 +50,13 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
   private final List<Path> extraClasspath = new ArrayList<>();
 
   // Some tests defined in subclasses, e.g., Metadata tests, don't care about access relaxation.
-  protected AbstractR8KotlinTestBase(
-      KotlinTargetVersion kotlinTargetVersion, KotlinCompiler kotlinc) {
-    this(kotlinTargetVersion, kotlinc, false);
+  protected AbstractR8KotlinTestBase(KotlinTestParameters kotlinParameters) {
+    this(kotlinParameters, false);
   }
 
   protected AbstractR8KotlinTestBase(
-      KotlinTargetVersion kotlinTargetVersion,
-      KotlinCompiler kotlinc,
-      boolean allowAccessModification) {
-    super(kotlinTargetVersion, kotlinc);
+      KotlinTestParameters kotlinParameters, boolean allowAccessModification) {
+    super(kotlinParameters);
     this.allowAccessModification = allowAccessModification;
   }
 
@@ -142,27 +137,12 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
     return fieldSubject;
   }
 
-  protected void checkFieldIsRemoved(
-      ClassSubject classSubject, String fieldType, String fieldName) {
-    // Field must exist in the input.
-    checkFieldPresenceInInput(classSubject.getOriginalName(), fieldType, fieldName, true);
-    FieldSubject fieldSubject = classSubject.field(fieldType, fieldName);
-    assertNotNull(fieldSubject);
-    assertThat(fieldSubject, not(isPresent()));
-  }
-
   protected void checkFieldIsAbsent(ClassSubject classSubject, String fieldType, String fieldName) {
     // Field must NOT exist in the input.
     checkFieldPresenceInInput(classSubject.getOriginalName(), fieldType, fieldName, false);
     FieldSubject fieldSubject = classSubject.field(fieldType, fieldName);
     assertNotNull(fieldSubject);
     assertFalse(fieldSubject.isPresent());
-  }
-
-  protected FieldSubject checkFieldIsAbsent(ClassSubject classSubject, String fieldName) {
-    FieldSubject fieldSubject = classSubject.uniqueFieldWithName(fieldName);
-    assertThat(fieldSubject, not(isPresent()));
-    return fieldSubject;
   }
 
   protected void checkMethodIsAbsent(ClassSubject classSubject, MethodSignature methodSignature) {
@@ -185,11 +165,6 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
   protected void checkMethodIsRemoved(ClassSubject classSubject, MethodSignature methodSignature) {
     checkMethodPresenceInInput(classSubject.getOriginalName(), methodSignature, true);
     checkMethodIsKeptOrRemoved(classSubject, methodSignature, false);
-  }
-
-  protected void checkMethodIsRemoved(ClassSubject classSubject, String methodName) {
-    MethodSubject methodSubject = classSubject.uniqueMethodWithName(methodName);
-    assertThat(methodSubject, not(isPresent()));
   }
 
   protected MethodSubject checkMethodIsKeptOrRemoved(
@@ -266,14 +241,13 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
         .addProgramFiles(classpath)
         .addKeepMainRule(mainClass)
         .allowAccessModification(allowAccessModification)
-        .allowDiagnosticMessages()
+        .allowDiagnosticWarningMessages()
         .enableProguardTestOptions()
         .noMinification()
         .apply(configuration)
         .compile()
         .assertAllWarningMessagesMatch(
             containsString("Resource 'META-INF/MANIFEST.MF' already exists."))
-        .assertAllInfoMessagesMatch(containsString("Unrecognized Kotlin lambda "))
         .run(mainClass)
         .assertSuccessWithOutput(javaResult.stdout);
   }
@@ -306,12 +280,6 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
               + " in input class " + className + " but is expected to be "
               + (isPresent ? "present" : "absent"));
     }
-  }
-
-  @FunctionalInterface
-  public interface AndroidAppInspector {
-
-    void inspectApp(AndroidApp androidApp) throws Exception;
   }
 
   /**

@@ -360,8 +360,6 @@ public class TestBase {
 
   // Actually running Proguard should only be during development.
   private static final boolean RUN_PROGUARD = System.getProperty("run_proguard") != null;
-  // Actually running r8.jar in a forked process.
-  private static final boolean RUN_R8_JAR = System.getProperty("run_r8_jar") != null;
 
   @Rule public ExpectedException thrown = ExpectedException.none();
 
@@ -393,6 +391,10 @@ public class TestBase {
 
   public static TestParametersBuilder getTestParameters() {
     return TestParametersBuilder.builder();
+  }
+
+  public static KotlinTestParameters.Builder getKotlinTestParameters() {
+    return KotlinTestParameters.builder();
   }
 
   protected static <S, T, E extends Throwable> Function<S, T> memoizeFunction(
@@ -443,13 +445,6 @@ public class TestBase {
    */
   protected boolean isRunProguard() {
     return RUN_PROGUARD;
-  }
-
-  /**
-   * Check if tests should run R8 in a forked process when applicable.
-   */
-  protected boolean isRunR8Jar() {
-    return RUN_R8_JAR;
   }
 
   /**
@@ -1660,6 +1655,10 @@ public class TestBase {
 
   public static DexType toDexType(Class<?> clazz, DexItemFactory dexItemFactory) {
     return dexItemFactory.createType(descriptor(clazz));
+  }
+
+  public static DexType toDexType(ClassReference classReference, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createType(classReference.getDescriptor());
   }
 
   public static String binaryName(Class<?> clazz) {

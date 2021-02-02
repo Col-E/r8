@@ -3,12 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -40,12 +39,18 @@ public class MetadataRewriteJvmStaticTest extends KotlinMetadataTestBase {
 
   @Parameterized.Parameters(name = "{0}, kotlinc: {1}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withCfRuntimes().build(), getKotlinCompilers());
+    // We are testing static methods on interfaces which requires java 8.
+    return buildParameters(
+        getTestParameters().withCfRuntimes().build(),
+        getKotlinTestParameters()
+            .withAllCompilers()
+            .withTargetVersion(KotlinTargetVersion.JAVA_8)
+            .build());
   }
 
-  public MetadataRewriteJvmStaticTest(TestParameters parameters, KotlinCompiler kotlinc) {
-    // We are testing static methods on interfaces which requires java 8.
-    super(KotlinTargetVersion.JAVA_8, kotlinc);
+  public MetadataRewriteJvmStaticTest(
+      TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.parameters = parameters;
   }
 

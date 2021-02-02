@@ -9,13 +9,9 @@ import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.ir.optimize.lambda.kotlin.KStyleLambdaGroupIdFactory;
-import com.android.tools.r8.ir.optimize.lambda.kotlin.KotlinLambdaGroupIdFactory;
 import com.android.tools.r8.kotlin.lambda.KStyleKotlinLambdaMergingWithEnumUnboxingTest.Main.EnumUnboxingCandidate;
 import java.util.List;
 import org.junit.Test;
@@ -48,31 +44,17 @@ public class KStyleKotlinLambdaMergingWithEnumUnboxingTest extends TestBase {
         .addInnerClasses(getClass())
         .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.testing.kotlinLambdaMergerFactoryForClass =
-                    this::getKotlinLambdaMergerFactoryForClass)
-        .addHorizontallyMergedLambdaClassesInspector(
-            inspector -> inspector.assertMerged(Lambda1.class, Lambda2.class))
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertMergedInto(Lambda2.class, Lambda1.class))
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(EnumUnboxingCandidate.class))
         .addDontWarnJetBrainsNotNullAnnotation()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .enableNoHorizontalClassMergingAnnotations()
         .noMinification()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Lambda1.method()", "Lambda2.method()");
-  }
-
-  private KotlinLambdaGroupIdFactory getKotlinLambdaMergerFactoryForClass(DexProgramClass clazz) {
-    String typeName = clazz.getType().toSourceString();
-    if (typeName.equals(Lambda1.class.getTypeName())
-        || typeName.equals(Lambda2.class.getTypeName())) {
-      return KStyleLambdaGroupIdFactory.getInstance();
-    }
-    return null;
   }
 
   static class Main {
@@ -123,7 +105,6 @@ public class KStyleKotlinLambdaMergingWithEnumUnboxingTest extends TestBase {
   }
 
   @NeverClassInline
-  @NoHorizontalClassMerging
   public static final class Lambda2 extends kotlin.jvm.internal.Lambda<kotlin.Unit>
       implements kotlin.jvm.functions.Function0<kotlin.Unit> {
 
