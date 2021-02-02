@@ -422,8 +422,26 @@ public class DexItemFactory {
   public final DexType reflectiveOperationExceptionType =
       createStaticallyKnownType(reflectiveOperationExceptionDescriptor);
   public final DexType kotlinMetadataType = createStaticallyKnownType(kotlinMetadataDescriptor);
+
+  public final DexType doubleSummaryStatisticsConversionsType =
+      createStaticallyKnownType("Ljava/util/DoubleSummaryStatisticsConversions;");
+  public final DexType intSummaryStatisticsConversionsType =
+      createStaticallyKnownType("Ljava/util/IntSummaryStatisticsConversions;");
+  public final DexType longSummaryStatisticsConversionsType =
+      createStaticallyKnownType("Ljava/util/LongSummaryStatisticsConversions;");
+  public final DexType optionalConversionsType =
+      createStaticallyKnownType("Ljava/util/OptionalConversions;");
   public final DexType timeConversionsType =
       createStaticallyKnownType("Ljava/time/TimeConversions;");
+
+  public Iterable<DexType> getConversionTypes() {
+    return ImmutableList.of(
+        doubleSummaryStatisticsConversionsType,
+        intSummaryStatisticsConversionsType,
+        longSummaryStatisticsConversionsType,
+        optionalConversionsType,
+        timeConversionsType);
+  }
 
   public final DexType javaIoFileType = createStaticallyKnownType("Ljava/io/File;");
   public final DexType javaMathBigIntegerType = createStaticallyKnownType("Ljava/math/BigInteger;");

@@ -122,19 +122,22 @@ public class MissingClasses {
     }
 
     private static Collection<DexType> getAllowedMissingClasses(DexItemFactory dexItemFactory) {
-      return ImmutableList.of(
-          dexItemFactory.annotationDefault,
-          dexItemFactory.annotationMethodParameters,
-          dexItemFactory.annotationSourceDebugExtension,
-          dexItemFactory.annotationSynthesizedClass,
-          dexItemFactory.annotationSynthesizedClassMap,
-          dexItemFactory.annotationThrows,
-          dexItemFactory.serializedLambdaType,
-          // TODO(b/176133674) StringConcatFactory is backported, but the class is reported as
-          //  missing because the enqueuer runs prior to backporting and thus sees the non-desugared
-          //  code.
-          dexItemFactory.stringConcatFactoryType,
-          dexItemFactory.timeConversionsType);
+      return ImmutableList.<DexType>builder()
+          .add(
+              dexItemFactory.annotationDefault,
+              dexItemFactory.annotationMethodParameters,
+              dexItemFactory.annotationSourceDebugExtension,
+              dexItemFactory.annotationSynthesizedClass,
+              dexItemFactory.annotationSynthesizedClassMap,
+              dexItemFactory.annotationThrows,
+              dexItemFactory.serializedLambdaType,
+              // TODO(b/176133674) StringConcatFactory is backported, but the class is reported as
+              //  missing because the enqueuer runs prior to backporting and thus sees the
+              // non-desugared
+              //  code.
+              dexItemFactory.stringConcatFactoryType)
+          .addAll(dexItemFactory.getConversionTypes())
+          .build();
     }
 
     private Predicate<DexType> isCompilerSynthesizedAllowedMissingClasses(AppView<?> appView) {
