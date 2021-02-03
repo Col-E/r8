@@ -13,6 +13,10 @@ import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 
 public class EnqueuerWorklist {
@@ -251,6 +255,11 @@ public class EnqueuerWorklist {
     }
   }
 
+  // Fields used for back-tracking an entire action path.
+  private final Map<EnqueuerAction, EnqueuerAction> predecessorActionsForTesting =
+      new IdentityHashMap<>();
+  private EnqueuerAction currentActionForTesting = null;
+
   private final Queue<EnqueuerAction> queue = new ArrayDeque<>();
 
   private EnqueuerWorklist() {}
@@ -264,21 +273,23 @@ public class EnqueuerWorklist {
   }
 
   public EnqueuerAction poll() {
-    return queue.poll();
+    EnqueuerAction action = queue.poll();
+    currentActionForTesting = action;
+    return action;
   }
 
   void enqueueMarkReachableDirectAction(
       DexMethod method, ProgramDefinition context, KeepReason reason) {
-    queue.add(new MarkReachableDirectAction(method, context, reason));
+    addToQueue(new MarkReachableDirectAction(method, context, reason));
   }
 
   void enqueueMarkReachableSuperAction(DexMethod method, ProgramMethod from) {
-    queue.add(new MarkReachableSuperAction(method, from));
+    addToQueue(new MarkReachableSuperAction(method, from));
   }
 
   public void enqueueMarkReachableFieldAction(
       ProgramField field, ProgramDefinition context, KeepReason reason) {
-    queue.add(new MarkReachableFieldAction(field, context, reason));
+    addToQueue(new MarkReachableFieldAction(field, context, reason));
   }
 
   // TODO(b/142378367): Context is the containing method that is cause of the instantiation.
@@ -290,50 +301,72 @@ public class EnqueuerWorklist {
       KeepReason keepReason) {
     assert !clazz.isAnnotation();
     assert !clazz.isInterface();
-    queue.add(new MarkInstantiatedAction(clazz, context, instantiationReason, keepReason));
+    addToQueue(new MarkInstantiatedAction(clazz, context, instantiationReason, keepReason));
   }
 
   void enqueueMarkAnnotationInstantiatedAction(DexProgramClass clazz, KeepReasonWitness reason) {
     assert clazz.isAnnotation();
     assert clazz.isInterface();
-    queue.add(new MarkAnnotationInstantiatedAction(clazz, reason));
+    addToQueue(new MarkAnnotationInstantiatedAction(clazz, reason));
   }
 
   void enqueueMarkInterfaceInstantiatedAction(DexProgramClass clazz, KeepReasonWitness reason) {
     assert !clazz.isAnnotation();
     assert clazz.isInterface();
-    queue.add(new MarkInterfaceInstantiatedAction(clazz, reason));
+    addToQueue(new MarkInterfaceInstantiatedAction(clazz, reason));
   }
 
   void enqueueMarkMethodLiveAction(ProgramMethod method, ProgramDefinition context) {
-    queue.add(new MarkMethodLiveAction(method, context));
+    addToQueue(new MarkMethodLiveAction(method, context));
   }
 
   void enqueueMarkMethodKeptAction(ProgramMethod method, KeepReason reason) {
-    queue.add(new MarkMethodKeptAction(method, reason));
+    addToQueue(new MarkMethodKeptAction(method, reason));
   }
 
   void enqueueMarkFieldKeptAction(ProgramField field, KeepReasonWitness witness) {
-    queue.add(new MarkFieldKeptAction(field, witness));
+    addToQueue(new MarkFieldKeptAction(field, witness));
   }
 
   public void enqueueTraceCodeAction(ProgramMethod method) {
-    queue.add(new TraceCodeAction(method));
+    addToQueue(new TraceCodeAction(method));
   }
 
   public void enqueueTraceConstClassAction(DexType type, ProgramMethod context) {
-    queue.add(new TraceConstClassAction(type, context));
+    addToQueue(new TraceConstClassAction(type, context));
   }
 
   public void enqueueTraceInvokeDirectAction(DexMethod invokedMethod, ProgramMethod context) {
-    queue.add(new TraceInvokeDirectAction(invokedMethod, context));
+    addToQueue(new TraceInvokeDirectAction(invokedMethod, context));
   }
 
   public void enqueueTraceNewInstanceAction(DexType type, ProgramMethod context) {
-    queue.add(new TraceNewInstanceAction(type, context));
+    addToQueue(new TraceNewInstanceAction(type, context));
   }
 
   public void enqueueTraceStaticFieldRead(DexField field, ProgramMethod context) {
-    queue.add(new TraceStaticFieldReadAction(field, context));
+    addToQueue(new TraceStaticFieldReadAction(field, context));
+  }
+
+  private void addToQueue(EnqueuerAction action) {
+    EnqueuerAction existingAction =
+        predecessorActionsForTesting.put(action, currentActionForTesting);
+    assert existingAction == null;
+    queue.add(action);
+  }
+
+  /**
+   * Use this method for getting the path of actions leading to the action passed in. This only
+   * works if run with assertions enabled.
+   */
+  public List<EnqueuerAction> getPathForTesting(EnqueuerAction action) {
+    ArrayList<EnqueuerAction> actions = new ArrayList<>();
+    actions.add(action);
+    EnqueuerAction currentAction = action;
+    while (predecessorActionsForTesting.containsKey(currentAction)) {
+      currentAction = predecessorActionsForTesting.get(currentAction);
+      actions.add(currentAction);
+    }
+    return actions;
   }
 }
