@@ -550,7 +550,9 @@ public class Enqueuer {
   }
 
   private void recordTypeReference(
-      DexType type, ProgramDefinition context, Consumer<DexType> missingClassConsumer) {
+      DexType type,
+      ProgramDefinition context,
+      BiConsumer<DexType, DexReference> missingClassConsumer) {
     if (type == null) {
       return;
     }
@@ -569,7 +571,9 @@ public class Enqueuer {
   }
 
   private void recordMethodReference(
-      DexMethod method, ProgramDefinition context, Consumer<DexType> missingClassConsumer) {
+      DexMethod method,
+      ProgramDefinition context,
+      BiConsumer<DexType, DexReference> missingClassConsumer) {
     recordTypeReference(method.holder, context, missingClassConsumer);
     recordTypeReference(method.proto.returnType, context, missingClassConsumer);
     for (DexType type : method.proto.parameters.values) {
@@ -595,15 +599,19 @@ public class Enqueuer {
   }
 
   private DexClass definitionFor(
-      DexType type, ProgramDefinition context, Consumer<DexType> missingClassConsumer) {
+      DexType type,
+      ProgramDefinition context,
+      BiConsumer<DexType, DexReference> missingClassConsumer) {
     return internalDefinitionFor(type, context, missingClassConsumer);
   }
 
   private DexClass internalDefinitionFor(
-      DexType type, ProgramDefinition context, Consumer<DexType> missingClassConsumer) {
+      DexType type,
+      ProgramDefinition context,
+      BiConsumer<DexType, DexReference> missingClassConsumer) {
     DexClass clazz = appInfo().definitionFor(type);
     if (clazz == null) {
-      missingClassConsumer.accept(type);
+      missingClassConsumer.accept(type, context.getReference());
       return null;
     }
     if (clazz.isNotProgramClass()) {
@@ -661,7 +669,7 @@ public class Enqueuer {
     }
     DexClass definition = appView.definitionFor(type);
     if (definition == null) {
-      reportMissingClass(type);
+      reportMissingClassWithoutContext(type);
       return;
     }
     if (definition.isProgramClass() || !liveNonProgramTypes.add(definition)) {
@@ -2243,7 +2251,11 @@ public class Enqueuer {
     missingClassesBuilder.ignoreNewMissingClass(clazz);
   }
 
-  private void reportMissingClass(DexType clazz) {
+  private void ignoreMissingClass(DexType clazz, DexReference context) {
+    ignoreMissingClass(clazz);
+  }
+
+  private void reportMissingClass(DexType clazz, DexReference context) {
     assert !mode.isFinalTreeShaking()
             || missingClassesBuilder.wasAlreadyMissing(clazz)
             || appView.dexItemFactory().isPossiblyCompilerSynthesizedType(clazz)
@@ -2251,7 +2263,19 @@ public class Enqueuer {
             // TODO(b/157107464): See if we can clean this up.
             || (initialPrunedTypes != null && initialPrunedTypes.contains(clazz))
         : "Unexpected missing class `" + clazz.toSourceString() + "`";
-    missingClassesBuilder.addNewMissingClass(clazz);
+    missingClassesBuilder.addNewMissingClass(clazz, context);
+  }
+
+  @Deprecated
+  private void reportMissingClassWithoutContext(DexType clazz) {
+    assert !mode.isFinalTreeShaking()
+            || missingClassesBuilder.wasAlreadyMissing(clazz)
+            || appView.dexItemFactory().isPossiblyCompilerSynthesizedType(clazz)
+            || initialDeadProtoTypes.contains(clazz)
+            // TODO(b/157107464): See if we can clean this up.
+            || (initialPrunedTypes != null && initialPrunedTypes.contains(clazz))
+        : "Unexpected missing class `" + clazz.toSourceString() + "`";
+    missingClassesBuilder.legacyAddNewMissingClass(clazz);
   }
 
   private void reportMissingMethod(DexMethod method) {

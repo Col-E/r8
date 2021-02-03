@@ -8,15 +8,20 @@ import static com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.DESCR
 import static com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter.getRetargetPackageAndClassPrefixDescriptor;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
 
+import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableList;
+import com.android.tools.r8.utils.SetUtils;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -54,7 +59,7 @@ public class MissingClasses {
   public static class Builder {
 
     private final Set<DexType> alreadyMissingClasses;
-    private final Set<DexType> newMissingClasses = Sets.newIdentityHashSet();
+    private final Map<DexType, Set<DexReference>> newMissingClasses = new IdentityHashMap<>();
 
     // Set of missing types that are not to be reported as missing. This does not hide reports
     // if the same type is in newMissingClasses in which case it is reported regardless.
@@ -68,12 +73,25 @@ public class MissingClasses {
       this.alreadyMissingClasses = alreadyMissingClasses;
     }
 
-    public void addNewMissingClass(DexType type) {
-      newMissingClasses.add(type);
+    public void addNewMissingClass(DexType type, DexReference context) {
+      assert context != null;
+      assert context.getContextType() != type;
+      if (!alreadyMissingClasses.contains(type)) {
+        newMissingClasses.computeIfAbsent(type, ignore -> Sets.newIdentityHashSet()).add(context);
+      }
     }
 
-    public Builder addNewMissingClasses(Collection<DexType> types) {
-      newMissingClasses.addAll(types);
+    public void legacyAddNewMissingClass(DexType type) {
+      if (!alreadyMissingClasses.contains(type)) {
+        // The legacy reporting is context insensitive, so therefore we use the missing classes
+        // themselves as contexts.
+        newMissingClasses.computeIfAbsent(type, ignore -> Sets.newIdentityHashSet()).add(type);
+      }
+    }
+
+    @Deprecated
+    public Builder legacyAddNewMissingClasses(Collection<DexType> types) {
+      types.forEach(this::legacyAddNewMissingClass);
       return this;
     }
 
@@ -82,7 +100,7 @@ public class MissingClasses {
     }
 
     public boolean contains(DexType type) {
-      return alreadyMissingClasses.contains(type) || newMissingClasses.contains(type);
+      return alreadyMissingClasses.contains(type) || newMissingClasses.containsKey(type);
     }
 
     Builder removeAlreadyMissingClasses(Iterable<DexType> types) {
@@ -99,17 +117,12 @@ public class MissingClasses {
 
     public MissingClasses reportMissingClasses(AppView<?> appView) {
       InternalOptions options = appView.options();
-      Set<DexType> newMissingClassesWithoutDontWarn =
-          appView.getDontWarnConfiguration().getNonMatches(newMissingClasses);
-      newMissingClassesWithoutDontWarn.removeAll(alreadyMissingClasses);
-      newMissingClassesWithoutDontWarn.removeAll(
-          getAllowedMissingClasses(appView.dexItemFactory()));
-      newMissingClassesWithoutDontWarn.removeIf(
-          isCompilerSynthesizedAllowedMissingClasses(appView));
-      if (!newMissingClassesWithoutDontWarn.isEmpty()) {
+      Map<DexType, Set<DexReference>> missingClassesToBeReported =
+          getMissingClassesToBeReported(appView);
+      if (!missingClassesToBeReported.isEmpty()) {
         MissingClassesDiagnostic diagnostic =
             new MissingClassesDiagnostic.Builder()
-                .addMissingClasses(newMissingClassesWithoutDontWarn)
+                .addMissingClasses(missingClassesToBeReported)
                 .setFatal(!options.ignoreMissingClasses)
                 .build();
         if (options.ignoreMissingClasses) {
@@ -121,8 +134,44 @@ public class MissingClasses {
       return build();
     }
 
-    private static Collection<DexType> getAllowedMissingClasses(DexItemFactory dexItemFactory) {
-      return ImmutableList.<DexType>builder()
+    private Map<DexType, Set<DexReference>> getMissingClassesToBeReported(AppView<?> appView) {
+      Predicate<DexType> allowedMissingClassesPredicate =
+          getIsAllowedMissingClassesPredicate(appView);
+      Map<DexType, Set<DexReference>> missingClassesToBeReported =
+          new IdentityHashMap<>(newMissingClasses.size());
+      newMissingClasses.forEach(
+          (missingClass, contexts) -> {
+            // Don't report "allowed" missing classes (e.g., classes matched by -dontwarn).
+            if (allowedMissingClassesPredicate.test(missingClass)) {
+              return;
+            }
+
+            // Remove all contexts that are matched by a -dontwarn rule (a missing class should not
+            // be reported if it os only referenced from contexts that are matched by a -dontwarn).
+            contexts.removeIf(
+                context -> appView.getDontWarnConfiguration().matches(context.getContextType()));
+
+            // If there are any contexts not matched by a -dontwarn rule, then report.
+            if (!contexts.isEmpty()) {
+              missingClassesToBeReported.put(missingClass, contexts);
+            }
+          });
+      return missingClassesToBeReported;
+    }
+
+    private static Predicate<DexType> getIsAllowedMissingClassesPredicate(AppView<?> appView) {
+      Set<DexType> allowedMissingClasses = getAllowedMissingClasses(appView.dexItemFactory());
+      Predicate<DexType> compilerSynthesizedAllowingMissingClassPredicate =
+          getIsCompilerSynthesizedAllowedMissingClassesPredicate(appView);
+      DontWarnConfiguration dontWarnConfiguration = appView.getDontWarnConfiguration();
+      return type ->
+          allowedMissingClasses.contains(type)
+              || compilerSynthesizedAllowingMissingClassPredicate.test(type)
+              || dontWarnConfiguration.matches(type);
+    }
+
+    private static Set<DexType> getAllowedMissingClasses(DexItemFactory dexItemFactory) {
+      return ImmutableSet.<DexType>builder()
           .add(
               dexItemFactory.annotationDefault,
               dexItemFactory.annotationMethodParameters,
@@ -133,14 +182,14 @@ public class MissingClasses {
               dexItemFactory.serializedLambdaType,
               // TODO(b/176133674) StringConcatFactory is backported, but the class is reported as
               //  missing because the enqueuer runs prior to backporting and thus sees the
-              // non-desugared
-              //  code.
+              //  non-desugared code.
               dexItemFactory.stringConcatFactoryType)
           .addAll(dexItemFactory.getConversionTypes())
           .build();
     }
 
-    private Predicate<DexType> isCompilerSynthesizedAllowedMissingClasses(AppView<?> appView) {
+    private static Predicate<DexType> getIsCompilerSynthesizedAllowedMissingClassesPredicate(
+        AppView<?> appView) {
       DexItemFactory dexItemFactory = appView.dexItemFactory();
       InternalOptions options = appView.options();
       DexString emulatedLibraryClassNameSuffix =
@@ -161,7 +210,7 @@ public class MissingClasses {
 
     /** Intentionally private, use {@link Builder#reportMissingClasses(AppView)}. */
     private MissingClasses build() {
-      // Extend the newMissingClasses set with all other missing classes.
+      // Return the new set of missing classes.
       //
       // We also add newIgnoredMissingClasses to newMissingClasses to be able to assert that we have
       // a closed world after the first round of tree shaking: we should never lookup a class that
@@ -171,9 +220,9 @@ public class MissingClasses {
       // Note: At this point, all missing classes in newMissingClasses have already been reported.
       // Thus adding newIgnoredMissingClasses to newMissingClasses will not lead to reports for the
       // classes in newIgnoredMissingClasses.
-      newMissingClasses.addAll(alreadyMissingClasses);
-      newMissingClasses.addAll(newIgnoredMissingClasses);
-      return new MissingClasses(newMissingClasses);
+      return new MissingClasses(
+          SetUtils.newIdentityHashSet(
+              alreadyMissingClasses, newMissingClasses.keySet(), newIgnoredMissingClasses));
     }
 
     public boolean wasAlreadyMissing(DexType type) {

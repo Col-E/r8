@@ -21,7 +21,12 @@ public abstract class MissingClassesTestBase extends TestBase {
   enum DontWarnConfiguration {
     DONT_WARN_MAIN_CLASS,
     DONT_WARN_MISSING_CLASS,
+    IGNORE_WARNINGS,
     NONE;
+
+    public boolean isDontWarn() {
+      return isDontWarnMainClass() || isDontWarnMissingClass();
+    }
 
     public boolean isDontWarnMainClass() {
       return this == DONT_WARN_MAIN_CLASS;
@@ -30,7 +35,17 @@ public abstract class MissingClassesTestBase extends TestBase {
     public boolean isDontWarnMissingClass() {
       return this == DONT_WARN_MISSING_CLASS;
     }
+
+    public boolean isIgnoreWarnings() {
+      return this == IGNORE_WARNINGS;
+    }
+
+    public boolean isNone() {
+      return this == NONE;
+    }
   }
+
+  static class MissingClass {}
 
   private final DontWarnConfiguration dontWarnConfiguration;
   private final TestParameters parameters;
@@ -53,12 +68,16 @@ public abstract class MissingClassesTestBase extends TestBase {
     return testForR8(parameters.getBackend())
         .addProgramClasses(mainClass)
         .addKeepMainRule(mainClass)
+        .allowDiagnosticWarningMessages(dontWarnConfiguration.isIgnoreWarnings())
         .applyIf(
             dontWarnConfiguration.isDontWarnMainClass(),
             testBuilder -> testBuilder.addDontWarn(mainClass))
         .applyIf(
             dontWarnConfiguration.isDontWarnMissingClass(),
             testBuilder -> testBuilder.addDontWarn(missingClass))
+        .applyIf(
+            dontWarnConfiguration.isIgnoreWarnings(),
+            testBuilder -> testBuilder.addKeepRules("-ignorewarnings"))
         .addOptionsModification(TestingOptions::enableExperimentalMissingClassesReporting)
         .setMinApi(parameters.getApiLevel())
         .compileWithExpectedDiagnostics(diagnosticsConsumer);

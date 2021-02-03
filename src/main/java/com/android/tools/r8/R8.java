@@ -327,7 +327,8 @@ public class R8 {
                   .appInfo()
                   .rebuildWithClassHierarchy(
                       MissingClasses.builderForInitialMissingClasses()
-                          .addNewMissingClasses(new SubtypingInfo(appView).getMissingClasses())
+                          .legacyAddNewMissingClasses(
+                              new SubtypingInfo(appView).getMissingClasses())
                           .reportMissingClasses(appView)));
         }
 

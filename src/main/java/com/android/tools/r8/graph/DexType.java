@@ -7,6 +7,8 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
@@ -44,6 +46,10 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   DexType(DexString descriptor) {
     assert !descriptor.toString().contains(".") : "Malformed descriptor: " + descriptor.toString();
     this.descriptor = descriptor;
+  }
+
+  public ClassReference asClassReference() {
+    return Reference.classFromDescriptor(toDescriptorString());
   }
 
   @Override

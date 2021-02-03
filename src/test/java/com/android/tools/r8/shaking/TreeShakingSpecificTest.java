@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.ToolHelper.EXAMPLES_BUILD_DIR;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_DIR;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.Diagnostic;
@@ -26,7 +27,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -92,12 +92,10 @@ public class TreeShakingSpecificTest {
         new DiagnosticsHandler() {
           @Override
           public void error(Diagnostic error) {
-            String expectedErrorMessage =
-                "Compilation can't be completed because the class java.lang.Object is missing.";
-            if (error.getDiagnosticMessage().equals(expectedErrorMessage)) {
-              return;
-            }
-            throw new RuntimeException("Unexpected compilation error");
+            assertEquals(
+                "Compilation can't be completed because the following class is missing: "
+                    + "java.lang.Object.",
+                error.getDiagnosticMessage());
           }
         };
     R8Command.Builder builder = R8Command.builder(handler)
@@ -146,7 +144,7 @@ public class TreeShakingSpecificTest {
                     "shaking1",
                     "print-mapping-" + backend.name().toLowerCase() + ".ref")),
             StandardCharsets.UTF_8);
-    Assert.assertEquals(sorted(refMapping), sorted(actualMapping));
+    assertEquals(sorted(refMapping), sorted(actualMapping));
   }
 
   private static String sorted(String str) {

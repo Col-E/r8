@@ -9,6 +9,8 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.utils.ThrowingAction;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.function.Consumer;
 
 public class AssertUtils {
@@ -54,7 +56,7 @@ public class AssertUtils {
         action.execute();
         fail("Expected action to fail with an exception, but succeeded");
       } catch (Throwable e) {
-        assertEquals(clazz, e.getClass());
+        assertEquals(printStackTraceToString(e), clazz, e.getClass());
         if (consumer != null) {
           consumer.accept(e);
         }
@@ -62,5 +64,13 @@ public class AssertUtils {
     } else {
       action.execute();
     }
+  }
+
+  private static String printStackTraceToString(Throwable e) {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    try (PrintStream ps = new PrintStream(baos)) {
+      e.printStackTrace(ps);
+    }
+    return baos.toString();
   }
 }

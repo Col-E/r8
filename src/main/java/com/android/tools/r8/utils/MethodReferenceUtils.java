@@ -14,11 +14,20 @@ public class MethodReferenceUtils {
     return toSourceString(methodReference, false, false);
   }
 
+  public static String toSourceString(MethodReference methodReference) {
+    return toSourceString(methodReference, true, true);
+  }
+
   public static String toSourceString(
       MethodReference methodReference, boolean includeHolder, boolean includeReturnType) {
     StringBuilder builder = new StringBuilder();
     if (includeReturnType) {
-      builder.append(methodReference.getReturnType().getTypeName()).append(" ");
+      builder
+          .append(
+              methodReference.getReturnType() != null
+                  ? methodReference.getReturnType().getTypeName()
+                  : "void")
+          .append(" ");
     }
     if (includeHolder) {
       builder.append(methodReference.getHolderClass().getTypeName()).append(".");

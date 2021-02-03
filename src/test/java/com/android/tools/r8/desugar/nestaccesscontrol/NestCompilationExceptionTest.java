@@ -63,9 +63,7 @@ public class NestCompilationExceptionTest extends TestBase {
     testMissingNestHostError(true);
     testIncompleteNestError(true);
   }
-  // TODO R8:
-  // appView.options().reportMissingNestHost(clazz);
-  // clazz.clearNestHost();
+
   @Test
   public void testWarningR8() throws Exception {
     testIncompleteNestWarning(false, parameters.isDexRuntime());
@@ -98,7 +96,6 @@ public class NestCompilationExceptionTest extends TestBase {
           .setMinApi(parameters.getApiLevel())
           .addProgramFiles(matchingClasses)
           .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
-          .addDontWarn("java.lang.invoke.StringConcatFactory")
           .addOptionsModification(
               options -> {
                 options.ignoreMissingClasses = ignoreMissingClasses;

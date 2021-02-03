@@ -46,10 +46,6 @@ public class MissingLibraryTargetTest extends TestBase {
                 .build()));
   }
 
-  private boolean isDesugaring() {
-    return parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N);
-  }
-
   @Test
   public void testReference() throws Exception {
     testForRuntime(parameters)
