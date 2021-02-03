@@ -176,12 +176,6 @@ public abstract class TestShrinkerBuilder<
     return addDontWarn("kotlin.Metadata");
   }
 
-  // TODO(b/176133676): Investigate kotlinx missing class references.
-  @Deprecated
-  public T addDontWarnKotlinx() {
-    return addDontWarn("kotlinx.**");
-  }
-
   public T addKeepKotlinMetadata() {
     return addKeepRules("-keep class kotlin.Metadata { *; }");
   }
