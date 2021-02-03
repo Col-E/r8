@@ -801,7 +801,7 @@ public class DexProgramClass extends DexClass
           private DexProgramClass findNext() {
             while (iterator.hasNext()) {
               DexType next = iterator.next();
-              DexClass clazz = definitions.definitionFor(next);
+              DexClass clazz = definitions.contextIndependentDefinitionFor(next);
               if (clazz != null && clazz.isProgramClass()) {
                 return clazz.asProgramClass();
               }

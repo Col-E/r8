@@ -53,7 +53,7 @@ public class MainDexRootIfRuleTest extends TestBase {
               // R class being kept due to the if-rule. When tracing in the second round, the
               // class MainDexRoot is gone and the method inlined, resulting in R not being added to
               // Main Dex.
-              assertEquals(mainDexClasses, ImmutableSet.of(Main.class.getTypeName()));
+              assertEquals(ImmutableSet.of(Main.class.getTypeName()), mainDexClasses);
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(R.class.getName());

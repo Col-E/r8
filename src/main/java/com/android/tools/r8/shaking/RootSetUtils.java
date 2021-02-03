@@ -2327,6 +2327,9 @@ public class RootSetUtils {
       checkDiscarded.forEach(ref -> rewrittenCheckDiscarded.add(graphLens.lookupReference(ref)));
       ImmutableList.Builder<DexReference> rewrittenReasonAsked = ImmutableList.builder();
       reasonAsked.forEach(ref -> rewrittenReasonAsked.add(graphLens.lookupReference(ref)));
+      // TODO(b/164019179): If rules can now reference dead items. These should be pruned or
+      //  rewritten
+      ifRules.forEach(ProguardIfRule::canReferenceDeadTypes);
       return new MainDexRootSet(
           noShrinking.rewrittenWithLens(graphLens),
           rewrittenReasonAsked.build(),
@@ -2348,6 +2351,9 @@ public class RootSetUtils {
             }
             prunedDependent.put(ref, rules.prune(prunedItems.getRemovedClasses()));
           });
+      // TODO(b/164019179): If rules can now reference dead items. These should be pruned or
+      //  rewritten
+      ifRules.forEach(ProguardIfRule::canReferenceDeadTypes);
       return new MainDexRootSet(
           noShrinking.prune(prunedItems.getRemovedClasses()),
           reasonAsked,

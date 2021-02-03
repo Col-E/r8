@@ -6,6 +6,8 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -22,6 +24,9 @@ import java.util.stream.StreamSupport;
 public abstract class ProguardConfigurationRule extends ProguardClassSpecification {
 
   private boolean used = false;
+  // TODO(b/164019179): Since we are using the rule language for tracing main dex we can end up in
+  //  a situation where the references to types are dead.
+  private boolean canReferenceDeadTypes = false;
 
   ProguardConfigurationRule(
       Origin origin,
@@ -101,13 +106,32 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     return null;
   }
 
+  public void canReferenceDeadTypes() {
+    this.canReferenceDeadTypes = true;
+  }
+
   Iterable<DexProgramClass> relevantCandidatesForRule(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       SubtypingInfo subtypingInfo,
       Iterable<DexProgramClass> defaultValue) {
     List<DexType> specificTypes = getClassNames().asSpecificDexTypes();
     if (specificTypes != null) {
-      return DexProgramClass.asProgramClasses(specificTypes, appView);
+      return DexProgramClass.asProgramClasses(
+          specificTypes,
+          new DexDefinitionSupplier() {
+            @Override
+            public DexClass definitionFor(DexType type) {
+              if (canReferenceDeadTypes) {
+                return appView.appInfo().definitionForWithoutExistenceAssert(type);
+              }
+              return appView.definitionFor(type);
+            }
+
+            @Override
+            public DexItemFactory dexItemFactory() {
+              return appView.dexItemFactory();
+            }
+          });
     }
     if (hasInheritanceClassName() && getInheritanceClassName().hasSpecificType()) {
       DexType type = getInheritanceClassName().getSpecificType();
