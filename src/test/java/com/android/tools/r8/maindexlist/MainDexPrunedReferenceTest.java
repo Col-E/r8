@@ -7,8 +7,6 @@ package com.android.tools.r8.maindexlist;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
@@ -37,10 +35,7 @@ public class MainDexPrunedReferenceTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters()
-        .withDexRuntimes()
-        .withApiLevelsEndingAtExcluding(apiLevelWithNativeMultiDexSupport())
-        .build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public MainDexPrunedReferenceTest(TestParameters parameters) {
@@ -50,11 +45,7 @@ public class MainDexPrunedReferenceTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     assumeFalse(parameters.getDexRuntimeVersion().isDalvik());
-    testMainDex(
-        builder ->
-            builder.addMainDexRules(
-                "-keep class " + Main.class.getTypeName() + " { public static void notMain(); }"),
-        Assert::assertNull);
+    testMainDex(builder -> {}, Assert::assertNull);
   }
 
   @Test
@@ -62,10 +53,7 @@ public class MainDexPrunedReferenceTest extends TestBase {
     assumeTrue(parameters.getDexRuntimeVersion().isDalvik());
     testMainDex(
         builder -> builder.addMainDexListClasses(Main.class),
-        mainDexClasses -> {
-          assertTrue(mainDexClasses.contains(Main.class.getTypeName()));
-          assertFalse(mainDexClasses.contains(Outside.class.getTypeName()));
-        });
+        mainDexClasses -> assertEquals(ImmutableSet.of(Main.class.getTypeName()), mainDexClasses));
   }
 
   @Test
@@ -75,10 +63,7 @@ public class MainDexPrunedReferenceTest extends TestBase {
         builder ->
             builder.addMainDexRules(
                 "-keep class " + Main.class.getTypeName() + " { public static void notMain(); }"),
-        mainDexClasses ->
-            assertEquals(
-                ImmutableSet.of(Main.class.getTypeName(), Outside.class.getTypeName()),
-                mainDexClasses));
+        mainDexClasses -> assertEquals(ImmutableSet.of(Main.class.getTypeName()), mainDexClasses));
   }
 
   private void testMainDex(
