@@ -4,7 +4,6 @@
 package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
-import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_NAME_PREFIX;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
@@ -36,7 +35,8 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
           "$$ServiceLoaderMethods",
           "com.android.tools.r8.GeneratedOutlineSupport",
           "-$$Nest$Constructor",
-          "-$$Lambda$");
+          "-$$Lambda$",
+          "-$$LambdaGroup$");
 
   public final DexString descriptor;
   private String toStringCache = null;
@@ -301,14 +301,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   }
 
   public boolean isLegacySynthesizedTypeAllowedDuplication() {
-    String name = toSourceString();
-    return isSynthesizedTypeThatCouldBeDuplicated(name) || oldSynthesizedName(name);
-  }
-
-  private static boolean isSynthesizedTypeThatCouldBeDuplicated(String name) {
-    // Any entry that is removed from here must be added to OLD_SYNTHESIZED_NAMES to ensure that
-    // newer releases can be used to merge previous builds.
-    return name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX);
+    return oldSynthesizedName(toSourceString());
   }
 
   private boolean oldSynthesizedName(String name) {
