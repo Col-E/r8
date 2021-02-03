@@ -301,7 +301,8 @@ public class JarClassFileReader<T extends DexClass> {
     @Override
     public RecordComponentVisitor visitRecordComponent(
         String name, String descriptor, String signature) {
-      throw new CompilationError("Records are not supported", origin);
+      // TODO(b/169645628): Support Records.
+      return super.visitRecordComponent(name, descriptor, signature);
     }
 
     @Override
@@ -326,6 +327,12 @@ public class JarClassFileReader<T extends DexClass> {
       }
       this.deprecated = AsmUtils.isDeprecated(access);
       accessFlags = ClassAccessFlags.fromCfAccessFlags(cleanAccessFlags(access));
+      if (accessFlags.isRecord()) {
+        // TODO(b/169645628): Support records in all compilation.
+        if (!application.options.canUseRecords()) {
+          throw new CompilationError("Records are not supported", origin);
+        }
+      }
       type = application.getTypeFromName(name);
       // Check if constraints from
       // https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1 are met.

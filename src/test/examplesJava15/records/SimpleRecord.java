@@ -4,7 +4,7 @@
 
 package records;
 
-public class Main {
+public class SimpleRecord {
 
   record Person(String name, int age) {}
 
@@ -12,5 +12,7 @@ public class Main {
     Person janeDoe = new Person("Jane Doe", 42);
     System.out.println(janeDoe.name);
     System.out.println(janeDoe.age);
+    System.out.println(janeDoe.name());
+    System.out.println(janeDoe.age());
   }
 }

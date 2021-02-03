@@ -485,6 +485,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return !canUseNestBasedAccess();
   }
 
+  public boolean canUseRecords() {
+    // TODO(b/169645628): Replace by true when records are supported.
+    return testing.canUseRecords;
+  }
+
   public Set<String> extensiveLoggingFilter = getExtensiveLoggingFilter();
   public Set<String> extensiveInterfaceMethodMinifierLoggingFilter =
       getExtensiveInterfaceMethodMinifierLoggingFilter();
@@ -1281,6 +1286,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enableSwitchToIfRewriting = true;
     public boolean enableEnumUnboxingDebugLogs = false;
     public boolean forceRedundantConstNumberRemoval = false;
+    public boolean canUseRecords = false;
     public boolean invertConditionals = false;
     public boolean placeExceptionalBlocksLast = false;
     public boolean dontCreateMarkerInD8 = false;

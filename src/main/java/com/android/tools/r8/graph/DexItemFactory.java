@@ -213,6 +213,7 @@ public class DexItemFactory {
   public final DexString stringDescriptor = createString("Ljava/lang/String;");
   public final DexString stringArrayDescriptor = createString("[Ljava/lang/String;");
   public final DexString objectDescriptor = createString("Ljava/lang/Object;");
+  public final DexString recordDescriptor = createString("Ljava/lang/Record;");
   public final DexString objectArrayDescriptor = createString("[Ljava/lang/Object;");
   public final DexString classDescriptor = createString("Ljava/lang/Class;");
   public final DexString classLoaderDescriptor = createString("Ljava/lang/ClassLoader;");
@@ -342,6 +343,7 @@ public class DexItemFactory {
   public final DexType stringType = createStaticallyKnownType(stringDescriptor);
   public final DexType stringArrayType = createStaticallyKnownType(stringArrayDescriptor);
   public final DexType objectType = createStaticallyKnownType(objectDescriptor);
+  public final DexType recordType = createStaticallyKnownType(recordDescriptor);
   public final DexType objectArrayType = createStaticallyKnownType(objectArrayDescriptor);
   public final DexType classArrayType = createStaticallyKnownType(classArrayDescriptor);
   public final DexType enumType = createStaticallyKnownType(enumDescriptor);

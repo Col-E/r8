@@ -135,6 +135,7 @@ public class Constants {
   public static final int ACC_ANNOTATION = 0x2000;
   public static final int ACC_ENUM = 0x4000;
   public static final int ACC_CONSTRUCTOR = 0x10000;
+  public static final int ACC_RECORD = 0x10000;
   public static final int ACC_DECLARED_SYNCHRONIZED = 0x20000;
 
   public static final String JAVA_LANG_OBJECT_NAME = "java/lang/Object";

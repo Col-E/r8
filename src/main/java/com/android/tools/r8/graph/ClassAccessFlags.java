@@ -22,9 +22,7 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
   private static final int DEX_FLAGS
       = SHARED_FLAGS;
 
-  private static final int CF_FLAGS
-      = SHARED_FLAGS
-      | Constants.ACC_SUPER;
+  private static final int CF_FLAGS = SHARED_FLAGS | Constants.ACC_SUPER | Constants.ACC_RECORD;
 
   @Override
   protected List<String> getNames() {
@@ -35,6 +33,7 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
         .add("annotation")
         .add("enum")
         .add("super")
+        .add("record")
         .build();
   }
 
@@ -47,6 +46,7 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
         .add(this::isAnnotation)
         .add(this::isEnum)
         .add(this::isSuper)
+        .add(this::isRecord)
         .build();
   }
 
@@ -176,6 +176,14 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
 
   public void setEnum() {
     set(Constants.ACC_ENUM);
+  }
+
+  public boolean isRecord() {
+    return isSet(Constants.ACC_RECORD);
+  }
+
+  public void setRecord() {
+    set(Constants.ACC_RECORD);
   }
 
   public boolean isSuper() {
