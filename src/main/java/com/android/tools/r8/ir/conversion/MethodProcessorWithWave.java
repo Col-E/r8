@@ -11,6 +11,7 @@ public abstract class MethodProcessorWithWave extends MethodProcessor {
   protected SortedProgramMethodSet wave;
   protected SortedProgramMethodSet waveExtension = SortedProgramMethodSet.createConcurrent();
 
+  @Override
   public CallSiteInformation getCallSiteInformation() {
     return CallSiteInformation.empty();
   }
