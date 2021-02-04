@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.graph;
 
-public interface LibraryMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
-    extends LibraryDefinition {
+public interface ClasspathMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
+    extends ClasspathDefinition {
 
   D getDefinition();
 
-  DexLibraryClass getHolder();
+  DexClasspathClass getHolder();
 
   DexType getHolderType();
 }

@@ -27,6 +27,11 @@ public class ProgramField extends DexClassAndField
   }
 
   @Override
+  public ProgramField getContext() {
+    return this;
+  }
+
+  @Override
   public boolean isProgramField() {
     return true;
   }

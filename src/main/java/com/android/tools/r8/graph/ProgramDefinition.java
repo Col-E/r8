@@ -5,8 +5,22 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.origin.Origin;
+import java.util.function.Function;
 
-public interface ProgramDefinition {
+public interface ProgramDefinition extends Definition, ProgramDerivedContext {
+
+  @Override
+  default <T> T apply(
+      Function<ProgramDefinition, T> programFunction,
+      Function<ClasspathDefinition, T> classpathFunction,
+      Function<LibraryDefinition, T> libraryFunction) {
+    return programFunction.apply(this);
+  }
+
+  @Override
+  default ProgramDerivedContext asProgramDerivedContext(ProgramDerivedContext witness) {
+    return this;
+  }
 
   DexProgramClass getContextClass();
 
@@ -15,8 +29,6 @@ public interface ProgramDefinition {
   DexType getContextType();
 
   DexDefinition getDefinition();
-
-  DexReference getReference();
 
   Origin getOrigin();
 

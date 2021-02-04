@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.graph;
 
-public class DexClassAndMethod extends DexClassAndMember<DexEncodedMethod, DexMethod>
+public abstract class DexClassAndMethod extends DexClassAndMember<DexEncodedMethod, DexMethod>
     implements LookupTarget {
 
   DexClassAndMethod(DexClass holder, DexEncodedMethod method) {

@@ -27,7 +27,6 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -62,6 +61,7 @@ import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.ProgramDefinition;
+import com.android.tools.r8.graph.ProgramDerivedContext;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -547,10 +547,14 @@ public class Enqueuer {
     recordTypeReference(type, context, this::reportMissingClass);
   }
 
+  private void recordTypeReference(DexType type, ProgramDerivedContext context) {
+    recordTypeReference(type, context, this::reportMissingClass);
+  }
+
   private void recordTypeReference(
       DexType type,
-      ProgramDefinition context,
-      BiConsumer<DexType, DexReference> missingClassConsumer) {
+      ProgramDerivedContext context,
+      BiConsumer<DexType, ProgramDerivedContext> missingClassConsumer) {
     if (type == null) {
       return;
     }
@@ -571,7 +575,7 @@ public class Enqueuer {
   private void recordMethodReference(
       DexMethod method,
       ProgramDefinition context,
-      BiConsumer<DexType, DexReference> missingClassConsumer) {
+      BiConsumer<DexType, ProgramDerivedContext> missingClassConsumer) {
     recordTypeReference(method.holder, context, missingClassConsumer);
     recordTypeReference(method.proto.returnType, context, missingClassConsumer);
     for (DexType type : method.proto.parameters.values) {
@@ -579,9 +583,9 @@ public class Enqueuer {
     }
   }
 
-  private void recordFieldReference(DexField field, ProgramDefinition context) {
-    recordTypeReference(field.holder, context);
-    recordTypeReference(field.type, context);
+  private void recordFieldReference(DexField field, ProgramDerivedContext context) {
+    recordTypeReference(field.getHolderType(), context);
+    recordTypeReference(field.getType(), context);
   }
 
   public DexEncodedMethod definitionFor(DexMethod method, ProgramDefinition context) {
@@ -598,18 +602,18 @@ public class Enqueuer {
 
   private DexClass definitionFor(
       DexType type,
-      ProgramDefinition context,
-      BiConsumer<DexType, DexReference> missingClassConsumer) {
+      ProgramDerivedContext context,
+      BiConsumer<DexType, ProgramDerivedContext> missingClassConsumer) {
     return internalDefinitionFor(type, context, missingClassConsumer);
   }
 
   private DexClass internalDefinitionFor(
       DexType type,
-      ProgramDefinition context,
-      BiConsumer<DexType, DexReference> missingClassConsumer) {
+      ProgramDerivedContext context,
+      BiConsumer<DexType, ProgramDerivedContext> missingClassConsumer) {
     DexClass clazz = appInfo().definitionFor(type);
     if (clazz == null) {
-      missingClassConsumer.accept(type, context.getReference());
+      missingClassConsumer.accept(type, context);
       return null;
     }
     if (clazz.isNotProgramClass()) {
@@ -1981,12 +1985,8 @@ public class Enqueuer {
     // Record the references in case they are not program types.
     FieldResolutionResult resolutionResult = appInfo.resolveField(field);
     if (resolutionResult.isSuccessfulResolution()) {
-      DexClassAndField resolvedField =
-          resolutionResult.asSuccessfulMemberResolutionResult().getResolutionPair();
-      // TODO(b/154849103): The field definition should always be the context (we need to allow
-      // non-program contexts).
       recordFieldReference(
-          field, resolvedField.isProgramField() ? resolvedField.asProgramField() : context);
+          field, resolutionResult.getResolutionPair().asProgramDerivedContext(context));
     } else {
       assert resolutionResult.isFailedOrUnknownResolution();
       failedFieldResolutionTargets.add(field);
@@ -2253,11 +2253,11 @@ public class Enqueuer {
     missingClassesBuilder.ignoreNewMissingClass(clazz);
   }
 
-  private void ignoreMissingClass(DexType clazz, DexReference context) {
+  private void ignoreMissingClass(DexType clazz, ProgramDerivedContext context) {
     ignoreMissingClass(clazz);
   }
 
-  private void reportMissingClass(DexType clazz, DexReference context) {
+  private void reportMissingClass(DexType clazz, ProgramDerivedContext context) {
     assert !mode.isFinalTreeShaking()
             || missingClassesBuilder.wasAlreadyMissing(clazz)
             || appView.dexItemFactory().isPossiblyCompilerSynthesizedType(clazz)

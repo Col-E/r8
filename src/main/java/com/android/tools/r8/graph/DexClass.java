@@ -33,7 +33,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public abstract class DexClass extends DexDefinition {
+public abstract class DexClass extends DexDefinition implements Definition {
 
   public interface FieldSetter {
     void setField(int index, DexEncodedField field);

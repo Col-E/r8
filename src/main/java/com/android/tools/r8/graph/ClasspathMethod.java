@@ -6,7 +6,8 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.logging.Log;
 
 /** Type representing a method definition on the classpath and its holder. */
-public final class ClasspathMethod extends DexClassAndMethod {
+public final class ClasspathMethod extends DexClassAndMethod
+    implements ClasspathMember<DexEncodedMethod, DexMethod> {
 
   public ClasspathMethod(DexClasspathClass holder, DexEncodedMethod method) {
     super(holder, method);

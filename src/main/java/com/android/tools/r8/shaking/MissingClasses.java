@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramDerivedContext;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
@@ -73,11 +74,13 @@ public class MissingClasses {
       this.alreadyMissingClasses = alreadyMissingClasses;
     }
 
-    public void addNewMissingClass(DexType type, DexReference context) {
+    public void addNewMissingClass(DexType type, ProgramDerivedContext context) {
       assert context != null;
-      assert context.getContextType() != type;
+      assert context.getContext().getContextType() != type;
       if (!alreadyMissingClasses.contains(type)) {
-        newMissingClasses.computeIfAbsent(type, ignore -> Sets.newIdentityHashSet()).add(context);
+        newMissingClasses
+            .computeIfAbsent(type, ignore -> Sets.newIdentityHashSet())
+            .add(context.getContext().getReference());
       }
     }
 

@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.graph;
 
-public class ClasspathField extends DexClassAndField {
+public class ClasspathField extends DexClassAndField
+    implements ClasspathMember<DexEncodedField, DexField> {
 
   public ClasspathField(DexClasspathClass holder, DexEncodedField field) {
     super(holder, field);
@@ -23,5 +24,12 @@ public class ClasspathField extends DexClassAndField {
   @Override
   public boolean isClasspathMember() {
     return true;
+  }
+
+  @Override
+  public DexClasspathClass getHolder() {
+    DexClass holder = super.getHolder();
+    assert holder.isClasspathClass();
+    return holder.asClasspathClass();
   }
 }

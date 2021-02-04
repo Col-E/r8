@@ -25,6 +25,10 @@ public abstract class FieldResolutionResult
     return null;
   }
 
+  public DexClassAndField getResolutionPair() {
+    return null;
+  }
+
   public boolean isSuccessfulResolution() {
     return false;
   }

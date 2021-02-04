@@ -17,7 +17,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClass> {
+public class DexLibraryClass extends DexClass
+    implements LibraryDefinition, Supplier<DexLibraryClass> {
 
   public DexLibraryClass(
       DexType type,

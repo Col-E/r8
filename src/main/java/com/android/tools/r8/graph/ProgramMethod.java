@@ -63,6 +63,11 @@ public final class ProgramMethod extends DexClassAndMethod
   }
 
   @Override
+  public ProgramMethod getContext() {
+    return this;
+  }
+
+  @Override
   public boolean isProgramMember() {
     return true;
   }

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.graph;
 
-public class DexClassAndField extends DexClassAndMember<DexEncodedField, DexField> {
+public abstract class DexClassAndField extends DexClassAndMember<DexEncodedField, DexField> {
 
   DexClassAndField(DexClass holder, DexEncodedField field) {
     super(holder, field);

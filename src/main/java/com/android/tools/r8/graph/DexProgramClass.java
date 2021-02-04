@@ -161,6 +161,11 @@ public class DexProgramClass extends DexClass
   }
 
   @Override
+  public DexProgramClass getContext() {
+    return this;
+  }
+
+  @Override
   public StructuralMapping<DexProgramClass> getStructuralMapping() {
     return DexProgramClass::specify;
   }
