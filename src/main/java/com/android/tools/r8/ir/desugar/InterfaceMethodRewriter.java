@@ -14,6 +14,7 @@ import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_SUPER;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
+import static com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter.getRetargetPackageAndClassPrefixDescriptor;
 import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer.TYPE_WRAPPER_SUFFIX;
 import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer.VIVIFIED_TYPE_WRAPPER_SUFFIX;
 
@@ -96,6 +97,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 //
 // Default and static interface method desugaring rewriter (note that lambda
@@ -146,6 +148,7 @@ public final class InterfaceMethodRewriter {
   // Caches default interface method info for already processed interfaces.
   private final Map<DexType, DefaultMethodsHelper.Collection> cache = new ConcurrentHashMap<>();
 
+  private final Predicate<DexType> shouldIgnoreFromReportsPredicate;
   /**
    * Defines a minor variation in desugaring.
    */
@@ -167,6 +170,7 @@ public final class InterfaceMethodRewriter {
     this.options = appView.options();
     this.factory = appView.dexItemFactory();
     this.emulatedInterfaces = options.desugaredLibraryConfiguration.getEmulateLibraryInterface();
+    this.shouldIgnoreFromReportsPredicate = getShouldIgnoreFromReportsPredicate(appView);
     initializeEmulatedInterfaceVariables();
   }
 
@@ -951,11 +955,6 @@ public final class InterfaceMethodRewriter {
     return type.descriptor.toString().endsWith(EMULATE_LIBRARY_CLASS_NAME_SUFFIX + ";");
   }
 
-  public static boolean isTypeWrapper(DexType type) {
-    String name = type.toBinaryName();
-    return name.endsWith(TYPE_WRAPPER_SUFFIX) || name.endsWith(VIVIFIED_TYPE_WRAPPER_SUFFIX);
-  }
-
   // Gets the interface class for a companion class `type`.
   private DexType getInterfaceClassType(DexType type) {
     return getInterfaceClassType(type, factory);
@@ -1284,13 +1283,34 @@ public final class InterfaceMethodRewriter {
     return true;
   }
 
+  private Predicate<DexType> getShouldIgnoreFromReportsPredicate(AppView<?> appView) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    InternalOptions options = appView.options();
+    DexString retargetPackageAndClassPrefixDescriptor =
+        dexItemFactory.createString(
+            getRetargetPackageAndClassPrefixDescriptor(options.desugaredLibraryConfiguration));
+    DexString typeWrapperClassNameDescriptorSuffix =
+        dexItemFactory.createString(TYPE_WRAPPER_SUFFIX + ';');
+    DexString vivifiedTypeWrapperClassNameDescriptorSuffix =
+        dexItemFactory.createString(VIVIFIED_TYPE_WRAPPER_SUFFIX + ';');
+    DexString companionClassNameDescriptorSuffix =
+        dexItemFactory.createString(COMPANION_CLASS_NAME_SUFFIX + ";");
+
+    return type -> {
+      DexString descriptor = type.getDescriptor();
+      return appView.rewritePrefix.hasRewrittenType(type, appView)
+          || descriptor.endsWith(typeWrapperClassNameDescriptorSuffix)
+          || descriptor.endsWith(vivifiedTypeWrapperClassNameDescriptorSuffix)
+          || descriptor.endsWith(companionClassNameDescriptorSuffix)
+          || emulatedInterfaces.containsValue(type)
+          || options.desugaredLibraryConfiguration.getCustomConversions().containsValue(type)
+          || appView.getDontWarnConfiguration().matches(type)
+          || descriptor.startsWith(retargetPackageAndClassPrefixDescriptor);
+    };
+  }
+
   private boolean shouldIgnoreFromReports(DexType missing) {
-    return appView.rewritePrefix.hasRewrittenType(missing, appView)
-        || isTypeWrapper(missing)
-        || isCompanionClassType(missing)
-        || emulatedInterfaces.containsValue(missing)
-        || options.desugaredLibraryConfiguration.getCustomConversions().containsValue(missing)
-        || appView.getDontWarnConfiguration().matches(missing);
+    return shouldIgnoreFromReportsPredicate.test(missing);
   }
 
   void warnMissingInterface(DexClass classToDesugar, DexClass implementing, DexType missing) {
