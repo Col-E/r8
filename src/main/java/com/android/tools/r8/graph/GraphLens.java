@@ -413,14 +413,7 @@ public abstract class GraphLens {
   }
 
   public DexReference lookupReference(DexReference reference) {
-    if (reference.isDexType()) {
-      return lookupType(reference.asDexType());
-    } else if (reference.isDexMethod()) {
-      return lookupMethod(reference.asDexMethod());
-    } else {
-      assert reference.isDexField();
-      return lookupField(reference.asDexField());
-    }
+    return reference.apply(this::lookupType, this::lookupField, this::lookupMethod);
   }
 
   // The method lookupMethod() maps a pair INVOKE=(method signature, invoke type) to a new pair
@@ -532,14 +525,9 @@ public abstract class GraphLens {
 
   @SuppressWarnings("unchecked")
   public <T extends DexReference> T rewriteReference(T reference) {
-    if (reference.isDexField()) {
-      return (T) getRenamedFieldSignature(reference.asDexField());
-    }
-    if (reference.isDexMethod()) {
-      return (T) getRenamedMethodSignature(reference.asDexMethod());
-    }
-    assert reference.isDexType();
-    return (T) lookupType(reference.asDexType());
+    return (T)
+        reference.apply(
+            this::lookupType, this::getRenamedFieldSignature, this::getRenamedMethodSignature);
   }
 
   public Set<DexReference> rewriteReferences(Set<DexReference> references) {

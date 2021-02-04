@@ -1791,8 +1791,10 @@ public class RootSetUtils {
       MutableItemsWithRules rewrittenItemsWithRules = new MutableItemsWithRules();
       forEachReference(
           (reference, rules) ->
-              rewrittenItemsWithRules.addReferenceWithRules(
-                  graphLens.lookupReference(reference), rules));
+              rewriteAndApplyIfNotPrimitiveType(
+                  graphLens,
+                  reference,
+                  rewritten -> rewrittenItemsWithRules.addReferenceWithRules(rewritten, rules)));
       return rewrittenItemsWithRules;
     }
   }
@@ -2237,13 +2239,13 @@ public class RootSetUtils {
     public MainDexRootSet build(ExecutorService executorService) throws ExecutionException {
       // Call the super builder to have if-tests calculated automatically.
       RootSet rootSet = super.build(executorService);
-      assert rootSet.delayedRootSetActionItems.isEmpty();
       return new MainDexRootSet(
           rootSet.noShrinking,
           rootSet.reasonAsked,
           rootSet.checkDiscarded,
           rootSet.dependentNoShrinking,
-          rootSet.ifRules);
+          rootSet.ifRules,
+          rootSet.delayedRootSetActionItems);
     }
   }
 
@@ -2254,7 +2256,8 @@ public class RootSetUtils {
         ImmutableList<DexReference> reasonAsked,
         ImmutableList<DexReference> checkDiscarded,
         Map<DexReference, MutableItemsWithRules> dependentNoShrinking,
-        Set<ProguardIfRule> ifRules) {
+        Set<ProguardIfRule> ifRules,
+        List<DelayedRootSetActionItem> delayedRootSetActionItems) {
       super(
           noShrinking,
           new MutableItemsWithRules(),
@@ -2285,8 +2288,7 @@ public class RootSetUtils {
           Collections.emptyMap(),
           Collections.emptySet(),
           ifRules,
-          // This list can be modified during tracing but will be cleared after each round.
-          new ArrayList<>());
+          delayedRootSetActionItems);
     }
 
     @Override
@@ -2309,6 +2311,11 @@ public class RootSetUtils {
       return new MainDexRootSetBuilder(appView, subtypingInfo, rules);
     }
 
+    @Override
+    void shouldNotBeMinified(DexReference reference) {
+      // Do nothing.
+    }
+
     public MainDexRootSet rewrittenWithLens(GraphLens graphLens) {
       if (graphLens.isIdentityLens()) {
         return this;
@@ -2317,25 +2324,39 @@ public class RootSetUtils {
       dependentNoShrinking.forEach(
           (reference, rules) -> {
             // Rewriting a reference can result in us having to merge items with rules.
-            MutableItemsWithRules rewrittenRules =
-                rewrittenDependent.computeIfAbsent(
-                    graphLens.lookupReference(reference),
-                    rewrittenRef -> new MutableItemsWithRules());
-            rewrittenRules.addAll(rules.rewrittenWithLens(graphLens));
+            rewriteAndApplyIfNotPrimitiveType(
+                graphLens,
+                reference,
+                rewritten -> {
+                  MutableItemsWithRules rewrittenRules =
+                      rewrittenDependent.computeIfAbsent(
+                          graphLens.lookupReference(reference),
+                          rewrittenRef -> new MutableItemsWithRules());
+                  rewrittenRules.addAll(rules.rewrittenWithLens(graphLens));
+                });
           });
+
       ImmutableList.Builder<DexReference> rewrittenCheckDiscarded = ImmutableList.builder();
-      checkDiscarded.forEach(ref -> rewrittenCheckDiscarded.add(graphLens.lookupReference(ref)));
+      checkDiscarded.forEach(
+          reference ->
+              rewriteAndApplyIfNotPrimitiveType(
+                  graphLens, reference, rewrittenCheckDiscarded::add));
       ImmutableList.Builder<DexReference> rewrittenReasonAsked = ImmutableList.builder();
-      reasonAsked.forEach(ref -> rewrittenReasonAsked.add(graphLens.lookupReference(ref)));
+      reasonAsked.forEach(
+          reference ->
+              rewriteAndApplyIfNotPrimitiveType(graphLens, reference, rewrittenReasonAsked::add));
       // TODO(b/164019179): If rules can now reference dead items. These should be pruned or
       //  rewritten
       ifRules.forEach(ProguardIfRule::canReferenceDeadTypes);
+      // All delayed root set actions should have been processed at this point.
+      assert delayedRootSetActionItems.isEmpty();
       return new MainDexRootSet(
           noShrinking.rewrittenWithLens(graphLens),
           rewrittenReasonAsked.build(),
           rewrittenCheckDiscarded.build(),
           rewrittenDependent,
-          ifRules);
+          ifRules,
+          delayedRootSetActionItems);
     }
 
     public MainDexRootSet withoutPrunedItems(PrunedItems prunedItems) {
@@ -2354,12 +2375,26 @@ public class RootSetUtils {
       // TODO(b/164019179): If rules can now reference dead items. These should be pruned or
       //  rewritten
       ifRules.forEach(ProguardIfRule::canReferenceDeadTypes);
+      // All delayed root set actions should have been processed at this point.
+      assert delayedRootSetActionItems.isEmpty();
       return new MainDexRootSet(
           noShrinking.prune(prunedItems.getRemovedClasses()),
           reasonAsked,
           checkDiscarded,
           prunedDependent,
-          ifRules);
+          ifRules,
+          delayedRootSetActionItems);
     }
+  }
+
+  private static void rewriteAndApplyIfNotPrimitiveType(
+      GraphLens graphLens, DexReference reference, Consumer<DexReference> rewrittenConsumer) {
+    DexReference rewrittenReference = graphLens.rewriteReference(reference);
+    // Enum unboxing can change a class type to int which leads to errors going forward since
+    // the root set should not have primitive types.
+    if (rewrittenReference.isDexType() && rewrittenReference.asDexType().isPrimitiveType()) {
+      return;
+    }
+    rewrittenConsumer.accept(rewrittenReference);
   }
 }
