@@ -180,7 +180,7 @@ public class MainDexDirectReferenceTracer {
 
     @Override
     public void registerInstanceOf(DexType type) {
-      registerTypeReference(type);
+      consumer.accept(type);
     }
   }
 
