@@ -19,7 +19,15 @@ public interface TestDiagnosticMessages {
 
   List<Diagnostic> getWarnings();
 
+  default <D extends Diagnostic> D getWarning(int index) {
+    return (D) getWarnings().get(index);
+  }
+
   List<Diagnostic> getErrors();
+
+  default <D extends Diagnostic> D getError(int index) {
+    return (D) getErrors().get(index);
+  }
 
   TestDiagnosticMessages assertNoMessages();
 

@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -1981,11 +1982,18 @@ public class Enqueuer {
 
   private FieldResolutionResult resolveField(DexField field, ProgramDefinition context) {
     // Record the references in case they are not program types.
-    recordFieldReference(field, context);
     FieldResolutionResult resolutionResult = appInfo.resolveField(field);
-    if (resolutionResult.isFailedOrUnknownResolution()) {
-      reportMissingField(field);
+    if (resolutionResult.isSuccessfulResolution()) {
+      DexClassAndField resolvedField =
+          resolutionResult.asSuccessfulMemberResolutionResult().getResolutionPair();
+      // TODO(b/154849103): The field definition should always be the context (we need to allow
+      // non-program contexts).
+      recordFieldReference(
+          field, resolvedField.isProgramField() ? resolvedField.asProgramField() : context);
+    } else {
+      assert resolutionResult.isFailedOrUnknownResolution();
       failedFieldResolutionTargets.add(field);
+      recordFieldReference(field, context);
     }
     return resolutionResult;
   }
@@ -1996,7 +2004,6 @@ public class Enqueuer {
     recordMethodReference(method, context);
     ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
     if (resolutionResult.isFailedResolution()) {
-      reportMissingMethod(method);
       markFailedMethodResolutionTargets(
           method, resolutionResult.asFailedResolution(), context, reason);
     }
@@ -2009,7 +2016,6 @@ public class Enqueuer {
     recordMethodReference(method, context);
     ResolutionResult resolutionResult = appInfo.resolveMethod(method, interfaceInvoke);
     if (resolutionResult.isFailedResolution()) {
-      reportMissingMethod(method);
       markFailedMethodResolutionTargets(
           method, resolutionResult.asFailedResolution(), context, reason);
     }
@@ -2150,7 +2156,6 @@ public class Enqueuer {
     DexEncodedMethod encodedMethod = clazz.lookupMethod(reference);
     if (encodedMethod == null) {
       failedMethodResolutionTargets.add(reference);
-      reportMissingMethod(reference);
       return;
     }
 
@@ -2276,18 +2281,6 @@ public class Enqueuer {
             || (initialPrunedTypes != null && initialPrunedTypes.contains(clazz))
         : "Unexpected missing class `" + clazz.toSourceString() + "`";
     missingClassesBuilder.legacyAddNewMissingClass(clazz);
-  }
-
-  private void reportMissingMethod(DexMethod method) {
-    if (Log.ENABLED && reportedMissing.add(method)) {
-      Log.verbose(Enqueuer.class, "Method `%s` is missing.", method);
-    }
-  }
-
-  private void reportMissingField(DexField field) {
-    if (Log.ENABLED && reportedMissing.add(field)) {
-      Log.verbose(Enqueuer.class, "Field `%s` is missing.", field);
-    }
   }
 
   private void markMethodAsTargeted(ProgramMethod method, KeepReason reason) {

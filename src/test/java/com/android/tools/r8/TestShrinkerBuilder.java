@@ -176,6 +176,10 @@ public abstract class TestShrinkerBuilder<
     return addDontWarn("kotlin.Metadata");
   }
 
+  public T addIgnoreWarnings() {
+    return addKeepRules("-ignorewarnings");
+  }
+
   public T addKeepKotlinMetadata() {
     return addKeepRules("-keep class kotlin.Metadata { *; }");
   }

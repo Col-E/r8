@@ -12,12 +12,16 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import org.junit.Test;
 
-public class MissingClassReferencedFromNewInstanceTest extends MissingClassesTestBase {
+/**
+ * If a field reference that refers to a missing class does not resolve, then the enclosing method
+ * is to be blamed.
+ */
+public class MissingClassReferencedFromStaticGetToMissingFieldTest extends MissingClassesTestBase {
 
   private static final MethodReference referencedFrom =
       MethodReferenceUtils.mainMethod(Reference.classFromClass(Main.class));
 
-  public MissingClassReferencedFromNewInstanceTest(TestParameters parameters) {
+  public MissingClassReferencedFromStaticGetToMissingFieldTest(TestParameters parameters) {
     super(parameters);
   }
 
@@ -50,7 +54,7 @@ public class MissingClassReferencedFromNewInstanceTest extends MissingClassesTes
   static class Main {
 
     public static void main(String[] args) {
-      new MissingClass();
+      int ignore = MissingClass.FIELD;
     }
   }
 }

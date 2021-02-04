@@ -4,11 +4,20 @@
 
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.references.ArrayReference;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 
 public class MethodReferenceUtils {
+
+  public static MethodReference mainMethod(ClassReference type) {
+    ArrayReference stringArrayType = Reference.array(Reference.classFromClass(String.class), 1);
+    return Reference.method(type, "main", ImmutableList.of(stringArrayType), null);
+  }
 
   public static String toSourceStringWithoutHolderAndReturnType(MethodReference methodReference) {
     return toSourceString(methodReference, false, false);

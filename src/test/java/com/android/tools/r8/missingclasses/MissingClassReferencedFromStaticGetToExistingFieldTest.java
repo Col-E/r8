@@ -7,17 +7,23 @@ package com.android.tools.r8.missingclasses;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.utils.MethodReferenceUtils;
 import org.junit.Test;
 
-public class MissingClassReferencedFromNewInstanceTest extends MissingClassesTestBase {
+/**
+ * If a field reference that refers to a missing class resolves to a definition, then the field
+ * definition is to be blamed.
+ */
+public class MissingClassReferencedFromStaticGetToExistingFieldTest extends MissingClassesTestBase {
 
-  private static final MethodReference referencedFrom =
-      MethodReferenceUtils.mainMethod(Reference.classFromClass(Main.class));
+  private static final FieldReference referencedFrom =
+      Reference.field(
+          Reference.classFromClass(Main.class),
+          "FIELD",
+          Reference.classFromClass(MissingClass.class));
 
-  public MissingClassReferencedFromNewInstanceTest(TestParameters parameters) {
+  public MissingClassReferencedFromStaticGetToExistingFieldTest(TestParameters parameters) {
     super(parameters);
   }
 
@@ -49,8 +55,10 @@ public class MissingClassReferencedFromNewInstanceTest extends MissingClassesTes
 
   static class Main {
 
+    public static MissingClass FIELD;
+
     public static void main(String[] args) {
-      new MissingClass();
+      MissingClass ignore = FIELD;
     }
   }
 }
