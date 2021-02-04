@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.utils.Box;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class MainDexDirectReferenceTracer {
   private final AnnotationDirectReferenceCollector annotationDirectReferenceCollector =
@@ -66,19 +67,19 @@ public class MainDexDirectReferenceTracer {
     method.registerCodeReferences(codeDirectReferenceCollector);
   }
 
-  public static boolean hasReferencesOutsideFromCode(
-      AppInfoWithClassHierarchy appInfo, ProgramMethod method, Set<DexType> classes) {
-    return getFirstReferenceOutsideFromCode(appInfo, method, classes) != null;
+  public static boolean hasReferencesOutsideMainDexClasses(
+      AppInfoWithClassHierarchy appInfo, ProgramMethod method, Predicate<DexType> isOutside) {
+    return getFirstReferenceOutsideFromCode(appInfo, method, isOutside) != null;
   }
 
   public static DexProgramClass getFirstReferenceOutsideFromCode(
-      AppInfoWithClassHierarchy appInfo, ProgramMethod method, Set<DexType> classes) {
+      AppInfoWithClassHierarchy appInfo, ProgramMethod method, Predicate<DexType> isOutside) {
     Box<DexProgramClass> result = new Box<>();
     new MainDexDirectReferenceTracer(
             appInfo,
             type -> {
               DexType baseType = type.toBaseType(appInfo.dexItemFactory());
-              if (baseType.isClassType() && !classes.contains(baseType)) {
+              if (baseType.isClassType() && isOutside.test(baseType)) {
                 DexClass cls = appInfo.definitionFor(baseType);
                 if (cls != null && cls.isProgramClass()) {
                   result.set(cls.asProgramClass());

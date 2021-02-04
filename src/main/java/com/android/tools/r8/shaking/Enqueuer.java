@@ -399,15 +399,13 @@ public class Enqueuer {
   private final Map<DexMethod, ProgramMethod> methodsWithTwrCloseResource = new IdentityHashMap<>();
   private final Set<DexProgramClass> classesWithSerializableLambdas = Sets.newIdentityHashSet();
   private final ProgramMethodSet pendingDesugaring = ProgramMethodSet.create();
-  private final MainDexTracingResult previousMainDexTracingResult;
 
   Enqueuer(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ExecutorService executorService,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer,
-      Mode mode,
-      MainDexTracingResult previousMainDexTracingResult) {
+      Mode mode) {
     assert appView.appServices() != null;
     InternalOptions options = appView.options();
     this.appInfo = appView.appInfo();
@@ -425,7 +423,6 @@ public class Enqueuer {
         mode.isInitialTreeShaking() && options.forceProguardCompatibility
             ? ProguardCompatibilityActions.builder()
             : null;
-    this.previousMainDexTracingResult = previousMainDexTracingResult;
 
     if (mode.isInitialOrFinalTreeShaking()) {
       if (options.protoShrinking().enableGeneratedMessageLiteShrinking) {
@@ -1763,7 +1760,7 @@ public class Enqueuer {
 
     assert !mode.isFinalMainDexTracing()
             || !options.testing.checkForNotExpandingMainDexTracingResult
-            || previousMainDexTracingResult.isRoot(clazz)
+            || appView.appInfo().getMainDexInfo().isTracedRoot(clazz)
             || clazz.toSourceString().contains(ENUM_UNBOXING_UTILITY_CLASS_SUFFIX)
         : "Class " + clazz.toSourceString() + " was not a main dex root in the first round";
 
@@ -3031,7 +3028,7 @@ public class Enqueuer {
   }
 
   // Returns the set of live types.
-  public Set<DexProgramClass> traceMainDex(ExecutorService executorService, Timing timing)
+  public MainDexInfo traceMainDex(ExecutorService executorService, Timing timing)
       throws ExecutionException {
     assert analyses.isEmpty();
     assert mode.isMainDexTracing();
@@ -3040,7 +3037,12 @@ public class Enqueuer {
     enqueueRootItems(rootSet.noShrinking);
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
-    return liveTypes.getItems();
+    // Calculate the automatic main dex list according to legacy multidex constraints.
+    MainDexInfo.Builder builder = MainDexInfo.builder();
+    liveTypes.getItems().forEach(builder::addRoot);
+    new MainDexListBuilder(appView, builder.getRoots(), builder).run();
+    MainDexInfo previousMainDexInfo = appInfo.getMainDexInfo();
+    return builder.build(previousMainDexInfo);
   }
 
   public AppInfoWithLiveness traceApplication(
@@ -3218,9 +3220,9 @@ public class Enqueuer {
       appBuilder.addClasspathClasses(syntheticClasspathClasses.values());
     }
 
-    void amendMainDexClasses(MainDexClasses mainDexClasses) {
+    void amendMainDexClasses(MainDexInfo mainDexInfo) {
       assert !isEmpty();
-      mainDexClasses.addAll(mainDexTypes);
+      mainDexTypes.forEach(mainDexInfo::addSyntheticClass);
     }
 
     void enqueueWorkItems(Enqueuer enqueuer) {
@@ -3304,7 +3306,7 @@ public class Enqueuer {
               additions.amendApplication(appBuilder);
               return appBuilder.build();
             });
-    additions.amendMainDexClasses(appInfo.getMainDexClasses());
+    additions.amendMainDexClasses(appInfo.getMainDexInfo());
     appView.setAppInfo(appInfo);
     subtypingInfo = new SubtypingInfo(appView);
 
@@ -3498,7 +3500,7 @@ public class Enqueuer {
         new AppInfoWithLiveness(
             appInfo.getSyntheticItems().commit(app),
             appInfo.getClassToFeatureSplitMap(),
-            appInfo.getMainDexClasses(),
+            appInfo.getMainDexInfo(),
             deadProtoTypes,
             appView.testing().enableExperimentalMissingClassesReporting
                 ? missingClassesBuilder.reportMissingClasses(appView)

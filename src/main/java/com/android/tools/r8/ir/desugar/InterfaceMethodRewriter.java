@@ -72,7 +72,6 @@ import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.position.MethodPosition;
-import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -712,7 +711,6 @@ public final class InterfaceMethodRewriter {
     // Emulated library interfaces should generate the Emulated Library EL dispatch class.
     Map<DexType, List<DexType>> emulatedInterfacesHierarchy = processEmulatedInterfaceHierarchy();
     AppInfo appInfo = appView.appInfo();
-    MainDexClasses mainDexClasses = appInfo.getMainDexClasses();
     for (DexType interfaceType : emulatedInterfaces.keySet()) {
       DexClass theInterface = appInfo.definitionFor(interfaceType);
       if (theInterface == null) {
@@ -724,8 +722,7 @@ public final class InterfaceMethodRewriter {
                 theProgramInterface, emulatedInterfacesHierarchy);
         if (synthesizedClass != null) {
           builder.addSynthesizedClass(synthesizedClass);
-          appInfo.addSynthesizedClass(
-              synthesizedClass, mainDexClasses.contains(theProgramInterface));
+          appInfo.addSynthesizedClass(synthesizedClass, theProgramInterface);
         }
       }
     }
@@ -1160,7 +1157,6 @@ public final class InterfaceMethodRewriter {
     // make original default methods abstract, remove bridge methods, create dispatch
     // classes if needed.
     AppInfo appInfo = appView.appInfo();
-    MainDexClasses mainDexClasses = appInfo.getMainDexClasses();
     InterfaceProcessorNestedGraphLens.Builder graphLensBuilder =
         InterfaceProcessorNestedGraphLens.builder();
     Map<DexClass, DexProgramClass> classMapping =
@@ -1175,10 +1171,7 @@ public final class InterfaceMethodRewriter {
           // Don't need to optimize synthesized class since all of its methods
           // are just moved from interfaces and don't need to be re-processed.
           builder.addSynthesizedClass(synthesizedClass);
-          boolean addToMainDexClasses =
-              interfaceClass.isProgramClass()
-                  && mainDexClasses.contains(interfaceClass.asProgramClass());
-          appInfo.addSynthesizedClass(synthesizedClass, addToMainDexClasses);
+          appInfo.addSynthesizedClass(synthesizedClass, interfaceClass.asProgramClass());
         });
     new InterfaceMethodRewriterFixup(appView, graphLens).run();
     if (appView.options().isDesugaredLibraryCompilation()) {

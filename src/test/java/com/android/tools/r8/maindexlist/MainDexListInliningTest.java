@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.maindexlist;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
@@ -55,10 +54,9 @@ public class MainDexListInliningTest extends TestBase {
     ClassSubject mainClassSubject = inspector.clazz(Main.class);
     assertThat(mainClassSubject, isPresent());
 
-    // A is absent due to inlining.
-    // TODO(b/178353726): Inlining should be prohibited.
+    // A is not allowed to be inlined and is therefore present.
     ClassSubject aClassSubject = inspector.clazz(A.class);
-    assertThat(aClassSubject, isAbsent());
+    assertThat(aClassSubject, isPresent());
 
     // B should be referenced from Main.main.
     ClassSubject bClassSubject = inspector.clazz(B.class);
@@ -67,6 +65,9 @@ public class MainDexListInliningTest extends TestBase {
     compileResult.inspectMainDexClasses(
         mainDexClasses -> {
           assertTrue(mainDexClasses.contains(mainClassSubject.getFinalName()));
+          // Since we passed a main-dex list the traced references A and B are not automagically
+          // included.
+          assertFalse(mainDexClasses.contains(aClassSubject.getFinalName()));
           assertFalse(mainDexClasses.contains(bClassSubject.getFinalName()));
         });
   }

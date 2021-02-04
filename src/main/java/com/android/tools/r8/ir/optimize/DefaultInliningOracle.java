@@ -38,7 +38,6 @@ import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.MainDexDirectReferenceTracer;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -199,23 +198,15 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // Don't inline code with references beyond root main dex classes into a root main dex class.
     // If we do this it can increase the size of the main dex dependent classes.
     if (reason != Reason.FORCE
-        && inlineeRefersToClassesNotInMainDex(method.getHolderType(), singleTarget)) {
+        && inliner.mainDexInfo.disallowInliningIntoContext(
+            appView.appInfo(), method, singleTarget)) {
       whyAreYouNotInliningReporter.reportInlineeRefersToClassesNotInMainDex();
       return false;
     }
     assert reason != Reason.FORCE
-            || !inlineeRefersToClassesNotInMainDex(method.getHolderType(), singleTarget)
-        : MainDexDirectReferenceTracer.getFirstReferenceOutsideFromCode(
-            appView.appInfo(), singleTarget, inliner.mainDexClasses.getRoots());
+        || !inliner.mainDexInfo.disallowInliningIntoContext(
+            appView.appInfo(), method, singleTarget);
     return true;
-  }
-
-  private boolean inlineeRefersToClassesNotInMainDex(DexType holder, ProgramMethod target) {
-    if (inliner.mainDexClasses.isEmpty() || !inliner.mainDexClasses.getRoots().contains(holder)) {
-      return false;
-    }
-    return MainDexDirectReferenceTracer.hasReferencesOutsideFromCode(
-        appView.appInfo(), target, inliner.mainDexClasses.getRoots());
   }
 
   private boolean satisfiesRequirementsForSimpleInlining(

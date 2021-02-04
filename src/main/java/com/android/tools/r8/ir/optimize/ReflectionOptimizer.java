@@ -26,7 +26,6 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.Sets;
 import java.util.Set;
@@ -37,7 +36,7 @@ public class ReflectionOptimizer {
   // Rewrite getClass() to const-class if the type of the given instance is effectively final.
   // Rewrite forName() to const-class if the type is resolvable, accessible and already initialized.
   public static void rewriteGetClassOrForNameToConstClass(
-      AppView<AppInfoWithLiveness> appView, IRCode code, MainDexTracingResult mainDexClasses) {
+      AppView<AppInfoWithLiveness> appView, IRCode code) {
     if (!appView.appInfo().canUseConstClassInstructions(appView.options())) {
       return;
     }
@@ -62,14 +61,14 @@ public class ReflectionOptimizer {
               context,
               invoke.asInvokeStatic(),
               rewriteSingleGetClassOrForNameToConstClass(
-                  appView, code, it, invoke, affectedValues, mainDexClasses));
+                  appView, code, it, invoke, affectedValues));
         } else {
           applyTypeForGetClassTo(
               appView,
               context,
               invoke.asInvokeVirtual(),
               rewriteSingleGetClassOrForNameToConstClass(
-                  appView, code, it, invoke, affectedValues, mainDexClasses));
+                  appView, code, it, invoke, affectedValues));
         }
       }
     }
@@ -85,14 +84,15 @@ public class ReflectionOptimizer {
       IRCode code,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
-      Set<Value> affectedValues,
-      MainDexTracingResult mainDexClasses) {
+      Set<Value> affectedValues) {
     return (type, baseClass) -> {
       if (invoke.getInvokedMethod().match(appView.dexItemFactory().classMethods.forName)) {
         // Bail-out if the optimization could increase the size of the main dex.
         if (baseClass.isProgramClass()
-            && !mainDexClasses.canReferenceItemFromContextWithoutIncreasingMainDexSize(
-                baseClass.asProgramClass(), code.context())) {
+            && !appView
+                .appInfo()
+                .getMainDexInfo()
+                .canRebindReference(code.context(), baseClass.getType())) {
           return;
         }
 

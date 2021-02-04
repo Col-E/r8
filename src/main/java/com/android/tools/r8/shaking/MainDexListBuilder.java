@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.utils.SetUtils;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +29,7 @@ public class MainDexListBuilder {
   private final Set<DexType> roots;
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Map<DexType, Boolean> annotationTypeContainEnum;
-  private final MainDexTracingResult.Builder mainDexClassesBuilder;
+  private final MainDexInfo.Builder mainDexInfoBuilder;
 
   public static void checkForAssumedLibraryTypes(AppInfo appInfo) {
     DexClass enumType = appInfo.definitionFor(appInfo.dexItemFactory().enumType);
@@ -50,11 +49,14 @@ public class MainDexListBuilder {
    * @param appView the dex appplication.
    */
   public MainDexListBuilder(
-      Set<DexProgramClass> roots, AppView<? extends AppInfoWithClassHierarchy> appView) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      Set<DexType> roots,
+      MainDexInfo.Builder mainDexInfoBuilder) {
     this.appView = appView;
     // Only consider program classes for the root set.
-    this.roots = SetUtils.mapIdentityHashSet(roots, DexProgramClass::getType);
-    mainDexClassesBuilder = MainDexTracingResult.builder(appView.appInfo()).addRoots(this.roots);
+    assert roots.stream().allMatch(type -> appView.definitionFor(type).isProgramClass());
+    this.roots = roots;
+    this.mainDexInfoBuilder = mainDexInfoBuilder;
     annotationTypeContainEnum = new IdentityHashMap<>();
   }
 
@@ -62,18 +64,17 @@ public class MainDexListBuilder {
     return appView.appInfo();
   }
 
-  public MainDexTracingResult run() {
+  public void run() {
     traceMainDexDirectDependencies();
     traceRuntimeAnnotationsWithEnumForMainDex();
-    return mainDexClassesBuilder.build();
   }
 
   private void traceRuntimeAnnotationsWithEnumForMainDex() {
     for (DexProgramClass clazz : appInfo().classes()) {
-      DexType dexType = clazz.type;
-      if (mainDexClassesBuilder.contains(dexType)) {
+      if (mainDexInfoBuilder.contains(clazz)) {
         continue;
       }
+      DexType dexType = clazz.type;
       if (isAnnotation(dexType) && isAnnotationWithEnum(dexType)) {
         addAnnotationsWithEnum(clazz);
         continue;
@@ -82,10 +83,11 @@ public class MainDexListBuilder {
       // annotations with enums goes into the main dex, move annotated classes there as well.
       clazz.forEachAnnotation(
           annotation -> {
-            if (!mainDexClassesBuilder.contains(dexType)
+            if (!mainDexInfoBuilder.contains(clazz)
                 && annotation.visibility == DexAnnotation.VISIBILITY_RUNTIME
                 && isAnnotationWithEnum(annotation.annotation.type)) {
-              addClassAnnotatedWithAnnotationWithEnum(dexType);
+              // Just add classes annotated with annotations with enum as direct dependencies.
+              mainDexInfoBuilder.addDependency(clazz);
             }
           });
     }
@@ -151,16 +153,10 @@ public class MainDexListBuilder {
     }
   }
 
-  private void addClassAnnotatedWithAnnotationWithEnum(DexType type) {
-    // Just add classes annotated with annotations with enum ad direct dependencies.
-    addDirectDependency(type);
-  }
-
   private void addDirectDependency(DexType type) {
     // Consider only component type of arrays
     type = type.toBaseType(appView.dexItemFactory());
-
-    if (!type.isClassType() || mainDexClassesBuilder.contains(type)) {
+    if (!type.isClassType() || mainDexInfoBuilder.contains(type)) {
       return;
     }
 
@@ -173,9 +169,8 @@ public class MainDexListBuilder {
   }
 
   private void addDirectDependency(DexProgramClass dexClass) {
-    DexType type = dexClass.type;
-    assert !mainDexClassesBuilder.contains(type);
-    mainDexClassesBuilder.addDependency(type);
+    assert !mainDexInfoBuilder.contains(dexClass);
+    mainDexInfoBuilder.addDependency(dexClass);
     if (dexClass.superType != null) {
       addDirectDependency(dexClass.superType);
     }
