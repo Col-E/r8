@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -35,7 +36,7 @@ public class MainDexInfo {
 
   // Specific set of classes specified to be in main-dex
   private final Set<DexType> classList;
-  private final ConcurrentHashMap<DexType, DexType> synthesizedClassesMap;
+  private final Map<DexType, DexType> synthesizedClassesMap;
   // Traced roots are traced main dex references.
   private final Set<DexType> tracedRoots;
   // Traced dependencies are those classes that are directly referenced from traced roots, but will
