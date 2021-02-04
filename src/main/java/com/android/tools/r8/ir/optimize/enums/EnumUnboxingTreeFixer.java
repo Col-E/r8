@@ -16,8 +16,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.collect.Sets;
@@ -33,14 +31,14 @@ class EnumUnboxingTreeFixer {
 
   private final Map<DexType, List<DexEncodedMethod>> unboxedEnumsMethods = new IdentityHashMap<>();
   private final EnumUnboxingLens.Builder lensBuilder = EnumUnboxingLens.enumUnboxingLensBuilder();
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<?> appView;
   private final DexItemFactory factory;
   private final Set<DexType> enumsToUnbox;
   private final UnboxedEnumMemberRelocator relocator;
   private final EnumUnboxingRewriter enumUnboxerRewriter;
 
   EnumUnboxingTreeFixer(
-      AppView<AppInfoWithLiveness> appView,
+      AppView<?> appView,
       Set<DexType> enumsToUnbox,
       UnboxedEnumMemberRelocator relocator,
       EnumUnboxingRewriter enumUnboxerRewriter) {
@@ -74,9 +72,7 @@ class EnumUnboxingTreeFixer {
                 });
         clazz.getMethodCollection().removeMethods(methodsToRemove);
       } else {
-        clazz
-            .getMethodCollection()
-            .replaceMethods(method -> this.fixupEncodedMethod(clazz, method));
+        clazz.getMethodCollection().replaceMethods(this::fixupEncodedMethod);
         fixupFields(clazz.staticFields(), clazz::setStaticField);
         fixupFields(clazz.instanceFields(), clazz::setInstanceField);
       }
@@ -123,7 +119,7 @@ class EnumUnboxingTreeFixer {
         newMethod, builder -> builder.setCompilationState(encodedMethod.getCompilationState()));
   }
 
-  private DexEncodedMethod fixupEncodedMethod(DexProgramClass holder, DexEncodedMethod method) {
+  private DexEncodedMethod fixupEncodedMethod(DexEncodedMethod method) {
     DexProto oldProto = method.getProto();
     DexProto newProto = fixupProto(oldProto);
     if (newProto == method.getProto()) {
@@ -147,24 +143,21 @@ class EnumUnboxingTreeFixer {
                 .setCompilationState(method.getCompilationState())
                 .setIsLibraryMethodOverrideIf(
                     method.isNonPrivateVirtualMethod(), OptionalBool.FALSE)
-                .setSimpleInliningConstraint(
-                    holder, getRewrittenSimpleInliningConstraint(method, oldProto, newProto)));
-  }
-
-  private SimpleInliningConstraint getRewrittenSimpleInliningConstraint(
-      DexEncodedMethod method, DexProto oldProto, DexProto newProto) {
-    IntList unboxedArgumentIndices = new IntArrayList();
-    int offset = BooleanUtils.intValue(method.isInstance());
-    for (int i = 0; i < method.getReference().getArity(); i++) {
-      if (oldProto.getParameter(i).isReferenceType()
-          && newProto.getParameter(i).isPrimitiveType()) {
-        unboxedArgumentIndices.add(i + offset);
-      }
-    }
-    return method
-        .getOptimizationInfo()
-        .getSimpleInliningConstraint()
-        .rewrittenWithUnboxedArguments(unboxedArgumentIndices);
+                .fixupOptimizationInfo(
+                    optimizationInfo -> {
+                      IntList unboxedArgumentIndices = new IntArrayList();
+                      int offset = BooleanUtils.intValue(method.isInstance());
+                      for (int i = 0; i < method.getReference().getArity(); i++) {
+                        if (oldProto.getParameter(i).isReferenceType()
+                            && newProto.getParameter(i).isPrimitiveType()) {
+                          unboxedArgumentIndices.add(i + offset);
+                        }
+                      }
+                      optimizationInfo.setSimpleInliningConstraint(
+                          optimizationInfo
+                              .getSimpleInliningConstraint()
+                              .rewrittenWithUnboxedArguments(unboxedArgumentIndices));
+                    }));
   }
 
   private DexMethod ensureUniqueMethod(DexEncodedMethod encodedMethod, DexMethod newMethod) {
@@ -204,8 +197,11 @@ class EnumUnboxingTreeFixer {
             encodedField.toTypeSubstitutedField(
                 newField,
                 builder ->
-                    builder.setAbstractValue(
-                        encodedField.getOptimizationInfo().getAbstractValue(), appView));
+                    builder.fixupOptimizationInfo(
+                        mutableFieldOptimizationInfo -> {
+                          mutableFieldOptimizationInfo.setAbstractValue(
+                              encodedField.getOptimizationInfo().getAbstractValue());
+                        }));
         setter.setField(i, newEncodedField);
         if (encodedField.isStatic() && encodedField.hasExplicitStaticValue()) {
           assert encodedField.getStaticValue() == DexValue.DexValueNull.NULL;

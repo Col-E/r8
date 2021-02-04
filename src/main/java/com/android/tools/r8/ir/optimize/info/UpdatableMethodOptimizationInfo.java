@@ -383,7 +383,7 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     setFlag(REACHABILITY_SENSITIVE_FLAG, reachabilitySensitive);
   }
 
-  void setSimpleInliningConstraint(SimpleInliningConstraint constraint) {
+  public void setSimpleInliningConstraint(SimpleInliningConstraint constraint) {
     this.simpleInliningConstraint = constraint;
   }
 

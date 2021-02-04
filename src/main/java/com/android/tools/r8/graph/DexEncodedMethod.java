@@ -44,7 +44,6 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
-import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.NumericType;
@@ -56,7 +55,6 @@ import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -74,7 +72,6 @@ import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Pair;
@@ -1539,7 +1536,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     private KotlinMethodLevelInfo kotlinMemberInfo;
     private final CfVersion classFileVersion;
     private boolean d8R8Synthesized;
-    private Consumer<DexEncodedMethod> buildConsumer = ConsumerUtils.emptyConsumer();
 
     private Builder(DexEncodedMethod from) {
       this(from, from.d8R8Synthesized);
@@ -1571,19 +1567,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       }
     }
 
-    public Builder setSimpleInliningConstraint(
-        DexProgramClass holder, SimpleInliningConstraint simpleInliningConstraint) {
-      return addBuildConsumer(
-          newMethod ->
-              OptimizationFeedbackSimple.getInstance()
-                  .setSimpleInliningConstraint(
-                      // The method has not yet been installed so we cannot use
-                      // asProgramMethod(appView).
-                      new ProgramMethod(holder, newMethod), simpleInliningConstraint));
-    }
-
-    private Builder addBuildConsumer(Consumer<DexEncodedMethod> consumer) {
-      this.buildConsumer = this.buildConsumer.andThen(consumer);
+    public Builder fixupOptimizationInfo(Consumer<UpdatableMethodOptimizationInfo> consumer) {
+      if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
+        consumer.accept(optimizationInfo.asUpdatableMethodOptimizationInfo());
+      }
       return this;
     }
 
@@ -1712,7 +1699,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       if (!isLibraryMethodOverride.isUnknown()) {
         result.setLibraryMethodOverride(isLibraryMethodOverride);
       }
-      buildConsumer.accept(result);
       return result;
     }
   }

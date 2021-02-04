@@ -18,7 +18,6 @@ import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.optimize.info.DefaultFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.kotlin.KotlinFieldLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ConsumerUtils;
@@ -356,7 +355,6 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     private FieldTypeSignature genericSignature;
     private DexValue staticValue;
     private FieldOptimizationInfo optimizationInfo;
-    private Consumer<DexEncodedField> buildConsumer = ConsumerUtils.emptyConsumer();
 
     Builder(DexEncodedField from) {
       // Copy all the mutable state of a DexEncodedField here.
@@ -372,21 +370,15 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
               : from.optimizationInfo.mutableCopy();
     }
 
-    public Builder apply(Consumer<Builder> consumer) {
-      consumer.accept(this);
+    public Builder fixupOptimizationInfo(Consumer<MutableFieldOptimizationInfo> consumer) {
+      if (optimizationInfo.isMutableFieldOptimizationInfo()) {
+        consumer.accept(optimizationInfo.asMutableFieldOptimizationInfo());
+      }
       return this;
     }
 
-    public Builder setAbstractValue(
-        AbstractValue abstractValue, AppView<AppInfoWithLiveness> appView) {
-      return addBuildConsumer(
-          fixedUpField ->
-              OptimizationFeedbackSimple.getInstance()
-                  .recordFieldHasAbstractValue(fixedUpField, appView, abstractValue));
-    }
-
-    private Builder addBuildConsumer(Consumer<DexEncodedField> consumer) {
-      this.buildConsumer = this.buildConsumer.andThen(consumer);
+    public Builder apply(Consumer<Builder> consumer) {
+      consumer.accept(this);
       return this;
     }
 
@@ -401,7 +393,6 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       if (optimizationInfo.isMutableFieldOptimizationInfo()) {
         dexEncodedField.setOptimizationInfo(optimizationInfo.asMutableFieldOptimizationInfo());
       }
-      buildConsumer.accept(dexEncodedField);
       return dexEncodedField;
     }
   }
