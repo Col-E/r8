@@ -66,7 +66,9 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   @Override
   public void recordFieldHasAbstractValue(
       DexEncodedField field, AppView<AppInfoWithLiveness> appView, AbstractValue abstractValue) {
-    // Ignored.
+    if (appView.appInfo().mayPropagateValueFor(field.field)) {
+      field.getMutableOptimizationInfo().setAbstractValue(abstractValue);
+    }
   }
 
   // METHOD OPTIMIZATION INFO.
@@ -198,7 +200,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   @Override
   public void setSimpleInliningConstraint(
       ProgramMethod method, SimpleInliningConstraint constraint) {
-    // Ignored.
+    method.getDefinition().getMutableOptimizationInfo().setSimpleInliningConstraint(constraint);
   }
 
   @Override

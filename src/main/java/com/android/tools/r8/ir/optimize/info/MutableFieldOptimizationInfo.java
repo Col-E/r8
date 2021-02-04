@@ -65,7 +65,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
     return abstractValue;
   }
 
-  public void setAbstractValue(AbstractValue abstractValue) {
+  void setAbstractValue(AbstractValue abstractValue) {
     this.abstractValue = abstractValue;
   }
 
