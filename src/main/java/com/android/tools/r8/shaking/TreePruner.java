@@ -376,7 +376,9 @@ public class TreePruner {
 
   private boolean verifyNoDeadFields(DexProgramClass clazz) {
     for (DexEncodedField field : clazz.fields()) {
-      assert !field.getOptimizationInfo().isDead()
+      // Pinned field which type is never instantiated are always null, they are marked as dead
+      // so their reads and writes are cleared, but they are still in the program.
+      assert !field.getOptimizationInfo().isDead() || appView.appInfo().isPinned(field)
           : "Expected field `" + field.field.toSourceString() + "` to be absent";
     }
     return true;
