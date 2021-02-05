@@ -18,6 +18,7 @@ import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
@@ -75,6 +76,7 @@ public class KeptSingletonIsNotCyclicTest extends TestBase {
     MethodReference fooClInitRef = Reference.classConstructor(fooClassRef);
     MethodReference fooInitRef = Reference.methodFromMethod(fooClass.getDeclaredConstructor());
 
+    FieldReference testFooFieldRef = Reference.fieldFromField(testClass.getDeclaredField("foo"));
     MethodReference testInitRef =
         Reference.methodFromMethod(testClass.getDeclaredConstructor());
 
@@ -96,8 +98,16 @@ public class KeptSingletonIsNotCyclicTest extends TestBase {
     QueryNode mainMethod = inspector.method(mainMethodRef).assertNotRenamed().assertKeptBy(root);
     // TestClass.<init> is kept by TestClass.main.
     QueryNode testInit = inspector.method(testInitRef).assertPresent().assertKeptBy(mainMethod);
-    // The type Foo is kept by TestClass.<init>
-    QueryNode fooClassNode = inspector.clazz(fooClassRef).assertRenamed().assertKeptBy(testInit);
+    // TestClass.foo is kept by TestClass.<init>.
+    QueryNode testFooFieldNode =
+        inspector.field(testFooFieldRef).assertPresent().assertKeptBy(testInit);
+    // The type Foo is not kept by TestClass.<init>, but TestClass.foo.
+    QueryNode fooClassNode =
+        inspector
+            .clazz(fooClassRef)
+            .assertRenamed()
+            .assertKeptBy(testFooFieldNode)
+            .assertNotKeptBy(testInit);
     // Foo.<clinit> is kept by Foo
     QueryNode fooClInit = inspector.method(fooClInitRef).assertPresent().assertKeptBy(fooClassNode);
     // The type Foo is also kept by Foo.<clinit>
