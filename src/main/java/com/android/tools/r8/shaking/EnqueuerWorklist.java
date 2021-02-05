@@ -59,13 +59,13 @@ public class EnqueuerWorklist {
     }
   }
 
-  static class MarkReachableFieldAction extends EnqueuerAction {
+  static class MarkInstanceFieldAsReachableAction extends EnqueuerAction {
     private final ProgramField field;
     // TODO(b/175854431): Avoid pushing context on worklist.
     private final ProgramDefinition context;
     private final KeepReason reason;
 
-    public MarkReachableFieldAction(
+    public MarkInstanceFieldAsReachableAction(
         ProgramField field, ProgramDefinition context, KeepReason reason) {
       this.field = field;
       this.context = context;
@@ -287,9 +287,9 @@ public class EnqueuerWorklist {
     addToQueue(new MarkReachableSuperAction(method, from));
   }
 
-  public void enqueueMarkReachableFieldAction(
+  public void enqueueMarkInstanceFieldAsReachableAction(
       ProgramField field, ProgramDefinition context, KeepReason reason) {
-    addToQueue(new MarkReachableFieldAction(field, context, reason));
+    addToQueue(new MarkInstanceFieldAsReachableAction(field, context, reason));
   }
 
   // TODO(b/142378367): Context is the containing method that is cause of the instantiation.

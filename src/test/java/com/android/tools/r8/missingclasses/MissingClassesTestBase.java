@@ -34,6 +34,8 @@ public abstract class MissingClassesTestBase extends TestBase {
   static class MissingClass {
 
     static int FIELD;
+
+    int field;
   }
 
   private final TestParameters parameters;

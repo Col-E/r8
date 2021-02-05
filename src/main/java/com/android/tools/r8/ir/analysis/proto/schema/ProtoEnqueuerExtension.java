@@ -381,7 +381,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
           // Map/required fields cannot be removed. Therefore, we mark such fields as both read and
           // written such that we cannot optimize any field reads or writes.
           enqueuer.registerReflectiveFieldAccess(valueStorage.getReference(), dynamicMethod);
-          worklist.enqueueMarkReachableFieldAction(
+          worklist.enqueueMarkInstanceFieldAsReachableAction(
               valueStorage, dynamicMethod, KeepReason.reflectiveUseIn(dynamicMethod));
           valueStorageIsLive = true;
         } else {
@@ -446,7 +446,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
           // Unconditionally register the hazzer and one-of proto fields as written from
           // dynamicMethod().
           if (enqueuer.registerReflectiveFieldWrite(newlyLiveField.getReference(), dynamicMethod)) {
-            worklist.enqueueMarkReachableFieldAction(
+            worklist.enqueueMarkInstanceFieldAsReachableAction(
                 newlyLiveField, dynamicMethod, KeepReason.reflectiveUseIn(dynamicMethod));
           }
         }
@@ -566,7 +566,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
     }
 
     if (enqueuer.registerReflectiveFieldWrite(oneOfField.getReference(), dynamicMethod)) {
-      worklist.enqueueMarkReachableFieldAction(
+      worklist.enqueueMarkInstanceFieldAsReachableAction(
           oneOfField, dynamicMethod, KeepReason.reflectiveUseIn(dynamicMethod));
     }
   }

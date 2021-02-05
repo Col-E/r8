@@ -58,14 +58,14 @@ public class MissingClassesDiagnostic implements Diagnostic {
     }
 
     String getReferencedFromMessageSuffix(ClassReference missingClass) {
-      if (!methodContexts.isEmpty()) {
-        return " (referenced from: "
-            + MethodReferenceUtils.toSourceString(methodContexts.iterator().next())
-            + ")";
-      }
       if (!fieldContexts.isEmpty()) {
         return " (referenced from: "
             + FieldReferenceUtils.toSourceString(fieldContexts.iterator().next())
+            + ")";
+      }
+      if (!methodContexts.isEmpty()) {
+        return " (referenced from: "
+            + MethodReferenceUtils.toSourceString(methodContexts.iterator().next())
             + ")";
       }
       // TODO(b/175543745): The legacy reporting is context insensitive, and therefore uses the

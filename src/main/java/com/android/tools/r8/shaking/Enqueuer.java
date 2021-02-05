@@ -1451,11 +1451,10 @@ public class Enqueuer {
       return;
     }
 
-    // Must mark the field as targeted even if it does not exist.
-    markFieldAsTargeted(fieldReference, currentMethod);
-
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
     if (resolutionResult.isFailedOrUnknownResolution()) {
+      // Must mark the field as targeted even if it does not exist.
+      markFieldAsTargeted(fieldReference, currentMethod);
       noClassMerging.add(fieldReference.getHolderType());
       return;
     }
@@ -1481,15 +1480,12 @@ public class Enqueuer {
       Log.verbose(getClass(), "Register Iget `%s`.", fieldReference);
     }
 
-    // If unused interface removal is enabled, then we won't necessarily mark the actual holder of
-    // the field as live, if the holder is an interface.
-    if (appView.options().enableUnusedInterfaceRemoval) {
-      if (field.getReference() != fieldReference) {
-        markTypeAsLive(field.getHolder(), currentMethod);
-      }
+    if (field.getReference() != fieldReference) {
+      // Mark the initial resolution holder as live.
+      markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
     }
 
-    workList.enqueueMarkReachableFieldAction(
+    workList.enqueueMarkInstanceFieldAsReachableAction(
         field, currentMethod, KeepReason.fieldReferencedIn(currentMethod));
   }
 
@@ -1507,11 +1503,10 @@ public class Enqueuer {
       return;
     }
 
-    // Must mark the field as targeted even if it does not exist.
-    markFieldAsTargeted(fieldReference, currentMethod);
-
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
     if (resolutionResult.isFailedOrUnknownResolution()) {
+      // Must mark the field as targeted even if it does not exist.
+      markFieldAsTargeted(fieldReference, currentMethod);
       noClassMerging.add(fieldReference.getHolderType());
       return;
     }
@@ -1537,16 +1532,13 @@ public class Enqueuer {
       Log.verbose(getClass(), "Register Iput `%s`.", fieldReference);
     }
 
-    // If unused interface removal is enabled, then we won't necessarily mark the actual holder of
-    // the field as live, if the holder is an interface.
-    if (appView.options().enableUnusedInterfaceRemoval) {
-      if (field.getReference() != fieldReference) {
-        markTypeAsLive(field.getHolder(), currentMethod);
-      }
+    if (field.getReference() != fieldReference) {
+      // Mark the initial resolution holder as live.
+      markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
     }
 
     KeepReason reason = KeepReason.fieldReferencedIn(currentMethod);
-    workList.enqueueMarkReachableFieldAction(field, currentMethod, reason);
+    workList.enqueueMarkInstanceFieldAsReachableAction(field, currentMethod, reason);
   }
 
   void traceStaticFieldRead(DexField field, ProgramMethod currentMethod) {
@@ -1608,9 +1600,9 @@ public class Enqueuer {
     }
 
     if (field.getReference() != fieldReference) {
-      // Mark the non-rebound field access as targeted. Note that this should only be done if the
-      // field is not a dead proto field (in which case we bail-out above).
-      markFieldAsTargeted(fieldReference, currentMethod);
+      // Mark the initial resolution holder as live. Note that this should only be done if the field
+      // is not a dead proto field (in which case we bail-out above).
+      markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
     }
 
     markStaticFieldAsLive(field, currentMethod);
@@ -1673,9 +1665,9 @@ public class Enqueuer {
     }
 
     if (field.getReference() != fieldReference) {
-      // Mark the non-rebound field access as targeted. Note that this should only be done if the
-      // field is not a dead proto field (in which case we bail-out above).
-      markFieldAsTargeted(fieldReference, currentMethod);
+      // Mark the initial resolution holder as live. Note that this should only be done if the field
+      // is not a dead proto field (in which case we bail-out above).
+      markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
     }
 
     markStaticFieldAsLive(field, currentMethod);
@@ -1741,6 +1733,13 @@ public class Enqueuer {
       return;
     }
     markTypeAsLive(clazz, reason);
+  }
+
+  private void markTypeAsLive(DexClass clazz, ProgramDefinition context) {
+    if (clazz.isProgramClass()) {
+      DexProgramClass programClass = clazz.asProgramClass();
+      markTypeAsLive(programClass, graphReporter.reportClassReferencedFrom(programClass, context));
+    }
   }
 
   private void markTypeAsLive(DexProgramClass clazz, ProgramDefinition context) {
@@ -2658,9 +2657,14 @@ public class Enqueuer {
     }
   }
 
+  private void markFieldAsTargeted(ProgramField field) {
+    markTypeAsLive(field.getHolder(), field);
+    markTypeAsLive(field.getType(), field);
+  }
+
   private void markFieldAsTargeted(DexField field, ProgramMethod context) {
-    markTypeAsLive(field.type, context);
-    markTypeAsLive(field.holder, context);
+    markTypeAsLive(field.getHolderType(), context);
+    markTypeAsLive(field.getType(), context);
   }
 
   private void markStaticFieldAsLive(ProgramField field, ProgramMethod context) {
@@ -2669,9 +2673,8 @@ public class Enqueuer {
 
   private void markStaticFieldAsLive(
       ProgramField field, ProgramDefinition context, KeepReason reason) {
-    // Mark the type live here, so that the class exists at runtime.
-    markTypeAsLive(field.getHolder(), field);
-    markTypeAsLive(field.getReference().type, field);
+    // Mark the field type and holder live here, so that they exist at runtime.
+    markFieldAsTargeted(field);
 
     markDirectAndIndirectClassInitializersAsLive(field.getHolder());
 
@@ -2701,8 +2704,8 @@ public class Enqueuer {
 
   private void markInstanceFieldAsLive(
       ProgramField field, ProgramDefinition context, KeepReason reason) {
-    markTypeAsLive(field.getHolder(), field);
-    markTypeAsLive(field.getType(), field);
+    markFieldAsTargeted(field);
+
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Adding instance field `%s` to live set.", field);
     }
@@ -2830,8 +2833,7 @@ public class Enqueuer {
         field.getHolder())) {
       markInstanceFieldAsLive(field, context, reason);
     } else {
-      markTypeAsLive(field.getHolder(), field);
-      markTypeAsLive(field.getReference().type, field);
+      markFieldAsTargeted(field);
 
       // Add the field to the reachable set if the type later becomes instantiated.
       reachableInstanceFields
