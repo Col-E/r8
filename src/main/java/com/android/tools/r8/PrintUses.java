@@ -27,7 +27,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
-import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -364,7 +364,7 @@ public class PrintUses {
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
             application,
             ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
-            MainDexClasses.createEmptyMainDexClasses());
+            MainDexInfo.createEmptyMainDexClasses());
   }
 
   private void analyze() {

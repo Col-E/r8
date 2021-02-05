@@ -1,7 +1,6 @@
 // Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
 package com.android.tools.r8.maindexlist;
 
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
@@ -29,10 +28,9 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
+public class MainDexListFromGenerateMainDexInliningSpuriousRootTest extends TestBase {
 
   private static List<ClassReference> mainDexList;
-
   private final TestParameters parameters;
 
   @Parameters(name = "{0}")
@@ -47,7 +45,7 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
   public static void setup() throws Exception {
     mainDexList =
         testForMainDexListGenerator(getStaticTemp())
-            .addInnerClasses(MainDexListFromGenerateMainDexInliningTest.class)
+            .addInnerClasses(MainDexListFromGenerateMainDexInliningSpuriousRootTest.class)
             .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
             .addMainDexRules(
                 "-keep class " + Main.class.getTypeName() + " {",
@@ -57,7 +55,7 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
             .getMainDexList();
   }
 
-  public MainDexListFromGenerateMainDexInliningTest(TestParameters parameters) {
+  public MainDexListFromGenerateMainDexInliningSpuriousRootTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -68,45 +66,45 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
     assertEquals(2, mainDexList.size());
     assertEquals(A.class.getTypeName(), mainDexList.get(0).getTypeName());
     assertEquals(Main.class.getTypeName(), mainDexList.get(1).getTypeName());
-
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addInnerClasses(getClass())
             .addInliningAnnotations()
             .addKeepClassAndMembersRules(Main.class)
+            .addKeepMainRule(Main2.class)
             .addMainDexListClassReferences(mainDexList)
+            .addMainDexRules(
+                "-keep class " + Main2.class.getTypeName() + " {",
+                "  public static void main(java.lang.String[]);",
+                "}")
             .collectMainDexClasses()
             .enableInliningAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
-            .enableNoHorizontalClassMergingAnnotations()
             .setMinApi(parameters.getApiLevel())
+            .noMinification()
             .compile();
-
     CodeInspector inspector = compileResult.inspector();
     ClassSubject mainClassSubject = inspector.clazz(Main.class);
     assertThat(mainClassSubject, isPresent());
-
     MethodSubject fooMethodSubject = mainClassSubject.uniqueMethodWithName("foo");
     assertThat(fooMethodSubject, isPresent());
-
+    ClassSubject main2ClassSubject = inspector.clazz(Main2.class);
+    assertThat(main2ClassSubject, isPresent());
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-
     MethodSubject barMethodSubject = aClassSubject.uniqueMethodWithName("bar");
     assertThat(barMethodSubject, isPresent());
-
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
-
     MethodSubject bazMethodSubject = bClassSubject.uniqueMethodWithName("baz");
     assertThat(bazMethodSubject, isPresent());
-
     assertThat(fooMethodSubject, invokesMethod(barMethodSubject));
     assertThat(barMethodSubject, invokesMethod(bazMethodSubject));
-
-    // The main dex classes should be the same as the input main dex list.
     assertEquals(
-        ImmutableSet.of(mainClassSubject.getFinalName(), aClassSubject.getFinalName()),
+        ImmutableSet.of(
+            mainClassSubject.getFinalName(),
+            main2ClassSubject.getFinalName(),
+            aClassSubject.getFinalName()),
         compileResult.getMainDexClasses());
   }
 
@@ -117,15 +115,27 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
     }
 
     static void foo() {
-      // Should not allow inlining bar into foo(), since that adds B as a direct
-      // dependence, and we don't include the direct dependencies of main dex list classes.
       A.bar();
+    }
+  }
+
+  static class Main2 {
+
+    public static void main(String[] args) {
+      if (getFalse()) {
+        A.bar();
+      }
+    }
+
+    static boolean getFalse() {
+      return false;
     }
   }
 
   @NoHorizontalClassMerging
   static class A {
-
+    // Must not be inlined into Main.foo(), since that would cause B to become direct dependence of
+    // Main without ending up in the main dex.
     static void bar() {
       B.baz();
     }

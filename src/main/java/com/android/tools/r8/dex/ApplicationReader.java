@@ -29,7 +29,7 @@ import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.JarClassFileReader;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ClassProvider;
@@ -198,8 +198,8 @@ public class ApplicationReader {
     }
   }
 
-  public MainDexClasses readMainDexClasses(DexApplication app) {
-    MainDexClasses.Builder builder = MainDexClasses.builder();
+  public MainDexInfo readMainDexClasses(DexApplication app) {
+    MainDexInfo.Builder builder = MainDexInfo.builder();
     if (inputApp.hasMainDexList()) {
       for (StringResource resource : inputApp.getMainDexListResources()) {
         addToMainDexClasses(app, builder, MainDexListParser.parseList(resource, itemFactory));
@@ -211,15 +211,15 @@ public class ApplicationReader {
               .map(clazz -> itemFactory.createType(DescriptorUtils.javaTypeToDescriptor(clazz)))
               .collect(Collectors.toList()));
     }
-    return builder.build();
+    return builder.buildList();
   }
 
   private void addToMainDexClasses(
-      DexApplication app, MainDexClasses.Builder builder, Iterable<DexType> types) {
+      DexApplication app, MainDexInfo.Builder builder, Iterable<DexType> types) {
     for (DexType type : types) {
       DexProgramClass clazz = app.programDefinitionFor(type);
       if (clazz != null) {
-        builder.add(clazz);
+        builder.addList(clazz);
       } else if (!options.ignoreMainDexMissingClasses) {
         options.reporter.warning(
             new StringDiagnostic(

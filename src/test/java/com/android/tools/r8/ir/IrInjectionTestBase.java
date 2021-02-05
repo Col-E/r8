@@ -14,7 +14,6 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
@@ -113,7 +112,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
     public String run() throws IOException {
       Timing timing = Timing.empty();
-      IRConverter converter = new IRConverter(appView, timing, null, MainDexTracingResult.NONE);
+      IRConverter converter = new IRConverter(appView, timing, null);
       converter.replaceCodeForTesting(method, code);
       AndroidApp app = writeDex();
       return runOnArtRaw(app, DEFAULT_MAIN_CLASS_NAME).stdout;

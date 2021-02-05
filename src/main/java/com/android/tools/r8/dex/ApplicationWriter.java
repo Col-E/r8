@@ -45,7 +45,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -199,7 +199,7 @@ public class ApplicationWriter {
           options.getDexFilePerClassFileConsumer().combineSyntheticClassesWithPrimaryClass());
     } else if (!options.canUseMultidex()
         && options.mainDexKeepRules.isEmpty()
-        && appView.appInfo().getMainDexClasses().isEmpty()
+        && appView.appInfo().getMainDexInfo().isEmpty()
         && options.enableMainDexListCheck) {
       distributor = new VirtualFile.MonoDexDistributor(this, options);
     } else {
@@ -688,10 +688,11 @@ public class ApplicationWriter {
   }
 
   private static String writeMainDexList(AppView<?> appView, NamingLens namingLens) {
-    MainDexClasses mainDexClasses = appView.appInfo().getMainDexClasses();
+    // TODO(b/178231294): Clean up by streaming directly to the consumer.
+    MainDexInfo mainDexInfo = appView.appInfo().getMainDexInfo();
     StringBuilder builder = new StringBuilder();
-    List<DexType> list = new ArrayList<>(mainDexClasses.size());
-    mainDexClasses.forEach(list::add);
+    List<DexType> list = new ArrayList<>(mainDexInfo.size());
+    mainDexInfo.forEach(list::add);
     list.sort(DexType::compareTo);
     list.forEach(
         type -> builder.append(mapMainDexListName(type, namingLens)).append('\n'));

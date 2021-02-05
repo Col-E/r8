@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.utils.LensUtils.rewriteAndApplyIfNotPrimitiveType;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.AssumeNoSideEffectsRuleForObjectMembersDiagnostic;
@@ -2385,16 +2386,5 @@ public class RootSetUtils {
           ifRules,
           delayedRootSetActionItems);
     }
-  }
-
-  private static void rewriteAndApplyIfNotPrimitiveType(
-      GraphLens graphLens, DexReference reference, Consumer<DexReference> rewrittenConsumer) {
-    DexReference rewrittenReference = graphLens.rewriteReference(reference);
-    // Enum unboxing can change a class type to int which leads to errors going forward since
-    // the root set should not have primitive types.
-    if (rewrittenReference.isDexType() && rewrittenReference.asDexType().isPrimitiveType()) {
-      return;
-    }
-    rewrittenConsumer.accept(rewrittenReference);
   }
 }

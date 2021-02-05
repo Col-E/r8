@@ -7,7 +7,7 @@ import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutio
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.BooleanBox;
@@ -20,7 +20,7 @@ public class AppInfo implements DexDefinitionSupplier {
 
   private final DexApplication app;
   private final DexItemFactory dexItemFactory;
-  private final MainDexClasses mainDexClasses;
+  private final MainDexInfo mainDexInfo;
   private final SyntheticItems syntheticItems;
 
   // Set when a new AppInfo replaces a previous one. All public methods should verify that the
@@ -28,37 +28,36 @@ public class AppInfo implements DexDefinitionSupplier {
   private final BooleanBox obsolete;
 
   public static AppInfo createInitialAppInfo(DexApplication application) {
-    return createInitialAppInfo(application, MainDexClasses.createEmptyMainDexClasses());
+    return createInitialAppInfo(application, MainDexInfo.createEmptyMainDexClasses());
   }
 
-  public static AppInfo createInitialAppInfo(
-      DexApplication application, MainDexClasses mainDexClasses) {
-    return new AppInfo(SyntheticItems.createInitialSyntheticItems(application), mainDexClasses);
+  public static AppInfo createInitialAppInfo(DexApplication application, MainDexInfo mainDexInfo) {
+    return new AppInfo(SyntheticItems.createInitialSyntheticItems(application), mainDexInfo);
   }
 
-  public AppInfo(CommittedItems committedItems, MainDexClasses mainDexClasses) {
+  public AppInfo(CommittedItems committedItems, MainDexInfo mainDexInfo) {
     this(
         committedItems.getApplication(),
         committedItems.toSyntheticItems(),
-        mainDexClasses,
+        mainDexInfo,
         new BooleanBox());
   }
 
   // For desugaring.
   // This is a view onto the app info and is the only place the pending synthetics are shared.
   AppInfo(AppInfoWithClassHierarchy.CreateDesugaringViewOnAppInfo witness, AppInfo appInfo) {
-    this(appInfo.app, appInfo.syntheticItems, appInfo.mainDexClasses, appInfo.obsolete);
+    this(appInfo.app, appInfo.syntheticItems, appInfo.mainDexInfo, appInfo.obsolete);
     assert witness != null;
   }
 
   private AppInfo(
       DexApplication application,
       SyntheticItems syntheticItems,
-      MainDexClasses mainDexClasses,
+      MainDexInfo mainDexInfo,
       BooleanBox obsolete) {
     this.app = application;
     this.dexItemFactory = application.dexItemFactory;
-    this.mainDexClasses = mainDexClasses;
+    this.mainDexInfo = mainDexInfo;
     this.syntheticItems = syntheticItems;
     this.obsolete = obsolete;
   }
@@ -72,7 +71,12 @@ public class AppInfo implements DexDefinitionSupplier {
     }
     return new AppInfo(
         getSyntheticItems().commitPrunedItems(prunedItems),
-        getMainDexClasses().withoutPrunedItems(prunedItems));
+        getMainDexInfo().withoutPrunedItems(prunedItems));
+  }
+
+  public AppInfo rebuildWithMainDexInfo(MainDexInfo mainDexInfo) {
+    assert checkIfObsolete();
+    return new AppInfo(app, syntheticItems, mainDexInfo, new BooleanBox());
   }
 
   protected InternalOptions options() {
@@ -107,19 +111,29 @@ public class AppInfo implements DexDefinitionSupplier {
     return dexItemFactory;
   }
 
-  public MainDexClasses getMainDexClasses() {
-    return mainDexClasses;
+  public MainDexInfo getMainDexInfo() {
+    assert checkIfObsolete();
+    return mainDexInfo;
   }
 
   public SyntheticItems getSyntheticItems() {
+    assert checkIfObsolete();
     return syntheticItems;
   }
 
-  public void addSynthesizedClass(DexProgramClass clazz, boolean addToMainDexClasses) {
+  public void addSynthesizedClass(DexProgramClass clazz, boolean addToMainDex) {
     assert checkIfObsolete();
     syntheticItems.addLegacySyntheticClass(clazz);
-    if (addToMainDexClasses && !mainDexClasses.isEmpty()) {
-      mainDexClasses.add(clazz);
+    if (addToMainDex) {
+      mainDexInfo.addSyntheticClass(clazz);
+    }
+  }
+
+  public void addSynthesizedClass(DexProgramClass clazz, ProgramDefinition context) {
+    assert checkIfObsolete();
+    syntheticItems.addLegacySyntheticClass(clazz);
+    if (context != null) {
+      mainDexInfo.addLegacySyntheticClass(clazz, context);
     }
   }
 

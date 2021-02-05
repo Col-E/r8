@@ -29,7 +29,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
+public class MainDexListFromGenerateMainDexInliningWithTracingTest extends TestBase {
 
   private static List<ClassReference> mainDexList;
 
@@ -47,7 +47,7 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
   public static void setup() throws Exception {
     mainDexList =
         testForMainDexListGenerator(getStaticTemp())
-            .addInnerClasses(MainDexListFromGenerateMainDexInliningTest.class)
+            .addInnerClasses(MainDexListFromGenerateMainDexInliningWithTracingTest.class)
             .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
             .addMainDexRules(
                 "-keep class " + Main.class.getTypeName() + " {",
@@ -57,7 +57,7 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
             .getMainDexList();
   }
 
-  public MainDexListFromGenerateMainDexInliningTest(TestParameters parameters) {
+  public MainDexListFromGenerateMainDexInliningWithTracingTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -75,10 +75,14 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
             .addInliningAnnotations()
             .addKeepClassAndMembersRules(Main.class)
             .addMainDexListClassReferences(mainDexList)
+            .addMainDexRules(
+                "-keep class " + Main.class.getTypeName() + " {",
+                "  public static void foo(java.lang.String[]);",
+                "}")
             .collectMainDexClasses()
             .enableInliningAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
-            .enableNoHorizontalClassMergingAnnotations()
+            .noMinification()
             .setMinApi(parameters.getApiLevel())
             .compile();
 
@@ -88,6 +92,10 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
 
     MethodSubject fooMethodSubject = mainClassSubject.uniqueMethodWithName("foo");
     assertThat(fooMethodSubject, isPresent());
+
+    MethodSubject notCalledAtStartupMethodSubject =
+        mainClassSubject.uniqueMethodWithName("notCalledAtStartup");
+    assertThat(notCalledAtStartupMethodSubject, isPresent());
 
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
@@ -101,7 +109,7 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
     MethodSubject bazMethodSubject = bClassSubject.uniqueMethodWithName("baz");
     assertThat(bazMethodSubject, isPresent());
 
-    assertThat(fooMethodSubject, invokesMethod(barMethodSubject));
+    assertThat(notCalledAtStartupMethodSubject, invokesMethod(barMethodSubject));
     assertThat(barMethodSubject, invokesMethod(bazMethodSubject));
 
     // The main dex classes should be the same as the input main dex list.
@@ -116,10 +124,18 @@ public class MainDexListFromGenerateMainDexInliningTest extends TestBase {
       System.out.println("Main.main()");
     }
 
-    static void foo() {
-      // Should not allow inlining bar into foo(), since that adds B as a direct
+    public static void notCalledAtStartup() {
+      // Should not allow inlining bar into notCalledAtStartup(), since that adds B as a direct
       // dependence, and we don't include the direct dependencies of main dex list classes.
-      A.bar();
+      new A().bar();
+    }
+
+    // This method is traced for main dex when running with R8, to add A as a dependency.
+    static A foo(A a) {
+      if (a != null) {
+        System.out.println("Hello World");
+      }
+      return a;
     }
   }
 

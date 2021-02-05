@@ -134,7 +134,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     CommittedItems commit =
         new CommittedItems(
             synthetics.nextSyntheticId, appView.appInfo().app(), committed, ImmutableList.of());
-    appView.setAppInfo(new AppInfo(commit, appView.appInfo().getMainDexClasses()));
+    appView.setAppInfo(new AppInfo(commit, appView.appInfo().getMainDexInfo()));
   }
 
   // Internal synthetic id creation helpers.

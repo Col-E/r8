@@ -195,7 +195,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   AppInfoWithLiveness(
       CommittedItems syntheticItems,
       ClassToFeatureSplitMap classToFeatureSplitMap,
-      MainDexClasses mainDexClasses,
+      MainDexInfo mainDexInfo,
       Set<DexType> deadProtoTypes,
       MissingClasses missingClasses,
       Set<DexType> liveTypes,
@@ -234,7 +234,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       Set<DexType> lockCandidates,
       Map<DexType, Visibility> initClassReferences) {
-    super(syntheticItems, classToFeatureSplitMap, mainDexClasses, missingClasses);
+    super(syntheticItems, classToFeatureSplitMap, mainDexInfo, missingClasses);
     this.deadProtoTypes = deadProtoTypes;
     this.liveTypes = liveTypes;
     this.targetedMethods = targetedMethods;
@@ -279,7 +279,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this(
         committedItems,
         previous.getClassToFeatureSplitMap(),
-        previous.getMainDexClasses(),
+        previous.getMainDexInfo(),
         previous.deadProtoTypes,
         previous.getMissingClasses(),
         CollectionUtils.mergeSets(previous.liveTypes, committedItems.getCommittedProgramTypes()),
@@ -324,7 +324,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this(
         previous.getSyntheticItems().commitPrunedItems(prunedItems),
         previous.getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
-        previous.getMainDexClasses().withoutPrunedItems(prunedItems),
+        previous.getMainDexInfo().withoutPrunedItems(prunedItems),
         previous.deadProtoTypes,
         previous.getMissingClasses(),
         prunedItems.hasRemovedClasses()
@@ -376,6 +376,52 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return true;
   }
 
+  @Override
+  public AppInfoWithLiveness rebuildWithMainDexInfo(MainDexInfo mainDexInfo) {
+    return new AppInfoWithLiveness(
+        getSyntheticItems().commit(app()),
+        getClassToFeatureSplitMap(),
+        mainDexInfo,
+        deadProtoTypes,
+        getMissingClasses(),
+        liveTypes,
+        targetedMethods,
+        failedMethodResolutionTargets,
+        failedFieldResolutionTargets,
+        bootstrapMethods,
+        methodsTargetedByInvokeDynamic,
+        virtualMethodsTargetedByInvokeDirect,
+        liveMethods,
+        fieldAccessInfoCollection,
+        methodAccessInfoCollection,
+        objectAllocationInfoCollection,
+        callSites,
+        keepInfo,
+        mayHaveSideEffects,
+        noSideEffects,
+        assumedValues,
+        alwaysInline,
+        forceInline,
+        neverInline,
+        neverInlineDueToSingleCaller,
+        whyAreYouNotInlining,
+        keepConstantArguments,
+        keepUnusedArguments,
+        reprocess,
+        neverReprocess,
+        alwaysClassInline,
+        neverClassInline,
+        noClassMerging,
+        noVerticalClassMerging,
+        noHorizontalClassMerging,
+        neverPropagateValue,
+        identifierNameStrings,
+        prunedTypes,
+        switchMaps,
+        lockCandidates,
+        initClassReferences);
+  }
+
   private static KeepInfoCollection extendPinnedItems(
       AppInfoWithLiveness previous, Collection<? extends DexReference> additionalPinnedItems) {
     if (additionalPinnedItems == null || additionalPinnedItems.isEmpty()) {
@@ -418,7 +464,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     super(
         previous.getSyntheticItems().commit(previous.app()),
         previous.getClassToFeatureSplitMap(),
-        previous.getMainDexClasses(),
+        previous.getMainDexInfo(),
         previous.getMissingClasses());
     this.deadProtoTypes = previous.deadProtoTypes;
     this.liveTypes = previous.liveTypes;
@@ -999,7 +1045,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return new AppInfoWithLiveness(
         committedItems,
         getClassToFeatureSplitMap().rewrittenWithLens(lens),
-        getMainDexClasses().rewrittenWithLens(lens),
+        getMainDexInfo().rewrittenWithLens(lens),
         deadProtoTypes,
         getMissingClasses().commitSyntheticItems(committedItems),
         lens.rewriteTypes(liveTypes),

@@ -300,6 +300,10 @@ public abstract class GraphLens {
    */
   private GraphLens() {}
 
+  public boolean isSyntheticFinalizationGraphLens() {
+    return false;
+  }
+
   public abstract DexType getOriginalType(DexType type);
 
   public abstract Iterable<DexType> getOriginalTypes(DexType type);

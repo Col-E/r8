@@ -91,7 +91,6 @@ import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
-import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -121,7 +120,6 @@ public class IRConverter {
   private static final int PEEPHOLE_OPTIMIZATION_PASSES = 2;
 
   public final AppView<?> appView;
-  public final MainDexTracingResult mainDexClasses;
 
   private final Timing timing;
   private final Outliner outliner;
@@ -182,8 +180,7 @@ public class IRConverter {
    * The argument `appView` is used to determine if whole program optimizations are allowed or not
    * (i.e., whether we are running R8). See {@link AppView#enableWholeProgramOptimizations()}.
    */
-  public IRConverter(
-      AppView<?> appView, Timing timing, CfgPrinter printer, MainDexTracingResult mainDexClasses) {
+  public IRConverter(AppView<?> appView, Timing timing, CfgPrinter printer) {
     assert appView.appInfo().hasLiveness() || appView.graphLens().isIdentityLens();
     assert appView.options() != null;
     assert appView.options().programConsumer != null;
@@ -192,7 +189,6 @@ public class IRConverter {
     this.appView = appView;
     this.options = appView.options();
     this.printer = printer;
-    this.mainDexClasses = mainDexClasses;
     this.codeRewriter = new CodeRewriter(appView, this);
     this.constantCanonicalizer = new ConstantCanonicalizer(codeRewriter);
     this.classInitializerDefaultsOptimization =
@@ -303,7 +299,7 @@ public class IRConverter {
               : null;
       this.enumUnboxer = options.enableEnumUnboxing ? new EnumUnboxer(appViewWithLiveness) : null;
       this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, enumUnboxer);
-      this.inliner = new Inliner(appViewWithLiveness, mainDexClasses, lensCodeRewriter);
+      this.inliner = new Inliner(appViewWithLiveness, lensCodeRewriter);
       this.outliner = new Outliner(appViewWithLiveness);
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
@@ -315,9 +311,7 @@ public class IRConverter {
         this.identifierNameStringMarker = null;
       }
       this.devirtualizer =
-          options.enableDevirtualization
-              ? new Devirtualizer(appViewWithLiveness, mainDexClasses)
-              : null;
+          options.enableDevirtualization ? new Devirtualizer(appViewWithLiveness) : null;
       this.typeChecker = new TypeChecker(appViewWithLiveness, VerifyTypesHelper.create(appView));
       this.d8NestBasedAccessDesugaring = null;
       this.serviceLoaderRewriter =
@@ -364,16 +358,11 @@ public class IRConverter {
 
   /** Create an IR converter for processing methods with full program optimization disabled. */
   public IRConverter(AppView<?> appView, Timing timing) {
-    this(appView, timing, null, MainDexTracingResult.NONE);
-  }
-
-  /** Create an IR converter for processing methods with full program optimization disabled. */
-  public IRConverter(AppView<?> appView, Timing timing, CfgPrinter printer) {
-    this(appView, timing, printer, MainDexTracingResult.NONE);
+    this(appView, timing, null);
   }
 
   public IRConverter(AppInfo appInfo, Timing timing, CfgPrinter printer) {
-    this(AppView.createForD8(appInfo), timing, printer, MainDexTracingResult.NONE);
+    this(AppView.createForD8(appInfo), timing, printer);
   }
 
   private void removeLambdaDeserializationMethods() {
@@ -486,7 +475,7 @@ public class IRConverter {
       appView.setAppInfo(
           new AppInfo(
               appView.appInfo().getSyntheticItems().commit(application),
-              appView.appInfo().getMainDexClasses()));
+              appView.appInfo().getMainDexInfo()));
       application = appView.appInfo().app();
     }
 
@@ -506,7 +495,7 @@ public class IRConverter {
     appView.setAppInfo(
         new AppInfo(
             appView.appInfo().getSyntheticItems().commit(application),
-            appView.appInfo().getMainDexClasses()));
+            appView.appInfo().getMainDexInfo()));
   }
 
   private void convertClasses(DexApplication application, ExecutorService executorService)
@@ -1287,8 +1276,7 @@ public class IRConverter {
     if (appView.appInfo().hasLiveness()) {
       // Reflection optimization 1. getClass() / forName() -> const-class
       timing.begin("Rewrite to const class");
-      ReflectionOptimizer.rewriteGetClassOrForNameToConstClass(
-          appView.withLiveness(), code, mainDexClasses);
+      ReflectionOptimizer.rewriteGetClassOrForNameToConstClass(appView.withLiveness(), code);
       timing.end();
     }
 
