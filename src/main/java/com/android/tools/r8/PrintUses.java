@@ -364,7 +364,7 @@ public class PrintUses {
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
             application,
             ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
-            MainDexInfo.createEmptyMainDexClasses());
+            MainDexInfo.none());
   }
 
   private void analyze() {

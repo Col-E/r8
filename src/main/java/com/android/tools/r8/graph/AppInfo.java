@@ -28,7 +28,7 @@ public class AppInfo implements DexDefinitionSupplier {
   private final BooleanBox obsolete;
 
   public static AppInfo createInitialAppInfo(DexApplication application) {
-    return createInitialAppInfo(application, MainDexInfo.createEmptyMainDexClasses());
+    return createInitialAppInfo(application, MainDexInfo.none());
   }
 
   public static AppInfo createInitialAppInfo(DexApplication application, MainDexInfo mainDexInfo) {

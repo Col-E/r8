@@ -236,7 +236,7 @@ class Tracer {
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
             application,
             ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
-            MainDexInfo.createEmptyMainDexClasses());
+            MainDexInfo.none());
   }
 
   void run(TraceReferencesConsumer consumer) {
