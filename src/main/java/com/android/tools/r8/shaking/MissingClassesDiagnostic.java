@@ -73,10 +73,9 @@ public class MissingClassesDiagnostic implements Diagnostic {
       //  simplified to taking the first context.
       Optional<ClassReference> classContext =
           classContexts.stream().filter(not(missingClass::equals)).findFirst();
-      if (classContext.isPresent()) {
-        return " (referenced from: " + classContext.toString() + ")";
-      }
-      return "";
+      return classContext
+          .map(classReference -> " (referenced from: " + classReference.getTypeName() + ")")
+          .orElse("");
     }
 
     static class Builder {

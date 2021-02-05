@@ -150,7 +150,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -345,11 +344,6 @@ public class Enqueuer {
   /** Mapping of types to the methods reachable at that type. */
   private final Map<DexProgramClass, Set<DexMethod>> reachableVirtualTargets =
       new IdentityHashMap<>();
-
-  /**
-   * A set of references we have reported missing to dedupe warnings.
-   */
-  private final Set<DexReference> reportedMissing = Sets.newIdentityHashSet();
 
   /** Collection of keep requirements for the program. */
   private final MutableKeepInfoCollection keepInfo = new MutableKeepInfoCollection();
@@ -737,20 +731,6 @@ public class Enqueuer {
     items.forEachField(this::enqueueRootField);
     items.forEachMethod(this::enqueueRootMethod);
     items.forEachClass(this::enqueueRootClass);
-  }
-
-  private void enqueueRootItem(Entry<DexReference, Set<ProguardKeepRuleBase>> root) {
-    DexReference reference = root.getKey();
-    Set<ProguardKeepRuleBase> rules = root.getValue();
-    if (reference.isDexField()) {
-      enqueueRootField(reference.asDexField(), rules);
-    } else if (reference.isDexMethod()) {
-      enqueueRootMethod(reference.asDexMethod(), rules);
-    } else if (reference.isDexType()) {
-      enqueueRootClass(reference.asDexType(), rules);
-    } else {
-      throw new Unreachable();
-    }
   }
 
   // TODO(b/123923324): Verify that root items are present.
@@ -1960,8 +1940,8 @@ public class Enqueuer {
       DexProgramClass holder, ProgramDefinition annotatedItem, DexAnnotation annotation) {
     assert annotatedItem == holder || annotatedItem.asProgramMember().getHolder() == holder;
     assert !holder.isDexClass() || holder.asDexClass().isProgramClass();
-    DexType type = annotation.annotation.type;
-    recordTypeReference(type, holder);
+    DexType type = annotation.getAnnotationType();
+    recordTypeReference(type, annotatedItem);
     DexClass clazz = appView.definitionFor(type);
     boolean annotationTypeIsLibraryClass = clazz == null || clazz.isNotProgramClass();
     boolean isLive = annotationTypeIsLibraryClass || liveTypes.contains(clazz.asProgramClass());
@@ -1976,7 +1956,7 @@ public class Enqueuer {
     graphReporter.registerAnnotation(annotation, reason);
     AnnotationReferenceMarker referenceMarker =
         new AnnotationReferenceMarker(
-            annotation.annotation.type, holder, appView.dexItemFactory(), reason);
+            annotation.getAnnotationType(), annotatedItem, appView.dexItemFactory(), reason);
     annotation.annotation.collectIndexedItems(referenceMarker);
   }
 

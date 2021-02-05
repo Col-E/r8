@@ -356,6 +356,10 @@ public abstract class TestShrinkerBuilder<
     return addKeepRules("-keepattributes " + String.join(",", attributes));
   }
 
+  public T addKeepAttributeExceptions() {
+    return addKeepAttributes(ProguardKeepAttributes.EXCEPTIONS);
+  }
+
   public T addKeepAttributeInnerClassesAndEnclosingMethod() {
     return addKeepAttributes(
         ProguardKeepAttributes.INNER_CLASSES, ProguardKeepAttributes.ENCLOSING_METHOD);

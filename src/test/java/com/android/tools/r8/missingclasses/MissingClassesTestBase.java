@@ -31,7 +31,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public abstract class MissingClassesTestBase extends TestBase {
 
-  static class MissingClass {
+  static class MissingClass extends RuntimeException {
 
     static int FIELD;
 
