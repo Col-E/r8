@@ -26,8 +26,6 @@ public interface ProgramDefinition extends Definition, ProgramDerivedContext {
 
   AccessFlags<?> getAccessFlags();
 
-  DexType getContextType();
-
   DexDefinition getDefinition();
 
   Origin getOrigin();
