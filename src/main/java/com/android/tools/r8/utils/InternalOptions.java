@@ -600,6 +600,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean printCfg = false;
   public String printCfgFile;
   public boolean ignoreMissingClasses = false;
+  public boolean reportMissingClassesInEnclosingMethodAttribute = false;
+  public boolean reportMissingClassesInInnerClassAttributes = false;
 
   // EXPERIMENTAL flag to get behaviour as close to Proguard as possible.
   public boolean forceProguardCompatibility = false;

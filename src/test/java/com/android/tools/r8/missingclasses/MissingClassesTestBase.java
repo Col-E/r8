@@ -57,7 +57,13 @@ public abstract class MissingClassesTestBase extends TestBase {
   }
 
   public ThrowableConsumer<R8FullTestBuilder> addIgnoreWarnings() {
-    return builder -> builder.addIgnoreWarnings().allowDiagnosticWarningMessages();
+    return addIgnoreWarnings(true);
+  }
+
+  public ThrowableConsumer<R8FullTestBuilder> addIgnoreWarnings(
+      boolean allowDiagnosticWarningMessages) {
+    return builder ->
+        builder.addIgnoreWarnings().allowDiagnosticWarningMessages(allowDiagnosticWarningMessages);
   }
 
   public void compileWithExpectedDiagnostics(
@@ -71,9 +77,22 @@ public abstract class MissingClassesTestBase extends TestBase {
       DiagnosticsConsumer diagnosticsConsumer,
       ThrowableConsumer<R8FullTestBuilder> configuration)
       throws CompilationFailedException {
+    internalCompileWithExpectedDiagnostics(
+        diagnosticsConsumer,
+        builder ->
+            builder.addProgramClasses(mainClass).addKeepMainRule(mainClass).apply(configuration));
+  }
+
+  public void compileWithExpectedDiagnostics(
+      ThrowableConsumer<R8FullTestBuilder> configuration, DiagnosticsConsumer diagnosticsConsumer)
+      throws CompilationFailedException {
+    internalCompileWithExpectedDiagnostics(diagnosticsConsumer, configuration);
+  }
+
+  private void internalCompileWithExpectedDiagnostics(
+      DiagnosticsConsumer diagnosticsConsumer, ThrowableConsumer<R8FullTestBuilder> configuration)
+      throws CompilationFailedException {
     testForR8(parameters.getBackend())
-        .addProgramClasses(mainClass)
-        .addKeepMainRule(mainClass)
         .apply(configuration)
         .addOptionsModification(TestingOptions::enableExperimentalMissingClassesReporting)
         .setMinApi(parameters.getApiLevel())

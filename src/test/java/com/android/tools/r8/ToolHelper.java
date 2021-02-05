@@ -1058,14 +1058,8 @@ public class ToolHelper {
     return String.join("/", parts);
   }
 
-  private static List<String> getNamePartsForTestClass(Class clazz) {
-    List<String> parts = Lists.newArrayList(clazz.getCanonicalName().split("\\."));
-    Class enclosing = clazz;
-    while (enclosing.getEnclosingClass() != null) {
-      parts.set(parts.size() - 2, parts.get(parts.size() - 2) + "$" + parts.get(parts.size() - 1));
-      parts.remove(parts.size() - 1);
-      enclosing = enclosing.getEnclosingClass();
-    }
+  private static List<String> getNamePartsForTestClass(Class<?> clazz) {
+    List<String> parts = Lists.newArrayList(clazz.getTypeName().split("\\."));
     parts.set(parts.size() - 1, parts.get(parts.size() - 1) + ".class");
     return parts;
   }
@@ -1085,7 +1079,7 @@ public class ToolHelper {
         .collect(Collectors.toList());
   }
 
-  public static Path getClassFileForTestClass(Class clazz) {
+  public static Path getClassFileForTestClass(Class<?> clazz) {
     List<String> parts = getNamePartsForTestClass(clazz);
     return getClassPathForTests().resolve(Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY)));
   }

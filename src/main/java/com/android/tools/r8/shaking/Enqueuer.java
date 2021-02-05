@@ -1748,9 +1748,15 @@ public class Enqueuer {
         : "Class " + clazz.toSourceString() + " was not a main dex root in the first round";
 
     // Mark types in inner-class attributes referenced.
-    for (InnerClassAttribute innerClassAttribute : clazz.getInnerClasses()) {
-      recordTypeReference(innerClassAttribute.getInner(), clazz, this::ignoreMissingClass);
-      recordTypeReference(innerClassAttribute.getOuter(), clazz, this::ignoreMissingClass);
+    {
+      BiConsumer<DexType, ProgramDerivedContext> missingClassConsumer =
+          options.reportMissingClassesInInnerClassAttributes
+              ? this::reportMissingClass
+              : this::ignoreMissingClass;
+      for (InnerClassAttribute innerClassAttribute : clazz.getInnerClasses()) {
+        recordTypeReference(innerClassAttribute.getInner(), clazz, missingClassConsumer);
+        recordTypeReference(innerClassAttribute.getOuter(), clazz, missingClassConsumer);
+      }
     }
 
     // Mark types in nest attributes referenced.
@@ -1766,11 +1772,15 @@ public class Enqueuer {
     EnclosingMethodAttribute enclosingMethodAttribute = clazz.getEnclosingMethodAttribute();
     if (enclosingMethodAttribute != null) {
       DexMethod enclosingMethod = enclosingMethodAttribute.getEnclosingMethod();
+      BiConsumer<DexType, ProgramDerivedContext> missingClassConsumer =
+          options.reportMissingClassesInEnclosingMethodAttribute
+              ? this::reportMissingClass
+              : this::ignoreMissingClass;
       if (enclosingMethod != null) {
-        recordMethodReference(enclosingMethod, clazz, this::ignoreMissingClass);
+        recordMethodReference(enclosingMethod, clazz, missingClassConsumer);
       } else {
         recordTypeReference(
-            enclosingMethodAttribute.getEnclosingClass(), clazz, this::ignoreMissingClass);
+            enclosingMethodAttribute.getEnclosingClass(), clazz, missingClassConsumer);
       }
     }
 
