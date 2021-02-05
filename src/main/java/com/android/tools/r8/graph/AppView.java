@@ -156,7 +156,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public static AppView<AppInfoWithClassHierarchy> createForR8(DexApplication application) {
-    return createForR8(application, MainDexInfo.none());
+    return createForR8(application, MainDexInfo.createEmptyMainDexClasses());
   }
 
   public static AppView<AppInfoWithClassHierarchy> createForR8(

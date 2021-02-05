@@ -199,7 +199,7 @@ public class ApplicationReader {
   }
 
   public MainDexInfo readMainDexClasses(DexApplication app) {
-    MainDexInfo.Builder builder = MainDexInfo.none().builder();
+    MainDexInfo.Builder builder = MainDexInfo.builder();
     if (inputApp.hasMainDexList()) {
       for (StringResource resource : inputApp.getMainDexListResources()) {
         addToMainDexClasses(app, builder, MainDexListParser.parseList(resource, itemFactory));

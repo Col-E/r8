@@ -3030,13 +3030,8 @@ public class Enqueuer {
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
     // Calculate the automatic main dex list according to legacy multidex constraints.
-    MainDexInfo.Builder builder = appView.appInfo().getMainDexInfo().builder();
+    MainDexInfo.Builder builder = MainDexInfo.builder();
     liveTypes.getItems().forEach(builder::addRoot);
-    if (mode.isInitialMainDexTracing()) {
-      liveMethods.getItems().forEach(method -> builder.addRoot(method.method));
-    } else {
-      assert appView.appInfo().getMainDexInfo().isTracedMethodRootsCleared();
-    }
     new MainDexListBuilder(appView, builder.getRoots(), builder).run();
     MainDexInfo previousMainDexInfo = appInfo.getMainDexInfo();
     return builder.build(previousMainDexInfo);

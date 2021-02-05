@@ -710,7 +710,7 @@ public class TestBase {
     return AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
         readApplicationForDexOutput(app, new InternalOptions()),
         ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
-        MainDexInfo.none());
+        MainDexInfo.createEmptyMainDexClasses());
   }
 
   protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierachy(

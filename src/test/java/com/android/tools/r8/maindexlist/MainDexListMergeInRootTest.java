@@ -4,13 +4,17 @@
 
 package com.android.tools.r8.maindexlist;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.utils.codeinspector.AssertUtils.assertFailsCompilation;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -23,10 +27,7 @@ public class MainDexListMergeInRootTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters()
-        .withDexRuntimes()
-        .withApiLevelsEndingAtExcluding(apiLevelWithNativeMultiDexSupport())
-        .build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public MainDexListMergeInRootTest(TestParameters parameters) {
@@ -34,26 +35,35 @@ public class MainDexListMergeInRootTest extends TestBase {
   }
 
   @Test
-  public void testMainDexTracing() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(OutsideMainDex.class, InsideA.class, InsideB.class, Main.class)
-        .addKeepClassAndMembersRules(Main.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableNeverClassInliningAnnotations()
-        .enableNoHorizontalClassMergingAnnotations()
-        .enableInliningAnnotations()
-        .noMinification()
-        .addMainDexRules(
-            "-keep class " + Main.class.getTypeName() + " { public static void main(***); }")
-        .addOptionsModification(
-            options -> {
-              options.testing.checkForNotExpandingMainDexTracingResult = true;
-            })
-        // TODO(b/178151906): See if we can merge the classes.
-        .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("InsideB::live0", "InsideA::live");
+  public void testMainDexTracing() {
+    assumeTrue(parameters.getDexRuntimeVersion().isDalvik());
+    assertFailsCompilation(
+        () ->
+            testForR8(parameters.getBackend())
+                .addProgramClasses(OutsideMainDex.class, InsideA.class, InsideB.class, Main.class)
+                .addKeepClassAndMembersRules(Main.class)
+                .setMinApi(parameters.getApiLevel())
+                .enableNeverClassInliningAnnotations()
+                .enableNoHorizontalClassMergingAnnotations()
+                .enableInliningAnnotations()
+                .noMinification()
+                .addMainDexRules(
+                    "-keep class "
+                        + Main.class.getTypeName()
+                        + " { public static void main(***); }")
+                .addOptionsModification(
+                    options -> {
+                      options.testing.checkForNotExpandingMainDexTracingResult = true;
+                    })
+                .compileWithExpectedDiagnostics(
+                    diagnostics -> {
+                      diagnostics.assertErrorsMatch(
+                          diagnosticMessage(
+                              containsString(
+                                  "Class com.android.tools.r8.maindexlist"
+                                      + ".MainDexListMergeInRootTest$OutsideMainDex"
+                                      + " was not a main dex root in the first round")));
+                    }));
   }
 
   @NoHorizontalClassMerging
@@ -70,7 +80,7 @@ public class MainDexListMergeInRootTest extends TestBase {
   public static class InsideA {
 
     public void bar() {
-      System.out.println("InsideA::live");
+      System.out.println("A::live");
     }
 
     /* Not a traced root */

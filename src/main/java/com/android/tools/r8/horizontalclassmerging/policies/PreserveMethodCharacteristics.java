@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Policy that enforces that methods are only merged if they have the same visibility and library
@@ -33,10 +32,8 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
     private final MethodAccessFlags accessFlags;
     private final boolean isAssumeNoSideEffectsMethod;
     private final OptionalBool isLibraryMethodOverride;
-    private final boolean isMainDexRoot;
 
-    private MethodCharacteristics(
-        DexEncodedMethod method, boolean isAssumeNoSideEffectsMethod, boolean isMainDexRoot) {
+    private MethodCharacteristics(boolean isAssumeNoSideEffectsMethod, DexEncodedMethod method) {
       this.accessFlags =
           MethodAccessFlags.builder()
               .setPrivate(method.getAccessFlags().isPrivate())
@@ -47,24 +44,17 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
               .build();
       this.isAssumeNoSideEffectsMethod = isAssumeNoSideEffectsMethod;
       this.isLibraryMethodOverride = method.isLibraryMethodOverride();
-      this.isMainDexRoot = isMainDexRoot;
     }
 
     static MethodCharacteristics create(
         AppView<AppInfoWithLiveness> appView, DexEncodedMethod method) {
       return new MethodCharacteristics(
-          method,
-          appView.appInfo().isAssumeNoSideEffectsMethod(method.getReference()),
-          appView.appInfo().getMainDexInfo().isTracedMethodRoot(method.getReference()));
+          appView.appInfo().isAssumeNoSideEffectsMethod(method.getReference()), method);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(
-          accessFlags,
-          isAssumeNoSideEffectsMethod,
-          isLibraryMethodOverride.ordinal(),
-          isMainDexRoot);
+      return (accessFlags.hashCode() << 2) | isLibraryMethodOverride.ordinal();
     }
 
     @Override
@@ -78,8 +68,7 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
       MethodCharacteristics characteristics = (MethodCharacteristics) obj;
       return accessFlags.equals(characteristics.accessFlags)
           && isAssumeNoSideEffectsMethod == characteristics.isAssumeNoSideEffectsMethod
-          && isLibraryMethodOverride == characteristics.isLibraryMethodOverride
-          && isMainDexRoot == characteristics.isMainDexRoot;
+          && isLibraryMethodOverride == characteristics.isLibraryMethodOverride;
     }
   }
 

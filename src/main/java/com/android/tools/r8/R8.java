@@ -535,9 +535,6 @@ public class R8 {
         }
       }
 
-      // Clear traced methods roots to not hold on to the main dex live method set.
-      appView.appInfo().getMainDexInfo().clearTracedMethodRoots();
-
       // None of the optimizations above should lead to the creation of type lattice elements.
       assert appView.dexItemFactory().verifyNoCachedTypeElements();
 
