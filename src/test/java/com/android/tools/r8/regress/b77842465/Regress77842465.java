@@ -17,7 +17,7 @@ public class Regress77842465 extends AsmTestBase {
   public void test() throws CompilationFailedException, IOException {
     testForD8()
         .addProgramClassFileData(Regress77842465Dump.dump())
-        .noDesugaring()
+        .disableDesugaring()
         .setMinApi(AndroidApiLevel.M)
         .compile()
         .runDex2Oat(new DexRuntime(ToolHelper.getDexVm()))

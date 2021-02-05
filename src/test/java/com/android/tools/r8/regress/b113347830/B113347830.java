@@ -48,7 +48,7 @@ public class B113347830 extends TestBase {
 
     testForD8(Backend.DEX)
         .addProgramClassFileData(bytes)
-        .setDisableDesugaring(true)
+        .disableDesugaring()
         .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
         .addOptionsModification(options -> options.testing.disableStackMapVerification = true)
         .compile();

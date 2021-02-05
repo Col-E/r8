@@ -33,7 +33,7 @@ public class SwitchDebugLocalsConflictTest extends TestBase {
   public void test() throws CompilationFailedException {
     testForD8()
         .addProgramClassFileData(Dump.dump())
-        .noDesugaring()
+        .disableDesugaring()
         .compileWithExpectedDiagnostics(
             diagnotics -> {
               diagnotics.assertNoErrors();

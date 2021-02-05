@@ -47,7 +47,7 @@ public class DisableDesugarTest extends DesugaredLibraryTestBase {
       testForD8()
           .addInnerClasses(DisableDesugarTest.class)
           .setMinApi(parameters.getApiLevel())
-          .noDesugaring()
+          .disableDesugaring()
           .enableCoreLibraryDesugaring(AndroidApiLevel.B)
           .compileWithExpectedDiagnostics(this::checkExpectedDiagnostics);
     } catch (CompilationFailedException e) {
@@ -64,7 +64,7 @@ public class DisableDesugarTest extends DesugaredLibraryTestBase {
           .addInnerClasses(DisableDesugarTest.class)
           .addKeepMainRule(TestClass.class)
           .setMinApi(parameters.getApiLevel())
-          .noDesugaring()
+          .disableDesugaring()
           .enableCoreLibraryDesugaring(AndroidApiLevel.B)
           .compileWithExpectedDiagnostics(this::checkExpectedDiagnostics);
     } catch (CompilationFailedException e) {

@@ -29,8 +29,7 @@ public class IntermediateCfD8TestBuilder
   private IntermediateCfD8TestBuilder(TestState state, AndroidApiLevel apiLevel) {
     super(state);
     cf2cf = D8TestBuilder.create(state, Backend.CF).setMinApi(apiLevel);
-    cf2dex =
-        D8TestBuilder.create(state, Backend.DEX).setMinApi(apiLevel).setDisableDesugaring(true);
+    cf2dex = D8TestBuilder.create(state, Backend.DEX).disableDesugaring().setMinApi(apiLevel);
   }
 
   public IntermediateCfD8TestBuilder addOptionsModification(Consumer<InternalOptions> fn) {

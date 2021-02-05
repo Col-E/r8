@@ -14,6 +14,7 @@ import com.android.tools.r8.TestCompilerBuilder.DiagnosticsConsumer;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
@@ -37,6 +38,8 @@ public abstract class MissingClassesTestBase extends TestBase {
 
     int field;
   }
+
+  interface MissingInterface {}
 
   private final TestParameters parameters;
 
@@ -77,6 +80,18 @@ public abstract class MissingClassesTestBase extends TestBase {
         .compileWithExpectedDiagnostics(diagnosticsConsumer);
   }
 
+  ClassReference getMissingClassReference() {
+    return Reference.classFromClass(MissingClass.class);
+  }
+
+  void inspectDiagnosticsWithIgnoreWarnings(
+      TestDiagnosticMessages diagnostics, ClassReference referencedFrom) {
+    inspectDiagnosticsWithIgnoreWarnings(
+        diagnostics,
+        getExpectedDiagnosticMessageWithIgnoreWarnings(
+            referencedFrom, ClassReference::getTypeName));
+  }
+
   void inspectDiagnosticsWithIgnoreWarnings(
       TestDiagnosticMessages diagnostics, FieldReference referencedFrom) {
     inspectDiagnosticsWithIgnoreWarnings(
@@ -101,19 +116,24 @@ public abstract class MissingClassesTestBase extends TestBase {
             .assertWarningsCount(1)
             .assertAllWarningsMatch(diagnosticType(MissingClassesDiagnostic.class))
             .getWarning(0);
-    assertEquals(
-        ImmutableSet.of(Reference.classFromClass(MissingClass.class)),
-        diagnostic.getMissingClasses());
+    assertEquals(ImmutableSet.of(getMissingClassReference()), diagnostic.getMissingClasses());
     assertEquals(expectedDiagnosticMessage, diagnostic.getDiagnosticMessage());
   }
 
   private <T> String getExpectedDiagnosticMessageWithIgnoreWarnings(
       T referencedFrom, Function<T, String> toSourceStringFunction) {
     return "Missing class "
-        + MissingClass.class.getTypeName()
+        + getMissingClassReference().getTypeName()
         + " (referenced from: "
         + toSourceStringFunction.apply(referencedFrom)
         + ")";
+  }
+
+  void inspectDiagnosticsWithNoRules(
+      TestDiagnosticMessages diagnostics, ClassReference referencedFrom) {
+    inspectDiagnosticsWithNoRules(
+        diagnostics,
+        getExpectedDiagnosticMessageWithNoRules(referencedFrom, ClassReference::getTypeName));
   }
 
   void inspectDiagnosticsWithNoRules(
@@ -140,16 +160,14 @@ public abstract class MissingClassesTestBase extends TestBase {
             .assertErrorsCount(1)
             .assertAllErrorsMatch(diagnosticType(MissingClassesDiagnostic.class))
             .getError(0);
-    assertEquals(
-        ImmutableSet.of(Reference.classFromClass(MissingClass.class)),
-        diagnostic.getMissingClasses());
+    assertEquals(ImmutableSet.of(getMissingClassReference()), diagnostic.getMissingClasses());
     assertEquals(expectedDiagnosticMessage, diagnostic.getDiagnosticMessage());
   }
 
   private <T> String getExpectedDiagnosticMessageWithNoRules(
       T referencedFrom, Function<T, String> toSourceStringFunction) {
     return "Compilation can't be completed because the following class is missing: "
-        + MissingClass.class.getTypeName()
+        + getMissingClassReference().getTypeName()
         + " (referenced from: "
         + toSourceStringFunction.apply(referencedFrom)
         + ")"

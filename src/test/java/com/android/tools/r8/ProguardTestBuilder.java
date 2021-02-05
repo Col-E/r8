@@ -272,7 +272,7 @@ public class ProguardTestBuilder
   }
 
   @Override
-  public ProguardTestBuilder noDesugaring() {
+  public ProguardTestBuilder disableDesugaring() {
     throw new Unimplemented("No support for disabling desugaring");
   }
 

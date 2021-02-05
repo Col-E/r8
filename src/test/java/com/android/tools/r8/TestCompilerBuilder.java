@@ -312,11 +312,7 @@ public abstract class TestCompilerBuilder<
   }
 
   public T disableDesugaring() {
-    return setDisableDesugaring(true);
-  }
-
-  public T setDisableDesugaring(boolean disableDesugaring) {
-    builder.setDisableDesugaring(disableDesugaring);
+    builder.setDisableDesugaring(true);
     return self();
   }
 
@@ -399,11 +395,6 @@ public abstract class TestCompilerBuilder<
   public T addLibraryProvider(ClassFileResourceProvider provider) {
     useDefaultRuntimeLibrary = false;
     return super.addLibraryProvider(provider);
-  }
-
-  public T noDesugaring() {
-    builder.setDisableDesugaring(true);
-    return self();
   }
 
   public T allowStdoutMessages() {
