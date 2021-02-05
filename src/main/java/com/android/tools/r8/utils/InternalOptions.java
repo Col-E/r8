@@ -44,7 +44,6 @@ import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.nest.Nest;
 import com.android.tools.r8.ir.optimize.Inliner;
@@ -1238,7 +1237,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public BiConsumer<AppInfoWithLiveness, Enqueuer.Mode> enqueuerInspector = null;
 
-    public BiConsumer<ProgramMethod, MethodProcessingId> methodProcessingIdConsumer = null;
+    public Consumer<String> processingContextsConsumer = null;
 
     public Function<AppView<AppInfoWithLiveness>, RepackagingConfiguration>
         repackagingConfigurationFactory =

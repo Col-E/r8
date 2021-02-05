@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -57,7 +58,10 @@ public final class TwrCloseResourceRewriter {
             dexItemFactory.voidType, dexItemFactory.throwableType, dexItemFactory.objectType);
   }
 
-  public int rewriteCf(ProgramMethod method, Consumer<ProgramMethod> newMethodCallback) {
+  public int rewriteCf(
+      ProgramMethod method,
+      Consumer<ProgramMethod> newMethodCallback,
+      MethodProcessingContext methodProcessingContext) {
     CfCode code = method.getDefinition().getCode().asCfCode();
     List<CfInstruction> instructions = code.getInstructions();
     Supplier<List<CfInstruction>> lazyNewInstructions =
@@ -72,7 +76,7 @@ public final class TwrCloseResourceRewriter {
         continue;
       }
       // Synthesize a new method.
-      ProgramMethod closeMethod = createSyntheticCloseResourceMethod(method);
+      ProgramMethod closeMethod = createSyntheticCloseResourceMethod(methodProcessingContext);
       newMethodCallback.accept(closeMethod);
       // Rewrite the invoke to the new synthetic.
       int newInstructionIndex = i + newInstructionDelta;
@@ -90,7 +94,7 @@ public final class TwrCloseResourceRewriter {
   }
 
   // Rewrites calls to $closeResource() method. Can be invoked concurrently.
-  public void rewriteIR(IRCode code) {
+  public void rewriteIR(IRCode code, MethodProcessingContext methodProcessingContext) {
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
       InvokeStatic invoke = iterator.next().asInvokeStatic();
@@ -102,7 +106,8 @@ public final class TwrCloseResourceRewriter {
       // Replace with a call to a synthetic utility.
       assert invoke.outValue() == null;
       assert invoke.inValues().size() == 2;
-      ProgramMethod closeResourceMethod = createSyntheticCloseResourceMethod(code.context());
+      ProgramMethod closeResourceMethod =
+          createSyntheticCloseResourceMethod(methodProcessingContext);
       InvokeStatic newInvoke =
           new InvokeStatic(closeResourceMethod.getReference(), null, invoke.inValues());
       iterator.replaceCurrentInstruction(newInvoke);
@@ -117,12 +122,13 @@ public final class TwrCloseResourceRewriter {
         && method.proto == factory.twrCloseResourceMethodProto;
   }
 
-  private ProgramMethod createSyntheticCloseResourceMethod(ProgramMethod method) {
+  private ProgramMethod createSyntheticCloseResourceMethod(
+      MethodProcessingContext methodProcessingContext) {
     return appView
         .getSyntheticItems()
         .createMethod(
             SyntheticKind.TWR_CLOSE_RESOURCE,
-            method,
+            methodProcessingContext.createUniqueContext(),
             appView.dexItemFactory(),
             methodBuilder ->
                 methodBuilder

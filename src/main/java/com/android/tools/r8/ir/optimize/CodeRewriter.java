@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.algorithms.scc.SCC;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -82,7 +83,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.controlflow.SwitchCaseAnalyzer;
@@ -1371,7 +1371,7 @@ public class CodeRewriter {
       IRCode code,
       ProgramMethod context,
       MethodProcessor methodProcessor,
-      MethodProcessingId methodProcessingId) {
+      MethodProcessingContext methodProcessingContext) {
     if (!appView.enableWholeProgramOptimizations()) {
       return;
     }
@@ -1422,7 +1422,7 @@ public class CodeRewriter {
                 context,
                 affectedValues,
                 methodProcessor,
-                methodProcessingId);
+                methodProcessingContext);
         if (removeResult != RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS) {
           assert removeResult == RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW;
           needToRemoveTrivialPhis |= hasPhiUsers;
@@ -1461,7 +1461,7 @@ public class CodeRewriter {
       ProgramMethod context,
       Set<Value> affectedValues,
       MethodProcessor methodProcessor,
-      MethodProcessingId methodProcessingId) {
+      MethodProcessingContext methodProcessingContext) {
     Value inValue = checkCast.object();
     Value outValue = checkCast.outValue();
     DexType castType = checkCast.getType();
@@ -1534,7 +1534,7 @@ public class CodeRewriter {
       // Replace the check-cast instruction by throwClassCastExceptionIfNotNull().
       UtilityMethodForCodeOptimizations throwClassCastExceptionIfNotNullMethod =
           UtilityMethodsForCodeOptimizations.synthesizeThrowClassCastExceptionIfNotNullMethod(
-              appView, context, methodProcessingId);
+              appView, methodProcessingContext);
       throwClassCastExceptionIfNotNullMethod.optimize(methodProcessor);
       InvokeStatic replacement =
           InvokeStatic.builder()

@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
+import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -13,7 +14,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.conversion.MethodProcessingId.Factory.ReservedMethodProcessingIds;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.logging.Log;
@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutorService;
 
 public class PostMethodProcessor extends MethodProcessorWithWave {
 
+  private final ProcessorContext processorContext;
   private final AppView<AppInfoWithLiveness> appView;
   private final Collection<CodeOptimization> defaultCodeOptimizations;
   private final Map<DexMethod, Collection<CodeOptimization>> methodsMap;
@@ -46,6 +47,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
       Collection<CodeOptimization> defaultCodeOptimizations,
       Map<DexMethod, Collection<CodeOptimization>> methodsMap,
       CallGraph callGraph) {
+    this.processorContext = appView.createProcessorContext();
     this.appView = appView;
     this.defaultCodeOptimizations = defaultCodeOptimizations;
     this.methodsMap = methodsMap;
@@ -173,16 +175,13 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
       assert !wave.isEmpty();
       assert waveExtension.isEmpty();
       do {
-        ReservedMethodProcessingIds methodProcessingIds =
-            appView.methodProcessingIdFactory().reserveIds(wave);
         ThreadUtils.processItems(
             wave,
-            (method, index) -> {
+            method -> {
               Collection<CodeOptimization> codeOptimizations =
                   methodsMap.get(method.getReference());
               assert codeOptimizations != null && !codeOptimizations.isEmpty();
-              forEachMethod(
-                  method, codeOptimizations, feedback, methodProcessingIds.get(method, index));
+              forEachMethod(method, codeOptimizations, feedback);
             },
             executorService);
         processed.addAll(wave);
@@ -194,8 +193,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
   private void forEachMethod(
       ProgramMethod method,
       Collection<CodeOptimization> codeOptimizations,
-      OptimizationFeedback feedback,
-      MethodProcessingId methodProcessingId) {
+      OptimizationFeedback feedback) {
     // TODO(b/140766440): Make IRConverter#process receive a list of CodeOptimization to conduct.
     //   Then, we can share IRCode creation there.
     if (appView.options().skipIR) {
@@ -209,7 +207,8 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
     }
     // TODO(b/140768815): Reprocessing may trigger more methods to revisit. Update waves on-the-fly.
     for (CodeOptimization codeOptimization : codeOptimizations) {
-      codeOptimization.optimize(code, feedback, this, methodProcessingId);
+      codeOptimization.optimize(
+          code, feedback, this, processorContext.createMethodProcessingContext(method));
     }
   }
 }

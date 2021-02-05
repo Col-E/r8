@@ -11,6 +11,7 @@ import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
 import static com.android.tools.r8.ir.code.Opcodes.NEW_INSTANCE;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -26,7 +27,6 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
@@ -55,9 +55,8 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
   }
 
   @Override
-  public State createInitialState(
-      MethodProcessor methodProcessor, MethodProcessingId methodProcessingId) {
-    return new State(methodProcessor, methodProcessingId);
+  public State createInitialState(MethodProcessor methodProcessor) {
+    return new State(methodProcessor);
   }
 
   @Override
@@ -72,11 +71,18 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
       Set<Value> affectedValues,
-      State state) {
+      State state,
+      MethodProcessingContext methodProcessingContext) {
     if (invoke.isInvokeMethodWithReceiver()) {
       InvokeMethodWithReceiver invokeWithReceiver = invoke.asInvokeMethodWithReceiver();
       if (stringBuilderMethods.isAppendMethod(singleTarget.getReference())) {
-        optimizeAppend(code, instructionIterator, invokeWithReceiver, singleTarget, state);
+        optimizeAppend(
+            code,
+            instructionIterator,
+            invokeWithReceiver,
+            singleTarget,
+            state,
+            methodProcessingContext);
       } else if (singleTarget.getReference() == dexItemFactory.stringBuilderMethods.toString) {
         optimizeToString(instructionIterator, invokeWithReceiver);
       }
@@ -88,7 +94,8 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
       InstructionListIterator instructionIterator,
       InvokeMethodWithReceiver invoke,
       DexClassAndMethod singleTarget,
-      State state) {
+      State state,
+      MethodProcessingContext methodProcessingContext) {
     if (!state.isUnusedBuilder(invoke.getReceiver())) {
       return;
     }
@@ -121,7 +128,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
         // Replace the instruction by toStringIfNotNull().
         UtilityMethodForCodeOptimizations toStringIfNotNullMethod =
             UtilityMethodsForCodeOptimizations.synthesizeToStringIfNotNullMethod(
-                appView, code.context(), state.methodProcessingId);
+                appView, methodProcessingContext);
         toStringIfNotNullMethod.optimize(state.methodProcessor);
         InvokeStatic replacement =
             InvokeStatic.builder()
@@ -146,13 +153,11 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
   class State implements LibraryMethodModelCollection.State {
 
     final MethodProcessor methodProcessor;
-    final MethodProcessingId methodProcessingId;
 
     final Reference2BooleanMap<Value> unusedBuilders = new Reference2BooleanOpenHashMap<>();
 
-    State(MethodProcessor methodProcessor, MethodProcessingId methodProcessingId) {
+    State(MethodProcessor methodProcessor) {
       this.methodProcessor = methodProcessor;
-      this.methodProcessingId = methodProcessingId;
     }
 
     boolean isUnusedBuilder(Value value) {

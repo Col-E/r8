@@ -4,15 +4,15 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
+import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
-import com.android.tools.r8.ir.conversion.MethodProcessingId.Factory.ReservedMethodProcessingIds;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.ThrowingBiFunction;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Timing.TimingMerger;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -36,8 +36,8 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
     void notifyWaveStart(ProgramMethodSet wave);
   }
 
+  private final AppView<?> appView;
   private final CallSiteInformation callSiteInformation;
-  private final MethodProcessingId.Factory methodProcessingIdFactory;
   private final PostMethodProcessor.Builder postMethodProcessorBuilder;
   private final Deque<SortedProgramMethodSet> waves;
 
@@ -45,8 +45,8 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
       AppView<AppInfoWithLiveness> appView,
       PostMethodProcessor.Builder postMethodProcessorBuilder,
       CallGraph callGraph) {
+    this.appView = appView;
     this.callSiteInformation = callGraph.createCallSiteInformation(appView);
-    this.methodProcessingIdFactory = appView.methodProcessingIdFactory();
     this.postMethodProcessorBuilder = postMethodProcessorBuilder;
     this.waves = createWaves(appView, callGraph, callSiteInformation);
   }
@@ -104,6 +104,11 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
     return waves;
   }
 
+  @FunctionalInterface
+  public interface MethodAction<E extends Exception> {
+    Timing apply(ProgramMethod method, MethodProcessingContext methodProcessingContext) throws E;
+  }
+
   /**
    * Applies the given method to all leaf nodes of the graph.
    *
@@ -111,7 +116,7 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
    * processed at the same time is passed. This can be used to avoid races in concurrent processing.
    */
   <E extends Exception> void forEachMethod(
-      ThrowingBiFunction<ProgramMethod, MethodProcessingId, Timing, E> consumer,
+      MethodAction<E> consumer,
       WaveStartAction waveStartAction,
       Consumer<ProgramMethodSet> waveDone,
       Timing timing,
@@ -120,18 +125,19 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
     TimingMerger merger =
         timing.beginMerger("primary-processor", ThreadUtils.getNumberOfThreads(executorService));
     while (!waves.isEmpty()) {
+      ProcessorContext processorContext = appView.createProcessorContext();
       wave = waves.removeFirst();
       assert !wave.isEmpty();
       assert waveExtension.isEmpty();
       do {
         waveStartAction.notifyWaveStart(wave);
-        ReservedMethodProcessingIds methodProcessingIds =
-            methodProcessingIdFactory.reserveIds(wave);
         Collection<Timing> timings =
             ThreadUtils.processItemsWithResults(
                 wave,
-                (method, index) -> {
-                  Timing time = consumer.apply(method, methodProcessingIds.get(method, index));
+                method -> {
+                  Timing time =
+                      consumer.apply(
+                          method, processorContext.createMethodProcessingContext(method));
                   time.end();
                   return time;
                 },

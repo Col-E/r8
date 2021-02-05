@@ -5,14 +5,14 @@ package com.android.tools.r8.internal;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
+import com.google.common.collect.Sets;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,7 +29,7 @@ public class R8GMSCoreLatestTreeShakeJarVerificationTest
     List<String> additionalProguardConfiguration =
         ImmutableList.of(
             ToolHelper.PROGUARD_SETTINGS_FOR_INTERNAL_APPS + "GmsCore_proguard.config");
-    Map<String, IntSet> methodProcessingIds = new ConcurrentHashMap<>();
+    Map<String, String> idsRoundOne = new ConcurrentHashMap<>();
     AndroidApp app1 =
         buildAndTreeShakeFromDeployJar(
             CompilationMode.RELEASE,
@@ -38,17 +38,12 @@ public class R8GMSCoreLatestTreeShakeJarVerificationTest
             GMSCORE_LATEST_MAX_SIZE,
             additionalProguardConfiguration,
             options -> {
-              options.testing.methodProcessingIdConsumer =
-                  (method, methodProcessingId) ->
-                      assertTrue(
-                          methodProcessingIds
-                              .computeIfAbsent(
-                                  method.toSourceString(), ignore -> new IntOpenHashSet(4))
-                              .add(methodProcessingId.getPrimaryId()));
+              options.testing.processingContextsConsumer =
+                  id -> assertNull(idsRoundOne.put(id, id));
               options.proguardMapConsumer =
                   ToolHelper.consumeString(proguardMap -> this.proguardMap1 = proguardMap);
             });
-
+    Map<String, String> idsRoundTwo = new ConcurrentHashMap<>();
     AndroidApp app2 =
         buildAndTreeShakeFromDeployJar(
             CompilationMode.RELEASE,
@@ -57,23 +52,20 @@ public class R8GMSCoreLatestTreeShakeJarVerificationTest
             GMSCORE_LATEST_MAX_SIZE,
             additionalProguardConfiguration,
             options -> {
-              options.testing.methodProcessingIdConsumer =
-                  (method, methodProcessingId) -> {
-                    String key = method.toSourceString();
-                    IntSet ids = methodProcessingIds.get(key);
-                    assertNotNull(ids);
-                    assertTrue(ids.remove(methodProcessingId.getPrimaryId()));
-                    if (ids.isEmpty()) {
-                      methodProcessingIds.remove(key);
-                    }
+              options.testing.processingContextsConsumer =
+                  id -> {
+                    assertNotNull(idsRoundOne.get(id));
+                    assertNull(idsRoundTwo.put(id, id));
                   };
               options.proguardMapConsumer =
                   ToolHelper.consumeString(proguardMap -> this.proguardMap2 = proguardMap);
             });
 
     // Verify that the result of the two compilations was the same.
+    assertEquals(
+        Collections.emptySet(),
+        Sets.symmetricDifference(idsRoundOne.keySet(), idsRoundTwo.keySet()));
     assertIdenticalApplications(app1, app2);
-    assertTrue(methodProcessingIds.isEmpty());
     assertEquals(proguardMap1, proguardMap2);
   }
 }

@@ -20,6 +20,7 @@ import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer
 
 import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.cf.CfVersion;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
@@ -63,7 +64,6 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.Collection;
 import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
@@ -269,7 +269,9 @@ public final class InterfaceMethodRewriter {
   // Rewrites the references to static and default interface methods.
   // NOTE: can be called for different methods concurrently.
   public void rewriteMethodReferences(
-      IRCode code, MethodProcessor methodProcessor, MethodProcessingId methodProcessingId) {
+      IRCode code,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext) {
     ProgramMethod context = code.context();
     if (synthesizedMethods.contains(context)) {
       return;
@@ -302,7 +304,7 @@ public final class InterfaceMethodRewriter {
                 affectedValues,
                 blocksToRemove,
                 methodProcessor,
-                methodProcessingId);
+                methodProcessingContext);
             break;
           case INVOKE_SUPER:
             rewriteInvokeSuper(instruction.asInvokeSuper(), instructions, context);
@@ -407,7 +409,7 @@ public final class InterfaceMethodRewriter {
       Set<Value> affectedValues,
       Set<BasicBlock> blocksToRemove,
       MethodProcessor methodProcessor,
-      MethodProcessingId methodProcessingId) {
+      MethodProcessingContext methodProcessingContext) {
     DexMethod invokedMethod = invoke.getInvokedMethod();
     if (appView.getSyntheticItems().isPendingSynthetic(invokedMethod.holder)) {
       // We did not create this code yet, but it will not require rewriting.
@@ -456,7 +458,7 @@ public final class InterfaceMethodRewriter {
                 .getSyntheticItems()
                 .createMethod(
                     SyntheticNaming.SyntheticKind.STATIC_INTERFACE_CALL,
-                    context.getHolder(),
+                    methodProcessingContext.createUniqueContext(),
                     factory,
                     syntheticMethodBuilder ->
                         syntheticMethodBuilder
@@ -504,9 +506,9 @@ public final class InterfaceMethodRewriter {
     UtilityMethodForCodeOptimizations throwMethod =
         resolutionResult == null
             ? UtilityMethodsForCodeOptimizations.synthesizeThrowNoSuchMethodErrorMethod(
-                appView, context, methodProcessingId)
+                appView, methodProcessingContext)
             : UtilityMethodsForCodeOptimizations.synthesizeThrowIncompatibleClassChangeErrorMethod(
-                appView, context, methodProcessingId);
+                appView, methodProcessingContext);
     throwMethod.optimize(methodProcessor);
 
     InvokeStatic throwInvoke =

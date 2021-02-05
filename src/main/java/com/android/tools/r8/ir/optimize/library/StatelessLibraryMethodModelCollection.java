@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.ir.optimize.library;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.library.StatelessLibraryMethodModelCollection.State;
 import java.util.Set;
@@ -18,8 +18,7 @@ public abstract class StatelessLibraryMethodModelCollection
     implements LibraryMethodModelCollection<State> {
 
   @Override
-  public final State createInitialState(
-      MethodProcessor methodProcessor, MethodProcessingId methodProcessingId) {
+  public final State createInitialState(MethodProcessor methodProcessor) {
     return null;
   }
 
@@ -37,7 +36,8 @@ public abstract class StatelessLibraryMethodModelCollection
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
       Set<Value> affectedValues,
-      State state) {
+      State state,
+      MethodProcessingContext methodProcessingContext) {
     assert state == null;
     optimize(code, instructionIterator, invoke, singleTarget, affectedValues);
   }

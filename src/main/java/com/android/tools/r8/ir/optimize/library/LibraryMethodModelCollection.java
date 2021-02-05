@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.ir.optimize.library;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.library.LibraryMethodModelCollection.State;
 import java.util.Set;
@@ -18,8 +18,7 @@ import java.util.Set;
 /** Used to model the behavior of library methods for optimization purposes. */
 public interface LibraryMethodModelCollection<T extends State> {
 
-  default T createInitialState(
-      MethodProcessor methodProcessor, MethodProcessingId methodProcessingId) {
+  default T createInitialState(MethodProcessor methodProcessor) {
     return null;
   }
 
@@ -39,7 +38,8 @@ public interface LibraryMethodModelCollection<T extends State> {
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
       Set<Value> affectedValues,
-      T state);
+      T state,
+      MethodProcessingContext methodProcessingContext);
 
   @SuppressWarnings("unchecked")
   default void optimize(
@@ -48,8 +48,16 @@ public interface LibraryMethodModelCollection<T extends State> {
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
       Set<Value> affectedValues,
-      Object state) {
-    optimize(code, instructionIterator, invoke, singleTarget, affectedValues, (T) state);
+      Object state,
+      MethodProcessingContext methodProcessingContext) {
+    optimize(
+        code,
+        instructionIterator,
+        invoke,
+        singleTarget,
+        affectedValues,
+        (T) state,
+        methodProcessingContext);
   }
 
   /** Thread local optimization state to allow caching, etc. */

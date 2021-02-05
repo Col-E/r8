@@ -6,8 +6,8 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.utils.StringUtils.LINE_SEPARATOR;
 
 import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.contexts.CompilationContext;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.kotlin.Kotlin;
@@ -24,8 +24,6 @@ import java.util.stream.Collectors;
 
 public class AssemblyWriter extends DexByteCodeWriter {
 
-  private final MethodProcessingId.Factory methodProcessingIdFactory =
-      new MethodProcessingId.Factory();
   private final boolean writeAllClassInfo;
   private final boolean writeFields;
   private final boolean writeAnnotations;
@@ -34,6 +32,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
   private final AppInfo appInfo;
   private final Kotlin kotlin;
   private final Timing timing = new Timing("AssemblyWriter");
+  private final CompilationContext compilationContext;
 
   public AssemblyWriter(
       DexApplication application,
@@ -42,6 +41,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
       boolean writeIR,
       boolean writeCode) {
     super(application, options);
+    this.compilationContext = CompilationContext.createInitialContext(options);
     this.writeAllClassInfo = allInfo;
     this.writeFields = allInfo;
     this.writeAnnotations = allInfo;
@@ -177,14 +177,14 @@ public class AssemblyWriter extends DexByteCodeWriter {
     CfgPrinter printer = new CfgPrinter();
     IRConverter converter = new IRConverter(appInfo, timing, printer);
     OneTimeMethodProcessor methodProcessor =
-        OneTimeMethodProcessor.create(method, methodProcessingIdFactory);
+        OneTimeMethodProcessor.create(method, compilationContext.createProcessorContext());
     methodProcessor.forEachWaveWithExtension(
-        (ignore, methodProcesingId) ->
+        (ignore, methodProcessingContext) ->
             converter.processMethod(
                 method,
                 OptimizationFeedbackIgnore.getInstance(),
                 methodProcessor,
-                methodProcesingId));
+                methodProcessingContext));
     ps.println(printer.toString());
   }
 

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
@@ -16,7 +17,6 @@ import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
-import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.synthesis.SyntheticFinalization.Result;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.google.common.collect.ImmutableList;
@@ -274,6 +274,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     assert previous == null || previous == clazz;
   }
 
+  // TODO(b/172194101): Make this take a unique context.
   public DexProgramClass createClass(
       SyntheticKind kind,
       DexProgramClass context,
@@ -305,6 +306,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return clazz;
   }
 
+  // TODO(b/172194101): Make this take a unique context.
   public DexProgramClass createFixedClass(
       SyntheticKind kind,
       DexProgramClass context,
@@ -338,31 +340,13 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   /** Create a single synthetic method item. */
   public ProgramMethod createMethod(
       SyntheticKind kind,
-      ProgramDefinition context,
+      UniqueContext context,
       DexItemFactory factory,
       Consumer<SyntheticMethodBuilder> fn) {
-    return createMethod(kind, context, factory, fn, this::getNextSyntheticId);
+    return createMethod(kind, context.getClassContext(), factory, fn, context::getSyntheticSuffix);
   }
 
-  // TODO(b/172194101): Remove this once the uniqueness is a property of the context.
-  public ProgramMethod createMethod(
-      SyntheticKind kind,
-      ProgramDefinition context,
-      DexItemFactory factory,
-      Consumer<SyntheticMethodBuilder> fn,
-      MethodProcessingId methodProcessingId) {
-    return createMethod(
-        kind,
-        context,
-        factory,
-        fn,
-        methodProcessingId != null
-            ? methodProcessingId::getFullyQualifiedIdAndIncrement
-            : this::getNextSyntheticId);
-  }
-
-  // TODO(b/172194101): Remove/private this once the uniqueness is a property of the context.
-  public ProgramMethod createMethod(
+  private ProgramMethod createMethod(
       SyntheticKind kind,
       ProgramDefinition context,
       DexItemFactory factory,

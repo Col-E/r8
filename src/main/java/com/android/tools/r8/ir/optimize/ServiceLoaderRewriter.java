@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -20,7 +21,6 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.desugar.ServiceLoaderSourceCode;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
@@ -70,7 +70,7 @@ public class ServiceLoaderRewriter {
     return serviceLoadMethods;
   }
 
-  public void rewrite(IRCode code, MethodProcessingId methodProcessingId) {
+  public void rewrite(IRCode code, MethodProcessingContext methodProcessingContext) {
     DexItemFactory factory = appView.dexItemFactory();
     InstructionListIterator instructionIterator = code.instructionListIterator();
     // Create a map from service type to loader methods local to this context since two
@@ -170,7 +170,7 @@ public class ServiceLoaderRewriter {
               constClass.getValue(),
               service -> {
                 DexEncodedMethod addedMethod =
-                    createSynthesizedMethod(service, classes, methodProcessingId, code.context());
+                    createSynthesizedMethod(service, classes, methodProcessingContext);
                 if (appView.options().isGeneratingClassFiles()) {
                   addedMethod.upgradeClassFileVersion(code.method().getClassFileVersion());
                 }
@@ -185,15 +185,14 @@ public class ServiceLoaderRewriter {
   private DexEncodedMethod createSynthesizedMethod(
       DexType serviceType,
       List<DexClass> classes,
-      MethodProcessingId methodProcessingId,
-      ProgramMethod context) {
+      MethodProcessingContext methodProcessingContext) {
     DexProto proto = appView.dexItemFactory().createProto(appView.dexItemFactory().iteratorType);
     ProgramMethod method =
         appView
             .getSyntheticItems()
             .createMethod(
                 SyntheticKind.SERVICE_LOADER,
-                context,
+                methodProcessingContext.createUniqueContext(),
                 appView.dexItemFactory(),
                 builder ->
                     builder
@@ -202,8 +201,7 @@ public class ServiceLoaderRewriter {
                         .setCode(
                             m ->
                                 ServiceLoaderSourceCode.generate(
-                                    serviceType, classes, appView.dexItemFactory())),
-                methodProcessingId);
+                                    serviceType, classes, appView.dexItemFactory())));
     synchronized (serviceLoadMethods) {
       serviceLoadMethods.add(method);
     }

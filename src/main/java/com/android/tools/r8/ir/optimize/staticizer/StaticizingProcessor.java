@@ -33,7 +33,6 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.AssumeInserter;
@@ -365,13 +364,12 @@ final class StaticizingProcessor {
     OneTimeMethodProcessor methodProcessor =
         OneTimeMethodProcessor.create(methodsToReprocess, appView);
     methodProcessor.forEachWaveWithExtension(
-        (method, methodProcessingId) ->
+        (method, methodProcessingContext) ->
             forEachMethod(
                 method,
                 processingQueue.get(method.getDefinition()).build(),
                 feedback,
-                methodProcessor,
-                methodProcessingId),
+                methodProcessor),
         executorService);
     // TODO(b/140767158): No need to clear if we can do every thing in one go.
     methodsToReprocess.clear();
@@ -383,8 +381,7 @@ final class StaticizingProcessor {
       ProgramMethod method,
       Collection<BiConsumer<IRCode, MethodProcessor>> codeOptimizations,
       OptimizationFeedback feedback,
-      OneTimeMethodProcessor methodProcessor,
-      MethodProcessingId methodProcessingId) {
+      OneTimeMethodProcessor methodProcessor) {
     IRCode code = method.buildIR(appView);
     codeOptimizations.forEach(codeOptimization -> codeOptimization.accept(code, methodProcessor));
     CodeRewriter.removeAssumeInstructions(appView, code);

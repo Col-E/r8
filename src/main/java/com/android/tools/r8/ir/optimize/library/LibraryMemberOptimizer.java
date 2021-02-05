@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.library;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -17,7 +18,6 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CodeOptimization;
-import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.google.common.collect.Sets;
@@ -112,7 +112,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
       IRCode code,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
-      MethodProcessingId methodProcessingId) {
+      MethodProcessingContext methodProcessingContext) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionListIterator instructionIterator = code.instructionListIterator();
     Map<LibraryMethodModelCollection<?>, LibraryMethodModelCollection.State> optimizationStates =
@@ -146,10 +146,15 @@ public class LibraryMemberOptimizer implements CodeOptimization {
           optimizationStates.computeIfAbsent(
               optimizer,
               libraryMethodModelCollection ->
-                  libraryMethodModelCollection.createInitialState(
-                      methodProcessor, methodProcessingId));
+                  libraryMethodModelCollection.createInitialState(methodProcessor));
       optimizer.optimize(
-          code, instructionIterator, invoke, singleTarget, affectedValues, optimizationState);
+          code,
+          instructionIterator,
+          invoke,
+          singleTarget,
+          affectedValues,
+          optimizationState,
+          methodProcessingContext);
     }
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);

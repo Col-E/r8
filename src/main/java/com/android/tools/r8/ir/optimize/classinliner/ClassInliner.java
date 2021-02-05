@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.classinliner;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -18,7 +19,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
@@ -133,7 +133,7 @@ public final class ClassInliner {
       IRCode code,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
-      MethodProcessingId methodProcessingId,
+      MethodProcessingContext methodProcessingContext,
       Inliner inliner,
       Supplier<InliningOracle> defaultOracle) {
 
@@ -253,7 +253,7 @@ public final class ClassInliner {
       // have more information about the types of the arguments at the call site. This is
       // particularly important for bridge methods.
       codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
-          code, method, methodProcessor, methodProcessingId);
+          code, method, methodProcessor, methodProcessingContext);
       // If a method was inlined we may be able to prune additional branches.
       codeRewriter.simplifyControlFlow(code);
       // If a method was inlined we may see more trivial computation/conversion of String.

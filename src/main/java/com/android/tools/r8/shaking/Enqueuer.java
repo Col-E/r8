@@ -15,6 +15,8 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.CfOrDexInstruction;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
+import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
@@ -3167,6 +3169,10 @@ public class Enqueuer {
 
   private static class SyntheticAdditions {
 
+    private final ProcessorContext processorContext;
+    private Map<DexMethod, MethodProcessingContext> methodProcessingContexts =
+        new IdentityHashMap<>();
+
     List<ProgramMethod> desugaredMethods = new LinkedList<>();
 
     Map<DexType, Pair<DexProgramClass, ProgramMethod>> syntheticInstantiations =
@@ -3185,6 +3191,15 @@ public class Enqueuer {
 
     // Subset of synthesized classes that need to be added to the main-dex file.
     Set<DexProgramClass> mainDexTypes = Sets.newIdentityHashSet();
+
+    SyntheticAdditions(ProcessorContext processorContext) {
+      this.processorContext = processorContext;
+    }
+
+    MethodProcessingContext getMethodContext(ProgramMethod method) {
+      return methodProcessingContexts.computeIfAbsent(
+          method.getReference(), k -> processorContext.createMethodProcessingContext(method));
+    }
 
     boolean isEmpty() {
       boolean empty =
@@ -3289,7 +3304,7 @@ public class Enqueuer {
     // First part of synthesis is to create and register all reachable synthetic additions.
     // In particular these additions are order independent, i.e., it does not matter which are
     // registered first and no dependencies may exist among them.
-    SyntheticAdditions additions = new SyntheticAdditions();
+    SyntheticAdditions additions = new SyntheticAdditions(appView.createProcessorContext());
     desugar(additions);
     synthesizeInvokeSpecialBridges(additions);
     synthesizeInterfaceMethodBridges(additions);
@@ -3380,13 +3395,15 @@ public class Enqueuer {
 
   private void synthesizeBackports(SyntheticAdditions additions) {
     for (ProgramMethod method : methodsWithBackports.values()) {
-      backportRewriter.desugar(method, appInfo, additions::addLiveMethod);
+      backportRewriter.desugar(
+          method, appInfo, additions.getMethodContext(method), additions::addLiveMethod);
     }
   }
 
   private void synthesizeTwrCloseResource(SyntheticAdditions additions) {
     for (ProgramMethod method : methodsWithTwrCloseResource.values()) {
-      twrCloseResourceRewriter.rewriteCf(method, additions::addLiveMethod);
+      twrCloseResourceRewriter.rewriteCf(
+          method, additions::addLiveMethod, additions.getMethodContext(method));
     }
   }
 

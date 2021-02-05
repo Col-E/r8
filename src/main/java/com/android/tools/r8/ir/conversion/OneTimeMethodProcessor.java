@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
+import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.conversion.MethodProcessingId.Factory.ReservedMethodProcessingIds;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.ThrowingBiConsumer;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -18,33 +18,30 @@ import java.util.concurrent.ExecutorService;
  */
 public class OneTimeMethodProcessor extends MethodProcessorWithWave {
 
-  private final MethodProcessingId.Factory methodProcessingIdFactory;
+  private final ProcessorContext processorContext;
 
-  private OneTimeMethodProcessor(
-      MethodProcessingId.Factory methodProcessingIdFactory, SortedProgramMethodSet wave) {
-    this.methodProcessingIdFactory = methodProcessingIdFactory;
+  private OneTimeMethodProcessor(ProcessorContext processorContext, SortedProgramMethodSet wave) {
+    this.processorContext = processorContext;
     this.wave = wave;
   }
 
   public static OneTimeMethodProcessor create(ProgramMethod methodToProcess, AppView<?> appView) {
-    return create(methodToProcess, appView.methodProcessingIdFactory());
+    return create(SortedProgramMethodSet.create(methodToProcess), appView);
   }
 
   public static OneTimeMethodProcessor create(
-      ProgramMethod methodToProcess, MethodProcessingId.Factory methodProcessingIdFactory) {
-    return new OneTimeMethodProcessor(
-        methodProcessingIdFactory, SortedProgramMethodSet.create(methodToProcess));
+      ProgramMethod methodToProcess, ProcessorContext processorContext) {
+    return create(SortedProgramMethodSet.create(methodToProcess), processorContext);
   }
 
   public static OneTimeMethodProcessor create(
       SortedProgramMethodSet methodsToProcess, AppView<?> appView) {
-    return create(methodsToProcess, appView.methodProcessingIdFactory());
+    return create(methodsToProcess, appView.createProcessorContext());
   }
 
   public static OneTimeMethodProcessor create(
-      SortedProgramMethodSet methodsToProcess,
-      MethodProcessingId.Factory methodProcessingIdFactory) {
-    return new OneTimeMethodProcessor(methodProcessingIdFactory, methodsToProcess);
+      SortedProgramMethodSet methodsToProcess, ProcessorContext processorContext) {
+    return new OneTimeMethodProcessor(processorContext, methodsToProcess);
   }
 
   @Override
@@ -52,27 +49,26 @@ public class OneTimeMethodProcessor extends MethodProcessorWithWave {
     return true;
   }
 
-  public <E extends Exception> void forEachWaveWithExtension(
-      ThrowingBiConsumer<ProgramMethod, MethodProcessingId, E> consumer) throws E {
+  @FunctionalInterface
+  public interface MethodAction<E extends Exception> {
+    void accept(ProgramMethod method, MethodProcessingContext methodProcessingContext) throws E;
+  }
+
+  public <E extends Exception> void forEachWaveWithExtension(MethodAction<E> consumer) throws E {
     while (!wave.isEmpty()) {
-      ReservedMethodProcessingIds methodProcessingIds = methodProcessingIdFactory.reserveIds(wave);
-      int i = 0;
       for (ProgramMethod method : wave) {
-        consumer.accept(method, methodProcessingIds.get(method, i++));
+        consumer.accept(method, processorContext.createMethodProcessingContext(method));
       }
       prepareForWaveExtensionProcessing();
     }
   }
 
   public <E extends Exception> void forEachWaveWithExtension(
-      ThrowingBiConsumer<ProgramMethod, MethodProcessingId, E> consumer,
-      ExecutorService executorService)
-      throws ExecutionException {
+      MethodAction<E> consumer, ExecutorService executorService) throws ExecutionException {
     while (!wave.isEmpty()) {
-      ReservedMethodProcessingIds methodProcessingIds = methodProcessingIdFactory.reserveIds(wave);
       ThreadUtils.processItems(
           wave,
-          (method, index) -> consumer.accept(method, methodProcessingIds.get(method, index)),
+          method -> consumer.accept(method, processorContext.createMethodProcessingContext(method)),
           executorService);
       prepareForWaveExtensionProcessing();
     }

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -25,10 +26,10 @@ public interface CodeOptimization {
       IRCode code,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
-      MethodProcessingId methodProcessingId);
+      MethodProcessingContext methodProcessingContext);
 
   static CodeOptimization from(Consumer<IRCode> consumer) {
-    return (code, feedback, methodProcessor, methodProcessingId) -> {
+    return (code, feedback, methodProcessor, methodProcessingContext) -> {
       consumer.accept(code);
     };
   }
@@ -38,9 +39,9 @@ public interface CodeOptimization {
   }
 
   static CodeOptimization sequence(Collection<CodeOptimization> codeOptimizations) {
-    return (code, feedback, methodProcessor, methodProcessingId) -> {
+    return (code, feedback, methodProcessor, methodProcessingContext) -> {
       for (CodeOptimization codeOptimization : codeOptimizations) {
-        codeOptimization.optimize(code, feedback, methodProcessor, methodProcessingId);
+        codeOptimization.optimize(code, feedback, methodProcessor, methodProcessingContext);
       }
     };
   }

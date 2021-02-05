@@ -7,6 +7,8 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
+import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -68,6 +70,7 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -1340,6 +1343,8 @@ public class Outliner {
   }
 
   public List<ProgramMethod> buildOutlineMethods() {
+    ProcessorContext outlineProcessorContext = appView.createProcessorContext();
+    Map<DexMethod, MethodProcessingContext> methodProcessingContexts = new IdentityHashMap<>();
     List<ProgramMethod> outlineMethods = new ArrayList<>();
     // By now the candidates are the actual selected outlines. Iterate the outlines in a
     // consistent order, to provide deterministic naming of the internal-synthetics.
@@ -1349,13 +1354,18 @@ public class Outliner {
     for (Outline outline : outlines) {
       List<ProgramMethod> sites = outlineSites.get(outline);
       assert !sites.isEmpty();
+      // The representative might be shared among multiple outlines.
       ProgramMethod representative = findDeterministicRepresentative(sites);
+      MethodProcessingContext methodProcessingContext =
+          methodProcessingContexts.computeIfAbsent(
+              representative.getReference(),
+              key -> outlineProcessorContext.createMethodProcessingContext(representative));
       ProgramMethod outlineMethod =
           appView
               .getSyntheticItems()
               .createMethod(
                   SyntheticKind.OUTLINE,
-                  representative,
+                  methodProcessingContext.createUniqueContext(),
                   appView.dexItemFactory(),
                   builder -> {
                     builder

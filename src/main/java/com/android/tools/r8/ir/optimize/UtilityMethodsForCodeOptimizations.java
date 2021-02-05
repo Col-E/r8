@@ -5,6 +5,8 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.cf.CfVersion;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
+import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -12,7 +14,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.templates.CfUtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.synthesis.SyntheticItems;
@@ -22,7 +23,7 @@ import com.android.tools.r8.utils.InternalOptions;
 public class UtilityMethodsForCodeOptimizations {
 
   public static UtilityMethodForCodeOptimizations synthesizeToStringIfNotNullMethod(
-      AppView<?> appView, ProgramMethod context, MethodProcessingId methodProcessingId) {
+      AppView<?> appView, MethodProcessingContext methodProcessingContext) {
     InternalOptions options = appView.options();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
@@ -30,15 +31,14 @@ public class UtilityMethodsForCodeOptimizations {
     ProgramMethod syntheticMethod =
         syntheticItems.createMethod(
             SyntheticNaming.SyntheticKind.TO_STRING_IF_NOT_NULL,
-            context,
+            methodProcessingContext.createUniqueContext(),
             dexItemFactory,
             builder ->
                 builder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                     .setClassFileVersion(CfVersion.V1_8)
                     .setCode(method -> getToStringIfNotNullCodeTemplate(method, options))
-                    .setProto(proto),
-            methodProcessingId);
+                    .setProto(proto));
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
@@ -49,15 +49,16 @@ public class UtilityMethodsForCodeOptimizations {
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowClassCastExceptionIfNotNullMethod(
-      AppView<?> appView, ProgramMethod context, MethodProcessingId methodProcessingId) {
+      AppView<?> appView, MethodProcessingContext methodProcessingContext) {
     InternalOptions options = appView.options();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     SyntheticItems syntheticItems = appView.getSyntheticItems();
+    UniqueContext positionContext = methodProcessingContext.createUniqueContext();
     ProgramMethod syntheticMethod =
         syntheticItems.createMethod(
             SyntheticNaming.SyntheticKind.THROW_CCE_IF_NOT_NULL,
-            context,
+            positionContext,
             dexItemFactory,
             builder ->
                 builder
@@ -65,8 +66,7 @@ public class UtilityMethodsForCodeOptimizations {
                     .setClassFileVersion(CfVersion.V1_8)
                     .setCode(
                         method -> getThrowClassCastExceptionIfNotNullCodeTemplate(method, options))
-                    .setProto(proto),
-            methodProcessingId);
+                    .setProto(proto));
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
@@ -78,7 +78,7 @@ public class UtilityMethodsForCodeOptimizations {
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowIncompatibleClassChangeErrorMethod(
-      AppView<?> appView, ProgramMethod context, MethodProcessingId methodProcessingId) {
+      AppView<?> appView, MethodProcessingContext methodProcessingContext) {
     InternalOptions options = appView.options();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.icceType);
@@ -86,7 +86,7 @@ public class UtilityMethodsForCodeOptimizations {
     ProgramMethod syntheticMethod =
         syntheticItems.createMethod(
             SyntheticNaming.SyntheticKind.THROW_ICCE,
-            context,
+            methodProcessingContext.createUniqueContext(),
             dexItemFactory,
             builder ->
                 builder
@@ -94,8 +94,7 @@ public class UtilityMethodsForCodeOptimizations {
                     .setClassFileVersion(CfVersion.V1_8)
                     .setCode(
                         method -> getThrowIncompatibleClassChangeErrorCodeTemplate(method, options))
-                    .setProto(proto),
-            methodProcessingId);
+                    .setProto(proto));
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 
@@ -107,7 +106,7 @@ public class UtilityMethodsForCodeOptimizations {
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowNoSuchMethodErrorMethod(
-      AppView<?> appView, ProgramMethod context, MethodProcessingId methodProcessingId) {
+      AppView<?> appView, MethodProcessingContext methodProcessingContext) {
     InternalOptions options = appView.options();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto proto = dexItemFactory.createProto(dexItemFactory.noSuchMethodErrorType);
@@ -115,15 +114,14 @@ public class UtilityMethodsForCodeOptimizations {
     ProgramMethod syntheticMethod =
         syntheticItems.createMethod(
             SyntheticNaming.SyntheticKind.THROW_NSME,
-            context,
+            methodProcessingContext.createUniqueContext(),
             dexItemFactory,
             builder ->
                 builder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                     .setClassFileVersion(CfVersion.V1_8)
                     .setCode(method -> getThrowNoSuchMethodErrorCodeTemplate(method, options))
-                    .setProto(proto),
-            methodProcessingId);
+                    .setProto(proto));
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
   }
 

@@ -51,6 +51,7 @@ public abstract class ClassConverter {
           deferred.add(clazz);
         } else {
           wave.add(clazz);
+          methodProcessor.addScheduled(clazz);
         }
       }
       ThreadUtils.processItems(wave, this::convertClass, executorService);

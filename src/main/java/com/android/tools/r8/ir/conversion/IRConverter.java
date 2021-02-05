@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.IncludeAllResources;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -508,22 +509,23 @@ public class IRConverter {
     methodProcessor.awaitMethodProcessing();
   }
 
-  void convertMethods(DexProgramClass clazz, MethodProcessor methodProcessor) {
+  void convertMethods(DexProgramClass clazz, D8MethodProcessor methodProcessor) {
     boolean isReachabilitySensitive = clazz.hasReachabilitySensitiveAnnotation(options.itemFactory);
     // When converting all methods on a class always convert <clinit> first.
-    DexEncodedMethod classInitializer = clazz.getClassInitializer();
+    ProgramMethod classInitializer = clazz.getProgramClassInitializer();
     if (classInitializer != null) {
       classInitializer
+          .getDefinition()
           .getMutableOptimizationInfo()
           .setReachabilitySensitive(isReachabilitySensitive);
-      convertMethod(new ProgramMethod(clazz, classInitializer), methodProcessor);
+      methodProcessor.processMethod(classInitializer);
     }
     clazz.forEachProgramMethodMatching(
         definition -> !definition.isClassInitializer(),
         method -> {
           DexEncodedMethod definition = method.getDefinition();
           definition.getMutableOptimizationInfo().setReachabilitySensitive(isReachabilitySensitive);
-          convertMethod(method, methodProcessor);
+          methodProcessor.processMethod(method);
         });
     // The class file version is downgraded after compilation. Some of the desugaring might need
     // the initial class file version to determine how far a method can be downgraded.
@@ -533,7 +535,10 @@ public class IRConverter {
     }
   }
 
-  private void convertMethod(ProgramMethod method, MethodProcessor methodProcessor) {
+  void convertMethod(
+      ProgramMethod method,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext) {
     DexEncodedMethod definition = method.getDefinition();
     if (definition.hasClassFileVersion()) {
       definition.downgradeClassFileVersion(
@@ -552,7 +557,7 @@ public class IRConverter {
     if (options.isGeneratingClassFiles()
         || !(options.passthroughDexCode && definition.getCode().isDexCode())) {
       // We do not process in call graph order, so anything could be a leaf.
-      rewriteCode(method, simpleOptimizationFeedback, methodProcessor, null);
+      rewriteCode(method, simpleOptimizationFeedback, methodProcessor, methodProcessingContext);
     } else {
       assert definition.getCode().isDexCode();
     }
@@ -687,8 +692,8 @@ public class IRConverter {
         outliner.createOutlineMethodIdentifierGenerator();
       }
       primaryMethodProcessor.forEachMethod(
-          (method, methodProcessingId) ->
-              processMethod(method, feedback, primaryMethodProcessor, methodProcessingId),
+          (method, methodProcessingContext) ->
+              processMethod(method, feedback, primaryMethodProcessor, methodProcessingContext),
           this::waveStart,
           this::waveDone,
           timing,
@@ -1006,9 +1011,9 @@ public class IRConverter {
       OneTimeMethodProcessor methodProcessor =
           OneTimeMethodProcessor.create(synthesizedMethod, appView);
       methodProcessor.forEachWaveWithExtension(
-          (method, methodProcessingId) ->
+          (method, methodProcessingContext) ->
               processMethod(
-                  method, delayedOptimizationFeedback, methodProcessor, methodProcessingId));
+                  method, delayedOptimizationFeedback, methodProcessor, methodProcessingContext));
     }
   }
 
@@ -1017,9 +1022,9 @@ public class IRConverter {
     if (!wave.isEmpty()) {
       OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
       methodProcessor.forEachWaveWithExtension(
-          (method, methodProcessingId) ->
+          (method, methodProcessingContext) ->
               processMethod(
-                  method, delayedOptimizationFeedback, methodProcessor, methodProcessingId),
+                  method, delayedOptimizationFeedback, methodProcessor, methodProcessingContext),
           executorService);
     }
   }
@@ -1043,12 +1048,12 @@ public class IRConverter {
       ProgramMethod method,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
-      MethodProcessingId methodProcessingId) {
+      MethodProcessingContext methodProcessingContext) {
     DexEncodedMethod definition = method.getDefinition();
     Code code = definition.getCode();
     boolean matchesMethodFilter = options.methodMatchesFilter(definition);
     if (code != null && matchesMethodFilter) {
-      return rewriteCode(method, feedback, methodProcessor, methodProcessingId);
+      return rewriteCode(method, feedback, methodProcessor, methodProcessingContext);
     } else {
       // Mark abstract methods as processed as well.
       definition.markProcessed(ConstraintWithTarget.NEVER);
@@ -1068,18 +1073,18 @@ public class IRConverter {
       ProgramMethod method,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
-      MethodProcessingId methodProcessingId) {
+      MethodProcessingContext methodProcessingContext) {
     return ExceptionUtils.withOriginAndPositionAttachmentHandler(
         method.getOrigin(),
         new MethodPosition(method.getReference().asMethodReference()),
-        () -> rewriteCodeInternal(method, feedback, methodProcessor, methodProcessingId));
+        () -> rewriteCodeInternal(method, feedback, methodProcessor, methodProcessingContext));
   }
 
   private Timing rewriteCodeInternal(
       ProgramMethod method,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
-      MethodProcessingId methodProcessingId) {
+      MethodProcessingContext methodProcessingContext) {
     if (options.verbose) {
       options.reporter.info(
           new StringDiagnostic("Processing: " + method.toSourceString()));
@@ -1091,7 +1096,7 @@ public class IRConverter {
           method.toSourceString(),
           logCode(options, method.getDefinition()));
     }
-    boolean didDesugar = desugar(method, methodProcessor);
+    boolean didDesugar = desugar(method, methodProcessor, methodProcessingContext);
     if (Log.ENABLED && didDesugar) {
       Log.debug(
           getClass(),
@@ -1111,10 +1116,13 @@ public class IRConverter {
       feedback.markProcessed(method.getDefinition(), ConstraintWithTarget.NEVER);
       return Timing.empty();
     }
-    return optimize(code, feedback, methodProcessor, methodProcessingId);
+    return optimize(code, feedback, methodProcessor, methodProcessingContext);
   }
 
-  private boolean desugar(ProgramMethod method, MethodProcessor methodProcessor) {
+  private boolean desugar(
+      ProgramMethod method,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext) {
     if (options.desugarState != DesugarState.ON) {
       return false;
     }
@@ -1128,7 +1136,8 @@ public class IRConverter {
       didDesugar |= lambdaRewriter.desugarLambdas(method, lazyAppInfo.get()) > 0;
     }
     if (backportedMethodRewriter != null) {
-      didDesugar |= backportedMethodRewriter.desugar(method, lazyAppInfo.get());
+      didDesugar |=
+          backportedMethodRewriter.desugar(method, lazyAppInfo.get(), methodProcessingContext);
     }
     if (d8NestBasedAccessDesugaring != null) {
       NestBridgeConsumer bridgeConsumer = NestBridgeConsumer.createForD8(methodProcessor);
@@ -1142,7 +1151,7 @@ public class IRConverter {
       IRCode code,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
-      MethodProcessingId methodProcessingId) {
+      MethodProcessingContext methodProcessingContext) {
     ProgramMethod context = code.context();
     DexEncodedMethod method = context.getDefinition();
     DexProgramClass holder = context.getHolder();
@@ -1225,7 +1234,7 @@ public class IRConverter {
     if (serviceLoaderRewriter != null) {
       assert appView.appInfo().hasLiveness();
       timing.begin("Rewrite service loaders");
-      serviceLoaderRewriter.rewrite(code, methodProcessingId);
+      serviceLoaderRewriter.rewrite(code, methodProcessingContext);
       timing.end();
     }
 
@@ -1299,7 +1308,7 @@ public class IRConverter {
       timing.begin("Optimize library methods");
       appView
           .libraryMethodOptimizer()
-          .optimize(code, feedback, methodProcessor, methodProcessingId);
+          .optimize(code, feedback, methodProcessor, methodProcessingContext);
       timing.end();
       assert code.isConsistentSSA();
     }
@@ -1317,7 +1326,7 @@ public class IRConverter {
 
     timing.begin("Remove trivial type checks/casts");
     codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
-        code, context, methodProcessor, methodProcessingId);
+        code, context, methodProcessor, methodProcessingContext);
     timing.end();
 
     if (enumValueOptimizer != null) {
@@ -1364,7 +1373,7 @@ public class IRConverter {
     if (codeRewriter.simplifyControlFlow(code)) {
       timing.begin("Remove trivial type checks/casts");
       codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
-          code, context, methodProcessor, methodProcessingId);
+          code, context, methodProcessor, methodProcessingContext);
       timing.end();
     }
     timing.end();
@@ -1442,7 +1451,7 @@ public class IRConverter {
           code,
           feedback,
           methodProcessor,
-          methodProcessingId,
+          methodProcessingContext,
           inliner,
           Suppliers.memoize(
               () ->
@@ -1462,7 +1471,8 @@ public class IRConverter {
 
     if (interfaceMethodRewriter != null) {
       timing.begin("Rewrite interface methods");
-      interfaceMethodRewriter.rewriteMethodReferences(code, methodProcessor, methodProcessingId);
+      interfaceMethodRewriter.rewriteMethodReferences(
+          code, methodProcessor, methodProcessingContext);
       timing.end();
       assert code.isConsistentSSA();
     }
@@ -1483,7 +1493,7 @@ public class IRConverter {
 
     if (twrCloseResourceRewriter != null) {
       timing.begin("Rewrite TWR close");
-      twrCloseResourceRewriter.rewriteIR(code);
+      twrCloseResourceRewriter.rewriteIR(code, methodProcessingContext);
       timing.end();
     }
 

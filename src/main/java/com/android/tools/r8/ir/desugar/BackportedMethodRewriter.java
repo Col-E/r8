@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -34,13 +35,10 @@ import com.android.tools.r8.ir.desugar.backports.OptionalMethodRewrites;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -53,7 +51,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import org.objectweb.asm.Opcodes;
 
 public final class BackportedMethodRewriter {
@@ -109,12 +106,18 @@ public final class BackportedMethodRewriter {
     BackportedMethods.registerSynthesizedCodeReferences(options.itemFactory);
   }
 
-  public boolean desugar(ProgramMethod method, AppInfoWithClassHierarchy appInfo) {
-    return desugar(method, appInfo, synthesizedMethods::add);
+  public boolean desugar(
+      ProgramMethod method,
+      AppInfoWithClassHierarchy appInfo,
+      MethodProcessingContext methodProcessingContext) {
+    return desugar(method, appInfo, methodProcessingContext, synthesizedMethods::add);
   }
 
   public boolean desugar(
-      ProgramMethod method, AppInfoWithClassHierarchy appInfo, Consumer<ProgramMethod> consumer) {
+      ProgramMethod method,
+      AppInfoWithClassHierarchy appInfo,
+      MethodProcessingContext methodProcessingContext,
+      Consumer<ProgramMethod> consumer) {
     if (!enabled) {
       return false;
     }
@@ -131,14 +134,6 @@ public final class BackportedMethodRewriter {
     }
     CfCode code = method.getDefinition().getCode().asCfCode();
     ListIterator<CfInstruction> iterator = code.getInstructions().listIterator();
-    // TODO(b/172194101): Make this part of a unique context construction.
-    IntBox nextBackportId = new IntBox();
-    Supplier<String> methodIdSupplier =
-        () -> {
-          Hasher hasher = Hashing.sha256().newHasher();
-          method.getReference().hash(hasher);
-          return "$" + hasher.hash().toString() + "$" + nextBackportId.getAndIncrement();
-        };
     boolean replaced = false;
     while (iterator.hasNext()) {
       CfInvoke invoke = iterator.next().asInvoke();
@@ -155,7 +150,7 @@ public final class BackportedMethodRewriter {
           iterator = mutableInstructions.listIterator(iterator.previousIndex());
           iterator.next();
         }
-        provider.rewriteInvoke(invoke, iterator, method, appInfo, consumer, methodIdSupplier);
+        provider.rewriteInvoke(invoke, iterator, appInfo, consumer, methodProcessingContext);
         replaced = true;
       }
     }
@@ -1357,10 +1352,9 @@ public final class BackportedMethodRewriter {
     public abstract void rewriteInvoke(
         CfInvoke invoke,
         ListIterator<CfInstruction> iterator,
-        ProgramMethod context,
         AppInfoWithClassHierarchy appInfo,
         Consumer<ProgramMethod> registerSynthesizedMethod,
-        Supplier<String> methodIdProvider);
+        MethodProcessingContext methodProcessingContext);
   }
 
   private static final class InvokeRewriter extends MethodProvider {
@@ -1376,10 +1370,9 @@ public final class BackportedMethodRewriter {
     public void rewriteInvoke(
         CfInvoke invoke,
         ListIterator<CfInstruction> iterator,
-        ProgramMethod context,
         AppInfoWithClassHierarchy appInfo,
         Consumer<ProgramMethod> registerSynthesizedMethod,
-        Supplier<String> methodIdProvider) {
+        MethodProcessingContext methodProcessingContext) {
       rewriter.rewrite(invoke, iterator, appInfo.dexItemFactory());
     }
   }
@@ -1403,33 +1396,29 @@ public final class BackportedMethodRewriter {
     public void rewriteInvoke(
         CfInvoke invoke,
         ListIterator<CfInstruction> iterator,
-        ProgramMethod context,
         AppInfoWithClassHierarchy appInfo,
         Consumer<ProgramMethod> registerSynthesizedMethod,
-        Supplier<String> methodIdProvider) {
-      ProgramMethod method = getSyntheticMethod(context, methodIdProvider, appInfo);
+        MethodProcessingContext methodProcessingContext) {
+      ProgramMethod method = getSyntheticMethod(appInfo, methodProcessingContext);
       registerSynthesizedMethod.accept(method);
       iterator.remove();
       iterator.add(new CfInvoke(Opcodes.INVOKESTATIC, method.getReference(), false));
     }
 
     private ProgramMethod getSyntheticMethod(
-        ProgramMethod context,
-        Supplier<String> methodIdProvider,
-        AppInfoWithClassHierarchy appInfo) {
+        AppInfoWithClassHierarchy appInfo, MethodProcessingContext methodProcessingContext) {
       return appInfo
           .getSyntheticItems()
           .createMethod(
               SyntheticNaming.SyntheticKind.BACKPORT,
-              context,
+              methodProcessingContext.createUniqueContext(),
               appInfo.dexItemFactory(),
               builder ->
                   builder
                       .setProto(getProto(appInfo.dexItemFactory()))
                       .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                       .setCode(
-                          methodSig -> generateTemplateMethod(appInfo.app().options, methodSig)),
-              methodIdProvider);
+                          methodSig -> generateTemplateMethod(appInfo.app().options, methodSig)));
     }
 
     public DexProto getProto(DexItemFactory itemFactory) {
