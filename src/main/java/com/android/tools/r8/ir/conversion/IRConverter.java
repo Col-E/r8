@@ -872,6 +872,9 @@ public class IRConverter {
     if (options.enableFieldAssignmentTracker) {
       fieldAccessAnalysis.fieldAssignmentTracker().waveDone(wave, delayedOptimizationFeedback);
     }
+    if (appView.options().protoShrinking().enableRemoveProtoEnumSwitchMap()) {
+      appView.protoShrinker().protoEnumSwitchMapRemover.updateVisibleStaticFieldValues();
+    }
     assert delayedOptimizationFeedback.noUpdatesLeft();
     onWaveDoneActions.forEach(com.android.tools.r8.utils.Action::execute);
     onWaveDoneActions = null;

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -12,6 +11,7 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues.EnumStaticFieldValues;
 import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,7 +20,8 @@ public class ProtoEnumSwitchMapRemover {
 
   private final ProtoReferences references;
 
-  private final Map<DexType, EnumStaticFieldValues> staticFieldValuesMap =
+  private final Map<DexType, EnumStaticFieldValues> staticFieldValuesMap = new IdentityHashMap<>();
+  private final Map<DexType, EnumStaticFieldValues> staticFieldValuesMapDelayed =
       new ConcurrentHashMap<>();
 
   public ProtoEnumSwitchMapRemover(ProtoReferences references) {
@@ -34,8 +35,13 @@ public class ProtoEnumSwitchMapRemover {
     assert clazz.isEnum();
     EnumStaticFieldValues enumStaticFieldValues = staticFieldValues.asEnumStaticFieldValues();
     if (isProtoEnum(clazz)) {
-      staticFieldValuesMap.put(clazz.type, enumStaticFieldValues);
+      staticFieldValuesMapDelayed.put(clazz.type, enumStaticFieldValues);
     }
+  }
+
+  public void updateVisibleStaticFieldValues() {
+    staticFieldValuesMap.putAll(staticFieldValuesMapDelayed);
+    staticFieldValuesMapDelayed.clear();
   }
 
   private boolean isProtoEnum(DexProgramClass clazz) {
@@ -53,9 +59,8 @@ public class ProtoEnumSwitchMapRemover {
     }
     EnumStaticFieldValues enumStaticFieldValues = staticFieldValuesMap.get(enumClass.type);
     if (enumStaticFieldValues == null) {
-      if (enumClass.type == references.methodToInvokeType) {
-        throw new CompilationError("Proto optimizations: missing information for MethodToInvoke.");
-      }
+      // If the switch map is found in a wave previous to the wave containing the enum clinit,
+      // then bail out. This can happen but is extremely uncommon.
       return null;
     }
     ObjectState state =
