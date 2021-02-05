@@ -20,4 +20,11 @@ public interface ThrowableConsumer<Formal> {
   default void acceptWithRuntimeException(Formal formal) {
     acceptWithHandler(formal, RuntimeException::new);
   }
+
+  default ThrowableConsumer<Formal> andThen(ThrowableConsumer<Formal> consumer) {
+    return formal -> {
+      accept(formal);
+      consumer.accept(formal);
+    };
+  }
 }
