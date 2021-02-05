@@ -46,7 +46,7 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerFactory;
-import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
 import com.android.tools.r8.shaking.ProguardClassNameList;
@@ -710,7 +710,7 @@ public class TestBase {
     return AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
         readApplicationForDexOutput(app, new InternalOptions()),
         ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
-        MainDexInfo.createEmptyMainDexClasses());
+        MainDexClasses.createEmptyMainDexClasses());
   }
 
   protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierachy(

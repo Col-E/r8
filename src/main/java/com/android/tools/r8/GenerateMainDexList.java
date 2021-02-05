@@ -16,8 +16,8 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
-import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.shaking.MainDexListBuilder;
+import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.shaking.RootSetUtils.MainDexRootSet;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApp;
@@ -28,15 +28,19 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Keep
 public class GenerateMainDexList {
   private final Timing timing = new Timing("maindex");
   private final InternalOptions options;
+
+  private List<String> result = null;
 
   public GenerateMainDexList(InternalOptions options) {
     this.options = options;
@@ -45,24 +49,32 @@ public class GenerateMainDexList {
   private List<String> run(AndroidApp app, ExecutorService executor)
       throws IOException {
     try {
-      // TODO(b/178231294): Clean up this such that we do not both return the result and call the
-      //  consumer.
       DexApplication application = new ApplicationReader(app, options, timing).read(executor);
-      List<String> result = new ArrayList<>();
-      traceMainDex(executor, application)
-          .forEach(type -> result.add(type.toBinaryName() + ".class"));
-      Collections.sort(result);
-      if (options.mainDexListConsumer != null) {
-        options.mainDexListConsumer.accept(String.join("\n", result), options.reporter);
-        options.mainDexListConsumer.finished(options.reporter);
-      }
+      traceMainDex(
+          executor,
+          application,
+          mainDexTracingResult -> {
+            result =
+                mainDexTracingResult.getClasses().stream()
+                    .map(c -> c.toSourceString().replace('.', '/') + ".class")
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            if (options.mainDexListConsumer != null) {
+              options.mainDexListConsumer.accept(String.join("\n", result), options.reporter);
+              options.mainDexListConsumer.finished(options.reporter);
+            }
+          });
       return result;
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);
     }
   }
 
-  public MainDexInfo traceMainDex(ExecutorService executor, DexApplication application)
+  public void traceMainDex(
+      ExecutorService executor,
+      DexApplication application,
+      Consumer<MainDexTracingResult> resultConsumer)
       throws ExecutionException {
     AppView<? extends AppInfoWithClassHierarchy> appView =
         AppView.createForR8(application.toDirect());
@@ -85,19 +97,25 @@ public class GenerateMainDexList {
 
     Enqueuer enqueuer =
         EnqueuerFactory.createForFinalMainDexTracing(
-            appView, executor, subtypingInfo, graphConsumer);
-    MainDexInfo mainDexInfo = enqueuer.traceMainDex(executor, timing);
+            appView, executor, subtypingInfo, graphConsumer, MainDexTracingResult.NONE);
+    Set<DexProgramClass> liveTypes = enqueuer.traceMainDex(executor, timing);
+    // LiveTypes is the result.
+    MainDexTracingResult mainDexTracingResult = new MainDexListBuilder(liveTypes, appView).run();
+    resultConsumer.accept(mainDexTracingResult);
+
     R8.processWhyAreYouKeepingAndCheckDiscarded(
         mainDexRootSet,
         () -> {
           ArrayList<DexProgramClass> classes = new ArrayList<>();
           // TODO(b/131668850): This is not a deterministic order!
-          mainDexInfo.forEach(
-              type -> {
-                DexClass clazz = appView.definitionFor(type);
-                assert clazz.isProgramClass();
-                classes.add(clazz.asProgramClass());
-              });
+          mainDexTracingResult
+              .getClasses()
+              .forEach(
+                  type -> {
+                    DexClass clazz = appView.definitionFor(type);
+                    assert clazz.isProgramClass();
+                    classes.add(clazz.asProgramClass());
+                  });
           return classes;
         },
         whyAreYouKeepingConsumer,
@@ -107,8 +125,6 @@ public class GenerateMainDexList {
         options,
         timing,
         executor);
-
-    return mainDexInfo;
   }
 
   /**

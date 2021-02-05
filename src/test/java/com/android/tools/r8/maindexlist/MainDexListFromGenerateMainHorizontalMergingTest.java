@@ -5,6 +5,7 @@
 package com.android.tools.r8.maindexlist;
 
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -13,12 +14,10 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.TypeReference;
@@ -39,6 +38,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class MainDexListFromGenerateMainHorizontalMergingTest extends TestBase {
 
   private static List<ClassReference> mainDexList;
+
   private final TestParameters parameters;
 
   @Parameters(name = "{0}")
@@ -66,45 +66,30 @@ public class MainDexListFromGenerateMainHorizontalMergingTest extends TestBase {
   }
 
   @Test
-  public void testMainDexList() throws Exception {
+  public void test() throws Exception {
     assertEquals(3, mainDexList.size());
     Set<String> mainDexReferences =
         mainDexList.stream().map(TypeReference::getTypeName).collect(Collectors.toSet());
     assertTrue(mainDexReferences.contains(A.class.getTypeName()));
     assertTrue(mainDexReferences.contains(B.class.getTypeName()));
     assertTrue(mainDexReferences.contains(Main.class.getTypeName()));
-    runTest(builder -> builder.addMainDexListClassReferences(mainDexList));
-  }
 
-  @Test
-  public void testMainDexTracing() throws Exception {
-    runTest(
-        builder ->
-            builder.addMainDexRules(
-                "-keep class " + Main.class.getTypeName() + " { public static void foo(); }"));
-  }
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addInnerClasses(getClass())
+            .addInliningAnnotations()
+            .addKeepClassAndMembersRules(Main.class, Outside.class)
+            .addMainDexListClassReferences(mainDexList)
+            .collectMainDexClasses()
+            .enableInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
+            .setMinApi(parameters.getApiLevel())
+            .addHorizontallyMergedClassesInspector(
+                horizontallyMergedClassesInspector -> {
+                  horizontallyMergedClassesInspector.assertMergedInto(B.class, A.class);
+                })
+            .compile();
 
-  private void runTest(ThrowableConsumer<R8FullTestBuilder> testBuilder) throws Exception {
-    testForR8(parameters.getBackend())
-        .addInnerClasses(getClass())
-        .addInliningAnnotations()
-        .addKeepClassAndMembersRules(Main.class, Outside.class)
-        .collectMainDexClasses()
-        .enableInliningAnnotations()
-        .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspector(
-            horizontallyMergedClassesInspector -> {
-              horizontallyMergedClassesInspector.assertClassesNotMerged(B.class, A.class);
-            })
-        .apply(testBuilder)
-        .compile()
-        .apply(this::inspectCompileResult)
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputThatMatches(containsString(Outside.class.getTypeName()));
-  }
-
-  private void inspectCompileResult(R8TestCompileResult compileResult) throws Exception {
     CodeInspector inspector = compileResult.inspector();
     ClassSubject mainClassSubject = inspector.clazz(Main.class);
     assertThat(mainClassSubject, isPresent());
@@ -115,8 +100,9 @@ public class MainDexListFromGenerateMainHorizontalMergingTest extends TestBase {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
 
+    // TODO(b/178460068): Should be present, but was merged with A.
     ClassSubject bClassSubject = inspector.clazz(B.class);
-    assertThat(bClassSubject, isPresent());
+    assertThat(bClassSubject, isAbsent());
 
     MethodSubject fooASubject = aClassSubject.uniqueMethodWithName("foo");
     assertThat(fooASubject, isPresent());
@@ -126,15 +112,18 @@ public class MainDexListFromGenerateMainHorizontalMergingTest extends TestBase {
     compileResult.inspectMainDexClasses(
         mainDexClasses -> {
           assertEquals(
-              ImmutableSet.of(
-                  mainClassSubject.getFinalName(),
-                  aClassSubject.getFinalName(),
-                  bClassSubject.getFinalName()),
+              ImmutableSet.of(mainClassSubject.getFinalName(), aClassSubject.getFinalName()),
               mainDexClasses);
         });
+
+    compileResult
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputThatMatches(containsString(Outside.class.getTypeName()));
   }
 
   static class Main {
+
+    // public static B b;
 
     public static void main(String[] args) {
       B.print();

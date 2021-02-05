@@ -32,7 +32,6 @@ import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AndroidApp;
@@ -185,9 +184,9 @@ public final class D8 {
       SyntheticItems.collectSyntheticInputs(appView);
 
       if (!options.mainDexKeepRules.isEmpty()) {
-        MainDexInfo mainDexInfo =
-            new GenerateMainDexList(options).traceMainDex(executor, appView.appInfo().app());
-        appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(mainDexInfo));
+        new GenerateMainDexList(options)
+            .traceMainDex(
+                executor, appView.appInfo().app(), appView.appInfo().getMainDexClasses()::addAll);
       }
 
       final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
@@ -301,7 +300,7 @@ public final class D8 {
           appView.setAppInfo(
               new AppInfo(
                   appView.appInfo().getSyntheticItems().commit(app),
-                  appView.appInfo().getMainDexInfo()));
+                  appView.appInfo().getMainDexClasses()));
           namingLens = NamingLens.getIdentityLens();
         }
 
@@ -359,7 +358,7 @@ public final class D8 {
     appView.setAppInfo(
         new AppInfo(
             appView.appInfo().getSyntheticItems().commit(cfApp),
-            appView.appInfo().getMainDexInfo()));
+            appView.appInfo().getMainDexClasses()));
     ConvertedCfFiles convertedCfFiles = new ConvertedCfFiles();
     NamingLens prefixRewritingNamingLens =
         PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);

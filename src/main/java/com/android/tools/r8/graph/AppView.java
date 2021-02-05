@@ -31,7 +31,7 @@ import com.android.tools.r8.optimize.MemberRebindingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.LibraryModeledPredicate;
-import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.ProguardCompatibilityActions;
 import com.android.tools.r8.shaking.RootSetUtils.MainDexRootSet;
 import com.android.tools.r8.shaking.RootSetUtils.RootSet;
@@ -97,6 +97,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private EnumDataMap unboxedEnums = EnumDataMap.empty();
   // TODO(b/169115389): Remove
   private Set<DexMethod> cfByteCodePassThrough = ImmutableSet.of();
+
   private Map<DexType, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();
 
   // When input has been (partially) desugared these are the classes which has been library
@@ -156,16 +157,16 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public static AppView<AppInfoWithClassHierarchy> createForR8(DexApplication application) {
-    return createForR8(application, MainDexInfo.createEmptyMainDexClasses());
+    return createForR8(application, MainDexClasses.createEmptyMainDexClasses());
   }
 
   public static AppView<AppInfoWithClassHierarchy> createForR8(
-      DexApplication application, MainDexInfo mainDexInfo) {
+      DexApplication application, MainDexClasses mainDexClasses) {
     ClassToFeatureSplitMap classToFeatureSplitMap =
         ClassToFeatureSplitMap.createInitialClassToFeatureSplitMap(application.options);
     AppInfoWithClassHierarchy appInfo =
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
-            application, classToFeatureSplitMap, mainDexInfo);
+            application, classToFeatureSplitMap, mainDexClasses);
     return new AppView<>(
         appInfo, WholeProgramOptimizations.ON, defaultPrefixRewritingMapper(appInfo));
   }

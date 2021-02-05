@@ -31,7 +31,7 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.AccessFlags;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.ClassAccessFlags;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.FieldAccessFlags;
@@ -236,7 +236,7 @@ class Tracer {
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
             application,
             ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
-            MainDexInfo.createEmptyMainDexClasses());
+            MainDexClasses.createEmptyMainDexClasses());
   }
 
   void run(TraceReferencesConsumer consumer) {

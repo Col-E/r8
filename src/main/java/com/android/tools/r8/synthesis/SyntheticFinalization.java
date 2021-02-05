@@ -23,7 +23,7 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
@@ -225,7 +225,7 @@ public class SyntheticFinalization {
     assert !appView.appInfo().hasClassHierarchy();
     assert !appView.appInfo().hasLiveness();
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
-    appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexInfo()));
+    appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexClasses()));
     appView.pruneItems(result.prunedItems);
     if (result.lens != null) {
       appView.setGraphLens(result.lens);
@@ -252,7 +252,7 @@ public class SyntheticFinalization {
   Result computeFinalSynthetics(AppView<?> appView) {
     assert verifyNoNestedSynthetics();
     DexApplication application;
-    MainDexInfo mainDexInfo = appView.appInfo().getMainDexInfo();
+    MainDexClasses mainDexClasses = appView.appInfo().getMainDexClasses();
     Builder lensBuilder = new Builder();
     ImmutableMap.Builder<DexType, SyntheticMethodReference> finalMethodsBuilder =
         ImmutableMap.builder();
@@ -266,6 +266,7 @@ public class SyntheticFinalization {
               appView,
               computeEquivalences(appView, synthetics.getNonLegacyMethods().values(), generators),
               computeEquivalences(appView, synthetics.getNonLegacyClasses().values(), generators),
+              mainDexClasses,
               lensBuilder,
               (clazz, reference) -> {
                 finalSyntheticProgramDefinitions.add(clazz);
@@ -281,9 +282,13 @@ public class SyntheticFinalization {
         finalClassesBuilder.build();
 
     handleSynthesizedClassMapping(
-        finalSyntheticProgramDefinitions, application, options, mainDexInfo, lensBuilder.typeMap);
+        finalSyntheticProgramDefinitions,
+        application,
+        options,
+        mainDexClasses,
+        lensBuilder.typeMap);
 
-    assert appView.appInfo().getMainDexInfo() == mainDexInfo;
+    assert appView.appInfo().getMainDexClasses() == mainDexClasses;
 
     Set<DexType> prunedSynthetics = Sets.newIdentityHashSet();
     synthetics.forEachNonLegacyItem(
@@ -347,13 +352,14 @@ public class SyntheticFinalization {
       List<DexProgramClass> finalSyntheticClasses,
       DexApplication application,
       InternalOptions options,
-      MainDexInfo mainDexInfo,
+      MainDexClasses mainDexClasses,
       Map<DexType, DexType> derivedMainDexTypesToIgnore) {
     boolean includeSynthesizedClassMappingInOutput = shouldAnnotateSynthetics(options);
     if (includeSynthesizedClassMappingInOutput) {
       updateSynthesizedClassMapping(application, finalSyntheticClasses);
     }
-    updateMainDexListWithSynthesizedClassMap(application, mainDexInfo, derivedMainDexTypesToIgnore);
+    updateMainDexListWithSynthesizedClassMap(
+        application, mainDexClasses, derivedMainDexTypesToIgnore);
     if (!includeSynthesizedClassMappingInOutput) {
       clearSynthesizedClassMapping(application);
     }
@@ -399,13 +405,13 @@ public class SyntheticFinalization {
 
   private void updateMainDexListWithSynthesizedClassMap(
       DexApplication application,
-      MainDexInfo mainDexInfo,
+      MainDexClasses mainDexClasses,
       Map<DexType, DexType> derivedMainDexTypesToIgnore) {
-    if (mainDexInfo.isEmpty()) {
+    if (mainDexClasses.isEmpty()) {
       return;
     }
     List<DexProgramClass> newMainDexClasses = new ArrayList<>();
-    mainDexInfo.forEachExcludingDependencies(
+    mainDexClasses.forEach(
         dexType -> {
           DexProgramClass programClass =
               DexProgramClass.asProgramClassOrNull(application.definitionFor(dexType));
@@ -423,7 +429,7 @@ public class SyntheticFinalization {
             }
           }
         });
-    newMainDexClasses.forEach(mainDexInfo::addSyntheticClass);
+    mainDexClasses.addAll(newMainDexClasses);
   }
 
   private void clearSynthesizedClassMapping(DexApplication application) {
@@ -437,6 +443,7 @@ public class SyntheticFinalization {
       AppView<?> appView,
       Map<DexType, EquivalenceGroup<SyntheticMethodDefinition>> syntheticMethodGroups,
       Map<DexType, EquivalenceGroup<SyntheticProgramClassDefinition>> syntheticClassGroups,
+      MainDexClasses mainDexClasses,
       Builder lensBuilder,
       BiConsumer<DexProgramClass, SyntheticProgramClassReference> addFinalSyntheticClass,
       BiConsumer<DexProgramClass, SyntheticMethodReference> addFinalSyntheticMethod) {
@@ -446,8 +453,7 @@ public class SyntheticFinalization {
 
     // TODO(b/168584485): Remove this once class-mapping support is removed.
     Set<DexType> derivedMainDexTypes = Sets.newIdentityHashSet();
-    MainDexInfo mainDexInfo = appView.appInfo().getMainDexInfo();
-    mainDexInfo.forEachExcludingDependencies(
+    mainDexClasses.forEach(
         mainDexType -> {
           derivedMainDexTypes.add(mainDexType);
           DexProgramClass mainDexClass =
@@ -560,7 +566,7 @@ public class SyntheticFinalization {
             addMainDexAndSynthesizedFromForMember(
                 member,
                 externalSyntheticClass,
-                mainDexInfo,
+                mainDexClasses,
                 derivedMainDexTypes,
                 appForLookup::programDefinitionFor);
           }
@@ -582,7 +588,7 @@ public class SyntheticFinalization {
             addMainDexAndSynthesizedFromForMember(
                 member,
                 externalSyntheticClass,
-                mainDexInfo,
+                mainDexClasses,
                 derivedMainDexTypes,
                 appForLookup::programDefinitionFor);
           }
@@ -632,12 +638,12 @@ public class SyntheticFinalization {
   private static void addMainDexAndSynthesizedFromForMember(
       SyntheticDefinition<?, ?, ?> member,
       DexProgramClass externalSyntheticClass,
-      MainDexInfo mainDexInfo,
+      MainDexClasses mainDexClasses,
       Set<DexType> derivedMainDexTypes,
       Function<DexType, DexProgramClass> definitions) {
     member
         .getContext()
-        .addIfDerivedFromMainDexClass(externalSyntheticClass, mainDexInfo, derivedMainDexTypes);
+        .addIfDerivedFromMainDexClass(externalSyntheticClass, mainDexClasses, derivedMainDexTypes);
     // TODO(b/168584485): Remove this once class-mapping support is removed.
     DexProgramClass from = definitions.apply(member.getContext().getSynthesizingContextType());
     if (from != null) {

@@ -12,16 +12,18 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.shaking.MainDexDirectReferenceTracer;
+import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.google.common.collect.Iterables;
 
 public class DontInlinePolicy extends SingleClassPolicy {
   private final AppView<AppInfoWithLiveness> appView;
-  private final MainDexInfo mainDexInfo;
+  private final MainDexTracingResult mainDexTracingResult;
 
-  public DontInlinePolicy(AppView<AppInfoWithLiveness> appView) {
+  public DontInlinePolicy(
+      AppView<AppInfoWithLiveness> appView, MainDexTracingResult mainDexTracingResult) {
     this.appView = appView;
-    this.mainDexInfo = appView.appInfo().getMainDexInfo();
+    this.mainDexTracingResult = mainDexTracingResult;
   }
 
   private boolean disallowInlining(ProgramMethod method) {
@@ -41,6 +43,14 @@ public class DontInlinePolicy extends SingleClassPolicy {
     ConstraintWithTarget constraint =
         cfCode.computeInliningConstraint(method, appView, appView.graphLens(), method);
     if (constraint == ConstraintWithTarget.NEVER) {
+      return true;
+    }
+
+    // Constructors can have references beyond the root main dex classes. This can increase the
+    // size of the main dex dependent classes and we should bail out.
+    if (mainDexTracingResult.getRoots().contains(method.getHolderType())
+        && MainDexDirectReferenceTracer.hasReferencesOutsideFromCode(
+            appView.appInfo(), method, mainDexTracingResult.getRoots())) {
       return true;
     }
 

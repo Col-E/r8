@@ -19,7 +19,13 @@ public class EnqueuerFactory {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ExecutorService executorService,
       SubtypingInfo subtypingInfo) {
-    return new Enqueuer(appView, executorService, subtypingInfo, null, Mode.INITIAL_TREE_SHAKING);
+    return new Enqueuer(
+        appView,
+        executorService,
+        subtypingInfo,
+        null,
+        Mode.INITIAL_TREE_SHAKING,
+        MainDexTracingResult.NONE);
   }
 
   public static Enqueuer createForFinalTreeShaking(
@@ -30,7 +36,12 @@ public class EnqueuerFactory {
       Set<DexType> initialPrunedTypes) {
     Enqueuer enqueuer =
         new Enqueuer(
-            appView, executorService, subtypingInfo, keptGraphConsumer, Mode.FINAL_TREE_SHAKING);
+            appView,
+            executorService,
+            subtypingInfo,
+            keptGraphConsumer,
+            Mode.FINAL_TREE_SHAKING,
+            MainDexTracingResult.NONE);
     appView.withProtoShrinker(
         shrinker -> enqueuer.setInitialDeadProtoTypes(shrinker.getDeadProtoTypes()));
     enqueuer.setInitialPrunedTypes(initialPrunedTypes);
@@ -42,16 +53,27 @@ public class EnqueuerFactory {
       ExecutorService executorService,
       SubtypingInfo subtypingInfo) {
     return new Enqueuer(
-        appView, executorService, subtypingInfo, null, Mode.INITIAL_MAIN_DEX_TRACING);
+        appView,
+        executorService,
+        subtypingInfo,
+        null,
+        Mode.INITIAL_MAIN_DEX_TRACING,
+        MainDexTracingResult.NONE);
   }
 
   public static Enqueuer createForFinalMainDexTracing(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ExecutorService executorService,
       SubtypingInfo subtypingInfo,
-      GraphConsumer keptGraphConsumer) {
+      GraphConsumer keptGraphConsumer,
+      MainDexTracingResult previousMainDexTracingResult) {
     return new Enqueuer(
-        appView, executorService, subtypingInfo, keptGraphConsumer, Mode.FINAL_MAIN_DEX_TRACING);
+        appView,
+        executorService,
+        subtypingInfo,
+        keptGraphConsumer,
+        Mode.FINAL_MAIN_DEX_TRACING,
+        previousMainDexTracingResult);
   }
 
   public static Enqueuer createForWhyAreYouKeeping(
@@ -60,6 +82,11 @@ public class EnqueuerFactory {
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer) {
     return new Enqueuer(
-        appView, executorService, subtypingInfo, keptGraphConsumer, Mode.WHY_ARE_YOU_KEEPING);
+        appView,
+        executorService,
+        subtypingInfo,
+        keptGraphConsumer,
+        Mode.WHY_ARE_YOU_KEEPING,
+        MainDexTracingResult.NONE);
   }
 }

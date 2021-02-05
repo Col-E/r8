@@ -59,7 +59,7 @@ import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
@@ -84,7 +84,7 @@ public class Inliner implements PostOptimization {
   protected final AppView<AppInfoWithLiveness> appView;
   private final Set<DexMethod> extraNeverInlineMethods;
   private final LensCodeRewriter lensCodeRewriter;
-  final MainDexInfo mainDexInfo;
+  final MainDexTracingResult mainDexClasses;
 
   // State for inlining methods which are known to be called twice.
   private boolean applyDoubleInlining = false;
@@ -97,6 +97,7 @@ public class Inliner implements PostOptimization {
 
   public Inliner(
       AppView<AppInfoWithLiveness> appView,
+      MainDexTracingResult mainDexClasses,
       LensCodeRewriter lensCodeRewriter) {
     Kotlin.Intrinsics intrinsics = appView.dexItemFactory().kotlin.intrinsics;
     this.appView = appView;
@@ -105,7 +106,7 @@ public class Inliner implements PostOptimization {
             ? ImmutableSet.of()
             : ImmutableSet.of(intrinsics.throwNpe, intrinsics.throwParameterIsNullException);
     this.lensCodeRewriter = lensCodeRewriter;
-    this.mainDexInfo = appView.appInfo().getMainDexInfo();
+    this.mainDexClasses = mainDexClasses;
     availableApiExceptions =
         appView.options().canHaveDalvikCatchHandlerVerificationBug()
             ? new AvailableApiExceptions(appView.options())

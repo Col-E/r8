@@ -17,7 +17,7 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,15 +57,24 @@ public class SyntheticArgumentClass {
 
     private final DirectMappedDexApplication.Builder appBuilder;
     private final AppView<AppInfoWithLiveness> appView;
+    private final MainDexTracingResult mainDexTracingResult;
+    private final MainDexTracingResult.Builder mainDexTracingResultBuilder;
 
-    Builder(DirectMappedDexApplication.Builder appBuilder, AppView<AppInfoWithLiveness> appView) {
+    Builder(
+        DirectMappedDexApplication.Builder appBuilder,
+        AppView<AppInfoWithLiveness> appView,
+        MainDexTracingResult mainDexTracingResult,
+        MainDexTracingResult.Builder mainDexTracingResultBuilder) {
       this.appBuilder = appBuilder;
       this.appView = appView;
+      this.mainDexTracingResult = mainDexTracingResult;
+      this.mainDexTracingResultBuilder = mainDexTracingResultBuilder;
     }
 
     private DexType synthesizeClass(
         DexProgramClass context,
         boolean requiresMainDex,
+        boolean addToMainDexTracingResult,
         int index) {
       DexType syntheticClassType =
           appView
@@ -99,6 +108,10 @@ public class SyntheticArgumentClass {
 
       appBuilder.addSynthesizedClass(clazz);
       appView.appInfo().addSynthesizedClass(clazz, requiresMainDex);
+      if (addToMainDexTracingResult) {
+        mainDexTracingResultBuilder.addRoot(clazz);
+      }
+
       return clazz.type;
     }
 
@@ -106,17 +119,20 @@ public class SyntheticArgumentClass {
       // Find a fresh name in an existing package.
       DexProgramClass context = mergeClasses.iterator().next();
 
-      // Add as a root to the main dex tracing result if any of the merged classes is a root.
+      // Add to the main dex list if one of the merged classes is in the main dex.
+      boolean requiresMainDex = appView.appInfo().getMainDexClasses().containsAnyOf(mergeClasses);
+
+      // Also add as a root to the main dex tracing result if any of the merged classes is a root.
       // This is needed to satisfy an assertion in the inliner that verifies that we do not inline
       // methods with references to non-roots into classes that are roots.
-      MainDexInfo mainDexInfo = appView.appInfo().getMainDexInfo();
-      boolean requiresMainDex = Iterables.any(mergeClasses, mainDexInfo::isMainDex);
+      boolean addToMainDexTracingResult = Iterables.any(mergeClasses, mainDexTracingResult::isRoot);
 
       List<DexType> syntheticArgumentTypes = new ArrayList<>();
       for (int i = 0;
           i < appView.options().horizontalClassMergerOptions().getSyntheticArgumentCount();
           i++) {
-        syntheticArgumentTypes.add(synthesizeClass(context, requiresMainDex, i));
+        syntheticArgumentTypes.add(
+            synthesizeClass(context, requiresMainDex, addToMainDexTracingResult, i));
       }
 
       return new SyntheticArgumentClass(syntheticArgumentTypes);

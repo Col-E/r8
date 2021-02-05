@@ -219,22 +219,23 @@ public class VerticalClassMerger {
   // All the bridge methods that have been synthesized during vertical class merging.
   private final List<SynthesizedBridgeCode> synthesizedBridges = new ArrayList<>();
 
-  private final MainDexInfo mainDexInfo;
+  private final MainDexTracingResult mainDexClasses;
 
   public VerticalClassMerger(
       DexApplication application,
       AppView<AppInfoWithLiveness> appView,
       ExecutorService executorService,
-      Timing timing) {
+      Timing timing,
+      MainDexTracingResult mainDexClasses) {
     this.application = application;
     this.appInfo = appView.appInfo();
     this.appView = appView;
-    this.mainDexInfo = appInfo.getMainDexInfo();
     this.subtypingInfo = appInfo.computeSubtypingInfo();
     this.executorService = executorService;
     this.methodPoolCollection = new MethodPoolCollection(appView, subtypingInfo);
     this.lensBuilder = new VerticalClassMergerGraphLens.Builder(appView.dexItemFactory());
     this.timing = timing;
+    this.mainDexClasses = mainDexClasses;
 
     Iterable<DexProgramClass> classes = application.classesWithDeterministicOrder();
     initializePinnedTypes(classes); // Must be initialized prior to mergeCandidates.
@@ -825,8 +826,20 @@ public class VerticalClassMerger {
       return;
     }
 
-    // Check with main dex classes to see if we are allowed to merge.
-    if (!mainDexInfo.canMerge(clazz, targetClass)) {
+    // For a main dex class in the dependent set only merge with other classes in either main dex
+    // set.
+    if ((mainDexClasses.getDependencies().contains(clazz.type)
+            || mainDexClasses.getDependencies().contains(targetClass.type))
+        && !(mainDexClasses.getClasses().contains(clazz.type)
+            && mainDexClasses.getClasses().contains(targetClass.type))) {
+      return;
+    }
+
+    // For a main dex class in the root set only merge with other classes in main dex root set.
+    if ((mainDexClasses.getRoots().contains(clazz.type)
+            || mainDexClasses.getRoots().contains(targetClass.type))
+        && !(mainDexClasses.getRoots().contains(clazz.type)
+            && mainDexClasses.getRoots().contains(targetClass.type))) {
       return;
     }
 
@@ -1657,7 +1670,9 @@ public class VerticalClassMerger {
         }
         // Constructors can have references beyond the root main dex classes. This can increase the
         // size of the main dex dependent classes and we should bail out.
-        if (mainDexInfo.disallowInliningIntoContext(appView.appInfo(), context, method)) {
+        if (mainDexClasses.getRoots().contains(context.type)
+            && MainDexDirectReferenceTracer.hasReferencesOutsideFromCode(
+                appView.appInfo(), method, mainDexClasses.getRoots())) {
           return AbortReason.MAIN_DEX_ROOT_OUTSIDE_REFERENCE;
         }
         return null;

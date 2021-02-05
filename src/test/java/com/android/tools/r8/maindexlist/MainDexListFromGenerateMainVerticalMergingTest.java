@@ -5,6 +5,7 @@
 package com.android.tools.r8.maindexlist;
 
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -12,17 +13,16 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
@@ -66,34 +66,23 @@ public class MainDexListFromGenerateMainVerticalMergingTest extends TestBase {
   }
 
   @Test
-  public void testMainDexList() throws Exception {
+  public void test() throws Exception {
     assertEquals(3, mainDexList.size());
     Set<String> mainDexReferences =
         mainDexList.stream().map(TypeReference::getTypeName).collect(Collectors.toSet());
     assertTrue(mainDexReferences.contains(A.class.getTypeName()));
     assertTrue(mainDexReferences.contains(B.class.getTypeName()));
     assertTrue(mainDexReferences.contains(Main.class.getTypeName()));
-    runTest(builder -> builder.addMainDexListClassReferences(mainDexList));
-  }
 
-  @Test
-  public void testMainTracing() throws Exception {
-    runTest(
-        builder ->
-            builder.addMainDexRules(
-                "-keep class " + Main.class.getTypeName() + " { public static void foo(); }"));
-  }
-
-  private void runTest(ThrowableConsumer<R8FullTestBuilder> testBuilder) throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addInnerClasses(getClass())
             .addInliningAnnotations()
             .addKeepClassAndMembersRules(Main.class, Outside.class)
+            .addMainDexListClassReferences(mainDexList)
             .collectMainDexClasses()
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
-            .apply(testBuilder)
             .setMinApi(parameters.getApiLevel())
             .compile();
 
@@ -105,23 +94,25 @@ public class MainDexListFromGenerateMainVerticalMergingTest extends TestBase {
     assertThat(fooMethodSubject, isPresent());
 
     ClassSubject aClassSubject = inspector.clazz(A.class);
-    assertThat(aClassSubject, isPresent());
-
-    MethodSubject fooAMethodSubject = aClassSubject.uniqueMethodWithName("foo");
-    assertThat(fooAMethodSubject, isPresent());
+    // TODO(b/178460068): Should be present, but was merged with B.
+    assertThat(aClassSubject, isAbsent());
 
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
 
-    assertThat(fooMethodSubject, invokesMethod(fooAMethodSubject));
+    FieldSubject outsideFieldSubject = bClassSubject.uniqueFieldWithName("outsideField");
+    assertThat(outsideFieldSubject, isPresent());
 
+    MethodSubject fooBMethodSubject = bClassSubject.uniqueMethodWithName("foo");
+    assertThat(fooBMethodSubject, isPresent());
+
+    assertThat(fooMethodSubject, invokesMethod(fooBMethodSubject));
+
+    // TODO(b/178460068): B should not be in main dex.
     compileResult.inspectMainDexClasses(
         mainDexClasses -> {
           assertEquals(
-              ImmutableSet.of(
-                  mainClassSubject.getFinalName(),
-                  aClassSubject.getFinalName(),
-                  bClassSubject.getFinalName()),
+              ImmutableSet.of(mainClassSubject.getFinalName(), bClassSubject.getFinalName()),
               mainDexClasses);
         });
 

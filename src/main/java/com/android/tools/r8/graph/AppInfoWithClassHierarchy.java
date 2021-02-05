@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection.Builder;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
-import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
@@ -56,11 +56,11 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public static AppInfoWithClassHierarchy createInitialAppInfoWithClassHierarchy(
       DexApplication application,
       ClassToFeatureSplitMap classToFeatureSplitMap,
-      MainDexInfo mainDexInfo) {
+      MainDexClasses mainDexClasses) {
     return new AppInfoWithClassHierarchy(
         SyntheticItems.createInitialSyntheticItems(application),
         classToFeatureSplitMap,
-        mainDexInfo,
+        mainDexClasses,
         MissingClasses.empty());
   }
 
@@ -74,9 +74,9 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   protected AppInfoWithClassHierarchy(
       CommittedItems committedItems,
       ClassToFeatureSplitMap classToFeatureSplitMap,
-      MainDexInfo mainDexInfo,
+      MainDexClasses mainDexClasses,
       MissingClasses missingClasses) {
-    super(committedItems, mainDexInfo);
+    super(committedItems, mainDexClasses);
     this.classToFeatureSplitMap = classToFeatureSplitMap;
     this.missingClasses = missingClasses;
   }
@@ -97,33 +97,24 @@ public class AppInfoWithClassHierarchy extends AppInfo {
 
   public final AppInfoWithClassHierarchy rebuildWithClassHierarchy(CommittedItems commit) {
     return new AppInfoWithClassHierarchy(
-        commit, getClassToFeatureSplitMap(), getMainDexInfo(), getMissingClasses());
+        commit, getClassToFeatureSplitMap(), getMainDexClasses(), getMissingClasses());
   }
 
   public final AppInfoWithClassHierarchy rebuildWithClassHierarchy(MissingClasses missingClasses) {
     return new AppInfoWithClassHierarchy(
         getSyntheticItems().commit(app()),
         getClassToFeatureSplitMap(),
-        getMainDexInfo(),
+        getMainDexClasses(),
         missingClasses);
   }
 
   public AppInfoWithClassHierarchy rebuildWithClassHierarchy(
       Function<DexApplication, DexApplication> fn) {
-    assert checkIfObsolete();
     return new AppInfoWithClassHierarchy(
         getSyntheticItems().commit(fn.apply(app())),
         getClassToFeatureSplitMap(),
-        getMainDexInfo(),
+        getMainDexClasses(),
         getMissingClasses());
-  }
-
-  @Override
-  public AppInfoWithClassHierarchy rebuildWithMainDexInfo(MainDexInfo mainDexInfo) {
-    assert getClass() == AppInfoWithClassHierarchy.class;
-    assert checkIfObsolete();
-    return new AppInfoWithClassHierarchy(
-        getSyntheticItems().commit(app()), classToFeatureSplitMap, mainDexInfo, missingClasses);
   }
 
   @Override
@@ -137,7 +128,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return new AppInfoWithClassHierarchy(
         getSyntheticItems().commitPrunedItems(prunedItems),
         getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
-        getMainDexInfo().withoutPrunedItems(prunedItems),
+        getMainDexClasses().withoutPrunedItems(prunedItems),
         getMissingClasses());
   }
 
