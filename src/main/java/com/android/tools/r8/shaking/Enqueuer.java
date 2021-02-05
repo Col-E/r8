@@ -364,7 +364,8 @@ public class Enqueuer {
    * A map from annotation classes to annotations that need to be processed should the classes ever
    * become live.
    */
-  private final Map<DexType, Set<DexAnnotation>> deferredAnnotations = new IdentityHashMap<>();
+  private final Map<DexType, Map<DexAnnotation, ProgramDefinition>> deferredAnnotations =
+      new IdentityHashMap<>();
 
   /** Map of active if rules to speed up aapt2 generated keep rules. */
   private Map<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> activeIfRules;
@@ -1830,14 +1831,17 @@ public class Enqueuer {
       enqueueFirstNonSerializableClassInitializer(clazz, reason);
     }
 
-    processAnnotations(clazz, clazz);
+    processAnnotations(clazz);
 
     // If this type has deferred annotations, we have to process those now, too.
     if (clazz.isAnnotation()) {
-      Set<DexAnnotation> annotations = deferredAnnotations.remove(clazz.type);
-      if (annotations != null && !annotations.isEmpty()) {
-        assert annotations.stream().allMatch(a -> a.annotation.type == clazz.type);
-        annotations.forEach(annotation -> processAnnotation(clazz, clazz, annotation));
+      Map<DexAnnotation, ProgramDefinition> annotations =
+          deferredAnnotations.remove(clazz.getType());
+      if (annotations != null) {
+        assert annotations.keySet().stream()
+            .allMatch(a -> a.getAnnotationType() == clazz.getType());
+        annotations.forEach(
+            (annotation, annotatedItem) -> processAnnotation(annotatedItem, annotation));
       }
     }
 
@@ -1930,35 +1934,32 @@ public class Enqueuer {
     enqueueKeepRuleInstantiatedType(holder, reasons, instanceInitializer.getDefinition());
   }
 
-  private void processAnnotations(DexProgramClass holder, ProgramDefinition annotatedItem) {
-    processAnnotations(holder, annotatedItem, annotatedItem.getDefinition().annotations());
+  private void processAnnotations(ProgramDefinition annotatedItem) {
+    processAnnotations(annotatedItem, annotatedItem.getDefinition().annotations());
   }
 
-  private void processAnnotations(
-      DexProgramClass holder, ProgramDefinition annotatedItem, DexAnnotationSet annotations) {
-    processAnnotations(holder, annotatedItem, annotations.annotations);
+  private void processAnnotations(ProgramDefinition annotatedItem, DexAnnotationSet annotations) {
+    processAnnotations(annotatedItem, annotations.annotations);
   }
 
-  private void processAnnotations(
-      DexProgramClass holder, ProgramDefinition annotatedItem, DexAnnotation[] annotations) {
+  private void processAnnotations(ProgramDefinition annotatedItem, DexAnnotation[] annotations) {
     for (DexAnnotation annotation : annotations) {
-      processAnnotation(holder, annotatedItem, annotation);
+      processAnnotation(annotatedItem, annotation);
     }
   }
 
-  private void processAnnotation(
-      DexProgramClass holder, ProgramDefinition annotatedItem, DexAnnotation annotation) {
-    assert annotatedItem == holder || annotatedItem.asProgramMember().getHolder() == holder;
-    assert !holder.isDexClass() || holder.asDexClass().isProgramClass();
+  private void processAnnotation(ProgramDefinition annotatedItem, DexAnnotation annotation) {
     DexType type = annotation.getAnnotationType();
-    recordTypeReference(type, annotatedItem);
-    DexClass clazz = appView.definitionFor(type);
+    DexClass clazz = definitionFor(type, annotatedItem);
     boolean annotationTypeIsLibraryClass = clazz == null || clazz.isNotProgramClass();
     boolean isLive = annotationTypeIsLibraryClass || liveTypes.contains(clazz.asProgramClass());
     if (!shouldKeepAnnotation(appView, annotatedItem.getDefinition(), annotation, isLive)) {
       // Remember this annotation for later.
       if (!annotationTypeIsLibraryClass) {
-        deferredAnnotations.computeIfAbsent(type, ignore -> new HashSet<>()).add(annotation);
+        Map<DexAnnotation, ProgramDefinition> deferredAnnotationsForAnnotationType =
+            deferredAnnotations.computeIfAbsent(type, ignore -> new IdentityHashMap<>());
+        assert !deferredAnnotationsForAnnotationType.containsKey(annotation);
+        deferredAnnotationsForAnnotationType.put(annotation, annotatedItem);
       }
       return;
     }
@@ -2271,15 +2272,14 @@ public class Enqueuer {
 
   private void markMethodAsTargeted(ProgramMethod method, KeepReason reason) {
     DexEncodedMethod definition = method.getDefinition();
-    DexProgramClass holder = method.getHolder();
     if (!targetedMethods.add(definition, reason)) {
       // Already targeted.
       return;
     }
     markReferencedTypesAsLive(method);
-    processAnnotations(holder, method);
+    processAnnotations(method);
     definition.parameterAnnotationsList.forEachAnnotation(
-        annotation -> processAnnotation(holder, method, annotation));
+        annotation -> processAnnotation(method, annotation));
 
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Method `%s` is targeted.", method);
@@ -2287,7 +2287,7 @@ public class Enqueuer {
     if (forceProguardCompatibility) {
       // Keep targeted default methods in compatibility mode. The tree pruner will otherwise make
       // these methods abstract, whereas Proguard does not (seem to) touch their code.
-      if (!definition.isAbstract() && holder.isInterface()) {
+      if (!definition.isAbstract() && method.getHolder().isInterface()) {
         markMethodAsLiveWithCompatRule(method);
       }
     }
@@ -2680,7 +2680,7 @@ public class Enqueuer {
         Log.verbose(getClass(), "Adding instance field `%s` to live set (static context).", field);
       }
     }
-    processAnnotations(field.getHolder(), field);
+    processAnnotations(field);
     liveFields.add(field, reason);
 
     // Add all dependent members to the workqueue.
@@ -2695,11 +2695,7 @@ public class Enqueuer {
   private void markInstanceFieldAsLive(
       ProgramField field, ProgramDefinition context, KeepReason reason) {
     markFieldAsTargeted(field);
-
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Adding instance field `%s` to live set.", field);
-    }
-    processAnnotations(field.getHolder(), field);
+    processAnnotations(field);
     liveFields.add(field, reason);
 
     // Add all dependent members to the workqueue.
@@ -4007,7 +4003,6 @@ public class Enqueuer {
 
   // Package protected due to entry point from worklist.
   void markMethodAsLive(ProgramMethod method, ProgramDefinition context) {
-    DexProgramClass holder = method.getHolder();
     DexEncodedMethod definition = method.getDefinition();
 
     assert liveMethods.contains(definition);
@@ -4027,9 +4022,9 @@ public class Enqueuer {
       }
     }
     markParameterAndReturnTypesAsLive(method);
-    processAnnotations(holder, method);
+    processAnnotations(method);
     definition.parameterAnnotationsList.forEachAnnotation(
-        annotation -> processAnnotation(holder, method, annotation));
+        annotation -> processAnnotation(method, annotation));
 
     traceNonDesugaredCode(method);
 
