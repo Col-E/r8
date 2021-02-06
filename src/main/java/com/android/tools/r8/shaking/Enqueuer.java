@@ -177,6 +177,7 @@ public class Enqueuer {
     FINAL_TREE_SHAKING,
     INITIAL_MAIN_DEX_TRACING,
     FINAL_MAIN_DEX_TRACING,
+    GENERATE_MAIN_DEX_LIST,
     WHY_ARE_YOU_KEEPING;
 
     public boolean isInitialTreeShaking() {
@@ -199,8 +200,12 @@ public class Enqueuer {
       return this == FINAL_MAIN_DEX_TRACING;
     }
 
+    public boolean isGenerateMainDexList() {
+      return this == GENERATE_MAIN_DEX_LIST;
+    }
+
     public boolean isMainDexTracing() {
-      return isInitialMainDexTracing() || isFinalMainDexTracing();
+      return isInitialMainDexTracing() || isFinalMainDexTracing() || isGenerateMainDexList();
     }
 
     public boolean isWhyAreYouKeeping() {
@@ -3030,8 +3035,14 @@ public class Enqueuer {
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
     // Calculate the automatic main dex list according to legacy multidex constraints.
-    MainDexInfo.Builder builder = MainDexInfo.builder();
+    MainDexInfo.Builder builder = appView.appInfo().getMainDexInfo().builder();
     liveTypes.getItems().forEach(builder::addRoot);
+    if (mode.isInitialMainDexTracing()) {
+      liveMethods.getItems().forEach(method -> builder.addRoot(method.method));
+    } else {
+      assert appView.appInfo().getMainDexInfo().isTracedMethodRootsCleared()
+          || mode.isGenerateMainDexList();
+    }
     new MainDexListBuilder(appView, builder.getRoots(), builder).run();
     MainDexInfo previousMainDexInfo = appInfo.getMainDexInfo();
     return builder.build(previousMainDexInfo);

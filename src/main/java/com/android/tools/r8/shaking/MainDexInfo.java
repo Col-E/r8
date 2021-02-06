@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.LensUtils.rewriteAndApplyIfNotPrimitive
 import static com.android.tools.r8.utils.PredicateUtils.not;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -19,6 +20,7 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,7 +28,14 @@ import java.util.function.Consumer;
 
 public class MainDexInfo {
 
-  private static final MainDexInfo NONE = new MainDexInfo(Sets.newIdentityHashSet());
+  private static final MainDexInfo NONE =
+      new MainDexInfo(
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          false);
 
   public enum MainDexGroup {
     MAIN_DEX_LIST,
@@ -40,24 +49,38 @@ public class MainDexInfo {
   private final Map<DexType, DexType> synthesizedClassesMap;
   // Traced roots are traced main dex references.
   private final Set<DexType> tracedRoots;
+  // Traced method roots are the methods visited from an initial main dex root set. The set is
+  // cleared after the mergers has run.
+  private Set<DexMethod> tracedMethodRoots;
   // Traced dependencies are those classes that are directly referenced from traced roots, but will
   // not be loaded before loading the remaining dex files.
   private final Set<DexType> tracedDependencies;
+  // Bit indicating if the traced methods are cleared.
+  private boolean tracedMethodRootsCleared = false;
 
   private MainDexInfo(Set<DexType> classList) {
     this(
-        classList, Sets.newIdentityHashSet(), Sets.newIdentityHashSet(), Sets.newIdentityHashSet());
+        classList,
+        Collections.emptySet(),
+        Collections.emptySet(),
+        Collections.emptySet(),
+        /* synthesized classes - cannot be emptyset */ Sets.newIdentityHashSet(),
+        false);
   }
 
   private MainDexInfo(
       Set<DexType> classList,
       Set<DexType> tracedRoots,
+      Set<DexMethod> tracedMethodRoots,
       Set<DexType> tracedDependencies,
-      Set<DexType> synthesizedClasses) {
+      Set<DexType> synthesizedClasses,
+      boolean tracedMethodRootsCleared) {
     this.classList = classList;
     this.tracedRoots = tracedRoots;
+    this.tracedMethodRoots = tracedMethodRoots;
     this.tracedDependencies = tracedDependencies;
     this.synthesizedClassesMap = new ConcurrentHashMap<>();
+    this.tracedMethodRootsCleared = tracedMethodRootsCleared;
     synthesizedClasses.forEach(type -> synthesizedClassesMap.put(type, type));
     assert tracedDependencies.stream().noneMatch(tracedRoots::contains);
     assert tracedRoots.containsAll(synthesizedClasses);
@@ -84,6 +107,11 @@ public class MainDexInfo {
     return isTracedRoot(definition.getContextType());
   }
 
+  public boolean isTracedMethodRoot(DexMethod method) {
+    assert !tracedMethodRootsCleared : "Traced method roots are cleared after mergers has run";
+    return tracedMethodRoots.contains(method);
+  }
+
   private boolean isTracedRoot(DexReference reference) {
     return tracedRoots.contains(reference.getContextType());
   }
@@ -96,6 +124,15 @@ public class MainDexInfo {
     return tracedDependencies.contains(reference.getContextType());
   }
 
+  public boolean isTracedMethodRootsCleared() {
+    return tracedMethodRootsCleared;
+  }
+
+  public void clearTracedMethodRoots() {
+    this.tracedMethodRootsCleared = true;
+    this.tracedMethodRoots = Sets.newIdentityHashSet();
+  }
+
   public boolean canRebindReference(ProgramMethod context, DexReference referenceToTarget) {
     MainDexGroup holderGroup = getMainDexGroupInternal(context);
     if (holderGroup == MainDexGroup.NOT_IN_MAIN_DEX
@@ -105,8 +142,7 @@ public class MainDexInfo {
     }
     if (holderGroup == MainDexGroup.MAIN_DEX_LIST) {
       // If the holder is in the class list, we are not allowed to make any assumptions on the
-      // holder
-      // being a root or a dependency. Therefore we cannot merge.
+      // holder being a root or a dependency. Therefore we cannot merge.
       return false;
     }
     assert holderGroup == MAIN_DEX_ROOT;
@@ -244,6 +280,12 @@ public class MainDexInfo {
         .forEach(type -> ifNotRemoved(type, removedClasses, modifiedSynthesized::add));
     MainDexInfo.Builder builder = builder();
     tracedRoots.forEach(type -> ifNotRemoved(type, removedClasses, builder::addRoot));
+    // TODO(b/169927809): Methods could be pruned without the holder being pruned, however, one has
+    //  to have a reference for querying a root.
+    tracedMethodRoots.forEach(
+        method ->
+            ifNotRemoved(
+                method.getHolderType(), removedClasses, ignored -> builder.addRoot(method)));
     tracedDependencies.forEach(type -> ifNotRemoved(type, removedClasses, builder::addDependency));
     return builder.build(modifiedClassList, modifiedSynthesized);
   }
@@ -263,6 +305,7 @@ public class MainDexInfo {
     synthesizedClassesMap.keySet().forEach(type -> modifiedSynthesized.add(lens.lookupType(type)));
     MainDexInfo.Builder builder = builder();
     tracedRoots.forEach(type -> rewriteAndApplyIfNotPrimitiveType(lens, type, builder::addRoot));
+    tracedMethodRoots.forEach(method -> builder.addRoot(lens.getRenamedMethodSignature(method)));
     tracedDependencies.forEach(
         type -> {
           if (lens.isSyntheticFinalizationGraphLens()) {
@@ -276,25 +319,21 @@ public class MainDexInfo {
     return builder.build(modifiedClassList, modifiedSynthesized);
   }
 
-  public static Builder builder() {
-    return new Builder();
-  }
-
-  public static MainDexInfo createEmptyMainDexClasses() {
-    return new MainDexInfo(
-        Sets.newIdentityHashSet(),
-        Sets.newIdentityHashSet(),
-        Sets.newIdentityHashSet(),
-        Sets.newIdentityHashSet());
+  public Builder builder() {
+    return new Builder(tracedMethodRootsCleared);
   }
 
   public static class Builder {
 
     private final Set<DexType> list = Sets.newIdentityHashSet();
     private final Set<DexType> roots = Sets.newIdentityHashSet();
+    private final Set<DexMethod> methodRoots = Sets.newIdentityHashSet();
     private final Set<DexType> dependencies = Sets.newIdentityHashSet();
+    private final boolean tracedMethodRootsCleared;
 
-    private Builder() {}
+    private Builder(boolean tracedMethodRootsCleared) {
+      this.tracedMethodRootsCleared = tracedMethodRootsCleared;
+    }
 
     public void addList(DexProgramClass clazz) {
       addList(clazz.getType());
@@ -311,6 +350,10 @@ public class MainDexInfo {
     public void addRoot(DexType type) {
       assert !dependencies.contains(type);
       roots.add(type);
+    }
+
+    public void addRoot(DexMethod method) {
+      methodRoots.add(method);
     }
 
     public void addDependency(DexProgramClass clazz) {
@@ -371,8 +414,10 @@ public class MainDexInfo {
       return new MainDexInfo(
           classList,
           SetUtils.unionIdentityHashSet(roots, synthesizedClasses),
+          methodRoots,
           Sets.difference(dependencies, synthesizedClasses),
-          synthesizedClasses);
+          synthesizedClasses,
+          tracedMethodRootsCleared);
     }
 
     public MainDexInfo build(MainDexInfo previous) {

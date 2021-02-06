@@ -84,7 +84,7 @@ public class GenerateMainDexList {
     }
 
     Enqueuer enqueuer =
-        EnqueuerFactory.createForFinalMainDexTracing(
+        EnqueuerFactory.createForGenerateMainDexList(
             appView, executor, subtypingInfo, graphConsumer);
     MainDexInfo mainDexInfo = enqueuer.traceMainDex(executor, timing);
     R8.processWhyAreYouKeepingAndCheckDiscarded(

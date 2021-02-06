@@ -54,6 +54,15 @@ public class EnqueuerFactory {
         appView, executorService, subtypingInfo, keptGraphConsumer, Mode.FINAL_MAIN_DEX_TRACING);
   }
 
+  public static Enqueuer createForGenerateMainDexList(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ExecutorService executorService,
+      SubtypingInfo subtypingInfo,
+      GraphConsumer keptGraphConsumer) {
+    return new Enqueuer(
+        appView, executorService, subtypingInfo, keptGraphConsumer, Mode.GENERATE_MAIN_DEX_LIST);
+  }
+
   public static Enqueuer createForWhyAreYouKeeping(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ExecutorService executorService,
