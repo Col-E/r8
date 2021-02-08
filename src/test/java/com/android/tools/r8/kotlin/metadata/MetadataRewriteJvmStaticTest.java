@@ -92,10 +92,10 @@ public class MetadataRewriteJvmStaticTest extends KotlinMetadataTestBase {
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(kotlincLibJar.getForConfiguration(kotlinc, targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
             .addKeepAllClassesRule()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addDontWarnJetBrainsNotNullAnnotation()
-            .addDontWarnKotlin()
             .compile()
             .inspect(this::inspect)
             .writeToZip();

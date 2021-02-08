@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -62,7 +63,7 @@ public class B137392797 extends TestBase implements Opcodes {
             classWireFieldLabel(),
             classTest(defaultEnumValueInAnnotation))
         .addProgramClasses(TestClass.class)
-        .addDontWarnKotlin()
+        .addClasspathFiles(ToolHelper.getKotlinStdlibJar(ToolHelper.getKotlinC_1_3_72()))
         .addDontWarnJetBrainsAnnotations()
         .addKeepClassAndMembersRules(
             "com.squareup.wire.WireField", "com.squareup.demo.myapplication.Test")

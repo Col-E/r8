@@ -97,6 +97,7 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
             /// Keep the annotations
             .addKeepClassAndMembersRules(PKG_LIB + ".AnnoWithClassAndEnum")
             .addKeepClassAndMembersRules(PKG_LIB + ".AnnoWithClassArr")
@@ -119,7 +120,6 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
                 ProguardKeepAttributes.RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS,
                 ProguardKeepAttributes.RUNTIME_VISIBLE_TYPE_ANNOTATIONS)
             .addDontWarnJetBrainsNotNullAnnotation()
-            .addDontWarnKotlin()
             .compile()
             .inspect(this::inspect)
             .writeToZip();

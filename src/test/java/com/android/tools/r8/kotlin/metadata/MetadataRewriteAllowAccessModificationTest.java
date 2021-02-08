@@ -96,6 +96,7 @@ public class MetadataRewriteAllowAccessModificationTest extends KotlinMetadataTe
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
             .addKeepRules("-keepclassmembers,allowaccessmodification class **.Lib { *; }")
             .addKeepRules("-keep,allowaccessmodification,allowobfuscation class **.Lib { *; }")
             .addKeepRules("-keepclassmembers,allowaccessmodification class **.Lib$Comp { *; }")
@@ -112,7 +113,6 @@ public class MetadataRewriteAllowAccessModificationTest extends KotlinMetadataTe
                     "  void staticInternal() -> staticInternalReference"))
             .addKeepRuntimeVisibleAnnotations()
             .addDontWarnJetBrainsNotNullAnnotation()
-            .addDontWarnKotlin()
             .allowAccessModification()
             .compile()
             .inspect(this::inspect)

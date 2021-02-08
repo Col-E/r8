@@ -63,12 +63,12 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
   public void testMetadataForLib() throws Exception {
     Path outputJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(
+                ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc))
             .addProgramFiles(jars.getForConfiguration(kotlinc, targetVersion))
             .addKeepAllClassesRule()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addDontWarnJetBrainsAnnotations()
-            .addDontWarnKotlin()
             .compile()
             .inspect(
                 inspector ->

@@ -164,18 +164,6 @@ public abstract class TestShrinkerBuilder<
     return addDontWarn("org.jetbrains.annotations.Nullable");
   }
 
-  // TODO(b/176133676): Should not report missing classes for Kotlin classes.
-  @Deprecated
-  public T addDontWarnKotlin() {
-    return addDontWarn("kotlin.**");
-  }
-
-  // TODO(b/176133676): Should not report missing classes for Kotlin metadata.
-  @Deprecated
-  public T addDontWarnKotlinMetadata() {
-    return addDontWarn("kotlin.Metadata");
-  }
-
   public T addIgnoreWarnings() {
     return addKeepRules("-ignorewarnings");
   }

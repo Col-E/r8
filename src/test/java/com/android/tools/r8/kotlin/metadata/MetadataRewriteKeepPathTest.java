@@ -89,10 +89,10 @@ public class MetadataRewriteKeepPathTest extends KotlinMetadataTestBase {
   public void testMissing() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
+        .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .addKeepRules("-keep class " + LIB_CLASS_NAME)
         .addKeepRuntimeVisibleAnnotations()
         .addDontWarnJetBrainsNotNullAnnotation()
-        .addDontWarnKotlin()
         .compile()
         .inspect(inspector -> inspect(inspector, true));
   }

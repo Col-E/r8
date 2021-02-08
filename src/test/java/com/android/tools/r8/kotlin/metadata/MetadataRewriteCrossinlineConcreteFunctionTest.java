@@ -62,10 +62,10 @@ public class MetadataRewriteCrossinlineConcreteFunctionTest extends KotlinMetada
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
             .addKeepAllClassesRule()
             .addKeepAllAttributes()
             .addDontWarnJetBrainsNotNullAnnotation()
-            .addDontWarnKotlin()
             .compile()
             .writeToZip();
     Path output =
