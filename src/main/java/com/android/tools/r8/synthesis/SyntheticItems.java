@@ -274,18 +274,17 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     assert previous == null || previous == clazz;
   }
 
-  // TODO(b/172194101): Make this take a unique context.
   public DexProgramClass createClass(
       SyntheticKind kind,
-      DexProgramClass context,
+      UniqueContext context,
       DexItemFactory factory,
-      Supplier<String> syntheticIdSupplier,
       Consumer<SyntheticProgramClassBuilder> fn) {
     // Obtain the outer synthesizing context in the case the context itself is synthetic.
     // This is to ensure a flat input-type -> synthetic-item mapping.
-    SynthesizingContext outerContext = getSynthesizingContext(context);
+    SynthesizingContext outerContext = getSynthesizingContext(context.getClassContext());
     DexType type =
-        SyntheticNaming.createInternalType(kind, outerContext, syntheticIdSupplier.get(), factory);
+        SyntheticNaming.createInternalType(
+            kind, outerContext, context.getSyntheticSuffix(), factory);
     SyntheticProgramClassBuilder classBuilder =
         new SyntheticProgramClassBuilder(type, outerContext, factory);
     fn.accept(classBuilder);

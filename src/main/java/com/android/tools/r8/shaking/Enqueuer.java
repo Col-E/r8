@@ -3417,7 +3417,9 @@ public class Enqueuer {
     for (LambdaInfo lambdaInfo : lambdasForDesugaring) {
       // Add all desugared classes to the application, main-dex list, and mark them instantiated.
       ProgramMethod context = lambdaInfo.context;
-      LambdaClass lambdaClass = lambdaRewriter.createLambdaClass(lambdaInfo.descriptor, context);
+      LambdaClass lambdaClass =
+          lambdaRewriter.createLambdaClass(
+              lambdaInfo.descriptor, context, additions.getMethodContext(context));
       DexProgramClass programClass = lambdaClass.getLambdaProgramClass();
       additions.addInstantiatedClass(programClass, context);
       // Mark the instance constructor targeted and live.

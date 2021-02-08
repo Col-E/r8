@@ -1133,7 +1133,8 @@ public class IRConverter {
     Supplier<AppInfoWithClassHierarchy> lazyAppInfo =
         Suppliers.memoize(appView::appInfoForDesugaring);
     if (lambdaRewriter != null) {
-      didDesugar |= lambdaRewriter.desugarLambdas(method, lazyAppInfo.get()) > 0;
+      didDesugar |=
+          lambdaRewriter.desugarLambdas(method, lazyAppInfo.get(), methodProcessingContext) > 0;
     }
     if (backportedMethodRewriter != null) {
       didDesugar |=

@@ -13,6 +13,7 @@ import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfStore;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -37,8 +38,6 @@ import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -114,7 +113,10 @@ public class LambdaRewriter {
    *
    * <p>NOTE: this method can be called concurrently for several different methods.
    */
-  public int desugarLambdas(ProgramMethod method, AppInfoWithClassHierarchy appInfo) {
+  public int desugarLambdas(
+      ProgramMethod method,
+      AppInfoWithClassHierarchy appInfo,
+      MethodProcessingContext methodProcessingContext) {
     return desugarLambdas(
         method,
         callsite -> {
@@ -122,7 +124,7 @@ public class LambdaRewriter {
           if (descriptor == null) {
             return null;
           }
-          return createLambdaClass(descriptor, method);
+          return createLambdaClass(descriptor, method, methodProcessingContext);
         });
   }
 
@@ -211,24 +213,16 @@ public class LambdaRewriter {
   }
 
   // Creates a lambda class corresponding to the lambda descriptor and context.
-  public LambdaClass createLambdaClass(LambdaDescriptor descriptor, ProgramMethod accessedFrom) {
-    int nextId =
-        methodIds.compute(
-            accessedFrom.getReference(), (method, value) -> value == null ? 0 : value + 1);
+  public LambdaClass createLambdaClass(
+      LambdaDescriptor descriptor, ProgramMethod accessedFrom, MethodProcessingContext context) {
     Box<LambdaClass> box = new Box<>();
     DexProgramClass clazz =
         appView
             .getSyntheticItems()
             .createClass(
                 SyntheticNaming.SyntheticKind.LAMBDA,
-                accessedFrom.getHolder(),
+                context.createUniqueContext(),
                 appView.dexItemFactory(),
-                // TODO(b/172194101): Make this part of a unique context construction.
-                () -> {
-                  Hasher hasher = Hashing.sha256().newHasher();
-                  accessedFrom.getReference().hash(hasher);
-                  return "$" + hasher.hash().toString() + "$" + nextId;
-                },
                 builder ->
                     box.set(new LambdaClass(builder, appView, this, accessedFrom, descriptor)));
     // Immediately set the actual program class on the lambda.
