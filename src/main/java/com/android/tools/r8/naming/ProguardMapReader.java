@@ -222,6 +222,14 @@ public class ProguardMapReader implements AutoCloseable {
   private void parseClassMappings(ProguardMap.Builder mapBuilder) throws IOException {
     while (hasLine()) {
       skipWhitespace();
+      if (isCommentLineWithJsonBrace()) {
+        // TODO(b/179665169): Parse the mapping information without doing anything with it, since we
+        //  at this point do not have a global context.
+        MappingInformation.fromJsonObject(parseJsonInComment(), diagnosticsHandler, lineNo);
+        // Skip reading the rest of the line.
+        lineOffset = line.length();
+        nextLine();
+      }
       String before = parseType(false);
       skipWhitespace();
       // Workaround for proguard map files that contain entries for package-info.java files.

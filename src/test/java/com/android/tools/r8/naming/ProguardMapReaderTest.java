@@ -201,8 +201,7 @@ public class ProguardMapReaderTest extends TestBase {
     }
   }
 
-  // TODO(b/179665652, b/179506350): Should not fail.
-  @Test(expected = ParseException.class)
+  @Test()
   public void testCommentLineBeforeAnyClassMappings() throws IOException {
     String mapping =
         StringUtils.lines(
