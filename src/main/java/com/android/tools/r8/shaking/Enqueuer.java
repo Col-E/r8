@@ -386,19 +386,28 @@ public class Enqueuer {
 
   private final GraphReporter graphReporter;
 
+  private static final class LambdaInfo {
+    final ProgramMethod context;
+    final DexCallSite callsite;
+    final LambdaDescriptor descriptor;
+
+    public LambdaInfo(ProgramMethod context, DexCallSite callsite, LambdaDescriptor descriptor) {
+      this.context = context;
+      this.callsite = callsite;
+      this.descriptor = descriptor;
+    }
+  }
+
   private final LambdaRewriter lambdaRewriter;
+  private final List<LambdaInfo> lambdasForDesugaring = new ArrayList<>();
+
   private final BackportedMethodRewriter backportRewriter;
   private final NestBasedAccessDesugaring nestBasedAccessRewriter;
   private final TwrCloseResourceRewriter twrCloseResourceRewriter;
 
   private final DesugaredLibraryConversionWrapperAnalysis desugaredLibraryWrapperAnalysis;
-  private final Map<DexType, Pair<LambdaClass, ProgramMethod>> lambdaClasses =
-      new IdentityHashMap<>();
-  private final ProgramMethodMap<Map<DexCallSite, LambdaClass>> lambdaCallSites =
-      ProgramMethodMap.create();
   private final Map<DexMethod, ProgramMethod> methodsWithBackports = new IdentityHashMap<>();
   private final Map<DexMethod, ProgramMethod> methodsWithTwrCloseResource = new IdentityHashMap<>();
-  private final Set<DexProgramClass> classesWithSerializableLambdas = Sets.newIdentityHashSet();
   private final ProgramMethodSet pendingDesugaring = ProgramMethodSet.create();
 
   Enqueuer(
@@ -970,19 +979,10 @@ public class Enqueuer {
       return;
     }
 
-    DexEncodedMethod contextMethod = context.getDefinition();
     if (lambdaRewriter != null) {
-      assert contextMethod.getCode().isCfCode() : "Unexpected input type with lambdas";
-      CfCode code = contextMethod.getCode().asCfCode();
-      if (code != null) {
-        LambdaClass lambdaClass = lambdaRewriter.createLambdaClass(descriptor, context);
-        lambdaClasses.put(lambdaClass.type, new Pair<>(lambdaClass, context));
-        lambdaCallSites
-            .computeIfAbsent(context, k -> new IdentityHashMap<>())
-            .put(callSite, lambdaClass);
-        if (lambdaClass.descriptor.interfaces.contains(appView.dexItemFactory().serializableType)) {
-          classesWithSerializableLambdas.add(context.getHolder());
-        }
+      assert context.getDefinition().getCode().isCfCode() : "Unexpected input type with lambdas";
+      if (context.getDefinition().getCode().isCfCode()) {
+        lambdasForDesugaring.add(new LambdaInfo(context, callSite, descriptor));
       }
     } else {
       markLambdaAsInstantiated(descriptor, context);
@@ -3408,15 +3408,16 @@ public class Enqueuer {
   }
 
   private void synthesizeLambdas(SyntheticAdditions additions) {
-    if (lambdaRewriter == null || lambdaClasses.isEmpty()) {
-      assert lambdaCallSites.isEmpty();
-      assert classesWithSerializableLambdas.isEmpty();
+    if (lambdasForDesugaring.isEmpty()) {
       return;
     }
-    for (Pair<LambdaClass, ProgramMethod> lambdaClassAndContext : lambdaClasses.values()) {
+    assert lambdaRewriter != null;
+    ProgramMethodMap<Map<DexCallSite, LambdaClass>> lambdaCallSites = ProgramMethodMap.create();
+    Set<DexProgramClass> classesWithSerializableLambdas = Sets.newIdentityHashSet();
+    for (LambdaInfo lambdaInfo : lambdasForDesugaring) {
       // Add all desugared classes to the application, main-dex list, and mark them instantiated.
-      LambdaClass lambdaClass = lambdaClassAndContext.getFirst();
-      ProgramMethod context = lambdaClassAndContext.getSecond();
+      ProgramMethod context = lambdaInfo.context;
+      LambdaClass lambdaClass = lambdaRewriter.createLambdaClass(lambdaInfo.descriptor, context);
       DexProgramClass programClass = lambdaClass.getLambdaProgramClass();
       additions.addInstantiatedClass(programClass, context);
       // Mark the instance constructor targeted and live.
@@ -3425,6 +3426,14 @@ public class Enqueuer {
       ProgramMethod method = new ProgramMethod(programClass, constructor);
       markMethodAsTargeted(method, reason);
       markDirectStaticOrConstructorMethodAsLive(method, reason);
+      // Populate method -> info mapping for method rewriting.
+      lambdaCallSites
+          .computeIfAbsent(context, k -> new IdentityHashMap<>())
+          .put(lambdaInfo.callsite, lambdaClass);
+      // Populate set of types with serialized lambda method for removal.
+      if (lambdaInfo.descriptor.interfaces.contains(appView.dexItemFactory().serializableType)) {
+        classesWithSerializableLambdas.add(context.getHolder());
+      }
     }
 
     // Rewrite all of the invoke-dynamic instructions to lambda class instantiations.
@@ -3437,9 +3446,7 @@ public class Enqueuer {
     }
 
     // Clear state before next fixed point iteration.
-    lambdaClasses.clear();
-    lambdaCallSites.clear();
-    classesWithSerializableLambdas.clear();
+    lambdasForDesugaring.clear();
   }
 
   private void finalizeLibraryMethodOverrideInformation() {
