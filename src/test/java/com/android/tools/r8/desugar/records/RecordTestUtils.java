@@ -50,10 +50,10 @@ public class RecordTestUtils {
     // module patching logic.
     Path recordStubs =
         JavaCompilerTool.create(getCheckedInJdk8(), temp)
-            .addSourceFiles(Paths.get("src/test/javaStubs/Record.java"))
-            .addSourceFiles(Paths.get("src/test/javaStubs/ObjectMethods.java"))
-            .addSourceFiles(Paths.get("src/test/javaStubs/TypeDescriptor.java"))
-            .addSourceFiles(Paths.get("src/test/javaStubs/RecordComponent.java"))
+            .addSourceFiles(Paths.get("src", "test", "javaStubs", "Record.java"))
+            .addSourceFiles(Paths.get("src", "test", "javaStubs", "ObjectMethods.java"))
+            .addSourceFiles(Paths.get("src", "test", "javaStubs", "TypeDescriptor.java"))
+            .addSourceFiles(Paths.get("src", "test", "javaStubs", "RecordComponent.java"))
             .compile();
     builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar()).addLibraryFiles(recordStubs);
   }
