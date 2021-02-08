@@ -554,6 +554,11 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer removeMethodsWithName(String nameToRemove) {
+    return removeMethods(
+        (access, name, descriptor, signature, exceptions) -> name.equals(nameToRemove));
+  }
+
   public ClassFileTransformer renameMethod(MethodPredicate predicate, String newName) {
     return addClassTransformer(
         new ClassTransformer() {
