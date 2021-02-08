@@ -25,6 +25,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.TriFunction;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -288,6 +289,11 @@ public abstract class TestCompileResult<
 
   public CodeInspector inspector() throws IOException, ExecutionException {
     return new CodeInspector(app);
+  }
+
+  public CodeInspector inspector(Consumer<InternalOptions> debugOptionsConsumer)
+      throws IOException, ExecutionException {
+    return new CodeInspector(app, debugOptionsConsumer);
   }
 
   public <E extends Throwable> CR inspect(ThrowingConsumer<CodeInspector, E> consumer)

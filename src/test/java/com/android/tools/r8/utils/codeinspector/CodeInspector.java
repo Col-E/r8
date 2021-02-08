@@ -87,6 +87,10 @@ public class CodeInspector {
     this(Collections.singletonList(file), null, null);
   }
 
+  public CodeInspector(Path file, Consumer<InternalOptions> optionsConsumer) throws IOException {
+    this(Collections.singletonList(file), null, optionsConsumer);
+  }
+
   public CodeInspector(Collection<Path> files) throws IOException {
     this(files, null, null);
   }

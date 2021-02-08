@@ -153,6 +153,11 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
     return addClasspath(ToolHelper.getClassPathForTests());
   }
 
+  public JvmTestBuilder enablePreview() {
+    addVmArguments("--enable-preview");
+    return self();
+  }
+
   public JvmTestBuilder addVmArguments(Collection<String> arguments) {
     vmArguments.addAll(arguments);
     return self();

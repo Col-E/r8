@@ -43,7 +43,7 @@ public class SealedAttributeTest extends TestBase {
     assumeTrue(backend == Backend.CF);
     testForJvm()
         .addRunClasspathFiles(Sealed.jar())
-        .addVmArguments("--enable-preview")
+        .enablePreview()
         .run(TestRuntime.getCheckedInJdk15(), Sealed.Main.typeName())
         .assertSuccessWithOutputLines("R8 compiler", "D8 compiler");
   }

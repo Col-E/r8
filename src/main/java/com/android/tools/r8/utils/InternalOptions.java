@@ -1222,6 +1222,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       options.testing.enableExperimentalMissingClassesReporting = true;
     }
 
+    public static void allowExperimentClassFileVersion(InternalOptions options) {
+      options.reportedExperimentClassFileVersion.set(true);
+    }
+
     public static int NO_LIMIT = -1;
 
     // Force writing the specified bytes as the DEX version content.

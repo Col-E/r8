@@ -63,7 +63,12 @@ public abstract class DexClass extends DexDefinition implements Definition {
   /** InnerClasses table. If this class is an inner class, it will have an entry here. */
   private List<InnerClassAttribute> innerClasses;
 
+  /**
+   * Nest attributes. If this class was compiled in JDK 11 and higher, and is in a nest, one of the
+   * two attributes will be set.
+   */
   private NestHostClassAttribute nestHost;
+
   private final List<NestMemberClassAttribute> nestMembers;
 
   /** Generic signature information if the attribute is present in the input */
@@ -585,6 +590,10 @@ public abstract class DexClass extends DexDefinition implements Definition {
 
   public boolean isEnum() {
     return accessFlags.isEnum();
+  }
+
+  public boolean isRecord() {
+    return accessFlags.isRecord();
   }
 
   public abstract void addDependencies(MixedSectionCollection collector);

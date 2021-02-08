@@ -213,6 +213,18 @@ public class CfApplicationWriter {
           : "A nest host cannot also be a nest member.";
     }
 
+    if (clazz.isRecord()) {
+      // TODO(b/169645628): Strip record components if not kept.
+      for (DexEncodedField instanceField : clazz.instanceFields()) {
+        String componentName = namingLens.lookupName(instanceField.field).toString();
+        String componentDescriptor =
+            namingLens.lookupDescriptor(instanceField.field.type).toString();
+        String componentSignature =
+            instanceField.getGenericSignature().toRenamedString(namingLens, isTypeMissing);
+        writer.visitRecordComponent(componentName, componentDescriptor, componentSignature);
+      }
+    }
+
     for (InnerClassAttribute entry : clazz.getInnerClasses()) {
       entry.write(writer, namingLens, options);
     }

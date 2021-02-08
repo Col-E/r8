@@ -4,8 +4,15 @@
 
 package com.android.tools.r8.desugar.records;
 
+import static com.android.tools.r8.TestRuntime.getCheckedInJdk8;
+import static org.junit.Assert.assertTrue;
+
+import com.android.tools.r8.JavaCompilerTool;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,6 +23,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Records are compiled using: third_party/openjdk/jdk-15/linux/bin/javac --release 15
@@ -28,6 +36,26 @@ public class RecordTestUtils {
 
   public static Path jar() {
     return Paths.get(ToolHelper.TESTS_BUILD_DIR, EXAMPLE_FOLDER, RECORD_FOLDER + ".jar");
+  }
+
+  // TODO(b/169645628): Consider if that keep rule should be required or not.
+  public static final String RECORD_KEEP_RULE =
+      "-keepattributes *\n" + "-keep class * extends java.lang.Record { private final <fields>; }";
+
+  public static void setJdk15Library(R8FullTestBuilder builder, TemporaryFolder temp)
+      throws IOException {
+    // TODO(b/169645628): Add JDK-15 runtime jar instead. As a temporary solution we use the jdk 8
+    // runtime with additional stubs.
+    // We use jdk-8 for compilation because in jdk-9 and higher we would need to deal with the
+    // module patching logic.
+    Path recordStubs =
+        JavaCompilerTool.create(getCheckedInJdk8(), temp)
+            .addSourceFiles(Paths.get("src/test/javaStubs/Record.java"))
+            .addSourceFiles(Paths.get("src/test/javaStubs/ObjectMethods.java"))
+            .addSourceFiles(Paths.get("src/test/javaStubs/TypeDescriptor.java"))
+            .addSourceFiles(Paths.get("src/test/javaStubs/RecordComponent.java"))
+            .compile();
+    builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar()).addLibraryFiles(recordStubs);
   }
 
   public static byte[][] getProgramData(String mainClassSimpleName) {
@@ -67,5 +95,14 @@ public class RecordTestUtils {
       throw new RuntimeException("Did not find any class with prefix " + prefix);
     }
     return result.toArray(new byte[0][0]);
+  }
+
+  public static void assertRecordsAreRecords(Path output) throws IOException {
+    CodeInspector inspector = new CodeInspector(output, opt -> opt.testing.canUseRecords = true);
+    for (FoundClassSubject clazz : inspector.allClasses()) {
+      if (clazz.getDexProgramClass().superType.toString().equals("java.lang.Record")) {
+        assertTrue(clazz.getDexProgramClass().isRecord());
+      }
+    }
   }
 }

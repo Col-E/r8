@@ -47,6 +47,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -205,6 +206,7 @@ public class JarClassFileReader<T extends DexClass> {
     private DexString sourceFile;
     private NestHostClassAttribute nestHost = null;
     private final List<NestMemberClassAttribute> nestMembers = new ArrayList<>();
+    private final Set<DexField> recordComponents = Sets.newIdentityHashSet();
     private EnclosingMethodAttribute enclosingMember = null;
     private final List<InnerClassAttribute> innerClasses = new ArrayList<>();
     private ClassSignature classSignature = ClassSignature.noSignature();
@@ -301,7 +303,16 @@ public class JarClassFileReader<T extends DexClass> {
     @Override
     public RecordComponentVisitor visitRecordComponent(
         String name, String descriptor, String signature) {
-      // TODO(b/169645628): Support Records.
+      assert name != null;
+      assert descriptor != null;
+      // Javac generated record components are only the instance fields, so we just reuse the field
+      // to avoid duplicating the field and field signature rewriting logic.
+      DexField field =
+          application
+              .getFactory()
+              .createField(
+                  type, application.getTypeFromDescriptor(descriptor), application.getString(name));
+      recordComponents.add(field);
       return super.visitRecordComponent(name, descriptor, signature);
     }
 
@@ -327,12 +338,6 @@ public class JarClassFileReader<T extends DexClass> {
       }
       this.deprecated = AsmUtils.isDeprecated(access);
       accessFlags = ClassAccessFlags.fromCfAccessFlags(cleanAccessFlags(access));
-      if (accessFlags.isRecord()) {
-        // TODO(b/169645628): Support records in all compilation.
-        if (!application.options.canUseRecords()) {
-          throw new CompilationError("Records are not supported", origin);
-        }
-      }
       type = application.getTypeFromName(name);
       // Check if constraints from
       // https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1 are met.
@@ -426,6 +431,7 @@ public class JarClassFileReader<T extends DexClass> {
             type, defaultAnnotations, application.getFactory()));
       }
       checkReachabilitySensitivity();
+      checkRecord();
       T clazz =
           classKind.create(
               type,
@@ -487,6 +493,28 @@ public class JarClassFileReader<T extends DexClass> {
         }
       }
       classConsumer.accept(clazz);
+    }
+
+    private void checkRecord() {
+      if (!accessFlags.isRecord()) {
+        return;
+      }
+      // TODO(b/169645628): Support records in all compilation.
+      if (!application.options.canUseRecords()) {
+        throw new CompilationError("Records are not supported", origin);
+      }
+      // TODO(b/169645628): Change this logic if we start stripping the record components.
+      // Another approach would be to mark a bit in fields that are record components instead.
+      String message = "Records are expected to have one record component per instance field.";
+      if (recordComponents.size() != instanceFields.size()) {
+        throw new CompilationError(message, origin);
+      }
+      for (DexEncodedField instanceField : instanceFields) {
+        if (!recordComponents.contains(instanceField.field)) {
+          throw new CompilationError(
+              message + " Unmatched field " + instanceField.field + ".", origin);
+        }
+      }
     }
 
     private ChecksumSupplier getChecksumSupplier(ClassKind<T> classKind) {
