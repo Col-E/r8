@@ -23,6 +23,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import org.junit.Assume;
 import org.junit.rules.TemporaryFolder;
 
 /**
@@ -44,6 +45,7 @@ public class RecordTestUtils {
 
   public static void setJdk15Library(R8FullTestBuilder builder, TemporaryFolder temp)
       throws IOException {
+    Assume.assumeFalse(ToolHelper.isWindows());
     // TODO(b/169645628): Add JDK-15 runtime jar instead. As a temporary solution we use the jdk 8
     // runtime with additional stubs.
     // We use jdk-8 for compilation because in jdk-9 and higher we would need to deal with the
