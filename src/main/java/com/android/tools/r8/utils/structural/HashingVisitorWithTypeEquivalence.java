@@ -65,7 +65,7 @@ public class HashingVisitorWithTypeEquivalence extends HashingVisitor {
 
   @Override
   public void visitDexString(DexString string) {
-    visitInt(string.hashCode());
+    hash.putBytes(string.content);
   }
 
   @Override
