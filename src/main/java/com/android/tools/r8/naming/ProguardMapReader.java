@@ -528,7 +528,7 @@ public class ProguardMapReader implements AutoCloseable {
     }
   }
 
-  private class ParseException extends RuntimeException {
+  public class ParseException extends RuntimeException {
 
     private final int lineNo;
     private final int lineOffset;

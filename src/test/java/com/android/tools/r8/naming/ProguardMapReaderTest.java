@@ -3,13 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.naming.ProguardMapReader.ParseException;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
@@ -195,5 +199,69 @@ public class ProguardMapReaderTest extends TestBase {
       String result = cnm.toString();
       Assert.assertEquals(s, result);
     }
+  }
+
+  // TODO(b/179665652, b/179506350): Should not fail.
+  @Test(expected = ParseException.class)
+  public void testCommentLineBeforeAnyClassMappings() throws IOException {
+    String mapping =
+        StringUtils.lines(
+            "# {'id':'some.namespace.here','unknownField':'Hi There'}", "foo.bar.baz -> a:");
+    ClassNameMapper.mapperFromString(mapping);
+  }
+
+  // TODO(b/179666867): Should not fail.
+  @Test(expected = ParseException.class)
+  public void testCommentLineOnClassMapping() throws IOException {
+    ClassNameMapper.mapperFromString("foo.bar.qux -> b: #  Some comment here");
+  }
+
+  // TODO(b/179666867): Should not fail.
+  @Test(expected = ParseException.class)
+  public void testJsonCommentLineOnClassMapping() throws IOException {
+    ClassNameMapper.mapperFromString(
+        "foo.bar.baz -> a: # {'id':'same.class.namespace.here','frame':'foo'}");
+  }
+
+  // TODO(b/179666867): Should not fail.
+  @Test(expected = ParseException.class)
+  public void testCommentLinesOnMethodMappingFiles() throws IOException {
+    ClassNameMapper.mapperFromString(
+        StringUtils.lines(
+            "foo.bar.qux -> b:",
+            "    1:10:void error(com.android.tools.r8.Diagnostic) -> error # Some comment here"));
+  }
+
+  // TODO(b/179666867): Should not fail.
+  @Test(expected = ParseException.class)
+  public void testJsonCommentLinesOnMethodMappingFiles() throws IOException {
+    ClassNameMapper.mapperFromString(
+        StringUtils.lines(
+            "foo.bar.qux -> b:",
+            "    1:10:void error(com.android.tools.r8.Diagnostic) -> error #"
+                + " {'id':'same.frame.namespace.here','frame':'bar'}"));
+  }
+
+  @Test()
+  public void testUnknownNamespaceComments() throws IOException {
+    String mappingWithComments =
+        StringUtils.lines(
+            "foo.bar.baz -> a:",
+            "# {'id':'some.other.namespace.here','fileName':'Class.kt'}",
+            "    1:10:void error(com.android.tools.r8.Diagnostic) -> error",
+            "# {'id':'some.line.namespace.here','fileName':'Class.kt'}",
+            "foo.bar.qux -> b:",
+            "# {'id':'some.final.namespace.thing','foo':'Hello World'}");
+    TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
+    ClassNameMapper.mapperFromString(mappingWithComments, testDiagnosticMessages);
+    testDiagnosticMessages.assertOnlyInfos();
+    testDiagnosticMessages.assertInfosMatch(
+        ImmutableList.of(
+            diagnosticMessage(
+                containsString("Could not find a handler for some.other.namespace.here")),
+            diagnosticMessage(
+                containsString("Could not find a handler for some.line.namespace.here")),
+            diagnosticMessage(
+                containsString("Could not find a handler for some.final.namespace.thing"))));
   }
 }
