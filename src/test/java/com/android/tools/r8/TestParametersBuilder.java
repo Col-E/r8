@@ -197,6 +197,10 @@ public class TestParametersBuilder {
     return withApiFilter(api -> api.getLevel() < endExclusive.getLevel());
   }
 
+  public TestParametersBuilder withApiLevelsWithoutNativeMultiDex() {
+    return withApiLevelsEndingAtExcluding(AndroidApiLevel.L);
+  }
+
   public TestParametersBuilder withCustomRuntime(TestRuntime runtime) {
     assert getUnfilteredAvailableRuntimes().noneMatch(r -> r == runtime);
     customRuntimes.add(runtime);

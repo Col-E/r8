@@ -96,6 +96,11 @@ public abstract class TestBaseBuilder<
     return addMainDexListClassReferences(ListUtils.map(classes, Reference::classFromClass));
   }
 
+  public T addMainDexListFiles(Path... files) {
+    builder.addMainDexListFiles(files);
+    return self();
+  }
+
   public T addMainDexListFiles(Collection<Path> files) {
     builder.addMainDexListFiles(files);
     return self();

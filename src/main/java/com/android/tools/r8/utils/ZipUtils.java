@@ -122,6 +122,12 @@ public class ZipUtils {
     zip(zipFile, basePath, Arrays.asList(filesToZip));
   }
 
+  public static List<Path> unzip(Path zipFile, Path outDirectory) throws IOException {
+    return unzip(zipFile.toString(), outDirectory.toFile(), (entry) -> true).stream()
+        .map(File::toPath)
+        .collect(Collectors.toList());
+  }
+
   public static List<File> unzip(String zipFile, File outDirectory) throws IOException {
     return unzip(zipFile, outDirectory, (entry) -> true);
   }
