@@ -38,7 +38,9 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
   private void test(ThrowableConsumer<R8FullTestBuilder> consumer) throws Exception {
     testForR8(parameters.getBackend())
         .addLibraryFiles(
-            ToolHelper.getMostRecentAndroidJar(), ToolHelper.getKotlinStdlibJar(kotlinc))
+            ToolHelper.getMostRecentAndroidJar(),
+            ToolHelper.getKotlinStdlibJar(kotlinc),
+            ToolHelper.getKotlinAnnotationJar(kotlinc))
         .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinc))
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
@@ -49,14 +51,12 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
 
   @Test
   public void testAsIs() throws Exception {
-    test(
-        builder ->
-            builder.addDontWarnJetBrains().noMinification().noOptimization().noTreeShaking());
+    test(builder -> builder.noMinification().noOptimization().noTreeShaking());
   }
 
   @Test
   public void testDontShrinkAndDontOptimize() throws Exception {
-    test(builder -> builder.addDontWarnJetBrains().noOptimization().noTreeShaking());
+    test(builder -> builder.noOptimization().noTreeShaking());
   }
 
   @Test
@@ -65,7 +65,6 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
         builder ->
             builder
                 .addKeepRules("-keep,allowobfuscation class **.*KClasses*")
-                .addDontWarnJetBrains()
                 .noTreeShaking()
                 .addOptionsModification(
                     o -> {
@@ -78,12 +77,12 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
 
   @Test
   public void testDontShrinkAndDontObfuscate() throws Exception {
-    test(builder -> builder.addDontWarnJetBrains().noMinification().noTreeShaking());
+    test(builder -> builder.noMinification().noTreeShaking());
   }
 
   @Test
   public void testDontShrink() throws Exception {
-    test(builder -> builder.addDontWarnJetBrains().noTreeShaking());
+    test(TestShrinkerBuilder::noTreeShaking);
   }
 
   @Test
@@ -92,7 +91,6 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
         builder ->
             builder
                 .addKeepRules("-keep,allowobfuscation class **.*KClasses*")
-                .addDontWarnJetBrains()
                 .noTreeShaking());
   }
 

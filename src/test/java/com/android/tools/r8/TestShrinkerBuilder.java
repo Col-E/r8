@@ -146,12 +146,6 @@ public abstract class TestShrinkerBuilder<
     return addDontWarn("java.nio.file.**");
   }
 
-  // TODO(b/176133676): Investigate why there are missing class references to org.jetbrains
-  @Deprecated
-  public T addDontWarnJetBrains() {
-    return addDontWarn("org.jetbrains.**");
-  }
-
   public T addDontWarnJetBrainsAnnotations() {
     return addDontWarnJetBrainsNotNullAnnotation().addDontWarnJetBrainsNullableAnnotation();
   }

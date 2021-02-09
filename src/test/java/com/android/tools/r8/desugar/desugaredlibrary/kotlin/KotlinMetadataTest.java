@@ -124,12 +124,12 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
             .addProgramFiles(compiledJars.getForConfiguration(kotlinParameters))
             .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinParameters.getCompiler()))
             .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinParameters.getCompiler()))
+            .addProgramFiles(ToolHelper.getKotlinAnnotationJar(kotlinParameters.getCompiler()))
             .addKeepMainRule(PKG + ".MainKt")
             .addKeepAllClassesRule()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .setMinApi(parameters.getApiLevel())
-            .allowDiagnosticWarningMessages()
-            .addDontWarnJetBrains();
+            .allowDiagnosticWarningMessages();
     KeepRuleConsumer keepRuleConsumer = null;
     if (desugarLibrary) {
       keepRuleConsumer = createKeepRuleConsumer(parameters);

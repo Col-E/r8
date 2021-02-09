@@ -860,6 +860,12 @@ public class ToolHelper {
     return reflectJar;
   }
 
+  public static Path getKotlinAnnotationJar(KotlinCompiler kotlinc) {
+    Path annotationJar = kotlinc.getFolder().resolve("annotations-13.0.jar");
+    assert Files.exists(annotationJar) : "Expected annotation jar";
+    return annotationJar;
+  }
+
   public static Path getJdwpTestsCfJarPath(AndroidApiLevel minSdk) {
     if (minSdk.getLevel() >= AndroidApiLevel.N.getLevel()) {
       return Paths.get("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-host.jar");
@@ -889,8 +895,8 @@ public class ToolHelper {
       super(parentFolder);
     }
 
-    protected void after() {
-    } // instead of remove, do nothing
+    @Override
+    protected void after() {} // instead of remove, do nothing
   }
 
   // For non-Linux platforms create the temporary directory in the repository root to simplify
