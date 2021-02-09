@@ -68,7 +68,7 @@ public class RecordInvokeCustomTest extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .addKeepRules(RECORD_KEEP_RULE)
             .addKeepMainRule(MAIN_TYPE)
-            .apply(builder -> RecordTestUtils.setJdk15Library(builder, temp))
+            .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .addOptionsModification(opt -> opt.testing.canUseRecords = true)
             .compile()

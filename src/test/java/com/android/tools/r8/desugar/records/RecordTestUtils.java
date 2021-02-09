@@ -8,7 +8,6 @@ import static com.android.tools.r8.TestRuntime.getCheckedInJdk8;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.JavaCompilerTool;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -43,8 +42,7 @@ public class RecordTestUtils {
   public static final String RECORD_KEEP_RULE =
       "-keepattributes *\n" + "-keep class * extends java.lang.Record { private final <fields>; }";
 
-  public static void setJdk15Library(R8FullTestBuilder builder, TemporaryFolder temp)
-      throws IOException {
+  public static Path[] getJdk15LibraryFiles(TemporaryFolder temp) throws IOException {
     Assume.assumeFalse(ToolHelper.isWindows());
     // TODO(b/169645628): Add JDK-15 runtime jar instead. As a temporary solution we use the jdk 8
     // runtime with additional stubs.
@@ -57,7 +55,7 @@ public class RecordTestUtils {
             .addSourceFiles(Paths.get("src", "test", "javaStubs", "TypeDescriptor.java"))
             .addSourceFiles(Paths.get("src", "test", "javaStubs", "RecordComponent.java"))
             .compile();
-    builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar()).addLibraryFiles(recordStubs);
+    return new Path[] {recordStubs, ToolHelper.getJava8RuntimeJar()};
   }
 
   public static byte[][] getProgramData(String mainClassSimpleName) {
