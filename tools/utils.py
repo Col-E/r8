@@ -455,7 +455,7 @@ def getDexSegmentSizes(dex_files):
   cmd = [jdk.GetJavaExecutable(), '-jar', R8_JAR, 'dexsegments']
   cmd.extend(dex_files)
   PrintCmd(cmd)
-  output = subprocess.check_output(cmd)
+  output = subprocess.check_output(cmd).decode('utf-8')
 
   matches = DEX_SEGMENTS_RESULT_PATTERN.findall(output)
 
