@@ -186,7 +186,9 @@ public final class D8 {
 
       if (!options.mainDexKeepRules.isEmpty()) {
         MainDexInfo mainDexInfo =
-            new GenerateMainDexList(options).traceMainDex(executor, appView.appInfo().app());
+            new GenerateMainDexList(options)
+                .traceMainDex(
+                    executor, appView.appInfo().app(), appView.appInfo().getMainDexInfo());
         appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(mainDexInfo));
       }
 

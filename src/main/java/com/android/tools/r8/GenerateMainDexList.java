@@ -49,7 +49,7 @@ public class GenerateMainDexList {
       //  consumer.
       DexApplication application = new ApplicationReader(app, options, timing).read(executor);
       List<String> result = new ArrayList<>();
-      traceMainDex(executor, application)
+      traceMainDex(executor, application, MainDexInfo.none())
           .forEach(type -> result.add(type.toBinaryName() + ".class"));
       Collections.sort(result);
       if (options.mainDexListConsumer != null) {
@@ -62,10 +62,11 @@ public class GenerateMainDexList {
     }
   }
 
-  public MainDexInfo traceMainDex(ExecutorService executor, DexApplication application)
+  public MainDexInfo traceMainDex(
+      ExecutorService executor, DexApplication application, MainDexInfo existingMainDexInfo)
       throws ExecutionException {
     AppView<? extends AppInfoWithClassHierarchy> appView =
-        AppView.createForR8(application.toDirect());
+        AppView.createForR8(application.toDirect(), existingMainDexInfo);
     appView.setAppServices(AppServices.builder(appView).build());
 
     MainDexListBuilder.checkForAssumedLibraryTypes(appView.appInfo());

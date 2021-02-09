@@ -20,7 +20,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MainDexRulesAndList extends TestBase {
+public class MainDexRulesAndListD8 extends TestBase {
 
   private final TestParameters parameters;
 
@@ -29,7 +29,7 @@ public class MainDexRulesAndList extends TestBase {
     return getTestParameters().withDexRuntimes().withApiLevelsWithoutNativeMultiDex().build();
   }
 
-  public MainDexRulesAndList(TestParameters parameters) {
+  public MainDexRulesAndListD8(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -60,13 +60,12 @@ public class MainDexRulesAndList extends TestBase {
             .writeToZip();
     List<Path> dexFiles =
         ZipUtils.unzip(result, testDir).stream().sorted().collect(Collectors.toList());
-    // TODO(b/): The expected result should be A and B in main-dex and C in secondary dex.
     assertEquals(
         classNamesFromDexFile(dexFiles.get(0)).stream().sorted().collect(Collectors.toList()),
-        ImmutableList.of(A.class.getTypeName()));
+        ImmutableList.of(A.class.getTypeName(), B.class.getTypeName()));
     assertEquals(
         classNamesFromDexFile(dexFiles.get(1)).stream().sorted().collect(Collectors.toList()),
-        ImmutableList.of(B.class.getTypeName(), C.class.getTypeName()));
+        ImmutableList.of(C.class.getTypeName()));
   }
 
   static class A {}
