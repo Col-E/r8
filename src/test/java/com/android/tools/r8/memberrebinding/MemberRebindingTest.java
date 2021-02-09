@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.junit.Assume;
@@ -374,7 +373,7 @@ public class MemberRebindingTest {
   }
 
   @Test
-  public void memberRebindingTest() throws IOException, ExecutionException {
+  public void memberRebindingTest() throws IOException {
     Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
 
     Path out = Paths.get(temp.getRoot().getCanonicalPath());

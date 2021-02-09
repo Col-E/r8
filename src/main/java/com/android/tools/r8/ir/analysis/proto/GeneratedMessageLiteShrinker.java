@@ -82,7 +82,7 @@ public class GeneratedMessageLiteShrinker {
     OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
     methodProcessor.forEachWaveWithExtension(
         (method, methodProcessingContext) ->
-            converter.processMethod(
+            converter.processDesugaredMethod(
                 method,
                 OptimizationFeedbackIgnore.getInstance(),
                 methodProcessor,

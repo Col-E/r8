@@ -53,9 +53,10 @@ public class R8RunExamplesAndroidPTest extends RunExamplesAndroidPTest<R8Command
   public void invokeCustomWithShrinking() throws Throwable {
     test("invokecustom-with-shrinking", "invokecustom", "InvokeCustom")
         .withMinApiLevel(AndroidApiLevel.P.getLevel())
-        .withBuilderTransformation(builder ->
-            builder.addProguardConfigurationFiles(
-                Paths.get(ToolHelper.EXAMPLES_ANDROID_P_DIR, "invokecustom/keep-rules.txt")))
+        .withBuilderTransformation(
+            builder ->
+                builder.addProguardConfigurationFiles(
+                    Paths.get(ToolHelper.EXAMPLES_ANDROID_P_DIR, "invokecustom/keep-rules.txt")))
         .run();
   }
 

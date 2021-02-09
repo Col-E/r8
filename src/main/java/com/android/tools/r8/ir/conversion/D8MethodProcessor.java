@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Sets;
@@ -24,8 +25,9 @@ public class D8MethodProcessor extends MethodProcessor {
   private final IRConverter converter;
   private final ExecutorService executorService;
   private final List<Future<?>> futures = Collections.synchronizedList(new ArrayList<>());
-  private final ProcessorContext processorContext;
   private final Set<DexType> scheduled = Sets.newIdentityHashSet();
+
+  private ProcessorContext processorContext;
 
   public D8MethodProcessor(IRConverter converter, ExecutorService executorService) {
     this.converter = converter;
@@ -36,6 +38,10 @@ public class D8MethodProcessor extends MethodProcessor {
   public void addScheduled(DexProgramClass clazz) {
     boolean added = scheduled.add(clazz.getType());
     assert added;
+  }
+
+  public void newWave() {
+    this.processorContext = converter.appView.createProcessorContext();
   }
 
   @Override
@@ -50,7 +56,9 @@ public class D8MethodProcessor extends MethodProcessor {
   }
 
   @Override
-  public void scheduleMethodForProcessingAfterCurrentWave(ProgramMethod method) {
+  public void scheduleDesugaredMethodForProcessing(ProgramMethod method) {
+    // TODO(b/179755192): By building up waves of methods in the class converter, we can avoid the
+    //  following check and always process the method asynchronously.
     if (!scheduled.contains(method.getHolderType())
         && !converter.appView.getSyntheticItems().isNonLegacySynthetic(method.getHolder())) {
       // The non-synthetic holder is not scheduled. It will be processed once holder is scheduled.
@@ -59,7 +67,7 @@ public class D8MethodProcessor extends MethodProcessor {
     futures.add(
         ThreadUtils.processAsynchronously(
             () ->
-                converter.rewriteCode(
+                converter.rewriteDesugaredCode(
                     method,
                     OptimizationFeedbackIgnore.getInstance(),
                     this,
@@ -77,7 +85,17 @@ public class D8MethodProcessor extends MethodProcessor {
     futures.clear();
   }
 
-  public void processMethod(ProgramMethod method) {
-    converter.convertMethod(method, this, processorContext.createMethodProcessingContext(method));
+  public void processMethod(
+      ProgramMethod method, D8CfInstructionDesugaringEventConsumer desugaringEventConsumer) {
+    converter.convertMethod(
+        method,
+        desugaringEventConsumer,
+        this,
+        processorContext.createMethodProcessingContext(method));
+  }
+
+  public boolean verifyNoPendingMethodProcessing() {
+    assert futures.isEmpty();
+    return true;
   }
 }

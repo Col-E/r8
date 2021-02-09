@@ -22,7 +22,7 @@ public abstract class MethodProcessorWithWave extends MethodProcessor {
   }
 
   @Override
-  public void scheduleMethodForProcessingAfterCurrentWave(ProgramMethod method) {
+  public void scheduleDesugaredMethodForProcessing(ProgramMethod method) {
     waveExtension.add(method);
   }
 

@@ -20,6 +20,7 @@ public class R8RunExamplesKotlinTest extends R8RunExamplesCommon {
 
   @Override
   protected void configure(InternalOptions options) {
+    super.configure(options);
     if (output == Output.CF) {
       // Class inliner is not supported with CF backend yet.
       options.enableClassInlining = false;

@@ -180,7 +180,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
         OneTimeMethodProcessor.create(method, compilationContext.createProcessorContext());
     methodProcessor.forEachWaveWithExtension(
         (ignore, methodProcessingContext) ->
-            converter.processMethod(
+            converter.processDesugaredMethod(
                 method,
                 OptimizationFeedbackIgnore.getInstance(),
                 methodProcessor,

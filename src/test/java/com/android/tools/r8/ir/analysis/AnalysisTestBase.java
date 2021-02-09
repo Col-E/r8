@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.function.Consumer;
@@ -56,9 +57,11 @@ public abstract class AnalysisTestBase extends TestBase {
     this.className = className;
   }
 
+  public void configure(InternalOptions options) {}
+
   @Before
   public void setup() throws Exception {
-    appView = computeAppViewWithLiveness(app);
+    appView = computeAppViewWithLiveness(app, null, this::configure);
   }
 
   public void buildAndCheckIR(String methodName, Consumer<IRCode> irInspector) {

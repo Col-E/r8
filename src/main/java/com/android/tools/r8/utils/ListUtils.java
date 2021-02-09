@@ -114,6 +114,12 @@ public class ListUtils {
     return result != null ? result : defaultValue;
   }
 
+  public static <T> ArrayList<T> newArrayList(ForEachable<T> forEachable) {
+    ArrayList<T> list = new ArrayList<>();
+    forEachable.forEach(list::add);
+    return list;
+  }
+
   public static <T> Optional<T> removeFirstMatch(List<T> list, Predicate<T> element) {
     int index = firstIndexMatching(list, element);
     if (index >= 0) {

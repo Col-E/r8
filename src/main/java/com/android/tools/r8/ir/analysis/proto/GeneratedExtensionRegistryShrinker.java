@@ -158,7 +158,7 @@ public class GeneratedExtensionRegistryShrinker {
     OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
     methodProcessor.forEachWaveWithExtension(
         (method, methodProcessingContext) ->
-            converter.processMethod(
+            converter.processDesugaredMethod(
                 method,
                 OptimizationFeedbackIgnore.getInstance(),
                 methodProcessor,

@@ -11,6 +11,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
+import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfConstNull;
@@ -1287,14 +1288,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
             .setCode(
                 ForwardMethodBuilder.builder(dexItemFactory)
                     .setStaticSource(newMethod)
-                    .apply(
-                        builder -> {
-                          if (isStatic()) {
-                            builder.setStaticTarget(getReference(), holder.isInterface());
-                          } else {
-                            builder.setDirectTarget(getReference(), holder.isInterface());
-                          }
-                        })
+                    .applyIf(
+                        isStatic(),
+                        builder -> builder.setStaticTarget(getReference(), holder.isInterface()),
+                        builder -> builder.setDirectTarget(getReference(), holder.isInterface()))
                     .build())
             .setAccessFlags(
                 MethodAccessFlags.builder()
@@ -1306,61 +1303,66 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
             .build());
   }
 
-  public DexEncodedMethod toPrivateSyntheticMethod(DexMethod method) {
-    assert !accessFlags.isStatic();
-    assert !accessFlags.isPrivate();
-    assert getHolderType() == method.holder;
+  public ProgramMethod toPrivateSyntheticMethod(DexProgramClass holder, DexMethod method) {
+    assert !isStatic();
+    assert !isPrivate();
+    assert getHolderType() == method.getHolderType();
     checkIfObsolete();
-    Builder builder = syntheticBuilder(this);
-    builder.setMethod(method);
-    builder.accessFlags.setSynthetic();
-    builder.accessFlags.unsetProtected();
-    builder.accessFlags.unsetPublic();
-    builder.accessFlags.setPrivate();
-    return builder.build();
+    return new ProgramMethod(
+        holder,
+        syntheticBuilder(this)
+            .setMethod(method)
+            .modifyAccessFlags(
+                accessFlags -> {
+                  accessFlags.setSynthetic();
+                  accessFlags.unsetProtected();
+                  accessFlags.unsetPublic();
+                  accessFlags.setPrivate();
+                })
+            .build());
   }
 
-  public DexEncodedMethod toForwardingMethod(DexClass holder, DexDefinitionSupplier definitions) {
-    DexMethod newMethod = method.withHolder(holder.type, definitions.dexItemFactory());
+  public DexEncodedMethod toForwardingMethod(
+      DexClass newHolder, DexDefinitionSupplier definitions) {
+    DexMethod newMethod = method.withHolder(newHolder, definitions.dexItemFactory());
     checkIfObsolete();
+
     // Clear the final flag, as this method is now overwritten. Do this before creating the builder
     // for the forwarding method, as the forwarding method will copy the access flags from this,
     // and if different forwarding methods are created in different subclasses the first could be
     // final.
     accessFlags.demoteFromFinal();
-    Builder builder = syntheticBuilder(this);
-    builder.setMethod(newMethod);
-    if (accessFlags.isAbstract()) {
-      // If the forwarding target is abstract, we can just create an abstract method. While it
-      // will not actually forward, it will create the same exception when hit at runtime.
-      builder.accessFlags.setAbstract();
-    } else {
-      // Create code that forwards the call to the target.
-      DexClass target = definitions.definitionFor(method.holder);
-      ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
-          ForwardMethodSourceCode.builder(newMethod);
-      forwardSourceCodeBuilder
-          .setReceiver(accessFlags.isStatic() ? null : newMethod.getHolderType())
-          .setTargetReceiver(accessFlags.isStatic() ? null : method.holder)
-          .setTarget(method)
-          .setInvokeType(accessFlags.isStatic() ? Invoke.Type.STATIC : Invoke.Type.SUPER)
-          .setIsInterface(target.isInterface());
-      builder.setCode(
-          new SynthesizedCode(
-              forwardSourceCodeBuilder::build,
-              registry -> {
-                if (accessFlags.isStatic()) {
-                  registry.registerInvokeStatic(method);
-                } else {
-                  registry.registerInvokeSuper(method);
-                }
-              }));
-      builder.accessFlags.setBridge();
-    }
-    builder.accessFlags.setSynthetic();
-    // Note that we are not marking this instance obsolete, since it is not: the newly synthesized
-    // forwarding method has a separate code that literally forwards to the current method.
-    return builder.build();
+
+    return syntheticBuilder(this)
+        .setMethod(newMethod)
+        .modifyAccessFlags(MethodAccessFlags::setSynthetic)
+        // If the forwarding target is abstract, we can just create an abstract method. While it
+        // will not actually forward, it will create the same exception when hit at runtime.
+        // Otherwise, we need to create code that forwards the call to the target.
+        .applyIf(
+            !isAbstract(),
+            builder ->
+                builder
+                    .setCode(
+                        ForwardMethodBuilder.builder(definitions.dexItemFactory())
+                            .setStaticSource(newMethod)
+                            .applyIf(
+                                isStatic(),
+                                codeBuilder ->
+                                    codeBuilder
+                                        .setStaticSource(newMethod)
+                                        .setStaticTarget(
+                                            getReference(),
+                                            method.getHolderType().isInterface(definitions)),
+                                codeBuilder ->
+                                    codeBuilder
+                                        .setNonStaticSource(newMethod)
+                                        .setSuperTarget(
+                                            getReference(),
+                                            method.getHolderType().isInterface(definitions)))
+                            .build())
+                    .modifyAccessFlags(MethodAccessFlags::setBridge))
+        .build();
   }
 
   public static DexEncodedMethod createDesugaringForwardingMethod(
@@ -1569,6 +1571,20 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         parameterAnnotations =
             from.parameterAnnotationsList.withParameterCount(method.proto.parameters.size());
       }
+    }
+
+    public Builder applyIf(boolean condition, Consumer<Builder> thenConsumer) {
+      return applyIf(condition, thenConsumer, emptyConsumer());
+    }
+
+    public Builder applyIf(
+        boolean condition, Consumer<Builder> thenConsumer, Consumer<Builder> elseConsumer) {
+      if (condition) {
+        thenConsumer.accept(this);
+      } else {
+        elseConsumer.accept(this);
+      }
+      return this;
     }
 
     public Builder setSimpleInliningConstraint(

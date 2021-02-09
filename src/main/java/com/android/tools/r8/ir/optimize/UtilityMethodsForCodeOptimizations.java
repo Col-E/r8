@@ -146,7 +146,7 @@ public class UtilityMethodsForCodeOptimizations {
     }
 
     public void optimize(MethodProcessor methodProcessor) {
-      methodProcessor.scheduleMethodForProcessingAfterCurrentWave(method);
+      methodProcessor.scheduleDesugaredMethodForProcessing(method);
       optimized = true;
     }
   }

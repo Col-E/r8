@@ -29,6 +29,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LibraryMember;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ListUtils;
@@ -45,7 +47,7 @@ import org.objectweb.asm.Opcodes;
 
 // NestBasedAccessDesugaring contains common code between the two subclasses
 // which are specialized for d8 and r8
-public class NestBasedAccessDesugaring {
+public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
 
   // Short names to avoid creating long strings
   public static final String NEST_ACCESS_NAME_PREFIX = "-$$Nest$";
@@ -93,7 +95,6 @@ public class NestBasedAccessDesugaring {
 
     Code code = method.getDefinition().getCode();
     if (code.isDexCode()) {
-      assert appView.testing().allowDexInputForTesting;
       return false;
     }
 
@@ -105,7 +106,8 @@ public class NestBasedAccessDesugaring {
         code.asCfCode().getInstructions(), instruction -> needsDesugaring(instruction, method));
   }
 
-  private boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
+  @Override
+  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
     if (instruction.isFieldInstruction()) {
       return needsDesugaring(instruction.asFieldInstruction().getField(), context);
     }
@@ -164,6 +166,14 @@ public class NestBasedAccessDesugaring {
       return true;
     }
     return false;
+  }
+
+  @Override
+  public List<CfInstruction> desugarInstruction(
+      CfInstruction instruction,
+      CfInstructionDesugaringEventConsumer consumer,
+      ProgramMethod context) {
+    return desugarInstruction(instruction, context, null);
   }
 
   public List<CfInstruction> desugarInstruction(

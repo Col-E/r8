@@ -19,7 +19,6 @@ import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -104,10 +103,10 @@ public abstract class R8RunExamplesCommon {
     }
   }
 
-  private R8Command.Builder addInputFile(R8Command.Builder builder) throws NoSuchFileException {
+  private R8Command.Builder addInputFile(R8Command.Builder builder) {
     if (input == Input.DX) {
       // If input is DEX code, use the tool helper to add the DEX sources as R8 disallows them.
-      ToolHelper.getAppBuilder(builder).addProgramFiles(getInputFile());
+      ToolHelper.getAppBuilder(builder).addProgramFiles(getOriginalDexFile());
     } else {
       builder.addProgramFiles(getInputFile());
     }
@@ -169,7 +168,6 @@ public abstract class R8RunExamplesCommon {
 
   protected void configure(InternalOptions options) {
     options.lineNumberOptimization = LineNumberOptimization.OFF;
-    options.testing.allowDexInputForTesting = input == Input.DX;
   }
 
   private boolean shouldCompileFail() {

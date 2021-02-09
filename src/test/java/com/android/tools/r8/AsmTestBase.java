@@ -66,8 +66,9 @@ public class AsmTestBase extends TestBase {
     ProcessResult d8Result = runOnArtRaw(compileWithD8(app), main);
     ProcessResult r8NonShakenResult =
         runOnArtRaw(compileWithR8(app, "-dontshrink\n-dontobfuscate\n"), main);
-    ProcessResult r8ShakenResult = runOnArtRaw(
-        compileWithR8(app, keepMainProguardConfiguration(main) + "-dontobfuscate\n"), main);
+    ProcessResult r8ShakenResult =
+        runOnArtRaw(
+            compileWithR8(app, keepMainProguardConfiguration(main) + "-dontobfuscate\n"), main);
     Assert.assertEquals(javaResult.stdout, d8Result.stdout);
     Assert.assertEquals(javaResult.stdout, r8NonShakenResult.stdout);
     Assert.assertEquals(javaResult.stdout, r8ShakenResult.stdout);

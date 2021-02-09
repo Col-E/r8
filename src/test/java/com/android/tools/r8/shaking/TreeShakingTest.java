@@ -197,9 +197,6 @@ public abstract class TreeShakingTest extends TestBase {
                   if (optionsConsumer != null) {
                     optionsConsumer.accept(options);
                   }
-                  if (frontend == Frontend.DEX) {
-                    options.testing.allowDexInputForTesting = true;
-                  }
                 })
             .allowStdoutMessages()
             .applyIf(testBuilderConsumer != null, testBuilderConsumer);

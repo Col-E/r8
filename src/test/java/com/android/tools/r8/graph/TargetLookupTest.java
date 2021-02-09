@@ -288,7 +288,7 @@ public class TargetLookupTest extends SmaliTestBase {
     assertEquals(0, result.exitCode);
 
     // Process the application and expect the same result on Art.
-    AndroidApp processedApp = processApplication(application);
+    AndroidApp processedApp = ToolHelper.runR8(application, null);
     assertEquals(result.stdout, runArt(processedApp, Main.class.getCanonicalName()));
   }
 }

@@ -225,14 +225,12 @@ public class SmaliTestBase extends TestBase {
    */
   public DexEncodedMethod oneMethodApplication(String returnType, List<String> parameters,
       int locals, String... instructions) {
-    InternalOptions options = new InternalOptions();
-
     // Build a one class application.
     AndroidApp application = singleMethodApplication(
         returnType, parameters, locals, instructions);
 
     // Process the application with R8.
-    AndroidApp processdApplication = null;
+    AndroidApp processdApplication;
     try {
       processdApplication = processApplication(application);
     } catch (CompilationFailedException e) {

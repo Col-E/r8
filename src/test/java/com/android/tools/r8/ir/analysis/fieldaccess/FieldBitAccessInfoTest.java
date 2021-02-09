@@ -227,7 +227,7 @@ public class FieldBitAccessInfoTest extends TestBase {
     }
 
     @Override
-    public void scheduleMethodForProcessingAfterCurrentWave(ProgramMethod method) {
+    public void scheduleDesugaredMethodForProcessing(ProgramMethod method) {
       throw new Unreachable();
     }
   }

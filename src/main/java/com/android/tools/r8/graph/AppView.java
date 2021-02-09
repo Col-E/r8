@@ -21,7 +21,6 @@ import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinke
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
-import com.android.tools.r8.ir.desugar.InvokeSpecialBridgeSynthesizer;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
@@ -78,7 +77,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   // Desugaring.
   public final PrefixRewritingMapper rewritePrefix;
-  private final InvokeSpecialBridgeSynthesizer invokeSpecialBridgeSynthesizer;
 
   // Modeling.
   private final LibraryMethodSideEffectModelCollection libraryMethodSideEffectModelCollection;
@@ -119,7 +117,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.graphLens = GraphLens.getIdentityLens();
     this.initClassLens = InitClassLens.getDefault();
     this.rewritePrefix = mapper;
-    this.invokeSpecialBridgeSynthesizer = new InvokeSpecialBridgeSynthesizer(this);
 
     if (enableWholeProgramOptimizations() && options().callSiteOptimizationOptions().isEnabled()) {
       this.callSiteOptimizationInfoPropagator =
@@ -327,10 +324,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public CallSiteOptimizationInfoPropagator callSiteOptimizationInfoPropagator() {
     return callSiteOptimizationInfoPropagator;
-  }
-
-  public InvokeSpecialBridgeSynthesizer getInvokeSpecialBridgeSynthesizer() {
-    return invokeSpecialBridgeSynthesizer;
   }
 
   public LibraryMemberOptimizer libraryMethodOptimizer() {

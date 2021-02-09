@@ -15,7 +15,7 @@ public abstract class MethodProcessor {
 
   public abstract boolean shouldApplyCodeRewritings(ProgramMethod method);
 
-  public abstract void scheduleMethodForProcessingAfterCurrentWave(ProgramMethod method);
+  public abstract void scheduleDesugaredMethodForProcessing(ProgramMethod method);
 
   public abstract CallSiteInformation getCallSiteInformation();
 }

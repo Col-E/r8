@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer.BuilderState;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -41,8 +42,11 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
         StringConcatenationTestClass.class);
   }
 
+  @Override
+  public void configure(InternalOptions options) {}
+
   @Test
-  public void testUnusedBuilder() throws Exception {
+  public void testUnusedBuilder() {
     buildAndCheckIR(
         "unusedBuilder",
         checkOptimizerStates(appView, optimizer -> {
@@ -58,7 +62,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testTrivialSequence() throws Exception {
+  public void testTrivialSequence() {
     buildAndCheckIR(
         "trivialSequence",
         checkOptimizerStates(appView, optimizer -> {
@@ -73,7 +77,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testBuilderWithInitialValue() throws Exception {
+  public void testBuilderWithInitialValue() {
     buildAndCheckIR(
         "builderWithInitialValue",
         checkOptimizerStates(appView, optimizer -> {
@@ -88,7 +92,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testBuilderWithCapacity() throws Exception {
+  public void testBuilderWithCapacity() {
     buildAndCheckIR(
         "builderWithCapacity",
         checkOptimizerStates(appView, optimizer -> {
@@ -103,7 +107,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testNonStringArgs() throws Exception {
+  public void testNonStringArgs() {
     buildAndCheckIR(
         "nonStringArgs",
         checkOptimizerStates(appView, optimizer -> {
@@ -118,7 +122,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testTypeConversion() throws Exception {
+  public void testTypeConversion() {
     buildAndCheckIR(
         "typeConversion",
         checkOptimizerStates(appView, optimizer -> {
@@ -133,7 +137,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testTypeConversion_withPhis() throws Exception {
+  public void testTypeConversion_withPhis() {
     buildAndCheckIR(
         "typeConversion_withPhis",
         checkOptimizerStates(appView, optimizer -> {
@@ -149,7 +153,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
 
   @Ignore("TODO(b/113859361): passed to another builder should be an eligible case.")
   @Test
-  public void testNestedBuilders_appendBuilderItself() throws Exception {
+  public void testNestedBuilders_appendBuilderItself() {
     buildAndCheckIR(
         "nestedBuilders_appendBuilderItself",
         checkOptimizerStates(appView, optimizer -> {
@@ -167,7 +171,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
 
   @Ignore("TODO(b/113859361): merge builder.")
   @Test
-  public void testNestedBuilders_appendBuilderResult() throws Exception {
+  public void testNestedBuilders_appendBuilderResult() {
     buildAndCheckIR(
         "nestedBuilders_appendBuilderResult",
         checkOptimizerStates(appView, optimizer -> {
@@ -185,7 +189,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
 
   @Ignore("TODO(b/113859361): merge builder.")
   @Test
-  public void testNestedBuilders_conditional() throws Exception {
+  public void testNestedBuilders_conditional() {
     buildAndCheckIR(
         "nestedBuilders_conditional",
         checkOptimizerStates(appView, optimizer -> {
@@ -203,7 +207,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
 
   @Ignore("TODO(b/113859361): merge builder.")
   @Test
-  public void testConcatenatedBuilders_init() throws Exception {
+  public void testConcatenatedBuilders_init() {
     buildAndCheckIR(
         "concatenatedBuilders_init",
         checkOptimizerStates(appView, optimizer -> {
@@ -221,7 +225,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
 
   @Ignore("TODO(b/113859361): merge builder.")
   @Test
-  public void testConcatenatedBuilders_append() throws Exception {
+  public void testConcatenatedBuilders_append() {
     buildAndCheckIR(
         "concatenatedBuilders_append",
         checkOptimizerStates(appView, optimizer -> {
@@ -239,7 +243,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
 
   @Ignore("TODO(b/113859361): merge builder.")
   @Test
-  public void testConcatenatedBuilders_conditional() throws Exception {
+  public void testConcatenatedBuilders_conditional() {
     final Set<String> expectedConstStrings = new HashSet<>();
     expectedConstStrings.add("Hello,R8");
     expectedConstStrings.add("D8");
@@ -259,7 +263,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testSimplePhi() throws Exception {
+  public void testSimplePhi() {
     buildAndCheckIR(
         "simplePhi",
         checkOptimizerStates(appView, optimizer -> {
@@ -269,7 +273,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testPhiAtInit() throws Exception {
+  public void testPhiAtInit() {
     int expectedNumOfNewBuilder = 2;
     boolean expectToMeetToString = false;
     if (parameters.isDexRuntime()
@@ -293,7 +297,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testPhiWithDifferentInits() throws Exception {
+  public void testPhiWithDifferentInits() {
     buildAndCheckIR(
         "phiWithDifferentInits",
         checkOptimizerStates(appView, optimizer -> {
@@ -308,7 +312,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testConditionalPhiWithoutAppend() throws Exception {
+  public void testConditionalPhiWithoutAppend() {
     buildAndCheckIR(
         "conditionalPhiWithoutAppend",
         checkOptimizerStates(appView, optimizer -> {
@@ -323,7 +327,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testLoop() throws Exception {
+  public void testLoop() {
     buildAndCheckIR(
         "loop",
         checkOptimizerStates(appView, optimizer -> {
@@ -338,7 +342,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testLoopWithBuilder() throws Exception {
+  public void testLoopWithBuilder() {
     buildAndCheckIR(
         "loopWithBuilder",
         checkOptimizerStates(appView, optimizer -> {

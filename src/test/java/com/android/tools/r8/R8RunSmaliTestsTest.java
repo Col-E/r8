@@ -7,16 +7,17 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,12 +30,18 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class R8RunSmaliTestsTest {
+public class R8RunSmaliTestsTest extends TestBase {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
   private static final String SMALI_DIR = ToolHelper.SMALI_BUILD_DIR;
+
+  private static Map<String, Set<String>> missingClasses =
+      ImmutableMap.of(
+          "try-catch", ImmutableSet.of("test.X"),
+          "type-confusion-regression5", ImmutableSet.of("jok", "jol"),
+          "bad-codegen", ImmutableSet.of("java.util.LTest"));
 
   // Tests where the original smali code fails on Art, but runs after R8 processing.
   private static Map<DexVm.Version, List<String>> originalFailingOnArtVersions = ImmutableMap.of(
@@ -164,24 +171,25 @@ public class R8RunSmaliTestsTest {
   @Test
   public void SmaliTest() throws Exception {
     Path originalDexFile = Paths.get(SMALI_DIR, directoryName, dexFileName);
-    String outputPath = temp.getRoot().getCanonicalPath();
-    R8Command.Builder builder = R8Command.builder()
-        .addProguardConfiguration(ImmutableList.of("-keep class * { *; }"), Origin.unknown())
-        .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
-        .setOutput(Paths.get(outputPath), OutputMode.DexIndexed);
-    ToolHelper.getAppBuilder(builder).addProgramFiles(originalDexFile);
+    Path outputPath = temp.getRoot().toPath().resolve("classes.dex");
 
     if (failingOnX8.contains(directoryName)) {
       thrown.expect(CompilationFailedException.class);
     }
-    R8.run(builder.build());
+
+    testForR8(Backend.DEX)
+        .addKeepAllClassesRule()
+        .addProgramDexFileData(Files.readAllBytes(originalDexFile))
+        .addDontWarn(missingClasses.getOrDefault(directoryName, Collections.emptySet()))
+        .compile()
+        .writeToZip(outputPath);
 
     if (!ToolHelper.artSupported()) {
       return;
     }
 
     String mainClass = "Test";
-    String generated = outputPath + "/classes.dex";
+    String generated = outputPath.toString();
     String output = "";
 
     DexVm.Version dexVmVersion = ToolHelper.getDexVm().getVersion();

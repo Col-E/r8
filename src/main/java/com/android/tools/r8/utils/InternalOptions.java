@@ -100,7 +100,15 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public enum DesugarState {
     OFF,
-    ON
+    ON;
+
+    public boolean isOff() {
+      return this == OFF;
+    }
+
+    public boolean isOn() {
+      return this == ON;
+    }
   }
 
   public static final CfVersion SUPPORTED_CF_VERSION = CfVersion.V15;
@@ -478,10 +486,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean shouldDesugarNests() {
-    if (testing.enableForceNestBasedAccessDesugaringForTest) {
-      return true;
-    }
-    return !canUseNestBasedAccess();
+    return testing.enableForceNestBasedAccessDesugaringForTest || !canUseNestBasedAccess();
   }
 
   public boolean canUseRecords() {
@@ -1272,7 +1277,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean addCallEdgesForLibraryInvokes = false;
 
     public boolean allowCheckDiscardedErrors = false;
-    public boolean allowDexInputForTesting = false;
     public boolean allowInjectedAnnotationMethods = false;
     public boolean allowTypeErrors =
         !Version.isDevelopmentVersion()

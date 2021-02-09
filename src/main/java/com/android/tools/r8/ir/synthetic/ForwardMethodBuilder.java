@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.synthetic;
 
+import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
+
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
@@ -61,6 +63,23 @@ public class ForwardMethodBuilder {
     return this;
   }
 
+  public ForwardMethodBuilder applyIf(
+      boolean condition, Consumer<ForwardMethodBuilder> thenConsumer) {
+    return applyIf(condition, thenConsumer, emptyConsumer());
+  }
+
+  public ForwardMethodBuilder applyIf(
+      boolean condition,
+      Consumer<ForwardMethodBuilder> thenConsumer,
+      Consumer<ForwardMethodBuilder> elseConsumer) {
+    if (condition) {
+      thenConsumer.accept(this);
+    } else {
+      elseConsumer.accept(this);
+    }
+    return this;
+  }
+
   public ForwardMethodBuilder setNonStaticSource(DexMethod method) {
     sourceMethod = method;
     staticSource = false;
@@ -83,6 +102,13 @@ public class ForwardMethodBuilder {
   public ForwardMethodBuilder setStaticTarget(DexMethod method, boolean isInterface) {
     targetMethod = method;
     invokeType = InvokeType.STATIC;
+    this.isInterface = isInterface;
+    return this;
+  }
+
+  public ForwardMethodBuilder setSuperTarget(DexMethod method, boolean isInterface) {
+    targetMethod = method;
+    invokeType = InvokeType.SPECIAL;
     this.isInterface = isInterface;
     return this;
   }

@@ -43,6 +43,8 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.Mode;
@@ -52,6 +54,7 @@ import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
+import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaring;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.nest.NestBridgeConsumer;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
@@ -98,7 +101,9 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.SupplierUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -132,6 +137,7 @@ public class IRConverter {
   private final StringBuilderOptimizer stringBuilderOptimizer;
   private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
   private final LambdaRewriter lambdaRewriter;
+  private final InvokeSpecialToSelfDesugaring invokeSpecialToSelfDesugaring;
   private final D8NestBasedAccessDesugaring d8NestBasedAccessDesugaring;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final TwrCloseResourceRewriter twrCloseResourceRewriter;
@@ -234,6 +240,7 @@ public class IRConverter {
           TwrCloseResourceRewriter.enableTwrCloseResourceDesugaring(appView.options())
               ? new TwrCloseResourceRewriter(appView)
               : null;
+      this.invokeSpecialToSelfDesugaring = new InvokeSpecialToSelfDesugaring(appView);
       this.d8NestBasedAccessDesugaring =
           options.shouldDesugarNests() ? new D8NestBasedAccessDesugaring(appView) : null;
       this.covariantReturnTypeAnnotationTransformer = null;
@@ -314,6 +321,7 @@ public class IRConverter {
       this.devirtualizer =
           options.enableDevirtualization ? new Devirtualizer(appViewWithLiveness) : null;
       this.typeChecker = new TypeChecker(appViewWithLiveness, VerifyTypesHelper.create(appView));
+      this.invokeSpecialToSelfDesugaring = null;
       this.d8NestBasedAccessDesugaring = null;
       this.serviceLoaderRewriter =
           options.enableServiceLoaderRewriting
@@ -340,6 +348,7 @@ public class IRConverter {
       this.identifierNameStringMarker = null;
       this.devirtualizer = null;
       this.typeChecker = null;
+      this.invokeSpecialToSelfDesugaring = new InvokeSpecialToSelfDesugaring(appView);
       this.d8NestBasedAccessDesugaring =
           options.shouldDesugarNests() ? new D8NestBasedAccessDesugaring(appView) : null;
       this.desugaredLibraryAPIConverter =
@@ -438,12 +447,6 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeInvokeSpecialBridges(ExecutorService executorService)
-      throws ExecutionException {
-    assert !appView.enableWholeProgramOptimizations();
-    appView.getInvokeSpecialBridgeSynthesizer().insertBridgesForD8(this, executorService);
-  }
-
   private void synthesizeEnumUnboxingUtilityMethods(ExecutorService executorService)
       throws ExecutionException {
     if (enumUnboxer != null) {
@@ -465,7 +468,7 @@ public class IRConverter {
     DexApplication application = appView.appInfo().app();
     timing.begin("IR conversion");
 
-    convertClasses(application, executor);
+    convertClasses(executor);
 
     reportNestDesugarDependencies();
 
@@ -486,7 +489,6 @@ public class IRConverter {
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
     processSynthesizedJava8UtilityClasses(executor);
     synthesizeRetargetClass(builder, executor);
-    synthesizeInvokeSpecialBridges(executor);
     processCovariantReturnTypeAnnotations(builder);
     generateDesugaredLibraryAPIWrappers(builder, executor);
 
@@ -499,34 +501,45 @@ public class IRConverter {
             appView.appInfo().getMainDexInfo()));
   }
 
-  private void convertClasses(DexApplication application, ExecutorService executorService)
-      throws ExecutionException {
+  private void convertClasses(ExecutorService executorService) throws ExecutionException {
     D8MethodProcessor methodProcessor = new D8MethodProcessor(this, executorService);
     ClassConverter classConverter = ClassConverter.create(appView, this, methodProcessor);
-    classConverter.convertClasses(application, executorService);
+    classConverter.convertClasses(executorService);
 
     synthesizeBridgesForNestBasedAccessesOnClasspath(methodProcessor, executorService);
     methodProcessor.awaitMethodProcessing();
   }
 
-  void convertMethods(DexProgramClass clazz, D8MethodProcessor methodProcessor) {
+  void convertMethods(
+      DexProgramClass clazz,
+      D8CfInstructionDesugaringEventConsumer desugaringEventConsumer,
+      D8MethodProcessor methodProcessor) {
     boolean isReachabilitySensitive = clazz.hasReachabilitySensitiveAnnotation(options.itemFactory);
     // When converting all methods on a class always convert <clinit> first.
     ProgramMethod classInitializer = clazz.getProgramClassInitializer();
+
+    // TODO(b/179755192): We currently need to copy the class' methods, to avoid a
+    //  ConcurrentModificationException from the insertion of methods due to invoke-special
+    //  desugaring. By building up waves of methods in the class converter, we would not need to
+    //  iterate the methods of a class during while its methods are being processed, which avoids
+    //  the need to copy the method list.
+    List<ProgramMethod> methods = ListUtils.newArrayList(clazz::forEachProgramMethod);
     if (classInitializer != null) {
       classInitializer
           .getDefinition()
           .getMutableOptimizationInfo()
           .setReachabilitySensitive(isReachabilitySensitive);
-      methodProcessor.processMethod(classInitializer);
+      methodProcessor.processMethod(classInitializer, desugaringEventConsumer);
     }
-    clazz.forEachProgramMethodMatching(
-        definition -> !definition.isClassInitializer(),
-        method -> {
-          DexEncodedMethod definition = method.getDefinition();
-          definition.getMutableOptimizationInfo().setReachabilitySensitive(isReachabilitySensitive);
-          methodProcessor.processMethod(method);
-        });
+
+    for (ProgramMethod method : methods) {
+      if (!method.getDefinition().isClassInitializer()) {
+        DexEncodedMethod definition = method.getDefinition();
+        definition.getMutableOptimizationInfo().setReachabilitySensitive(isReachabilitySensitive);
+        methodProcessor.processMethod(method, desugaringEventConsumer);
+      }
+    }
+
     // The class file version is downgraded after compilation. Some of the desugaring might need
     // the initial class file version to determine how far a method can be downgraded.
     if (clazz.hasClassFileVersion()) {
@@ -537,6 +550,7 @@ public class IRConverter {
 
   void convertMethod(
       ProgramMethod method,
+      D8CfInstructionDesugaringEventConsumer desugaringEventConsumer,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     DexEncodedMethod definition = method.getDefinition();
@@ -557,7 +571,12 @@ public class IRConverter {
     if (options.isGeneratingClassFiles()
         || !(options.passthroughDexCode && definition.getCode().isDexCode())) {
       // We do not process in call graph order, so anything could be a leaf.
-      rewriteCode(method, simpleOptimizationFeedback, methodProcessor, methodProcessingContext);
+      rewriteCode(
+          method,
+          desugaringEventConsumer,
+          simpleOptimizationFeedback,
+          methodProcessor,
+          methodProcessingContext);
     } else {
       assert definition.getCode().isDexCode();
     }
@@ -693,7 +712,8 @@ public class IRConverter {
       }
       primaryMethodProcessor.forEachMethod(
           (method, methodProcessingContext) ->
-              processMethod(method, feedback, primaryMethodProcessor, methodProcessingContext),
+              processDesugaredMethod(
+                  method, feedback, primaryMethodProcessor, methodProcessingContext),
           this::waveStart,
           this::waveDone,
           timing,
@@ -1012,7 +1032,7 @@ public class IRConverter {
           OneTimeMethodProcessor.create(synthesizedMethod, appView);
       methodProcessor.forEachWaveWithExtension(
           (method, methodProcessingContext) ->
-              processMethod(
+              processDesugaredMethod(
                   method, delayedOptimizationFeedback, methodProcessor, methodProcessingContext));
     }
   }
@@ -1023,7 +1043,7 @@ public class IRConverter {
       OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
       methodProcessor.forEachWaveWithExtension(
           (method, methodProcessingContext) ->
-              processMethod(
+              processDesugaredMethod(
                   method, delayedOptimizationFeedback, methodProcessor, methodProcessingContext),
           executorService);
     }
@@ -1044,7 +1064,7 @@ public class IRConverter {
   }
 
   // TODO(b/140766440): Make this receive a list of CodeOptimizations to conduct.
-  public Timing processMethod(
+  public Timing processDesugaredMethod(
       ProgramMethod method,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
@@ -1053,7 +1073,7 @@ public class IRConverter {
     Code code = definition.getCode();
     boolean matchesMethodFilter = options.methodMatchesFilter(definition);
     if (code != null && matchesMethodFilter) {
-      return rewriteCode(method, feedback, methodProcessor, methodProcessingContext);
+      return rewriteDesugaredCode(method, feedback, methodProcessor, methodProcessingContext);
     } else {
       // Mark abstract methods as processed as well.
       definition.markProcessed(ConstraintWithTarget.NEVER);
@@ -1071,17 +1091,38 @@ public class IRConverter {
 
   Timing rewriteCode(
       ProgramMethod method,
+      CfInstructionDesugaringEventConsumer desugaringEventConsumer,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     return ExceptionUtils.withOriginAndPositionAttachmentHandler(
         method.getOrigin(),
         new MethodPosition(method.getReference().asMethodReference()),
-        () -> rewriteCodeInternal(method, feedback, methodProcessor, methodProcessingContext));
+        () ->
+            rewriteCodeInternal(
+                method,
+                desugaringEventConsumer,
+                feedback,
+                methodProcessor,
+                methodProcessingContext));
+  }
+
+  Timing rewriteDesugaredCode(
+      ProgramMethod method,
+      OptimizationFeedback feedback,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext) {
+    return rewriteCode(
+        method,
+        CfInstructionDesugaringEventConsumer.createForDesugaredCode(),
+        feedback,
+        methodProcessor,
+        methodProcessingContext);
   }
 
   private Timing rewriteCodeInternal(
       ProgramMethod method,
+      CfInstructionDesugaringEventConsumer desugaringEventConsumer,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
@@ -1096,7 +1137,8 @@ public class IRConverter {
           method.toSourceString(),
           logCode(options, method.getDefinition()));
     }
-    boolean didDesugar = desugar(method, methodProcessor, methodProcessingContext);
+    boolean didDesugar =
+        desugar(method, desugaringEventConsumer, methodProcessor, methodProcessingContext);
     if (Log.ENABLED && didDesugar) {
       Log.debug(
           getClass(),
@@ -1121,17 +1163,16 @@ public class IRConverter {
 
   private boolean desugar(
       ProgramMethod method,
+      CfInstructionDesugaringEventConsumer desugaringEventConsumer,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
-    if (options.desugarState != DesugarState.ON) {
+    if (options.desugarState.isOff() || !method.getDefinition().getCode().isCfCode()) {
       return false;
     }
-    if (!method.getDefinition().getCode().isCfCode()) {
-      return false;
-    }
+
     boolean didDesugar = false;
     Supplier<AppInfoWithClassHierarchy> lazyAppInfo =
-        Suppliers.memoize(appView::appInfoForDesugaring);
+        SupplierUtils.nonThreadSafeMemoize(appView::appInfoForDesugaring);
     if (lambdaRewriter != null) {
       didDesugar |=
           lambdaRewriter.desugarLambdas(method, lazyAppInfo.get(), methodProcessingContext) > 0;
@@ -1144,6 +1185,10 @@ public class IRConverter {
       NestBridgeConsumer bridgeConsumer = NestBridgeConsumer.createForD8(methodProcessor);
       didDesugar |= d8NestBasedAccessDesugaring.desugar(method, bridgeConsumer);
     }
+    if (invokeSpecialToSelfDesugaring != null) {
+      didDesugar |= invokeSpecialToSelfDesugaring.desugar(method, desugaringEventConsumer);
+    }
+
     return didDesugar;
   }
 
@@ -1475,7 +1520,6 @@ public class IRConverter {
       interfaceMethodRewriter.rewriteMethodReferences(
           code, methodProcessor, methodProcessingContext);
       timing.end();
-      assert code.isConsistentSSA();
     }
 
     previous = printMethod(code, "IR after interface method rewriting (SSA)", previous);

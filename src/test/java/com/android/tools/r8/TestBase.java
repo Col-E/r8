@@ -715,18 +715,30 @@ public class TestBase {
 
   protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierachy(
       AndroidApp app) throws Exception {
-    return computeAppViewWithClassHierachy(
-        app,
-        factory ->
-            buildConfigForRules(
-                factory,
-                Collections.singletonList(ProguardKeepRule.defaultKeepAllRule(unused -> {}))));
+    return computeAppViewWithClassHierachy(app, null);
   }
 
   private static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierachy(
       AndroidApp app, Function<DexItemFactory, ProguardConfiguration> keepConfig) throws Exception {
+    return computeAppViewWithClassHierachy(app, keepConfig, null);
+  }
+
+  private static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierachy(
+      AndroidApp app,
+      Function<DexItemFactory, ProguardConfiguration> keepConfig,
+      Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
     DexItemFactory dexItemFactory = new DexItemFactory();
+    if (keepConfig == null) {
+      keepConfig =
+          factory ->
+              buildConfigForRules(
+                  factory, ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})));
+    }
     InternalOptions options = new InternalOptions(keepConfig.apply(dexItemFactory), new Reporter());
+    if (optionsConsumer != null) {
+      optionsConsumer.accept(options);
+    }
     DexApplication dexApplication = readApplicationForDexOutput(app, options);
     AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(dexApplication.toDirect());
     appView.setAppServices(AppServices.builder(appView).build());
@@ -735,11 +747,7 @@ public class TestBase {
 
   protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(AndroidApp app)
       throws Exception {
-    return computeAppViewWithLiveness(
-        app,
-        factory ->
-            buildConfigForRules(
-                factory, ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {}))));
+    return computeAppViewWithLiveness(app, null, null);
   }
 
   protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(
@@ -752,7 +760,16 @@ public class TestBase {
 
   protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(
       AndroidApp app, Function<DexItemFactory, ProguardConfiguration> keepConfig) throws Exception {
-    AppView<AppInfoWithClassHierarchy> appView = computeAppViewWithClassHierachy(app, keepConfig);
+    return computeAppViewWithLiveness(app, keepConfig, null);
+  }
+
+  protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(
+      AndroidApp app,
+      Function<DexItemFactory, ProguardConfiguration> keepConfig,
+      Consumer<InternalOptions> optionsConsumer)
+      throws Exception {
+    AppView<AppInfoWithClassHierarchy> appView =
+        computeAppViewWithClassHierachy(app, keepConfig, optionsConsumer);
     // Run the tree shaker to compute an instance of AppInfoWithLiveness.
     ExecutorService executor = Executors.newSingleThreadExecutor();
     SubtypingInfo subtypingInfo = new SubtypingInfo(appView);

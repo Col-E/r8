@@ -18,16 +18,16 @@ public class D8NestBridgeConsumer extends NestBridgeConsumer {
 
   @Override
   public void acceptFieldGetBridge(ProgramField target, ProgramMethod bridge) {
-    methodProcessor.scheduleMethodForProcessingAfterCurrentWave(bridge);
+    methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
   }
 
   @Override
   public void acceptFieldPutBridge(ProgramField target, ProgramMethod bridge) {
-    methodProcessor.scheduleMethodForProcessingAfterCurrentWave(bridge);
+    methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
   }
 
   @Override
   public void acceptMethodBridge(ProgramMethod target, ProgramMethod bridge) {
-    methodProcessor.scheduleMethodForProcessingAfterCurrentWave(bridge);
+    methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
   }
 }
