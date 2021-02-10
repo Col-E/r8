@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin.reflection;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
@@ -91,6 +92,7 @@ public class KotlinReflectTest extends KotlinTestBase {
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticWarningMessages()
+        .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.is(KOTLINC_1_4_20))
         .compile()
         .writeToZip(foo.toPath())
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))

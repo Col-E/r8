@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.KotlinTestParametersCollection;
@@ -203,6 +205,8 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testDataClass() throws Exception {
+    // TODO(b/179866251): Update tests.
+    assumeTrue(kotlinc.is(KOTLINC_1_3_72));
     String mainClassName = "class_inliner_data_class.MainKt";
     runTest(
             "class_inliner_data_class",

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -48,6 +49,8 @@ public class KotlinIntrinsicsInlineTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void b139432507() throws Exception {
+    // TODO(b/179866251): Update tests.
+    assumeTrue(kotlinc.is(KOTLINC_1_3_72) || allowAccessModification);
     testForR8(parameters.getBackend())
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
         .addKeepRules(
@@ -81,12 +84,16 @@ public class KotlinIntrinsicsInlineTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void b139432507_isSupported() throws Exception {
+    // TODO(b/179866251): Update tests.
+    assumeTrue(kotlinc.is(KOTLINC_1_3_72) || allowAccessModification);
     assumeTrue("Different inlining behavior on CF backend", parameters.isDexRuntime());
     testSingle("isSupported");
   }
 
   @Test
   public void b139432507_containsArray() throws Exception {
+    // TODO(b/179866251): Update tests.
+    assumeTrue(kotlinc.is(KOTLINC_1_3_72) || allowAccessModification);
     assumeTrue("Different inlining behavior on CF backend", parameters.isDexRuntime());
     testSingle("containsArray");
   }

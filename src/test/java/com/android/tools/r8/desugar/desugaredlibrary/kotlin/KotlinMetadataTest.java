@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.kotlin;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
 import static com.android.tools.r8.KotlinTestBase.getCompileMemoizer;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
@@ -24,6 +24,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
+import com.android.tools.r8.kotlin.metadata.KotlinMetadataTestBase;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -129,17 +130,18 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
             .addKeepAllClassesRule()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .setMinApi(parameters.getApiLevel())
-            .allowDiagnosticWarningMessages();
+            .allowDiagnosticWarningMessages()
+            .allowUnusedDontWarnKotlinReflectJvmInternal(
+                kotlinParameters.getCompiler().is(KOTLINC_1_4_20));
     KeepRuleConsumer keepRuleConsumer = null;
     if (desugarLibrary) {
       keepRuleConsumer = createKeepRuleConsumer(parameters);
       testBuilder.enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer);
     }
-    final R8TestCompileResult compileResult =
+    R8TestCompileResult compileResult =
         testBuilder
             .compile()
-            .assertAllWarningMessagesMatch(
-                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."));
+            .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib);
     if (desugarLibrary) {
       assertNotNull(keepRuleConsumer);
       compileResult.addDesugaredCoreLibraryRunClassPath(

@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.kotlin.coroutines;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -65,11 +67,15 @@ public class KotlinxCoroutinesTestRunner extends KotlinMetadataTestBase {
 
   @Test
   public void runKotlinxCoroutinesTests_smoke() throws Exception {
+    // TODO(b/179860018): Make run for 1.4.20
+    assumeTrue(kotlinc.is(KOTLINC_1_3_72));
     runTestsInJar(compileTestSources(BASE_LIBRARY), BASE_LIBRARY);
   }
 
   @Test
   public void runKotlinxCoroutinesTests_r8() throws Exception {
+    // TODO(b/179860018): Make run for 1.4.20
+    assumeTrue(kotlinc.is(KOTLINC_1_3_72));
     Path baseJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(BASE_LIBRARY)

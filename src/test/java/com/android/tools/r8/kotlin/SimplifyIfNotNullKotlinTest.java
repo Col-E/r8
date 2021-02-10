@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -63,6 +65,8 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_example2() throws Exception {
+    // TODO(b/179866251): Update tests.
+    assumeTrue(kotlinc.is(KOTLINC_1_3_72) || allowAccessModification);
     final TestKotlinClass ex2 = new TestKotlinClass("non_null.Example2Kt");
     final MethodSignature testMethodSignature =
         new MethodSignature("aOrDefault", STRING, ImmutableList.of(STRING, STRING));

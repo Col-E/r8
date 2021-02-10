@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
 
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
@@ -22,7 +23,7 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}, {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimes().build(),
@@ -45,8 +46,11 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
         .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
+        .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.is(KOTLINC_1_4_20))
+        .allowUnusedProguardConfigurationRules(kotlinc.is(KOTLINC_1_4_20))
         .apply(consumer)
-        .compile();
+        .compile()
+        .apply(assertUnusedKeepRuleForKotlinMetadata(kotlinc.is(KOTLINC_1_4_20)));
   }
 
   @Test

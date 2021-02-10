@@ -62,7 +62,7 @@ public class NonEmptyDontWarnConfiguration extends DontWarnConfiguration {
   public boolean validate(InternalOptions options) {
     assert options.testing.allowUnnecessaryDontWarnWildcards
         || validateNoUnnecessaryDontWarnWildcards();
-    assert options.testing.allowUnusedDontWarnRules || validateNoUnusedDontWarnPatterns();
+    assert options.testing.allowUnusedDontWarnRules || validateNoUnusedDontWarnPatterns(options);
     return true;
   }
 
@@ -79,9 +79,10 @@ public class NonEmptyDontWarnConfiguration extends DontWarnConfiguration {
     return true;
   }
 
-  public boolean validateNoUnusedDontWarnPatterns() {
+  public boolean validateNoUnusedDontWarnPatterns(InternalOptions options) {
     for (ProguardClassNameList dontWarnPattern : dontWarnPatterns) {
       assert matchedDontWarnPatterns.containsKey(dontWarnPattern)
+              || options.testing.allowedUnusedDontWarnPatterns.contains(dontWarnPattern.toString())
           : "Unexpected unused rule -dontwarn " + dontWarnPattern.toString();
     }
     return true;

@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -37,6 +40,8 @@ public class R8KotlinIntrinsicsTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testParameterNullCheckIsInlined() throws Exception {
+    // TODO(b/179866251): Update tests.
+    assumeTrue(kotlinc.is(KOTLINC_1_3_72));
     final String extraRules = keepClassMethod("intrinsics.IntrinsicsKt",
         new MethodSignature("expectsNonNullParameters",
             "java.lang.String", Lists.newArrayList("java.lang.String", "java.lang.String")));
