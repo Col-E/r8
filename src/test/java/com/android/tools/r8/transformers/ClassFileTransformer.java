@@ -37,6 +37,7 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
@@ -649,6 +650,17 @@ public class ClassFileTransformer {
         });
   }
 
+  /** Abstraction of the MethodVisitor.visitInvokeDynamicInsn method with its sub visitor. */
+  @FunctionalInterface
+  public interface InvokeDynamicInsnTransform {
+    void visitInvokeDynamicInsn(
+        String name,
+        String descriptor,
+        Handle bootstrapMethodHandle,
+        List<Object> bootstrapMethodArguments,
+        MethodVisitor visitor);
+  }
+
   /** Abstraction of the MethodVisitor.visitMethodInsn method with its sub visitor. */
   @FunctionalInterface
   public interface MethodInsnTransform {
@@ -737,6 +749,55 @@ public class ClassFileTransformer {
                     replaceAll(
                         Type.getObjectType(type).getDescriptor(), oldDescriptor, newDescriptor))
                 .getInternalName();
+          }
+        });
+  }
+
+  @FunctionalInterface
+  private interface VisitInvokeDynamicInsnCallback {
+    void visitInvokeDynamicInsn(
+        String name,
+        String descriptor,
+        Handle bootstrapMethodHandle,
+        Object... bootstrapMethodArguments);
+  }
+
+  private MethodVisitor redirectVisitInvokeDynamicInsn(
+      MethodVisitor visitor, VisitInvokeDynamicInsnCallback callback) {
+    return new MethodVisitor(ASM7, visitor) {
+      @Override
+      public void visitInvokeDynamicInsn(
+          String name,
+          String descriptor,
+          Handle bootstrapMethodHandle,
+          Object... bootstrapMethodArguments) {
+        callback.visitInvokeDynamicInsn(
+            name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
+      }
+    };
+  }
+
+  public ClassFileTransformer transformInvokeDynamicInsnInMethod(
+      String methodName, InvokeDynamicInsnTransform transform) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public void visitInvokeDynamicInsn(
+              String name,
+              String descriptor,
+              Handle bootstrapMethodHandle,
+              Object... bootstrapMethodArguments) {
+            if (getContext().method.getMethodName().equals(methodName)) {
+              transform.visitInvokeDynamicInsn(
+                  name,
+                  descriptor,
+                  bootstrapMethodHandle,
+                  Arrays.asList(bootstrapMethodArguments),
+                  redirectVisitInvokeDynamicInsn(this, super::visitInvokeDynamicInsn));
+            } else {
+              super.visitInvokeDynamicInsn(
+                  name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
+            }
           }
         });
   }

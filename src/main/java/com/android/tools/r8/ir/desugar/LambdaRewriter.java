@@ -59,7 +59,7 @@ import org.objectweb.asm.Opcodes;
  */
 public class LambdaRewriter {
 
-  static final String EXPECTED_LAMBDA_METHOD_PREFIX = "lambda$";
+  public static final String EXPECTED_LAMBDA_METHOD_PREFIX = "lambda$";
   public static final String LAMBDA_INSTANCE_FIELD_NAME = "INSTANCE";
 
   private final AppView<?> appView;
