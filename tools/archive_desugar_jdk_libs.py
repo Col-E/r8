@@ -44,6 +44,9 @@ def ParseOptions(argv):
       help='GitHub account to clone from.',
       default="google",
       type="string", action="store")
+  result.add_option('--build_only', '--build-only',
+      help='Build desugared library without archiving.',
+      type="string", action="store")
   (options, args) = result.parse_args(argv)
   return (options, args)
 
@@ -77,20 +80,44 @@ def Upload(options, file_name, storage_path, destination, is_master):
     print('File available at: %s' %
         destination.replace('gs://', 'https://storage.googleapis.com/', 1))
 
+def CloneDesugaredLibrary(github_account, checkout_dir):
+  git_utils.GitClone(
+    'https://github.com/'
+        + github_account + '/' + LIBRARY_NAME, checkout_dir)
+
+def BuildDesugaredLibrary(checkout_dir):
+  with utils.ChangedWorkingDirectory(checkout_dir):
+    bazel = os.path.join(utils.BAZEL_TOOL, 'lib', 'bazel', 'bin', 'bazel')
+    cmd = [bazel, 'build', 'maven_release']
+    utils.PrintCmd(cmd)
+    subprocess.check_call(cmd)
+    cmd = [bazel, 'shutdown']
+    utils.PrintCmd(cmd)
+    subprocess.check_call(cmd)
+
+    # Locate the library jar and the maven zip with the jar from the
+    # bazel build.
+    library_jar = os.path.join(
+        checkout_dir, 'bazel-bin', 'src', 'share', 'classes', 'java', 'libjava.jar')
+    maven_zip = os.path.join(checkout_dir, 'bazel-bin', LIBRARY_NAME +'.zip')
+    return (library_jar, maven_zip)
+
+
+def MustBeExistingDirectory(path):
+  if (not os.path.exists(path) or not os.path.isdir(path)):
+    raise Exception(path + ' does not exist or is not a directory')
 
 def Main(argv):
   (options, args) = ParseOptions(argv)
   if (len(args) > 0):
     raise Exception('Unsupported arguments')
-  if not utils.is_bot() and not options.dry_run:
+  if not utils.is_bot() and not (options.dry_run or options.build_only):
     raise Exception('You are not a bot, don\'t archive builds. '
-        + 'Use --dry-run to test locally')
-  if (options.dry_run_output and
-      (not os.path.exists(options.dry_run_output) or
-       not os.path.isdir(options.dry_run_output))):
-    raise Exception(options.dry_run_output
-        + ' does not exist or is not a directory')
-
+        + 'Use --dry-run or --build-only to test locally')
+  if options.dry_run_output:
+     MustBeExistingDirectory(options.dry_run_output)
+  if options.build_only:
+     MustBeExistingDirectory(options.build_only)
   if utils.is_bot():
     archive.SetRLimitToMax()
 
@@ -98,57 +125,54 @@ def Main(argv):
   utils.DownloadFromGoogleCloudStorage(utils.BAZEL_SHA_FILE)
   utils.DownloadFromGoogleCloudStorage(utils.JAVA8_SHA_FILE)
 
+  if options.build_only:
+    with utils.TempDir() as checkout_dir:
+      CloneDesugaredLibrary(options.github_account, checkout_dir)
+      (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir)
+      shutil.copyfile(
+        library_jar,
+        os.path.join(options.build_only, os.path.basename(library_jar)))
+      shutil.copyfile(
+        maven_zip,
+        os.path.join(options.build_only, os.path.basename(maven_zip)))
+      return
+
   # Only handling versioned desugar_jdk_libs.
   is_master = False
 
   with utils.TempDir() as checkout_dir:
-    git_utils.GitClone(
-      'https://github.com/'
-          + options.github_account + '/' + LIBRARY_NAME, checkout_dir)
-    with utils.ChangedWorkingDirectory(checkout_dir):
-      version = GetVersion(VERSION_FILE)
+    CloneDesugaredLibrary(options.github_account, checkout_dir)
+    version = GetVersion(os.path.join(checkout_dir, VERSION_FILE))
 
-      destination = archive.GetVersionDestination(
-          'gs://', LIBRARY_NAME + '/' + version, is_master)
-      if utils.cloud_storage_exists(destination) and not options.dry_run:
-        raise Exception(
-            'Target archive directory %s already exists' % destination)
+    destination = archive.GetVersionDestination(
+        'gs://', LIBRARY_NAME + '/' + version, is_master)
+    if utils.cloud_storage_exists(destination) and not options.dry_run:
+      raise Exception(
+          'Target archive directory %s already exists' % destination)
 
-      bazel = os.path.join(utils.BAZEL_TOOL, 'lib', 'bazel', 'bin', 'bazel')
-      cmd = [bazel, 'build', 'maven_release']
-      utils.PrintCmd(cmd)
-      subprocess.check_call(cmd)
-      cmd = [bazel, 'shutdown']
-      utils.PrintCmd(cmd)
-      subprocess.check_call(cmd)
+    (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir)
 
-      # Locate the library jar and the maven zip with the jar from the
-      # bazel build.
-      library_jar = os.path.join(
-          'bazel-bin', 'src', 'share', 'classes', 'java', 'libjava.jar')
-      maven_zip = os.path.join('bazel-bin', LIBRARY_NAME +'.zip')
+    storage_path = LIBRARY_NAME + '/' + version
+    # Upload the jar file with the library.
+    destination = archive.GetUploadDestination(
+        storage_path, LIBRARY_NAME + '.jar', is_master)
+    Upload(options, library_jar, storage_path, destination, is_master)
 
-      storage_path = LIBRARY_NAME + '/' + version
-      # Upload the jar file with the library.
-      destination = archive.GetUploadDestination(
-          storage_path, LIBRARY_NAME + '.jar', is_master)
-      Upload(options, library_jar, storage_path, destination, is_master)
+    # Upload the maven zip file with the library.
+    destination = archive.GetUploadDestination(
+        storage_path, LIBRARY_NAME + '.zip', is_master)
+    Upload(options, maven_zip, storage_path, destination, is_master)
 
-      # Upload the maven zip file with the library.
-      destination = archive.GetUploadDestination(
-          storage_path, LIBRARY_NAME + '.zip', is_master)
-      Upload(options, maven_zip, storage_path, destination, is_master)
-
-      # Upload the jar file for accessing GCS as a maven repro.
-      maven_destination = archive.GetUploadDestination(
-          utils.get_maven_path('desugar_jdk_libs', version),
-          'desugar_jdk_libs-%s.jar' % version,
-          is_master)
-      if options.dry_run:
-        print('Dry run, not actually creating maven repo')
-      else:
-        utils.upload_file_to_cloud_storage(library_jar, maven_destination)
-        print('Maven repo root available at: %s' % archive.GetMavenUrl(is_master))
+    # Upload the jar file for accessing GCS as a maven repro.
+    maven_destination = archive.GetUploadDestination(
+        utils.get_maven_path('desugar_jdk_libs', version),
+        'desugar_jdk_libs-%s.jar' % version,
+        is_master)
+    if options.dry_run:
+      print('Dry run, not actually creating maven repo')
+    else:
+      utils.upload_file_to_cloud_storage(library_jar, maven_destination)
+      print('Maven repo root available at: %s' % archive.GetMavenUrl(is_master))
 
 
 if __name__ == '__main__':
