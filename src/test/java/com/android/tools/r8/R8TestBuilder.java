@@ -309,20 +309,6 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
-  public T allowUnusedDontWarnKotlinReflectJvmInternal() {
-    addOptionsModification(
-        options ->
-            options.testing.allowedUnusedDontWarnPatterns.add("kotlin.reflect.jvm.internal.**"));
-    return self();
-  }
-
-  public T allowUnusedDontWarnKotlinReflectJvmInternal(boolean condition) {
-    if (condition) {
-      allowUnusedDontWarnKotlinReflectJvmInternal();
-    }
-    return self();
-  }
-
   public T allowUnusedDontWarnPatterns() {
     return addOptionsModification(options -> options.testing.allowUnusedDontWarnRules = true);
   }

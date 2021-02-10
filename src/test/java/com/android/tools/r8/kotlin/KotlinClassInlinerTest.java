@@ -4,15 +4,13 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
-import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.KotlinTestParametersCollection;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.SgetObject;
@@ -39,15 +37,13 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
-  @Parameterized.Parameters(name = "{0}, {1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(),
-        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
+  @Parameterized.Parameters(name = "{0}")
+  public static KotlinTestParametersCollection data() {
+    return getKotlinTestParameters().withAllCompilersAndTargetVersions().build();
   }
 
-  public KotlinClassInlinerTest(TestParameters parameters, KotlinTestParameters kotlinParameters) {
-    super(parameters, kotlinParameters, true);
+  public KotlinClassInlinerTest(KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters, true);
   }
 
   private static boolean isLambda(DexClass clazz) {
@@ -207,8 +203,6 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testDataClass() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72));
     String mainClassName = "class_inliner_data_class.MainKt";
     runTest(
             "class_inliner_data_class",

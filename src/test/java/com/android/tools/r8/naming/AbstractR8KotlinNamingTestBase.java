@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.KotlinTestParameters;
-import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -20,11 +19,10 @@ public abstract class AbstractR8KotlinNamingTestBase extends AbstractR8KotlinTes
   protected final boolean minification;
 
   AbstractR8KotlinNamingTestBase(
-      TestParameters parameters,
       KotlinTestParameters kotlinParameters,
       boolean allowAccessModification,
       boolean minification) {
-    super(parameters, kotlinParameters, allowAccessModification);
+    super(kotlinParameters, allowAccessModification);
     this.minification = minification;
   }
 

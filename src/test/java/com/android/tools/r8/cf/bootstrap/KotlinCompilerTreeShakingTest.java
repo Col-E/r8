@@ -119,8 +119,7 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
     Path classPathAfter =
         kotlinc(
                 parameters.getRuntime().asCf(),
-                new KotlinCompiler(
-                    "r8ProcessedKotlinc", r8ProcessedKotlinc, kotlinCompiler.getCompilerVersion()),
+                new KotlinCompiler("r8ProcessedKotlinc", r8ProcessedKotlinc),
                 KotlinTargetVersion.JAVA_8)
             .addSourceFiles(HELLO_KT)
             .setOutputPath(temp.newFolder().toPath())

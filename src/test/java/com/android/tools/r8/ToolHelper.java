@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 import static org.junit.Assert.assertEquals;
@@ -2135,15 +2133,11 @@ public class ToolHelper {
   }
 
   public static KotlinCompiler getKotlinC_1_3_72() {
-    return new KotlinCompiler(KOTLINC_1_3_72);
-  }
-
-  public static KotlinCompiler getKotlinC_1_4_20() {
-    return new KotlinCompiler(KOTLINC_1_4_20);
+    return new KotlinCompiler("kotlin-compiler-1.3.72");
   }
 
   public static KotlinCompiler[] getKotlinCompilers() {
-    return new KotlinCompiler[] {getKotlinC_1_3_72(), getKotlinC_1_4_20()};
+    return new KotlinCompiler[] {getKotlinC_1_3_72()};
   }
 
   public static void disassemble(AndroidApp app, PrintStream ps)

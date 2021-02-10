@@ -6,10 +6,10 @@ package com.android.tools.r8.kotlin.lambda;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,7 +17,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class KotlinLambdaMergingDebugTest extends KotlinTestBase {
+public class KotlinLambdaMergingDebugTest extends AbstractR8KotlinTestBase {
 
   private final TestParameters parameters;
   private static final String FOLDER = "reprocess_merged_lambdas_kstyle";

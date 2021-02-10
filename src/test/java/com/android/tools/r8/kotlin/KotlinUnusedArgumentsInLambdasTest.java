@@ -9,7 +9,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
-import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -22,19 +21,16 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class KotlinUnusedArgumentsInLambdasTest extends AbstractR8KotlinTestBase {
 
-  @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")
+  @Parameterized.Parameters(name = "{0}, allowAccessModification: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
 
   public KotlinUnusedArgumentsInLambdasTest(
-      TestParameters parameters,
-      KotlinTestParameters kotlinParameters,
-      boolean allowAccessModification) {
-    super(parameters, kotlinParameters, allowAccessModification);
+      KotlinTestParameters kotlinParameters, boolean allowAccessModification) {
+    super(kotlinParameters, allowAccessModification);
   }
 
   @Test

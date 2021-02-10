@@ -27,37 +27,22 @@ import org.junit.rules.TemporaryFolder;
 
 public class KotlinCompilerTool {
 
-  public enum KotlinCompilerVersion {
-    KOTLINC_1_3_72("kotlin-compiler-1.3.72"),
-    KOTLINC_1_4_20("kotlin-compiler-1.4.20");
-
-    private final String folder;
-
-    KotlinCompilerVersion(String folder) {
-      this.folder = folder;
-    }
-  }
-
   public static final class KotlinCompiler {
 
     private final String name;
     private final Path lib;
     private final Path compiler;
-    private final KotlinCompilerVersion compilerVersion;
 
-    public KotlinCompiler(KotlinCompilerVersion compilerVersion) {
-      this.lib =
-          Paths.get(ToolHelper.THIRD_PARTY_DIR, "kotlin", compilerVersion.folder, "kotlinc", "lib");
+    public KotlinCompiler(String name) {
+      this.name = name;
+      this.lib = Paths.get(ToolHelper.THIRD_PARTY_DIR, "kotlin", name, "kotlinc", "lib");
       this.compiler = lib.resolve("kotlin-compiler.jar");
-      this.compilerVersion = compilerVersion;
-      this.name = compilerVersion.name();
     }
 
-    public KotlinCompiler(String name, Path compiler, KotlinCompilerVersion compilerVersion) {
+    public KotlinCompiler(String name, Path compiler) {
+      this.name = name;
       this.compiler = compiler;
       this.lib = null;
-      this.compilerVersion = compilerVersion;
-      this.name = name;
     }
 
     public Path getCompiler() {
@@ -66,14 +51,6 @@ public class KotlinCompilerTool {
 
     public Path getFolder() {
       return lib;
-    }
-
-    public boolean is(KotlinCompilerVersion version) {
-      return compilerVersion == version;
-    }
-
-    public KotlinCompilerVersion getCompilerVersion() {
-      return compilerVersion;
     }
 
     @Override

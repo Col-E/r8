@@ -3,16 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
-import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -25,15 +22,13 @@ import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
 
-  @Parameters(name = "{0}, {1}, allowAccessModification: {2}")
+  @Parameterized.Parameters(name = "{0}, allowAccessModification: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
@@ -42,16 +37,12 @@ public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
       "void java.io.PrintStream.println(java.lang.Object)";
 
   public KotlinUnusedSingletonTest(
-      TestParameters parameters,
-      KotlinTestParameters kotlinParameters,
-      boolean allowAccessModification) {
-    super(parameters, kotlinParameters, allowAccessModification);
+      KotlinTestParameters kotlinParameters, boolean allowAccessModification) {
+    super(kotlinParameters, allowAccessModification);
   }
 
   @Test
   public void b110196118() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72));
     final String mainClassName = "unused_singleton.MainKt";
     final String moduleName = "unused_singleton.TestModule";
     runTest(
@@ -75,7 +66,6 @@ public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
               // The method provideGreeting() is no longer being invoked -- i.e., we have been able
               // to determine that the class initialization of the enclosing class is trivial.
               ClassSubject module = inspector.clazz(moduleName);
-              // TODO(b/179897889): Should probably check for module being present.
               assertThat(main, isPresent());
               assertEquals(
                   0,

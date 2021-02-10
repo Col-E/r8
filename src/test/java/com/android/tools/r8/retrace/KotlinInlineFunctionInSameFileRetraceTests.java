@@ -12,10 +12,9 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -29,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -42,7 +42,7 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends KotlinTestBase {
 
   private final TestParameters parameters;
 
-  @Parameters(name = "{0}, target: {1}")
+  @Parameters(name = "{0}, {1}")
   public static List<Object[]> data() {
     // TODO(b/141817471): Extend with compilation modes.
     return buildParameters(
@@ -69,9 +69,7 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends KotlinTestBase {
   }
 
   @Test
-  public void testRuntime() throws Exception {
-    // TODO(b/179666509): SMAP has changed.
-    assumeTrue(kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
+  public void testRuntime() throws ExecutionException, CompilationFailedException, IOException {
     testForRuntime(parameters)
         .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
         .addRunClasspathFiles(buildOnDexRuntime(parameters, ToolHelper.getKotlinStdlibJar(kotlinc)))
@@ -83,9 +81,8 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends KotlinTestBase {
   }
 
   @Test
-  public void testRetraceKotlinInlineStaticFunction() throws Exception {
-    // TODO(b/179666509): SMAP has changed.
-    assumeTrue(kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
+  public void testRetraceKotlinInlineStaticFunction()
+      throws ExecutionException, CompilationFailedException, IOException {
     Path kotlinSources = compilationResults.getForConfiguration(kotlinc, targetVersion);
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())

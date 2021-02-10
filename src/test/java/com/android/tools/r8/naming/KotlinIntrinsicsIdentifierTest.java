@@ -3,18 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestCompileResult;
-import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.kotlin.TestKotlinClass;
@@ -40,21 +37,19 @@ import org.junit.runners.Parameterized.Parameters;
 public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBase {
   private static final String FOLDER = "intrinsics_identifiers";
 
-  @Parameters(name = "{0}, {1}, allowAccessModification: {2}, minification: {3}")
+  @Parameters(name = "{0}, allowAccessModification: {1}, minification: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values(),
         BooleanUtils.values());
   }
 
   public KotlinIntrinsicsIdentifierTest(
-      TestParameters parameters,
       KotlinTestParameters kotlinParameters,
       boolean allowAccessModification,
       boolean minification) {
-    super(parameters, kotlinParameters, allowAccessModification, minification);
+    super(kotlinParameters, allowAccessModification, minification);
   }
 
   private static final KotlinCompileMemoizer compiledJars =
@@ -63,8 +58,6 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
 
   @Test
   public void test_example1() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72));
     TestKotlinClass ex1 = new TestKotlinClass("intrinsics_identifiers.Example1Kt");
     String targetClassName = "ToBeRenamedClass";
     String targetFieldName = "toBeRenamedField";
@@ -74,8 +67,6 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
 
   @Test
   public void test_example2() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72));
     TestKotlinClass ex2 = new TestKotlinClass("intrinsics_identifiers.Example2Kt");
     String targetClassName = "AnotherClass";
     String targetFieldName = "anotherField";
@@ -85,8 +76,6 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
 
   @Test
   public void test_example3() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72));
     TestKotlinClass ex3 = new TestKotlinClass("intrinsics_identifiers.Example3Kt");
     String mainClassName = ex3.getClassName();
     TestCompileResult<?, ?> result =

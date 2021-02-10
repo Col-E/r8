@@ -76,7 +76,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1324,7 +1323,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         System.getProperty("com.android.tools.r8.allowInvalidCfAccessFlags") != null;
     // TODO(b/177333791): Set to true
     public boolean checkForNotExpandingMainDexTracingResult = false;
-    public Set<String> allowedUnusedDontWarnPatterns = new HashSet<>();
 
     public boolean allowConflictingSyntheticTypes = false;
 

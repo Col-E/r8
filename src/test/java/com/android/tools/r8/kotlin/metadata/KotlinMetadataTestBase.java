@@ -5,14 +5,11 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertNotNull;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNull;
 
-import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
-import com.android.tools.r8.TestCompileResult;
+import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -22,7 +19,7 @@ import junit.framework.TestCase;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
-public abstract class KotlinMetadataTestBase extends KotlinTestBase {
+public abstract class KotlinMetadataTestBase extends AbstractR8KotlinTestBase {
 
   public KotlinMetadataTestBase(KotlinTestParameters kotlinParameters) {
     super(kotlinParameters);
@@ -66,13 +63,5 @@ public abstract class KotlinMetadataTestBase extends KotlinTestBase {
       String actual = KotlinMetadataWriter.kotlinMetadataToString("", rewrittenMetadata);
       TestCase.assertEquals(expected, actual);
     }
-  }
-
-  public static void verifyExpectedWarningsFromKotlinReflectAndStdLib(
-      TestCompileResult<?, ?> compileResult) {
-    compileResult.assertAllWarningMessagesMatch(
-        anyOf(
-            equalTo("Resource 'META-INF/MANIFEST.MF' already exists."),
-            equalTo("Resource 'META-INF/versions/9/module-info.class' already exists.")));
   }
 }

@@ -3,10 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -60,9 +60,9 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
             .addDontWarnJetBrainsAnnotations()
             .allowDiagnosticWarningMessages()
             .setMinApi(parameters.getApiLevel())
-            .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.is(KOTLINC_1_4_20))
             .compile()
-            .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib)
+            .assertAllWarningMessagesMatch(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
             .run(parameters.getRuntime(), mainClassName);
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(mainClassName);

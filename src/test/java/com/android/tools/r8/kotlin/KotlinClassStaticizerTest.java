@@ -12,7 +12,6 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8TestRunResult;
-import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
@@ -25,19 +24,16 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
 
-  @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")
+  @Parameterized.Parameters(name = "{0}, allowAccessModification: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
 
   public KotlinClassStaticizerTest(
-      TestParameters parameters,
-      KotlinTestParameters kotlinParameters,
-      boolean allowAccessModification) {
-    super(parameters, kotlinParameters, allowAccessModification);
+      KotlinTestParameters kotlinParameters, boolean allowAccessModification) {
+    super(kotlinParameters, allowAccessModification);
   }
 
   @Test

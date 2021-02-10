@@ -3,13 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -22,28 +20,26 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
+public class KotlinIntrinsicsInlineTest extends AbstractR8KotlinTestBase {
   private static final String FOLDER = "intrinsics";
   private static final String MAIN = FOLDER + ".InlineKt";
 
   @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        getTestParameters().withAllRuntimes().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
 
   private final TestParameters parameters;
-  private final boolean allowAccessModification;
 
   public KotlinIntrinsicsInlineTest(
       TestParameters parameters,
       KotlinTestParameters kotlinParameters,
       boolean allowAccessModification) {
-    super(kotlinParameters);
+    super(kotlinParameters, allowAccessModification);
     this.parameters = parameters;
-    this.allowAccessModification = allowAccessModification;
   }
 
   private static final KotlinCompileMemoizer compiledJars =
@@ -52,8 +48,6 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
 
   @Test
   public void b139432507() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72) || allowAccessModification);
     testForR8(parameters.getBackend())
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
         .addKeepRules(
@@ -87,16 +81,12 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
 
   @Test
   public void b139432507_isSupported() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72) || allowAccessModification);
     assumeTrue("Different inlining behavior on CF backend", parameters.isDexRuntime());
     testSingle("isSupported");
   }
 
   @Test
   public void b139432507_containsArray() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72) || allowAccessModification);
     assumeTrue("Different inlining behavior on CF backend", parameters.isDexRuntime());
     testSingle("containsArray");
   }

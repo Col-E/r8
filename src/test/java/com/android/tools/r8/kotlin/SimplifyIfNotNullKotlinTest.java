@@ -3,12 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
-import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -24,19 +21,16 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
   private static final String FOLDER = "non_null";
   private static final String STRING = "java.lang.String";
 
-  @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")
+  @Parameterized.Parameters(name = "{0}, allowAccessModification: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
 
   public SimplifyIfNotNullKotlinTest(
-      TestParameters parameters,
-      KotlinTestParameters kotlinParameters,
-      boolean allowAccessModification) {
-    super(parameters, kotlinParameters, allowAccessModification);
+      KotlinTestParameters kotlinParameters, boolean allowAccessModification) {
+    super(kotlinParameters, allowAccessModification);
   }
 
   @Test
@@ -69,8 +63,6 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_example2() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72) || allowAccessModification);
     final TestKotlinClass ex2 = new TestKotlinClass("non_null.Example2Kt");
     final MethodSignature testMethodSignature =
         new MethodSignature("aOrDefault", STRING, ImmutableList.of(STRING, STRING));
