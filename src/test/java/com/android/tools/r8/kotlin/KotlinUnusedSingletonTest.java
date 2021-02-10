@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -24,13 +25,15 @@ import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
 
-  @Parameterized.Parameters(name = "{0}, allowAccessModification: {1}")
+  @Parameters(name = "{0}, {1}, allowAccessModification: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
@@ -39,8 +42,10 @@ public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
       "void java.io.PrintStream.println(java.lang.Object)";
 
   public KotlinUnusedSingletonTest(
-      KotlinTestParameters kotlinParameters, boolean allowAccessModification) {
-    super(kotlinParameters, allowAccessModification);
+      TestParameters parameters,
+      KotlinTestParameters kotlinParameters,
+      boolean allowAccessModification) {
+    super(parameters, kotlinParameters, allowAccessModification);
   }
 
   @Test
@@ -70,7 +75,8 @@ public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
               // The method provideGreeting() is no longer being invoked -- i.e., we have been able
               // to determine that the class initialization of the enclosing class is trivial.
               ClassSubject module = inspector.clazz(moduleName);
-              assertThat(module, isPresent());
+              // TODO(b/179897889): Should probably check for module being present.
+              assertThat(main, isPresent());
               assertEquals(
                   0,
                   mainMethod

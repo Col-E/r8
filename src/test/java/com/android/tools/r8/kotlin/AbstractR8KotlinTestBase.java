@@ -18,6 +18,7 @@ import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.Code;
@@ -49,14 +50,20 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
   private final List<Path> classpath = new ArrayList<>();
   private final List<Path> extraClasspath = new ArrayList<>();
 
+  private final TestParameters testParameters;
+
   // Some tests defined in subclasses, e.g., Metadata tests, don't care about access relaxation.
-  protected AbstractR8KotlinTestBase(KotlinTestParameters kotlinParameters) {
-    this(kotlinParameters, false);
+  protected AbstractR8KotlinTestBase(
+      TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    this(parameters, kotlinParameters, false);
   }
 
   protected AbstractR8KotlinTestBase(
-      KotlinTestParameters kotlinParameters, boolean allowAccessModification) {
+      TestParameters parameters,
+      KotlinTestParameters kotlinParameters,
+      boolean allowAccessModification) {
     super(kotlinParameters);
+    this.testParameters = parameters;
     this.allowAccessModification = allowAccessModification;
   }
 
@@ -237,18 +244,19 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
     }
 
     // Build with R8
-    return testForR8(Backend.DEX)
+    return testForR8(testParameters.getBackend())
         .addProgramFiles(classpath)
         .addKeepMainRule(mainClass)
         .allowAccessModification(allowAccessModification)
         .allowDiagnosticWarningMessages()
         .enableProguardTestOptions()
         .noMinification()
+        .setMinApi(testParameters.getApiLevel())
         .apply(configuration)
         .compile()
         .assertAllWarningMessagesMatch(
             containsString("Resource 'META-INF/MANIFEST.MF' already exists."))
-        .run(mainClass)
+        .run(testParameters.getRuntime(), mainClass)
         .assertSuccessWithOutput(javaResult.stdout);
   }
 

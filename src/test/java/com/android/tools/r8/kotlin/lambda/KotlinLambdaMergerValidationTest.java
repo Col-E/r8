@@ -6,12 +6,12 @@ package com.android.tools.r8.kotlin.lambda;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -20,7 +20,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class KotlinLambdaMergerValidationTest extends AbstractR8KotlinTestBase {
+public class KotlinLambdaMergerValidationTest extends KotlinTestBase {
 
   private final TestParameters parameters;
 
@@ -33,7 +33,7 @@ public class KotlinLambdaMergerValidationTest extends AbstractR8KotlinTestBase {
 
   public KotlinLambdaMergerValidationTest(
       TestParameters parameters, KotlinTestParameters kotlinParameters) {
-    super(kotlinParameters, false);
+    super(kotlinParameters);
     this.parameters = parameters;
   }
 

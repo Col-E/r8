@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -21,26 +22,28 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class KotlinIntrinsicsInlineTest extends AbstractR8KotlinTestBase {
+public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
   private static final String FOLDER = "intrinsics";
   private static final String MAIN = FOLDER + ".InlineKt";
 
   @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(),
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
 
   private final TestParameters parameters;
+  private final boolean allowAccessModification;
 
   public KotlinIntrinsicsInlineTest(
       TestParameters parameters,
       KotlinTestParameters kotlinParameters,
       boolean allowAccessModification) {
-    super(kotlinParameters, allowAccessModification);
+    super(kotlinParameters);
     this.parameters = parameters;
+    this.allowAccessModification = allowAccessModification;
   }
 
   private static final KotlinCompileMemoizer compiledJars =

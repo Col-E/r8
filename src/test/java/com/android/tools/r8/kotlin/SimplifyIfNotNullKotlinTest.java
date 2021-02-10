@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -23,16 +24,19 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
   private static final String FOLDER = "non_null";
   private static final String STRING = "java.lang.String";
 
-  @Parameterized.Parameters(name = "{0}, allowAccessModification: {1}")
+  @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
 
   public SimplifyIfNotNullKotlinTest(
-      KotlinTestParameters kotlinParameters, boolean allowAccessModification) {
-    super(kotlinParameters, allowAccessModification);
+      TestParameters parameters,
+      KotlinTestParameters kotlinParameters,
+      boolean allowAccessModification) {
+    super(parameters, kotlinParameters, allowAccessModification);
   }
 
   @Test

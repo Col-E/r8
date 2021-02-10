@@ -14,6 +14,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestCompileResult;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.kotlin.TestKotlinClass;
@@ -39,19 +40,21 @@ import org.junit.runners.Parameterized.Parameters;
 public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBase {
   private static final String FOLDER = "intrinsics_identifiers";
 
-  @Parameters(name = "{0}, allowAccessModification: {1}, minification: {2}")
+  @Parameters(name = "{0}, {1}, allowAccessModification: {2}, minification: {3}")
   public static Collection<Object[]> data() {
     return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values(),
         BooleanUtils.values());
   }
 
   public KotlinIntrinsicsIdentifierTest(
+      TestParameters parameters,
       KotlinTestParameters kotlinParameters,
       boolean allowAccessModification,
       boolean minification) {
-    super(kotlinParameters, allowAccessModification, minification);
+    super(parameters, kotlinParameters, allowAccessModification, minification);
   }
 
   private static final KotlinCompileMemoizer compiledJars =

@@ -23,6 +23,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
+
   private static final String FOLDER = "duplicate_annotation";
   private static final String MAIN = FOLDER + ".MainKt";
   private static final String KEEP_RULES = StringUtils.lines(
@@ -38,7 +39,7 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
   @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(),
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
@@ -49,7 +50,7 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
       TestParameters parameters,
       KotlinTestParameters kotlinParameters,
       boolean allowAccessModification) {
-    super(kotlinParameters, allowAccessModification);
+    super(parameters, kotlinParameters, allowAccessModification);
     this.parameters = parameters;
   }
 
