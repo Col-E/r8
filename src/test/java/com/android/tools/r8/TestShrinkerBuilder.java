@@ -125,11 +125,6 @@ public abstract class TestShrinkerBuilder<
     return addDontWarn(Arrays.asList(classes));
   }
 
-  @Deprecated
-  public T addDontWarnCompanionClass(Class<?> clazz) {
-    return addDontWarn(clazz.getTypeName() + COMPANION_CLASS_NAME_SUFFIX);
-  }
-
   public T addDontWarnGoogle() {
     return addDontWarn("com.google.**");
   }

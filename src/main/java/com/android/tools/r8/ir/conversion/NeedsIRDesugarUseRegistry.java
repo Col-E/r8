@@ -91,7 +91,7 @@ class NeedsIRDesugarUseRegistry extends UseRegistry {
     if (!needsDesugaring) {
       needsDesugaring =
           interfaceMethodRewriter != null
-              && interfaceMethodRewriter.needsRewriting(method, invokeType, appView);
+              && interfaceMethodRewriter.needsRewriting(method, invokeType);
     }
   }
 

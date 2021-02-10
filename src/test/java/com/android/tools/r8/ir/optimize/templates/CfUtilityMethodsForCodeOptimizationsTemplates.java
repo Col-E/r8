@@ -18,6 +18,10 @@ public class CfUtilityMethodsForCodeOptimizationsTemplates {
     }
   }
 
+  public static IllegalAccessError throwIllegalAccessError() {
+    throw new IllegalAccessError();
+  }
+
   public static IncompatibleClassChangeError throwIncompatibleClassChangeError() {
     throw new IncompatibleClassChangeError();
   }

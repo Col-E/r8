@@ -171,10 +171,6 @@ public class NestInvokeSpecialInterfaceMethodAccessWithIntermediateTest extends 
         .addProgramClassFileData(getTransformedClasses())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
-        .applyIf(
-            !parameters.canUseDefaultAndStaticInterfaceMethods()
-                && !symbolicReferenceIsDefiningType,
-            builder -> builder.addDontWarnCompanionClass(J.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(result -> checkExpectedResult(result, true));
   }
@@ -185,17 +181,9 @@ public class NestInvokeSpecialInterfaceMethodAccessWithIntermediateTest extends 
           "TODO(b/144410139): Input does not verify. Should compilation throw an error?",
           parameters.isCfRuntime() && !isR8);
       result.assertFailureWithErrorThatMatches(containsString(VerifyError.class.getName()));
-    } else if (isDesugaring()) {
-      // TODO(b/145775365): Desugaring results in a reference to a non-existent companion class.
-      result.assertFailureWithErrorThatMatches(
-          containsString(NoClassDefFoundError.class.getName()));
     } else {
       result.assertFailureWithErrorThatMatches(containsString(NoSuchMethodError.class.getName()));
     }
-  }
-
-  private boolean isDesugaring() {
-    return parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N);
   }
 
   interface I {

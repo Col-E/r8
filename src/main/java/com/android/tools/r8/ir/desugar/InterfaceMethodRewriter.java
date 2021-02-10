@@ -68,6 +68,7 @@ import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.Collection;
 import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
+import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.MethodSynthesizerConsumer;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.origin.Origin;
@@ -78,6 +79,7 @@ import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
@@ -236,7 +238,7 @@ public final class InterfaceMethodRewriter {
     return emulatedInterfaces.containsKey(itf);
   }
 
-  public boolean needsRewriting(DexMethod method, Type invokeType, AppView<?> appView) {
+  public boolean needsRewriting(DexMethod method, Type invokeType) {
     if (invokeType == SUPER || invokeType == STATIC || invokeType == DIRECT) {
       DexClass clazz = appView.appInfo().definitionFor(method.getHolderType());
       if (clazz != null && clazz.isInterface()) {
@@ -307,7 +309,15 @@ public final class InterfaceMethodRewriter {
                 methodProcessingContext);
             break;
           case INVOKE_SUPER:
-            rewriteInvokeSuper(instruction.asInvokeSuper(), instructions, context);
+            rewriteInvokeSuper(
+                instruction.asInvokeSuper(),
+                code,
+                blocks,
+                instructions,
+                affectedValues,
+                blocksToRemove,
+                methodProcessor,
+                methodProcessingContext);
             break;
           case INVOKE_INTERFACE:
           case INVOKE_VIRTUAL:
@@ -373,7 +383,7 @@ public final class InterfaceMethodRewriter {
       // This can be a private instance method call. Note that the referenced
       // method is expected to be in the current class since it is private, but desugaring
       // may move some methods or their code into other classes.
-      assert needsRewriting(method, DIRECT, appView);
+      assert needsRewriting(method, DIRECT);
       instructions.replaceCurrentInstruction(
           new InvokeStatic(
               directTarget.getDefinition().isPrivateMethod()
@@ -387,7 +397,7 @@ public final class InterfaceMethodRewriter {
           appView.appInfoForDesugaring().lookupMaximallySpecificMethod(clazz, method);
       if (virtualTarget != null) {
         // This is a invoke-direct call to a virtual method.
-        assert needsRewriting(method, DIRECT, appView);
+        assert needsRewriting(method, DIRECT);
         instructions.replaceCurrentInstruction(
             new InvokeStatic(
                 defaultAsMethodOfCompanionClass(virtualTarget),
@@ -470,7 +480,7 @@ public final class InterfaceMethodRewriter {
                                         .setStaticTarget(invokedMethod, true)
                                         .setStaticSource(m)
                                         .build()));
-        assert needsRewriting(invokedMethod, STATIC, appView);
+        assert needsRewriting(invokedMethod, STATIC);
         instructions.replaceCurrentInstruction(
             new InvokeStatic(
                 newProgramMethod.getReference(), invoke.outValue(), invoke.arguments()));
@@ -492,41 +502,42 @@ public final class InterfaceMethodRewriter {
             .appInfoForDesugaring()
             .resolveMethodOnInterface(clazz, invokedMethod)
             .asSingleResolution();
-    if (resolutionResult != null && resolutionResult.getResolvedMethod().isStatic()) {
-      assert needsRewriting(invokedMethod, STATIC, appView);
-      instructions.replaceCurrentInstruction(
-          new InvokeStatic(
-              staticAsMethodOfCompanionClass(resolutionResult.getResolutionPair()),
-              invoke.outValue(),
-              invoke.arguments()));
+    if (clazz.isInterface()
+        && rewriteInvokeToThrow(
+            invoke,
+            resolutionResult,
+            code,
+            blockIterator,
+            instructions,
+            affectedValues,
+            blocksToRemove,
+            methodProcessor,
+            methodProcessingContext)) {
+      assert needsRewriting(invoke.getInvokedMethod(), STATIC);
       return;
     }
 
-    // Replace by throw new IncompatibleClassChangeError/NoSuchMethodError.
-    UtilityMethodForCodeOptimizations throwMethod =
-        resolutionResult == null
-            ? UtilityMethodsForCodeOptimizations.synthesizeThrowNoSuchMethodErrorMethod(
-                appView, methodProcessingContext)
-            : UtilityMethodsForCodeOptimizations.synthesizeThrowIncompatibleClassChangeErrorMethod(
-                appView, methodProcessingContext);
-    throwMethod.optimize(methodProcessor);
+    assert resolutionResult != null;
+    assert resolutionResult.getResolvedMethod().isStatic();
+    assert needsRewriting(invokedMethod, STATIC);
 
-    InvokeStatic throwInvoke =
-        InvokeStatic.builder()
-            .setMethod(throwMethod.getMethod())
-            .setFreshOutValue(appView, code)
-            .setPosition(invoke)
-            .build();
-    instructions.previous();
-    instructions.add(throwInvoke);
-    instructions.next();
-    assert needsRewriting(invokedMethod, STATIC, appView);
-    instructions.replaceCurrentInstructionWithThrow(
-        appView, code, blockIterator, throwInvoke.outValue(), blocksToRemove, affectedValues);
+    instructions.replaceCurrentInstruction(
+        new InvokeStatic(
+            staticAsMethodOfCompanionClass(resolutionResult.getResolutionPair()),
+            invoke.outValue(),
+            invoke.arguments()));
   }
 
   private void rewriteInvokeSuper(
-      InvokeSuper invoke, InstructionListIterator instructions, ProgramMethod context) {
+      InvokeSuper invoke,
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      InstructionListIterator instructions,
+      Set<Value> affectedValues,
+      Set<BasicBlock> blocksToRemove,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext) {
+    ProgramMethod context = code.context();
     DexMethod invokedMethod = invoke.getInvokedMethod();
     DexClass clazz = appView.definitionFor(invokedMethod.holder, context);
     if (clazz == null) {
@@ -534,6 +545,23 @@ public final class InterfaceMethodRewriter {
       // exception but we can not report it as error since it can also be the intended
       // behavior.
       warnMissingType(context, invokedMethod.holder);
+      return;
+    }
+
+    SingleResolutionResult resolutionResult =
+        appView.appInfoForDesugaring().resolveMethodOn(clazz, invokedMethod).asSingleResolution();
+    if (clazz.isInterface()
+        && rewriteInvokeToThrow(
+            invoke,
+            resolutionResult,
+            code,
+            blockIterator,
+            instructions,
+            affectedValues,
+            blocksToRemove,
+            methodProcessor,
+            methodProcessingContext)) {
+      assert needsRewriting(invoke.getInvokedMethod(), SUPER);
       return;
     }
 
@@ -547,7 +575,7 @@ public final class InterfaceMethodRewriter {
       //
       // WARNING: This may result in incorrect code on older platforms!
       // Retarget call to an appropriate method of companion class.
-      assert needsRewriting(invokedMethod, SUPER, appView);
+      assert needsRewriting(invokedMethod, SUPER);
       DexMethod amendedMethod = amendDefaultMethod(context.getHolder(), invokedMethod);
       instructions.replaceCurrentInstruction(
           new InvokeStatic(
@@ -563,7 +591,7 @@ public final class InterfaceMethodRewriter {
           if (target != null && target.getDefinition().isDefaultMethod()) {
             DexClass holder = target.getHolder();
             if (holder.isLibraryClass() && holder.isInterface()) {
-              assert needsRewriting(invokedMethod, SUPER, appView);
+              assert needsRewriting(invokedMethod, SUPER);
               instructions.replaceCurrentInstruction(
                   new InvokeStatic(
                       defaultAsMethodOfCompanionClass(target),
@@ -593,11 +621,11 @@ public final class InterfaceMethodRewriter {
                     factory.protoWithDifferentFirstParameter(
                         originalCompanionMethod.proto, emulatedItf),
                     originalCompanionMethod.name);
-            assert needsRewriting(invokedMethod, SUPER, appView);
+            assert needsRewriting(invokedMethod, SUPER);
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(companionMethod, invoke.outValue(), invoke.arguments()));
           } else {
-            assert needsRewriting(invokedMethod, SUPER, appView);
+            assert needsRewriting(invokedMethod, SUPER);
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(retargetMethod, invoke.outValue(), invoke.arguments()));
           }
@@ -624,10 +652,64 @@ public final class InterfaceMethodRewriter {
     if (resolution != null
         && (resolution.getResolvedHolder().isLibraryClass()
             || appView.options().isDesugaredLibraryCompilation())) {
-      assert needsRewriting(invokedMethod, VIRTUAL, appView);
+      assert needsRewriting(invokedMethod, VIRTUAL);
       rewriteCurrentInstructionToEmulatedInterfaceCall(
           emulatedItf, invokedMethod, invoke, instructions);
     }
+  }
+
+  private boolean rewriteInvokeToThrow(
+      InvokeMethod invoke,
+      SingleResolutionResult resolutionResult,
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      InstructionListIterator instructions,
+      Set<Value> affectedValues,
+      Set<BasicBlock> blocksToRemove,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext) {
+    MethodSynthesizerConsumer methodSynthesizerConsumer;
+    if (resolutionResult == null) {
+      methodSynthesizerConsumer =
+          UtilityMethodsForCodeOptimizations::synthesizeThrowNoSuchMethodErrorMethod;
+    } else if (resolutionResult.getResolvedMethod().isStatic() != invoke.isInvokeStatic()) {
+      methodSynthesizerConsumer =
+          UtilityMethodsForCodeOptimizations::synthesizeThrowIncompatibleClassChangeErrorMethod;
+    } else {
+      return false;
+    }
+
+    // Replace by throw new SomeException.
+    UtilityMethodForCodeOptimizations throwMethod =
+        methodSynthesizerConsumer.synthesizeMethod(appView, methodProcessingContext);
+    throwMethod.optimize(methodProcessor);
+
+    InvokeStatic throwInvoke =
+        InvokeStatic.builder()
+            .setMethod(throwMethod.getMethod())
+            .setFreshOutValue(appView, code)
+            .setPosition(invoke)
+            .build();
+    instructions.previous();
+
+    // Split the block before the invoke instruction, and position the block iterator at the newly
+    // created throw block (this involves rewinding the block iterator back over the blocks created
+    // as a result of critical edge splitting, if any).
+    BasicBlock throwBlock = instructions.splitCopyCatchHandlers(code, blockIterator, options);
+    IteratorUtils.previousUntil(blockIterator, block -> block == throwBlock);
+    blockIterator.next();
+
+    // Insert the `SomeException e = throwSomeException()` invoke before the goto
+    // instruction.
+    instructions.previous();
+    instructions.add(throwInvoke);
+
+    // Insert the `throw e` instruction in the newly created throw block.
+    InstructionListIterator throwBlockIterator = throwBlock.listIterator(code);
+    throwBlockIterator.next();
+    throwBlockIterator.replaceCurrentInstructionWithThrow(
+        appView, code, blockIterator, throwInvoke.outValue(), blocksToRemove, affectedValues);
+    return true;
   }
 
   private DexType maximallySpecificEmulatedInterfaceOrNull(DexMethod invokedMethod) {

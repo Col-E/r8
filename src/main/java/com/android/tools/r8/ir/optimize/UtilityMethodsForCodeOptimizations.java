@@ -22,6 +22,12 @@ import com.android.tools.r8.utils.InternalOptions;
 
 public class UtilityMethodsForCodeOptimizations {
 
+  public interface MethodSynthesizerConsumer {
+
+    UtilityMethodForCodeOptimizations synthesizeMethod(
+        AppView<?> appView, MethodProcessingContext methodProcessingContext);
+  }
+
   public static UtilityMethodForCodeOptimizations synthesizeToStringIfNotNullMethod(
       AppView<?> appView, MethodProcessingContext methodProcessingContext) {
     InternalOptions options = appView.options();
@@ -75,6 +81,32 @@ public class UtilityMethodsForCodeOptimizations {
     return CfUtilityMethodsForCodeOptimizations
         .CfUtilityMethodsForCodeOptimizationsTemplates_throwClassCastExceptionIfNotNull(
             options, method);
+  }
+
+  public static UtilityMethodForCodeOptimizations synthesizeThrowIllegalAccessErrorMethod(
+      AppView<?> appView, MethodProcessingContext methodProcessingContext) {
+    InternalOptions options = appView.options();
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexProto proto = dexItemFactory.createProto(dexItemFactory.illegalAccessErrorType);
+    SyntheticItems syntheticItems = appView.getSyntheticItems();
+    ProgramMethod syntheticMethod =
+        syntheticItems.createMethod(
+            SyntheticNaming.SyntheticKind.THROW_IAE,
+            methodProcessingContext.createUniqueContext(),
+            dexItemFactory,
+            builder ->
+                builder
+                    .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                    .setClassFileVersion(CfVersion.V1_8)
+                    .setCode(method -> getThrowIllegalAccessErrorCodeTemplate(method, options))
+                    .setProto(proto));
+    return new UtilityMethodForCodeOptimizations(syntheticMethod);
+  }
+
+  private static CfCode getThrowIllegalAccessErrorCodeTemplate(
+      DexMethod method, InternalOptions options) {
+    return CfUtilityMethodsForCodeOptimizations
+        .CfUtilityMethodsForCodeOptimizationsTemplates_throwIllegalAccessError(options, method);
   }
 
   public static UtilityMethodForCodeOptimizations synthesizeThrowIncompatibleClassChangeErrorMethod(
