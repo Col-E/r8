@@ -293,28 +293,13 @@ public class CfSourceCode implements SourceCode {
   @Override
   public void clear() {}
 
-  // Utility method that treats constant strings as not throwing in the case of having CF output.
-  // This is the only instruction that differ in throwing between DEX and CF. If we find more
-  // consider rewriting CfInstruction.canThrow to take in options.
-  private boolean canThrowHelper(CfInstruction instruction) {
-    return canThrowHelper(instruction, internalOutputMode.isGeneratingClassFiles());
-  }
-
-  public static boolean canThrowHelper(CfInstruction instruction, boolean isGeneratingClassFiles) {
-    if (isGeneratingClassFiles
-        && (instruction.isConstString() || instruction.isDexItemBasedConstString())) {
-      return false;
-    }
-    return instruction.canThrow();
-  }
-
   @Override
   public int traceInstruction(int instructionIndex, IRBuilder builder) {
     CfInstruction instruction = code.getInstructions().get(instructionIndex);
     AppView<?> appView = builder.appView;
     assert appView.options().isGeneratingClassFiles()
         == internalOutputMode.isGeneratingClassFiles();
-    if (canThrowHelper(instruction)) {
+    if (instruction.canThrow()) {
       TryHandlerList tryHandlers = getTryHandlers(instructionIndex, appView.dexItemFactory());
       if (!tryHandlers.isEmpty()) {
         // Ensure the block starts at the start of the try-range (don't enqueue, not a target).
@@ -537,7 +522,7 @@ public class CfSourceCode implements SourceCode {
     assert currentBlockInfo != null;
     setLocalVariableLists();
 
-    if (canThrowHelper(instruction)) {
+    if (instruction.canThrow()) {
       Snapshot exceptionTransfer =
           state.getSnapshot().exceptionTransfer(builder.appView.dexItemFactory().throwableType);
       for (int target : currentBlockInfo.exceptionalSuccessors) {
@@ -858,7 +843,7 @@ public class CfSourceCode implements SourceCode {
   @Override
   public boolean verifyCurrentInstructionCanThrow() {
     return isCurrentlyGeneratingMethodSynchronization()
-        || canThrowHelper(code.getInstructions().get(currentInstructionIndex));
+        || code.getInstructions().get(currentInstructionIndex).canThrow();
   }
 
   @Override

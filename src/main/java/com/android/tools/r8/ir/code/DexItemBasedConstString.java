@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
@@ -27,17 +26,12 @@ public class DexItemBasedConstString extends ConstInstruction {
 
   private final DexReference item;
   private final NameComputationInfo<?> nameComputationInfo;
-  private final ThrowingInfo throwingInfo;
 
   public DexItemBasedConstString(
-      Value dest,
-      DexReference item,
-      NameComputationInfo<?> nameComputationInfo,
-      ThrowingInfo throwingInfo) {
+      Value dest, DexReference item, NameComputationInfo<?> nameComputationInfo) {
     super(dest);
     this.item = item;
     this.nameComputationInfo = nameComputationInfo;
-    this.throwingInfo = throwingInfo;
   }
 
   @Override
@@ -58,8 +52,7 @@ public class DexItemBasedConstString extends ConstInstruction {
 
   public static DexItemBasedConstString copyOf(Value newValue, DexItemBasedConstString original) {
     assert newValue != original.outValue();
-    return new DexItemBasedConstString(
-        newValue, original.getItem(), original.nameComputationInfo, original.throwingInfo);
+    return new DexItemBasedConstString(newValue, original.getItem(), original.nameComputationInfo);
   }
 
   public DexReference getItem() {
@@ -118,7 +111,7 @@ public class DexItemBasedConstString extends ConstInstruction {
 
   @Override
   public boolean instructionTypeCanThrow() {
-    return throwingInfo == ThrowingInfo.CAN_THROW;
+    return true;
   }
 
   @Override

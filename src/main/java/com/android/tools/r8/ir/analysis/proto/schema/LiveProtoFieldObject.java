@@ -34,10 +34,9 @@ public class LiveProtoFieldObject extends ProtoFieldObject {
         code.createValue(TypeElement.stringClassType(appView, Nullability.definitelyNotNull()));
     ThrowingInfo throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
     if (appView.options().isMinifying()) {
-      return new DexItemBasedConstString(
-          value, field, FieldNameComputationInfo.forFieldName(), throwingInfo);
+      return new DexItemBasedConstString(value, field, FieldNameComputationInfo.forFieldName());
     }
-    return new ConstString(value, field.name, throwingInfo);
+    return new ConstString(value, field.name);
   }
 
   @Override

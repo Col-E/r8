@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -73,9 +72,7 @@ public class SingleStringValue extends SingleConstValue {
         .isTrue();
     Value returnedValue =
         code.createValue(stringClassType(appView, definitelyNotNull()), debugLocalInfo);
-    ConstString instruction =
-        new ConstString(
-            returnedValue, string, ThrowingInfo.defaultForConstString(appView.options()));
+    ConstString instruction = new ConstString(returnedValue, string);
     assert !instruction.instructionInstanceCanThrow();
     return instruction;
   }

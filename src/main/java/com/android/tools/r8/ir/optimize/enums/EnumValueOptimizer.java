@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 import com.android.tools.r8.ir.analysis.value.SingleStringValue;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
@@ -120,11 +119,7 @@ public class EnumValueOptimizer {
         if (isNameInvoke) {
           Value newValue =
               code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
-          iterator.replaceCurrentInstruction(
-              new ConstString(
-                  newValue,
-                  nameValue.getDexString(),
-                  ThrowingInfo.defaultForConstString(appView.options())));
+          iterator.replaceCurrentInstruction(new ConstString(newValue, nameValue.getDexString()));
           newValue.addAffectedValuesTo(affectedValues);
           continue;
         }
@@ -155,11 +150,7 @@ public class EnumValueOptimizer {
 
         Value newValue =
             code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
-        iterator.replaceCurrentInstruction(
-            new ConstString(
-                newValue,
-                nameValue.getDexString(),
-                ThrowingInfo.defaultForConstString(appView.options())));
+        iterator.replaceCurrentInstruction(new ConstString(newValue, nameValue.getDexString()));
         newValue.addAffectedValuesTo(affectedValues);
       }
     }

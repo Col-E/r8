@@ -5,7 +5,6 @@ package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.graph.DexCode.FAKE_THIS_PREFIX;
 import static com.android.tools.r8.graph.DexCode.FAKE_THIS_SUFFIX;
-import static com.android.tools.r8.ir.conversion.CfSourceCode.canThrowHelper;
 import static org.objectweb.asm.Opcodes.ACC_STATIC;
 
 import com.android.tools.r8.cf.CfPrinter;
@@ -803,7 +802,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
         // Check the exceptional edge prior to evaluating the instruction. The local state is stable
         // at this point as store operations are not throwing and the current stack does not
         // affect the exceptional transfer (the exception edge is always a singleton stack).
-        if (canThrowHelper(instruction, appView.options().isGeneratingClassFiles())) {
+        if (instruction.canThrow()) {
           assert !instruction.isStore();
           builder.verifyExceptionEdges();
         }

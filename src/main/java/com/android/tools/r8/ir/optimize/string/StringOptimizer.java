@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.analysis.escape.EscapeAnalysis;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysisConfiguration;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
@@ -49,7 +48,6 @@ public class StringOptimizer {
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
-  private final ThrowingInfo throwingInfo;
 
   private int numberOfSimplifiedOperations = 0;
   private final Object2IntMap<ClassNameMapping> numberOfComputedNames;
@@ -61,7 +59,6 @@ public class StringOptimizer {
   public StringOptimizer(AppView<?> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
-    this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
     if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
       numberOfComputedNames = new Object2IntArrayMap<>();
       numberOfDeferredComputationOfNames = new Object2IntArrayMap<>();
@@ -186,8 +183,7 @@ public class StringOptimizer {
             code.createValue(
                 TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
         affectedValues.addAll(invoke.outValue().affectedValues());
-        it.replaceCurrentInstruction(
-            new ConstString(stringValue, factory.createString(sub), throwingInfo));
+        it.replaceCurrentInstruction(new ConstString(stringValue, factory.createString(sub)));
         numberOfSimplifiedOperations++;
         continue;
       }
@@ -203,7 +199,7 @@ public class StringOptimizer {
             code.createValue(
                 TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
         affectedValues.addAll(invoke.outValue().affectedValues());
-        it.replaceCurrentInstruction(new ConstString(newOutValue, resultString, throwingInfo));
+        it.replaceCurrentInstruction(new ConstString(newOutValue, resultString));
         numberOfSimplifiedOperations++;
         continue;
       }
@@ -379,10 +375,7 @@ public class StringOptimizer {
         if (mayBeRenamed) {
           deferred =
               new DexItemBasedConstString(
-                  invoke.outValue(),
-                  baseType,
-                  ClassNameComputationInfo.create(NAME, arrayDepth),
-                  throwingInfo);
+                  invoke.outValue(), baseType, ClassNameComputationInfo.create(NAME, arrayDepth));
           logDeferredNameComputation(NAME);
         } else {
           name = NAME.map(descriptor, holder, factory, arrayDepth);
@@ -408,8 +401,7 @@ public class StringOptimizer {
                 new DexItemBasedConstString(
                     invoke.outValue(),
                     baseType,
-                    ClassNameComputationInfo.create(CANONICAL_NAME, arrayDepth),
-                    throwingInfo);
+                    ClassNameComputationInfo.create(CANONICAL_NAME, arrayDepth));
             logDeferredNameComputation(CANONICAL_NAME);
           } else {
             name = CANONICAL_NAME.map(descriptor, holder, factory, arrayDepth);
@@ -431,8 +423,7 @@ public class StringOptimizer {
                 new DexItemBasedConstString(
                     invoke.outValue(),
                     baseType,
-                    ClassNameComputationInfo.create(SIMPLE_NAME, arrayDepth),
-                    throwingInfo);
+                    ClassNameComputationInfo.create(SIMPLE_NAME, arrayDepth));
             logDeferredNameComputation(SIMPLE_NAME);
           } else {
             name = SIMPLE_NAME.map(descriptor, holder, factory, arrayDepth);
@@ -445,7 +436,7 @@ public class StringOptimizer {
         Value stringValue =
             code.createValue(
                 TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
-        ConstString constString = new ConstString(stringValue, name, throwingInfo);
+        ConstString constString = new ConstString(stringValue, name);
         it.replaceCurrentInstruction(constString);
         logHistogramOfNames(name);
       } else if (deferred != null) {
@@ -531,8 +522,7 @@ public class StringOptimizer {
           Value nullStringValue =
               code.createValue(
                   TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
-          ConstString nullString =
-              new ConstString(nullStringValue, factory.createString("null"), throwingInfo);
+          ConstString nullString = new ConstString(nullStringValue, factory.createString("null"));
           it.replaceCurrentInstruction(nullString);
           numberOfSimplifiedConversions++;
         } else if (inType.nullability().isDefinitelyNotNull()

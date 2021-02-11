@@ -13,7 +13,9 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
-import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.ToolHelper;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -23,8 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Rule;
@@ -36,17 +37,19 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class TreeShakingSpecificTest {
+public class TreeShakingSpecificTest extends TestBase {
 
   private Backend backend;
 
-  @Parameters(name = "Backend: {0}")
-  public static Collection<Backend> data() {
-    return Arrays.asList(Backend.values());
+  @Parameters(name = "Backend: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        TestParametersBuilder.builder().withNoneRuntime().build(), Backend.values());
   }
 
-  public TreeShakingSpecificTest(Backend backend) {
+  public TreeShakingSpecificTest(TestParameters parameters, Backend backend) {
     this.backend = backend;
+    parameters.assertNoneRuntime();
   }
 
   private static final String VALID_PROGUARD_DIR = "src/test/proguard/valid/";

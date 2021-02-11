@@ -14,7 +14,6 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
@@ -1253,8 +1252,7 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
         AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
       TypeElement type = TypeElement.stringClassType(appView, definitelyNotNull());
       Value outValue = code.createValue(type, local);
-      ConstString instruction =
-          new ConstString(outValue, value, ThrowingInfo.defaultForConstString(appView.options()));
+      ConstString instruction = new ConstString(outValue, value);
       if (!instruction.instructionInstanceCanThrow()) {
         return instruction;
       }
@@ -1346,11 +1344,7 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
       TypeElement type = TypeElement.stringClassType(appView, definitelyNotNull());
       Value outValue = code.createValue(type, local);
       DexItemBasedConstString instruction =
-          new DexItemBasedConstString(
-              outValue,
-              value,
-              nameComputationInfo,
-              ThrowingInfo.defaultForConstString(appView.options()));
+          new DexItemBasedConstString(outValue, value, nameComputationInfo);
       // DexItemBasedConstString cannot throw.
       assert !instruction.instructionInstanceCanThrow();
       return instruction;

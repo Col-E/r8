@@ -14,7 +14,6 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
@@ -50,13 +49,11 @@ public class StringSwitchRemover {
   private final AppView<?> appView;
   private final IdentifierNameStringMarker identifierNameStringMarker;
   private final ClassTypeElement stringType;
-  private final ThrowingInfo throwingInfo;
 
   StringSwitchRemover(AppView<?> appView, IdentifierNameStringMarker identifierNameStringMarker) {
     this.appView = appView;
     this.identifierNameStringMarker = identifierNameStringMarker;
     this.stringType = TypeElement.stringClassType(appView, definitelyNotNull());
-    this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
   }
 
   void run(IRCode code) {
@@ -222,7 +219,7 @@ public class StringSwitchRemover {
       BasicBlock previous = null;
       for (Entry<DexString, BasicBlock> entry : structure.entrySet()) {
         ConstString constStringInstruction =
-            new ConstString(code.createValue(stringType), entry.getKey(), throwingInfo);
+            new ConstString(code.createValue(stringType), entry.getKey());
         constStringInstruction.setPosition(position);
         InvokeVirtual invokeInstruction =
             new InvokeVirtual(

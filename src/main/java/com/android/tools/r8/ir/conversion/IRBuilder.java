@@ -1272,15 +1272,13 @@ public class IRBuilder {
   }
 
   private ThrowingInfo throwingInfoForConstStrings() {
-    return appView.options().isGeneratingClassFiles()
-        ? ThrowingInfo.NO_THROW
-        : ThrowingInfo.CAN_THROW;
+    return ThrowingInfo.CAN_THROW;
   }
 
   public void addConstString(int dest, DexString string) {
     TypeElement typeLattice = TypeElement.stringClassType(appView, definitelyNotNull());
     ThrowingInfo throwingInfo = throwingInfoForConstStrings();
-    add(new ConstString(writeRegister(dest, typeLattice, throwingInfo), string, throwingInfo));
+    add(new ConstString(writeRegister(dest, typeLattice, throwingInfo), string));
   }
 
   public void addDexItemBasedConstString(
@@ -1288,7 +1286,7 @@ public class IRBuilder {
     TypeElement typeLattice = TypeElement.stringClassType(appView, definitelyNotNull());
     ThrowingInfo throwingInfo = throwingInfoForConstStrings();
     Value out = writeRegister(dest, typeLattice, throwingInfo);
-    add(new DexItemBasedConstString(out, item, nameComputationInfo, throwingInfo));
+    add(new DexItemBasedConstString(out, item, nameComputationInfo));
   }
 
   public void addDiv(NumericType type, int dest, int left, int right) {

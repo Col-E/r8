@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -441,11 +440,7 @@ public class StringConcatRewriter {
       @Override
       Value getOrCreateValue() {
         Value value = code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
-        appendInstruction(
-            new ConstString(
-                value,
-                factory.createString(str),
-                ThrowingInfo.defaultForConstString(appView.options())));
+        appendInstruction(new ConstString(value, factory.createString(str)));
         return value;
       }
     }

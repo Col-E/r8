@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
@@ -27,12 +26,10 @@ import java.io.UTFDataFormatException;
 public class ConstString extends ConstInstruction {
 
   private final DexString value;
-  private final ThrowingInfo throwingInfo;
 
-  public ConstString(Value dest, DexString value, ThrowingInfo throwingInfo) {
+  public ConstString(Value dest, DexString value) {
     super(dest);
     this.value = value;
-    this.throwingInfo = throwingInfo;
   }
 
   @Override
@@ -53,7 +50,7 @@ public class ConstString extends ConstInstruction {
 
   public static ConstString copyOf(Value newValue, ConstString original) {
     assert newValue != original.outValue();
-    return new ConstString(newValue, original.getValue(), original.throwingInfo);
+    return new ConstString(newValue, original.getValue());
   }
 
   public Value dest() {
@@ -98,7 +95,7 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public boolean instructionTypeCanThrow() {
-    return throwingInfo == ThrowingInfo.CAN_THROW;
+    return true;
   }
 
   @Override
@@ -118,9 +115,6 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public boolean instructionInstanceCanThrow() {
-    if (throwingInfo == ThrowingInfo.NO_THROW) {
-      return false;
-    }
     // The const-string instruction can be a throwing instruction in DEX, if decode() fails.
     try {
       value.toString();

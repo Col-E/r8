@@ -593,8 +593,7 @@ public class StringBuilderOptimizer {
                 code.createValue(
                     TypeElement.stringClassType(appView, definitelyNotNull()),
                     invoke.getLocalInfo());
-            it.replaceCurrentInstruction(
-                new ConstString(dummy, factory.createString(DUMMY), throwingInfo));
+            it.replaceCurrentInstruction(new ConstString(dummy, factory.createString(DUMMY)));
           } else {
             it.removeOrReplaceByDebugLocalRead();
           }
@@ -614,8 +613,7 @@ public class StringBuilderOptimizer {
             code.createValue(
                 TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
         affectedValues.addAll(outValue.affectedValues());
-        it.replaceCurrentInstruction(
-            new ConstString(stringValue, factory.createString(element), throwingInfo));
+        it.replaceCurrentInstruction(new ConstString(stringValue, factory.createString(element)));
         simplifiedBuilders.add(builder);
         numberOfBuildersSimplified++;
       }

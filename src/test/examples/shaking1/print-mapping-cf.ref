@@ -3,3 +3,4 @@ shaking1.Used -> a.a:
     1:1:java.lang.String method():17:17 -> a
     1:1:void main(java.lang.String[]):8:8 -> main
     1:1:void <init>(java.lang.String):12:12 -> <init>
+    1:1:java.lang.String aMethodThatIsNotUsedButKept():21:21 -> aMethodThatIsNotUsedButKept

@@ -19,7 +19,6 @@ import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.origin.Origin;
@@ -1148,7 +1147,7 @@ public class IRCode implements ValueFactory {
   public ConstString createStringConstant(
       AppView<?> appView, DexString value, DebugLocalInfo local) {
     Value out = createValue(TypeElement.stringClassType(appView, definitelyNotNull()), local);
-    return new ConstString(out, value, ThrowingInfo.defaultForConstString(appView.options()));
+    return new ConstString(out, value);
   }
 
   public Phi createPhi(BasicBlock block, TypeElement type) {

@@ -39,7 +39,6 @@ import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.Binop;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
@@ -3634,9 +3633,7 @@ public class CodeRewriter {
   private Value addConstString(IRCode code, InstructionListIterator iterator, String s) {
     TypeElement typeLattice = TypeElement.stringClassType(appView, definitelyNotNull());
     Value value = code.createValue(typeLattice);
-    ThrowingInfo throwingInfo =
-        options.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
-    iterator.add(new ConstString(value, dexItemFactory.createString(s), throwingInfo));
+    iterator.add(new ConstString(value, dexItemFactory.createString(s)));
     return value;
   }
 

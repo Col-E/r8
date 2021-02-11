@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -78,11 +77,7 @@ public class SingleDexItemBasedStringValue extends SingleConstValue {
     Value returnedValue =
         code.createValue(stringClassType(appView, definitelyNotNull()), debugLocalInfo);
     DexItemBasedConstString instruction =
-        new DexItemBasedConstString(
-            returnedValue,
-            item,
-            nameComputationInfo,
-            ThrowingInfo.defaultForConstString(appView.options()));
+        new DexItemBasedConstString(returnedValue, item, nameComputationInfo);
     assert !instruction.instructionInstanceCanThrow();
     return instruction;
   }

@@ -18,7 +18,6 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRCodeUtils;
@@ -45,7 +44,6 @@ public class GeneratedMessageLiteShrinker {
   private final RawMessageInfoDecoder decoder;
   private final RawMessageInfoEncoder encoder;
   private final ProtoReferences references;
-  private final ThrowingInfo throwingInfo;
 
   private final TypeElement objectArrayType;
   private final TypeElement stringType;
@@ -58,7 +56,6 @@ public class GeneratedMessageLiteShrinker {
     this.decoder = decoder;
     this.encoder = new RawMessageInfoEncoder(appView.dexItemFactory());
     this.references = references;
-    this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
 
     // Types.
     this.objectArrayType =
@@ -154,9 +151,7 @@ public class GeneratedMessageLiteShrinker {
   private void rewriteInfoArgumentToNewMessageInfo(
       IRCode code, Value infoValue, ProtoMessageInfo protoMessageInfo) {
     infoValue.definition.replace(
-        new ConstString(
-            code.createValue(stringType), encoder.encodeInfo(protoMessageInfo), throwingInfo),
-        code);
+        new ConstString(code.createValue(stringType), encoder.encodeInfo(protoMessageInfo)), code);
   }
 
   private void rewriteObjectsArgumentToNewMessageInfo(
