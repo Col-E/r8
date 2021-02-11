@@ -4,27 +4,15 @@
 
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.ir.desugar.lambda.LambdaDesugaringLens;
-
 public class EnqueuerResult {
 
   private final AppInfoWithLiveness appInfo;
-  private final LambdaDesugaringLens lambdaDesugaringLens;
 
-  EnqueuerResult(AppInfoWithLiveness appInfo, LambdaDesugaringLens lambdaDesugaringLens) {
+  EnqueuerResult(AppInfoWithLiveness appInfo) {
     this.appInfo = appInfo;
-    this.lambdaDesugaringLens = lambdaDesugaringLens;
   }
 
   public AppInfoWithLiveness getAppInfo() {
     return appInfo;
-  }
-
-  public boolean hasLambdaDesugaringLens() {
-    return lambdaDesugaringLens != null;
-  }
-
-  public LambdaDesugaringLens getLambdaDesugaringLens() {
-    return lambdaDesugaringLens;
   }
 }

@@ -605,7 +605,6 @@ public class R8 {
                   prunedTypes);
           EnqueuerResult enqueuerResult =
               enqueuer.traceApplication(appView.rootSet(), executorService, timing);
-          assert !enqueuerResult.hasLambdaDesugaringLens();
           appView.setAppInfo(enqueuerResult.getAppInfo());
           // Rerunning the enqueuer should not give rise to any method rewritings.
           appView.withGeneratedMessageLiteBuilderShrinker(
@@ -979,9 +978,6 @@ public class R8 {
         enqueuer.traceApplication(appView.rootSet(), executorService, timing);
     AppView<AppInfoWithLiveness> appViewWithLiveness =
         appView.setAppInfo(enqueuerResult.getAppInfo());
-    if (enqueuerResult.hasLambdaDesugaringLens()) {
-      appView.setGraphLens(enqueuerResult.getLambdaDesugaringLens());
-    }
     if (InternalOptions.assertionsEnabled()) {
       // Register the dead proto types. These are needed to verify that no new missing types are
       // reported and that no dead proto types are referenced in the generated application.

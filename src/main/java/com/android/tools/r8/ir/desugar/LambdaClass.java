@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import static com.android.tools.r8.ir.desugar.lambda.ForcefullyMovedLambdaMethodConsumer.emptyForcefullyMovedLambdaMethodConsumer;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
@@ -34,10 +36,7 @@ import com.android.tools.r8.ir.desugar.lambda.ForcefullyMovedLambdaMethodConsume
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
-import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
-import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
-import com.android.tools.r8.utils.OptionalBool;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -459,16 +458,17 @@ public final class LambdaClass {
 
     // Ensure access of the referenced symbol(s).
     abstract ProgramMethod ensureAccessibility(
-        boolean allowMethodModification,
         ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer);
 
+    public final void ensureAccessibilityIfNeeded() {
+      ensureAccessibilityIfNeeded(emptyForcefullyMovedLambdaMethodConsumer());
+    }
+
     // Ensure access of the referenced symbol(s).
-    public ProgramMethod ensureAccessibilityIfNeeded(
-        boolean allowMethodModification,
+    public final ProgramMethod ensureAccessibilityIfNeeded(
         ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       if (!hasEnsuredAccessibility) {
-        accessibilityBridge =
-            ensureAccessibility(allowMethodModification, forcefullyMovedLambdaMethodConsumer);
+        accessibilityBridge = ensureAccessibility(forcefullyMovedLambdaMethodConsumer);
         hasEnsuredAccessibility = true;
       }
       return accessibilityBridge;
@@ -476,6 +476,13 @@ public final class LambdaClass {
 
     boolean isInterface() {
       return descriptor.implHandle.isInterface;
+    }
+  }
+
+  public abstract class D8SpecificTarget extends Target {
+    D8SpecificTarget(DexMethod callTarget, Type invokeType) {
+      super(callTarget, invokeType);
+      assert !appView.enableWholeProgramOptimizations();
     }
   }
 
@@ -488,14 +495,13 @@ public final class LambdaClass {
 
     @Override
     ProgramMethod ensureAccessibility(
-        boolean allowMethodModification,
         ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       return null;
     }
   }
 
   // Used for static private lambda$ methods. Only needs access relaxation.
-  private final class StaticLambdaImplTarget extends Target {
+  private final class StaticLambdaImplTarget extends D8SpecificTarget {
 
     final ProgramMethod target;
 
@@ -506,12 +512,12 @@ public final class LambdaClass {
 
     @Override
     ProgramMethod ensureAccessibility(
-        boolean allowMethodModification,
         ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       // We already found the static method to be called, just relax its accessibility.
-      target.getDefinition().accessFlags.unsetPrivate();
+      MethodAccessFlags flags = target.getAccessFlags();
+      flags.unsetPrivate();
       if (target.getHolder().isInterface()) {
-        target.getDefinition().accessFlags.setPublic();
+        flags.setPublic();
       }
       return null;
     }
@@ -519,7 +525,7 @@ public final class LambdaClass {
 
   // Used for instance private lambda$ methods on interfaces which need to be converted to public
   // static methods. They can't remain instance methods as they will end up on the companion class.
-  private class InterfaceLambdaImplTarget extends Target {
+  private class InterfaceLambdaImplTarget extends D8SpecificTarget {
 
     InterfaceLambdaImplTarget(DexMethod staticMethod) {
       super(staticMethod, Type.STATIC);
@@ -527,7 +533,6 @@ public final class LambdaClass {
 
     @Override
     ProgramMethod ensureAccessibility(
-        boolean allowMethodModification,
         ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
@@ -545,9 +550,7 @@ public final class LambdaClass {
                     MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
                     newAccessFlags.setStatic();
                     newAccessFlags.unsetPrivate();
-                    // Always make the method public to provide access when r8 minification is
-                    // allowed to move the lambda class accessing this method to another package
-                    // (-allowaccessmodification).
+                    // Always make the method public to provide access.
                     newAccessFlags.setPublic();
                     DexEncodedMethod newMethod =
                         new DexEncodedMethod(
@@ -589,14 +592,13 @@ public final class LambdaClass {
 
     @Override
     ProgramMethod ensureAccessibility(
-        boolean allowMethodModification,
         ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       return null;
     }
   }
 
   // Used for instance private lambda$ methods which need to be converted to public methods.
-  private class InstanceLambdaImplTarget extends Target {
+  private class InstanceLambdaImplTarget extends D8SpecificTarget {
 
     InstanceLambdaImplTarget(DexMethod staticMethod) {
       super(staticMethod, Type.VIRTUAL);
@@ -604,18 +606,14 @@ public final class LambdaClass {
 
     @Override
     ProgramMethod ensureAccessibility(
-        boolean allowMethodModification,
         ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       // When compiling with whole program optimization, check that we are not inplace modifying.
-      assert !(appView.enableWholeProgramOptimizations() && allowMethodModification);
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
       DexMethod implMethod = descriptor.implHandle.asMethod();
       DexProgramClass implMethodHolder = appView.definitionFor(implMethod.holder).asProgramClass();
-      return allowMethodModification
-          ? modifyLambdaImplementationMethod(
-              implMethod, implMethodHolder, forcefullyMovedLambdaMethodConsumer)
-          : createSyntheticAccessor(implMethod, implMethodHolder);
+      return modifyLambdaImplementationMethod(
+          implMethod, implMethodHolder, forcefullyMovedLambdaMethodConsumer);
     }
 
     private ProgramMethod modifyLambdaImplementationMethod(
@@ -658,45 +656,6 @@ public final class LambdaClass {
       assert modified.getDefinition().isNonPrivateVirtualMethod();
       return modified;
     }
-
-    private ProgramMethod createSyntheticAccessor(
-        DexMethod implMethod, DexProgramClass implMethodHolder) {
-      // The accessor might already have been created by another invoke-dynamic targeting it.
-      ProgramMethod existing = implMethodHolder.lookupProgramMethod(callTarget);
-      if (existing != null) {
-        assert existing.getAccessFlags().isSynthetic();
-        assert existing.getAccessFlags().isPublic();
-        assert existing.getDefinition().isVirtualMethod();
-        return existing;
-      }
-      MethodAccessFlags accessorFlags =
-          MethodAccessFlags.fromSharedAccessFlags(
-              Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC, false);
-
-      ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
-          ForwardMethodSourceCode.builder(callTarget)
-              .setReceiver(implMethod.holder)
-              .setTargetReceiver(implMethod.holder)
-              .setTarget(implMethod)
-              .setInvokeType(Type.DIRECT)
-              .setIsInterface(false);
-
-      DexEncodedMethod accessorEncodedMethod =
-          new DexEncodedMethod(
-              callTarget,
-              accessorFlags,
-              MethodTypeSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              ParameterAnnotationsList.empty(),
-              new SynthesizedCode(
-                  forwardSourceCodeBuilder::build,
-                  registry -> registry.registerInvokeDirect(implMethod)),
-              true);
-      accessorEncodedMethod.setLibraryMethodOverride(OptionalBool.FALSE);
-
-      implMethodHolder.addVirtualMethod(accessorEncodedMethod);
-      return new ProgramMethod(implMethodHolder, accessorEncodedMethod);
-    }
   }
 
   // Used for instance/static methods or constructors accessed via
@@ -709,7 +668,6 @@ public final class LambdaClass {
 
     @Override
     ProgramMethod ensureAccessibility(
-        boolean allowMethodModification,
         ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       // Create a static accessor with proper accessibility.
       DexProgramClass accessorClass = appView.definitionForProgramType(callTarget.holder);
@@ -726,15 +684,10 @@ public final class LambdaClass {
 
       // Always make the method public to provide access when r8 minification is allowed to move
       // the lambda class accessing this method to another package (-allowaccessmodification).
-      MethodAccessFlags accessorFlags =
-          MethodAccessFlags.fromSharedAccessFlags(
-              Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC,
-              false);
-
       DexEncodedMethod accessorEncodedMethod =
           new DexEncodedMethod(
               callTarget,
-              accessorFlags,
+              MethodAccessFlags.createPublicStaticSynthetic(),
               MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),

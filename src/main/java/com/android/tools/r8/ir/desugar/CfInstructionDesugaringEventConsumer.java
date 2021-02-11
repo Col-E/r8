@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialBridgeInfo;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.lambda.LambdaDesugaringLens;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsumer;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -205,9 +204,9 @@ public abstract class CfInstructionDesugaringEventConsumer
       // in the input code, and thus nothing needs to be done.
     }
 
-    public void finalizeDesugaring(LambdaDesugaringLens.Builder lambdaDesugaringLensBuilder) {
+    public void finalizeDesugaring() {
       finalizeInvokeSpecialDesugaring();
-      finalizeLambdaDesugaring(lambdaDesugaringLensBuilder);
+      finalizeLambdaDesugaring();
     }
 
     private void finalizeInvokeSpecialDesugaring() {
@@ -219,12 +218,11 @@ public abstract class CfInstructionDesugaringEventConsumer
                   .setCode(info.getVirtualMethodCode(), appView));
     }
 
-    private void finalizeLambdaDesugaring(
-        LambdaDesugaringLens.Builder lambdaDesugaringLensBuilder) {
+    private void finalizeLambdaDesugaring() {
       Set<DexProgramClass> classesWithSerializableLambdas = Sets.newIdentityHashSet();
       synthesizedLambdaClasses.forEach(
           (lambdaClass, context) -> {
-            lambdaClass.target.ensureAccessibilityIfNeeded(false, lambdaDesugaringLensBuilder);
+            lambdaClass.target.ensureAccessibilityIfNeeded();
 
             // Populate set of types with serialized lambda method for removal.
             if (lambdaClass.descriptor.interfaces.contains(

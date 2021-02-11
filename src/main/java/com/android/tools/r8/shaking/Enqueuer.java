@@ -92,7 +92,6 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.R8Cf
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
-import com.android.tools.r8.ir.desugar.lambda.LambdaDesugaringLens;
 import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
@@ -385,8 +384,6 @@ public class Enqueuer {
   private final GraphReporter graphReporter;
 
   private final CfInstructionDesugaringCollection desugaring;
-  private final LambdaDesugaringLens.Builder lambdaDesugaringLensBuilder =
-      LambdaDesugaringLens.createBuilder();
 
   private final BackportedMethodRewriter backportRewriter;
   private final TwrCloseResourceRewriter twrCloseResourceRewriter;
@@ -3261,7 +3258,7 @@ public class Enqueuer {
         method ->
             desugaring.desugar(method, additions.getMethodContext(method), desugaringEventConsumer),
         executorService);
-    desugaringEventConsumer.finalizeDesugaring(lambdaDesugaringLensBuilder);
+    desugaringEventConsumer.finalizeDesugaring();
     Iterables.addAll(additions.desugaredMethods, pendingDesugaring);
     pendingDesugaring.clear();
   }
@@ -3310,10 +3307,6 @@ public class Enqueuer {
   }
 
   private EnqueuerResult createEnqueuerResult(AppInfoWithClassHierarchy appInfo) {
-    // Once all tracing is done, we rewrite all enclosing method attributes that refer to methods
-    // that have been forcefully moved as a result of lambda desugaring.
-    LambdaDesugaringLens lambdaDesugaringLens = finalizeLambdaDesugaring();
-
     // Compute the set of dead proto types.
     deadProtoTypeCandidates.removeIf(this::isTypeLive);
     Set<DexType> deadProtoTypes =
@@ -3412,40 +3405,7 @@ public class Enqueuer {
     if (options.testing.enqueuerInspector != null) {
       options.testing.enqueuerInspector.accept(appInfoWithLiveness, mode);
     }
-    return new EnqueuerResult(appInfoWithLiveness, lambdaDesugaringLens);
-  }
-
-  private LambdaDesugaringLens finalizeLambdaDesugaring() {
-    LambdaDesugaringLens lambdaDesugaringLens = lambdaDesugaringLensBuilder.build(appView);
-    if (lambdaDesugaringLens == null) {
-      return null;
-    }
-
-    lambdaDesugaringLens.forEachForcefullyMovedLambdaMethod(
-        (from, to) -> {
-          List<DexProgramClass> liveTypesWithFromAsEnclosingMethod =
-              liveTypesByEnclosingMethod.remove(from);
-          if (liveTypesWithFromAsEnclosingMethod != null) {
-            for (DexProgramClass clazz : liveTypesWithFromAsEnclosingMethod) {
-              assert clazz.hasEnclosingMethodAttribute();
-              assert clazz.getEnclosingMethodAttribute().getEnclosingMethod() == from;
-              clazz.setEnclosingMethodAttribute(new EnclosingMethodAttribute(to));
-            }
-            liveTypesByEnclosingMethod.put(to, liveTypesWithFromAsEnclosingMethod);
-          }
-        });
-
-    unpinForcefullyMovedLambdaMethods(lambdaDesugaringLens);
-    return lambdaDesugaringLens;
-  }
-
-  // TODO(b/157700141): Determine if this is the right way to allow modification of pinned lambdas.
-  private void unpinForcefullyMovedLambdaMethods(LambdaDesugaringLens lambdaDesugaringLens) {
-    lambdaDesugaringLens.forEachForcefullyMovedLambdaMethod(
-        method -> {
-          keepInfo.unsafeUnpinMethod(method);
-          rootSet.prune(method);
-        });
+    return new EnqueuerResult(appInfoWithLiveness);
   }
 
   private boolean verifyReferences(DexApplication app) {

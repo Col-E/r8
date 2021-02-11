@@ -26,8 +26,7 @@ public class D8LambdaDesugaring {
     classConverterResult.forEachSynthesizedLambdaClassWithDeterministicOrdering(
         lambdaClass -> {
           ProgramMethod accessibilityBridge =
-              lambdaClass.target.ensureAccessibilityIfNeeded(
-                  true, forcefullyMovedLambdaMethods::put);
+              lambdaClass.target.ensureAccessibilityIfNeeded(forcefullyMovedLambdaMethods::put);
           if (accessibilityBridge != null
               // TODO(b/179976003): This check should be redundant with the seen-set (?).
               && !accessibilityBridge.getDefinition().getCode().isDexCode()

@@ -9,4 +9,8 @@ import com.android.tools.r8.graph.DexMethod;
 public interface ForcefullyMovedLambdaMethodConsumer {
 
   void acceptForcefullyMovedLambdaMethod(DexMethod from, DexMethod to);
+
+  static ForcefullyMovedLambdaMethodConsumer emptyForcefullyMovedLambdaMethodConsumer() {
+    return (from, to) -> {};
+  }
 }
