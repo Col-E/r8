@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -22,6 +23,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
+
   private static final String FOLDER = "duplicate_annotation";
   private static final String MAIN = FOLDER + ".MainKt";
   private static final String KEEP_RULES = StringUtils.lines(
@@ -37,7 +39,7 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
   @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(),
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
@@ -48,7 +50,7 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
       TestParameters parameters,
       KotlinTestParameters kotlinParameters,
       boolean allowAccessModification) {
-    super(kotlinParameters, allowAccessModification);
+    super(parameters, kotlinParameters, allowAccessModification);
     this.parameters = parameters;
   }
 
@@ -58,6 +60,8 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_dex() {
+    // TODO(b/179860027): Make it run on all tests.
+    assumeTrue(kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
     assumeTrue("test DEX", parameters.isDexRuntime());
     try {
       testForR8(parameters.getBackend())
@@ -76,6 +80,8 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_cf() throws Exception {
+    // TODO(b/179860027): Make it run on all tests.
+    assumeTrue(kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
     assumeTrue("test CF", parameters.isCfRuntime());
     testForR8(parameters.getBackend())
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))

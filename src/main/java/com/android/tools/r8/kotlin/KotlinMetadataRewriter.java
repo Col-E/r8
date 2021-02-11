@@ -30,8 +30,7 @@ import kotlinx.metadata.jvm.KotlinClassHeader;
 public class KotlinMetadataRewriter {
 
   // Due to a bug with nested classes and the lookup of RequirementVersion, we bump all metadata
-  // versions to 1.4 if compiled with kotlin 1.3 (1.1.16). For more information, see b/161885097 for
-  // more information.
+  // versions to 1.4 if compiled with kotlin 1.3 (1.1.16). For more information, see b/161885097.
   private static final int[] METADATA_VERSION_1_4 = new int[] {1, 4, 0};
 
   private static final class WriteMetadataFieldInfo {

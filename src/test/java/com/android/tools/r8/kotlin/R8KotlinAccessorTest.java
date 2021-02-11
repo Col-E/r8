@@ -9,7 +9,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
-import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -66,16 +66,19 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
           .addProperty("property", JAVA_LANG_STRING, Visibility.PRIVATE)
           .addProperty("indirectPropertyGetter", JAVA_LANG_STRING, Visibility.PRIVATE);
 
-  @Parameterized.Parameters(name = "{0}, allowAccessModification: {1}")
+  @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
 
   public R8KotlinAccessorTest(
-      KotlinTestParameters kotlinParameters, boolean allowAccessModification) {
-    super(kotlinParameters, allowAccessModification);
+      TestParameters parameters,
+      KotlinTestParameters kotlinParameters,
+      boolean allowAccessModification) {
+    super(parameters, kotlinParameters, allowAccessModification);
   }
 
   @Test
@@ -331,7 +334,13 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     TestKotlinCompanionClass testedClass = ACCESSOR_COMPANION_PROPERTY_CLASS;
     String mainClass =
         addMainToClasspath("accessors.AccessorKt", "accessor_accessPropertyFromCompanionClass");
-    runTest("accessors", mainClass, R8TestBuilder::noClassStaticizing)
+    runTest(
+            "accessors",
+            mainClass,
+            builder -> {
+              builder.addClasspathFiles(ToolHelper.getKotlinAnnotationJar(kotlinc));
+              builder.noClassStaticizing();
+            })
         .inspect(
             inspector -> {
               // The classes are removed entirely as a result of member value propagation, inlining,

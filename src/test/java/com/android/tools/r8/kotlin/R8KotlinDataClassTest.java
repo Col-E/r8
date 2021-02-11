@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.kotlin;
 
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.KotlinTestParameters;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -42,20 +45,25 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
   private Consumer<InternalOptions> disableClassInliner = o -> o.enableClassInlining = false;
 
-  @Parameterized.Parameters(name = "{0}, allowAccessModification: {1}")
+  @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
         BooleanUtils.values());
   }
 
   public R8KotlinDataClassTest(
-      KotlinTestParameters kotlinParameters, boolean allowAccessModification) {
-    super(kotlinParameters, allowAccessModification);
+      TestParameters parameters,
+      KotlinTestParameters kotlinParameters,
+      boolean allowAccessModification) {
+    super(parameters, kotlinParameters, allowAccessModification);
   }
 
   @Test
   public void test_dataclass_gettersOnly() throws Exception {
+    // TODO(b/179866251): Allow for CF code.
+    assumeTrue(testParameters.isDexRuntime());
     final String mainClassName = "dataclass.MainGettersOnlyKt";
     final MethodSignature testMethodSignature =
         new MethodSignature("testDataClassGetters", "void", Collections.emptyList());
@@ -100,6 +108,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_dataclass_componentOnly() throws Exception {
+    // TODO(b/179866251): Allow for CF code.
+    assumeTrue(testParameters.isDexRuntime());
     final String mainClassName = "dataclass.MainComponentOnlyKt";
     final MethodSignature testMethodSignature =
         new MethodSignature("testAllDataClassComponentFunctions", "void", Collections.emptyList());
@@ -143,6 +153,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_dataclass_componentPartial() throws Exception {
+    // TODO(b/179866251): Allow for CF code.
+    assumeTrue(testParameters.isDexRuntime());
     final String mainClassName = "dataclass.MainComponentPartialKt";
     final MethodSignature testMethodSignature =
         new MethodSignature("testSomeDataClassComponentFunctions", "void", Collections.emptyList());

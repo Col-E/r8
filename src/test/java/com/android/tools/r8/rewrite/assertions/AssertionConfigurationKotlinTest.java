@@ -161,6 +161,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
               b.addRunClasspathFiles(kotlinStdlibLibraryForRuntime());
             },
             b -> b.addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc)))
+        .addClasspathFiles(ToolHelper.getKotlinAnnotationJar(kotlinc))
         .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
         .addKeepMainRule(testClassKt)
         .addKeepClassAndMembersRules(class1, class2)

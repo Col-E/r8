@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
@@ -109,6 +110,22 @@ public abstract class KotlinTestBase extends TestBase {
       Collection<Path> sources, String sharedFolder) {
     return compileMemoizers.computeIfAbsent(
         sharedFolder, ignore -> new KotlinCompileMemoizer(sources));
+  }
+
+  public ThrowableConsumer<R8TestCompileResult> assertUnusedKeepRuleForKotlinMetadata(
+      boolean condition) {
+    return compileResult -> {
+      if (!condition) {
+        return;
+      }
+      compileResult
+          .getDiagnosticMessages()
+          .assertInfoThatMatches(
+              diagnosticMessage(
+                  containsString(
+                      "Proguard configuration rule does not match anything: `-keep class"
+                          + " kotlin.Metadata")));
+    };
   }
 
   public static class KotlinCompileMemoizer {
