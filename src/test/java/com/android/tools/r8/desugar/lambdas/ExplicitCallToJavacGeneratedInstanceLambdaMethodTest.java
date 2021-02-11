@@ -11,15 +11,17 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.cf.CfVersion;
+import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.stream.Stream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
-public class ExplicitCallToJavacGeneratedLambdaMethodTest extends TestBase {
+public class ExplicitCallToJavacGeneratedInstanceLambdaMethodTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -32,29 +34,40 @@ public class ExplicitCallToJavacGeneratedLambdaMethodTest extends TestBase {
         .build();
   }
 
-  public ExplicitCallToJavacGeneratedLambdaMethodTest(TestParameters parameters) {
+  public ExplicitCallToJavacGeneratedInstanceLambdaMethodTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
+  // TODO(b/179889958): Should succeed.
   @Test
   public void testRuntime() throws Exception {
     testForRuntime(parameters)
         .addProgramClasses(Main.class, A.class, FunctionalInterface.class)
         .addProgramClassFileData(getProgramClassFileData())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello world!", "Hello world!");
+        .applyIf(
+            parameters.isCfRuntime(),
+            result -> result.assertSuccessWithOutputLines("Hello world!", "Hello world!"),
+            result -> result.assertFailureWithErrorThatThrows(NoSuchMethodError.class));
   }
 
+  // TODO(b/179889958): Should succeed.
   @Test
   public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class, A.class, FunctionalInterface.class)
-        .addProgramClassFileData(getProgramClassFileData())
-        .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
-        .compile()
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello world!", "Hello world!");
+    AssertUtils.assertFailsCompilationIf(
+        parameters.isDexRuntime() && !parameters.canUseDefaultAndStaticInterfaceMethods(),
+        () ->
+            testForR8(parameters.getBackend())
+                .addProgramClasses(Main.class, A.class, FunctionalInterface.class)
+                .addProgramClassFileData(getProgramClassFileData())
+                .addKeepMainRule(Main.class)
+                .setMinApi(parameters.getApiLevel())
+                .compile()
+                .run(parameters.getRuntime(), Main.class)
+                .applyIf(
+                    parameters.isCfRuntime(),
+                    result -> result.assertSuccessWithOutputLines("Hello world!", "Hello world!"),
+                    result -> result.assertFailureWithErrorThatThrows(NoSuchMethodError.class)));
   }
 
   private byte[] getProgramClassFileData() throws IOException {
@@ -69,7 +82,7 @@ public class ExplicitCallToJavacGeneratedLambdaMethodTest extends TestBase {
             (opcode, owner, name, descriptor, isInterface, visitor) -> {
               if (name.equals("lambdaMethod")) {
                 visitor.visitMethodInsn(
-                    opcode, owner, lambdaMethod.getName(), descriptor, isInterface);
+                    Opcodes.INVOKESPECIAL, owner, lambdaMethod.getName(), descriptor, isInterface);
               } else {
                 visitor.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
               }
@@ -89,13 +102,17 @@ public class ExplicitCallToJavacGeneratedLambdaMethodTest extends TestBase {
   interface I {
 
     default void test() {
-      FunctionalInterface f = () -> System.out.println("Hello world!");
+      FunctionalInterface f = () -> greet();
       f.m();
       lambdaMethod(); // Changed to lambda$test$0() by transformer.
     }
 
+    default void greet() {
+      System.out.println("Hello world!");
+    }
+
     // Removed by transformer.
-    static void lambdaMethod() {}
+    default void lambdaMethod() {}
   }
 
   static class A implements I {}

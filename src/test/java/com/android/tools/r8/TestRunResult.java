@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.utils.ConsumerUtils.emptyThrowingConsumer;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 
@@ -41,6 +42,22 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
 
   public <E extends Throwable> RR apply(ThrowingConsumer<RR, E> fn) throws E {
     fn.accept(self());
+    return self();
+  }
+
+  public <T extends Throwable> RR applyIf(boolean condition, ThrowingConsumer<RR, T> thenConsumer)
+      throws T {
+    return applyIf(condition, thenConsumer, emptyThrowingConsumer());
+  }
+
+  public <S extends Throwable, T extends Throwable> RR applyIf(
+      boolean condition, ThrowingConsumer<RR, S> thenConsumer, ThrowingConsumer<RR, T> elseConsumer)
+      throws S, T {
+    if (condition) {
+      thenConsumer.accept(self());
+    } else {
+      elseConsumer.accept(self());
+    }
     return self();
   }
 
