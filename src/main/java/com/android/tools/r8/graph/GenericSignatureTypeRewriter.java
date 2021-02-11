@@ -57,14 +57,14 @@ public class GenericSignatureTypeRewriter {
   }
 
   public ClassSignature rewrite(ClassSignature classSignature) {
-    if (classSignature.hasNoSignature()) {
+    if (classSignature.hasNoSignature() || classSignature.isInvalid()) {
       return classSignature;
     }
     return new ClassSignatureRewriter().run(classSignature);
   }
 
   public FieldTypeSignature rewrite(FieldTypeSignature fieldTypeSignature) {
-    if (fieldTypeSignature.hasNoSignature()) {
+    if (fieldTypeSignature.hasNoSignature() || fieldTypeSignature.isInvalid()) {
       return fieldTypeSignature;
     }
     FieldTypeSignature rewrittenSignature = new TypeSignatureRewriter().run(fieldTypeSignature);
@@ -72,7 +72,7 @@ public class GenericSignatureTypeRewriter {
   }
 
   public MethodTypeSignature rewrite(MethodTypeSignature methodTypeSignature) {
-    if (methodTypeSignature.hasNoSignature()) {
+    if (methodTypeSignature.hasNoSignature() || methodTypeSignature.isInvalid()) {
       return methodTypeSignature;
     }
     return new MethodTypeSignatureRewriter().run(methodTypeSignature);
@@ -117,7 +117,7 @@ public class GenericSignatureTypeRewriter {
       classSignature.visit(this);
       if (rewrittenTypeParameters.isEmpty()
           && rewrittenSuperInterfaces.isEmpty()
-          && rewrittenSuperClass.isNoSignature()
+          && rewrittenSuperClass.hasNoSignature()
           && rewrittenSuperClass.type == factory.objectType) {
         return ClassSignature.noSignature();
       }
@@ -255,7 +255,7 @@ public class GenericSignatureTypeRewriter {
       }
       assert fieldTypeSignature.isClassTypeSignature();
       ClassTypeSignature classTypeSignature = fieldTypeSignature.asClassTypeSignature();
-      if (classTypeSignature.isNoSignature()) {
+      if (classTypeSignature.hasNoSignature()) {
         return classTypeSignature;
       }
       return new ClassTypeSignatureRewriter(false).run(classTypeSignature);

@@ -148,7 +148,7 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
     } else {
       assert fieldTypeSignature.isClassTypeSignature();
       ClassTypeSignature classTypeSignature = fieldTypeSignature.asClassTypeSignature();
-      if (classTypeSignature.isNoSignature()) {
+      if (classTypeSignature.hasNoSignature()) {
         return;
       }
       String renamedString = namingLens.lookupDescriptor(classTypeSignature.type).toString();

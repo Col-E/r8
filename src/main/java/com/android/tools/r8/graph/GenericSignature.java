@@ -134,6 +134,12 @@ public class GenericSignature {
     default boolean hasNoSignature() {
       return !hasSignature();
     }
+
+    default boolean isInvalid() {
+      return false;
+    }
+
+    DexDefinitionSignature<T> toInvalid();
   }
 
   public static class FormalTypeParameter {
@@ -207,6 +213,12 @@ public class GenericSignature {
     }
 
     @Override
+    public InvalidClassSignature toInvalid() {
+      // Since we could create the structure we are also able to generate a string for it.
+      return new InvalidClassSignature(toString());
+    }
+
+    @Override
     public boolean isClassSignature() {
       return true;
     }
@@ -214,6 +226,10 @@ public class GenericSignature {
     @Override
     public ClassSignature asClassSignature() {
       return this;
+    }
+
+    public List<FormalTypeParameter> getFormalTypeParameters() {
+      return formalTypeParameters;
     }
 
     public void visit(GenericSignatureVisitor visitor) {
@@ -241,6 +257,42 @@ public class GenericSignature {
 
     public static ClassSignature noSignature() {
       return NO_CLASS_SIGNATURE;
+    }
+  }
+
+  private static class InvalidClassSignature extends ClassSignature {
+
+    private final String genericSignatureString;
+
+    InvalidClassSignature(String genericSignatureString) {
+      super(EMPTY_TYPE_PARAMS, NO_FIELD_TYPE_SIGNATURE, EMPTY_SUPER_INTERFACES);
+      this.genericSignatureString = genericSignatureString;
+    }
+
+    @Override
+    public String toRenamedString(NamingLens namingLens, Predicate<DexType> isTypeMissing) {
+      return genericSignatureString;
+    }
+
+    @Override
+    public String toString() {
+      return genericSignatureString;
+    }
+
+    @Override
+    public InvalidClassSignature toInvalid() {
+      assert false : "Should not invoke toInvalid on an invalid signature";
+      return this;
+    }
+
+    @Override
+    public void visit(GenericSignatureVisitor visitor) {
+      assert false : "Should not visit an invalid signature";
+    }
+
+    @Override
+    public boolean isInvalid() {
+      return true;
     }
   }
 
@@ -354,6 +406,43 @@ public class GenericSignature {
     public static FieldTypeSignature noSignature() {
       return NO_FIELD_TYPE_SIGNATURE;
     }
+
+    @Override
+    public InvalidFieldTypeSignature toInvalid() {
+      return new InvalidFieldTypeSignature(toString());
+    }
+  }
+
+  private static class InvalidFieldTypeSignature extends FieldTypeSignature {
+
+    private final String genericSignature;
+
+    public InvalidFieldTypeSignature(String genericSignature) {
+      super(WildcardIndicator.NONE);
+      this.genericSignature = genericSignature;
+    }
+
+    @Override
+    public FieldTypeSignature asArgument(WildcardIndicator indicator) {
+      assert false : "Should not be called for an invalid signature";
+      return this;
+    }
+
+    @Override
+    public String toString() {
+      return genericSignature;
+    }
+
+    @Override
+    public String toRenamedString(NamingLens namingLens, Predicate<DexType> isTypeMissing) {
+      return genericSignature;
+    }
+
+    @Override
+    public InvalidFieldTypeSignature toInvalid() {
+      assert false : " Should not be called for an invalid signature";
+      return this;
+    }
   }
 
   static final class StarFieldTypeSignature extends FieldTypeSignature {
@@ -434,10 +523,6 @@ public class GenericSignature {
       argument.innerTypeSignature = this.innerTypeSignature;
       argument.enclosingTypeSignature = this.enclosingTypeSignature;
       return argument;
-    }
-
-    public boolean isNoSignature() {
-      return this == NO_FIELD_TYPE_SIGNATURE;
     }
 
     @Override
@@ -538,7 +623,7 @@ public class GenericSignature {
       return new ArrayTypeSignature(this);
     }
 
-    public String getTypeVariable() {
+    public String typeVariable() {
       return typeVariable;
     }
   }
@@ -673,6 +758,47 @@ public class GenericSignature {
     @Override
     public String toString() {
       return toRenamedString(NamingLens.getIdentityLens(), alwaysTrue());
+    }
+
+    @Override
+    public InvalidMethodTypeSignature toInvalid() {
+      return new InvalidMethodTypeSignature(toString());
+    }
+  }
+
+  private static class InvalidMethodTypeSignature extends MethodTypeSignature {
+
+    private final String genericSignature;
+
+    public InvalidMethodTypeSignature(String genericSignature) {
+      super(EMPTY_TYPE_PARAMS, EMPTY_TYPE_SIGNATURES, ReturnType.VOID, EMPTY_TYPE_SIGNATURES);
+      this.genericSignature = genericSignature;
+    }
+
+    @Override
+    public String toRenamedString(NamingLens namingLens, Predicate<DexType> isTypeMissing) {
+      return genericSignature;
+    }
+
+    @Override
+    public String toString() {
+      return genericSignature;
+    }
+
+    @Override
+    public boolean isInvalid() {
+      return true;
+    }
+
+    @Override
+    public void visit(GenericSignatureVisitor visitor) {
+      assert false : "Should not visit an invalid signature";
+    }
+
+    @Override
+    public InvalidMethodTypeSignature toInvalid() {
+      assert false : "Should not be called for an invalid signature";
+      return this;
     }
   }
 

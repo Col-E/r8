@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
@@ -331,6 +332,10 @@ public class ClassFileTransformer {
   }
 
   public ClassFileTransformer setGenericSignature(String newGenericSignature) {
+    return setGenericSignature(signature -> newGenericSignature);
+  }
+
+  public ClassFileTransformer setGenericSignature(Function<String, String> newGenericSignature) {
     return addClassTransformer(
         new ClassTransformer() {
           @Override
@@ -341,7 +346,8 @@ public class ClassFileTransformer {
               String signature,
               String superName,
               String[] interfaces) {
-            super.visit(version, access, name, newGenericSignature, superName, interfaces);
+            super.visit(
+                version, access, name, newGenericSignature.apply(signature), superName, interfaces);
           }
         });
   }
@@ -582,6 +588,21 @@ public class ClassFileTransformer {
               int access, String name, String descriptor, String signature, String[] exceptions) {
             return predicate.test(access, name, descriptor, signature, exceptions)
                 ? super.visitMethod(access, name, descriptor, newSignature, exceptions)
+                : super.visitMethod(access, name, descriptor, signature, exceptions);
+          }
+        });
+  }
+
+  public ClassFileTransformer setGenericSignature(
+      MethodPredicate predicate, Function<String, String> newSignature) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public MethodVisitor visitMethod(
+              int access, String name, String descriptor, String signature, String[] exceptions) {
+            return predicate.test(access, name, descriptor, signature, exceptions)
+                ? super.visitMethod(
+                    access, name, descriptor, newSignature.apply(signature), exceptions)
                 : super.visitMethod(access, name, descriptor, signature, exceptions);
           }
         });
