@@ -487,7 +487,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean shouldDesugarNests() {
-    return testing.enableForceNestBasedAccessDesugaringForTest || !canUseNestBasedAccess();
+    return !canUseNestBasedAccess();
   }
 
   public boolean canUseRecords() {
@@ -1335,8 +1335,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // TODO(b/144781417): This is disabled by default as some test apps appear to have such classes.
     public boolean allowNonAbstractClassesWithAbstractMethods = true;
 
-    // Flag to turn on/off JDK11+ nest-access control even when not required (Cf backend)
-    public boolean enableForceNestBasedAccessDesugaringForTest = false;
     public boolean verifyKeptGraphInfo = false;
 
     public boolean readInputStackMaps = true;

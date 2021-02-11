@@ -15,6 +15,7 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -66,8 +67,14 @@ public class Java11R8BootstrapTest extends TestBase {
     return testForR8(TestBase.getStaticTemp(), Backend.CF)
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR)
         .addKeepRuleFiles(MAIN_KEEP)
-        .addOptionsModification(
-            options -> options.testing.enableForceNestBasedAccessDesugaringForTest = desugar)
+        .applyIf(
+            desugar,
+            builder ->
+                builder.addOptionsModification(
+                    options -> {
+                      options.desugarState = DesugarState.ON;
+                      options.cfToCfDesugar = true;
+                    }))
         .compile()
         .inspect(inspector -> assertNests(inspector, desugar))
         .writeToZip();
