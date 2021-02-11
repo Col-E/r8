@@ -2007,6 +2007,10 @@ test {
         systemProperty 'slow_tests', project.property('slow_tests')
     }
 
+    if (project.hasProperty('desugar_jdk_libs')) {
+        systemProperty 'desugar_jdk_libs', project.property('desugar_jdk_libs')
+    }
+
     if (project.hasProperty('one_line_per_test')) {
         beforeTest { desc ->
             println "Start executing test ${desc.name} [${desc.className}]"
