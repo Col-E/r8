@@ -84,7 +84,6 @@ public class LambdaTest extends DebugTestBase {
         checkMethod(debuggeeClass, initialMethodName),
         checkLine(SOURCE_FILE, 20),
         stepInto(INTELLIJ_FILTER),
-        config.isCfRuntime() ? LambdaTest::doNothing : stepInto(INTELLIJ_FILTER),
         checkMethod(debuggeeClass, "returnOne"),
         checkLine(SOURCE_FILE, 28),
         checkNoLocal(),

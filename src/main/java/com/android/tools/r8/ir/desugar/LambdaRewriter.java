@@ -44,7 +44,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
@@ -59,7 +58,8 @@ import org.objectweb.asm.Opcodes;
  */
 public class LambdaRewriter {
 
-  public static final String EXPECTED_LAMBDA_METHOD_PREFIX = "lambda$";
+  public static final String JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX = "lambda$";
+  public static final String R8_LAMBDA_ACCESSOR_METHOD_PREFIX = "access$lambda$";
   public static final String LAMBDA_INSTANCE_FIELD_NAME = "INSTANCE";
 
   private final AppView<?> appView;
@@ -72,8 +72,6 @@ public class LambdaRewriter {
   // Maps lambda class type into lambda class representation.
   // NOTE: synchronize concurrent access on `knownLambdaClasses`.
   private final List<LambdaClass> knownLambdaClasses = new ArrayList<>();
-
-  private final Map<DexMethod, Integer> methodIds = new ConcurrentHashMap<>();
 
   public LambdaRewriter(AppView<?> appView) {
     this.appView = appView;

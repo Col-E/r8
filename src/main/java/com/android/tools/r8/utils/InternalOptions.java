@@ -1397,6 +1397,15 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   /**
+   * Allow access modification of synthetic lambda implementation methods in D8 to avoid generating
+   * an excessive amount of accessibility bridges. In R8, the lambda implementation methods are
+   * inlined into the synthesized accessibility bridges, thus we don't allow access modification.
+   */
+  public boolean canAccessModifyLambdaImplementationMethods(AppView<?> appView) {
+    return !appView.enableWholeProgramOptimizations();
+  }
+
+  /**
    * Dex2Oat issues a warning for abstract methods on non-abstract classes, so we never allow this.
    *
    * <p>Note that having an invoke instruction that targets an abstract method on a non-abstract

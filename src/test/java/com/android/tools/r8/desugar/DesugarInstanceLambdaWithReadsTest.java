@@ -3,12 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
+import static com.android.tools.r8.ir.desugar.LambdaRewriter.JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX;
+import static com.android.tools.r8.ir.desugar.LambdaRewriter.R8_LAMBDA_ACCESSOR_METHOD_PREFIX;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
@@ -41,7 +44,7 @@ public class DesugarInstanceLambdaWithReadsTest extends TestBase {
         .addProgramClasses(Main.class, A.class, B.class, Consumer.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED)
-        .inspect(this::checkJustOneLambdaImplementationMethod);
+        .inspect(inspector -> checkNumberOfLambdaMethods(inspector, false));
   }
 
   @Test
@@ -54,13 +57,27 @@ public class DesugarInstanceLambdaWithReadsTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED)
-        .inspect(this::checkJustOneLambdaImplementationMethod);
+        .inspect(inspector -> checkNumberOfLambdaMethods(inspector, true));
   }
 
-  private void checkJustOneLambdaImplementationMethod(CodeInspector inspector) {
+  private void checkNumberOfLambdaMethods(CodeInspector inspector, boolean isR8) {
+    // When generating DEX, only R8 synthesizes an accessor for the javac-generated lambda$ method.
+    List<FoundMethodSubject> lambdaAccessorMethods =
+        inspector
+            .clazz(Main.class)
+            .allMethods(m -> m.getOriginalName().startsWith(R8_LAMBDA_ACCESSOR_METHOD_PREFIX));
+    assertEquals(
+        BooleanUtils.intValue(parameters.isDexRuntime() && isR8), lambdaAccessorMethods.size());
+
+    // When generating DEX, R8 will inline the javac-generated lambda$ method into the synthesized
+    // $r8$lambda$ accessor method.
     List<FoundMethodSubject> lambdaImplementationMethods =
-        inspector.clazz(Main.class).allMethods(m -> m.getOriginalName().startsWith("lambda$"));
-    assertEquals(1, lambdaImplementationMethods.size());
+        inspector
+            .clazz(Main.class)
+            .allMethods(m -> m.getOriginalName().startsWith(JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX));
+    assertEquals(
+        1 - BooleanUtils.intValue(parameters.isDexRuntime() && isR8),
+        lambdaImplementationMethods.size());
   }
 
   private interface Consumer {

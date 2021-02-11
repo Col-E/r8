@@ -31,7 +31,7 @@ public class DesugarLambdaWithLocalClass extends TestBase {
   private List<String> EXPECTED_JAVAC_RESULT =
       ImmutableList.of("Hello from inside lambda$test$0", "Hello from inside lambda$testStatic$1");
 
-  private List<String> EXPECTED_DESUGARED_RESULT =
+  private List<String> EXPECTED_D8_DESUGARED_RESULT =
       ImmutableList.of(
           "Hello from inside lambda$test$0$DesugarLambdaWithLocalClass$TestClass",
           "Hello from inside lambda$testStatic$1");
@@ -104,7 +104,7 @@ public class DesugarLambdaWithLocalClass extends TestBase {
             r -> r.assertSuccessWithOutputLines(EXPECTED_JAVAC_RESULT))
         .applyIf(
             DesugarTestConfiguration::isDesugared,
-            r -> r.assertSuccessWithOutputLines(EXPECTED_DESUGARED_RESULT));
+            r -> r.assertSuccessWithOutputLines(EXPECTED_D8_DESUGARED_RESULT));
   }
 
   @Test
@@ -120,8 +120,7 @@ public class DesugarLambdaWithLocalClass extends TestBase {
         .addKeepMainRule(TestClass.class)
         .run(parameters.getRuntime(), TestClass.class)
         .inspect(this::checkEnclosingMethod)
-        .assertSuccessWithOutputLines(
-            parameters.isCfRuntime() ? EXPECTED_JAVAC_RESULT : EXPECTED_JAVAC_RESULT);
+        .assertSuccessWithOutputLines(EXPECTED_JAVAC_RESULT);
   }
 
   public interface MyConsumer<T> {

@@ -256,7 +256,8 @@ public final class LambdaClass {
   // Creates a delegation target for this particular lambda class. Note that we
   // should always be able to create targets for the lambdas we support.
   private Target createTarget(ProgramMethod accessedFrom) {
-    if (descriptor.delegatesToLambdaImplMethod()) {
+    if (appView.options().canAccessModifyLambdaImplementationMethods(appView)
+        && descriptor.delegatesToLambdaImplMethod()) {
       return createLambdaImplMethodTarget(accessedFrom);
     }
 
@@ -339,7 +340,7 @@ public final class LambdaClass {
     assert descriptor.implHandle.type.isInvokeInstance() ||
         descriptor.implHandle.type.isInvokeDirect();
 
-    if (!descriptor.needsAccessor(accessedFrom)) {
+    if (!descriptor.needsAccessor(appView, accessedFrom)) {
       return new NoAccessorMethodTarget(Invoke.Type.VIRTUAL);
     }
     // We need to generate an accessor method in `accessedFrom` class/interface
@@ -371,7 +372,7 @@ public final class LambdaClass {
   private Target createStaticMethodTarget(ProgramMethod accessedFrom) {
     assert descriptor.implHandle.type.isInvokeStatic();
 
-    if (!descriptor.needsAccessor(accessedFrom)) {
+    if (!descriptor.needsAccessor(appView, accessedFrom)) {
       return new NoAccessorMethodTarget(Invoke.Type.STATIC);
     }
 
@@ -395,7 +396,7 @@ public final class LambdaClass {
     assert implHandle != null;
     assert implHandle.type.isInvokeConstructor();
 
-    if (!descriptor.needsAccessor(accessedFrom)) {
+    if (!descriptor.needsAccessor(appView, accessedFrom)) {
       return new NoAccessorMethodTarget(Invoke.Type.DIRECT);
     }
 
@@ -418,14 +419,14 @@ public final class LambdaClass {
   // Create targets for interface methods.
   private Target createInterfaceMethodTarget(ProgramMethod accessedFrom) {
     assert descriptor.implHandle.type.isInvokeInterface();
-    assert !descriptor.needsAccessor(accessedFrom);
+    assert !descriptor.needsAccessor(appView, accessedFrom);
     return new NoAccessorMethodTarget(Invoke.Type.INTERFACE);
   }
 
   private DexString generateUniqueLambdaMethodName() {
     return appView
         .dexItemFactory()
-        .createString(LambdaRewriter.EXPECTED_LAMBDA_METHOD_PREFIX + descriptor.uniqueId);
+        .createString(LambdaRewriter.R8_LAMBDA_ACCESSOR_METHOD_PREFIX + descriptor.uniqueId);
   }
 
   // Represents information about the method lambda class need to delegate the call to. It may

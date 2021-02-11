@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.desugar.lambdas;
 
-import static com.android.tools.r8.ir.desugar.LambdaRewriter.EXPECTED_LAMBDA_METHOD_PREFIX;
+import static com.android.tools.r8.ir.desugar.LambdaRewriter.JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -60,7 +60,7 @@ public class ExplicitCallToJavacGeneratedStaticLambdaMethodTest extends TestBase
   private byte[] getProgramClassFileData() throws IOException {
     Method lambdaMethod =
         Stream.of(I.class.getDeclaredMethods())
-            .filter(x -> x.getName().contains(EXPECTED_LAMBDA_METHOD_PREFIX))
+            .filter(x -> x.getName().contains(JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX))
             .findFirst()
             .get();
     return transformer(I.class)

@@ -49,8 +49,7 @@ public class Regress163264839Test extends TestBase {
             .addProgramClasses(TestClass.class)
             .run(parameters.getRuntime(), TestClass.class);
 
-    if (isInterface
-        || (parameters.isCfRuntime() && parameters.getRuntime().asCf().getVm().equals(CfVm.JDK8))) {
+    if (isInterface || parameters.isCfRuntime(CfVm.JDK8)) {
       // JDK 8 allows mismatched method references in this case.
       result.assertSuccessWithOutput(EXPECTED);
     } else {

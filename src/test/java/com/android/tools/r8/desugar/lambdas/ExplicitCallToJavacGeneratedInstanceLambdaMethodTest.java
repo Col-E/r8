@@ -4,14 +4,13 @@
 
 package com.android.tools.r8.desugar.lambdas;
 
-import static com.android.tools.r8.ir.desugar.LambdaRewriter.EXPECTED_LAMBDA_METHOD_PREFIX;
+import static com.android.tools.r8.ir.desugar.LambdaRewriter.JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.stream.Stream;
@@ -38,7 +37,6 @@ public class ExplicitCallToJavacGeneratedInstanceLambdaMethodTest extends TestBa
     this.parameters = parameters;
   }
 
-  // TODO(b/179889958): Should succeed.
   @Test
   public void testRuntime() throws Exception {
     testForRuntime(parameters)
@@ -51,29 +49,22 @@ public class ExplicitCallToJavacGeneratedInstanceLambdaMethodTest extends TestBa
             result -> result.assertFailureWithErrorThatThrows(NoSuchMethodError.class));
   }
 
-  // TODO(b/179889958): Should succeed.
   @Test
   public void testR8() throws Exception {
-    AssertUtils.assertFailsCompilationIf(
-        parameters.isDexRuntime() && !parameters.canUseDefaultAndStaticInterfaceMethods(),
-        () ->
-            testForR8(parameters.getBackend())
-                .addProgramClasses(Main.class, A.class, FunctionalInterface.class)
-                .addProgramClassFileData(getProgramClassFileData())
-                .addKeepMainRule(Main.class)
-                .setMinApi(parameters.getApiLevel())
-                .compile()
-                .run(parameters.getRuntime(), Main.class)
-                .applyIf(
-                    parameters.isCfRuntime(),
-                    result -> result.assertSuccessWithOutputLines("Hello world!", "Hello world!"),
-                    result -> result.assertFailureWithErrorThatThrows(NoSuchMethodError.class)));
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Main.class, A.class, FunctionalInterface.class)
+        .addProgramClassFileData(getProgramClassFileData())
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello world!", "Hello world!");
   }
 
   private byte[] getProgramClassFileData() throws IOException {
     Method lambdaMethod =
         Stream.of(I.class.getDeclaredMethods())
-            .filter(x -> x.getName().contains(EXPECTED_LAMBDA_METHOD_PREFIX))
+            .filter(x -> x.getName().contains(JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX))
             .findFirst()
             .get();
     return transformer(I.class)

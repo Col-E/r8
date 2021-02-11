@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.naming.retrace;
 
+import static com.android.tools.r8.ir.desugar.LambdaRewriter.R8_LAMBDA_ACCESSOR_METHOD_PREFIX;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileName;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;
@@ -52,7 +53,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   private int expectedActualStackTraceHeight() {
     // In DEX release the entire lambda is inlined.
     if (parameters.isDexRuntime()) {
-      return mode == CompilationMode.RELEASE ? 1 : 5;
+      return mode == CompilationMode.RELEASE ? 1 : 6;
     }
     // In CF release it is not and in debug there is no lambda desugaring thus the shorter stack.
     return mode == CompilationMode.RELEASE ? 2 : 4;
@@ -60,19 +61,22 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
 
   private boolean isSynthesizedLambdaFrame(StackTraceLine line) {
     // TODO(141287349): The mapping should not map the external name to the internal name!
-    return SyntheticItemsTestUtils.isInternalLambda(Reference.classFromTypeName(line.className));
+    return SyntheticItemsTestUtils.isInternalLambda(Reference.classFromTypeName(line.className))
+        || line.methodName.startsWith(R8_LAMBDA_ACCESSOR_METHOD_PREFIX);
   }
 
-  private void checkLambdaFrame(StackTrace retracedStackTrace) {
+  private void checkLambdaFrames(StackTrace retracedStackTrace) {
     StackTrace lambdaFrames = retracedStackTrace.filter(this::isSynthesizedLambdaFrame);
-    assertEquals(1, lambdaFrames.size());
-    if (lambdaFrames.get(0).hasLineNumber()) {
-      assertEquals(mode == CompilationMode.RELEASE ? 0 : 2, lambdaFrames.get(0).lineNumber);
+    assertEquals(2, lambdaFrames.size());
+
+    StackTraceLine syntheticLambdaClassFrame = lambdaFrames.get(1);
+    if (syntheticLambdaClassFrame.hasLineNumber()) {
+      assertEquals(mode == CompilationMode.RELEASE ? 0 : 2, syntheticLambdaClassFrame.lineNumber);
     }
     // Proguard retrace will take the class name until the first $ to construct the file
     // name, so for "-$$Lambda$...", the file name becomes "-.java".
-    // TODO(b/141287349): Format the class name of desugard lambda classes.
-    // assertEquals("-.java", lambdaFrames.get(0).fileName);
+    // TODO(b/141287349): Format the class name of desugared lambda classes.
+    // assertEquals("-.java", syntheticLambdaClassFrame.fileName);
   }
 
   private void checkIsSame(StackTrace actualStackTrace, StackTrace retracedStackTrace) {
@@ -85,7 +89,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
           retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)),
           isSame(expectedStackTrace));
       // Check the frame from the lambda class.
-      checkLambdaFrame(retracedStackTrace);
+      checkLambdaFrames(retracedStackTrace);
     }
     assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
   }
@@ -96,12 +100,12 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
     if (parameters.isCfRuntime()) {
       assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace));
     } else {
-      // With the frame from the lambda class filtered out the stack trace is the same.
+      // With the frames from the lambda class filtered out the stack trace is the same.
       assertThat(
           retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)),
           isSameExceptForFileName(expectedStackTrace));
       // Check the frame from the lambda class.
-      checkLambdaFrame(retracedStackTrace);
+      checkLambdaFrames(retracedStackTrace);
     }
     assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
   }
@@ -117,7 +121,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
           retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)),
           isSameExceptForFileNameAndLineNumber(expectedStackTrace));
       // Check the frame from the lambda class.
-      checkLambdaFrame(retracedStackTrace);
+      checkLambdaFrames(retracedStackTrace);
     }
     assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
   }

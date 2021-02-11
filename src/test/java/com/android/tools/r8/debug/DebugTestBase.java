@@ -2188,7 +2188,7 @@ public abstract class DebugTestBase extends TestBase {
 
       private static boolean isLambdaMethod(VmMirror mirror, Location location) {
         String methodName = mirror.getMethodName(location.classID, location.methodID);
-        return methodName.startsWith("lambda$");
+        return methodName.startsWith("lambda$") || methodName.startsWith("$private$lambda$");
       }
     }
 

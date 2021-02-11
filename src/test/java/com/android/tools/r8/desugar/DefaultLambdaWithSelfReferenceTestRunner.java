@@ -51,7 +51,7 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
     this.parameters = parameters;
   }
 
-  private void runDebugger(DebugTestConfig config) throws Throwable {
+  private void runDebugger(DebugTestConfig config, boolean isR8) throws Throwable {
     MethodReference main = Reference.methodFromMethod(CLASS.getMethod("main", String[].class));
     Command checkThisLambda =
         conditional(
@@ -83,7 +83,9 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
         stepInto(INTELLIJ_FILTER),
         checkLine(17),
         // When desugaring, the LambdaClass will change this to a static (later moved to companion).
-        checkThisLambda,
+        parameters.canUseDefaultAndStaticInterfaceMethods() && isR8
+            ? checkThisDefaultMethod
+            : checkThisLambda,
         run());
   }
 
@@ -92,7 +94,7 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
     assumeTrue(parameters.isCfRuntime());
     JvmTestBuilder builder = testForJvm().addTestClasspath();
     builder.run(parameters.getRuntime(), CLASS).assertSuccessWithOutput(EXPECTED);
-    runDebugger(builder.debugConfig());
+    runDebugger(builder.debugConfig(), false);
   }
 
   @Test
@@ -111,7 +113,7 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(inspector -> assertThat(inspector.clazz(CLASS), isPresent()));
-    runDebugger(compileResult.debugConfig());
+    runDebugger(compileResult.debugConfig(), true);
   }
 
   @Test
@@ -168,7 +170,7 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutput(EXPECTED);
 
-    runDebugger(compiledResult.debugConfig());
+    runDebugger(compiledResult.debugConfig(), false);
 
     Path dissasemble1 = temp.newFolder().toPath().resolve("disassemble1.txt");
     Path dissasemble2 = temp.newFolder().toPath().resolve("disassemble2.txt");

@@ -32,7 +32,7 @@ public class DesugarLambdaWithAnonymousClass extends TestBase {
   private List<String> EXPECTED_JAVAC_RESULT =
       ImmutableList.of("Hello from inside lambda$test$0", "Hello from inside lambda$testStatic$1");
 
-  private List<String> EXPECTED_DESUGARED_RESULT =
+  private List<String> EXPECTED_D8_DESUGARED_RESULT =
       ImmutableList.of(
           "Hello from inside lambda$test$0$DesugarLambdaWithAnonymousClass$TestClass",
           "Hello from inside lambda$testStatic$1");
@@ -106,7 +106,7 @@ public class DesugarLambdaWithAnonymousClass extends TestBase {
             r -> r.assertSuccessWithOutputLines(EXPECTED_JAVAC_RESULT))
         .applyIf(
             DesugarTestConfiguration::isDesugared,
-            r -> r.assertSuccessWithOutputLines(EXPECTED_DESUGARED_RESULT));
+            r -> r.assertSuccessWithOutputLines(EXPECTED_D8_DESUGARED_RESULT));
   }
 
   @Test
@@ -124,8 +124,7 @@ public class DesugarLambdaWithAnonymousClass extends TestBase {
           .addKeepMainRule(TestClass.class)
           .run(parameters.getRuntime(), TestClass.class)
           .inspect(this::checkEnclosingMethod)
-          .assertSuccessWithOutputLines(
-              parameters.isCfRuntime() ? EXPECTED_JAVAC_RESULT : EXPECTED_DESUGARED_RESULT);
+          .assertSuccessWithOutputLines(EXPECTED_JAVAC_RESULT);
       assertFalse(parameters.isDexRuntime());
     } catch (AssertionError e) {
       assertTrue(parameters.isDexRuntime());
