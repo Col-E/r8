@@ -4,7 +4,6 @@
 
 package com.android.tools.r8;
 
-import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
@@ -106,8 +105,11 @@ public abstract class TestShrinkerBuilder<
     return addKeepRules(Arrays.asList(rules));
   }
 
-  public T addDontWarn(Class<?> clazz) {
-    return addDontWarn(clazz.getTypeName());
+  public T addDontWarn(Class<?>... classes) {
+    for (Class<?> clazz : classes) {
+      addDontWarn(clazz.getTypeName());
+    }
+    return self();
   }
 
   public T addDontWarn(String className) {
