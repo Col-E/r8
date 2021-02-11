@@ -306,7 +306,7 @@ public class Enqueuer {
    * are required so that invokes can find the method. If a method is only a target but not live,
    * its implementation may be removed and it may be marked abstract.
    */
-  private final SetWithReason<DexEncodedMethod> targetedMethods;
+  private final LiveMethodsSet targetedMethods;
 
   /** Set of methods that have invalid resolutions or lookups. */
   private final Set<DexMethod> failedMethodResolutionTargets;
@@ -411,7 +411,7 @@ public class Enqueuer {
     this.mode = mode;
     this.options = options;
     this.useRegistryFactory = createUseRegistryFactory();
-    this.workList = EnqueuerWorklist.createWorklist();
+    this.workList = EnqueuerWorklist.createWorklist(this);
     this.proguardCompatibilityActionsBuilder =
         mode.isInitialTreeShaking() && options.forceProguardCompatibility
             ? ProguardCompatibilityActions.builder()
@@ -425,7 +425,7 @@ public class Enqueuer {
           shrinker -> registerAnalysis(shrinker.createEnqueuerAnalysis()));
     }
 
-    targetedMethods = new SetWithReason<>(graphReporter::registerMethod);
+    targetedMethods = new LiveMethodsSet(graphReporter::registerMethod);
     // This set is only populated in edge cases due to multiple default interface methods.
     // The set is generally expected to be empty and in the unlikely chance it is not, it will
     // likely contain two methods. Thus the default capacity of 2.
@@ -526,6 +526,14 @@ public class Enqueuer {
 
   public void addDeadProtoTypeCandidate(DexProgramClass clazz) {
     deadProtoTypeCandidates.add(clazz);
+  }
+
+  public boolean addLiveMethod(ProgramMethod method, KeepReason reason) {
+    return liveMethods.add(method, reason);
+  }
+
+  public boolean addTargetedMethod(ProgramMethod method, KeepReason reason) {
+    return targetedMethods.add(method, reason);
   }
 
   private void recordCompilerSynthesizedTypeReference(DexType type) {
@@ -768,7 +776,7 @@ public class Enqueuer {
               graphReporter.reportCompatKeepDefaultInitializer(defaultInitializer));
         }
         if (clazz.isExternalizable(appView)) {
-          enqueueMarkMethodLiveAction(defaultInitializer, defaultInitializer, witness);
+          workList.enqueueMarkMethodLiveAction(defaultInitializer, defaultInitializer, witness);
         }
       }
     }
@@ -850,19 +858,8 @@ public class Enqueuer {
       clazz = superClass;
     }
     if (clazz.hasDefaultInitializer()) {
-      enqueueMarkMethodLiveAction(clazz.getProgramDefaultInitializer(), clazz, reason);
+      workList.enqueueMarkMethodLiveAction(clazz.getProgramDefaultInitializer(), clazz, reason);
     }
-  }
-
-  // Utility to avoid adding to the worklist if already live.
-  private boolean enqueueMarkMethodLiveAction(
-      ProgramMethod method, ProgramDefinition context, KeepReason reason) {
-    if (liveMethods.add(method, reason)) {
-      assert !method.getDefinition().getOptimizationInfo().forceInline();
-      workList.enqueueMarkMethodLiveAction(method, context);
-      return true;
-    }
-    return false;
   }
 
   private void compatEnqueueHolderIfDependentNonStaticMember(
@@ -1419,8 +1416,8 @@ public class Enqueuer {
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
     if (resolutionResult.isFailedOrUnknownResolution()) {
-      // Must mark the field as targeted even if it does not exist.
-      markFieldAsTargeted(fieldReference, currentMethod);
+      // Must trace the types from the field reference even if it does not exist.
+      traceFieldReference(fieldReference, resolutionResult, currentMethod);
       noClassMerging.add(fieldReference.getHolderType());
       return;
     }
@@ -1451,7 +1448,7 @@ public class Enqueuer {
       markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
     }
 
-    workList.enqueueMarkInstanceFieldAsReachableAction(
+    workList.enqueueMarkFieldAsReachableAction(
         field, currentMethod, KeepReason.fieldReferencedIn(currentMethod));
   }
 
@@ -1471,8 +1468,8 @@ public class Enqueuer {
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
     if (resolutionResult.isFailedOrUnknownResolution()) {
-      // Must mark the field as targeted even if it does not exist.
-      markFieldAsTargeted(fieldReference, currentMethod);
+      // Must trace the types from the field reference even if it does not exist.
+      traceFieldReference(fieldReference, resolutionResult, currentMethod);
       noClassMerging.add(fieldReference.getHolderType());
       return;
     }
@@ -1504,7 +1501,7 @@ public class Enqueuer {
     }
 
     KeepReason reason = KeepReason.fieldReferencedIn(currentMethod);
-    workList.enqueueMarkInstanceFieldAsReachableAction(field, currentMethod, reason);
+    workList.enqueueMarkFieldAsReachableAction(field, currentMethod, reason);
   }
 
   void traceStaticFieldRead(DexField field, ProgramMethod currentMethod) {
@@ -1523,8 +1520,8 @@ public class Enqueuer {
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
     if (resolutionResult.isFailedOrUnknownResolution()) {
-      // Must mark the field as targeted even if it does not exist.
-      markFieldAsTargeted(fieldReference, currentMethod);
+      // Must trace the types from the field reference even if it does not exist.
+      traceFieldReference(fieldReference, resolutionResult, currentMethod);
       noClassMerging.add(fieldReference.getHolderType());
 
       // Record field reference for generated extension registry shrinking.
@@ -1571,7 +1568,7 @@ public class Enqueuer {
       markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
     }
 
-    markStaticFieldAsLive(field, currentMethod);
+    markFieldAsLive(field, currentMethod);
   }
 
   void traceStaticFieldWrite(DexField field, ProgramMethod currentMethod) {
@@ -1590,8 +1587,8 @@ public class Enqueuer {
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
     if (resolutionResult.isFailedOrUnknownResolution()) {
-      // Must mark the field as targeted even if it does not exist.
-      markFieldAsTargeted(fieldReference, currentMethod);
+      // Must trace the types from the field reference even if it does not exist.
+      traceFieldReference(fieldReference, resolutionResult, currentMethod);
       noClassMerging.add(fieldReference.getHolderType());
       return;
     }
@@ -1636,7 +1633,7 @@ public class Enqueuer {
       markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
     }
 
-    markStaticFieldAsLive(field, currentMethod);
+    markFieldAsLive(field, currentMethod);
   }
 
   private DexMethod getInvokeSuperTarget(DexMethod method, ProgramMethod currentMethod) {
@@ -1819,14 +1816,14 @@ public class Enqueuer {
       enqueueFirstNonSerializableClassInitializer(clazz, reason);
     }
 
-    processAnnotations(clazz, clazz);
+    processAnnotations(clazz);
 
     // If this type has deferred annotations, we have to process those now, too.
     if (clazz.isAnnotation()) {
       Set<DexAnnotation> annotations = deferredAnnotations.remove(clazz.type);
       if (annotations != null && !annotations.isEmpty()) {
         assert annotations.stream().allMatch(a -> a.annotation.type == clazz.type);
-        annotations.forEach(annotation -> processAnnotation(clazz, clazz, annotation));
+        annotations.forEach(annotation -> processAnnotation(clazz, annotation));
       }
     }
 
@@ -1919,26 +1916,21 @@ public class Enqueuer {
     enqueueKeepRuleInstantiatedType(holder, reasons, instanceInitializer.getDefinition());
   }
 
-  private void processAnnotations(DexProgramClass holder, ProgramDefinition annotatedItem) {
-    processAnnotations(holder, annotatedItem, annotatedItem.getDefinition().annotations());
+  private void processAnnotations(ProgramDefinition annotatedItem) {
+    processAnnotations(annotatedItem, annotatedItem.getDefinition().annotations());
   }
 
-  private void processAnnotations(
-      DexProgramClass holder, ProgramDefinition annotatedItem, DexAnnotationSet annotations) {
-    processAnnotations(holder, annotatedItem, annotations.annotations);
+  private void processAnnotations(ProgramDefinition annotatedItem, DexAnnotationSet annotations) {
+    processAnnotations(annotatedItem, annotations.annotations);
   }
 
-  private void processAnnotations(
-      DexProgramClass holder, ProgramDefinition annotatedItem, DexAnnotation[] annotations) {
+  private void processAnnotations(ProgramDefinition annotatedItem, DexAnnotation[] annotations) {
     for (DexAnnotation annotation : annotations) {
-      processAnnotation(holder, annotatedItem, annotation);
+      processAnnotation(annotatedItem, annotation);
     }
   }
 
-  private void processAnnotation(
-      DexProgramClass holder, ProgramDefinition annotatedItem, DexAnnotation annotation) {
-    assert annotatedItem == holder || annotatedItem.asProgramMember().getHolder() == holder;
-    assert !holder.isDexClass() || holder.asDexClass().isProgramClass();
+  private void processAnnotation(ProgramDefinition annotatedItem, DexAnnotation annotation) {
     DexType type = annotation.getAnnotationType();
     recordTypeReference(type, annotatedItem);
     DexClass clazz = appView.definitionFor(type);
@@ -2152,7 +2144,7 @@ public class Enqueuer {
     // Method). In a class, that would lead to a verification error.
     if (encodedMethod.isNonPrivateVirtualMethod()
         && virtualMethodsTargetedByInvokeDirect.add(encodedMethod.method)) {
-      enqueueMarkMethodLiveAction(method, context, reason);
+      workList.enqueueMarkMethodLiveAction(method, context, reason);
     }
   }
 
@@ -2256,30 +2248,6 @@ public class Enqueuer {
             || (initialPrunedTypes != null && initialPrunedTypes.contains(clazz))
         : "Unexpected missing class `" + clazz.toSourceString() + "`";
     missingClassesBuilder.legacyAddNewMissingClass(clazz);
-  }
-
-  private void markMethodAsTargeted(ProgramMethod method, KeepReason reason) {
-    DexEncodedMethod definition = method.getDefinition();
-    DexProgramClass holder = method.getHolder();
-    if (!targetedMethods.add(definition, reason)) {
-      // Already targeted.
-      return;
-    }
-    markReferencedTypesAsLive(method);
-    processAnnotations(holder, method);
-    definition.parameterAnnotationsList.forEachAnnotation(
-        annotation -> processAnnotation(holder, method, annotation));
-
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Method `%s` is targeted.", method);
-    }
-    if (forceProguardCompatibility) {
-      // Keep targeted default methods in compatibility mode. The tree pruner will otherwise make
-      // these methods abstract, whereas Proguard does not (seem to) touch their code.
-      if (!definition.isAbstract() && holder.isInterface()) {
-        markMethodAsLiveWithCompatRule(method);
-      }
-    }
   }
 
   /**
@@ -2592,7 +2560,7 @@ public class Enqueuer {
         // TODO(b/120959039): Should the reason this field is reachable come from the set?
         KeepReason reason = KeepReason.reachableFromLiveType(clazz.type);
         for (ProgramField field : reachableFields) {
-          markInstanceFieldAsLive(field, clazz, reason);
+          markFieldAsLive(field, clazz, reason);
         }
       }
       clazz = getProgramClassOrNull(clazz.superType, clazz);
@@ -2636,94 +2604,95 @@ public class Enqueuer {
     }
   }
 
-  private void markFieldAsTargeted(ProgramField field) {
-    markTypeAsLive(field.getHolder(), field);
-    markTypeAsLive(field.getType(), field);
+  private void markFieldAsLive(ProgramField field, ProgramMethod context) {
+    markFieldAsLive(field, context, KeepReason.fieldReferencedIn(context));
   }
 
-  private void markFieldAsTargeted(DexField field, ProgramMethod context) {
+  private void markFieldAsLive(ProgramField field, ProgramDefinition context, KeepReason reason) {
+    // This field might be an instance field reachable from a static context, e.g. a getStatic that
+    // resolves to an instance field. We have to keep the instance field nonetheless, as otherwise
+    // we might unmask a shadowed static field and hence change semantics.
+    if (!liveFields.add(field, reason)) {
+      // Already live.
+      return;
+    }
+
+    // Mark the field as targeted.
+    if (field.getAccessFlags().isStatic()) {
+      traceFieldDefinition(field);
+      markDirectAndIndirectClassInitializersAsLive(field.getHolder());
+    } else if (!reachableInstanceFields
+        .getOrDefault(field.getHolder(), ProgramFieldSet.empty())
+        .contains(field)) {
+      traceFieldDefinition(field);
+    }
+
+    // Add all dependent members to the workqueue.
+    enqueueRootItems(rootSet.getDependentItems(field.getDefinition()));
+
+    checkMemberForSoftPinning(field);
+
+    // Notify analyses.
+    analyses.forEach(analysis -> analysis.processNewlyLiveField(field, context));
+  }
+
+  // Package protected due to entry point from worklist.
+  void markFieldAsReachable(ProgramField field, ProgramDefinition context, KeepReason reason) {
+    // We might have a instance field access that is dispatched to a static field. In such case,
+    // we have to keep the static field, so that the dispatch fails at runtime in the same way that
+    // it did before. We have to keep the field even if the receiver has no live inhabitants, as
+    // field resolution happens before the receiver is inspected.
+    if (field.getDefinition().isStatic()
+        || objectAllocationInfoCollection.isInstantiatedDirectlyOrHasInstantiatedSubtype(
+            field.getHolder())) {
+      markFieldAsLive(field, context, reason);
+    }
+
+    if (liveFields.contains(field)
+        || !reachableInstanceFields
+            .computeIfAbsent(field.getHolder(), ignore -> ProgramFieldSet.create())
+            .add(field)) {
+      // Already reachable.
+      graphReporter.registerField(field.getDefinition(), reason);
+      return;
+    }
+
+    traceFieldDefinition(field);
+  }
+
+  private void traceFieldDefinition(ProgramField field) {
+    markTypeAsLive(field.getHolder(), field);
+    markTypeAsLive(field.getType(), field);
+    processAnnotations(field);
+  }
+
+  private void traceFieldReference(
+      DexField field, FieldResolutionResult resolutionResult, ProgramMethod context) {
+    assert resolutionResult.isFailedOrUnknownResolution();
     markTypeAsLive(field.getHolderType(), context);
     markTypeAsLive(field.getType(), context);
   }
 
-  private void markStaticFieldAsLive(ProgramField field, ProgramMethod context) {
-    markStaticFieldAsLive(field, context, KeepReason.fieldReferencedIn(context));
-  }
-
-  private void markStaticFieldAsLive(
-      ProgramField field, ProgramDefinition context, KeepReason reason) {
-    // Mark the field type and holder live here, so that they exist at runtime.
-    markFieldAsTargeted(field);
-
-    markDirectAndIndirectClassInitializersAsLive(field.getHolder());
-
-    // This field might be an instance field reachable from a static context, e.g. a getStatic that
-    // resolves to an instance field. We have to keep the instance field nonetheless, as otherwise
-    // we might unmask a shadowed static field and hence change semantics.
-    if (field.getDefinition().isStatic()) {
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Adding static field `%s` to live set.", field);
-      }
-    } else {
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Adding instance field `%s` to live set (static context).", field);
-      }
-    }
-    processAnnotations(field.getHolder(), field);
-    liveFields.add(field, reason);
-
-    // Add all dependent members to the workqueue.
-    enqueueRootItems(rootSet.getDependentItems(field.getDefinition()));
-
-    checkMemberForSoftPinning(field);
-
-    // Notify analyses.
-    analyses.forEach(analysis -> analysis.processNewlyLiveField(field, context));
-  }
-
-  private void markInstanceFieldAsLive(
-      ProgramField field, ProgramDefinition context, KeepReason reason) {
-    markFieldAsTargeted(field);
-
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Adding instance field `%s` to live set.", field);
-    }
-    processAnnotations(field.getHolder(), field);
-    liveFields.add(field, reason);
-
-    // Add all dependent members to the workqueue.
-    enqueueRootItems(rootSet.getDependentItems(field.getDefinition()));
-
-    checkMemberForSoftPinning(field);
-
-    // Notify analyses.
-    analyses.forEach(analysis -> analysis.processNewlyLiveField(field, context));
-  }
-
   private void markDirectStaticOrConstructorMethodAsLive(ProgramMethod method, KeepReason reason) {
-    if (!enqueueMarkMethodLiveAction(method, method, reason)) {
-      // Already marked live.
-      return;
-    }
-    // Should already have marked the type live previously.
-    assert method.getDefinition().isClassInitializer() || verifyMethodIsTargeted(method);
-    assert verifyTypeIsLive(method.getHolder());
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Method `%s` has become live due to direct invoke", method);
+    if (workList.enqueueMarkMethodLiveAction(method, method, reason)) {
+      assert workList.enqueueAssertAction(
+          () -> {
+            // Should have marked the holder type live.
+            assert method.getDefinition().isClassInitializer() || verifyMethodIsTargeted(method);
+            assert verifyTypeIsLive(method.getHolder());
+          });
+    } else {
+      assert method.getDefinition().isClassInitializer() || verifyMethodIsTargeted(method);
+      assert workList.enqueueAssertAction(() -> verifyTypeIsLive(method.getHolder()));
     }
   }
 
   private void markVirtualMethodAsLive(ProgramMethod method, KeepReason reason) {
-    assert method != null;
     // Only explicit keep rules or reflective use should make abstract methods live.
     assert !method.getDefinition().isAbstract()
         || reason.isDueToKeepRule()
         || reason.isDueToReflectiveUse();
-    if (enqueueMarkMethodLiveAction(method, method, reason)) {
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Adding virtual method `%s` to live set.", method);
-      }
-    }
+    workList.enqueueMarkMethodLiveAction(method, method, reason);
   }
 
   public boolean isFieldReferenced(DexEncodedField field) {
@@ -2793,32 +2762,6 @@ public class Enqueuer {
 
   public void forAllLiveClasses(Consumer<DexProgramClass> consumer) {
     liveTypes.items.forEach(consumer);
-  }
-
-  // Package protected due to entry point from worklist.
-  void markInstanceFieldAsReachable(
-      ProgramField field, ProgramDefinition context, KeepReason reason) {
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Marking instance field `%s` as reachable.", field);
-    }
-
-    // We might have a instance field access that is dispatched to a static field. In such case,
-    // we have to keep the static field, so that the dispatch fails at runtime in the same way that
-    // it did before. We have to keep the field even if the receiver has no live inhabitants, as
-    // field resolution happens before the receiver is inspected.
-    if (field.getDefinition().isStatic()) {
-      markStaticFieldAsLive(field, context, reason);
-    } else if (objectAllocationInfoCollection.isInstantiatedDirectlyOrHasInstantiatedSubtype(
-        field.getHolder())) {
-      markInstanceFieldAsLive(field, context, reason);
-    } else {
-      markFieldAsTargeted(field);
-
-      // Add the field to the reachable set if the type later becomes instantiated.
-      reachableInstanceFields
-          .computeIfAbsent(field.getHolder(), ignore -> ProgramFieldSet.create())
-          .add(field);
-    }
   }
 
   private void markVirtualMethodAsReachable(
@@ -2920,7 +2863,7 @@ public class Enqueuer {
       LookupLambdaTarget target, Function<ProgramMethod, KeepReasonWitness> reason) {
     ProgramMethod implementationMethod = target.getImplementationMethod().asProgramMethod();
     if (implementationMethod != null) {
-      enqueueMarkMethodLiveAction(
+      workList.enqueueMarkMethodLiveAction(
           implementationMethod, implementationMethod, reason.apply(implementationMethod));
     }
   }
@@ -3208,7 +3151,7 @@ public class Enqueuer {
       for (ProgramMethod liveMethod : liveMethods.values()) {
         assert !enqueuer.targetedMethods.contains(liveMethod.getDefinition());
         enqueuer.markMethodAsTargeted(liveMethod, fakeReason);
-        enqueuer.enqueueMarkMethodLiveAction(liveMethod, liveMethod, fakeReason);
+        enqueuer.workList.enqueueMarkMethodLiveAction(liveMethod, liveMethod, fakeReason);
       }
       enqueuer.liveNonProgramTypes.addAll(syntheticClasspathClasses.values());
     }
@@ -3710,7 +3653,7 @@ public class Enqueuer {
           singleTargetHolder.isInterface(),
           singleTarget,
           graphReporter.fakeReportShouldNotBeUsed());
-      enqueueMarkMethodLiveAction(
+      workList.enqueueMarkMethodLiveAction(
           singleTarget, singleTarget, graphReporter.fakeReportShouldNotBeUsed());
     }
     action.getAction().accept(builder);
@@ -3762,9 +3705,9 @@ public class Enqueuer {
   // Package protected due to entry point from worklist.
   void markFieldAsKept(ProgramField field, KeepReason reason) {
     if (field.getDefinition().isStatic()) {
-      markStaticFieldAsLive(field, field, reason);
+      markFieldAsLive(field, field, reason);
     } else {
-      markInstanceFieldAsReachable(field, field, reason);
+      workList.enqueueMarkFieldAsReachableAction(field, field, reason);
     }
   }
 
@@ -3836,14 +3779,16 @@ public class Enqueuer {
 
   // Package protected due to entry point from worklist.
   void markMethodAsLive(ProgramMethod method, ProgramDefinition context) {
-    DexProgramClass holder = method.getHolder();
-    DexEncodedMethod definition = method.getDefinition();
+    assert liveMethods.contains(method);
 
-    assert liveMethods.contains(definition);
+    DexEncodedMethod definition = method.getDefinition();
+    assert !definition.getOptimizationInfo().forceInline();
 
     if (definition.isStatic()) {
       markDirectAndIndirectClassInitializersAsLive(method.getHolder());
     }
+
+    traceNonDesugaredCode(method);
 
     ProgramMethodSet superCallTargets = superInvokeDependencies.get(method.getDefinition());
     if (superCallTargets != null) {
@@ -3855,12 +3800,6 @@ public class Enqueuer {
         markVirtualMethodAsLive(superCallTarget, KeepReason.invokedViaSuperFrom(method));
       }
     }
-    markParameterAndReturnTypesAsLive(method);
-    processAnnotations(holder, method);
-    definition.parameterAnnotationsList.forEachAnnotation(
-        annotation -> processAnnotation(holder, method, annotation));
-
-    traceNonDesugaredCode(method);
 
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(definition));
@@ -3869,6 +3808,34 @@ public class Enqueuer {
 
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processNewlyLiveMethod(method, context));
+  }
+
+  private void markMethodAsTargeted(ProgramMethod method, KeepReason reason) {
+    if (!targetedMethods.add(method, reason)) {
+      // Already targeted.
+      return;
+    }
+
+    if (!liveMethods.contains(method)) {
+      traceMethodDefinitionExcludingCode(method);
+    }
+
+    if (forceProguardCompatibility) {
+      // Keep targeted default methods in compatibility mode. The tree pruner will otherwise make
+      // these methods abstract, whereas Proguard does not (seem to) touch their code.
+      if (!method.getAccessFlags().isAbstract() && method.getHolder().isInterface()) {
+        markMethodAsLiveWithCompatRule(method);
+      }
+    }
+  }
+
+  void traceMethodDefinitionExcludingCode(ProgramMethod method) {
+    markReferencedTypesAsLive(method);
+    processAnnotations(method);
+    method
+        .getDefinition()
+        .getParameterAnnotations()
+        .forEachAnnotation(annotation -> processAnnotation(method, annotation));
   }
 
   private void traceNonDesugaredCode(ProgramMethod method) {
@@ -3901,7 +3868,7 @@ public class Enqueuer {
   }
 
   private void markReferencedTypesAsLive(ProgramMethod method) {
-    markTypeAsLive(method.getHolderType(), method);
+    markTypeAsLive(method.getHolder(), method);
     markParameterAndReturnTypesAsLive(method);
   }
 
@@ -3966,7 +3933,8 @@ public class Enqueuer {
   }
 
   private void markMethodAsLiveWithCompatRule(ProgramMethod method) {
-    enqueueMarkMethodLiveAction(method, method, graphReporter.reportCompatKeepMethod(method));
+    workList.enqueueMarkMethodLiveAction(
+        method, method, graphReporter.reportCompatKeepMethod(method));
   }
 
   private void handleReflectiveBehavior(ProgramMethod method) {
@@ -4484,7 +4452,7 @@ public class Enqueuer {
                 : fieldAccessInfoCollection.extend(
                     fieldReference, new FieldAccessInfoImpl(fieldReference));
         fieldAccessInfo.setReadFromAnnotation();
-        markStaticFieldAsLive(field, context, KeepReason.referencedInAnnotation(annotationHolder));
+        markFieldAsLive(field, context, KeepReason.referencedInAnnotation(annotationHolder));
         // When an annotation has a field of an enum type the JVM will use the values() method on
         // that enum class if the field is referenced.
         if (options.isGeneratingClassFiles() && field.getHolder().isEnum()) {
@@ -4493,7 +4461,7 @@ public class Enqueuer {
         }
       } else {
         // There is no dispatch on annotations, so only keep what is directly referenced.
-        markInstanceFieldAsReachable(
+        workList.enqueueMarkFieldAsReachableAction(
             field, context, KeepReason.referencedInAnnotation(annotationHolder));
       }
       return false;

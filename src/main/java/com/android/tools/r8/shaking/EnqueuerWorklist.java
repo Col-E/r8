@@ -12,6 +12,8 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
+import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
@@ -19,6 +21,19 @@ public class EnqueuerWorklist {
 
   public abstract static class EnqueuerAction {
     public abstract void run(Enqueuer enqueuer);
+  }
+
+  static class AssertAction extends EnqueuerAction {
+    private final Action assertion;
+
+    AssertAction(Action assertion) {
+      this.assertion = assertion;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      assertion.execute();
+    }
   }
 
   static class MarkReachableDirectAction extends EnqueuerAction {
@@ -55,13 +70,13 @@ public class EnqueuerWorklist {
     }
   }
 
-  static class MarkInstanceFieldAsReachableAction extends EnqueuerAction {
+  static class MarkFieldAsReachableAction extends EnqueuerAction {
     private final ProgramField field;
     // TODO(b/175854431): Avoid pushing context on worklist.
     private final ProgramDefinition context;
     private final KeepReason reason;
 
-    public MarkInstanceFieldAsReachableAction(
+    public MarkFieldAsReachableAction(
         ProgramField field, ProgramDefinition context, KeepReason reason) {
       this.field = field;
       this.context = context;
@@ -70,7 +85,7 @@ public class EnqueuerWorklist {
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.markInstanceFieldAsReachable(field, context, reason);
+      enqueuer.markFieldAsReachable(field, context, reason);
     }
   }
 
@@ -219,6 +234,19 @@ public class EnqueuerWorklist {
     }
   }
 
+  static class TraceMethodDefinitionExcludingCodeAction extends EnqueuerAction {
+    private final ProgramMethod method;
+
+    TraceMethodDefinitionExcludingCodeAction(ProgramMethod method) {
+      this.method = method;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.traceMethodDefinitionExcludingCode(method);
+    }
+  }
+
   static class TraceNewInstanceAction extends EnqueuerAction {
     private final DexType type;
     // TODO(b/175854431): Avoid pushing context on worklist.
@@ -251,12 +279,15 @@ public class EnqueuerWorklist {
     }
   }
 
+  private final Enqueuer enqueuer;
   private final Queue<EnqueuerAction> queue = new ArrayDeque<>();
 
-  private EnqueuerWorklist() {}
+  private EnqueuerWorklist(Enqueuer enqueuer) {
+    this.enqueuer = enqueuer;
+  }
 
-  public static EnqueuerWorklist createWorklist() {
-    return new EnqueuerWorklist();
+  public static EnqueuerWorklist createWorklist(Enqueuer enqueuer) {
+    return new EnqueuerWorklist(enqueuer);
   }
 
   public boolean isEmpty() {
@@ -265,6 +296,13 @@ public class EnqueuerWorklist {
 
   public EnqueuerAction poll() {
     return queue.poll();
+  }
+
+  boolean enqueueAssertAction(Action assertion) {
+    if (InternalOptions.assertionsEnabled()) {
+      queue.add(new AssertAction(assertion));
+    }
+    return true;
   }
 
   void enqueueMarkReachableDirectAction(
@@ -276,9 +314,9 @@ public class EnqueuerWorklist {
     queue.add(new MarkReachableSuperAction(method, from));
   }
 
-  public void enqueueMarkInstanceFieldAsReachableAction(
+  public void enqueueMarkFieldAsReachableAction(
       ProgramField field, ProgramDefinition context, KeepReason reason) {
-    queue.add(new MarkInstanceFieldAsReachableAction(field, context, reason));
+    queue.add(new MarkFieldAsReachableAction(field, context, reason));
   }
 
   // TODO(b/142378367): Context is the containing method that is cause of the instantiation.
@@ -305,8 +343,14 @@ public class EnqueuerWorklist {
     queue.add(new MarkInterfaceInstantiatedAction(clazz, reason));
   }
 
-  void enqueueMarkMethodLiveAction(ProgramMethod method, ProgramDefinition context) {
-    queue.add(new MarkMethodLiveAction(method, context));
+  boolean enqueueMarkMethodLiveAction(
+      ProgramMethod method, ProgramDefinition context, KeepReason reason) {
+    if (enqueuer.addLiveMethod(method, reason)) {
+      queue.add(new MarkMethodLiveAction(method, context));
+      queue.add(new TraceMethodDefinitionExcludingCodeAction(method));
+      return true;
+    }
+    return false;
   }
 
   void enqueueMarkMethodKeptAction(ProgramMethod method, KeepReason reason) {
