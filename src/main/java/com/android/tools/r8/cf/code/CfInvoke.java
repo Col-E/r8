@@ -175,6 +175,7 @@ public class CfInvoke extends CfInstruction {
         !method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME);
   }
 
+  @Override
   public boolean isInvokeSpecial() {
     return opcode == Opcodes.INVOKESPECIAL;
   }

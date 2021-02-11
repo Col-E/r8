@@ -38,12 +38,17 @@ public abstract class ClassConverter {
         : new DefaultClassConverter(appView, converter, methodProcessor);
   }
 
-  public void convertClasses(ExecutorService executorService) throws ExecutionException {
-    internalConvertClasses(executorService);
+  public ClassConverterResult convertClasses(ExecutorService executorService)
+      throws ExecutionException {
+    ClassConverterResult.Builder resultBuilder = ClassConverterResult.builder();
+    internalConvertClasses(resultBuilder, executorService);
     notifyAllClassesConverted();
+    return resultBuilder.build();
   }
 
-  private void internalConvertClasses(ExecutorService executorService) throws ExecutionException {
+  private void internalConvertClasses(
+      ClassConverterResult.Builder resultBuilder, ExecutorService executorService)
+      throws ExecutionException {
     List<DexProgramClass> classes = appView.appInfo().classes();
     while (!classes.isEmpty()) {
       Set<DexType> seenNestHosts = Sets.newIdentityHashSet();
@@ -62,7 +67,8 @@ public abstract class ClassConverter {
 
       // Process the wave and wait for all IR processing to complete.
       D8CfInstructionDesugaringEventConsumer desugaringEventConsumer =
-          CfInstructionDesugaringEventConsumer.createForD8();
+          CfInstructionDesugaringEventConsumer.createForD8(
+              resultBuilder::addSynthesizedLambdaClass, methodProcessor);
       methodProcessor.newWave();
       ThreadUtils.processItems(
           wave, clazz -> convertClass(clazz, desugaringEventConsumer), executorService);

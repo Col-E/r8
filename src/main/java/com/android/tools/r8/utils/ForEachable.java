@@ -8,4 +8,9 @@ import java.util.function.Consumer;
 public interface ForEachable<T> {
 
   void forEach(Consumer<T> consumer);
+
+  default void forEachWithIndex(IntObjConsumer<T> consumer) {
+    IntBox index = new IntBox();
+    forEach(element -> consumer.accept(index.getAndIncrement(), element));
+  }
 }

@@ -5,7 +5,6 @@ package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.horizontalclassmerging.ClassMerger.CLASS_ID_FIELD_NAME;
-import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_INSTANCE_FIELD_NAME;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -640,14 +639,15 @@ public abstract class GraphLens {
   private boolean isD8R8SynthesizedField(DexField field, AppView<?> appView) {
     // TODO(b/167947782): Should be a general check to see if the field is D8/R8 synthesized
     //  instead of relying on field names.
-    if (field.match(appView.dexItemFactory().objectMembers.clinitField)) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    if (field.match(dexItemFactory.objectMembers.clinitField)) {
       return true;
     }
     if (field.getName().toSourceString().equals(CLASS_ID_FIELD_NAME)) {
       return true;
     }
     if (appView.getSyntheticItems().isNonLegacySynthetic(field.getHolderType())
-        && field.getName().toSourceString().equals(LAMBDA_INSTANCE_FIELD_NAME)) {
+        && field.getName() == dexItemFactory.lambdaInstanceFieldName) {
       return true;
     }
     return false;
@@ -659,6 +659,10 @@ public abstract class GraphLens {
     private GraphLens previousLens;
 
     private final Map<DexType, DexType> arrayTypeCache = new ConcurrentHashMap<>();
+
+    public NonIdentityGraphLens(AppView<?> appView) {
+      this(appView.dexItemFactory(), appView.graphLens());
+    }
 
     public NonIdentityGraphLens(DexItemFactory dexItemFactory, GraphLens previousLens) {
       this.dexItemFactory = dexItemFactory;

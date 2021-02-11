@@ -14,19 +14,52 @@ public class IntBox {
     set(initialValue);
   }
 
+  public void decrement(int i) {
+    assert i > 0;
+    value -= i;
+  }
+
+  public int decrementAndGet(int i) {
+    decrement(i);
+    return get();
+  }
+
   public int get() {
     return value;
   }
 
   public int getAndIncrement() {
-    return value++;
+    return getAndIncrement(1);
+  }
+
+  public int getAndIncrement(int i) {
+    int previous = value;
+    increment(i);
+    return previous;
+  }
+
+  public int getAndSet(int value) {
+    int previous = this.value;
+    set(value);
+    return previous;
   }
 
   public void increment() {
-    value++;
+    increment(1);
+  }
+
+  public void increment(int i) {
+    assert i >= 0;
+    value += i;
   }
 
   public void set(int value) {
     this.value = value;
+  }
+
+  public void setMax(int value) {
+    if (value > get()) {
+      set(value);
+    }
   }
 }

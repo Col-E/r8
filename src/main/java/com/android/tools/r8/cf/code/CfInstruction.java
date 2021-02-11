@@ -141,6 +141,18 @@ public abstract class CfInstruction implements CfOrDexInstruction {
     return false;
   }
 
+  public CfInvokeDynamic asInvokeDynamic() {
+    return null;
+  }
+
+  public boolean isInvokeDynamic() {
+    return false;
+  }
+
+  public boolean isInvokeSpecial() {
+    return false;
+  }
+
   public CfLabel asLabel() {
     return null;
   }

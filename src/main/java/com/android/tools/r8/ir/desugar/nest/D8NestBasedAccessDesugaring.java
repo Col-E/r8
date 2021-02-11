@@ -15,6 +15,8 @@ import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramField;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -30,7 +32,7 @@ import java.util.concurrent.ExecutorService;
  */
 public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
-  public D8NestBasedAccessDesugaring(AppView<?> appView) {
+  D8NestBasedAccessDesugaring(AppView<?> appView) {
     super(appView);
   }
 
@@ -64,30 +66,47 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
           Iterables.addAll(classpathClassesInNests, nest.getClasspathMembers());
         });
 
-    NestBridgeConsumer bridgeConsumer = NestBridgeConsumer.createForD8(methodProcessor);
+    NestBasedAccessDesugaringEventConsumer eventConsumer =
+        new NestBasedAccessDesugaringEventConsumer() {
+
+          @Override
+          public void acceptNestFieldGetBridge(ProgramField target, ProgramMethod bridge) {
+            methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
+          }
+
+          @Override
+          public void acceptNestFieldPutBridge(ProgramField target, ProgramMethod bridge) {
+            methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
+          }
+
+          @Override
+          public void acceptNestMethodBridge(ProgramMethod target, ProgramMethod bridge) {
+            methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
+          }
+        };
     ThreadUtils.processItems(
         classpathClassesInNests,
-        clazz -> synthesizeBridgesForNestBasedAccessesOnClasspath(clazz, bridgeConsumer),
+        clazz -> synthesizeBridgesForNestBasedAccessesOnClasspath(clazz, eventConsumer),
         executorService);
   }
 
   public void synthesizeBridgesForNestBasedAccessesOnClasspath(
-      DexClasspathClass clazz, NestBridgeConsumer bridgeConsumer) {
+      DexClasspathClass clazz, NestBasedAccessDesugaringEventConsumer eventConsumer) {
     clazz.forEachClasspathMethod(
         method ->
             method.registerCodeReferencesForDesugaring(
-                new NestBasedAccessDesugaringUseRegistry(method, bridgeConsumer)));
+                new NestBasedAccessDesugaringUseRegistry(method, eventConsumer)));
   }
 
   private class NestBasedAccessDesugaringUseRegistry extends UseRegistry {
 
-    private final NestBridgeConsumer bridgeConsumer;
+    private final NestBasedAccessDesugaringEventConsumer eventConsumer;
     private final ClasspathMethod context;
 
     NestBasedAccessDesugaringUseRegistry(
-        ClasspathMethod context, NestBridgeConsumer bridgeConsumer) {
+        ClasspathMethod context, NestBasedAccessDesugaringEventConsumer eventConsumer) {
       super(appView.dexItemFactory());
-      this.bridgeConsumer = bridgeConsumer;
+      this.eventConsumer = eventConsumer;
       this.context = context;
     }
 
@@ -95,7 +114,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
       DexClassAndField field =
           reference.lookupMemberOnClass(appView.definitionForHolder(reference));
       if (field != null && needsDesugaring(field, context)) {
-        ensureFieldAccessBridge(field, isGet, bridgeConsumer);
+        ensureFieldAccessBridge(field, isGet, eventConsumer);
       }
     }
 
@@ -106,7 +125,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
       DexClassAndMethod method =
           reference.lookupMemberOnClass(appView.definitionForHolder(reference));
       if (method != null && needsDesugaring(method, context)) {
-        ensureMethodBridge(method, bridgeConsumer);
+        ensureMethodBridge(method, eventConsumer);
       }
     }
 

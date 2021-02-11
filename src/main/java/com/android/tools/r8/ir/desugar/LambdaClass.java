@@ -30,6 +30,8 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.desugar.lambda.ForcefullyMovedLambdaMethodConsumer;
+import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
@@ -57,10 +59,14 @@ import java.util.List;
  */
 public final class LambdaClass {
 
+  public static final String LAMBDA_INSTANCE_FIELD_NAME = "INSTANCE";
+  public static final String JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX = "lambda$";
+  public static final String R8_LAMBDA_ACCESSOR_METHOD_PREFIX = "$r8$lambda$";
+
   private static final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
   final AppView<?> appView;
-  final LambdaRewriter rewriter;
+  final LambdaInstructionDesugaring desugaring;
   public final DexType type;
   public LambdaDescriptor descriptor;
   public final DexMethod constructor;
@@ -71,17 +77,17 @@ public final class LambdaClass {
   // Considered final but is set after due to circularity in allocation.
   private DexProgramClass clazz = null;
 
-  LambdaClass(
+  public LambdaClass(
       SyntheticProgramClassBuilder builder,
       AppView<?> appView,
-      LambdaRewriter rewriter,
+      LambdaInstructionDesugaring desugaring,
       ProgramMethod accessedFrom,
       LambdaDescriptor descriptor) {
-    assert rewriter != null;
+    assert desugaring != null;
     assert descriptor != null;
     this.type = builder.getType();
     this.appView = appView;
-    this.rewriter = rewriter;
+    this.desugaring = desugaring;
     this.descriptor = descriptor;
 
     DexItemFactory factory = builder.getFactory();
@@ -97,7 +103,7 @@ public final class LambdaClass {
             ? null
             : factory.createMethod(type, constructorProto, factory.classConstructorMethodName);
     this.lambdaField =
-        !stateless ? null : factory.createField(type, type, rewriter.instanceFieldName);
+        !stateless ? null : factory.createField(type, type, factory.lambdaInstanceFieldName);
 
     // Synthesize the program class one all fields are set.
     synthesizeLambdaClass(builder);
@@ -108,7 +114,11 @@ public final class LambdaClass {
     return clazz;
   }
 
-  void setClass(DexProgramClass clazz) {
+  public DexType getType() {
+    return type;
+  }
+
+  public void setClass(DexProgramClass clazz) {
     assert this.clazz == null;
     assert clazz != null;
     assert type == clazz.type;
@@ -426,7 +436,7 @@ public final class LambdaClass {
   private DexString generateUniqueLambdaMethodName() {
     return appView
         .dexItemFactory()
-        .createString(LambdaRewriter.R8_LAMBDA_ACCESSOR_METHOD_PREFIX + descriptor.uniqueId);
+        .createString(R8_LAMBDA_ACCESSOR_METHOD_PREFIX + descriptor.uniqueId);
   }
 
   // Represents information about the method lambda class need to delegate the call to. It may
@@ -448,12 +458,17 @@ public final class LambdaClass {
     }
 
     // Ensure access of the referenced symbol(s).
-    abstract ProgramMethod ensureAccessibility(boolean allowMethodModification);
+    abstract ProgramMethod ensureAccessibility(
+        boolean allowMethodModification,
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer);
 
     // Ensure access of the referenced symbol(s).
-    public ProgramMethod ensureAccessibilityIfNeeded(boolean allowMethodModification) {
+    public ProgramMethod ensureAccessibilityIfNeeded(
+        boolean allowMethodModification,
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       if (!hasEnsuredAccessibility) {
-        accessibilityBridge = ensureAccessibility(allowMethodModification);
+        accessibilityBridge =
+            ensureAccessibility(allowMethodModification, forcefullyMovedLambdaMethodConsumer);
         hasEnsuredAccessibility = true;
       }
       return accessibilityBridge;
@@ -472,7 +487,9 @@ public final class LambdaClass {
     }
 
     @Override
-    ProgramMethod ensureAccessibility(boolean allowMethodModification) {
+    ProgramMethod ensureAccessibility(
+        boolean allowMethodModification,
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       return null;
     }
   }
@@ -488,7 +505,9 @@ public final class LambdaClass {
     }
 
     @Override
-    ProgramMethod ensureAccessibility(boolean allowMethodModification) {
+    ProgramMethod ensureAccessibility(
+        boolean allowMethodModification,
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       // We already found the static method to be called, just relax its accessibility.
       target.getDefinition().accessFlags.unsetPrivate();
       if (target.getHolder().isInterface()) {
@@ -507,7 +526,9 @@ public final class LambdaClass {
     }
 
     @Override
-    ProgramMethod ensureAccessibility(boolean allowMethodModification) {
+    ProgramMethod ensureAccessibility(
+        boolean allowMethodModification,
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
       DexMethod implMethod = descriptor.implHandle.asMethod();
@@ -538,7 +559,8 @@ public final class LambdaClass {
                             encodedMethod.getCode(),
                             true);
                     newMethod.copyMetadata(encodedMethod);
-                    rewriter.forcefullyMoveMethod(encodedMethod.method, callTarget);
+                    forcefullyMovedLambdaMethodConsumer.acceptForcefullyMovedLambdaMethod(
+                        encodedMethod.method, callTarget);
 
                     DexEncodedMethod.setDebugInfoWithFakeThisParameter(
                         newMethod.getCode(), callTarget.getArity(), appView);
@@ -566,7 +588,9 @@ public final class LambdaClass {
     }
 
     @Override
-    ProgramMethod ensureAccessibility(boolean allowMethodModification) {
+    ProgramMethod ensureAccessibility(
+        boolean allowMethodModification,
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       return null;
     }
   }
@@ -579,7 +603,9 @@ public final class LambdaClass {
     }
 
     @Override
-    ProgramMethod ensureAccessibility(boolean allowMethodModification) {
+    ProgramMethod ensureAccessibility(
+        boolean allowMethodModification,
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       // When compiling with whole program optimization, check that we are not inplace modifying.
       assert !(appView.enableWholeProgramOptimizations() && allowMethodModification);
       // For all instantiation points for which the compiler creates lambda$
@@ -587,12 +613,15 @@ public final class LambdaClass {
       DexMethod implMethod = descriptor.implHandle.asMethod();
       DexProgramClass implMethodHolder = appView.definitionFor(implMethod.holder).asProgramClass();
       return allowMethodModification
-          ? modifyLambdaImplementationMethod(implMethod, implMethodHolder)
+          ? modifyLambdaImplementationMethod(
+              implMethod, implMethodHolder, forcefullyMovedLambdaMethodConsumer)
           : createSyntheticAccessor(implMethod, implMethodHolder);
     }
 
     private ProgramMethod modifyLambdaImplementationMethod(
-        DexMethod implMethod, DexProgramClass implMethodHolder) {
+        DexMethod implMethod,
+        DexProgramClass implMethodHolder,
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       DexEncodedMethod replacement =
           implMethodHolder
               .getMethodCollection()
@@ -615,7 +644,8 @@ public final class LambdaClass {
                             encodedMethod.getCode(),
                             true);
                     newMethod.copyMetadata(encodedMethod);
-                    rewriter.forcefullyMoveMethod(encodedMethod.method, callTarget);
+                    forcefullyMovedLambdaMethodConsumer.acceptForcefullyMovedLambdaMethod(
+                        encodedMethod.method, callTarget);
                     return newMethod;
                   });
       if (replacement != null) {
@@ -678,7 +708,9 @@ public final class LambdaClass {
     }
 
     @Override
-    ProgramMethod ensureAccessibility(boolean allowMethodModification) {
+    ProgramMethod ensureAccessibility(
+        boolean allowMethodModification,
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       // Create a static accessor with proper accessibility.
       DexProgramClass accessorClass = appView.definitionForProgramType(callTarget.holder);
       assert accessorClass != null;

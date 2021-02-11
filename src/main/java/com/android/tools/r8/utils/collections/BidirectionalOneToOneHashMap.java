@@ -61,6 +61,11 @@ public class BidirectionalOneToOneHashMap<K, V>
   }
 
   @Override
+  public void forEachValue(Consumer<? super V> consumer) {
+    backing.values().forEach(consumer);
+  }
+
+  @Override
   public V get(Object key) {
     return backing.get(key);
   }

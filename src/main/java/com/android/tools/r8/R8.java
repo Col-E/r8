@@ -32,7 +32,6 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -88,6 +87,7 @@ import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.Mode;
 import com.android.tools.r8.shaking.EnqueuerFactory;
+import com.android.tools.r8.shaking.EnqueuerResult;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.MissingClasses;
@@ -603,13 +603,11 @@ public class R8 {
                   new SubtypingInfo(appView),
                   keptGraphConsumer,
                   prunedTypes);
-          appView.setAppInfo(
-              enqueuer.traceApplication(
-                  appView.rootSet(),
-                  executorService,
-                  timing));
+          EnqueuerResult enqueuerResult =
+              enqueuer.traceApplication(appView.rootSet(), executorService, timing);
+          assert !enqueuerResult.hasLambdaDesugaringLens();
+          appView.setAppInfo(enqueuerResult.getAppInfo());
           // Rerunning the enqueuer should not give rise to any method rewritings.
-          assert enqueuer.buildGraphLens() == null;
           appView.withGeneratedMessageLiteBuilderShrinker(
               shrinker ->
                   shrinker.rewriteDeadBuilderReferencesFromDynamicMethods(
@@ -977,14 +975,13 @@ public class R8 {
       classMergingEnqueuerExtensionBuilder.attach(enqueuer);
     }
 
+    EnqueuerResult enqueuerResult =
+        enqueuer.traceApplication(appView.rootSet(), executorService, timing);
     AppView<AppInfoWithLiveness> appViewWithLiveness =
-        appView.setAppInfo(
-            enqueuer.traceApplication(
-                appView.rootSet(),
-                executorService,
-                timing));
-    NestedGraphLens lens = enqueuer.buildGraphLens();
-    appView.rewriteWithLens(lens);
+        appView.setAppInfo(enqueuerResult.getAppInfo());
+    if (enqueuerResult.hasLambdaDesugaringLens()) {
+      appView.setGraphLens(enqueuerResult.getLambdaDesugaringLens());
+    }
     if (InternalOptions.assertionsEnabled()) {
       // Register the dead proto types. These are needed to verify that no new missing types are
       // reported and that no dead proto types are referenced in the generated application.

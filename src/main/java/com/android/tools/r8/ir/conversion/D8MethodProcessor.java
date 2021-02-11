@@ -8,7 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Sets;
@@ -75,6 +75,10 @@ public class D8MethodProcessor extends MethodProcessor {
             executorService));
   }
 
+  public void scheduleDesugaredMethodsForProcessing(Iterable<ProgramMethod> methods) {
+    methods.forEach(this::scheduleDesugaredMethodForProcessing);
+  }
+
   @Override
   public CallSiteInformation getCallSiteInformation() {
     throw new Unreachable("Invalid attempt to obtain call-site information in D8");
@@ -86,12 +90,16 @@ public class D8MethodProcessor extends MethodProcessor {
   }
 
   public void processMethod(
-      ProgramMethod method, D8CfInstructionDesugaringEventConsumer desugaringEventConsumer) {
+      ProgramMethod method, CfInstructionDesugaringEventConsumer desugaringEventConsumer) {
     converter.convertMethod(
         method,
         desugaringEventConsumer,
         this,
         processorContext.createMethodProcessingContext(method));
+  }
+
+  public void processDesugaredMethod(ProgramMethod method) {
+    processMethod(method, CfInstructionDesugaringEventConsumer.createForDesugaredCode());
   }
 
   public boolean verifyNoPendingMethodProcessing() {

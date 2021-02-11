@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
-import static com.android.tools.r8.ir.desugar.LambdaRewriter.JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX;
-import static com.android.tools.r8.ir.desugar.LambdaRewriter.R8_LAMBDA_ACCESSOR_METHOD_PREFIX;
+import static com.android.tools.r8.ir.desugar.LambdaClass.JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX;
+import static com.android.tools.r8.ir.desugar.LambdaClass.R8_LAMBDA_ACCESSOR_METHOD_PREFIX;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;

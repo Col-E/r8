@@ -5,8 +5,9 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.ProgramMethod;
-import java.util.List;
+import java.util.Collection;
 
 /** Interface for desugaring a single class-file instruction. */
 public interface CfInstructionDesugaring {
@@ -15,10 +16,12 @@ public interface CfInstructionDesugaring {
    * Given an instruction, returns the list of instructions that the instruction should be desugared
    * to. If no desugaring is needed, {@code null} should be returned (for efficiency).
    */
-  List<CfInstruction> desugarInstruction(
+  Collection<CfInstruction> desugarInstruction(
       CfInstruction instruction,
-      CfInstructionDesugaringEventConsumer consumer,
-      ProgramMethod context);
+      FreshLocalProvider freshLocalProvider,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramMethod context,
+      MethodProcessingContext methodProcessingContext);
 
   /**
    * Returns true if the given instruction needs desugaring.

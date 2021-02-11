@@ -10,9 +10,9 @@ import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
@@ -31,13 +31,13 @@ import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,9 +65,18 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
   private final DexItemFactory dexItemFactory;
   private final Map<DexType, DexType> syntheticNestConstructorTypes = new ConcurrentHashMap<>();
 
-  public NestBasedAccessDesugaring(AppView<?> appView) {
+  NestBasedAccessDesugaring(AppView<?> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
+  }
+
+  public static NestBasedAccessDesugaring create(AppView<?> appView) {
+    if (appView.options().shouldDesugarNests()) {
+      return appView.enableWholeProgramOptimizations()
+          ? new NestBasedAccessDesugaring(appView)
+          : new D8NestBasedAccessDesugaring(appView);
+    }
+    return null;
   }
 
   void forEachNest(Consumer<Nest> consumer) {
@@ -133,62 +142,26 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
         && member.getHolder().getNestHost() == context.getHolder().getNestHost();
   }
 
-  public boolean desugar(ProgramMethod method) {
-    return desugar(method, null);
-  }
-
-  public boolean desugar(ProgramMethod method, NestBridgeConsumer bridgeConsumer) {
-    if (!method.getHolder().isInANest()) {
-      return false;
-    }
-
-    Code code = method.getDefinition().getCode();
-    if (!code.isCfCode()) {
-      appView
-          .options()
-          .reporter
-          .error(
-              new StringDiagnostic(
-                  "Unsupported attempt to desugar non-CF code",
-                  method.getOrigin(),
-                  method.getPosition()));
-      return false;
-    }
-
-    CfCode cfCode = code.asCfCode();
-    List<CfInstruction> desugaredInstructions =
-        ListUtils.flatMap(
-            cfCode.getInstructions(),
-            instruction -> desugarInstruction(instruction, method, bridgeConsumer),
-            null);
-    if (desugaredInstructions != null) {
-      cfCode.setInstructions(desugaredInstructions);
-      return true;
-    }
-    return false;
-  }
-
   @Override
-  public List<CfInstruction> desugarInstruction(
+  public Collection<CfInstruction> desugarInstruction(
       CfInstruction instruction,
-      CfInstructionDesugaringEventConsumer consumer,
-      ProgramMethod context) {
-    return desugarInstruction(instruction, context, null);
-  }
-
-  public List<CfInstruction> desugarInstruction(
-      CfInstruction instruction, ProgramMethod context, NestBridgeConsumer bridgeConsumer) {
+      FreshLocalProvider freshLocalProvider,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramMethod context,
+      MethodProcessingContext methodProcessingContext) {
     if (instruction.isFieldInstruction()) {
-      return desugarFieldInstruction(instruction.asFieldInstruction(), context, bridgeConsumer);
+      return desugarFieldInstruction(instruction.asFieldInstruction(), context, eventConsumer);
     }
     if (instruction.isInvoke()) {
-      return desugarInvokeInstruction(instruction.asInvoke(), context, bridgeConsumer);
+      return desugarInvokeInstruction(instruction.asInvoke(), context, eventConsumer);
     }
     return null;
   }
 
   private List<CfInstruction> desugarFieldInstruction(
-      CfFieldInstruction instruction, ProgramMethod context, NestBridgeConsumer bridgeConsumer) {
+      CfFieldInstruction instruction,
+      ProgramMethod context,
+      NestBasedAccessDesugaringEventConsumer eventConsumer) {
     // Since we only need to desugar accesses to private fields, and all accesses to private
     // fields must be accessing the private field directly on its holder, we can lookup the
     // field on the holder instead of resolving the field.
@@ -198,13 +171,15 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
       return null;
     }
 
-    DexMethod bridge = ensureFieldAccessBridge(field, instruction.isFieldGet(), bridgeConsumer);
+    DexMethod bridge = ensureFieldAccessBridge(field, instruction.isFieldGet(), eventConsumer);
     return ImmutableList.of(
         new CfInvoke(Opcodes.INVOKESTATIC, bridge, field.getHolder().isInterface()));
   }
 
   private List<CfInstruction> desugarInvokeInstruction(
-      CfInvoke invoke, ProgramMethod context, NestBridgeConsumer bridgeConsumer) {
+      CfInvoke invoke,
+      ProgramMethod context,
+      NestBasedAccessDesugaringEventConsumer eventConsumer) {
     DexMethod invokedMethod = invoke.getMethod();
     if (!invokedMethod.getHolderType().isClassType()) {
       return null;
@@ -219,7 +194,7 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
       return null;
     }
 
-    DexMethod bridge = ensureMethodBridge(target, bridgeConsumer);
+    DexMethod bridge = ensureMethodBridge(target, eventConsumer);
     if (target.getDefinition().isInstanceInitializer()) {
       assert !invoke.isInterface();
       return ImmutableList.of(
@@ -236,9 +211,9 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
   }
 
   DexMethod ensureFieldAccessBridge(
-      DexClassAndField field, boolean isGet, NestBridgeConsumer bridgeConsumer) {
+      DexClassAndField field, boolean isGet, NestBasedAccessDesugaringEventConsumer eventConsumer) {
     if (field.isProgramField()) {
-      return ensureFieldAccessBridge(field.asProgramField(), isGet, bridgeConsumer);
+      return ensureFieldAccessBridge(field.asProgramField(), isGet, eventConsumer);
     }
     if (field.isClasspathField()) {
       return getFieldAccessBridgeReference(field, isGet);
@@ -248,15 +223,19 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
   }
 
   private DexMethod ensureFieldAccessBridge(
-      ProgramField field, boolean isGet, NestBridgeConsumer bridgeConsumer) {
+      ProgramField field, boolean isGet, NestBasedAccessDesugaringEventConsumer eventConsumer) {
     DexMethod bridgeReference = getFieldAccessBridgeReference(field, isGet);
     synchronized (field.getHolder().getMethodCollection()) {
       ProgramMethod bridge = field.getHolder().lookupProgramMethod(bridgeReference);
       if (bridge == null) {
         bridge = DexEncodedMethod.createFieldAccessorBridge(field, isGet, bridgeReference);
         bridge.getHolder().addDirectMethod(bridge.getDefinition());
-        if (bridgeConsumer != null) {
-          bridgeConsumer.acceptFieldBridge(field, bridge, isGet);
+        if (eventConsumer != null) {
+          if (isGet) {
+            eventConsumer.acceptNestFieldGetBridge(field, bridge);
+          } else {
+            eventConsumer.acceptNestFieldPutBridge(field, bridge);
+          }
         }
       }
       return bridge.getReference();
@@ -293,9 +272,10 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
     return dexItemFactory.createString(prefix + field.getName().toString());
   }
 
-  DexMethod ensureMethodBridge(DexClassAndMethod method, NestBridgeConsumer bridgeConsumer) {
+  DexMethod ensureMethodBridge(
+      DexClassAndMethod method, NestBasedAccessDesugaringEventConsumer eventConsumer) {
     if (method.isProgramMethod()) {
-      return ensureMethodBridge(method.asProgramMethod(), bridgeConsumer);
+      return ensureMethodBridge(method.asProgramMethod(), eventConsumer);
     }
     if (method.isClasspathMethod()) {
       return getMethodBridgeReference(method);
@@ -304,7 +284,8 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
     throw reportIncompleteNest(method.asLibraryMethod());
   }
 
-  private DexMethod ensureMethodBridge(ProgramMethod method, NestBridgeConsumer bridgeConsumer) {
+  private DexMethod ensureMethodBridge(
+      ProgramMethod method, NestBasedAccessDesugaringEventConsumer eventConsumer) {
     DexMethod bridgeReference = getMethodBridgeReference(method);
     synchronized (method.getHolder().getMethodCollection()) {
       ProgramMethod bridge = method.getHolder().lookupProgramMethod(bridgeReference);
@@ -317,8 +298,8 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
                 : definition.toStaticForwardingBridge(
                     method.getHolder(), bridgeReference, dexItemFactory);
         bridge.getHolder().addDirectMethod(bridge.getDefinition());
-        if (bridgeConsumer != null) {
-          bridgeConsumer.acceptMethodBridge(method, bridge);
+        if (eventConsumer != null) {
+          eventConsumer.acceptNestMethodBridge(method, bridge);
         }
       }
     }

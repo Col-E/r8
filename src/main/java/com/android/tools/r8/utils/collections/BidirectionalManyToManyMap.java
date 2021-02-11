@@ -19,6 +19,8 @@ public interface BidirectionalManyToManyMap<K, V> {
 
   void forEachKey(Consumer<? super K> consumer);
 
+  void forEachValue(Consumer<? super V> consumer);
+
   Set<K> getKeys(V value);
 
   Set<V> getValues(K key);

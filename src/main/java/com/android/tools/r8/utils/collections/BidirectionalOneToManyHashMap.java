@@ -58,6 +58,11 @@ public class BidirectionalOneToManyHashMap<K, V> implements MutableBidirectional
   }
 
   @Override
+  public void forEachValue(Consumer<? super V> consumer) {
+    inverse.keySet().forEach(consumer);
+  }
+
+  @Override
   public Set<V> get(Object key) {
     return backing.get(key);
   }

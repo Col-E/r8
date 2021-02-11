@@ -788,6 +788,10 @@ public abstract class DexClass extends DexDefinition implements Definition {
     this.innerClasses = innerClasses;
   }
 
+  public boolean hasEnclosingMethodAttribute() {
+    return enclosingMethod != null;
+  }
+
   public EnclosingMethodAttribute getEnclosingMethodAttribute() {
     return enclosingMethod;
   }

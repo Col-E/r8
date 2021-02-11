@@ -42,6 +42,11 @@ public class EmptyBidirectionalOneToOneMap<K, V>
   }
 
   @Override
+  public void forEachValue(Consumer<? super V> consumer) {
+    // Intentionally empty.
+  }
+
+  @Override
   public V get(Object key) {
     return null;
   }

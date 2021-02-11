@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.ir.analysis.type.ClassTypeElement.computeLeastUpperBoundOfInterfaces;
+import static com.android.tools.r8.ir.desugar.LambdaClass.LAMBDA_INSTANCE_FIELD_NAME;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
@@ -293,6 +294,7 @@ public class DexItemFactory {
       createString(Constants.TEMPORARY_INSTANCE_INITIALIZER_PREFIX);
 
   public final DexString thisName = createString("this");
+  public final DexString lambdaInstanceFieldName = createString(LAMBDA_INSTANCE_FIELD_NAME);
 
   // As much as possible, R8 should rely on the content of the static enum field, using
   // enumMembers.isValuesFieldCandidate or checking the object state in the optimization info.

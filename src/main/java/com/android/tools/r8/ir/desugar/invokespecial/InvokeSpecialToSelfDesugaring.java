@@ -6,9 +6,9 @@ package com.android.tools.r8.ir.desugar.invokespecial;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -16,10 +16,10 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
-import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
+import java.util.Collection;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
 
@@ -28,17 +28,15 @@ public class InvokeSpecialToSelfDesugaring implements CfInstructionDesugaring {
 
   private static final String INVOKE_SPECIAL_BRIDGE_PREFIX = "$invoke$special$";
 
-  private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
 
   public InvokeSpecialToSelfDesugaring(AppView<?> appView) {
-    this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
   }
 
   @Override
   public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    if (instruction.isInvoke()) {
+    if (instruction.isInvokeSpecial()) {
       return needsDesugaring(instruction.asInvoke(), context) != null;
     }
     return false;
@@ -66,46 +64,23 @@ public class InvokeSpecialToSelfDesugaring implements CfInstructionDesugaring {
     return method;
   }
 
-  public boolean desugar(ProgramMethod method, CfInstructionDesugaringEventConsumer consumer) {
-    Code code = method.getDefinition().getCode();
-    if (!code.isCfCode()) {
-      appView
-          .options()
-          .reporter
-          .error(
-              new StringDiagnostic(
-                  "Unsupported attempt to desugar non-CF code",
-                  method.getOrigin(),
-                  method.getPosition()));
-      return false;
-    }
-
-    CfCode cfCode = code.asCfCode();
-    List<CfInstruction> desugaredInstructions =
-        ListUtils.flatMap(
-            cfCode.getInstructions(),
-            instruction -> desugarInstruction(instruction, consumer, method),
-            null);
-    if (desugaredInstructions != null) {
-      cfCode.setInstructions(desugaredInstructions);
-      return true;
-    }
-    return false;
-  }
-
   @Override
-  public List<CfInstruction> desugarInstruction(
+  public Collection<CfInstruction> desugarInstruction(
       CfInstruction instruction,
-      CfInstructionDesugaringEventConsumer consumer,
-      ProgramMethod context) {
-    if (instruction.isInvoke()) {
-      return desugarInvokeInstruction(instruction.asInvoke(), consumer, context);
+      FreshLocalProvider freshLocalProvider,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramMethod context,
+      MethodProcessingContext methodProcessingContext) {
+    if (instruction.isInvokeSpecial()) {
+      return desugarInvokeInstruction(instruction.asInvoke(), eventConsumer, context);
     }
     return null;
   }
 
   private List<CfInstruction> desugarInvokeInstruction(
-      CfInvoke invoke, CfInstructionDesugaringEventConsumer consumer, ProgramMethod context) {
+      CfInvoke invoke,
+      InvokeSpecialToSelfDesugaringEventConsumer eventConsumer,
+      ProgramMethod context) {
     ProgramMethod method = needsDesugaring(invoke, context);
     if (method == null) {
       return null;
@@ -119,13 +94,13 @@ public class InvokeSpecialToSelfDesugaring implements CfInstructionDesugaring {
 
     // This is an invoke-special to a virtual method on invoke-special method holder.
     // The invoke should be rewritten with a bridge.
-    DexMethod bridgeMethod = ensureInvokeSpecialBridge(method, consumer);
+    DexMethod bridgeMethod = ensureInvokeSpecialBridge(method, eventConsumer);
     return ImmutableList.of(
         new CfInvoke(Opcodes.INVOKESPECIAL, bridgeMethod, invoke.isInterface()));
   }
 
   private DexMethod ensureInvokeSpecialBridge(
-      ProgramMethod method, CfInstructionDesugaringEventConsumer consumer) {
+      ProgramMethod method, InvokeSpecialToSelfDesugaringEventConsumer eventConsumer) {
     DexMethod bridgeReference = getInvokeSpecialBridgeReference(method);
     DexProgramClass clazz = method.getHolder();
     synchronized (clazz.getMethodCollection()) {
@@ -144,7 +119,7 @@ public class InvokeSpecialToSelfDesugaring implements CfInstructionDesugaring {
         // Add the newly created direct method to its holder.
         clazz.addDirectMethod(newDirectMethod.getDefinition());
 
-        consumer.acceptInvokeSpecialBridgeInfo(
+        eventConsumer.acceptInvokeSpecialBridgeInfo(
             new InvokeSpecialBridgeInfo(newDirectMethod, method, virtualMethodCode));
       }
     }

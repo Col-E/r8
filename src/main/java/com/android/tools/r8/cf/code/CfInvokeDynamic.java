@@ -44,6 +44,16 @@ public class CfInvokeDynamic extends CfInstruction {
   }
 
   @Override
+  public boolean isInvokeDynamic() {
+    return true;
+  }
+
+  @Override
+  public CfInvokeDynamic asInvokeDynamic() {
+    return this;
+  }
+
+  @Override
   public int getCompareToId() {
     return Opcodes.INVOKEDYNAMIC;
   }

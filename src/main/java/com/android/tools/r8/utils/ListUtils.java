@@ -22,11 +22,12 @@ public class ListUtils {
    * as the singleton list containing {@code v} (i.e., no changes should be made to the given
    * element).
    */
-  public static <T> List<T> flatMap(List<T> list, Function<T, List<T>> fn, List<T> defaultValue) {
+  public static <T> List<T> flatMap(
+      List<T> list, Function<T, Collection<T>> fn, List<T> defaultValue) {
     List<T> result = null;
     for (int i = 0; i < list.size(); i++) {
       T element = list.get(i);
-      List<T> replacement = fn.apply(element);
+      Collection<T> replacement = fn.apply(element);
       if (replacement == null) {
         if (result != null) {
           result.add(element);

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.naming.retrace;
 
-import static com.android.tools.r8.ir.desugar.LambdaRewriter.R8_LAMBDA_ACCESSOR_METHOD_PREFIX;
+import static com.android.tools.r8.ir.desugar.LambdaClass.R8_LAMBDA_ACCESSOR_METHOD_PREFIX;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileName;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;

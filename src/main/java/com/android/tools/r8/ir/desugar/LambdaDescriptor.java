@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import static com.android.tools.r8.ir.desugar.LambdaRewriter.JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX;
+import static com.android.tools.r8.ir.desugar.LambdaClass.JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;

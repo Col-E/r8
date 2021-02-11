@@ -46,6 +46,7 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerFactory;
+import com.android.tools.r8.shaking.EnqueuerResult;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
@@ -778,12 +779,12 @@ public class TestBase {
                 appView, subtypingInfo, appView.options().getProguardConfiguration().getRules())
             .build(executor);
     appView.setRootSet(rootSet);
-    AppInfoWithLiveness appInfoWithLiveness =
+    EnqueuerResult enqueuerResult =
         EnqueuerFactory.createForInitialTreeShaking(appView, executor, subtypingInfo)
             .traceApplication(rootSet, executor, Timing.empty());
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
     // due to liveness.
-    return appView.setAppInfo(appInfoWithLiveness);
+    return appView.setAppInfo(enqueuerResult.getAppInfo());
   }
 
   protected static DexType buildType(Class<?> clazz, DexItemFactory factory) {
