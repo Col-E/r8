@@ -12,7 +12,7 @@ import com.android.tools.r8.DiagnosticsLevel;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.shaking.MissingClassesDiagnostic;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -40,7 +40,7 @@ public class ModifyDiagnosticsLevelTest extends TestBase {
         .setDiagnosticsLevelModifier(
             (level, diagnostic) -> {
               if (level == DiagnosticsLevel.WARNING
-                  && diagnostic instanceof MissingClassesDiagnostic
+                  && diagnostic instanceof MissingDefinitionsDiagnosticImpl
                   && diagnostic.getDiagnosticMessage().startsWith(MISSING_CLASS_MESSAGE_PREFIX)) {
                 return DiagnosticsLevel.INFO;
               }
@@ -65,7 +65,7 @@ public class ModifyDiagnosticsLevelTest extends TestBase {
           .setDiagnosticsLevelModifier(
               (level, diagnostic) -> {
                 if (level == DiagnosticsLevel.WARNING
-                    && diagnostic instanceof MissingClassesDiagnostic
+                    && diagnostic instanceof MissingDefinitionsDiagnosticImpl
                     && diagnostic.getDiagnosticMessage().startsWith(MISSING_CLASS_MESSAGE_PREFIX)) {
                   return DiagnosticsLevel.ERROR;
                 }

@@ -8,6 +8,8 @@ import static com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.DESCR
 import static com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter.getRetargetPackageAndClassPrefixDescriptor;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
 
+import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
 import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -123,8 +125,8 @@ public class MissingClasses {
       Map<DexType, Set<DexReference>> missingClassesToBeReported =
           getMissingClassesToBeReported(appView);
       if (!missingClassesToBeReported.isEmpty()) {
-        MissingClassesDiagnostic diagnostic =
-            new MissingClassesDiagnostic.Builder()
+        MissingDefinitionsDiagnostic diagnostic =
+            MissingDefinitionsDiagnosticImpl.builder()
                 .addMissingClasses(missingClassesToBeReported)
                 .setFatal(!options.ignoreMissingClasses)
                 .build();

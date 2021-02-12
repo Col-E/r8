@@ -25,10 +25,10 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
 import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.MissingNestHostNestDesugarDiagnostic;
-import com.android.tools.r8.shaking.MissingClassesDiagnostic;
 import java.nio.file.Path;
 import java.util.List;
 import org.hamcrest.Matcher;
@@ -128,10 +128,10 @@ public class NestCompilationExceptionTest extends TestBase {
                 } else {
                   diagnostics
                       .assertOnlyErrors()
-                      .assertErrorsMatch(diagnosticType(MissingClassesDiagnostic.class));
+                      .assertErrorsMatch(diagnosticType(MissingDefinitionsDiagnosticImpl.class));
 
-                  MissingClassesDiagnostic diagnostic =
-                      (MissingClassesDiagnostic) diagnostics.getErrors().get(0);
+                  MissingDefinitionsDiagnosticImpl diagnostic =
+                      (MissingDefinitionsDiagnosticImpl) diagnostics.getErrors().get(0);
                   assertEquals(1, diagnostic.getMissingClasses().size());
                   assertEquals(
                       "nesthostexample.BasicNestHostWithInnerClassMethods",
@@ -167,10 +167,10 @@ public class NestCompilationExceptionTest extends TestBase {
                 } else {
                   diagnostics
                       .assertOnlyErrors()
-                      .assertErrorsMatch(diagnosticType(MissingClassesDiagnostic.class));
+                      .assertErrorsMatch(diagnosticType(MissingDefinitionsDiagnosticImpl.class));
 
-                  MissingClassesDiagnostic diagnostic =
-                      (MissingClassesDiagnostic) diagnostics.getErrors().get(0);
+                  MissingDefinitionsDiagnosticImpl diagnostic =
+                      (MissingDefinitionsDiagnosticImpl) diagnostics.getErrors().get(0);
                   assertEquals(1, diagnostic.getMissingClasses().size());
                   assertEquals(
                       "nesthostexample.BasicNestHostWithInnerClassMethods$BasicNestedClass",
@@ -201,15 +201,16 @@ public class NestCompilationExceptionTest extends TestBase {
           diagnostics -> {
             diagnostics.assertOnlyWarnings();
             if (parameters.isCfRuntime() || parameters.canUseDefaultAndStaticInterfaceMethods()) {
-              diagnostics.assertWarningsMatch(diagnosticType(MissingClassesDiagnostic.class));
+              diagnostics.assertWarningsMatch(
+                  diagnosticType(MissingDefinitionsDiagnosticImpl.class));
             } else {
               diagnostics.assertWarningsMatch(
-                  diagnosticType(MissingClassesDiagnostic.class),
+                  diagnosticType(MissingDefinitionsDiagnosticImpl.class),
                   diagnosticType(InterfaceDesugarMissingTypeDiagnostic.class));
             }
 
-            MissingClassesDiagnostic diagnostic =
-                (MissingClassesDiagnostic) diagnostics.getWarnings().get(0);
+            MissingDefinitionsDiagnosticImpl diagnostic =
+                (MissingDefinitionsDiagnosticImpl) diagnostics.getWarnings().get(0);
             assertEquals(1, diagnostic.getMissingClasses().size());
             assertEquals(
                 "nesthostexample.BasicNestHostWithInnerClassMethods",
@@ -234,15 +235,16 @@ public class NestCompilationExceptionTest extends TestBase {
           diagnostics -> {
             diagnostics.assertOnlyWarnings();
             if (parameters.isCfRuntime() || parameters.canUseDefaultAndStaticInterfaceMethods()) {
-              diagnostics.assertWarningsMatch(diagnosticType(MissingClassesDiagnostic.class));
+              diagnostics.assertWarningsMatch(
+                  diagnosticType(MissingDefinitionsDiagnosticImpl.class));
             } else {
               diagnostics.assertWarningsMatch(
-                  diagnosticType(MissingClassesDiagnostic.class),
+                  diagnosticType(MissingDefinitionsDiagnosticImpl.class),
                   diagnosticType(InterfaceDesugarMissingTypeDiagnostic.class));
             }
 
-            MissingClassesDiagnostic diagnostic =
-                (MissingClassesDiagnostic) diagnostics.getWarnings().get(0);
+            MissingDefinitionsDiagnosticImpl diagnostic =
+                (MissingDefinitionsDiagnosticImpl) diagnostics.getWarnings().get(0);
             assertNotNull(diagnostic);
             assertEquals(1, diagnostic.getMissingClasses().size());
             assertEquals(

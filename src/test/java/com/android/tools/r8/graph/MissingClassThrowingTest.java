@@ -13,7 +13,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.shaking.MissingClassesDiagnostic;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import java.io.IOException;
@@ -82,10 +82,11 @@ public class MissingClassThrowingTest extends TestBase {
                     diagnostics -> {
                       diagnostics
                           .assertOnlyErrors()
-                          .assertErrorsMatch(diagnosticType(MissingClassesDiagnostic.class));
+                          .assertErrorsMatch(
+                              diagnosticType(MissingDefinitionsDiagnosticImpl.class));
 
-                      MissingClassesDiagnostic diagnostic =
-                          (MissingClassesDiagnostic) diagnostics.getErrors().get(0);
+                      MissingDefinitionsDiagnosticImpl diagnostic =
+                          (MissingDefinitionsDiagnosticImpl) diagnostics.getErrors().get(0);
                       assertEquals(1, diagnostic.getMissingClasses().size());
                       assertEquals(
                           MissingException.class.getTypeName(),
