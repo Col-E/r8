@@ -579,7 +579,8 @@ public final class LambdaClass {
       if (replacement != null) {
         // Since we've copied the code object from an existing method, the code should already be
         // processed, and thus we don't need to schedule it for processing in D8.
-        assert replacement.getCode().isDexCode();
+        assert !appView.options().isGeneratingClassFiles() || replacement.getCode().isCfCode();
+        assert !appView.options().isGeneratingDex() || replacement.getCode().isDexCode();
         return new ProgramMethod(implMethodHolder, replacement);
       }
       // The method might already have been moved by another invoke-dynamic targeting it.
@@ -654,7 +655,8 @@ public final class LambdaClass {
       if (replacement != null) {
         // Since we've copied the code object from an existing method, the code should already be
         // processed, and thus we don't need to schedule it for processing in D8.
-        assert replacement.getCode().isDexCode();
+        assert !appView.options().isGeneratingClassFiles() || replacement.getCode().isCfCode();
+        assert !appView.options().isGeneratingDex() || replacement.getCode().isDexCode();
         return new ProgramMethod(implMethodHolder, replacement);
       }
       // The method might already have been moved by another invoke-dynamic targeting it.
@@ -705,7 +707,9 @@ public final class LambdaClass {
                   AccessorMethodSourceCode.build(LambdaClass.this, callTarget),
                   true));
       accessorClass.addDirectMethod(accessorMethod.getDefinition());
-      needsProcessingConsumer.accept(accessorMethod);
+      if (appView.options().isGeneratingDex()) {
+        needsProcessingConsumer.accept(accessorMethod);
+      }
       return accessorMethod;
     }
   }
