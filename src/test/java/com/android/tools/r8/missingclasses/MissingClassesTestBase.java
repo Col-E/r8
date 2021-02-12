@@ -23,8 +23,6 @@ import com.android.tools.r8.utils.FieldReferenceUtils;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.google.common.collect.ImmutableSet;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.util.List;
 import java.util.function.Function;
 import org.junit.runner.RunWith;
@@ -40,9 +38,6 @@ public abstract class MissingClassesTestBase extends TestBase {
 
     int field;
   }
-
-  @Retention(RetentionPolicy.RUNTIME)
-  @interface MissingRuntimeAnnotation {}
 
   interface MissingInterface {}
 
