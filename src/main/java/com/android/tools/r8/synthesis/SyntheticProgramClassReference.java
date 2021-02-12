@@ -36,7 +36,8 @@ class SyntheticProgramClassReference
   }
 
   @Override
-  SyntheticProgramClassReference rewrite(NonIdentityGraphLens lens) {
+  SyntheticProgramClassReference internalRewrite(
+      SynthesizingContext rewrittenContext, NonIdentityGraphLens lens) {
     DexType rewritten = lens.lookupType(type);
     // If the reference has been non-trivially rewritten the compiler has changed it and it can no
     // longer be considered a synthetic. The context may or may not have changed.
@@ -46,20 +47,10 @@ class SyntheticProgramClassReference
       assert SyntheticNaming.verifyNotInternalSynthetic(rewritten);
       return null;
     }
-    SynthesizingContext context = getContext().rewrite(lens);
-    if (context == getContext() && rewritten == type) {
+    if (rewrittenContext == getContext() && rewritten == type) {
       return this;
     }
-    // Ensure that if a synthetic moves its context moves consistently.
-    if (type != rewritten) {
-      context =
-          SynthesizingContext.fromSyntheticContextChange(
-              getKind(), rewritten, context, lens.dexItemFactory());
-      if (context == null) {
-        return null;
-      }
-    }
-    return new SyntheticProgramClassReference(getKind(), context, rewritten);
+    return new SyntheticProgramClassReference(getKind(), rewrittenContext, rewritten);
   }
 
   @Override
