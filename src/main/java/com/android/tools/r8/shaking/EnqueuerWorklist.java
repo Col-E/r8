@@ -347,7 +347,9 @@ public class EnqueuerWorklist {
       ProgramMethod method, ProgramDefinition context, KeepReason reason) {
     if (enqueuer.addLiveMethod(method, reason)) {
       queue.add(new MarkMethodLiveAction(method, context));
-      queue.add(new TraceMethodDefinitionExcludingCodeAction(method));
+      if (!enqueuer.isMethodTargeted(method)) {
+        queue.add(new TraceMethodDefinitionExcludingCodeAction(method));
+      }
       return true;
     }
     return false;

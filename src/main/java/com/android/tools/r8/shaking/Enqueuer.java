@@ -368,7 +368,8 @@ public class Enqueuer {
    * A map from annotation classes to annotations that need to be processed should the classes ever
    * become live.
    */
-  private final Map<DexType, Set<DexAnnotation>> deferredAnnotations = new IdentityHashMap<>();
+  private final Map<DexType, Map<DexAnnotation, ProgramDefinition>> deferredAnnotations =
+      new IdentityHashMap<>();
 
   /** Map of active if rules to speed up aapt2 generated keep rules. */
   private Map<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> activeIfRules;
@@ -1820,10 +1821,13 @@ public class Enqueuer {
 
     // If this type has deferred annotations, we have to process those now, too.
     if (clazz.isAnnotation()) {
-      Set<DexAnnotation> annotations = deferredAnnotations.remove(clazz.type);
-      if (annotations != null && !annotations.isEmpty()) {
-        assert annotations.stream().allMatch(a -> a.annotation.type == clazz.type);
-        annotations.forEach(annotation -> processAnnotation(clazz, annotation));
+      Map<DexAnnotation, ProgramDefinition> annotations =
+          deferredAnnotations.remove(clazz.getType());
+      if (annotations != null) {
+        assert annotations.keySet().stream()
+            .allMatch(a -> a.getAnnotationType() == clazz.getType());
+        annotations.forEach(
+            (annotation, annotatedItem) -> processAnnotation(annotatedItem, annotation));
       }
     }
 
@@ -1932,14 +1936,16 @@ public class Enqueuer {
 
   private void processAnnotation(ProgramDefinition annotatedItem, DexAnnotation annotation) {
     DexType type = annotation.getAnnotationType();
-    recordTypeReference(type, annotatedItem);
-    DexClass clazz = appView.definitionFor(type);
+    DexClass clazz = definitionFor(type, annotatedItem);
     boolean annotationTypeIsLibraryClass = clazz == null || clazz.isNotProgramClass();
     boolean isLive = annotationTypeIsLibraryClass || liveTypes.contains(clazz.asProgramClass());
     if (!shouldKeepAnnotation(appView, annotatedItem.getDefinition(), annotation, isLive)) {
       // Remember this annotation for later.
       if (!annotationTypeIsLibraryClass) {
-        deferredAnnotations.computeIfAbsent(type, ignore -> new HashSet<>()).add(annotation);
+        Map<DexAnnotation, ProgramDefinition> deferredAnnotationsForAnnotationType =
+            deferredAnnotations.computeIfAbsent(type, ignore -> new IdentityHashMap<>());
+        assert !deferredAnnotationsForAnnotationType.containsKey(annotation);
+        deferredAnnotationsForAnnotationType.put(annotation, annotatedItem);
       }
       return;
     }
@@ -2743,6 +2749,10 @@ public class Enqueuer {
 
   public boolean isMethodTargeted(DexEncodedMethod method) {
     return targetedMethods.contains(method);
+  }
+
+  public boolean isMethodTargeted(ProgramMethod method) {
+    return isMethodTargeted(method.getDefinition());
   }
 
   public boolean isTypeLive(DexClass clazz) {
