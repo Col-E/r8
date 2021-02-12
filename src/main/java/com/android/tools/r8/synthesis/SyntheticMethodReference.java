@@ -55,7 +55,7 @@ class SyntheticMethodReference
     if (method != rewritten && !lens.isSimpleRenaming(method.holder, rewritten.holder)) {
       // If the referenced item is rewritten, it should be moved to another holder as the
       // synthetic holder is no longer part of the synthetic collection.
-      assert method.holder != rewritten.holder;
+      assert method.holder != rewritten.holder : "The synthetic method reference should have moved";
       assert SyntheticNaming.verifyNotInternalSynthetic(rewritten.holder);
       return null;
     }
