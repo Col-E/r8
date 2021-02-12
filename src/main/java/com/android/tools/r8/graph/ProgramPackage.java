@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Iterator;
@@ -47,6 +48,10 @@ public class ProgramPackage implements Iterable<DexProgramClass> {
     return packageDescriptor;
   }
 
+  public String getPackageName() {
+    return DescriptorUtils.getJavaTypeFromBinaryName(packageDescriptor);
+  }
+
   public void forEachClass(Consumer<DexProgramClass> consumer) {
     forEach(consumer);
   }
@@ -66,5 +71,10 @@ public class ProgramPackage implements Iterable<DexProgramClass> {
   @Override
   public Iterator<DexProgramClass> iterator() {
     return classes.iterator();
+  }
+
+  @Override
+  public String toString() {
+    return "ProgramPackage(" + getPackageName() + ")";
   }
 }

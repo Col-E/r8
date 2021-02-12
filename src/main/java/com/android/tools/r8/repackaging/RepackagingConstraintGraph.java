@@ -72,7 +72,7 @@ public class RepackagingConstraintGraph {
   }
 
   private Node createNode(DexDefinition definition) {
-    Node node = new Node();
+    Node node = new Node(definition);
     nodes.put(definition, node);
     return node;
   }
@@ -172,7 +172,12 @@ public class RepackagingConstraintGraph {
   public Iterable<DexProgramClass> computeClassesToRepackage() {
     WorkList<Node> worklist = WorkList.newIdentityWorkList(pinnedNodes);
     while (worklist.hasNext()) {
-      worklist.addIfNotSeen(worklist.next().getNeighbors());
+      Node pinnedNode = worklist.next();
+      for (Node neighbor : pinnedNode.getNeighbors()) {
+        // Mark all the immediate neighbors as ineligible for repackaging and continue the tracing
+        // from the neighbors.
+        worklist.addIfNotSeen(neighbor);
+      }
     }
     Set<Node> pinnedNodes = worklist.getSeenSet();
     List<DexProgramClass> classesToRepackage = new ArrayList<>();
@@ -186,7 +191,12 @@ public class RepackagingConstraintGraph {
 
   static class Node {
 
+    private final DexDefinition definitionForDebugging;
     private final Set<Node> neighbors = Sets.newConcurrentHashSet();
+
+    Node(DexDefinition definitionForDebugging) {
+      this.definitionForDebugging = definitionForDebugging;
+    }
 
     public void addNeighbor(Node neighbor) {
       neighbors.add(neighbor);
@@ -195,6 +205,11 @@ public class RepackagingConstraintGraph {
 
     public Set<Node> getNeighbors() {
       return neighbors;
+    }
+
+    @Override
+    public String toString() {
+      return "Node(" + definitionForDebugging.getReference().toSourceString() + ")";
     }
   }
 }
