@@ -4,7 +4,6 @@
 package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
-import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
@@ -12,6 +11,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
@@ -137,16 +137,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     appView.setAppInfo(new AppInfo(commit, appView.appInfo().getMainDexInfo()));
   }
 
-  // Internal synthetic id creation helpers.
-
-  private synchronized String getNextSyntheticId() {
-    if (nextSyntheticId == INVALID_ID_AFTER_SYNTHETIC_FINALIZATION) {
-      throw new InternalCompilerError(
-          "Unexpected attempt to synthesize classes after synthetic finalization.");
-    }
-    return Integer.toString(nextSyntheticId++);
-  }
-
   // Predicates and accessors.
 
   @Override
@@ -223,6 +213,13 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   public boolean isSyntheticClass(DexProgramClass clazz) {
     return isSyntheticClass(clazz.type);
+  }
+
+  // TODO(b/180091213): Implement this and remove client provided the oracle.
+  public Set<DexReference> getSynthesizingContexts(
+      DexProgramClass clazz, Function<DexProgramClass, Set<DexReference>> oracle) {
+    assert isSyntheticClass(clazz);
+    return oracle.apply(clazz);
   }
 
   // The compiler should not inspect the kind of a synthetic, so this provided only as a assertion
