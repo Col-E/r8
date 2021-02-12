@@ -75,8 +75,9 @@ public class D8MethodProcessor extends MethodProcessor {
             executorService));
   }
 
-  public void scheduleDesugaredMethodsForProcessing(Iterable<ProgramMethod> methods) {
+  public D8MethodProcessor scheduleDesugaredMethodsForProcessing(Iterable<ProgramMethod> methods) {
     methods.forEach(this::scheduleDesugaredMethodForProcessing);
+    return this;
   }
 
   @Override

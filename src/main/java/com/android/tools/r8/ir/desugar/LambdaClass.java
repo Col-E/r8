@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import static com.android.tools.r8.ir.desugar.lambda.ForcefullyMovedLambdaMethodConsumer.emptyForcefullyMovedLambdaMethodConsumer;
+import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unimplemented;
@@ -40,6 +41,7 @@ import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Represents lambda class generated for a lambda descriptor in context of lambda instantiation
@@ -458,20 +460,22 @@ public final class LambdaClass {
 
     // Ensure access of the referenced symbol(s).
     abstract ProgramMethod ensureAccessibility(
-        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer);
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer,
+        Consumer<ProgramMethod> needsProcessingConsumer);
 
     public final void ensureAccessibilityIfNeeded() {
-      ensureAccessibilityIfNeeded(emptyForcefullyMovedLambdaMethodConsumer());
+      ensureAccessibilityIfNeeded(emptyForcefullyMovedLambdaMethodConsumer(), emptyConsumer());
     }
 
     // Ensure access of the referenced symbol(s).
-    public final ProgramMethod ensureAccessibilityIfNeeded(
-        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
+    public final void ensureAccessibilityIfNeeded(
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer,
+        Consumer<ProgramMethod> needsProcessingConsumer) {
       if (!hasEnsuredAccessibility) {
-        accessibilityBridge = ensureAccessibility(forcefullyMovedLambdaMethodConsumer);
+        accessibilityBridge =
+            ensureAccessibility(forcefullyMovedLambdaMethodConsumer, needsProcessingConsumer);
         hasEnsuredAccessibility = true;
       }
-      return accessibilityBridge;
     }
 
     boolean isInterface() {
@@ -495,7 +499,8 @@ public final class LambdaClass {
 
     @Override
     ProgramMethod ensureAccessibility(
-        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer,
+        Consumer<ProgramMethod> needsProcessingConsumer) {
       return null;
     }
   }
@@ -512,7 +517,8 @@ public final class LambdaClass {
 
     @Override
     ProgramMethod ensureAccessibility(
-        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer,
+        Consumer<ProgramMethod> needsProcessingConsumer) {
       // We already found the static method to be called, just relax its accessibility.
       MethodAccessFlags flags = target.getAccessFlags();
       flags.unsetPrivate();
@@ -533,7 +539,8 @@ public final class LambdaClass {
 
     @Override
     ProgramMethod ensureAccessibility(
-        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer,
+        Consumer<ProgramMethod> needsProcessingConsumer) {
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
       DexMethod implMethod = descriptor.implHandle.asMethod();
@@ -570,6 +577,9 @@ public final class LambdaClass {
                     return newMethod;
                   });
       if (replacement != null) {
+        // Since we've copied the code object from an existing method, the code should already be
+        // processed, and thus we don't need to schedule it for processing in D8.
+        assert replacement.getCode().isDexCode();
         return new ProgramMethod(implMethodHolder, replacement);
       }
       // The method might already have been moved by another invoke-dynamic targeting it.
@@ -592,7 +602,8 @@ public final class LambdaClass {
 
     @Override
     ProgramMethod ensureAccessibility(
-        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer,
+        Consumer<ProgramMethod> needsProcessingConsumer) {
       return null;
     }
   }
@@ -606,20 +617,14 @@ public final class LambdaClass {
 
     @Override
     ProgramMethod ensureAccessibility(
-        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer,
+        Consumer<ProgramMethod> needsProcessingConsumer) {
       // When compiling with whole program optimization, check that we are not inplace modifying.
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
       DexMethod implMethod = descriptor.implHandle.asMethod();
       DexProgramClass implMethodHolder = appView.definitionFor(implMethod.holder).asProgramClass();
-      return modifyLambdaImplementationMethod(
-          implMethod, implMethodHolder, forcefullyMovedLambdaMethodConsumer);
-    }
 
-    private ProgramMethod modifyLambdaImplementationMethod(
-        DexMethod implMethod,
-        DexProgramClass implMethodHolder,
-        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
       DexEncodedMethod replacement =
           implMethodHolder
               .getMethodCollection()
@@ -647,6 +652,9 @@ public final class LambdaClass {
                     return newMethod;
                   });
       if (replacement != null) {
+        // Since we've copied the code object from an existing method, the code should already be
+        // processed, and thus we don't need to schedule it for processing in D8.
+        assert replacement.getCode().isDexCode();
         return new ProgramMethod(implMethodHolder, replacement);
       }
       // The method might already have been moved by another invoke-dynamic targeting it.
@@ -668,7 +676,8 @@ public final class LambdaClass {
 
     @Override
     ProgramMethod ensureAccessibility(
-        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer) {
+        ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer,
+        Consumer<ProgramMethod> needsProcessingConsumer) {
       // Create a static accessor with proper accessibility.
       DexProgramClass accessorClass = appView.definitionForProgramType(callTarget.holder);
       assert accessorClass != null;
@@ -684,18 +693,20 @@ public final class LambdaClass {
 
       // Always make the method public to provide access when r8 minification is allowed to move
       // the lambda class accessing this method to another package (-allowaccessmodification).
-      DexEncodedMethod accessorEncodedMethod =
-          new DexEncodedMethod(
-              callTarget,
-              MethodAccessFlags.createPublicStaticSynthetic(),
-              MethodTypeSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              ParameterAnnotationsList.empty(),
-              AccessorMethodSourceCode.build(LambdaClass.this, callTarget),
-              true);
-
-      accessorClass.addDirectMethod(accessorEncodedMethod);
-      return new ProgramMethod(accessorClass, accessorEncodedMethod);
+      ProgramMethod accessorMethod =
+          new ProgramMethod(
+              accessorClass,
+              new DexEncodedMethod(
+                  callTarget,
+                  MethodAccessFlags.createPublicStaticSynthetic(),
+                  MethodTypeSignature.noSignature(),
+                  DexAnnotationSet.empty(),
+                  ParameterAnnotationsList.empty(),
+                  AccessorMethodSourceCode.build(LambdaClass.this, callTarget),
+                  true));
+      accessorClass.addDirectMethod(accessorMethod.getDefinition());
+      needsProcessingConsumer.accept(accessorMethod);
+      return accessorMethod;
     }
   }
 }

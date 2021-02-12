@@ -255,9 +255,6 @@ public class Enqueuer {
    */
   private final SetWithReportedReason<DexProgramClass> liveTypes = new SetWithReportedReason<>();
 
-  private final Map<DexMethod, List<DexProgramClass>> liveTypesByEnclosingMethod =
-      new IdentityHashMap<>();
-
   /** Set of classes whose initializer may execute. */
   private final SetWithReportedReason<DexProgramClass> initializedClasses =
       new SetWithReportedReason<>();
@@ -1762,9 +1759,6 @@ public class Enqueuer {
               : this::ignoreMissingClass;
       if (enclosingMethod != null) {
         recordMethodReference(enclosingMethod, clazz, missingClassConsumer);
-        liveTypesByEnclosingMethod
-            .computeIfAbsent(enclosingMethod, ignore -> new ArrayList<>())
-            .add(clazz);
       } else {
         DexType enclosingClass = enclosingMethodAttribute.getEnclosingClass();
         recordTypeReference(enclosingClass, clazz, missingClassConsumer);

@@ -371,11 +371,13 @@ public class IRConverter {
   }
 
   private void synthesizeBridgesForNestBasedAccessesOnClasspath(
-      MethodProcessor methodProcessor, ExecutorService executorService) throws ExecutionException {
+      D8MethodProcessor methodProcessor, ExecutorService executorService)
+      throws ExecutionException {
     desugaring.withD8NestBasedAccessDesugaring(
         d8NestBasedAccessDesugaring ->
             d8NestBasedAccessDesugaring.synthesizeBridgesForNestBasedAccessesOnClasspath(
                 methodProcessor, executorService));
+    methodProcessor.awaitMethodProcessing();
   }
 
   private void reportNestDesugarDependencies() {
@@ -486,16 +488,18 @@ public class IRConverter {
         ClassConverter.create(appView, this, methodProcessor).convertClasses(executorService);
 
     // The synthesis of accessibility bridges in lambda desugaring and nest based access desugaring
-    // will schedule synthesized methods for processing.
+    // will schedule and await the processing of synthesized methods.
     synthesizeBridgesForNestBasedAccessesOnClasspath(methodProcessor, executorService);
     synthesizeAccessibilityBridgesForLambdaClasses(appView, classConverterResult, methodProcessor);
-    methodProcessor.scheduleDesugaredMethodsForProcessing(
-        IterableUtils.flatMap(
-            classConverterResult.getSynthesizedLambdaClasses(),
-            lambdaClass -> lambdaClass.getLambdaProgramClass().programMethods()));
+    methodProcessor
+        .scheduleDesugaredMethodsForProcessing(
+            IterableUtils.flatMap(
+                classConverterResult.getSynthesizedLambdaClasses(),
+                lambdaClass -> lambdaClass.getLambdaProgramClass().programMethods()))
+        .awaitMethodProcessing();
 
-    // Await the processing of synthesized bridge methods.
-    methodProcessor.awaitMethodProcessing();
+    // There should be no outstanding method processing.
+    methodProcessor.verifyNoPendingMethodProcessing();
   }
 
   void convertMethods(
