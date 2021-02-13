@@ -1248,10 +1248,29 @@ public class MethodOptimizationInfoCollector {
     // Collect basic blocks that check nullability of the parameter.
     Set<BasicBlock> nullCheckedBlocks = Sets.newIdentityHashSet();
     for (Instruction user : value.aliasedUsers()) {
-      if (user.isAssumeWithNonNullAssumption()
-          || user.throwsNpeIfValueIsNull(value, appView, code.context())) {
+      if (user.isAssumeWithNonNullAssumption()) {
+        // We don't allow assume instructions after throwing instructions, thus this block is either
+        // non-throwing or the assume instruction is before the throwing instruction.
+        assert !user.getBlock().hasCatchHandlers()
+            || user.getBlock().getInstructions().stream()
+                    .filter(
+                        instruction -> instruction == user || instruction.instructionTypeCanThrow())
+                    .findFirst()
+                    .get()
+                == user;
         nullCheckedBlocks.add(user.getBlock());
+        continue;
       }
+
+      if (user.throwsNpeIfValueIsNull(value, appView, code.context())) {
+        if (user.getBlock().hasCatchHandlers()) {
+          nullCheckedBlocks.addAll(user.getBlock().getNormalSuccessors());
+        } else {
+          nullCheckedBlocks.add(user.getBlock());
+        }
+        continue;
+      }
+
       if (user.isIf()
           && user.asIf().isZeroTest()
           && (user.asIf().getType() == If.Type.EQ || user.asIf().getType() == If.Type.NE)) {
