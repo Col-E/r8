@@ -581,7 +581,12 @@ public final class LambdaClass {
         // processed, and thus we don't need to schedule it for processing in D8.
         assert !appView.options().isGeneratingClassFiles() || replacement.getCode().isCfCode();
         assert !appView.options().isGeneratingDex() || replacement.getCode().isDexCode();
-        return new ProgramMethod(implMethodHolder, replacement);
+        ProgramMethod newMethod = new ProgramMethod(implMethodHolder, replacement);
+        if (appView.options().isDesugaredLibraryCompilation()) {
+          assert appView.options().isGeneratingClassFiles();
+          needsProcessingConsumer.accept(newMethod);
+        }
+        return newMethod;
       }
       // The method might already have been moved by another invoke-dynamic targeting it.
       // If so, it must be defined on the holder.
@@ -657,7 +662,12 @@ public final class LambdaClass {
         // processed, and thus we don't need to schedule it for processing in D8.
         assert !appView.options().isGeneratingClassFiles() || replacement.getCode().isCfCode();
         assert !appView.options().isGeneratingDex() || replacement.getCode().isDexCode();
-        return new ProgramMethod(implMethodHolder, replacement);
+        ProgramMethod newMethod = new ProgramMethod(implMethodHolder, replacement);
+        if (appView.options().isDesugaredLibraryCompilation()) {
+          assert appView.options().isGeneratingClassFiles();
+          needsProcessingConsumer.accept(newMethod);
+        }
+        return newMethod;
       }
       // The method might already have been moved by another invoke-dynamic targeting it.
       // If so, it must be defined on the holder.
@@ -707,7 +717,8 @@ public final class LambdaClass {
                   AccessorMethodSourceCode.build(LambdaClass.this, callTarget),
                   true));
       accessorClass.addDirectMethod(accessorMethod.getDefinition());
-      if (appView.options().isGeneratingDex()) {
+      if (appView.options().isDesugaredLibraryCompilation()
+          || appView.options().isGeneratingDex()) {
         needsProcessingConsumer.accept(accessorMethod);
       }
       return accessorMethod;
