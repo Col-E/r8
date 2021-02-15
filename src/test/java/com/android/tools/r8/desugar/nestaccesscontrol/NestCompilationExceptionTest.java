@@ -12,7 +12,6 @@ import static java.util.stream.Collectors.toList;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.hamcrest.core.StringEndsWith.endsWith;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -29,6 +28,7 @@ import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl
 import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.MissingNestHostNestDesugarDiagnostic;
+import com.android.tools.r8.references.Reference;
 import java.nio.file.Path;
 import java.util.List;
 import org.hamcrest.Matcher;
@@ -128,14 +128,14 @@ public class NestCompilationExceptionTest extends TestBase {
                 } else {
                   diagnostics
                       .assertOnlyErrors()
-                      .assertErrorsMatch(diagnosticType(MissingDefinitionsDiagnosticImpl.class));
-
-                  MissingDefinitionsDiagnosticImpl diagnostic =
-                      (MissingDefinitionsDiagnosticImpl) diagnostics.getErrors().get(0);
-                  assertEquals(1, diagnostic.getMissingClasses().size());
-                  assertEquals(
-                      "nesthostexample.BasicNestHostWithInnerClassMethods",
-                      diagnostic.getMissingClasses().iterator().next().getTypeName());
+                      .inspectErrors(
+                          diagnostic ->
+                              diagnostic
+                                  .assertIsMissingDefinitionsDiagnostic()
+                                  .assertIsMissingClass(
+                                      Reference.classFromTypeName(
+                                          "nesthostexample.BasicNestHostWithInnerClassMethods"))
+                                  .assertNumberOfMissingClasses(1));
                 }
               });
     } catch (CompilationFailedException e) {
@@ -167,14 +167,14 @@ public class NestCompilationExceptionTest extends TestBase {
                 } else {
                   diagnostics
                       .assertOnlyErrors()
-                      .assertErrorsMatch(diagnosticType(MissingDefinitionsDiagnosticImpl.class));
-
-                  MissingDefinitionsDiagnosticImpl diagnostic =
-                      (MissingDefinitionsDiagnosticImpl) diagnostics.getErrors().get(0);
-                  assertEquals(1, diagnostic.getMissingClasses().size());
-                  assertEquals(
-                      "nesthostexample.BasicNestHostWithInnerClassMethods$BasicNestedClass",
-                      diagnostic.getMissingClasses().iterator().next().getTypeName());
+                      .inspectErrors(
+                          diagnostic ->
+                              diagnostic
+                                  .assertIsMissingDefinitionsDiagnostic()
+                                  .assertIsMissingClass(
+                                      Reference.classFromTypeName(
+                                          "nesthostexample.BasicNestHostWithInnerClassMethods$BasicNestedClass"))
+                                  .assertNumberOfMissingClasses(1));
                 }
               });
     } catch (Exception e) {
@@ -208,13 +208,15 @@ public class NestCompilationExceptionTest extends TestBase {
                   diagnosticType(MissingDefinitionsDiagnosticImpl.class),
                   diagnosticType(InterfaceDesugarMissingTypeDiagnostic.class));
             }
-
-            MissingDefinitionsDiagnosticImpl diagnostic =
-                (MissingDefinitionsDiagnosticImpl) diagnostics.getWarnings().get(0);
-            assertEquals(1, diagnostic.getMissingClasses().size());
-            assertEquals(
-                "nesthostexample.BasicNestHostWithInnerClassMethods",
-                diagnostic.getMissingClasses().iterator().next().getTypeName());
+            diagnostics.inspectWarning(
+                0,
+                diagnostic ->
+                    diagnostic
+                        .assertIsMissingDefinitionsDiagnostic()
+                        .assertIsMissingClass(
+                            Reference.classFromTypeName(
+                                "nesthostexample.BasicNestHostWithInnerClassMethods"))
+                        .assertNumberOfMissingClasses(1));
           });
     }
   }
@@ -242,14 +244,15 @@ public class NestCompilationExceptionTest extends TestBase {
                   diagnosticType(MissingDefinitionsDiagnosticImpl.class),
                   diagnosticType(InterfaceDesugarMissingTypeDiagnostic.class));
             }
-
-            MissingDefinitionsDiagnosticImpl diagnostic =
-                (MissingDefinitionsDiagnosticImpl) diagnostics.getWarnings().get(0);
-            assertNotNull(diagnostic);
-            assertEquals(1, diagnostic.getMissingClasses().size());
-            assertEquals(
-                "nesthostexample.BasicNestHostWithInnerClassMethods$BasicNestedClass",
-                diagnostic.getMissingClasses().iterator().next().getTypeName());
+            diagnostics.inspectWarning(
+                0,
+                diagnostic ->
+                    diagnostic
+                        .assertIsMissingDefinitionsDiagnostic()
+                        .assertIsMissingClass(
+                            Reference.classFromTypeName(
+                                "nesthostexample.BasicNestHostWithInnerClassMethods$BasicNestedClass"))
+                        .assertNumberOfMissingClasses(1));
           });
     }
   }

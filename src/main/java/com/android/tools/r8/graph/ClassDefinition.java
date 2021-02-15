@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.references.ClassReference;
 import java.util.function.Consumer;
 
 public interface ClassDefinition extends Definition {
@@ -16,7 +17,19 @@ public interface ClassDefinition extends Definition {
 
   MethodCollection getMethodCollection();
 
+  ClassReference getClassReference();
+
   DexType getType();
+
+  @Override
+  default boolean isClass() {
+    return true;
+  }
+
+  @Override
+  default ClassDefinition asClass() {
+    return this;
+  }
 
   boolean isClasspathClass();
 

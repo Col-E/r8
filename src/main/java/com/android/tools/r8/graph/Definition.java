@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.origin.Origin;
 import java.util.function.Function;
 
 public interface Definition {
@@ -25,7 +26,33 @@ public interface Definition {
 
   DexType getContextType();
 
+  Origin getOrigin();
+
   DexReference getReference();
+
+  default boolean isClass() {
+    return false;
+  }
+
+  default ClassDefinition asClass() {
+    return null;
+  }
+
+  default boolean isField() {
+    return false;
+  }
+
+  default DexClassAndField asField() {
+    return null;
+  }
+
+  default boolean isMethod() {
+    return false;
+  }
+
+  default DexClassAndMethod asMethod() {
+    return null;
+  }
 
   default boolean isProgramDefinition() {
     return false;

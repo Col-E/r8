@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.missingclasses;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8FullTestBuilder;
@@ -14,7 +12,6 @@ import com.android.tools.r8.TestCompilerBuilder.DiagnosticsConsumer;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -22,7 +19,6 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.FieldReferenceUtils;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.MethodReferenceUtils;
-import com.google.common.collect.ImmutableSet;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.List;
@@ -130,14 +126,14 @@ public abstract class MissingClassesTestBase extends TestBase {
 
   void inspectDiagnosticsWithIgnoreWarnings(
       TestDiagnosticMessages diagnostics, String expectedDiagnosticMessage) {
-    MissingDefinitionsDiagnosticImpl diagnostic =
-        diagnostics
-            .assertOnlyWarnings()
-            .assertWarningsCount(1)
-            .assertAllWarningsMatch(diagnosticType(MissingDefinitionsDiagnosticImpl.class))
-            .getWarning(0);
-    assertEquals(ImmutableSet.of(getMissingClassReference()), diagnostic.getMissingClasses());
-    assertEquals(expectedDiagnosticMessage, diagnostic.getDiagnosticMessage());
+    diagnostics
+        .assertOnlyWarnings()
+        .inspectWarnings(
+            diagnostic ->
+                diagnostic
+                    .assertIsMissingDefinitionsDiagnostic()
+                    .assertIsMissingClass(getMissingClassReference())
+                    .assertHasMessage(expectedDiagnosticMessage));
   }
 
   void inspectDiagnosticsWithNoRules(
@@ -162,14 +158,14 @@ public abstract class MissingClassesTestBase extends TestBase {
 
   void inspectDiagnosticsWithNoRules(
       TestDiagnosticMessages diagnostics, String expectedDiagnosticMessage) {
-    MissingDefinitionsDiagnosticImpl diagnostic =
-        diagnostics
-            .assertOnlyErrors()
-            .assertErrorsCount(1)
-            .assertAllErrorsMatch(diagnosticType(MissingDefinitionsDiagnosticImpl.class))
-            .getError(0);
-    assertEquals(ImmutableSet.of(getMissingClassReference()), diagnostic.getMissingClasses());
-    assertEquals(expectedDiagnosticMessage, diagnostic.getDiagnosticMessage());
+    diagnostics
+        .assertOnlyErrors()
+        .inspectErrors(
+            diagnostic ->
+                diagnostic
+                    .assertIsMissingDefinitionsDiagnostic()
+                    .assertHasMessage(expectedDiagnosticMessage)
+                    .assertIsMissingClass(getMissingClassReference()));
   }
 
   private <T> String getExpectedDiagnosticMessage(

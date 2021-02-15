@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils;
 
+import java.util.Comparator;
 import java.util.function.Supplier;
 
 public class Box<T> {
@@ -29,6 +30,12 @@ public class Box<T> {
 
   public void set(T value) {
     this.value = value;
+  }
+
+  public void setMin(T element, Comparator<T> comparator) {
+    if (!isSet() || comparator.compare(element, get()) < 0) {
+      set(element);
+    }
   }
 
   public boolean isSet() {

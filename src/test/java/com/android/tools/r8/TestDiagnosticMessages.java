@@ -6,10 +6,14 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.diagnosticinspector.DiagnosticSubject;
+import com.android.tools.r8.diagnosticinspector.FoundDiagnosticSubject;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import org.hamcrest.Matcher;
 
@@ -19,16 +23,48 @@ public abstract class TestDiagnosticMessages {
 
   public abstract List<Diagnostic> getWarnings();
 
-  @SuppressWarnings("unchecked")
-  public final <D extends Diagnostic> D getWarning(int index) {
-    return (D) getWarnings().get(index);
+  public final TestDiagnosticMessages inspectWarning(
+      int index, ThrowableConsumer<DiagnosticSubject> consumer) {
+    consumer.acceptWithRuntimeException(new FoundDiagnosticSubject<>(getWarnings().get(index)));
+    return this;
+  }
+
+  public final TestDiagnosticMessages inspectWarnings(
+      ThrowableConsumer<DiagnosticSubject>... consumers) {
+    return inspectWarnings(Arrays.asList(consumers));
+  }
+
+  public final TestDiagnosticMessages inspectWarnings(
+      Collection<ThrowableConsumer<DiagnosticSubject>> consumers) {
+    assertEquals(consumers.size(), getWarnings().size());
+    Iterator<ThrowableConsumer<DiagnosticSubject>> consumerIterator = consumers.iterator();
+    Iterator<Diagnostic> warningIterator = getWarnings().iterator();
+    for (int i = 0; i < consumers.size(); i++) {
+      consumerIterator
+          .next()
+          .acceptWithRuntimeException(new FoundDiagnosticSubject<>(warningIterator.next()));
+    }
+    return this;
   }
 
   public abstract List<Diagnostic> getErrors();
 
-  @SuppressWarnings("unchecked")
-  public final <D extends Diagnostic> D getError(int index) {
-    return (D) getErrors().get(index);
+  public final TestDiagnosticMessages inspectErrors(
+      ThrowableConsumer<DiagnosticSubject>... consumers) {
+    return inspectErrors(Arrays.asList(consumers));
+  }
+
+  public final TestDiagnosticMessages inspectErrors(
+      Collection<ThrowableConsumer<DiagnosticSubject>> consumers) {
+    assertEquals(consumers.size(), getErrors().size());
+    Iterator<ThrowableConsumer<DiagnosticSubject>> consumerIterator = consumers.iterator();
+    Iterator<Diagnostic> errorIterator = getErrors().iterator();
+    for (int i = 0; i < consumers.size(); i++) {
+      consumerIterator
+          .next()
+          .acceptWithRuntimeException(new FoundDiagnosticSubject<>(errorIterator.next()));
+    }
+    return this;
   }
 
   public abstract TestDiagnosticMessages assertNoMessages();

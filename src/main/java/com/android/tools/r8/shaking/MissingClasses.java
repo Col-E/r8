@@ -10,6 +10,8 @@ import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.EMULATE_LI
 import static com.android.tools.r8.utils.collections.IdentityHashSetFromMap.newProgramDerivedContextSet;
 
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
+import com.android.tools.r8.diagnostic.internal.MissingClassInfo;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionContextUtils;
 import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
 import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
 import com.android.tools.r8.graph.AppView;
@@ -141,10 +143,7 @@ public class MissingClasses {
       Map<DexType, Set<ProgramDerivedContext>> missingClassesToBeReported =
           getMissingClassesToBeReported(appView, synthesizingContextOracle);
       if (!missingClassesToBeReported.isEmpty()) {
-        MissingDefinitionsDiagnostic diagnostic =
-            MissingDefinitionsDiagnosticImpl.builder()
-                .addMissingClasses(missingClassesToBeReported)
-                .build();
+        MissingDefinitionsDiagnostic diagnostic = createDiagnostic(missingClassesToBeReported);
         if (appView.options().ignoreMissingClasses) {
           appView.reporter().warning(diagnostic);
         } else {
@@ -152,6 +151,23 @@ public class MissingClasses {
         }
       }
       return build();
+    }
+
+    private MissingDefinitionsDiagnostic createDiagnostic(
+        Map<DexType, Set<ProgramDerivedContext>> missingClassesToBeReported) {
+      MissingDefinitionsDiagnosticImpl.Builder diagnosticBuilder =
+          MissingDefinitionsDiagnosticImpl.builder();
+      missingClassesToBeReported.forEach(
+          (missingClass, programDerivedContexts) -> {
+            MissingClassInfo.Builder missingClassInfoBuilder =
+                MissingClassInfo.builder().setClass(missingClass.asClassReference());
+            for (ProgramDerivedContext programDerivedContext : programDerivedContexts) {
+              missingClassInfoBuilder.addReferencedFromContext(
+                  MissingDefinitionContextUtils.create(programDerivedContext));
+            }
+            diagnosticBuilder.addMissingDefinitionInfo(missingClassInfoBuilder.build());
+          });
+      return diagnosticBuilder.build();
     }
 
     private void rewriteMissingClassContexts(

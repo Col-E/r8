@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.references.FieldReference;
+
 public abstract class DexClassAndField extends DexClassAndMember<DexEncodedField, DexField> {
 
   DexClassAndField(DexClass holder, DexEncodedField field) {
@@ -29,8 +31,22 @@ public abstract class DexClassAndField extends DexClassAndMember<DexEncodedField
     return getDefinition().getAccessFlags();
   }
 
+  public FieldReference getFieldReference() {
+    return getReference().asFieldReference();
+  }
+
   public DexType getType() {
     return getReference().getType();
+  }
+
+  @Override
+  public boolean isField() {
+    return true;
+  }
+
+  @Override
+  public DexClassAndField asField() {
+    return this;
   }
 
   public boolean isClasspathField() {

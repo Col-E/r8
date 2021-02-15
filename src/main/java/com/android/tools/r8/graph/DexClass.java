@@ -12,6 +12,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.OptionalBool;
@@ -33,7 +35,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public abstract class DexClass extends DexDefinition implements Definition {
+public abstract class DexClass extends DexDefinition implements ClassDefinition {
 
   public interface FieldSetter {
     void setField(int index, DexEncodedField field);
@@ -662,6 +664,10 @@ public abstract class DexClass extends DexDefinition implements Definition {
     DexEncodedMethod classInitializer = methodCollection.getClassInitializer();
     assert classInitializer != DexEncodedMethod.SENTINEL;
     return classInitializer;
+  }
+
+  public ClassReference getClassReference() {
+    return Reference.classFromDescriptor(getType().toDescriptorString());
   }
 
   public Origin getOrigin() {

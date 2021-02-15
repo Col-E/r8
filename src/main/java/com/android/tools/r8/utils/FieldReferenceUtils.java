@@ -4,9 +4,33 @@
 
 package com.android.tools.r8.utils;
 
+import static com.android.tools.r8.utils.ClassReferenceUtils.getClassReferenceComparator;
+import static com.android.tools.r8.utils.TypeReferenceUtils.getTypeReferenceComparator;
+
 import com.android.tools.r8.references.FieldReference;
+import java.util.Comparator;
 
 public class FieldReferenceUtils {
+
+  private static final Comparator<FieldReference> COMPARATOR =
+      (field, other) -> {
+        CompareResult holderClassCompareResult =
+            CompareResult.compare(
+                field.getHolderClass(), other.getHolderClass(), getClassReferenceComparator());
+        if (!holderClassCompareResult.isEqual()) {
+          return holderClassCompareResult.getComparisonResult();
+        }
+        CompareResult fieldNameCompareResult =
+            CompareResult.compare(field.getFieldName(), other.getFieldName());
+        if (!fieldNameCompareResult.isEqual()) {
+          return fieldNameCompareResult.getComparisonResult();
+        }
+        return getTypeReferenceComparator().compare(field.getFieldType(), other.getFieldType());
+      };
+
+  public static Comparator<FieldReference> getFieldReferenceComparator() {
+    return COMPARATOR;
+  }
 
   public static String toSourceString(FieldReference fieldReference) {
     return fieldReference.getFieldType().getTypeName()
