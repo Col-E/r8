@@ -63,7 +63,7 @@ LIBRARY_DESUGAR_CONVERSIONS_ZIP = os.path.join(LIBS, 'library_desugar_conversion
 DESUGAR_CONFIGURATION = os.path.join(
       'src', 'library_desugar', 'desugar_jdk_libs.json')
 DESUGAR_IMPLEMENTATION = os.path.join(
-      'third_party', 'openjdk', 'desugar_jdk_libs', 'libjava.jar')
+      'third_party', 'openjdk', 'desugar_jdk_libs', 'desugar_jdk_libs.jar')
 DESUGAR_CONFIGURATION_MAVEN_ZIP = os.path.join(
   LIBS, 'desugar_jdk_libs_configuration.zip')
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')

@@ -138,7 +138,8 @@ public class ToolHelper {
 
   public static final String JAVA_8_RUNTIME = "third_party/openjdk/openjdk-rt-1.8/rt.jar";
   public static final String DESUGAR_JDK_LIBS =
-      System.getProperty("desugar_jdk_libs", "third_party/openjdk/desugar_jdk_libs/libjava.jar");
+      System.getProperty(
+          "desugar_jdk_libs", "third_party/openjdk/desugar_jdk_libs/desugar_jdk_libs.jar");
   public static final String CORE_LAMBDA_STUBS =
       "third_party/core-lambda-stubs/core-lambda-stubs.jar";
   public static final String JSR223_RI_JAR = "third_party/jsr223-api-1.0/jsr223-api-1.0.jar";
