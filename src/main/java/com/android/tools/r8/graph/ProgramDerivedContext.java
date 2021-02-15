@@ -7,4 +7,8 @@ package com.android.tools.r8.graph;
 public interface ProgramDerivedContext {
 
   Definition getContext();
+
+  default boolean isProgramContext() {
+    return getContext().isProgramDefinition();
+  }
 }

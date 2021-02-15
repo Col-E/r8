@@ -7,8 +7,8 @@ package com.android.tools.r8.diagnostic.internal;
 import com.android.tools.r8.diagnostic.MissingDefinitionInfo;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramDerivedContext;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.ClassReference;
@@ -24,13 +24,11 @@ import java.util.SortedMap;
 
 public class MissingDefinitionsDiagnosticImpl implements MissingDefinitionsDiagnostic {
 
-  private final boolean fatal;
   private final SortedMap<ClassReference, MissingClassAccessContexts> missingClasses;
 
   private MissingDefinitionsDiagnosticImpl(
-      boolean fatal, SortedMap<ClassReference, MissingClassAccessContexts> missingClasses) {
+      SortedMap<ClassReference, MissingClassAccessContexts> missingClasses) {
     assert !missingClasses.isEmpty();
-    this.fatal = fatal;
     this.missingClasses = missingClasses;
   }
 
@@ -62,30 +60,6 @@ public class MissingDefinitionsDiagnosticImpl implements MissingDefinitionsDiagn
 
   @Override
   public String getDiagnosticMessage() {
-    return fatal ? getFatalDiagnosticMessage() : getNonFatalDiagnosticMessage();
-  }
-
-  private String getFatalDiagnosticMessage() {
-    if (missingClasses.size() == 1) {
-      StringBuilder builder =
-          new StringBuilder(
-              "Compilation can't be completed because the following class is missing: ");
-      writeMissingClass(builder, missingClasses.entrySet().iterator().next());
-      return builder.append(".").toString();
-    }
-
-    StringBuilder builder =
-        new StringBuilder("Compilation can't be completed because the following ")
-            .append(missingClasses.size())
-            .append(" classes are missing:");
-    missingClasses.forEach(
-        (missingClass, contexts) ->
-            writeMissingClass(
-                builder.append(System.lineSeparator()).append("- "), missingClass, contexts));
-    return builder.toString();
-  }
-
-  private String getNonFatalDiagnosticMessage() {
     StringBuilder builder = new StringBuilder();
     Iterator<Entry<ClassReference, MissingClassAccessContexts>> missingClassesIterator =
         missingClasses.entrySet().iterator();
@@ -119,12 +93,11 @@ public class MissingDefinitionsDiagnosticImpl implements MissingDefinitionsDiagn
 
   public static class Builder {
 
-    private boolean fatal;
     private ImmutableSortedMap.Builder<ClassReference, MissingClassAccessContexts>
         missingClassesBuilder =
             ImmutableSortedMap.orderedBy(Comparator.comparing(ClassReference::getDescriptor));
 
-    public Builder addMissingClasses(Map<DexType, Set<DexReference>> missingClasses) {
+    public Builder addMissingClasses(Map<DexType, Set<ProgramDerivedContext>> missingClasses) {
       missingClasses.forEach(
           (missingClass, contexts) ->
               missingClassesBuilder.put(
@@ -133,13 +106,8 @@ public class MissingDefinitionsDiagnosticImpl implements MissingDefinitionsDiagn
       return this;
     }
 
-    public Builder setFatal(boolean fatal) {
-      this.fatal = fatal;
-      return this;
-    }
-
     public MissingDefinitionsDiagnostic build() {
-      return new MissingDefinitionsDiagnosticImpl(fatal, missingClassesBuilder.build());
+      return new MissingDefinitionsDiagnosticImpl(missingClassesBuilder.build());
     }
   }
 }

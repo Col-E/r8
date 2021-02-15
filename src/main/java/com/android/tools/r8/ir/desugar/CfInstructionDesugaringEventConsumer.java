@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -41,8 +42,9 @@ public abstract class CfInstructionDesugaringEventConsumer
   }
 
   public static R8CfInstructionDesugaringEventConsumer createForR8(
-      AppView<? extends AppInfoWithClassHierarchy> appView) {
-    return new R8CfInstructionDesugaringEventConsumer(appView);
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer) {
+    return new R8CfInstructionDesugaringEventConsumer(appView, lambdaClassConsumer);
   }
 
   public static CfInstructionDesugaringEventConsumer createForDesugaredCode() {
@@ -162,14 +164,17 @@ public abstract class CfInstructionDesugaringEventConsumer
       extends CfInstructionDesugaringEventConsumer {
 
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
+    private final BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer;
 
     private final Map<LambdaClass, ProgramMethod> synthesizedLambdaClasses =
         new IdentityHashMap<>();
     private final List<InvokeSpecialBridgeInfo> pendingInvokeSpecialBridges = new ArrayList<>();
 
     public R8CfInstructionDesugaringEventConsumer(
-        AppView<? extends AppInfoWithClassHierarchy> appView) {
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer) {
       this.appView = appView;
+      this.lambdaClassConsumer = lambdaClassConsumer;
     }
 
     @Override
@@ -184,6 +189,7 @@ public abstract class CfInstructionDesugaringEventConsumer
       synchronized (synthesizedLambdaClasses) {
         synthesizedLambdaClasses.put(lambdaClass, context);
       }
+      lambdaClassConsumer.accept(lambdaClass, context);
     }
 
     @Override

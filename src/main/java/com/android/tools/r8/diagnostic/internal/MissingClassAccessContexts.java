@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramDerivedContext;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -68,8 +69,10 @@ public class MissingClassAccessContexts {
 
     private final Set<DexReference> contexts = Sets.newIdentityHashSet();
 
-    Builder addAll(Set<DexReference> contexts) {
-      this.contexts.addAll(contexts);
+    Builder addAll(Set<ProgramDerivedContext> contexts) {
+      for (ProgramDerivedContext context : contexts) {
+        this.contexts.add(context.getContext().getReference());
+      }
       return this;
     }
 

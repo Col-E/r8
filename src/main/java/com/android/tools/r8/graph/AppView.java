@@ -39,6 +39,7 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
@@ -452,6 +453,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public InternalOptions options() {
     return appInfo.options();
+  }
+
+  public Reporter reporter() {
+    return options().reporter;
   }
 
   public TestingOptions testing() {

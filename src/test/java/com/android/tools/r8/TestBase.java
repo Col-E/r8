@@ -131,6 +131,10 @@ public class TestBase {
     CF,
     DEX;
 
+    public boolean isCf() {
+      return this == CF;
+    }
+
     public boolean isDex() {
       return this == DEX;
     }

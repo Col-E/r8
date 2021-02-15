@@ -46,7 +46,7 @@ public abstract class MissingClassesTestBase extends TestBase {
 
   interface MissingInterface {}
 
-  private final TestParameters parameters;
+  protected final TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static List<Object[]> data() {
@@ -57,8 +57,8 @@ public abstract class MissingClassesTestBase extends TestBase {
     this.parameters = parameters;
   }
 
-  public ThrowableConsumer<R8FullTestBuilder> addDontWarn(Class<?> clazz) {
-    return builder -> builder.addDontWarn(clazz);
+  public ThrowableConsumer<R8FullTestBuilder> addDontWarn(Class<?>... classes) {
+    return builder -> builder.addDontWarn(classes);
   }
 
   public ThrowableConsumer<R8FullTestBuilder> addIgnoreWarnings() {
@@ -111,25 +111,21 @@ public abstract class MissingClassesTestBase extends TestBase {
   void inspectDiagnosticsWithIgnoreWarnings(
       TestDiagnosticMessages diagnostics, ClassReference referencedFrom) {
     inspectDiagnosticsWithIgnoreWarnings(
-        diagnostics,
-        getExpectedDiagnosticMessageWithIgnoreWarnings(
-            referencedFrom, ClassReference::getTypeName));
+        diagnostics, getExpectedDiagnosticMessage(referencedFrom, ClassReference::getTypeName));
   }
 
   void inspectDiagnosticsWithIgnoreWarnings(
       TestDiagnosticMessages diagnostics, FieldReference referencedFrom) {
     inspectDiagnosticsWithIgnoreWarnings(
         diagnostics,
-        getExpectedDiagnosticMessageWithIgnoreWarnings(
-            referencedFrom, FieldReferenceUtils::toSourceString));
+        getExpectedDiagnosticMessage(referencedFrom, FieldReferenceUtils::toSourceString));
   }
 
   void inspectDiagnosticsWithIgnoreWarnings(
       TestDiagnosticMessages diagnostics, MethodReference referencedFrom) {
     inspectDiagnosticsWithIgnoreWarnings(
         diagnostics,
-        getExpectedDiagnosticMessageWithIgnoreWarnings(
-            referencedFrom, MethodReferenceUtils::toSourceString));
+        getExpectedDiagnosticMessage(referencedFrom, MethodReferenceUtils::toSourceString));
   }
 
   void inspectDiagnosticsWithIgnoreWarnings(
@@ -144,36 +140,24 @@ public abstract class MissingClassesTestBase extends TestBase {
     assertEquals(expectedDiagnosticMessage, diagnostic.getDiagnosticMessage());
   }
 
-  private <T> String getExpectedDiagnosticMessageWithIgnoreWarnings(
-      T referencedFrom, Function<T, String> toSourceStringFunction) {
-    return "Missing class "
-        + getMissingClassReference().getTypeName()
-        + " (referenced from: "
-        + toSourceStringFunction.apply(referencedFrom)
-        + ")";
-  }
-
   void inspectDiagnosticsWithNoRules(
       TestDiagnosticMessages diagnostics, ClassReference referencedFrom) {
     inspectDiagnosticsWithNoRules(
-        diagnostics,
-        getExpectedDiagnosticMessageWithNoRules(referencedFrom, ClassReference::getTypeName));
+        diagnostics, getExpectedDiagnosticMessage(referencedFrom, ClassReference::getTypeName));
   }
 
   void inspectDiagnosticsWithNoRules(
       TestDiagnosticMessages diagnostics, FieldReference referencedFrom) {
     inspectDiagnosticsWithNoRules(
         diagnostics,
-        getExpectedDiagnosticMessageWithNoRules(
-            referencedFrom, FieldReferenceUtils::toSourceString));
+        getExpectedDiagnosticMessage(referencedFrom, FieldReferenceUtils::toSourceString));
   }
 
   void inspectDiagnosticsWithNoRules(
       TestDiagnosticMessages diagnostics, MethodReference referencedFrom) {
     inspectDiagnosticsWithNoRules(
         diagnostics,
-        getExpectedDiagnosticMessageWithNoRules(
-            referencedFrom, MethodReferenceUtils::toSourceString));
+        getExpectedDiagnosticMessage(referencedFrom, MethodReferenceUtils::toSourceString));
   }
 
   void inspectDiagnosticsWithNoRules(
@@ -188,13 +172,12 @@ public abstract class MissingClassesTestBase extends TestBase {
     assertEquals(expectedDiagnosticMessage, diagnostic.getDiagnosticMessage());
   }
 
-  private <T> String getExpectedDiagnosticMessageWithNoRules(
+  private <T> String getExpectedDiagnosticMessage(
       T referencedFrom, Function<T, String> toSourceStringFunction) {
-    return "Compilation can't be completed because the following class is missing: "
+    return "Missing class "
         + getMissingClassReference().getTypeName()
         + " (referenced from: "
         + toSourceStringFunction.apply(referencedFrom)
-        + ")"
-        + ".";
+        + ")";
   }
 }

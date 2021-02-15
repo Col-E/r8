@@ -3,23 +3,24 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_BUILD_DIR;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_DIR;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -30,7 +31,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -52,13 +52,16 @@ public class TreeShakingSpecificTest extends TestBase {
     parameters.assertNoneRuntime();
   }
 
-  private static final String VALID_PROGUARD_DIR = "src/test/proguard/valid/";
-
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  private Path getProgramFiles(String test) {
+    return Paths.get(EXAMPLES_BUILD_DIR, test + ".jar");
+  }
+
+  private byte[] getProgramDexFileData(String test) throws IOException {
+    return Files.readAllBytes(Paths.get(EXAMPLES_BUILD_DIR, test, "classes.dex"));
+  }
 
   private void finishBuild(R8Command.Builder builder, Path out, String test) throws IOException {
     Path input;
@@ -75,79 +78,77 @@ public class TreeShakingSpecificTest extends TestBase {
   @Test
   public void testIgnoreWarnings() throws Exception {
     // Generate R8 processed version without library option.
-    Path out = temp.getRoot().toPath();
     String test = "shaking2";
-    Path keepRules = Paths.get(EXAMPLES_DIR, test, "keep-rules.txt");
-    Path ignoreWarnings = Paths.get(VALID_PROGUARD_DIR, "ignorewarnings.flags");
-    R8Command.Builder builder = R8Command.builder()
-        .addProguardConfigurationFiles(keepRules, ignoreWarnings);
-    finishBuild(builder, out, test);
-    R8.run(builder.build());
+    testForR8(backend)
+        .applyIf(
+            backend.isCf(),
+            builder -> builder.addProgramFiles(getProgramFiles(test)),
+            builder -> builder.addProgramDexFileData(getProgramDexFileData(test)))
+        .addKeepRuleFiles(Paths.get(EXAMPLES_DIR, test, "keep-rules.txt"))
+        .addIgnoreWarnings()
+        .compile();
   }
 
   @Test(expected = CompilationFailedException.class)
   public void testMissingLibrary() throws Exception {
     // Generate R8 processed version without library option.
-    Path out = temp.getRoot().toPath();
     String test = "shaking2";
-    Path keepRules = Paths.get(EXAMPLES_DIR, test, "keep-rules.txt");
-    DiagnosticsHandler handler =
-        new DiagnosticsHandler() {
-          @Override
-          public void error(Diagnostic error) {
-            assertEquals(
-                "Compilation can't be completed because the following class is missing: "
-                    + "java.lang.Object.",
-                error.getDiagnosticMessage());
-          }
-        };
-    R8Command.Builder builder = R8Command.builder(handler)
-        .addProguardConfigurationFiles(keepRules);
-    finishBuild(builder, out, test);
-    R8.run(builder.build());
+    testForR8(backend)
+        .applyIf(
+            backend.isCf(),
+            builder -> builder.addProgramFiles(getProgramFiles(test)),
+            builder -> builder.addProgramDexFileData(getProgramDexFileData(test)))
+        .addLibraryFiles()
+        .addKeepRuleFiles(Paths.get(EXAMPLES_DIR, test, "keep-rules.txt"))
+        .allowDiagnosticErrorMessages()
+        .compileWithExpectedDiagnostics(
+            diagnostics -> {
+              diagnostics
+                  .assertOnlyErrors()
+                  .assertErrorsMatch(diagnosticType(MissingDefinitionsDiagnostic.class));
+
+              MissingDefinitionsDiagnostic diagnostic =
+                  (MissingDefinitionsDiagnostic) diagnostics.getErrors().get(0);
+              assertThat(
+                  diagnostic.getDiagnosticMessage(),
+                  allOf(
+                      containsString("Missing class java.io.PrintStream"),
+                      containsString("Missing class java.lang.Object"),
+                      containsString("Missing class java.lang.String"),
+                      containsString("Missing class java.lang.StringBuilder"),
+                      containsString("Missing class java.lang.System")));
+            });
   }
 
   @Test
-  public void testPrintMapping() throws Exception {
+  public void testPrintMapping() throws Throwable {
     // Generate R8 processed version without library option.
     String test = "shaking1";
-    Path out = temp.getRoot().toPath();
-    Path keepRules = Paths.get(EXAMPLES_DIR, test, "keep-rules.txt");
-
-    // Create a flags file in temp dir requesting dump of the mapping.
-    // The mapping file will be created alongside the flags file in temp dir.
-    Path printMapping = out.resolve("printmapping.flags");
-    try (PrintStream mapping = new PrintStream(printMapping.toFile())) {
-      mapping.println("-printmapping mapping.txt");
-    }
-
-    R8Command.Builder builder = R8Command.builder()
-        .addProguardConfigurationFiles(keepRules, printMapping);
-    // Turn off inlining, as we want the mapping that is printed to be stable.
-    finishBuild(builder, out, test);
-    if (backend == Backend.DEX) {
-      builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
-    } else {
-      assert backend == Backend.CF;
-      builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
-    }
-    ToolHelper.runR8(builder.build(), options -> options.enableInlining = false);
-
-    Path outputmapping = out.resolve("mapping.txt");
-    // Remove comments.
-    String actualMapping =
-        Stream.of(new String(Files.readAllBytes(outputmapping), StandardCharsets.UTF_8).split("\n"))
-            .filter(line -> !line.startsWith("#"))
-            .collect(Collectors.joining("\n"));
-    String refMapping =
-        new String(
-            Files.readAllBytes(
-                Paths.get(
-                    EXAMPLES_DIR,
-                    "shaking1",
-                    "print-mapping-" + backend.name().toLowerCase() + ".ref")),
-            StandardCharsets.UTF_8);
-    assertEquals(sorted(refMapping), sorted(actualMapping));
+    testForR8(backend)
+        .applyIf(
+            backend.isCf(),
+            builder -> builder.addProgramFiles(getProgramFiles(test)),
+            builder -> builder.addProgramDexFileData(getProgramDexFileData(test)))
+        .addKeepRuleFiles(Paths.get(EXAMPLES_DIR, test, "keep-rules.txt"))
+        .addOptionsModification(options -> options.enableInlining = false)
+        .compile()
+        .inspectProguardMap(
+            proguardMap -> {
+              // Remove comments.
+              String actualMapping =
+                  Stream.of(proguardMap.split("\n"))
+                      .filter(line -> !line.startsWith("#"))
+                      .collect(Collectors.joining("\n"));
+              String refMapping =
+                  new String(
+                      Files.readAllBytes(
+                          Paths.get(
+                              EXAMPLES_DIR,
+                              "shaking1",
+                              "print-mapping-" + backend.name().toLowerCase() + ".ref")),
+                      StandardCharsets.UTF_8);
+              assertEquals(sorted(refMapping), sorted(actualMapping));
+            });
   }
 
   private static String sorted(String str) {

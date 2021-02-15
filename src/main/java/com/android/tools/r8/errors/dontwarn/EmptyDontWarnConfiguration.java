@@ -6,14 +6,8 @@ package com.android.tools.r8.errors.dontwarn;
 
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.InternalOptions;
-import java.util.Set;
 
 public class EmptyDontWarnConfiguration extends DontWarnConfiguration {
-
-  @Override
-  public Set<DexType> getNonMatches(Set<DexType> types) {
-    return types;
-  }
 
   @Override
   public boolean matches(DexType type) {

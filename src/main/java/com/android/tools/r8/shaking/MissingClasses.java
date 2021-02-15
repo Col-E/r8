@@ -7,24 +7,30 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.DESCRIPTOR_VIVIFIED_PREFIX;
 import static com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter.getRetargetPackageAndClassPrefixDescriptor;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
+import static com.android.tools.r8.utils.collections.IdentityHashSetFromMap.newProgramDerivedContextSet;
 
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
 import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramDerivedContext;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.synthesis.CommittedItems;
+import com.android.tools.r8.synthesis.SyntheticItems.SynthesizingContextOracle;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -62,7 +68,8 @@ public class MissingClasses {
   public static class Builder {
 
     private final Set<DexType> alreadyMissingClasses;
-    private final Map<DexType, Set<DexReference>> newMissingClasses = new IdentityHashMap<>();
+    private final Map<DexType, Set<ProgramDerivedContext>> newMissingClasses =
+        new IdentityHashMap<>();
 
     // Set of missing types that are not to be reported as missing. This does not hide reports
     // if the same type is in newMissingClasses in which case it is reported regardless.
@@ -81,16 +88,15 @@ public class MissingClasses {
       assert context.getContext().getContextType() != type;
       if (!alreadyMissingClasses.contains(type)) {
         newMissingClasses
-            .computeIfAbsent(type, ignore -> Sets.newIdentityHashSet())
-            .add(context.getContext().getReference());
+            .computeIfAbsent(type, ignore -> newProgramDerivedContextSet())
+            .add(context);
       }
     }
 
     public void legacyAddNewMissingClass(DexType type) {
       if (!alreadyMissingClasses.contains(type)) {
-        // The legacy reporting is context insensitive, so therefore we use the missing classes
-        // themselves as contexts.
-        newMissingClasses.computeIfAbsent(type, ignore -> Sets.newIdentityHashSet()).add(type);
+        // The legacy reporting is context insensitive, so we just use an empty set of contexts.
+        newMissingClasses.computeIfAbsent(type, ignore -> newProgramDerivedContextSet());
       }
     }
 
@@ -115,34 +121,109 @@ public class MissingClasses {
       return this;
     }
 
+    public MissingClasses assertNoMissingClasses(AppView<?> appView) {
+      assert getMissingClassesToBeReported(appView, clazz -> ImmutableSet.of(clazz.getType()))
+          .isEmpty();
+      return build();
+    }
+
     @Deprecated
     public MissingClasses ignoreMissingClasses() {
       return build();
     }
 
     public MissingClasses reportMissingClasses(AppView<?> appView) {
-      InternalOptions options = appView.options();
-      Map<DexType, Set<DexReference>> missingClassesToBeReported =
-          getMissingClassesToBeReported(appView);
+      return reportMissingClasses(appView, clazz -> ImmutableSet.of(clazz.getType()));
+    }
+
+    public MissingClasses reportMissingClasses(
+        AppView<?> appView, SynthesizingContextOracle synthesizingContextOracle) {
+      Map<DexType, Set<ProgramDerivedContext>> missingClassesToBeReported =
+          getMissingClassesToBeReported(appView, synthesizingContextOracle);
       if (!missingClassesToBeReported.isEmpty()) {
         MissingDefinitionsDiagnostic diagnostic =
             MissingDefinitionsDiagnosticImpl.builder()
                 .addMissingClasses(missingClassesToBeReported)
-                .setFatal(!options.ignoreMissingClasses)
                 .build();
-        if (options.ignoreMissingClasses) {
-          options.reporter.warning(diagnostic);
+        if (appView.options().ignoreMissingClasses) {
+          appView.reporter().warning(diagnostic);
         } else {
-          throw options.reporter.fatalError(diagnostic);
+          throw appView.reporter().fatalError(diagnostic);
         }
       }
       return build();
     }
 
-    private Map<DexType, Set<DexReference>> getMissingClassesToBeReported(AppView<?> appView) {
+    private void rewriteMissingClassContexts(
+        AppView<?> appView, SynthesizingContextOracle synthesizingContextOracle) {
+      Iterator<Entry<DexType, Set<ProgramDerivedContext>>> newMissingClassesIterator =
+          newMissingClasses.entrySet().iterator();
+      while (newMissingClassesIterator.hasNext()) {
+        Entry<DexType, Set<ProgramDerivedContext>> entry = newMissingClassesIterator.next();
+        entry.setValue(
+            rewriteMissingClassContextsForSingleMissingClass(
+                appView, entry.getValue(), synthesizingContextOracle));
+      }
+    }
+
+    private static Set<ProgramDerivedContext> rewriteMissingClassContextsForSingleMissingClass(
+        AppView<?> appView,
+        Set<ProgramDerivedContext> contexts,
+        SynthesizingContextOracle synthesizingContextOracle) {
+      if (contexts.isEmpty()) {
+        // Legacy reporting does not have any contexts.
+        return contexts;
+      }
+
+      Set<ProgramDerivedContext> rewrittenContexts = newProgramDerivedContextSet();
+      for (ProgramDerivedContext context : contexts) {
+        if (!context.isProgramContext()) {
+          rewrittenContexts.add(context);
+          continue;
+        }
+
+        DexProgramClass clazz = context.getContext().asProgramDefinition().getContextClass();
+        if (!appView.getSyntheticItems().isSyntheticClass(clazz)) {
+          rewrittenContexts.add(context);
+          continue;
+        }
+
+        // Rewrite the synthetic context to its synthesizing contexts.
+        Set<DexReference> synthesizingContextReferences =
+            appView.getSyntheticItems().getSynthesizingContexts(clazz, synthesizingContextOracle);
+        assert synthesizingContextReferences != null;
+        assert !synthesizingContextReferences.isEmpty();
+        for (DexReference synthesizingContextReference : synthesizingContextReferences) {
+          if (synthesizingContextReference.isDexMethod()) {
+            DexProgramClass holder =
+                appView
+                    .definitionFor(synthesizingContextReference.getContextType())
+                    .asProgramClass();
+            ProgramMethod synthesizingContext =
+                holder.lookupProgramMethod(synthesizingContextReference.asDexMethod());
+            assert synthesizingContext != null;
+            rewrittenContexts.add(synthesizingContext);
+          } else {
+            assert synthesizingContextReference.isDexType()
+                    && synthesizingContextReference
+                        .toSourceString()
+                        .contains("-$$InternalSyntheticTwrCloseResource$")
+                : "Unexpected synthesizing context: "
+                    + synthesizingContextReference.toSourceString();
+          }
+        }
+      }
+      return rewrittenContexts;
+    }
+
+    private Map<DexType, Set<ProgramDerivedContext>> getMissingClassesToBeReported(
+        AppView<?> appView, SynthesizingContextOracle synthesizingContextOracle) {
+      // Rewrite synthetic program contexts into their synthesizing contexts, to avoid reporting
+      // any synthetic contexts.
+      rewriteMissingClassContexts(appView, synthesizingContextOracle);
       Predicate<DexType> allowedMissingClassesPredicate =
           getIsAllowedMissingClassesPredicate(appView);
-      Map<DexType, Set<DexReference>> missingClassesToBeReported =
+      Map<DexType, Set<ProgramDerivedContext>> missingClassesToBeReported =
           new IdentityHashMap<>(newMissingClasses.size());
       newMissingClasses.forEach(
           (missingClass, contexts) -> {
@@ -151,10 +232,20 @@ public class MissingClasses {
               return;
             }
 
+            // TODO(b/175543745): This is a legacy reported missing class; remove once no longer
+            //  supported.
+            if (contexts.isEmpty()) {
+              missingClassesToBeReported.put(missingClass, contexts);
+              return;
+            }
+
             // Remove all contexts that are matched by a -dontwarn rule (a missing class should not
             // be reported if it os only referenced from contexts that are matched by a -dontwarn).
             contexts.removeIf(
-                context -> appView.getDontWarnConfiguration().matches(context.getContextType()));
+                context ->
+                    appView
+                        .getDontWarnConfiguration()
+                        .matches(context.getContext().getContextType()));
 
             // If there are any contexts not matched by a -dontwarn rule, then report.
             if (!contexts.isEmpty()) {

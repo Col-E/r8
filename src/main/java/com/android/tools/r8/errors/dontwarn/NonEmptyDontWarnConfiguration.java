@@ -29,17 +29,6 @@ public class NonEmptyDontWarnConfiguration extends DontWarnConfiguration {
   }
 
   @Override
-  public Set<DexType> getNonMatches(Set<DexType> types) {
-    Set<DexType> nonMatches = Sets.newIdentityHashSet();
-    for (DexType type : types) {
-      if (!matches(type)) {
-        nonMatches.add(type);
-      }
-    }
-    return nonMatches;
-  }
-
-  @Override
   public boolean matches(DexType type) {
     for (ProguardClassNameList dontWarnPattern : dontWarnPatterns) {
       if (dontWarnPattern.matches(type)) {

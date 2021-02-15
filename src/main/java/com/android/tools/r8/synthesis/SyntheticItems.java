@@ -217,9 +217,14 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   // TODO(b/180091213): Implement this and remove client provided the oracle.
   public Set<DexReference> getSynthesizingContexts(
-      DexProgramClass clazz, Function<DexProgramClass, Set<DexReference>> oracle) {
+      DexProgramClass clazz, SynthesizingContextOracle oracle) {
     assert isSyntheticClass(clazz);
-    return oracle.apply(clazz);
+    return oracle.getSynthesizingContexts(clazz);
+  }
+
+  public interface SynthesizingContextOracle {
+
+    Set<DexReference> getSynthesizingContexts(DexProgramClass clazz);
   }
 
   // The compiler should not inspect the kind of a synthetic, so this provided only as a assertion

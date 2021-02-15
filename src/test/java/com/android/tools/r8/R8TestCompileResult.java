@@ -179,6 +179,12 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
     return proguardMap;
   }
 
+  public R8TestCompileResult inspectProguardMap(ThrowableConsumer<String> consumer)
+      throws Throwable {
+    consumer.accept(getProguardMap());
+    return this;
+  }
+
   public Path writeProguardMap() throws IOException {
     Path file = state.getNewTempFolder().resolve("out.zip");
     writeProguardMap(file);

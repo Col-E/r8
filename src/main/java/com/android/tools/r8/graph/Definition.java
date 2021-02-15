@@ -18,4 +18,12 @@ public interface Definition {
   DexType getContextType();
 
   DexReference getReference();
+
+  default boolean isProgramDefinition() {
+    return false;
+  }
+
+  default ProgramDefinition asProgramDefinition() {
+    return null;
+  }
 }

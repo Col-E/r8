@@ -112,10 +112,6 @@ public abstract class TestShrinkerBuilder<
     return self();
   }
 
-  public T addDontWarn(String className) {
-    return addKeepRules("-dontwarn " + className);
-  }
-
   public T addDontWarn(Collection<String> classes) {
     for (String clazz : classes) {
       addKeepRules("-dontwarn " + clazz);

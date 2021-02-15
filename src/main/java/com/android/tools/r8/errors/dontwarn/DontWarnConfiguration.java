@@ -4,11 +4,10 @@
 
 package com.android.tools.r8.errors.dontwarn;
 
-import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.Definition;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.utils.InternalOptions;
-import java.util.Set;
 
 public abstract class DontWarnConfiguration {
 
@@ -24,10 +23,8 @@ public abstract class DontWarnConfiguration {
     return new EmptyDontWarnConfiguration();
   }
 
-  public abstract Set<DexType> getNonMatches(Set<DexType> types);
-
-  public final boolean matches(DexClass clazz) {
-    return matches(clazz.getType());
+  public final boolean matches(Definition clazz) {
+    return matches(clazz.getContextType());
   }
 
   public abstract boolean matches(DexType type);

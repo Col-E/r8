@@ -38,6 +38,16 @@ public interface ProgramDefinition extends Definition, ProgramDerivedContext {
     return null;
   }
 
+  @Override
+  default boolean isProgramDefinition() {
+    return true;
+  }
+
+  @Override
+  default ProgramDefinition asProgramDefinition() {
+    return this;
+  }
+
   default boolean isProgramField() {
     return false;
   }

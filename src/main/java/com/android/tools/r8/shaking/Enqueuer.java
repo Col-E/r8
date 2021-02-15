@@ -90,6 +90,7 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.R8CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
+import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;
@@ -108,6 +109,7 @@ import com.android.tools.r8.shaking.RootSetUtils.MutableItemsWithRules;
 import com.android.tools.r8.shaking.RootSetUtils.RootSet;
 import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
+import com.android.tools.r8.synthesis.SyntheticItems.SynthesizingContextOracle;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
@@ -248,6 +250,11 @@ public class Enqueuer {
   /** Set of instance fields that can be reached by read/write operations. */
   private final Map<DexProgramClass, ProgramFieldSet> reachableInstanceFields =
       Maps.newIdentityHashMap();
+
+  // TODO(b/180091213): Remove when supported by synthetic items.
+  /** The synthesizing contexts for the synthesized lambda classes. */
+  private final Map<DexProgramClass, ProgramMethod> lambdaSynthesizingContexts =
+      new IdentityHashMap<>();
 
   /**
    * Set of types that are mentioned in the program. We at least need an empty abstract class item
@@ -3202,7 +3209,8 @@ public class Enqueuer {
       return;
     }
     R8CfInstructionDesugaringEventConsumer desugaringEventConsumer =
-        CfInstructionDesugaringEventConsumer.createForR8(appView);
+        CfInstructionDesugaringEventConsumer.createForR8(
+            appView, this::recordLambdaSynthesizingContext);
     ThreadUtils.processItems(
         pendingDesugaring,
         method ->
@@ -3211,6 +3219,12 @@ public class Enqueuer {
     desugaringEventConsumer.finalizeDesugaring();
     Iterables.addAll(additions.desugaredMethods, pendingDesugaring);
     pendingDesugaring.clear();
+  }
+
+  private void recordLambdaSynthesizingContext(LambdaClass lambdaClass, ProgramMethod context) {
+    synchronized (lambdaSynthesizingContexts) {
+      lambdaSynthesizingContexts.put(lambdaClass.getLambdaProgramClass(), context);
+    }
   }
 
   private void synthesizeInterfaceMethodBridges(SyntheticAdditions additions) {
@@ -3305,6 +3319,13 @@ public class Enqueuer {
     // Verify the references on the pruned application after type synthesis.
     assert verifyReferences(app);
 
+    SynthesizingContextOracle lambdaSynthesizingContextOracle =
+        syntheticClass -> {
+          ProgramMethod lambdaSynthesisContext = lambdaSynthesizingContexts.get(syntheticClass);
+          return lambdaSynthesisContext != null
+              ? ImmutableSet.of(lambdaSynthesisContext.getReference())
+              : ImmutableSet.of(syntheticClass.getType());
+        };
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             appInfo.getSyntheticItems().commit(app),
@@ -3312,7 +3333,10 @@ public class Enqueuer {
             appInfo.getMainDexInfo(),
             deadProtoTypes,
             appView.testing().enableExperimentalMissingClassesReporting
-                ? missingClassesBuilder.reportMissingClasses(appView)
+                ? (mode.isInitialTreeShaking()
+                    ? missingClassesBuilder.reportMissingClasses(
+                        appView, lambdaSynthesizingContextOracle)
+                    : missingClassesBuilder.assertNoMissingClasses(appView))
                 : missingClassesBuilder.ignoreMissingClasses(),
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toDescriptorSet(targetedMethods.getItems()),
