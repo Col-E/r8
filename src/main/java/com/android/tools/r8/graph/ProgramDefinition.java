@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.origin.Origin;
 import java.util.function.Function;
 
 public interface ProgramDefinition extends Definition, ProgramDerivedContext {
@@ -27,8 +26,6 @@ public interface ProgramDefinition extends Definition, ProgramDerivedContext {
   AccessFlags<?> getAccessFlags();
 
   DexDefinition getDefinition();
-
-  Origin getOrigin();
 
   default boolean isProgramClass() {
     return false;
