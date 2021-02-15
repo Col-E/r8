@@ -134,6 +134,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
       Consumer<DexClasspathClass> classpathClassConsumer,
       Consumer<DexLibraryClass> libraryClassConsumer);
 
+  @Override
   public void forEachClassField(Consumer<? super DexClassAndField> consumer) {
     forEachClassFieldMatching(alwaysTrue(), consumer);
   }
@@ -143,6 +144,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     forEachFieldMatching(predicate, field -> consumer.accept(DexClassAndField.create(this, field)));
   }
 
+  @Override
   public void forEachClassMethod(Consumer<? super DexClassAndMethod> consumer) {
     forEachClassMethodMatching(alwaysTrue(), consumer);
   }
@@ -188,6 +190,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     return Iterables.concat(fields(predicate), methods(predicate));
   }
 
+  @Override
   public MethodCollection getMethodCollection() {
     return methodCollection;
   }
@@ -624,20 +627,24 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     return this;
   }
 
+  @Override
   public boolean isClasspathClass() {
     return false;
   }
 
+  @Override
   public DexClasspathClass asClasspathClass() {
     return null;
   }
 
   public abstract boolean isNotProgramClass();
 
+  @Override
   public boolean isLibraryClass() {
     return false;
   }
 
+  @Override
   public DexLibraryClass asLibraryClass() {
     return null;
   }
@@ -666,14 +673,17 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     return classInitializer;
   }
 
+  @Override
   public ClassReference getClassReference() {
     return Reference.classFromDescriptor(getType().toDescriptorString());
   }
 
+  @Override
   public Origin getOrigin() {
     return this.origin;
   }
 
+  @Override
   public DexType getType() {
     return type;
   }
@@ -776,6 +786,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     }
   }
 
+  @Override
   public Iterable<DexType> allImmediateSupertypes() {
     Iterator<DexType> iterator =
         superType != null

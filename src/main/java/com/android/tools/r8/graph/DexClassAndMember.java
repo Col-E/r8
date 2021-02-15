@@ -49,6 +49,7 @@ public abstract class DexClassAndMember<D extends DexEncodedMember<D, R>, R exte
     return definition.getReference();
   }
 
+  @Override
   public Origin getOrigin() {
     return holder.origin;
   }
