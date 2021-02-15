@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
@@ -64,7 +66,7 @@ public class MetadataRewriteFlexibleUpperBoundTest extends KotlinMetadataTestBas
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".flexible_upper_bound_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -74,7 +76,7 @@ public class MetadataRewriteFlexibleUpperBoundTest extends KotlinMetadataTestBas
   public void testMetadataForLib() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
             // Allow renaming A to ensure that we rename in the flexible upper bound type.
             .addKeepRules("-keep,allowobfuscation class " + PKG_LIB + ".A { *; }")
@@ -85,7 +87,6 @@ public class MetadataRewriteFlexibleUpperBoundTest extends KotlinMetadataTestBas
                 ProguardKeepAttributes.SIGNATURE,
                 ProguardKeepAttributes.INNER_CLASSES,
                 ProguardKeepAttributes.ENCLOSING_METHOD)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspect)
             .writeToZip();
@@ -97,7 +98,7 @@ public class MetadataRewriteFlexibleUpperBoundTest extends KotlinMetadataTestBas
             .compile();
     testForJvm()
         .addRunClasspathFiles(
-            ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc), libJar)
+            getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc), libJar)
         .addClasspath(main)
         .run(parameters.getRuntime(), PKG + ".flexible_upper_bound_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

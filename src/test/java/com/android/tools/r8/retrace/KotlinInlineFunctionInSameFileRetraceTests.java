@@ -5,6 +5,8 @@ package com.android.tools.r8.retrace;
 
 import static com.android.tools.r8.Collectors.toSingle;
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.containsLinePositions;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineFrame;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineStack;
@@ -19,7 +21,6 @@ import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -74,7 +75,7 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends KotlinTestBase {
     assumeTrue(kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
     testForRuntime(parameters)
         .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
-        .addRunClasspathFiles(buildOnDexRuntime(parameters, ToolHelper.getKotlinStdlibJar(kotlinc)))
+        .addRunClasspathFiles(buildOnDexRuntime(parameters, getKotlinStdlibJar(kotlinc)))
         .run(parameters.getRuntime(), MAIN)
         .assertFailureWithErrorThatMatches(containsString("foo"))
         .assertFailureWithErrorThatMatches(
@@ -90,8 +91,7 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends KotlinTestBase {
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
         .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
-        .addDontWarnJetBrainsNotNullAnnotation()
+        .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(MAIN)

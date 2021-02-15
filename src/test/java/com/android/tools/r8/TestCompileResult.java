@@ -65,6 +65,20 @@ public abstract class TestCompileResult<
     this.outputMode = outputMode;
   }
 
+  public CR applyIf(boolean condition, ThrowableConsumer<CR> thenConsumer) {
+    return applyIf(condition, thenConsumer, result -> {});
+  }
+
+  public CR applyIf(
+      boolean condition, ThrowableConsumer<CR> thenConsumer, ThrowableConsumer<CR> elseConsumer) {
+    if (condition) {
+      thenConsumer.acceptWithRuntimeException(self());
+    } else {
+      elseConsumer.acceptWithRuntimeException(self());
+    }
+    return self();
+  }
+
   public final CR withArt6Plus64BitsLib() {
     withArt6Plus64BitsLib = true;
     return self();
@@ -362,7 +376,7 @@ public abstract class TestCompileResult<
   }
 
   public CR assertAllWarningMessagesMatch(Matcher<String> matcher) {
-    getDiagnosticMessages().assertAllWarningsMatch(diagnosticMessage(matcher));
+    getDiagnosticMessages().assertHasWarnings().assertAllWarningsMatch(diagnosticMessage(matcher));
     return self();
   }
 

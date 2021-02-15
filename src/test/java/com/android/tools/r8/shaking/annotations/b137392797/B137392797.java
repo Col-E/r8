@@ -4,13 +4,15 @@
 
 package com.android.tools.r8.shaking.annotations.b137392797;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinC_1_3_72;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -63,8 +65,8 @@ public class B137392797 extends TestBase implements Opcodes {
             classWireFieldLabel(),
             classTest(defaultEnumValueInAnnotation))
         .addProgramClasses(TestClass.class)
-        .addClasspathFiles(ToolHelper.getKotlinStdlibJar(ToolHelper.getKotlinC_1_3_72()))
-        .addDontWarnJetBrainsAnnotations()
+        .addClasspathFiles(
+            getKotlinStdlibJar(getKotlinC_1_3_72()), getKotlinAnnotationJar(getKotlinC_1_3_72()))
         .addKeepClassAndMembersRules(
             "com.squareup.wire.WireField", "com.squareup.demo.myapplication.Test")
         .addKeepMainRule(TestClass.class)

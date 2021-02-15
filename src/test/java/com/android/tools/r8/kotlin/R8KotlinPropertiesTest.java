@@ -118,7 +118,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -135,7 +134,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -167,7 +165,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -198,7 +195,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -229,7 +225,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -260,7 +255,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -306,7 +300,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -336,7 +329,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -364,7 +356,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -390,7 +381,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -461,7 +451,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -488,7 +477,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -527,7 +515,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -555,7 +542,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -584,7 +570,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -619,7 +604,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -644,7 +628,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -669,7 +652,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -710,7 +692,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -745,7 +726,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -787,7 +767,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -829,7 +808,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -864,7 +842,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -893,7 +870,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -922,7 +898,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -956,7 +931,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -990,7 +964,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -1026,7 +999,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -1061,7 +1033,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -1095,7 +1066,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
@@ -1126,7 +1096,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             mainClass,
             testBuilder ->
                 testBuilder
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {

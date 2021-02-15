@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -12,7 +14,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -70,7 +71,7 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), baseLibJar, extLibJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), baseLibJar, extLibJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".classpath_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -81,7 +82,8 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
     Path baseLibJar = baseLibJarMap.getForConfiguration(kotlinc, targetVersion);
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(baseLibJar, ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(
+                baseLibJar, getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(extLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the Extra class and its interface (which has the method).
             .addKeepRules("-keep class **.Extra")
@@ -91,7 +93,6 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.ImplKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspectRenamed)
             .writeToZip();
@@ -104,7 +105,7 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), baseLibJar, libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), baseLibJar, libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".classpath_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

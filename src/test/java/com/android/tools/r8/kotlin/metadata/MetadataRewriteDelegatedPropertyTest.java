@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinReflectJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
+
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -51,8 +54,7 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
   @Test
   public void smokeTest() throws Exception {
     testForJvm()
-        .addRunClasspathFiles(
-            ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc))
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinReflectJar(kotlinc))
         .addClasspath(jars.getForConfiguration(kotlinc, targetVersion))
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED_MAIN);
@@ -64,11 +66,12 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
     Path outputJar =
         testForR8(parameters.getBackend())
             .addClasspathFiles(
-                ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc))
+                getKotlinStdlibJar(kotlinc),
+                getKotlinReflectJar(kotlinc),
+                getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(jars.getForConfiguration(kotlinc, targetVersion))
             .addKeepAllClassesRule()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(
                 inspector ->
@@ -77,8 +80,7 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
                         inspector))
             .writeToZip();
     testForJvm()
-        .addRunClasspathFiles(
-            ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc))
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinReflectJar(kotlinc))
         .addClasspath(outputJar)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED_MAIN);

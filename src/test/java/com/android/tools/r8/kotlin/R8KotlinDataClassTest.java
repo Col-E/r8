@@ -74,7 +74,6 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             testBuilder ->
                 testBuilder
                     .addKeepRules(extraRules)
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
@@ -120,7 +119,6 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             testBuilder ->
                 testBuilder
                     .addKeepRules(extraRules)
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
@@ -165,7 +163,6 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             testBuilder ->
                 testBuilder
                     .addKeepRules(extraRules)
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
@@ -208,7 +205,6 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             testBuilder ->
                 testBuilder
                     .addKeepRules(extraRules)
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
@@ -231,7 +227,6 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             testBuilder ->
                 testBuilder
                     .addKeepRules(extraRules)
-                    .addDontWarnJetBrainsAnnotations()
                     .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {

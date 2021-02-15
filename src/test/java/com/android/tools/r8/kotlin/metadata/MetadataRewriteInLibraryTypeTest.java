@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -86,7 +87,8 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
             // Intentionally not providing baseLibJar as lib file nor classpath file.
             .addProgramFiles(
                 extLibJarMap.getForConfiguration(kotlinc, targetVersion),
-                appJarMap.getForConfiguration(kotlinc, targetVersion))
+                appJarMap.getForConfiguration(kotlinc, targetVersion),
+                getKotlinAnnotationJar(kotlinc))
             // Keep Ext extension method which requires metadata to be called with Kotlin syntax
             // from other kotlin code.
             .addKeepRules("-keep class **.ExtKt { <methods>; }")
@@ -94,7 +96,6 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
             .addKeepMainRule(main)
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addDontWarn(PKG + ".**")
-            .addDontWarnJetBrainsNotNullAnnotation()
             .allowDiagnosticWarningMessages()
             // -dontoptimize so that basic code structure is kept.
             .noOptimization()

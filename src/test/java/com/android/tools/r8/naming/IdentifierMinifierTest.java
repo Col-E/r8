@@ -72,8 +72,11 @@ public class IdentifierMinifierTest extends TestBase {
             .enableProguardTestOptions()
             .setMinApi(parameters.getApiLevel())
             .compile()
-            .assertAllWarningMessagesMatch(
-                containsString("Cannot determine what identifier string flows to"))
+            .applyIf(
+                hasWarning,
+                result ->
+                    result.assertAllWarningMessagesMatch(
+                        containsString("Cannot determine what identifier string flows to")))
             .inspector();
     inspection.accept(parameters, codeInspector);
   }

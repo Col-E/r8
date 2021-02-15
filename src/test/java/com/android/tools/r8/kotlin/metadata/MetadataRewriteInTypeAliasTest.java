@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinReflectJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isDexClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -14,7 +17,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -89,8 +91,7 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(
-            ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinReflectJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".typealias_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -103,7 +104,9 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     Path libJar =
         testForR8(parameters.getBackend())
             .addClasspathFiles(
-                ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc))
+                getKotlinStdlibJar(kotlinc),
+                getKotlinReflectJar(kotlinc),
+                getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(typeAliasLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep non-private members of Impl
             .addKeepRules("-keep class **.Impl { !private *; }")
@@ -126,7 +129,6 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
                 ProguardKeepAttributes.SIGNATURE,
                 ProguardKeepAttributes.INNER_CLASSES,
                 ProguardKeepAttributes.ENCLOSING_METHOD)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspect)
             .writeToZip();
@@ -138,8 +140,7 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(
-            ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinReflectJar(kotlinc), libJar)
         .addClasspath(appJar)
         .run(parameters.getRuntime(), PKG + ".typealias_app.MainKt")
         .assertSuccessWithOutput(EXPECTED.replace(superTypeName, renamedSuperTypeName));

@@ -13,7 +13,6 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.SgetObject;
 import com.android.tools.r8.graph.DexClass;
@@ -83,7 +82,6 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                 testBuilder
                     // TODO(jsjeon): Introduce @NeverInline to kotlinR8TestResources
                     .addKeepRules("-neverinline class * { void test*State*(...); }")
-                    .addDontWarnJetBrainsNotNullAnnotation()
                     .addHorizontallyMergedClassesInspector(
                         inspector ->
                             inspector
@@ -115,8 +113,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
             testBuilder ->
                 testBuilder
                     // TODO(jsjeon): Introduce @NeverInline to kotlinR8TestResources
-                    .addKeepRules("-neverinline class * { void test*State*(...); }")
-                    .addDontWarnJetBrainsNotNullAnnotation())
+                    .addKeepRules("-neverinline class * { void test*State*(...); }"))
         .inspect(
             inspector -> {
               // TODO(b/173337498): MainKt$testStateless$1 should be class inlined.
@@ -144,7 +141,6 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                         "-neverinline class * { void test*State*(...); }",
                         "-neverinline class * { void testBigExtraMethod(...); }",
                         "-neverinline class * { void testBigExtraMethodReturningLambda(...); }")
-                    .addDontWarnJetBrainsAnnotations()
                     .addHorizontallyMergedClassesInspector(
                         inspector ->
                             inspector.assertIsCompleteMergeGroup(
@@ -177,10 +173,9 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                 testBuilder
                     // TODO(jsjeon): Introduce @NeverInline to kotlinR8TestResources
                     .addKeepRules(
-                        "-neverinline class * { void test*State*(...); }",
-                        "-neverinline class * { void testBigExtraMethod(...); }",
-                        "-neverinline class * { void testBigExtraMethodReturningLambda(...); }")
-                    .addDontWarnJetBrainsAnnotations())
+                    "-neverinline class * { void test*State*(...); }",
+                    "-neverinline class * { void testBigExtraMethod(...); }",
+                    "-neverinline class * { void testBigExtraMethodReturningLambda(...); }"))
         .inspect(
             inspector -> {
               // TODO(b/173337498): Should be absent, but horizontal class merging interferes with
@@ -210,10 +205,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
     // TODO(b/179866251): Update tests.
     assumeTrue(kotlinc.is(KOTLINC_1_3_72) && testParameters.isDexRuntime());
     String mainClassName = "class_inliner_data_class.MainKt";
-    runTest(
-            "class_inliner_data_class",
-            mainClassName,
-            TestShrinkerBuilder::addDontWarnJetBrainsAnnotations)
+    runTest("class_inliner_data_class", mainClassName)
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(mainClassName);

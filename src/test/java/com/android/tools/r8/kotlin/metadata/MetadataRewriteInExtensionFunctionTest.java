@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -78,7 +79,9 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
   public void testMetadataInExtensionFunction_merged() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addProgramFiles(extLibJarMap.getForConfiguration(kotlinc, targetVersion))
+            .addProgramFiles(
+                extLibJarMap.getForConfiguration(kotlinc, targetVersion),
+                getKotlinAnnotationJar(kotlinc))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")
@@ -89,7 +92,6 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
             .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspectMerged)
             .writeToZip();
@@ -130,7 +132,8 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
   public void testMetadataInExtensionFunction_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(
+                ToolHelper.getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(extLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
@@ -144,7 +147,6 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
             .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspectRenamed)
             .writeToZip();

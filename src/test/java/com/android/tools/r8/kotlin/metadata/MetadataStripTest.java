@@ -4,6 +4,8 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinReflectJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
@@ -13,7 +15,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -53,11 +54,10 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
         testForR8(parameters.getBackend())
             .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
             .addProgramFiles(getJavaJarFile(FOLDER))
-            .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinc))
+            .addProgramFiles(getKotlinReflectJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addKeepMainRule(mainClassName)
             .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsAnnotations()
             .allowDiagnosticWarningMessages()
             .setMinApi(parameters.getApiLevel())
             .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.is(KOTLINC_1_4_20))

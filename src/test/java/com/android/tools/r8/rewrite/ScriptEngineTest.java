@@ -79,11 +79,15 @@ public class ScriptEngineTest extends ScriptEngineTestBase {
         // TODO(b/136633154): This should work both with and without -dontshrink.
         .noTreeShaking()
         .compile()
-        .assertAllWarningMessagesMatch(
-            anyOf(
-                containsString("Missing class "),
-                containsString("it is required for default or static interface methods desugaring"),
-                equalTo("Resource 'META-INF/MANIFEST.MF' already exists.")))
+        .applyIf(
+            parameters.isDexRuntime(),
+            result ->
+                result.assertAllWarningMessagesMatch(
+                    anyOf(
+                        containsString("Missing class "),
+                        containsString(
+                            "it is required for default or static interface methods desugaring"),
+                        equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))))
         .writeToZip(path)
         .run(parameters.getRuntime(), TestClass.class)
         // TODO(b/136633154): This should provide 2 script engines on both runtimes. The use of

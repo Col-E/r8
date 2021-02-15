@@ -4,7 +4,11 @@
 
 package com.android.tools.r8.kotlin.lambda.b159688129;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinC_1_3_72;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -59,7 +63,6 @@ public class LambdaGroupGCLimitTest extends TestBase {
                     builder.addKeepClassAndMembersRules(PKG_NAME + ".MainKt" + mainId);
                   }
                 })
-            .addDontWarnJetBrainsNotNullAnnotation()
             .addHorizontallyMergedClassesInspector(
                 inspector -> {
                   HorizontalClassMergerOptions defaultHorizontalClassMergerOptions =
@@ -73,7 +76,10 @@ public class LambdaGroupGCLimitTest extends TestBase {
                                   mergeGroup.size()
                                       <= defaultHorizontalClassMergerOptions.getMaxGroupSize()));
                 })
-            .compile();
+            .allowDiagnosticWarningMessages()
+            .compile()
+            .assertAllWarningMessagesMatch(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."));
     Path path = compileResult.writeToZip();
     compileResult
         .run(parameters.getRuntime(), PKG_NAME + ".MainKt0")
@@ -97,6 +103,8 @@ public class LambdaGroupGCLimitTest extends TestBase {
     }
     writeClassFileDataToJar(classFiles, classFileData);
     return ImmutableList.of(
-        classFiles, ToolHelper.getKotlinStdlibJar(ToolHelper.getKotlinC_1_3_72()));
+        classFiles,
+        getKotlinStdlibJar(getKotlinC_1_3_72()),
+        getKotlinAnnotationJar(getKotlinC_1_3_72()));
   }
 }

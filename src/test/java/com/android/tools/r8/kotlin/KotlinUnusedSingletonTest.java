@@ -13,7 +13,6 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -54,10 +53,7 @@ public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
     assumeTrue(kotlinc.is(KOTLINC_1_3_72));
     final String mainClassName = "unused_singleton.MainKt";
     final String moduleName = "unused_singleton.TestModule";
-    runTest(
-            "unused_singleton",
-            mainClassName,
-            TestShrinkerBuilder::addDontWarnJetBrainsNotNullAnnotation)
+    runTest("unused_singleton", mainClassName)
         .inspect(
             inspector -> {
               ClassSubject main = inspector.clazz(mainClassName);

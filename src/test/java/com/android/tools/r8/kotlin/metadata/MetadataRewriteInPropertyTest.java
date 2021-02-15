@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionProperty;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -15,7 +17,6 @@ import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -65,7 +66,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".fragile_property_only_getter.Getter_userKt")
         .assertSuccessWithOutput(EXPECTED_GETTER);
@@ -75,13 +76,12 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
   public void testMetadataInProperty_getterOnly() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(propertyTypeLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep property getters
             .addKeepRules("-keep class **.Person { <init>(...); }")
             .addKeepRules("-keepclassmembers class **.Person { *** get*(); }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspectGetterOnly)
             .writeToZip();
@@ -95,7 +95,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".fragile_property_only_getter.Getter_userKt")
         .assertSuccessWithOutput(EXPECTED_GETTER);
@@ -157,7 +157,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".fragile_property_only_setter.Setter_userKt")
         .assertSuccessWithOutputLines();
@@ -167,7 +167,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
   public void testMetadataInProperty_setterOnly() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(propertyTypeLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep property setters (and users)
             .addKeepRules("-keep class **.Person { <init>(...); }")
@@ -177,7 +177,6 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             // Keep LibKt extension methods
             .addKeepRules("-keep class **.LibKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspectSetterOnly)
             .writeToZip();
@@ -191,7 +190,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".fragile_property_only_setter.Setter_userKt")
         .assertSuccessWithOutputLines();

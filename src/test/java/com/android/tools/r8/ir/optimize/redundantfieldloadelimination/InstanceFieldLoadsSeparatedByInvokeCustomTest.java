@@ -46,7 +46,6 @@ public class InstanceFieldLoadsSeparatedByInvokeCustomTest extends TestBase {
         .addKeepAllClassesRule()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .assertAllWarningMessagesMatch(containsString("Unknown bootstrap method"))
         .run(parameters.getRuntime(), "InstanceFieldLoadsSeparatedByInvokeCustomTestClass")
         .assertSuccess();
   }

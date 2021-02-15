@@ -4,12 +4,13 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -53,7 +54,7 @@ public class MetadataRewriteAnonymousTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".anonymous_app.MainKt")
         .assertSuccessWithOutputLines(EXPECTED);
@@ -63,7 +64,7 @@ public class MetadataRewriteAnonymousTest extends KotlinMetadataTestBase {
   public void testMetadataForLib() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
             .addKeepAllClassesRuleWithAllowObfuscation()
             .addKeepRules("-keep class " + PKG + ".anonymous_lib.Test$A { *; }")
@@ -73,7 +74,6 @@ public class MetadataRewriteAnonymousTest extends KotlinMetadataTestBase {
                 ProguardKeepAttributes.SIGNATURE,
                 ProguardKeepAttributes.INNER_CLASSES,
                 ProguardKeepAttributes.ENCLOSING_METHOD)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspect)
             .writeToZip();
@@ -84,7 +84,7 @@ public class MetadataRewriteAnonymousTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(main)
         .run(parameters.getRuntime(), PKG + ".anonymous_app.MainKt")
         .assertSuccessWithOutputLines(EXPECTED);

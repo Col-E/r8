@@ -31,6 +31,8 @@ public interface TestDiagnosticMessages {
 
   TestDiagnosticMessages assertNoMessages();
 
+  TestDiagnosticMessages assertHasWarnings();
+
   TestDiagnosticMessages assertOnlyInfos();
 
   TestDiagnosticMessages assertOnlyWarnings();

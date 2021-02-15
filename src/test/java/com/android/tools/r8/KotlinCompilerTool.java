@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.ToolHelper.getKotlinC_1_4_20;
 import static com.android.tools.r8.ToolHelper.isWindows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -58,6 +59,10 @@ public class KotlinCompilerTool {
       this.lib = null;
       this.compilerVersion = compilerVersion;
       this.name = name;
+    }
+
+    public static KotlinCompiler latest() {
+      return getKotlinC_1_4_20();
     }
 
     public Path getCompiler() {

@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -16,7 +18,6 @@ import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
@@ -65,7 +66,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".sealed_app.ValidKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -75,7 +76,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
   public void testMetadataInSealedClass_valid() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(sealedLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the Expr class
             .addKeepRules("-keep class **.Expr")
@@ -84,7 +85,6 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
             // Keep the factory object and utils
             .addKeepRules("-keep class **.ExprFactory { *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsAnnotations()
             .compile()
             .inspect(this::inspectValid)
             .writeToZip();
@@ -97,7 +97,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".sealed_app.ValidKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -143,14 +143,13 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
   public void testMetadataInSealedClass_invalid() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(sealedLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the Expr class
             .addKeepRules("-keep class **.Expr")
             // Keep the extension function
             .addKeepRules("-keep class **.LibKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspectInvalid)
             .writeToZip();

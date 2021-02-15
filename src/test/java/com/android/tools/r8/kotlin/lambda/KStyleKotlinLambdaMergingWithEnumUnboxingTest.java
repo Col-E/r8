@@ -4,14 +4,16 @@
 
 package com.android.tools.r8.kotlin.lambda;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
+import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.kotlin.lambda.KStyleKotlinLambdaMergingWithEnumUnboxingTest.Main.EnumUnboxingCandidate;
 import java.util.List;
 import org.junit.Test;
@@ -42,17 +44,18 @@ public class KStyleKotlinLambdaMergingWithEnumUnboxingTest extends TestBase {
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(Lambda2.class, Lambda1.class))
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(EnumUnboxingCandidate.class))
-        .addDontWarnJetBrainsNotNullAnnotation()
+        .allowDiagnosticWarningMessages()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .noMinification()
         .setMinApi(parameters.getApiLevel())
         .compile()
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Lambda1.method()", "Lambda2.method()");
   }

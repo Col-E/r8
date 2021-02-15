@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -17,7 +19,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -72,7 +73,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".multifileclass_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -82,13 +83,12 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
   public void testMetadataInMultifileClass_merged() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(multifileLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep UtilKt#comma*Join*(). Let R8 optimize (inline) others, such as joinOf*(String).
             .addKeepRules("-keep class **.UtilKt")
             .addKeepRules("-keepclassmembers class * { ** comma*Join*(...); }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspectMerged)
             .writeToZip();
@@ -124,7 +124,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
   public void testMetadataInMultifileClass_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(multifileLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep UtilKt#comma*Join*().
             .addKeepRules("-keep class **.UtilKt")
@@ -133,7 +133,6 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             // Keep yet rename joinOf*(String).
             .addKeepRules("-keepclassmembers,allowobfuscation class * { ** joinOf*(...); }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspectRenamed)
             .writeToZip();

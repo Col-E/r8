@@ -869,6 +869,10 @@ public class ToolHelper {
     return annotationJar;
   }
 
+  public static Path getMostRecentKotlinAnnotationJar() {
+    return getKotlinAnnotationJar(KotlinCompiler.latest());
+  }
+
   public static Path getJdwpTestsCfJarPath(AndroidApiLevel minSdk) {
     if (minSdk.getLevel() >= AndroidApiLevel.N.getLevel()) {
       return Paths.get("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-host.jar");
@@ -2147,8 +2151,7 @@ public class ToolHelper {
     return new KotlinCompiler[] {getKotlinC_1_3_72(), getKotlinC_1_4_20()};
   }
 
-  public static void disassemble(AndroidApp app, PrintStream ps)
-      throws IOException, ExecutionException {
+  public static void disassemble(AndroidApp app, PrintStream ps) throws IOException {
     DexApplication application =
         new ApplicationReader(app, new InternalOptions(), Timing.empty()).read().toDirect();
     new AssemblyWriter(application, new InternalOptions(), true, false, true).write(ps);

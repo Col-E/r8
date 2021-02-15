@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -12,7 +14,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.JvmTestRunResult;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -58,7 +59,7 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutputLines(EXPECTED);
@@ -78,12 +79,12 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(
-                ToolHelper.getKotlinStdlibJar(kotlinc),
+                getKotlinStdlibJar(kotlinc),
+                getKotlinAnnotationJar(kotlinc),
                 libJars.getForConfiguration(kotlinc, targetVersion))
             .addKeepAllClassesRuleWithAllowObfuscation()
             .addKeepRules("-keep class " + PKG_LIB + ".LibKt { *; }")
             .addKeepRules("-keep class kotlin.Metadata { *; }")
-            .addDontWarnJetBrainsAnnotations()
             .applyIf(keepUnit, b -> b.addKeepRules("-keep class kotlin.Unit { *; }"))
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .allowDiagnosticWarningMessages()
@@ -105,7 +106,7 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
             .compile();
     final JvmTestRunResult runResult =
         testForJvm()
-            .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+            .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
             .addClasspath(output)
             .run(parameters.getRuntime(), PKG_APP + ".MainKt");
     if (keepUnit) {

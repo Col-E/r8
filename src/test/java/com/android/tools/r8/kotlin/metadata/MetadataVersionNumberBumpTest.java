@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinC_1_3_72;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -60,10 +61,10 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
     final R8FullTestBuilder testBuilder = testForR8(parameters.getBackend());
     rewriteMetadataVersion(testBuilder::addProgramClassFileData, new int[] {1, 1, 16});
     testBuilder
+        .addProgramFiles(getKotlinAnnotationJar(kotlinc))
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-        .addDontWarnJetBrainsAnnotations()
         .compile()
         .inspect(inspector -> inspectMetadataVersion(inspector, "1.4.0"));
   }
@@ -73,10 +74,10 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
     final R8FullTestBuilder testBuilder = testForR8(parameters.getBackend());
     rewriteMetadataVersion(testBuilder::addProgramClassFileData, new int[] {1, 4, 0});
     testBuilder
+        .addProgramFiles(getKotlinAnnotationJar(kotlinc))
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-        .addDontWarnJetBrainsAnnotations()
         .compile()
         .inspect(inspector -> inspectMetadataVersion(inspector, "1.4.0"));
   }
@@ -86,10 +87,10 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
     final R8FullTestBuilder testBuilder = testForR8(parameters.getBackend());
     rewriteMetadataVersion(testBuilder::addProgramClassFileData, new int[] {1, 4, 2});
     testBuilder
+        .addProgramFiles(getKotlinAnnotationJar(kotlinc))
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-        .addDontWarnJetBrainsAnnotations()
         .compile()
         .inspect(inspector -> inspectMetadataVersion(inspector, "1.4.2"));
   }

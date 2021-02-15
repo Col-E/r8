@@ -4,15 +4,15 @@
 
 package com.android.tools.r8.kotlin.sealed;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
-import static org.hamcrest.CoreMatchers.containsString;
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
+import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -58,7 +58,7 @@ public class SealedClassTest extends KotlinTestBase {
   public void testRuntime() throws ExecutionException, CompilationFailedException, IOException {
     testForRuntime(parameters)
         .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
-        .addRunClasspathFiles(buildOnDexRuntime(parameters, ToolHelper.getKotlinStdlibJar(kotlinc)))
+        .addRunClasspathFiles(buildOnDexRuntime(parameters, getKotlinStdlibJar(kotlinc)))
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines(EXPECTED);
   }
@@ -67,17 +67,14 @@ public class SealedClassTest extends KotlinTestBase {
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
         .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
-        .addProgramFiles(buildOnDexRuntime(parameters, ToolHelper.getKotlinStdlibJar(kotlinc)))
+        .addProgramFiles(buildOnDexRuntime(parameters, getKotlinStdlibJar(kotlinc)))
+        .addProgramFiles(getKotlinAnnotationJar(kotlinc))
         .setMinApi(parameters.getApiLevel())
         .allowAccessModification()
-        .allowDiagnosticWarningMessages(parameters.isCfRuntime())
+        .allowDiagnosticWarningMessages()
         .addKeepMainRule(MAIN)
-        .addDontWarnJetBrainsNotNullAnnotation()
-        .compileWithExpectedDiagnostics(
-            diagnostics ->
-                diagnostics.assertAllWarningsMatch(
-                    diagnosticMessage(
-                        containsString("Resource 'META-INF/MANIFEST.MF' already exists."))))
+        .compile()
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines(EXPECTED);
   }

@@ -3,14 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
+import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestShrinkerBuilder;
-import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -35,47 +34,35 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
   }
 
   private void test(Collection<String> rules) throws Exception {
-    test(rules, null);
-  }
-
-  private void test(
-      Collection<String> rules,
-      ThrowableConsumer<R8FullTestBuilder> consumer)
-      throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
         .addKeepRules(rules)
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
         .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
-        .apply(consumer)
-        .compile();
+        .allowDiagnosticWarningMessages()
+        .compile()
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."));
   }
 
   @Test
   public void testAsIs() throws Exception {
-    test(
-        ImmutableList.of("-dontshrink", "-dontoptimize", "-dontobfuscate"),
-        TestShrinkerBuilder::addDontWarnJetBrainsAnnotations);
+    test(ImmutableList.of("-dontshrink", "-dontoptimize", "-dontobfuscate"));
   }
 
   @Test
   public void testDontShrinkAndDontOptimize() throws Exception {
-    test(
-        ImmutableList.of("-dontshrink", "-dontoptimize"),
-        TestShrinkerBuilder::addDontWarnJetBrainsAnnotations);
+    test(ImmutableList.of("-dontshrink", "-dontoptimize"));
   }
 
   @Test
   public void testDontShrinkAndDontObfuscate() throws Exception {
-    test(
-        ImmutableList.of("-dontshrink", "-dontobfuscate"),
-        TestShrinkerBuilder::addDontWarnJetBrainsAnnotations);
+    test(ImmutableList.of("-dontshrink", "-dontobfuscate"));
   }
 
   @Test
   public void testDontShrink() throws Exception {
-    test(ImmutableList.of("-dontshrink"), TestShrinkerBuilder::addDontWarnJetBrainsAnnotations);
+    test(ImmutableList.of("-dontshrink"));
   }
 
   @Test

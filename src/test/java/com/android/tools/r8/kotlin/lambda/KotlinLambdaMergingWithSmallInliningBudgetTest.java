@@ -38,7 +38,6 @@ public class KotlinLambdaMergingWithSmallInliningBudgetTest extends AbstractR8Ko
         mainClassName,
         testBuilder ->
             testBuilder
-                .addDontWarnJetBrainsAnnotations()
                 .addOptionsModification(options -> options.inliningInstructionAllowance = 3));
   }
 }

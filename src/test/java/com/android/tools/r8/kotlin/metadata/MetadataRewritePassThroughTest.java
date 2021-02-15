@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
+import static org.hamcrest.CoreMatchers.equalTo;
+
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.Collection;
@@ -35,16 +38,16 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
   @Test
   public void testKotlinStdLib() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepKotlinMetadata()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-        .addDontWarnJetBrainsAnnotations()
+        .allowDiagnosticWarningMessages()
         .compile()
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .inspect(
             inspector ->
-                assertEqualMetadata(
-                    new CodeInspector(ToolHelper.getKotlinStdlibJar(kotlinc)), inspector));
+                assertEqualMetadata(new CodeInspector(getKotlinStdlibJar(kotlinc)), inspector));
   }
 }

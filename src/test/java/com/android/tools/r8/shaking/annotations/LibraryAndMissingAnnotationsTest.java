@@ -115,7 +115,7 @@ public class LibraryAndMissingAnnotationsTest extends TestBase {
     if (includeOnLibraryPath) {
       t.addLibraryClasses(LibraryAnnotation.class);
     } else {
-      t.addKeepRules("-dontwarn " + LibraryAnnotation.class.getTypeName());
+      t.addDontWarn(LibraryAnnotation.class);
     }
     t.compile()
         .addRunClasspathFiles(compilationResults.apply(parameters))

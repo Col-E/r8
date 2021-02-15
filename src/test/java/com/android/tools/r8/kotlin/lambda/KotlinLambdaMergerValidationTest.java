@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.lambda;
 
+import static com.android.tools.r8.ToolHelper.getJava8RuntimeJar;
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
@@ -11,7 +14,6 @@ import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfRuntime;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -43,21 +45,21 @@ public class KotlinLambdaMergerValidationTest extends KotlinTestBase {
 
     String pkg = getClass().getPackage().getName();
     String folder = DescriptorUtils.getBinaryNameFromJavaType(pkg);
-    CfRuntime cfRuntime =
-        parameters.isCfRuntime() ? parameters.getRuntime().asCf() : TestRuntime.getCheckedInJdk9();
+    CfRuntime cfRuntime = parameters.getRuntime().asCf();
     Path ktClasses =
         kotlinc(cfRuntime, kotlinc, targetVersion)
             .addSourceFiles(getKotlinFileInTest(folder, "b143165163"))
             .compile();
     testForR8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-        .addLibraryFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
-        .addProgramFiles(ktClasses)
+        .addLibraryFiles(getJava8RuntimeJar())
+        .addLibraryFiles(getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(ktClasses, getKotlinAnnotationJar(kotlinc))
         .addKeepMainRule("**.B143165163Kt")
-        .addDontWarnJetBrainsNotNullAnnotation()
+        .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc))
         .run(parameters.getRuntime(), pkg + ".B143165163Kt")
         .assertSuccessWithOutputLines("outer foo bar", "outer foo default");
   }
@@ -75,10 +77,9 @@ public class KotlinLambdaMergerValidationTest extends KotlinTestBase {
             .addSourceFiles(getKotlinFileInTest(folder, "b143165163"))
             .compile();
     testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
         .addProgramFiles(ktClasses)
         .addKeepMainRule("**.B143165163Kt")
-        .addDontWarnJetBrainsNotNullAnnotation()
         .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()

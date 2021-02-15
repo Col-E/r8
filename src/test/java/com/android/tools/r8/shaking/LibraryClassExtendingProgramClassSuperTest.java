@@ -70,7 +70,7 @@ public class LibraryClassExtendingProgramClassSuperTest extends TestBase {
             .addLibraryClasses(LibraryClass.class)
             .addProgramClasses(ProgramDirectSuper.class, ProgramIndirectSuper.class, Main.class)
             .addKeepMainRule(Main.class)
-            .applyIf(dontWarn, b -> b.addKeepRules("-dontwarn " + LibraryClass.class.getTypeName()))
+            .applyIf(dontWarn, b -> b.addDontWarn(LibraryClass.class))
             .setMinApi(parameters.getApiLevel())
             .addRunClasspathFiles(
                 compileToZip(

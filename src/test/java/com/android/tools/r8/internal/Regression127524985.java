@@ -50,7 +50,7 @@ public class Regression127524985 extends TestBase {
                 .noTreeShaking()
                 .noMinification()
                 .addKeepAllAttributes()
-                .addKeepRules("-dontwarn *"))
+                .addKeepRules("-dontwarn"))
         .addProgramFiles(JAR)
         .setMinApi(parameters.getRuntime())
         .compile()

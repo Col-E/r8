@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionProperty;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -15,7 +17,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -66,7 +67,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_property_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -77,7 +78,9 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
   public void testMetadataInExtensionProperty_merged() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addProgramFiles(extLibJarMap.getForConfiguration(kotlinc, targetVersion))
+            .addProgramFiles(
+                extLibJarMap.getForConfiguration(kotlinc, targetVersion),
+                getKotlinAnnotationJar(kotlinc))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")
@@ -85,7 +88,6 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspectMerged)
             .writeToZip();
@@ -98,7 +100,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_property_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -138,7 +140,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
   public void testMetadataInExtensionProperty_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(extLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
@@ -149,7 +151,6 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspectRenamed)
             .writeToZip();
@@ -162,7 +163,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_property_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

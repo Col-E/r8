@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -91,10 +92,11 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
     String mainClassName = ex3.getClassName();
     TestCompileResult<?, ?> result =
         testForR8(Backend.DEX)
-            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
+            .addProgramFiles(
+                compiledJars.getForConfiguration(kotlinc, targetVersion),
+                getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(mainClassName)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .allowDiagnosticWarningMessages()
             .minification(minification)
             .compile()
@@ -145,7 +147,9 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
     String mainClassName = testMain.getClassName();
     SingleTestRunResult<?> result =
         testForR8(Backend.DEX)
-            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
+            .addProgramFiles(
+                compiledJars.getForConfiguration(kotlinc, targetVersion),
+                getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .enableProguardTestOptions()
             .addKeepMainRule(mainClassName)
@@ -155,7 +159,6 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
                     "-" + NoVerticalClassMergingRule.RULE_NAME + " class **." + targetClassName,
                     "-" + NoHorizontalClassMergingRule.RULE_NAME + " class **." + targetClassName,
                     "-neverinline class **." + targetClassName + " { <methods>; }"))
-            .addDontWarnJetBrainsNotNullAnnotation()
             .allowDiagnosticWarningMessages()
             .minification(minification)
             .compile()

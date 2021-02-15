@@ -6,6 +6,8 @@ package com.android.tools.r8.retrace;
 
 import static com.android.tools.r8.Collectors.toSingle;
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.containsLinePositions;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineFrame;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineStack;
@@ -20,7 +22,6 @@ import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
@@ -87,7 +88,7 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
   public void testRuntime() throws Exception {
     testForRuntime(parameters)
         .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
-        .addRunClasspathFiles(buildOnDexRuntime(parameters, ToolHelper.getKotlinStdlibJar(kotlinc)))
+        .addRunClasspathFiles(buildOnDexRuntime(parameters, getKotlinStdlibJar(kotlinc)))
         .run(parameters.getRuntime(), "retrace.MainKt")
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
         .assertFailureWithErrorThatMatches(containsString("at retrace.MainKt.main(Main.kt:15)"));
@@ -102,12 +103,12 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
     Path kotlinSources = compilationResults.getForConfiguration(kotlinc, targetVersion);
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
-        .addProgramFiles(kotlinSources, ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(
+            kotlinSources, getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .allowDiagnosticWarningMessages()
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(main)
-        .addDontWarnJetBrainsNotNullAnnotation()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
@@ -134,12 +135,12 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
     Path kotlinSources = compilationResults.getForConfiguration(kotlinc, targetVersion);
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
-        .addProgramFiles(kotlinSources, ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(
+            kotlinSources, getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .allowDiagnosticWarningMessages()
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(main)
-        .addDontWarnJetBrainsNotNullAnnotation()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
@@ -169,12 +170,12 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
     Path kotlinSources = compilationResults.getForConfiguration(kotlinc, targetVersion);
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
-        .addProgramFiles(kotlinSources, ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(
+            kotlinSources, getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .allowDiagnosticWarningMessages()
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(main)
-        .addDontWarnJetBrainsNotNullAnnotation()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
@@ -203,12 +204,12 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
     Path kotlinSources = compilationResults.getForConfiguration(kotlinc, targetVersion);
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
-        .addProgramFiles(kotlinSources, ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(
+            kotlinSources, getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .allowDiagnosticWarningMessages()
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(main)
-        .addDontWarnJetBrainsNotNullAnnotation()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))

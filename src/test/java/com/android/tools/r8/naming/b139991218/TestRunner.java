@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.naming.b139991218;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -54,7 +56,8 @@ public class TestRunner extends TestBase {
                 ToolHelper.TESTS_BUILD_DIR,
                 "kotlinR8TestResources",
                 "JAVA_8",
-                "lambdas_kstyle_generics" + FileUtils.JAR_EXTENSION))
+                "lambdas_kstyle_generics" + FileUtils.JAR_EXTENSION),
+            getMostRecentKotlinAnnotationJar())
         .addKeepMainRule(Main.class)
         .addKeepAllAttributes()
         .addOptionsModification(
@@ -67,13 +70,15 @@ public class TestRunner extends TestBase {
                       .skipNoClassesOrMembersWithAnnotationsPolicyForTesting =
                   true;
             })
-        .addDontWarnJetBrainsAnnotations()
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector.assertIsCompleteMergeGroup(
                     "com.android.tools.r8.naming.b139991218.Lambda1",
                     "com.android.tools.r8.naming.b139991218.Lambda2"))
+        .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
+        .compile()
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("11", "12")
         .inspect(

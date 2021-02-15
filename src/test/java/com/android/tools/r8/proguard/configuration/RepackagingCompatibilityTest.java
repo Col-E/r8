@@ -62,7 +62,7 @@ public class RepackagingCompatibilityTest extends TestBase {
 
   @Test
   public void testProguard() throws Exception {
-    runTest(testForProguard().addKeepRules("-dontwarn " + getClass().getTypeName()), "Proguard");
+    runTest(testForProguard().addDontWarn(getClass()), "Proguard");
   }
 
   private void runTest(TestShrinkerBuilder<?, ?, ?, ?, ?> builder, String shrinker)

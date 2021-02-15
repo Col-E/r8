@@ -6,6 +6,7 @@ package com.android.tools.r8;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
 
@@ -102,6 +103,12 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     assertEmpty("info", getInfos());
     assertEmpty("warning", getWarnings());
     assertEmpty("error", getErrors());
+    return this;
+  }
+
+  @Override
+  public TestDiagnosticMessages assertHasWarnings() {
+    assertFalse(warnings.isEmpty());
     return this;
   }
 

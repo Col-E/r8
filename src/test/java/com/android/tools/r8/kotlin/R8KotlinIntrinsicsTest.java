@@ -56,7 +56,6 @@ public class R8KotlinIntrinsicsTest extends AbstractR8KotlinTestBase {
             testBuilder ->
                 testBuilder
                     .addKeepRules(extraRules)
-                    .addDontWarnJetBrainsAnnotations()
                     .noHorizontalClassMerging(Intrinsics.class))
         .inspect(
             inspector -> {

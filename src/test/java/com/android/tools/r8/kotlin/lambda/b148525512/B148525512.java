@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.kotlin.lambda.b148525512;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
@@ -11,7 +13,6 @@ import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -75,7 +76,7 @@ public class B148525512 extends KotlinTestBase {
     Path featureCode = temp.newFile("feature.zip").toPath();
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(kotlinBaseClasses.getForConfiguration(kotlinc, targetVersion))
             .addProgramClasses(FeatureAPI.class)
             .addKeepMainRule(baseKtClassName)
@@ -102,7 +103,6 @@ public class B148525512 extends KotlinTestBase {
                         .setProgramConsumer(new ArchiveConsumer(featureCode, false))
                         .build())
             .allowDiagnosticWarningMessages()
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."));

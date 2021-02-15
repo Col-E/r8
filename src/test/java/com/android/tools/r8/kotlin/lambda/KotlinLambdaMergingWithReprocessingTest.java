@@ -5,7 +5,6 @@ package com.android.tools.r8.kotlin.lambda;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.Collection;
@@ -34,9 +33,6 @@ public class KotlinLambdaMergingWithReprocessingTest extends AbstractR8KotlinTes
   @Test
   public void testMergingKStyleLambdasAndReprocessing() throws Exception {
     final String mainClassName = "reprocess_merged_lambdas_kstyle.MainKt";
-    runTest(
-        "reprocess_merged_lambdas_kstyle",
-        mainClassName,
-        TestShrinkerBuilder::addDontWarnJetBrainsNotNullAnnotation);
+    runTest("reprocess_merged_lambdas_kstyle", mainClassName);
   }
 }

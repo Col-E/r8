@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
@@ -233,6 +234,7 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
     classpath.clear();
     classpath.add(kotlinJarFile);
     classpath.add(getJavaJarFile(folder));
+    classpath.add(getKotlinAnnotationJar(kotlinc));
     classpath.addAll(extraClasspath);
 
     // Compare with Java.

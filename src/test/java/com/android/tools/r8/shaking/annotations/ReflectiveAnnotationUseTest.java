@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.annotations;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -95,12 +96,13 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   public void b120951621_keepAll() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
-            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
+            .addProgramFiles(
+                compiledJars.getForConfiguration(kotlinc, targetVersion),
+                getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
             .addKeepRules(KEEP_ANNOTATIONS)
             .addKeepRules("-keep @interface " + ANNOTATION_NAME + " {", "  *;", "}")
-            .addDontWarnJetBrainsAnnotations()
             .allowDiagnosticWarningMessages()
             .minification(minify)
             .setMinApi(parameters.getApiLevel())
@@ -132,7 +134,9 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   public void b120951621_partiallyKeep() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
-            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
+            .addProgramFiles(
+                compiledJars.getForConfiguration(kotlinc, targetVersion),
+                getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
             .addKeepRules(KEEP_ANNOTATIONS)
@@ -140,7 +144,6 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
                 "-keep,allowobfuscation @interface " + ANNOTATION_NAME + " {",
                 "  java.lang.String *f2();",
                 "}")
-            .addDontWarnJetBrainsAnnotations()
             .allowDiagnosticWarningMessages()
             .minification(minify)
             .setMinApi(parameters.getApiLevel())
@@ -173,11 +176,12 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   public void b120951621_keepAnnotation() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
-            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
+            .addProgramFiles(
+                compiledJars.getForConfiguration(kotlinc, targetVersion),
+                getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
             .addKeepRules(KEEP_ANNOTATIONS)
-            .addDontWarnJetBrainsAnnotations()
             .allowDiagnosticWarningMessages()
             .minification(minify)
             .setMinApi(parameters.getApiLevel())
@@ -210,10 +214,11 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   public void b120951621_noKeep() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
-            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
+            .addProgramFiles(
+                compiledJars.getForConfiguration(kotlinc, targetVersion),
+                getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
-            .addDontWarnJetBrainsAnnotations()
             .allowDiagnosticWarningMessages()
             .minification(minify)
             .setMinApi(parameters.getApiLevel())

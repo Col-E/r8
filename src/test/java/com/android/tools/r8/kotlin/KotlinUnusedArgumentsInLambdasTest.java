@@ -10,7 +10,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
@@ -40,10 +39,7 @@ public class KotlinUnusedArgumentsInLambdasTest extends AbstractR8KotlinTestBase
   @Test
   public void testMergingKStyleLambdasAfterUnusedArgumentRemoval() throws Exception {
     final String mainClassName = "unused_arg_in_lambdas_kstyle.MainKt";
-    runTest(
-            "unused_arg_in_lambdas_kstyle",
-            mainClassName,
-            TestShrinkerBuilder::addDontWarnJetBrainsAnnotations)
+    runTest("unused_arg_in_lambdas_kstyle", mainClassName)
         .inspect(
             inspector ->
                 inspector.forAllClasses(
@@ -64,10 +60,7 @@ public class KotlinUnusedArgumentsInLambdasTest extends AbstractR8KotlinTestBase
   @Test
   public void testMergingJStyleLambdasAfterUnusedArgumentRemoval() throws Exception {
     final String mainClassName = "unused_arg_in_lambdas_jstyle.MainKt";
-    runTest(
-            "unused_arg_in_lambdas_jstyle",
-            mainClassName,
-            TestShrinkerBuilder::addDontWarnJetBrainsAnnotations)
+    runTest("unused_arg_in_lambdas_jstyle", mainClassName)
         .inspect(
             inspector ->
                 inspector.forAllClasses(

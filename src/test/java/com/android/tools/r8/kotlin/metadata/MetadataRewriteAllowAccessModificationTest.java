@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -11,7 +13,6 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -82,7 +83,7 @@ public class MetadataRewriteAllowAccessModificationTest extends KotlinMetadataTe
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -96,7 +97,7 @@ public class MetadataRewriteAllowAccessModificationTest extends KotlinMetadataTe
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addKeepRules("-keepclassmembers,allowaccessmodification class **.Lib { *; }")
             .addKeepRules("-keep,allowaccessmodification,allowobfuscation class **.Lib { *; }")
             .addKeepRules("-keepclassmembers,allowaccessmodification class **.Lib$Comp { *; }")
@@ -112,7 +113,6 @@ public class MetadataRewriteAllowAccessModificationTest extends KotlinMetadataTe
                     "  void staticPrivate() -> staticPrivateReference",
                     "  void staticInternal() -> staticInternalReference"))
             .addKeepRuntimeVisibleAnnotations()
-            .addDontWarnJetBrainsNotNullAnnotation()
             .allowAccessModification()
             .compile()
             .inspect(this::inspect)

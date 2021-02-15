@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.kotlin.optimize.switches;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotEquals;
 
@@ -28,7 +30,8 @@ public class KotlinEnumSwitchTest extends TestBase {
 
   @Parameters(name = "{1}, enable switch map removal: {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public KotlinEnumSwitchTest(boolean enableSwitchMapRemoval, TestParameters parameters) {
@@ -39,17 +42,20 @@ public class KotlinEnumSwitchTest extends TestBase {
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_KOTLIN_BUILD_DIR, "enumswitch.jar"))
+        .addProgramFiles(
+            Paths.get(ToolHelper.EXAMPLES_KOTLIN_BUILD_DIR, "enumswitch.jar"),
+            getMostRecentKotlinAnnotationJar())
         .addKeepMainRule("enumswitch.EnumSwitchKt")
         .addOptionsModification(
             options -> {
               options.enableEnumValueOptimization = enableSwitchMapRemoval;
               options.enableEnumSwitchMapRemoval = enableSwitchMapRemoval;
             })
-        .addDontWarnJetBrainsNotNullAnnotation()
-        .setMinApi(parameters.getRuntime())
+        .allowDiagnosticWarningMessages()
+        .setMinApi(parameters.getApiLevel())
         .noMinification()
         .compile()
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .inspect(
             inspector -> {
               ClassSubject classSubject = inspector.clazz("enumswitch.EnumSwitchKt");

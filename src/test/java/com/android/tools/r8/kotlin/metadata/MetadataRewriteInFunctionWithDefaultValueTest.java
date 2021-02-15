@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getJava8RuntimeJar;
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -13,7 +16,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -65,7 +67,7 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".default_value_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -76,7 +78,7 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
     Path libJar =
         testForR8(parameters.getBackend())
             .addLibraryFiles(
-                ToolHelper.getJava8RuntimeJar(), ToolHelper.getKotlinStdlibJar(kotlinc))
+                getJava8RuntimeJar(), getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(defaultValueLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep LibKt and applyMap function, along with applyMap$default
             .addKeepRules("-keep class **.LibKt { *** applyMap*(...); }")
@@ -84,7 +86,6 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
             .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
             .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
-            .addDontWarnJetBrainsNotNullAnnotation()
             .compile()
             .inspect(this::inspect)
             .writeToZip();
@@ -97,7 +98,7 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".default_value_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

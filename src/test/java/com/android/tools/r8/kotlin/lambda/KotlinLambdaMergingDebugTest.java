@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.lambda;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.android.tools.r8.CompilationMode;
@@ -47,9 +48,10 @@ public class KotlinLambdaMergingDebugTest extends KotlinTestBase {
   public void testMergingKStyleLambdasAndReprocessingInDebug() throws Exception {
     testForR8(parameters.getBackend())
         .setMode(CompilationMode.DEBUG)
-        .addProgramFiles(compiledJars.getForConfiguration(kotlinc, KotlinTargetVersion.JAVA_6))
+        .addProgramFiles(
+            compiledJars.getForConfiguration(kotlinc, KotlinTargetVersion.JAVA_6),
+            getKotlinAnnotationJar(kotlinc))
         .addProgramFiles(getJavaJarFile(FOLDER))
-        .addDontWarnJetBrainsNotNullAnnotation()
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_CLASS)
         .allowDiagnosticWarningMessages()

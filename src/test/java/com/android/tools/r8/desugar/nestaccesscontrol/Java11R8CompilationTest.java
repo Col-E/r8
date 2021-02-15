@@ -31,8 +31,8 @@ public class Java11R8CompilationTest extends TestBase {
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters()
-        // Use of APIs, such as java.util.functions.* are only available from 24+
-        .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
+        // Use of APIs, such as java.nio.file.* are only available from 26+.
+        .withApiLevelsStartingAtIncluding(AndroidApiLevel.O)
         .withDexRuntimes()
         .build();
   }
@@ -50,11 +50,6 @@ public class Java11R8CompilationTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR)
         .addKeepRuleFiles(MAIN_KEEP)
-        // TODO(b/177967938): Investigate why this is needed.
-        .applyIf(
-            parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
-            builder -> builder.addDontWarnJavaLangInvoke().addDontWarnJavaNioFile())
-        .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
         .compile()
         .inspect(this::assertNotEmpty)
         .inspect(Java11R8CompilationTest::assertNoNests);

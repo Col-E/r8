@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin.lambda;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.PredicateUtils.not;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -75,7 +76,6 @@ public class KotlinLambdaMergingTrivialKotlinStyleTest extends KotlinTestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(getProgramFiles())
         .addKeepMainRule(getMainClassName())
-        .addDontWarnJetBrainsNotNullAnnotation()
         .addHorizontallyMergedClassesInspector(this::inspect)
         .allowAccessModification(allowAccessModification)
         .allowDiagnosticWarningMessages()
@@ -162,7 +162,7 @@ public class KotlinLambdaMergingTrivialKotlinStyleTest extends KotlinTestBase {
         getCompileMemoizer(getKotlinFilesInResource(getTestName()), getTestName())
             .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect())
             .getForConfiguration(kotlinc, targetVersion);
-    return ImmutableList.of(kotlinJarFile, getJavaJarFile());
+    return ImmutableList.of(kotlinJarFile, getJavaJarFile(), getKotlinAnnotationJar(kotlinc));
   }
 
   private String getTestName() {

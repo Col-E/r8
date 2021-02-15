@@ -4,9 +4,11 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -96,7 +98,9 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
   public void testMetadataForLib() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
+            .addProgramFiles(
+                libJars.getForConfiguration(kotlinc, targetVersion),
+                getKotlinAnnotationJar(kotlinc))
             .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
             /// Keep the annotations
             .addKeepClassAndMembersRules(PKG_LIB + ".AnnoWithClassAndEnum")
@@ -119,8 +123,10 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
                 ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
                 ProguardKeepAttributes.RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS,
                 ProguardKeepAttributes.RUNTIME_VISIBLE_TYPE_ANNOTATIONS)
-            .addDontWarnJetBrainsNotNullAnnotation()
+            .allowDiagnosticWarningMessages()
             .compile()
+            .assertAllWarningMessagesMatch(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
             .inspect(this::inspect)
             .writeToZip();
     Path output =

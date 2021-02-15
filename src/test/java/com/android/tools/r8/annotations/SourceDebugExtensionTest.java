@@ -5,7 +5,9 @@
 package com.android.tools.r8.annotations;
 
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -18,7 +20,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfRuntime;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.retrace.KotlinInlineFunctionRetraceTest;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -64,11 +65,11 @@ public class SourceDebugExtensionTest extends TestBase {
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     inspectSourceDebugExtension(kotlinInspector);
     testForR8(parameters.getBackend())
-        .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinCompiler))
+        .addClasspathFiles(
+            getKotlinStdlibJar(kotlinCompiler), getKotlinAnnotationJar(kotlinCompiler))
         .addProgramFiles(kotlinSources)
         .addKeepAttributes(ProguardKeepAttributes.SOURCE_DEBUG_EXTENSION)
         .addKeepAllClassesRule()
-        .addDontWarnJetBrainsNotNullAnnotation()
         .setMode(CompilationMode.RELEASE)
         .setMinApi(parameters.getApiLevel())
         .compile()

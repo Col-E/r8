@@ -286,6 +286,8 @@ public class InvalidTypesTest extends JasminTestBase {
       checkTestRunResult(d8Result, Compiler.D8);
     }
 
+    boolean allowDiagnosticWarningMessages =
+        mode == Mode.INVOKE_UNVERIFIABLE_METHOD && !useInterface;
     R8TestRunResult r8Result =
         testForR8(parameters.getBackend())
             .addProgramFiles(inputJar)
@@ -300,14 +302,16 @@ public class InvalidTypesTest extends JasminTestBase {
                     options.testing.allowTypeErrors = true;
                   }
                 })
-            .allowDiagnosticWarningMessages(
-                mode == Mode.INVOKE_UNVERIFIABLE_METHOD && !useInterface)
+            .allowDiagnosticWarningMessages(allowDiagnosticWarningMessages)
             .setMinApi(parameters.getApiLevel())
             .compile()
-            .assertAllWarningMessagesMatch(
-                equalTo(
-                    "The method `void UnverifiableClass.unverifiableMethod()` does not type check"
-                        + " and will be assumed to be unreachable."))
+            .applyIf(
+                allowDiagnosticWarningMessages,
+                result ->
+                    result.assertAllWarningMessagesMatch(
+                        equalTo(
+                            "The method `void UnverifiableClass.unverifiableMethod()` does not"
+                                + " type check and will be assumed to be unreachable.")))
             .run(parameters.getRuntime(), mainClass.name);
     checkTestRunResult(r8Result, Compiler.R8);
 
@@ -326,14 +330,16 @@ public class InvalidTypesTest extends JasminTestBase {
                   }
                   options.enableUninstantiatedTypeOptimizationForInterfaces = true;
                 })
-            .allowDiagnosticWarningMessages(
-                mode == Mode.INVOKE_UNVERIFIABLE_METHOD && !useInterface)
+            .allowDiagnosticWarningMessages(allowDiagnosticWarningMessages)
             .setMinApi(parameters.getApiLevel())
             .compile()
-            .assertAllWarningMessagesMatch(
-                equalTo(
-                    "The method `void UnverifiableClass.unverifiableMethod()` does not type check"
-                        + " and will be assumed to be unreachable."))
+            .applyIf(
+                allowDiagnosticWarningMessages,
+                result ->
+                    result.assertAllWarningMessagesMatch(
+                        equalTo(
+                            "The method `void UnverifiableClass.unverifiableMethod()` does not"
+                                + " type check and will be assumed to be unreachable.")))
             .run(parameters.getRuntime(), mainClass.name);
     checkTestRunResult(
         r8ResultWithUninstantiatedTypeOptimizationForInterfaces,

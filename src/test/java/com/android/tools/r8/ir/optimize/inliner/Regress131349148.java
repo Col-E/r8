@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.R8TestRunResult;
@@ -64,11 +63,9 @@ public class Regress131349148 extends TestBase {
                 ClassWithCatchNonExisting.class,
                 ExistingException.class)
             .addKeepMainRule(TestClassCallingMethodWithNonExisting.class)
-            .addKeepRules("-dontwarn " + NonExistingException.class.getTypeName())
+            .addDontWarn(NonExistingException.class)
             .setMinApi(parameters.getApiLevel())
             .compile()
-            .assertAllWarningMessagesMatch(
-                containsString("required for default or static interface methods desugaring"))
             .run(parameters.getRuntime(), TestClassCallingMethodWithNonExisting.class)
             .assertSuccess();
     ClassSubject classSubject =

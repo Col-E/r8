@@ -3,7 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -13,7 +16,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
-import com.android.tools.r8.ToolHelper;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,7 +44,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
   public void testD8() throws CompilationFailedException {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(getKotlinStdlibJar(kotlinc))
         .setMinApi(parameters.getApiLevel())
         .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages);
   }
@@ -50,13 +52,14 @@ public class KotlinStdLibCompilationTest extends TestBase {
   @Test
   public void testR8() throws CompilationFailedException {
     testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+        .addKeepAllAttributes()
+        .allowDiagnosticWarningMessages()
         .noMinification()
         .noTreeShaking()
-        .addKeepAllAttributes()
-        .addDontWarnJetBrainsAnnotations()
         .setMode(CompilationMode.DEBUG)
         .setMinApi(parameters.getApiLevel())
-        .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages);
+        .compile()
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."));
   }
 }

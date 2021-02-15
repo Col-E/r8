@@ -139,26 +139,6 @@ public abstract class TestShrinkerBuilder<
     return addDontWarn("javax.annotation.Nullable");
   }
 
-  public T addDontWarnJavaLangInvoke() {
-    return addDontWarn("java.lang.invoke.*");
-  }
-
-  public T addDontWarnJavaNioFile() {
-    return addDontWarn("java.nio.file.**");
-  }
-
-  public T addDontWarnJetBrainsAnnotations() {
-    return addDontWarnJetBrainsNotNullAnnotation().addDontWarnJetBrainsNullableAnnotation();
-  }
-
-  public T addDontWarnJetBrainsNotNullAnnotation() {
-    return addDontWarn("org.jetbrains.annotations.NotNull");
-  }
-
-  public T addDontWarnJetBrainsNullableAnnotation() {
-    return addDontWarn("org.jetbrains.annotations.Nullable");
-  }
-
   public T addIgnoreWarnings() {
     return addKeepRules("-ignorewarnings");
   }

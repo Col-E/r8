@@ -69,9 +69,7 @@ public class ConditionalOnInlinedTest extends TestBase {
   private TestShrinkerBuilder<?, ?, ?, ?, ?> buildShrinker() throws Exception {
     TestShrinkerBuilder<?, ?, ?, ?, ?> builder;
     if (shrinker == Shrinker.Proguard) {
-      builder =
-          testForProguard()
-              .addKeepRules("-dontwarn " + ConditionalOnInlinedTest.class.getTypeName());
+      builder = testForProguard().addDontWarn(ConditionalOnInlinedTest.class);
     } else if (shrinker == Shrinker.R8Compat) {
       builder = testForR8Compat(parameters.getBackend());
     } else {
