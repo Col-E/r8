@@ -13,6 +13,14 @@ public interface Definition {
       Function<ClasspathDefinition, T> classpathFunction,
       Function<LibraryDefinition, T> libraryFunction);
 
+  default ClasspathOrLibraryClass asClasspathOrLibraryClass() {
+    return null;
+  }
+
+  default ClasspathOrLibraryDefinition asClasspathOrLibraryDefinition() {
+    return null;
+  }
+
   ProgramDerivedContext asProgramDerivedContext(ProgramDerivedContext witness);
 
   DexType getContextType();

@@ -22,6 +22,9 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassDefinition;
+import com.android.tools.r8.graph.ClasspathOrLibraryClass;
+import com.android.tools.r8.graph.ClasspathOrLibraryDefinition;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
@@ -285,7 +288,7 @@ public class Enqueuer {
    *
    * <p>Used to build a new app of just referenced types and avoid duplicate tracing.
    */
-  private final Set<DexClass> liveNonProgramTypes = Sets.newIdentityHashSet();
+  private final Set<ClasspathOrLibraryClass> liveNonProgramTypes = Sets.newIdentityHashSet();
 
   /** Set of reachable proto types that will be dead code eliminated. */
   private final Set<DexProgramClass> deadProtoTypeCandidates = Sets.newIdentityHashSet();
@@ -546,7 +549,8 @@ public class Enqueuer {
     if (clazz == null) {
       ignoreMissingClass(type);
     } else if (clazz.isNotProgramClass()) {
-      addLiveNonProgramType(clazz);
+      addLiveNonProgramType(
+          clazz.asClasspathOrLibraryClass(), this::ignoreMissingClasspathOrLibraryClass);
     }
   }
 
@@ -624,7 +628,10 @@ public class Enqueuer {
       return null;
     }
     if (clazz.isNotProgramClass()) {
-      addLiveNonProgramType(clazz);
+      addLiveNonProgramType(
+          clazz.asClasspathOrLibraryClass(),
+          (missingType, derivedContext) ->
+              reportMissingClass(missingType, derivedContext.asProgramDerivedContext(context)));
     }
     return clazz;
   }
@@ -633,58 +640,66 @@ public class Enqueuer {
     return keepInfo.isPinned(type, appInfo);
   }
 
-  private void addLiveNonProgramType(DexClass clazz) {
-    assert clazz.isNotProgramClass();
-    // Fast path to avoid the worklist when the class is already seen.
-    if (!liveNonProgramTypes.add(clazz)) {
-      return;
-    }
-    Deque<DexClass> worklist = new ArrayDeque<>();
-    worklist.addLast(clazz);
-    while (!worklist.isEmpty()) {
-      DexClass definition = worklist.removeFirst();
-      processNewLiveNonProgramType(definition, worklist);
+  private void addLiveNonProgramType(
+      ClasspathOrLibraryClass clazz,
+      BiConsumer<DexType, ClasspathOrLibraryDefinition> missingClassConsumer) {
+    WorkList<ClasspathOrLibraryClass> worklist =
+        WorkList.newIdentityWorkList(clazz, liveNonProgramTypes);
+    while (worklist.hasNext()) {
+      ClasspathOrLibraryClass definition = worklist.next();
+      processNewLiveNonProgramType(definition, worklist, missingClassConsumer);
     }
   }
 
-  private void processNewLiveNonProgramType(DexClass clazz, Deque<DexClass> worklist) {
-    assert clazz.isNotProgramClass();
+  private void processNewLiveNonProgramType(
+      ClasspathOrLibraryClass clazz,
+      WorkList<ClasspathOrLibraryClass> worklist,
+      BiConsumer<DexType, ClasspathOrLibraryDefinition> missingClassConsumer) {
     if (clazz.isLibraryClass()) {
       // TODO(b/149201735): This likely needs to apply to classpath too.
       ensureMethodsContinueToWidenAccess(clazz);
       // Only libraries must not derive program. Classpath classes can, assuming correct keep rules.
       warnIfLibraryTypeInheritsFromProgramType(clazz.asLibraryClass());
     }
-    for (DexEncodedField field : clazz.fields()) {
-      addNonProgramClassToWorklist(field.field.type, worklist);
-    }
-    for (DexEncodedMethod method : clazz.methods()) {
-      addNonProgramClassToWorklist(method.method.proto.returnType, worklist);
-      for (DexType param : method.method.proto.parameters.values) {
-        addNonProgramClassToWorklist(param, worklist);
-      }
-    }
+    clazz.forEachClassField(
+        field ->
+            addNonProgramClassToWorklist(
+                field.getType(),
+                field.asClasspathOrLibraryDefinition(),
+                worklist,
+                missingClassConsumer));
+    clazz.forEachClassMethod(
+        method -> {
+          ClasspathOrLibraryDefinition derivedContext = method.asClasspathOrLibraryDefinition();
+          addNonProgramClassToWorklist(
+              method.getReturnType(), derivedContext, worklist, missingClassConsumer);
+          for (DexType parameter : method.getParameters()) {
+            addNonProgramClassToWorklist(parameter, derivedContext, worklist, missingClassConsumer);
+          }
+        });
     for (DexType supertype : clazz.allImmediateSupertypes()) {
-      addNonProgramClassToWorklist(supertype, worklist);
+      addNonProgramClassToWorklist(
+          supertype, clazz.asClasspathOrLibraryDefinition(), worklist, missingClassConsumer);
     }
   }
 
-  private void addNonProgramClassToWorklist(DexType type, Deque<DexClass> worklist) {
+  private void addNonProgramClassToWorklist(
+      DexType type,
+      ClasspathOrLibraryDefinition context,
+      WorkList<ClasspathOrLibraryClass> worklist,
+      BiConsumer<DexType, ClasspathOrLibraryDefinition> missingClassConsumer) {
     if (type.isArrayType()) {
       type = type.toBaseType(appView.dexItemFactory());
     }
     if (!type.isClassType()) {
       return;
     }
-    DexClass definition = appView.definitionFor(type);
-    if (definition == null) {
-      reportMissingClassWithoutContext(type);
-      return;
+    DexClass clazz = appView.definitionFor(type);
+    if (clazz == null) {
+      missingClassConsumer.accept(type, context);
+    } else if (!clazz.isProgramClass()) {
+      worklist.addIfNotSeen(clazz.asClasspathOrLibraryClass());
     }
-    if (definition.isProgramClass() || !liveNonProgramTypes.add(definition)) {
-      return;
-    }
-    worklist.addLast(definition);
   }
 
   private DexProgramClass getProgramClassOrNull(DexType type, ProgramDefinition context) {
@@ -1843,11 +1858,12 @@ public class Enqueuer {
     analyses.forEach(analysis -> analysis.processNewlyLiveClass(clazz, workList));
   }
 
-  private void ensureMethodsContinueToWidenAccess(DexClass clazz) {
+  private void ensureMethodsContinueToWidenAccess(ClassDefinition clazz) {
     assert !clazz.isProgramClass();
     ScopedDexMethodSet seen =
-        scopedMethodsForLiveTypes.computeIfAbsent(clazz.type, ignore -> new ScopedDexMethodSet());
-    clazz.virtualMethods().forEach(seen::addMethodIfMoreVisible);
+        scopedMethodsForLiveTypes.computeIfAbsent(
+            clazz.getType(), ignore -> new ScopedDexMethodSet());
+    clazz.getMethodCollection().forEachVirtualMethod(seen::addMethodIfMoreVisible);
   }
 
   private void ensureMethodsContinueToWidenAccess(
@@ -2235,6 +2251,15 @@ public class Enqueuer {
 
   private void ignoreMissingClass(DexType clazz, ProgramDerivedContext context) {
     ignoreMissingClass(clazz);
+  }
+
+  private void ignoreMissingClasspathOrLibraryClass(DexType clazz) {
+    ignoreMissingClass(clazz);
+  }
+
+  private void ignoreMissingClasspathOrLibraryClass(
+      DexType clazz, ClasspathOrLibraryDefinition context) {
+    ignoreMissingClasspathOrLibraryClass(clazz);
   }
 
   private void reportMissingClass(DexType clazz, ProgramDerivedContext context) {
@@ -3299,7 +3324,7 @@ public class Enqueuer {
     // Rebuild a new app only containing referenced types.
     Set<DexLibraryClass> libraryClasses = Sets.newIdentityHashSet();
     Set<DexClasspathClass> classpathClasses = Sets.newIdentityHashSet();
-    for (DexClass clazz : liveNonProgramTypes) {
+    for (ClasspathOrLibraryClass clazz : liveNonProgramTypes) {
       if (clazz.isLibraryClass()) {
         libraryClasses.add(clazz.asLibraryClass());
       } else if (clazz.isClasspathClass()) {
@@ -3842,7 +3867,7 @@ public class Enqueuer {
   }
 
   private void markMethodAsTargeted(ProgramMethod method, KeepReason reason) {
-    if (!targetedMethods.add(method, reason)) {
+    if (!addTargetedMethod(method, reason)) {
       // Already targeted.
       return;
     }

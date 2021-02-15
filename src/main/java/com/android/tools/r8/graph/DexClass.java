@@ -132,6 +132,15 @@ public abstract class DexClass extends DexDefinition implements Definition {
       Consumer<DexClasspathClass> classpathClassConsumer,
       Consumer<DexLibraryClass> libraryClassConsumer);
 
+  public void forEachClassField(Consumer<? super DexClassAndField> consumer) {
+    forEachClassFieldMatching(alwaysTrue(), consumer);
+  }
+
+  public void forEachClassFieldMatching(
+      Predicate<DexEncodedField> predicate, Consumer<? super DexClassAndField> consumer) {
+    forEachFieldMatching(predicate, field -> consumer.accept(DexClassAndField.create(this, field)));
+  }
+
   public void forEachClassMethod(Consumer<? super DexClassAndMethod> consumer) {
     forEachClassMethodMatching(alwaysTrue(), consumer);
   }
@@ -277,12 +286,12 @@ public abstract class DexClass extends DexDefinition implements Definition {
   }
 
   public void forEachField(Consumer<DexEncodedField> consumer) {
-    for (DexEncodedField field : staticFields()) {
-      consumer.accept(field);
-    }
-    for (DexEncodedField field : instanceFields()) {
-      consumer.accept(field);
-    }
+    forEachFieldMatching(alwaysTrue(), consumer);
+  }
+
+  public void forEachFieldMatching(
+      Predicate<DexEncodedField> predicate, Consumer<DexEncodedField> consumer) {
+    fields(predicate).forEach(consumer);
   }
 
   public TraversalContinuation traverseFields(Function<DexEncodedField, TraversalContinuation> fn) {

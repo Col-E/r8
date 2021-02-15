@@ -42,8 +42,16 @@ public abstract class DexClassAndMethod extends DexClassAndMember<DexEncodedMeth
     return getDefinition().getAccessFlags();
   }
 
+  public DexTypeList getParameters() {
+    return getReference().getParameters();
+  }
+
   public DexProto getProto() {
     return getReference().getProto();
+  }
+
+  public DexType getReturnType() {
+    return getReference().getReturnType();
   }
 
   @Override

@@ -17,8 +17,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public class DexLibraryClass extends DexClass
-    implements LibraryDefinition, Supplier<DexLibraryClass> {
+public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<DexLibraryClass> {
 
   public DexLibraryClass(
       DexType type,
@@ -122,6 +121,11 @@ public class DexLibraryClass extends DexClass
 
   @Override
   public DexLibraryClass asLibraryClass() {
+    return this;
+  }
+
+  @Override
+  public DexLibraryClass asClasspathOrLibraryClass() {
     return this;
   }
 

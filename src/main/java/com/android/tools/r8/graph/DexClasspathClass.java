@@ -22,7 +22,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class DexClasspathClass extends DexClass
-    implements ClasspathDefinition, Supplier<DexClasspathClass>, StructuralItem<DexClasspathClass> {
+    implements ClasspathClass, Supplier<DexClasspathClass>, StructuralItem<DexClasspathClass> {
 
   public DexClasspathClass(
       DexType type,
@@ -100,6 +100,11 @@ public class DexClasspathClass extends DexClass
 
   @Override
   public DexClasspathClass asClasspathClass() {
+    return this;
+  }
+
+  @Override
+  public DexClasspathClass asClasspathOrLibraryClass() {
     return this;
   }
 
