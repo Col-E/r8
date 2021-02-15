@@ -94,6 +94,7 @@ public class ConcurrentHashMapFileSerializationTest extends DesugaredLibraryTest
       chmTest();
     }
 
+    @SuppressWarnings("unchecked")
     private static void chmTest() throws IOException, ClassNotFoundException {
       ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
       map.put("k1", "v1");

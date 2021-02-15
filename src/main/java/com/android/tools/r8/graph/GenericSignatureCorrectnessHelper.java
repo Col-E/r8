@@ -110,6 +110,7 @@ public class GenericSignatureCorrectnessHelper {
     return result;
   }
 
+  @SuppressWarnings("unchecked")
   private <T extends DexDefinitionSignature<?>> SignatureEvaluationResult evaluate(
       Supplier<T> getter, Function<T, SignatureEvaluationResult> evaluate, Consumer<T> setter) {
     T signature = getter.get();

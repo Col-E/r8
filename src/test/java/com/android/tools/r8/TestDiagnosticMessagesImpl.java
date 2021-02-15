@@ -20,7 +20,8 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import org.hamcrest.Matcher;
 
-public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagnosticMessages {
+public class TestDiagnosticMessagesImpl extends TestDiagnosticMessages
+    implements DiagnosticsHandler {
   private final List<Diagnostic> infos = new ArrayList<>();
   private final List<Diagnostic> warnings = new ArrayList<>();
   private final List<Diagnostic> errors = new ArrayList<>();

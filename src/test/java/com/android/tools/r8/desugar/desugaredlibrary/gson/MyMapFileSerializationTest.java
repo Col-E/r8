@@ -88,6 +88,8 @@ public class MyMapFileSerializationTest extends DesugaredLibraryTestBase {
 
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
   static class Executor {
+
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
       MyMap<String, String> map = new MyMap<>();
       map.put("k1", "v1");
