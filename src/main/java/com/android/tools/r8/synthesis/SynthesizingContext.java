@@ -8,12 +8,15 @@ import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassB
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.synthesis.SyntheticNaming.Phase;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import java.util.Comparator;
 import java.util.Set;
 
@@ -60,6 +63,33 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
     return new SynthesizingContext(synthesizingContextType, clazz.type, clazz.origin);
   }
 
+  static SynthesizingContext fromSyntheticContextChange(
+      SyntheticKind kind,
+      DexType syntheticType,
+      SynthesizingContext oldContext,
+      DexItemFactory factory) {
+    String descriptor = syntheticType.toDescriptorString();
+    DexType newContext;
+    if (kind.isFixedSuffixSynthetic) {
+      int i = descriptor.lastIndexOf(kind.descriptor);
+      if (i < 0 || descriptor.length() != i + kind.descriptor.length() + 1) {
+        assert false : "Unexpected fixed synthetic with invalid suffix: " + syntheticType;
+        return null;
+      }
+      newContext = factory.createType(descriptor.substring(0, i) + ";");
+    } else {
+      int i = descriptor.indexOf(SyntheticNaming.getPhaseSeparator(Phase.INTERNAL));
+      if (i <= 0) {
+        assert false : "Unexpected synthetic without internal separator: " + syntheticType;
+        return null;
+      }
+      newContext = factory.createType(descriptor.substring(0, i) + ";");
+    }
+    return newContext == oldContext.getSynthesizingContextType()
+        ? oldContext
+        : new SynthesizingContext(newContext, newContext, oldContext.inputContextOrigin);
+  }
+
   private SynthesizingContext(
       DexType synthesizingContextType, DexType inputContextType, Origin inputContextOrigin) {
     this.synthesizingContextType = synthesizingContextType;
@@ -97,10 +127,10 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
   }
 
   void registerPrefixRewriting(DexType hygienicType, AppView<?> appView) {
+    assert hygienicType.toSourceString().startsWith(synthesizingContextType.toSourceString());
     if (!appView.options().isDesugaredLibraryCompilation()) {
       return;
     }
-    assert hygienicType.toSourceString().startsWith(synthesizingContextType.toSourceString());
     DexType rewrittenContext =
         appView
             .options()

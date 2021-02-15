@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.references.ClassReference;
@@ -63,32 +62,24 @@ public class SyntheticNaming {
     }
   }
 
-  private static final String SYNTHETIC_CLASS_SEPARATOR = "-$$";
   /**
    * The internal synthetic class separator is only used for representing synthetic items during
    * compilation. In particular, this separator must never be used to write synthetic classes to the
    * final compilation result.
    */
-  private static final String INTERNAL_SYNTHETIC_CLASS_SEPARATOR =
-      SYNTHETIC_CLASS_SEPARATOR + "InternalSynthetic";
+  private static final String INTERNAL_SYNTHETIC_CLASS_SEPARATOR = "-$$InternalSynthetic";
   /**
    * The external synthetic class separator is used when writing classes. It may appear in types
    * during compilation as the output of a compilation may be the input to another.
    */
-  private static final String EXTERNAL_SYNTHETIC_CLASS_SEPARATOR =
-      SYNTHETIC_CLASS_SEPARATOR + "ExternalSynthetic";
+  private static final String EXTERNAL_SYNTHETIC_CLASS_SEPARATOR = "-$$ExternalSynthetic";
   /** Method prefix when generating synthetic methods in a class. */
   static final String INTERNAL_SYNTHETIC_METHOD_PREFIX = "m";
 
-  static String getPrefixForExternalSyntheticType(SyntheticKind kind, DexType type) {
-    String binaryName = type.toBinaryName();
-    int index =
-        binaryName.lastIndexOf(
-            kind.isFixedSuffixSynthetic ? kind.descriptor : SYNTHETIC_CLASS_SEPARATOR);
-    if (index < 0) {
-      throw new Unreachable("Unexpected failure to compute an synthetic prefix");
-    }
-    return binaryName.substring(0, index);
+  // TODO(b/158159959): Remove usage of name-based identification.
+  public static boolean isSyntheticName(String typeName) {
+    return typeName.contains(INTERNAL_SYNTHETIC_CLASS_SEPARATOR)
+        || typeName.contains(EXTERNAL_SYNTHETIC_CLASS_SEPARATOR);
   }
 
   public static DexType createFixedType(
@@ -109,12 +100,12 @@ public class SyntheticNaming {
   }
 
   static DexType createExternalType(
-      SyntheticKind kind, String externalSyntheticTypePrefix, String id, DexItemFactory factory) {
+      SyntheticKind kind, DexType context, String id, DexItemFactory factory) {
     assert kind.isFixedSuffixSynthetic == id.isEmpty();
     return createType(
         kind.isFixedSuffixSynthetic ? "" : EXTERNAL_SYNTHETIC_CLASS_SEPARATOR,
         kind,
-        externalSyntheticTypePrefix,
+        context,
         id,
         factory);
   }
@@ -124,19 +115,10 @@ public class SyntheticNaming {
     return factory.createType(createDescriptor(separator, kind, context.getInternalName(), id));
   }
 
-  private static DexType createType(
-      String separator,
-      SyntheticKind kind,
-      String externalSyntheticTypePrefix,
-      String id,
-      DexItemFactory factory) {
-    return factory.createType(createDescriptor(separator, kind, externalSyntheticTypePrefix, id));
-  }
-
   private static String createDescriptor(
-      String separator, SyntheticKind kind, String externalSyntheticTypePrefix, String id) {
+      String separator, SyntheticKind kind, String context, String id) {
     return DescriptorUtils.getDescriptorFromClassBinaryName(
-        externalSyntheticTypePrefix + separator + kind.descriptor + id);
+        context + separator + kind.descriptor + id);
   }
 
   public static boolean verifyNotInternalSynthetic(DexType type) {

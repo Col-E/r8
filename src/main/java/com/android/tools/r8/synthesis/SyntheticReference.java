@@ -20,13 +20,13 @@ abstract class SyntheticReference<
     C extends DexClass> {
 
   private final SyntheticKind kind;
-  private final SynthesizingContext rewrittenContext;
+  private final SynthesizingContext context;
 
   SyntheticReference(SyntheticKind kind, SynthesizingContext context) {
     assert kind != null;
     assert context != null;
     this.kind = kind;
-    this.rewrittenContext = context;
+    this.context = context;
   }
 
   abstract D lookupDefinition(Function<DexType, DexClass> definitions);
@@ -36,15 +36,10 @@ abstract class SyntheticReference<
   }
 
   final SynthesizingContext getContext() {
-    return rewrittenContext;
+    return context;
   }
 
   abstract DexType getHolder();
 
-  final R rewrite(NonIdentityGraphLens lens) {
-    SynthesizingContext rewrittenContext = getContext().rewrite(lens);
-    return internalRewrite(rewrittenContext, lens);
-  }
-
-  abstract R internalRewrite(SynthesizingContext rewrittenContext, NonIdentityGraphLens lens);
+  abstract R rewrite(NonIdentityGraphLens lens);
 }

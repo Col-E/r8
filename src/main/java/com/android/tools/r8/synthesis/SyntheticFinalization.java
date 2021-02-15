@@ -265,7 +265,7 @@ public class SyntheticFinalization {
         ImmutableMap.builder();
     List<DexProgramClass> finalSyntheticProgramDefinitions = new ArrayList<>();
     {
-      Map<String, NumberGenerator> generators = new HashMap<>();
+      Map<DexType, NumberGenerator> generators = new IdentityHashMap<>();
       application =
           buildLensAndProgram(
               appView,
@@ -317,7 +317,7 @@ public class SyntheticFinalization {
       Map<DexType, EquivalenceGroup<D>> computeEquivalences(
           AppView<?> appView,
           ImmutableCollection<R> references,
-          Map<String, NumberGenerator> generators) {
+          Map<DexType, NumberGenerator> generators) {
     boolean intermediate = appView.options().intermediate;
     Map<DexType, D> definitions = lookupDefinitions(appView, references);
     ClassToFeatureSplitMap classToFeatureSplitMap =
@@ -662,11 +662,11 @@ public class SyntheticFinalization {
   private <T extends SyntheticDefinition<?, T, ?>>
       Map<DexType, EquivalenceGroup<T>> computeActualEquivalences(
           Collection<List<T>> potentialEquivalences,
-          Map<String, NumberGenerator> generators,
+          Map<DexType, NumberGenerator> generators,
           AppView<?> appView,
           boolean intermediate,
           ClassToFeatureSplitMap classToFeatureSplitMap) {
-    Map<String, List<EquivalenceGroup<T>>> groupsPerPrefix = new HashMap<>();
+    Map<DexType, List<EquivalenceGroup<T>>> groupsPerContext = new IdentityHashMap<>();
     potentialEquivalences.forEach(
         members -> {
           List<List<T>> groups =
@@ -677,16 +677,17 @@ public class SyntheticFinalization {
             // The representative is required to be the first element of the group.
             group.remove(representative);
             group.add(0, representative);
-            groupsPerPrefix
+            groupsPerContext
                 .computeIfAbsent(
-                    representative.getPrefixForExternalSyntheticType(), k -> new ArrayList<>())
+                    representative.getContext().getSynthesizingContextType(),
+                    k -> new ArrayList<>())
                 .add(new EquivalenceGroup<>(representative, group));
           }
         });
 
     Map<DexType, EquivalenceGroup<T>> equivalences = new IdentityHashMap<>();
-    groupsPerPrefix.forEach(
-        (externalSyntheticTypePrefix, groups) -> {
+    groupsPerContext.forEach(
+        (context, groups) -> {
           // Sort the equivalence groups that go into 'context' including the context type of the
           // representative which is equal to 'context' here (see assert below).
           groups.sort(
@@ -694,18 +695,14 @@ public class SyntheticFinalization {
                   a.compareToIncludingContext(b, appView.graphLens(), classToFeatureSplitMap));
           for (int i = 0; i < groups.size(); i++) {
             EquivalenceGroup<T> group = groups.get(i);
-            assert group
-                .getRepresentative()
-                .getPrefixForExternalSyntheticType()
-                .equals(externalSyntheticTypePrefix);
+            assert group.getRepresentative().getContext().getSynthesizingContextType() == context;
             // Two equivalence groups in same context type must be distinct otherwise the assignment
             // of the synthetic name will be non-deterministic between the two.
             assert i == 0
                 || checkGroupsAreDistinct(
                     groups.get(i - 1), group, appView.graphLens(), classToFeatureSplitMap);
             SyntheticKind kind = group.members.get(0).getKind();
-            DexType representativeType =
-                createExternalType(kind, externalSyntheticTypePrefix, generators, appView);
+            DexType representativeType = createExternalType(kind, context, generators, appView);
             equivalences.put(representativeType, group);
           }
         });
@@ -764,20 +761,20 @@ public class SyntheticFinalization {
 
   private DexType createExternalType(
       SyntheticKind kind,
-      String externalSyntheticTypePrefix,
-      Map<String, NumberGenerator> generators,
+      DexType representativeContext,
+      Map<DexType, NumberGenerator> generators,
       AppView<?> appView) {
     DexItemFactory factory = appView.dexItemFactory();
     if (kind.isFixedSuffixSynthetic) {
-      return SyntheticNaming.createExternalType(kind, externalSyntheticTypePrefix, "", factory);
+      return SyntheticNaming.createExternalType(kind, representativeContext, "", factory);
     }
     NumberGenerator generator =
-        generators.computeIfAbsent(externalSyntheticTypePrefix, k -> new NumberGenerator());
+        generators.computeIfAbsent(representativeContext, k -> new NumberGenerator());
     DexType externalType;
     do {
       externalType =
           SyntheticNaming.createExternalType(
-              kind, externalSyntheticTypePrefix, Integer.toString(generator.next()), factory);
+              kind, representativeContext, Integer.toString(generator.next()), factory);
       DexClass clazz = appView.appInfo().definitionForWithoutExistenceAssert(externalType);
       if (clazz != null && isNotSyntheticType(clazz.type)) {
         assert options.testing.allowConflictingSyntheticTypes

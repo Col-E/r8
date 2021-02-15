@@ -34,12 +34,9 @@ class SyntheticClasspathClassReference
   }
 
   @Override
-  SyntheticClasspathClassReference internalRewrite(
-      SynthesizingContext rewrittenContext, NonIdentityGraphLens lens) {
+  SyntheticClasspathClassReference rewrite(NonIdentityGraphLens lens) {
     assert type == lens.lookupType(type)
         : "Unexpected classpath rewrite of type " + type.toSourceString();
-    assert getContext() == rewrittenContext
-        : "Unexpected classpath rewrite of context type " + getContext();
     return this;
   }
 }
