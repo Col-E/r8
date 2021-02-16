@@ -10,7 +10,16 @@ import java.util.Comparator;
 public class TypeReferenceUtils {
 
   private static final Comparator<TypeReference> COMPARATOR =
-      Comparator.comparing(TypeReference::getDescriptor);
+      (type, other) -> {
+        // Handle null inputs (void).
+        if (type == null) {
+          return -1;
+        }
+        if (other == null) {
+          return 1;
+        }
+        return type.getDescriptor().compareTo(other.getDescriptor());
+      };
 
   public static Comparator<TypeReference> getTypeReferenceComparator() {
     return COMPARATOR;
