@@ -16,16 +16,17 @@ import com.android.tools.r8.references.Reference;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
-public class MissingClassReferencedFromLibraryMethodReturnTest extends MissingClassesTestBase {
+public class MissingClassReferencedFromLibraryVirtualMethodParameterTest
+    extends MissingClassesTestBase {
 
   private static final MethodReference referencedFrom =
       Reference.method(
           Reference.classFromClass(Library.class),
           "method",
-          ImmutableList.of(),
-          Reference.classFromClass(MissingClass.class));
+          ImmutableList.of(Reference.classFromClass(MissingClass.class)),
+          null);
 
-  public MissingClassReferencedFromLibraryMethodReturnTest(TestParameters parameters) {
+  public MissingClassReferencedFromLibraryVirtualMethodParameterTest(TestParameters parameters) {
     super(parameters);
   }
 
@@ -85,8 +86,6 @@ public class MissingClassReferencedFromLibraryMethodReturnTest extends MissingCl
 
   public static class Library {
 
-    public MissingClass method() {
-      return null;
-    }
+    public void method(MissingClass mc) {}
   }
 }
