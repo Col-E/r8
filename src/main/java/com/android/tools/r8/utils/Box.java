@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils;
 
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 public class Box<T> {
@@ -46,5 +47,19 @@ public class Box<T> {
     T oldValue = value;
     value = newValue;
     return oldValue;
+  }
+
+  @Override
+  public boolean equals(Object object) {
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    Box<?> box = (Box<?>) object;
+    return Objects.equals(value, box.value);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(value);
   }
 }

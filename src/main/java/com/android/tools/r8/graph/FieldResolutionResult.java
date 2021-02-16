@@ -25,6 +25,7 @@ public abstract class FieldResolutionResult
     return null;
   }
 
+  @Override
   public DexClassAndField getResolutionPair() {
     return null;
   }

@@ -574,13 +574,13 @@ public class Enqueuer {
     definitionFor(type, context, missingClassConsumer);
   }
 
-  private void recordMethodReference(DexMethod method, ProgramDefinition context) {
+  private void recordMethodReference(DexMethod method, ProgramDerivedContext context) {
     recordMethodReference(method, context, this::reportMissingClass);
   }
 
   private void recordMethodReference(
       DexMethod method,
-      ProgramDefinition context,
+      ProgramDerivedContext context,
       BiConsumer<DexType, ProgramDerivedContext> missingClassConsumer) {
     recordTypeReference(method.holder, context, missingClassConsumer);
     recordTypeReference(method.proto.returnType, context, missingClassConsumer);
@@ -1988,11 +1988,15 @@ public class Enqueuer {
   private SingleResolutionResult resolveMethod(
       DexMethod method, ProgramDefinition context, KeepReason reason, boolean interfaceInvoke) {
     // Record the references in case they are not program types.
-    recordMethodReference(method, context);
     ResolutionResult resolutionResult = appInfo.resolveMethod(method, interfaceInvoke);
-    if (resolutionResult.isFailedResolution()) {
+    if (resolutionResult.isSingleResolution()) {
+      recordMethodReference(
+          method, resolutionResult.getResolutionPair().asProgramDerivedContext(context));
+    } else {
+      assert resolutionResult.isFailedResolution();
       markFailedMethodResolutionTargets(
           method, resolutionResult.asFailedResolution(), context, reason);
+      recordMethodReference(method, context);
     }
     return resolutionResult.asSingleResolution();
   }
@@ -2252,19 +2256,23 @@ public class Enqueuer {
             // TODO(b/157107464): See if we can clean this up.
             || (initialPrunedTypes != null && initialPrunedTypes.contains(clazz))
         : "Unexpected missing class `" + clazz.toSourceString() + "`";
-    missingClassesBuilder.addNewMissingClass(clazz, context);
-  }
-
-  @Deprecated
-  private void reportMissingClassWithoutContext(DexType clazz) {
-    assert !mode.isFinalTreeShaking()
-            || missingClassesBuilder.wasAlreadyMissing(clazz)
-            || appView.dexItemFactory().isPossiblyCompilerSynthesizedType(clazz)
-            || initialDeadProtoTypes.contains(clazz)
-            // TODO(b/157107464): See if we can clean this up.
-            || (initialPrunedTypes != null && initialPrunedTypes.contains(clazz))
-        : "Unexpected missing class `" + clazz.toSourceString() + "`";
-    missingClassesBuilder.legacyAddNewMissingClass(clazz);
+    // Do not report missing classes from D8/R8 synthesized methods on non-synthetic classes (for
+    // example, lambda accessibility bridges).
+    // TODO(b/180376674): Clean this up. Ideally the D8/R8 synthesized methods would be synthesized
+    //  using synthetic items, such that the synthetic items infrastructure would track the
+    //  synthesizing contexts for these methods as well. That way, this would just work without any
+    //  special handling because the mapping to the synthesizing contexts would also work for these
+    //  synthetic methods.
+    if (context.isProgramContext()
+        && context.getContext().isMethod()
+        && context.getContext().asMethod().getDefinition().isD8R8Synthesized()
+        && !appView
+            .getSyntheticItems()
+            .isSyntheticClass(context.getContext().asProgramDefinition().getContextClass())) {
+      missingClassesBuilder.ignoreNewMissingClass(clazz);
+    } else {
+      missingClassesBuilder.addNewMissingClass(clazz, context);
+    }
   }
 
   /**

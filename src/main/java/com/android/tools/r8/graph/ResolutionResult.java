@@ -74,6 +74,11 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
     return null;
   }
 
+  @Override
+  public DexClassAndMethod getResolutionPair() {
+    return null;
+  }
+
   public abstract OptionalBool isAccessibleForVirtualDispatchFrom(
       ProgramDefinition context, AppInfoWithClassHierarchy appInfo);
 

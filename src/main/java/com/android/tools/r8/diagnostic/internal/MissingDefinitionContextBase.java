@@ -24,7 +24,7 @@ public abstract class MissingDefinitionContextBase implements MissingDefinitionC
 
     Origin origin;
 
-    B setOrigin(Origin origin) {
+    public B setOrigin(Origin origin) {
       this.origin = origin;
       return self();
     }

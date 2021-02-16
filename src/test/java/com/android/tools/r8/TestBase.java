@@ -39,6 +39,7 @@ import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -1689,6 +1690,10 @@ public class TestBase {
 
   public static String descriptor(Class<?> clazz) {
     return DescriptorUtils.javaTypeToDescriptor(typeName(clazz));
+  }
+
+  public static PathOrigin getOrigin(Class<?> clazz) {
+    return new PathOrigin(ToolHelper.getClassFileForTestClass(clazz));
   }
 
   public static String typeName(Class<?> clazz) {

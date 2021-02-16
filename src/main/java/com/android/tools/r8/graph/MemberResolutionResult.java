@@ -9,6 +9,10 @@ import com.android.tools.r8.utils.OptionalBool;
 public abstract class MemberResolutionResult<
     D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> {
 
+  public DexClassAndMember<D, R> getResolutionPair() {
+    return null;
+  }
+
   public abstract boolean isSuccessfulMemberResolutionResult();
 
   public abstract SuccessfulMemberResolutionResult<D, R> asSuccessfulMemberResolutionResult();

@@ -95,23 +95,32 @@ public class MissingDefinitionsDiagnosticImpl implements MissingDefinitionsDiagn
           fieldReference -> fieldContext.setMin(fieldReference, getFieldReferenceComparator()),
           methodReference -> methodContext.setMin(methodReference, getMethodReferenceComparator()));
     }
-
     if (fieldContext.isSet()) {
-      builder
-          .append(" (referenced from: ")
-          .append(FieldReferenceUtils.toSourceString(fieldContext.get()))
-          .append(")");
+      writeReferencedFromSuffix(
+          builder, missingDefinitionInfo, FieldReferenceUtils.toSourceString(fieldContext.get()));
     } else if (methodContext.isSet()) {
-      builder
-          .append(" (referenced from: ")
-          .append(MethodReferenceUtils.toSourceString(methodContext.get()))
-          .append(")");
+      writeReferencedFromSuffix(
+          builder, missingDefinitionInfo, MethodReferenceUtils.toSourceString(methodContext.get()));
     } else if (classContext.isSet()) {
-      builder.append(" (referenced from: ").append(classContext.get().getTypeName()).append(")");
+      writeReferencedFromSuffix(builder, missingDefinitionInfo, classContext.get().getTypeName());
     } else {
       // TODO(b/175543745): Once legacy reporting is removed this should never happen.
       builder.append(" (referenced from: <not known>)");
     }
+  }
+
+  private static void writeReferencedFromSuffix(
+      StringBuilder builder, MissingDefinitionInfo missingDefinitionInfo, String referencedFrom) {
+    int numberOfOtherContexts = missingDefinitionInfo.getReferencedFromContexts().size() - 1;
+    assert numberOfOtherContexts >= 0;
+    builder.append(" (referenced from: ").append(referencedFrom);
+    if (numberOfOtherContexts >= 1) {
+      builder.append(", and ").append(numberOfOtherContexts).append(" other context");
+      if (numberOfOtherContexts >= 2) {
+        builder.append("s");
+      }
+    }
+    builder.append(")");
   }
 
   public static class Builder {

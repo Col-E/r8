@@ -113,7 +113,9 @@ public class MissingClasses {
     }
 
     public boolean contains(DexType type) {
-      return alreadyMissingClasses.contains(type) || newMissingClasses.containsKey(type);
+      return alreadyMissingClasses.contains(type)
+          || newMissingClasses.containsKey(type)
+          || newIgnoredMissingClasses.contains(type);
     }
 
     Builder removeAlreadyMissingClasses(Iterable<DexType> types) {

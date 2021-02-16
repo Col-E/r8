@@ -27,4 +27,8 @@ public interface ThrowableConsumer<Formal> {
       consumer.accept(formal);
     };
   }
+
+  static <Formal> ThrowableConsumer<Formal> empty() {
+    return ignore -> {};
+  }
 }

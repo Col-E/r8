@@ -9,19 +9,45 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.diagnostic.MissingDefinitionContext;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionMethodContext;
 import com.android.tools.r8.references.Reference;
+import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import org.junit.Test;
 
 public class MissingClassReferencedFromUsedLambdaReturnTest extends MissingClassesTestBase {
 
-  private static final MethodReference referencedFrom =
-      Reference.method(
-          Reference.classFromClass(I.class),
-          "m",
-          Collections.emptyList(),
-          Reference.classFromClass(MissingClass.class));
+  private final MissingDefinitionContext[] referencedFrom =
+      new MissingDefinitionContext[] {
+        MissingDefinitionMethodContext.builder()
+            .setMethodContext(
+                Reference.method(
+                    Reference.classFromClass(I.class),
+                    "m",
+                    Collections.emptyList(),
+                    Reference.classFromClass(MissingClass.class)))
+            .setOrigin(getOrigin(I.class))
+            .build(),
+        MissingDefinitionMethodContext.builder()
+            .setMethodContext(
+                Reference.method(
+                    Reference.classFromClass(Main.class),
+                    "lambda$main$0",
+                    Collections.emptyList(),
+                    Reference.classFromClass(MissingClass.class)))
+            .setOrigin(getOrigin(Main.class))
+            .build(),
+        MissingDefinitionMethodContext.builder()
+            .setMethodContext(
+                Reference.method(
+                    Reference.classFromClass(Main.class),
+                    "main",
+                    ImmutableList.of(Reference.array(Reference.classFromClass(String.class), 1)),
+                    null))
+            .setOrigin(getOrigin(Main.class))
+            .build()
+      };
 
   public MissingClassReferencedFromUsedLambdaReturnTest(TestParameters parameters) {
     super(parameters);
