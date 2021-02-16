@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugari
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.twr.TwrCloseResourceDesugaringEventConsumer;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,7 +35,8 @@ import java.util.function.Consumer;
 public abstract class CfInstructionDesugaringEventConsumer
     implements InvokeSpecialToSelfDesugaringEventConsumer,
         LambdaDesugaringEventConsumer,
-        NestBasedAccessDesugaringEventConsumer {
+        NestBasedAccessDesugaringEventConsumer,
+        TwrCloseResourceDesugaringEventConsumer {
 
   public static D8CfInstructionDesugaringEventConsumer createForD8(
       Consumer<LambdaClass> lambdaClassConsumer, D8MethodProcessor methodProcessor) {
@@ -43,8 +45,10 @@ public abstract class CfInstructionDesugaringEventConsumer
 
   public static R8CfInstructionDesugaringEventConsumer createForR8(
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer) {
-    return new R8CfInstructionDesugaringEventConsumer(appView, lambdaClassConsumer);
+      BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer,
+      BiConsumer<ProgramMethod, ProgramMethod> twrCloseResourceMethodConsumer) {
+    return new R8CfInstructionDesugaringEventConsumer(
+        appView, lambdaClassConsumer, twrCloseResourceMethodConsumer);
   }
 
   public static CfInstructionDesugaringEventConsumer createForDesugaredCode() {
@@ -72,6 +76,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
       @Override
       public void acceptNestMethodBridge(ProgramMethod target, ProgramMethod bridge) {
+        assert false;
+      }
+
+      @Override
+      public void acceptTwrCloseResourceMethod(ProgramMethod closeMethod, ProgramMethod context) {
         assert false;
       }
     };
@@ -120,6 +129,11 @@ public abstract class CfInstructionDesugaringEventConsumer
       methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
     }
 
+    @Override
+    public void acceptTwrCloseResourceMethod(ProgramMethod closeMethod, ProgramMethod context) {
+      methodProcessor.scheduleDesugaredMethodForProcessing(closeMethod);
+    }
+
     public List<ProgramMethod> finalizeDesugaring(AppView<?> appView) {
       List<ProgramMethod> needsReprocessing = new ArrayList<>();
       finalizeInvokeSpecialDesugaring(appView, needsReprocessing::add);
@@ -164,7 +178,11 @@ public abstract class CfInstructionDesugaringEventConsumer
       extends CfInstructionDesugaringEventConsumer {
 
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
+
+    // TODO(b/180091213): Remove these two consumers when synthesizing contexts are accessible from
+    //  synthetic items.
     private final BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer;
+    private final BiConsumer<ProgramMethod, ProgramMethod> twrCloseResourceMethodConsumer;
 
     private final Map<LambdaClass, ProgramMethod> synthesizedLambdaClasses =
         new IdentityHashMap<>();
@@ -172,9 +190,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     public R8CfInstructionDesugaringEventConsumer(
         AppView<? extends AppInfoWithClassHierarchy> appView,
-        BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer) {
+        BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer,
+        BiConsumer<ProgramMethod, ProgramMethod> twrCloseResourceMethodConsumer) {
       this.appView = appView;
       this.lambdaClassConsumer = lambdaClassConsumer;
+      this.twrCloseResourceMethodConsumer = twrCloseResourceMethodConsumer;
     }
 
     @Override
@@ -189,6 +209,8 @@ public abstract class CfInstructionDesugaringEventConsumer
       synchronized (synthesizedLambdaClasses) {
         synthesizedLambdaClasses.put(lambdaClass, context);
       }
+      // TODO(b/180091213): Remove the recording of the synthesizing context when this is accessible
+      //  from synthetic items.
       lambdaClassConsumer.accept(lambdaClass, context);
     }
 
@@ -208,6 +230,15 @@ public abstract class CfInstructionDesugaringEventConsumer
     public void acceptNestMethodBridge(ProgramMethod target, ProgramMethod bridge) {
       // Intentionally empty. These bridges will be hit by the tracing in R8 as if they were present
       // in the input code, and thus nothing needs to be done.
+    }
+
+    @Override
+    public void acceptTwrCloseResourceMethod(ProgramMethod closeMethod, ProgramMethod context) {
+      // Intentionally empty. The close method will be hit by the tracing in R8 as if they were
+      // present in the input code, and thus nothing needs to be done.
+      // TODO(b/180091213): Remove the recording of the synthesizing context when this is accessible
+      //  from synthetic items.
+      twrCloseResourceMethodConsumer.accept(closeMethod, context);
     }
 
     public void finalizeDesugaring() {

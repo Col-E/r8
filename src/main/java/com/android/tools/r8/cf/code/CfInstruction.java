@@ -153,6 +153,10 @@ public abstract class CfInstruction implements CfOrDexInstruction {
     return false;
   }
 
+  public boolean isInvokeStatic() {
+    return false;
+  }
+
   public CfLabel asLabel() {
     return null;
   }

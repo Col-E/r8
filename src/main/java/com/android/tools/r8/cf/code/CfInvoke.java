@@ -180,6 +180,7 @@ public class CfInvoke extends CfInstruction {
     return opcode == Opcodes.INVOKESPECIAL;
   }
 
+  @Override
   public boolean isInvokeStatic() {
     return opcode == Opcodes.INVOKESTATIC;
   }

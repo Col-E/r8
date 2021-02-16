@@ -1470,7 +1470,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       case Off:
         return false;
       case Auto:
-        return !canUseSuppressedExceptions();
+        return desugarState.isOn() && !canUseTwrCloseResourceMethod();
     }
     throw new Unreachable();
   }
@@ -1508,7 +1508,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseJavaUtilObjects() {
-    return (isGeneratingClassFiles() && !cfToCfDesugar) || hasMinApi(AndroidApiLevel.K);
+    return !isDesugaring() || hasMinApi(AndroidApiLevel.K);
   }
 
   public boolean canUseRequireNonNull() {
@@ -1516,11 +1516,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseSuppressedExceptions() {
-    return (isGeneratingClassFiles() && !cfToCfDesugar) || hasMinApi(AndroidApiLevel.K);
+    return !isDesugaring() || hasMinApi(AndroidApiLevel.K);
   }
 
   public boolean canUseAssertionErrorTwoArgumentConstructor() {
-    return (isGeneratingClassFiles() && !cfToCfDesugar) || hasMinApi(AndroidApiLevel.K);
+    return !isDesugaring() || hasMinApi(AndroidApiLevel.K);
   }
 
   public CfVersion classFileVersionAfterDesugaring(CfVersion version) {
@@ -1539,7 +1539,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // https://android.googlesource.com/platform/libcore/+/refs/heads/ics-mr1/luni/src/main/java/java/lang/AssertionError.java#56
   public boolean canInitCauseAfterAssertionErrorObjectConstructor() {
-    return (isGeneratingClassFiles() && !cfToCfDesugar) || hasMinApi(AndroidApiLevel.J);
+    return !isDesugaring() || hasMinApi(AndroidApiLevel.J);
   }
 
   // Dalvik x86-atom backend had a bug that made it crash on filled-new-array instructions for

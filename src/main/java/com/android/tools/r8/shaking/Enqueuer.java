@@ -95,7 +95,6 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.R8Cf
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
-import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
@@ -255,9 +254,11 @@ public class Enqueuer {
       Maps.newIdentityHashMap();
 
   // TODO(b/180091213): Remove when supported by synthetic items.
-  /** The synthesizing contexts for the synthesized lambda classes. */
-  private final Map<DexProgramClass, ProgramMethod> lambdaSynthesizingContexts =
-      new IdentityHashMap<>();
+  /**
+   * The synthesizing contexts for classes synthesized by lambda desugaring and twr close resource
+   * desugaring.
+   */
+  private final Map<DexProgramClass, ProgramMethod> synthesizingContexts = new IdentityHashMap<>();
 
   /**
    * Set of types that are mentioned in the program. We at least need an empty abstract class item
@@ -394,11 +395,9 @@ public class Enqueuer {
   private final CfInstructionDesugaringCollection desugaring;
 
   private final BackportedMethodRewriter backportRewriter;
-  private final TwrCloseResourceRewriter twrCloseResourceRewriter;
 
   private final DesugaredLibraryConversionWrapperAnalysis desugaredLibraryWrapperAnalysis;
   private final Map<DexMethod, ProgramMethod> methodsWithBackports = new IdentityHashMap<>();
-  private final Map<DexMethod, ProgramMethod> methodsWithTwrCloseResource = new IdentityHashMap<>();
   private final ProgramMethodSet pendingDesugaring = ProgramMethodSet.create();
 
   Enqueuer(
@@ -447,10 +446,6 @@ public class Enqueuer {
             : CfInstructionDesugaringCollection.empty();
     backportRewriter =
         options.desugarState == DesugarState.ON ? new BackportedMethodRewriter(appView) : null;
-    twrCloseResourceRewriter =
-        TwrCloseResourceRewriter.enableTwrCloseResourceDesugaring(options)
-            ? new TwrCloseResourceRewriter(appView)
-            : null;
 
     objectAllocationInfoCollection =
         ObjectAllocationInfoCollectionImpl.builder(mode.isInitialTreeShaking(), graphReporter);
@@ -1284,22 +1279,9 @@ public class Enqueuer {
     return false;
   }
 
-  private boolean registerCloseResource(DexMethod invokedMethod, ProgramMethod context) {
-    if (twrCloseResourceRewriter != null
-        && TwrCloseResourceRewriter.isTwrCloseResourceMethod(
-            invokedMethod, appView.dexItemFactory())) {
-      methodsWithTwrCloseResource.putIfAbsent(context.getReference(), context);
-      return true;
-    }
-    return false;
-  }
-
   private void traceInvokeStatic(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
     if (registerBackportInvoke(invokedMethod, context)) {
-      return;
-    }
-    if (registerCloseResource(invokedMethod, context)) {
       return;
     }
     DexItemFactory dexItemFactory = appView.dexItemFactory();
@@ -3208,7 +3190,6 @@ public class Enqueuer {
     synthesizeInterfaceMethodBridges(additions);
     synthesizeLibraryConversionWrappers(additions);
     synthesizeBackports(additions);
-    synthesizeTwrCloseResource(additions);
     if (additions.isEmpty()) {
       return;
     }
@@ -3235,7 +3216,9 @@ public class Enqueuer {
     }
     R8CfInstructionDesugaringEventConsumer desugaringEventConsumer =
         CfInstructionDesugaringEventConsumer.createForR8(
-            appView, this::recordLambdaSynthesizingContext);
+            appView,
+            this::recordLambdaSynthesizingContext,
+            this::recordTwrCloseResourceMethodSynthesizingContext);
     ThreadUtils.processItems(
         pendingDesugaring,
         method ->
@@ -3247,8 +3230,15 @@ public class Enqueuer {
   }
 
   private void recordLambdaSynthesizingContext(LambdaClass lambdaClass, ProgramMethod context) {
-    synchronized (lambdaSynthesizingContexts) {
-      lambdaSynthesizingContexts.put(lambdaClass.getLambdaProgramClass(), context);
+    synchronized (synthesizingContexts) {
+      synthesizingContexts.put(lambdaClass.getLambdaProgramClass(), context);
+    }
+  }
+
+  private void recordTwrCloseResourceMethodSynthesizingContext(
+      ProgramMethod closeMethod, ProgramMethod context) {
+    synchronized (synthesizingContexts) {
+      synthesizingContexts.put(closeMethod.getHolder(), context);
     }
   }
 
@@ -3266,13 +3256,6 @@ public class Enqueuer {
     for (ProgramMethod method : methodsWithBackports.values()) {
       backportRewriter.desugar(
           method, appInfo, additions.getMethodContext(method), additions::addLiveMethod);
-    }
-  }
-
-  private void synthesizeTwrCloseResource(SyntheticAdditions additions) {
-    for (ProgramMethod method : methodsWithTwrCloseResource.values()) {
-      twrCloseResourceRewriter.rewriteCf(
-          method, additions::addLiveMethod, additions.getMethodContext(method));
     }
   }
 
@@ -3346,7 +3329,7 @@ public class Enqueuer {
 
     SynthesizingContextOracle lambdaSynthesizingContextOracle =
         syntheticClass -> {
-          ProgramMethod lambdaSynthesisContext = lambdaSynthesizingContexts.get(syntheticClass);
+          ProgramMethod lambdaSynthesisContext = synthesizingContexts.get(syntheticClass);
           return lambdaSynthesisContext != null
               ? ImmutableSet.of(lambdaSynthesisContext.getReference())
               : ImmutableSet.of(syntheticClass.getType());

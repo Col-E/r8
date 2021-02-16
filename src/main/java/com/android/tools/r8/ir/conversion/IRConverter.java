@@ -54,7 +54,6 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
-import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
@@ -139,7 +138,6 @@ public class IRConverter {
   private final StringBuilderOptimizer stringBuilderOptimizer;
   private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
-  private final TwrCloseResourceRewriter twrCloseResourceRewriter;
   private final BackportedMethodRewriter backportedMethodRewriter;
   private final DesugaredLibraryRetargeter desugaredLibraryRetargeter;
   private final ClassInliner classInliner;
@@ -223,7 +221,7 @@ public class IRConverter {
       // The following desugaring are present so all desugaring is performed cf to cf in L8, and
       // the second L8 phase can just run with Desugar turned off:
       // - InterfaceMethodRewriter for non L8 specific interface method desugaring,
-      // - TwrCloseResourceRewriter,
+      // - twr close resource desugaring,
       // - nest based access desugaring,
       // - invoke-special desugaring.
       assert options.desugarState.isOn();
@@ -239,10 +237,6 @@ public class IRConverter {
       this.desugaredLibraryAPIConverter =
           new DesugaredLibraryAPIConverter(appView, Mode.GENERATE_CALLBACKS_AND_WRAPPERS);
       this.backportedMethodRewriter = new BackportedMethodRewriter(appView);
-      this.twrCloseResourceRewriter =
-          TwrCloseResourceRewriter.enableTwrCloseResourceDesugaring(appView.options())
-              ? new TwrCloseResourceRewriter(appView)
-              : null;
       this.covariantReturnTypeAnnotationTransformer = null;
       this.dynamicTypeOptimization = null;
       this.classInliner = null;
@@ -271,11 +265,6 @@ public class IRConverter {
     this.interfaceMethodRewriter =
         options.isInterfaceMethodDesugaringEnabled()
             ? new InterfaceMethodRewriter(appView, this)
-            : null;
-    this.twrCloseResourceRewriter =
-        (TwrCloseResourceRewriter.enableTwrCloseResourceDesugaring(options)
-                && !appView.enableWholeProgramOptimizations())
-            ? new TwrCloseResourceRewriter(appView)
             : null;
     this.backportedMethodRewriter =
         (options.desugarState == DesugarState.ON && !appView.enableWholeProgramOptimizations())
@@ -410,12 +399,6 @@ public class IRConverter {
     }
   }
 
-  private void processTwrCloseResourceUtilityMethods() {
-    if (twrCloseResourceRewriter != null) {
-      twrCloseResourceRewriter.processSynthesizedMethods(this);
-    }
-  }
-
   private void processSynthesizedJava8UtilityClasses(ExecutorService executorService)
       throws ExecutionException {
     if (backportedMethodRewriter != null) {
@@ -454,7 +437,6 @@ public class IRConverter {
     convertClasses(executor);
 
     reportNestDesugarDependencies();
-    processTwrCloseResourceUtilityMethods();
 
     if (appView.getSyntheticItems().hasPendingSyntheticClasses()) {
       appView.setAppInfo(
@@ -584,14 +566,12 @@ public class IRConverter {
     if (options.isDesugaredLibraryCompilation()) {
       return true;
     }
-
     if (!options.cfToCfDesugar) {
       return true;
     }
-    if (method.getHolder().isInANest()) {
+    if (desugaring.needsDesugaring(method)) {
       return true;
     }
-
     if (desugaredLibraryAPIConverter != null
         && desugaredLibraryAPIConverter.shouldRegisterCallback(method)) {
       return true;
@@ -1519,12 +1499,6 @@ public class IRConverter {
     }
 
     previous = printMethod(code, "IR after desugared library API Conversion (SSA)", previous);
-
-    if (twrCloseResourceRewriter != null) {
-      timing.begin("Rewrite TWR close");
-      twrCloseResourceRewriter.rewriteIR(code, methodProcessingContext);
-      timing.end();
-    }
 
     assert code.verifyTypes(appView);
 

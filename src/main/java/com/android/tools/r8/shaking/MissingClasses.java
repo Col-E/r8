@@ -220,10 +220,7 @@ public class MissingClasses {
             assert synthesizingContext != null;
             rewrittenContexts.add(synthesizingContext);
           } else {
-            assert synthesizingContextReference.isDexType()
-                    && synthesizingContextReference
-                        .toSourceString()
-                        .contains("-$$InternalSyntheticTwrCloseResource$")
+            assert false
                 : "Unexpected synthesizing context: "
                     + synthesizingContextReference.toSourceString();
           }

@@ -21,25 +21,22 @@ import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
-import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 
 class NeedsIRDesugarUseRegistry extends UseRegistry {
 
   private boolean needsDesugaring = false;
-  private final AppView appView;
   private final BackportedMethodRewriter backportedMethodRewriter;
   private final DesugaredLibraryRetargeter desugaredLibraryRetargeter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
 
   public NeedsIRDesugarUseRegistry(
-      AppView appView,
+      AppView<?> appView,
       BackportedMethodRewriter backportedMethodRewriter,
       DesugaredLibraryRetargeter desugaredLibraryRetargeter,
       InterfaceMethodRewriter interfaceMethodRewriter,
       DesugaredLibraryAPIConverter desugaredLibraryAPIConverter) {
     super(appView.dexItemFactory());
-    this.appView = appView;
     this.backportedMethodRewriter = backportedMethodRewriter;
     this.desugaredLibraryRetargeter = desugaredLibraryRetargeter;
     this.interfaceMethodRewriter = interfaceMethodRewriter;
@@ -74,13 +71,6 @@ class NeedsIRDesugarUseRegistry extends UseRegistry {
     registerDesugaredLibraryAPIConverter(method);
   }
 
-  private void registerTwrCloseResourceRewriting(DexMethod method) {
-    if (!needsDesugaring) {
-      needsDesugaring =
-          TwrCloseResourceRewriter.isTwrCloseResourceMethod(method, appView.dexItemFactory());
-    }
-  }
-
   private void registerBackportedMethodRewriting(DexMethod method) {
     if (!needsDesugaring) {
       needsDesugaring = backportedMethodRewriter.needsDesugaring(method);
@@ -113,7 +103,6 @@ class NeedsIRDesugarUseRegistry extends UseRegistry {
 
   @Override
   public void registerInvokeStatic(DexMethod method) {
-    registerTwrCloseResourceRewriting(method);
     registerBackportedMethodRewriting(method);
     registerLibraryRetargeting(method, false);
     registerInterfaceMethodRewriting(method, STATIC);
