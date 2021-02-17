@@ -60,6 +60,9 @@ public class NestClassTest extends HorizontalClassMergingTestBase {
         .addOptionsModification(
             options ->
                 options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
+        .applyIf(
+            parameters.isCfRuntime(),
+            builder -> builder.addDontWarn("java.lang.invoke.StringConcatFactory"))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .compile()
