@@ -53,7 +53,6 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.Mode;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor;
-import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
@@ -133,7 +132,6 @@ public class IRConverter {
   private final CfInstructionDesugaringCollection desugaring;
   private final FieldAccessAnalysis fieldAccessAnalysis;
   private final LibraryMethodOverrideAnalysis libraryMethodOverrideAnalysis;
-  private final StringConcatRewriter stringConcatRewriter;
   private final StringOptimizer stringOptimizer;
   private final StringBuilderOptimizer stringBuilderOptimizer;
   private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
@@ -197,7 +195,6 @@ public class IRConverter {
     this.constantCanonicalizer = new ConstantCanonicalizer(codeRewriter);
     this.classInitializerDefaultsOptimization =
         new ClassInitializerDefaultsOptimization(appView, this);
-    this.stringConcatRewriter = new StringConcatRewriter(appView);
     this.stringOptimizer = new StringOptimizer(appView);
     this.stringBuilderOptimizer = new StringBuilderOptimizer(appView);
     this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
@@ -1436,10 +1433,6 @@ public class IRConverter {
       desugaredLibraryRetargeter.desugar(code);
       timing.end();
     }
-
-    timing.begin("Desugar string concat");
-    stringConcatRewriter.desugarStringConcats(method.method, code);
-    timing.end();
 
     previous = printMethod(code, "IR after lambda desugaring (SSA)", previous);
 

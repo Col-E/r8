@@ -16,6 +16,12 @@ import java.util.function.Predicate;
 
 public class IteratorUtils {
 
+  public static <T> int countRemaining(Iterator<T> iterator) {
+    IntBox counter = new IntBox();
+    iterator.forEachRemaining(ignore -> counter.increment());
+    return counter.get();
+  }
+
   public static <T, S extends T> Iterator<S> filter(
       Iterator<? extends T> iterator, Predicate<T> predicate) {
     return new Iterator<S>() {

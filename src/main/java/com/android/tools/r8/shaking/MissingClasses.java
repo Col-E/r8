@@ -290,11 +290,7 @@ public class MissingClasses {
               dexItemFactory.annotationSynthesizedClass,
               dexItemFactory.annotationSynthesizedClassMap,
               dexItemFactory.annotationThrows,
-              dexItemFactory.serializedLambdaType,
-              // TODO(b/176133674) StringConcatFactory is backported, but the class is reported as
-              //  missing because the enqueuer runs prior to backporting and thus sees the
-              //  non-desugared code.
-              dexItemFactory.stringConcatFactoryType)
+              dexItemFactory.serializedLambdaType)
           .addAll(dexItemFactory.getConversionTypes())
           .build();
     }

@@ -395,10 +395,12 @@ public class CfPrinter {
     builder.append(opcodeName(Opcodes.INVOKEDYNAMIC)).append(' ');
     builder.append(callSite.methodName);
     builder.append(callSite.methodProto.toDescriptorString());
-    DexMethodHandle handle = callSite.bootstrapArgs.get(1).asDexValueMethodHandle().getValue();
-    builder.append(", handle:");
-    builder.append(handle.toSourceString());
-    builder.append(", itf: ").append(handle.isInterface);
+    if (callSite.bootstrapArgs.size() > 1) {
+      DexMethodHandle handle = callSite.bootstrapArgs.get(1).asDexValueMethodHandle().getValue();
+      builder.append(", handle:");
+      builder.append(handle.toSourceString());
+      builder.append(", itf: ").append(handle.isInterface);
+    }
     builder.append(", bsm:");
     appendMethod(bootstrapMethod.asMethod());
   }

@@ -83,6 +83,10 @@ public class DexProto extends IndexedDexItem implements NamingLensComparable<Dex
     return parameters.values[index];
   }
 
+  public DexTypeList getParameters() {
+    return parameters;
+  }
+
   public int getArity() {
     return parameters.size();
   }

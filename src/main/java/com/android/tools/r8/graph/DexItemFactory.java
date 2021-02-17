@@ -616,8 +616,12 @@ public class DexItemFactory {
   public final DexType externalizableType = createStaticallyKnownType("Ljava/io/Externalizable;");
   public final DexType cloneableType = createStaticallyKnownType("Ljava/lang/Cloneable;");
   public final DexType comparableType = createStaticallyKnownType("Ljava/lang/Comparable;");
+  public final DexType stringConcatFactoryType =
+      createStaticallyKnownType("Ljava/lang/invoke/StringConcatFactory;");
 
   public final ServiceLoaderMethods serviceLoaderMethods = new ServiceLoaderMethods();
+  public final StringConcatFactoryMembers stringConcatFactoryMembers =
+      new StringConcatFactoryMembers();
 
   public final BiMap<DexType, DexType> primitiveToBoxed = HashBiMap.create(
       ImmutableMap.<DexType, DexType>builder()
@@ -677,33 +681,6 @@ public class DexItemFactory {
 
   public final DexMethod deserializeLambdaMethod =
       createMethod(objectType, deserializeLambdaMethodProto, deserializeLambdaMethodName);
-
-  public final DexType stringConcatFactoryType =
-      createStaticallyKnownType("Ljava/lang/invoke/StringConcatFactory;");
-
-  public final DexMethod stringConcatWithConstantsMethod =
-      createMethod(
-          stringConcatFactoryType,
-          createProto(
-              callSiteType,
-              lookupType,
-              stringType,
-              methodTypeType,
-              stringType,
-              objectArrayType),
-          createString("makeConcatWithConstants")
-      );
-
-  public final DexMethod stringConcatMethod =
-      createMethod(
-          stringConcatFactoryType,
-          createProto(
-              callSiteType,
-              lookupType,
-              stringType,
-              methodTypeType),
-          createString("makeConcat")
-      );
 
   public Map<DexMethod, int[]> libraryMethodsNonNullParamOrThrow =
       buildLibraryMethodsNonNullParamOrThrow();
@@ -1153,6 +1130,21 @@ public class DexItemFactory {
     public void forEachFinalField(Consumer<DexField> consumer) {
       consumer.accept(TYPE);
     }
+  }
+
+  public class StringConcatFactoryMembers {
+
+    public final DexMethod makeConcat =
+        createMethod(
+            stringConcatFactoryType,
+            createProto(callSiteType, lookupType, stringType, methodTypeType),
+            createString("makeConcat"));
+    public final DexMethod makeConcatWithConstants =
+        createMethod(
+            stringConcatFactoryType,
+            createProto(
+                callSiteType, lookupType, stringType, methodTypeType, stringType, objectArrayType),
+            createString("makeConcatWithConstants"));
   }
 
   public class ThrowableMethods {

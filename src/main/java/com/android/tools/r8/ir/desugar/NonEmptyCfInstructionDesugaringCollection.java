@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugari
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
+import com.android.tools.r8.ir.desugar.stringconcat.StringConcatInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.twr.TwrCloseResourceInstructionDesugaring;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -40,6 +41,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     this.nestBasedAccessDesugaring = NestBasedAccessDesugaring.create(appView);
     desugarings.add(new LambdaInstructionDesugaring(appView));
     desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
+    desugarings.add(new StringConcatInstructionDesugaring(appView));
     if (appView.options().enableTryWithResourcesDesugaring()) {
       desugarings.add(new TwrCloseResourceInstructionDesugaring(appView));
     }
