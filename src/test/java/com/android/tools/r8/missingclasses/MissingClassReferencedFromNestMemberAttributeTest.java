@@ -9,6 +9,8 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
+import com.android.tools.r8.diagnostic.MissingDefinitionContext;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionClassContext;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.google.common.collect.ImmutableList;
@@ -18,7 +20,11 @@ import org.junit.Test;
 
 public class MissingClassReferencedFromNestMemberAttributeTest extends MissingClassesTestBase {
 
-  private static final ClassReference referencedFrom = Reference.classFromClass(Main.class);
+  private static final MissingDefinitionContext referencedFrom =
+      MissingDefinitionClassContext.builder()
+          .setClassContext(Reference.classFromClass(Main.class))
+          .setOrigin(getOrigin(Main.class))
+          .build();
 
   public MissingClassReferencedFromNestMemberAttributeTest(TestParameters parameters) {
     super(parameters);

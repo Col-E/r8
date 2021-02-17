@@ -12,7 +12,7 @@ import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.diagnostic.MissingDefinitionContext;
 import com.android.tools.r8.diagnostic.internal.MissingDefinitionMethodContext;
 import com.android.tools.r8.references.Reference;
-import com.google.common.collect.ImmutableList;
+import com.android.tools.r8.utils.MethodReferenceUtils;
 import java.util.Collections;
 import org.junit.Test;
 
@@ -21,12 +21,7 @@ public class MissingClassReferencedFromUsedLambdaReturnTest extends MissingClass
   private final MissingDefinitionContext[] referencedFrom =
       new MissingDefinitionContext[] {
         MissingDefinitionMethodContext.builder()
-            .setMethodContext(
-                Reference.method(
-                    Reference.classFromClass(I.class),
-                    "m",
-                    Collections.emptyList(),
-                    Reference.classFromClass(MissingClass.class)))
+            .setMethodContext(MethodReferenceUtils.methodFromMethod(I.class, "m"))
             .setOrigin(getOrigin(I.class))
             .build(),
         MissingDefinitionMethodContext.builder()
@@ -39,12 +34,7 @@ public class MissingClassReferencedFromUsedLambdaReturnTest extends MissingClass
             .setOrigin(getOrigin(Main.class))
             .build(),
         MissingDefinitionMethodContext.builder()
-            .setMethodContext(
-                Reference.method(
-                    Reference.classFromClass(Main.class),
-                    "main",
-                    ImmutableList.of(Reference.array(Reference.classFromClass(String.class), 1)),
-                    null))
+            .setMethodContext(MethodReferenceUtils.mainMethod(Main.class))
             .setOrigin(getOrigin(Main.class))
             .build()
       };

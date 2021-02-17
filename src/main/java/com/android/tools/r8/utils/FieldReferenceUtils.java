@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.ClassReferenceUtils.getClassReferenceCo
 import static com.android.tools.r8.utils.TypeReferenceUtils.getTypeReferenceComparator;
 
 import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.references.Reference;
 import java.util.Comparator;
 
 public class FieldReferenceUtils {
@@ -27,6 +28,14 @@ public class FieldReferenceUtils {
         }
         return getTypeReferenceComparator().compare(field.getFieldType(), other.getFieldType());
       };
+
+  public static FieldReference fieldFromField(Class<?> clazz, String name) {
+    try {
+      return Reference.fieldFromField(clazz.getDeclaredField(name));
+    } catch (NoSuchFieldException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   public static Comparator<FieldReference> getFieldReferenceComparator() {
     return COMPARATOR;

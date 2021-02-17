@@ -7,8 +7,9 @@ package com.android.tools.r8.missingclasses;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.references.FieldReference;
-import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.diagnostic.MissingDefinitionContext;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionFieldContext;
+import com.android.tools.r8.utils.FieldReferenceUtils;
 import org.junit.Test;
 
 /**
@@ -17,11 +18,11 @@ import org.junit.Test;
  */
 public class MissingClassReferencedFromStaticPutToExistingFieldTest extends MissingClassesTestBase {
 
-  private static final FieldReference referencedFrom =
-      Reference.field(
-          Reference.classFromClass(Main.class),
-          "FIELD",
-          Reference.classFromClass(MissingClass.class));
+  private static final MissingDefinitionContext referencedFrom =
+      MissingDefinitionFieldContext.builder()
+          .setFieldContext(FieldReferenceUtils.fieldFromField(Main.class, "FIELD"))
+          .setOrigin(getOrigin(Main.class))
+          .build();
 
   public MissingClassReferencedFromStaticPutToExistingFieldTest(TestParameters parameters) {
     super(parameters);

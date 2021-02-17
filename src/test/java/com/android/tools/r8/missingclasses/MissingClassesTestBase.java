@@ -15,8 +15,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.diagnostic.MissingDefinitionContext;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.FieldReference;
-import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.FieldReferenceUtils;
@@ -25,7 +23,6 @@ import com.android.tools.r8.utils.MethodReferenceUtils;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.List;
-import java.util.function.Function;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -108,31 +105,7 @@ public abstract class MissingClassesTestBase extends TestBase {
   }
 
   void inspectDiagnosticsWithIgnoreWarnings(
-      TestDiagnosticMessages diagnostics, ClassReference referencedFrom) {
-    inspectDiagnosticsWithIgnoreWarnings(
-        diagnostics,
-        null,
-        getExpectedDiagnosticMessage(referencedFrom, ClassReference::getTypeName));
-  }
-
-  void inspectDiagnosticsWithIgnoreWarnings(
-      TestDiagnosticMessages diagnostics, FieldReference referencedFrom) {
-    inspectDiagnosticsWithIgnoreWarnings(
-        diagnostics,
-        null,
-        getExpectedDiagnosticMessage(referencedFrom, FieldReferenceUtils::toSourceString));
-  }
-
-  void inspectDiagnosticsWithIgnoreWarnings(
-      TestDiagnosticMessages diagnostics, MethodReference referencedFrom) {
-    inspectDiagnosticsWithIgnoreWarnings(
-        diagnostics,
-        null,
-        getExpectedDiagnosticMessage(referencedFrom, MethodReferenceUtils::toSourceString));
-  }
-
-  void inspectDiagnosticsWithIgnoreWarnings(
-      TestDiagnosticMessages diagnostics, MissingDefinitionContext[] referencedFrom) {
+      TestDiagnosticMessages diagnostics, MissingDefinitionContext... referencedFrom) {
     assertTrue(referencedFrom.length > 0);
     Box<String> referencedFromSourceString = new Box<>();
     referencedFrom[0].getReference(
@@ -168,31 +141,7 @@ public abstract class MissingClassesTestBase extends TestBase {
   }
 
   void inspectDiagnosticsWithNoRules(
-      TestDiagnosticMessages diagnostics, ClassReference referencedFrom) {
-    inspectDiagnosticsWithNoRules(
-        diagnostics,
-        null,
-        getExpectedDiagnosticMessage(referencedFrom, ClassReference::getTypeName));
-  }
-
-  void inspectDiagnosticsWithNoRules(
-      TestDiagnosticMessages diagnostics, FieldReference referencedFrom) {
-    inspectDiagnosticsWithNoRules(
-        diagnostics,
-        null,
-        getExpectedDiagnosticMessage(referencedFrom, FieldReferenceUtils::toSourceString));
-  }
-
-  void inspectDiagnosticsWithNoRules(
-      TestDiagnosticMessages diagnostics, MethodReference referencedFrom) {
-    inspectDiagnosticsWithNoRules(
-        diagnostics,
-        null,
-        getExpectedDiagnosticMessage(referencedFrom, MethodReferenceUtils::toSourceString));
-  }
-
-  void inspectDiagnosticsWithNoRules(
-      TestDiagnosticMessages diagnostics, MissingDefinitionContext[] referencedFrom) {
+      TestDiagnosticMessages diagnostics, MissingDefinitionContext... referencedFrom) {
     assertTrue(referencedFrom.length > 0);
     Box<String> referencedFromSourceString = new Box<>();
     referencedFrom[0].getReference(
@@ -227,12 +176,7 @@ public abstract class MissingClassesTestBase extends TestBase {
                     .assertNumberOfMissingClasses(1));
   }
 
-  private <T> String getExpectedDiagnosticMessage(
-      T referencedFrom, Function<T, String> toSourceStringFunction) {
-    return getExpectedDiagnosticMessage(toSourceStringFunction.apply(referencedFrom), 1);
-  }
-
-  private <T> String getExpectedDiagnosticMessage(String referencedFrom, int numberOfContexts) {
+  private String getExpectedDiagnosticMessage(String referencedFrom, int numberOfContexts) {
     StringBuilder builder =
         new StringBuilder("Missing class ")
             .append(getMissingClassReference().getTypeName())

@@ -8,20 +8,19 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.references.Reference;
-import java.util.Collections;
+import com.android.tools.r8.diagnostic.MissingDefinitionContext;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionMethodContext;
+import com.android.tools.r8.utils.MethodReferenceUtils;
 import org.junit.Test;
 
 /** If a method definition refers to a missing class, then the method definition is to be blamed. */
 public class MissingClassReferencedFromKeptMethodReturnTest extends MissingClassesTestBase {
 
-  private static final MethodReference referencedFrom =
-      Reference.method(
-          Reference.classFromClass(Main.class),
-          "get",
-          Collections.emptyList(),
-          Reference.classFromClass(MissingClass.class));
+  private static final MissingDefinitionContext referencedFrom =
+      MissingDefinitionMethodContext.builder()
+          .setMethodContext(MethodReferenceUtils.methodFromMethod(Main.class, "get"))
+          .setOrigin(getOrigin(Main.class))
+          .build();
 
   public MissingClassReferencedFromKeptMethodReturnTest(TestParameters parameters) {
     super(parameters);

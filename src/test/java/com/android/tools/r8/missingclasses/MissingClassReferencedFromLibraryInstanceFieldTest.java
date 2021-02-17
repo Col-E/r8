@@ -11,17 +11,18 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.references.FieldReference;
-import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.diagnostic.MissingDefinitionContext;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionFieldContext;
+import com.android.tools.r8.utils.FieldReferenceUtils;
 import org.junit.Test;
 
 public class MissingClassReferencedFromLibraryInstanceFieldTest extends MissingClassesTestBase {
 
-  private static final FieldReference referencedFrom =
-      Reference.field(
-          Reference.classFromClass(Library.class),
-          "field",
-          Reference.classFromClass(MissingClass.class));
+  private static final MissingDefinitionContext referencedFrom =
+      MissingDefinitionFieldContext.builder()
+          .setFieldContext(FieldReferenceUtils.fieldFromField(Library.class, "field"))
+          .setOrigin(getOrigin(Library.class))
+          .build();
 
   public MissingClassReferencedFromLibraryInstanceFieldTest(TestParameters parameters) {
     super(parameters);

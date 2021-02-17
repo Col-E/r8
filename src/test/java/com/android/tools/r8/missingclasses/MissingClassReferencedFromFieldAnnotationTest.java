@@ -7,17 +7,22 @@ package com.android.tools.r8.missingclasses;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.diagnostic.MissingDefinitionContext;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionFieldContext;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.FieldReferenceUtils;
 import org.junit.Test;
 
 // TODO(b/179456539): This test should fail without -keepattributes RuntimeVisibleAnnotations, but
 //  we retain missing annotations even if there is no -keepattributes *Annotations*.
 public class MissingClassReferencedFromFieldAnnotationTest extends MissingClassesTestBase {
 
-  private static final FieldReference referencedFrom =
-      Reference.field(Reference.classFromClass(Main.class), "FIELD", Reference.INT);
+  private static final MissingDefinitionContext referencedFrom =
+      MissingDefinitionFieldContext.builder()
+          .setFieldContext(FieldReferenceUtils.fieldFromField(Main.class, "FIELD"))
+          .setOrigin(getOrigin(Main.class))
+          .build();
 
   public MissingClassReferencedFromFieldAnnotationTest(TestParameters parameters) {
     super(parameters);

@@ -9,8 +9,8 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.diagnostic.MissingDefinitionContext;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionMethodContext;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -24,8 +24,11 @@ import org.junit.Test;
 public class MissingClassReferencedFromInvokeVirtualToAbsentMethodReturnTest
     extends MissingClassesTestBase {
 
-  private static final MethodReference referencedFrom =
-      MethodReferenceUtils.mainMethod(Reference.classFromClass(Main.class));
+  private static final MissingDefinitionContext referencedFrom =
+      MissingDefinitionMethodContext.builder()
+          .setMethodContext(MethodReferenceUtils.mainMethod(Main.class))
+          .setOrigin(getOrigin(Main.class))
+          .build();
 
   public MissingClassReferencedFromInvokeVirtualToAbsentMethodReturnTest(
       TestParameters parameters) {

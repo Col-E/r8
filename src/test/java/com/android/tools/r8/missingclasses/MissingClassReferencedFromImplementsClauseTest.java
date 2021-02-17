@@ -8,13 +8,19 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.diagnostic.MissingDefinitionContext;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionClassContext;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import org.junit.Test;
 
 public class MissingClassReferencedFromImplementsClauseTest extends MissingClassesTestBase {
 
-  private static final ClassReference referencedFrom = Reference.classFromClass(Main.class);
+  private static final MissingDefinitionContext referencedFrom =
+      MissingDefinitionClassContext.builder()
+          .setClassContext(Reference.classFromClass(Main.class))
+          .setOrigin(getOrigin(Main.class))
+          .build();
 
   public MissingClassReferencedFromImplementsClauseTest(TestParameters parameters) {
     super(parameters);

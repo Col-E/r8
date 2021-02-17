@@ -56,9 +56,22 @@ public class MethodReferenceUtils {
     return COMPARATOR;
   }
 
+  public static MethodReference mainMethod(Class<?> clazz) {
+    return mainMethod(Reference.classFromClass(clazz));
+  }
+
   public static MethodReference mainMethod(ClassReference type) {
     ArrayReference stringArrayType = Reference.array(Reference.classFromClass(String.class), 1);
     return Reference.method(type, "main", ImmutableList.of(stringArrayType), null);
+  }
+
+  public static MethodReference methodFromMethod(
+      Class<?> clazz, String name, Class<?>... parameterTypes) {
+    try {
+      return Reference.methodFromMethod(clazz.getDeclaredMethod(name, parameterTypes));
+    } catch (NoSuchMethodException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static String toSourceStringWithoutHolderAndReturnType(MethodReference methodReference) {

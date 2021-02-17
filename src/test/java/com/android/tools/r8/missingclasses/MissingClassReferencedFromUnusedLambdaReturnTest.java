@@ -14,7 +14,7 @@ import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.diagnostic.MissingDefinitionContext;
 import com.android.tools.r8.diagnostic.internal.MissingDefinitionMethodContext;
 import com.android.tools.r8.references.Reference;
-import com.google.common.collect.ImmutableList;
+import com.android.tools.r8.utils.MethodReferenceUtils;
 import java.util.Collections;
 import org.junit.Test;
 
@@ -32,12 +32,7 @@ public class MissingClassReferencedFromUnusedLambdaReturnTest extends MissingCla
             .setOrigin(getOrigin(Main.class))
             .build(),
         MissingDefinitionMethodContext.builder()
-            .setMethodContext(
-                Reference.method(
-                    Reference.classFromClass(Main.class),
-                    "main",
-                    ImmutableList.of(Reference.array(Reference.classFromClass(String.class), 1)),
-                    null))
+            .setMethodContext(MethodReferenceUtils.mainMethod(Main.class))
             .setOrigin(getOrigin(Main.class))
             .build(),
       };
