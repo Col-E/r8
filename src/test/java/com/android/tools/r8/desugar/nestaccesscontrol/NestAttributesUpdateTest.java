@@ -11,6 +11,7 @@ import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertSame;
 import static junit.framework.TestCase.assertTrue;
 
+import com.android.tools.r8.Jdk9TestUtils;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -94,6 +95,7 @@ public class NestAttributesUpdateTest extends TestBase {
               options.enableClassInlining = false;
             })
         .addProgramFiles(classesMatching(outerNestName))
+        .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
         .addInliningAnnotations()
         .compile()
         .inspect(

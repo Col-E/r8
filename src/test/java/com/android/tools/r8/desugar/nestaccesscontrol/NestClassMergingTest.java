@@ -3,6 +3,7 @@ package com.android.tools.r8.desugar.nestaccesscontrol;
 import static com.android.tools.r8.desugar.nestaccesscontrol.NestAccessControlTestUtils.PACKAGE_NAME;
 import static com.android.tools.r8.desugar.nestaccesscontrol.NestAccessControlTestUtils.classesMatching;
 
+import com.android.tools.r8.Jdk9TestUtils;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
@@ -97,6 +98,7 @@ public class NestClassMergingTest extends TestBase {
                 })
             .enableInliningAnnotations()
             .addProgramFiles(bothNestsAndOutsideClassToCompile)
+            .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
             .compile()
             .inspect(NestAttributesUpdateTest::assertNestAttributesCorrect);
     for (int i = 0; i < mainClasses.length; i++) {

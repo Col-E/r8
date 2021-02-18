@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 
+import com.android.tools.r8.Jdk9TestUtils;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -114,6 +115,7 @@ public class Jdk11MathTests extends TestBase {
         .addKeepMainRule(EXACTARITH)
         .addProgramFiles(JDK_11_MATH_TEST_CLASS_FILES)
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
+        .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), EXACTARITH)
         .assertSuccessWithOutput("");
@@ -126,6 +128,7 @@ public class Jdk11MathTests extends TestBase {
         .addKeepMainRule(EXACTARITH)
         .addProgramFiles(JDK_11_MATH_TEST_CLASS_FILES)
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
+        .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), DIVMOD)
         .assertSuccessWithOutput("");
@@ -137,6 +140,7 @@ public class Jdk11MathTests extends TestBase {
         .addProgramFiles(JDK_11_STRICT_MATH_TEST_CLASS_FILES)
         .addKeepMainRule(EXACTARITH)
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
+        .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), EXACTARITH)
         .assertSuccessWithOutput("");

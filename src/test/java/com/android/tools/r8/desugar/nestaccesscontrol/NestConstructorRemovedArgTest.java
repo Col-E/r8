@@ -8,6 +8,7 @@ import static com.android.tools.r8.desugar.nestaccesscontrol.NestAccessControlTe
 import static com.android.tools.r8.desugar.nestaccesscontrol.NestAccessControlTestUtils.getExpectedResult;
 import static com.android.tools.r8.desugar.nestaccesscontrol.NestAccessControlTestUtils.getMainClass;
 
+import com.android.tools.r8.Jdk9TestUtils;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -44,11 +45,9 @@ public class NestConstructorRemovedArgTest extends TestBase {
         .addKeepMainRule(getMainClass(nestID))
         .noMinification()
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(
-            options -> {
-              options.enableClassInlining = false;
-            })
+        .addOptionsModification(options -> options.enableClassInlining = false)
         .addProgramFiles(classesOfNest(nestID))
+        .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
         .compile()
         .run(parameters.getRuntime(), getMainClass(nestID))
         .assertSuccessWithOutput(getExpectedResult(nestID));
@@ -62,11 +61,9 @@ public class NestConstructorRemovedArgTest extends TestBase {
         .addKeepMainRule(getMainClass(nestID))
         .noMinification()
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(
-            options -> {
-              options.enableClassInlining = false;
-            })
+        .addOptionsModification(options -> options.enableClassInlining = false)
         .addProgramFiles(classesOfNest(nestID))
+        .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
         .compile()
         .run(parameters.getRuntime(), getMainClass(nestID))
         .assertSuccessWithOutput(getExpectedResult(nestID));

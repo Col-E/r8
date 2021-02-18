@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 
+import com.android.tools.r8.Jdk9TestUtils;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -81,6 +82,7 @@ public class Jdk11ObjectsTests extends TestBase {
         .addLibraryFiles(libraryJar)
         .addKeepMainRule(BASIC_OBJECTS_TEST)
         .addProgramFiles(JDK_11_OBJECTS_TEST_CLASS_FILES)
+        .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), BASIC_OBJECTS_TEST)
         .assertSuccessWithOutput("");

@@ -16,13 +16,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.Jdk9TestUtils;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
 import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
@@ -95,7 +95,7 @@ public class NestCompilationExceptionTest extends TestBase {
           .addKeepAllAttributes()
           .setMinApi(parameters.getApiLevel())
           .addProgramFiles(matchingClasses)
-          .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
+          .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
           .addOptionsModification(
               options -> {
                 options.ignoreMissingClasses = ignoreMissingClasses;

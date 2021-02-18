@@ -17,12 +17,15 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.Jdk9TestUtils;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -108,6 +111,7 @@ public class FullNestOnProgramPathTest extends TestBase {
           .setMinApi(parameters.getApiLevel())
           .addProgramFiles(classesOfNest(nestID))
           .addOptionsModification(options -> options.enableNestReduction = false)
+          .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
           .compile()
           .run(parameters.getRuntime(), getMainClass(nestID))
           .assertSuccessWithOutput(getExpectedResult(nestID));
@@ -135,9 +139,16 @@ public class FullNestOnProgramPathTest extends TestBase {
         .compile();
   }
 
-  private static R8TestCompileResult compileAllNestsR8(Backend backend, AndroidApiLevel minApi)
+  static R8TestCompileResult compileAllNestsR8(Backend backend, AndroidApiLevel minApi)
+      throws CompilationFailedException {
+    return compileAllNestsR8(backend, minApi, null);
+  }
+
+  static R8TestCompileResult compileAllNestsR8(
+      Backend backend, AndroidApiLevel minApi, ThrowableConsumer<R8FullTestBuilder> configuration)
       throws CompilationFailedException {
     return testForR8(getStaticTemp(), backend)
+        .apply(configuration)
         .noTreeShaking()
         .noMinification()
         .addKeepAllAttributes()

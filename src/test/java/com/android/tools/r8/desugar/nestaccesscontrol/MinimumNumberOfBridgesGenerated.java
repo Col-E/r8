@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.nestaccesscontrol;
 import static com.android.tools.r8.desugar.nestaccesscontrol.NestAccessControlTestUtils.getMainClass;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.Jdk9TestUtils;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -51,8 +52,11 @@ public class MinimumNumberOfBridgesGenerated extends TestBase {
           .apply(parameters.getApiLevel())
           .inspect(this::assertOnlyRequiredBridges);
     }
-    FullNestOnProgramPathTest.r8CompilationResult
-        .apply(parameters.getBackend(), parameters.getApiLevel())
+    FullNestOnProgramPathTest.compileAllNestsR8(
+            parameters.getBackend(),
+            parameters.getApiLevel(),
+            builder ->
+                builder.applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp)))
         .inspect(this::assertOnlyRequiredBridges);
   }
 

@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.records;
 
 import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE;
 
+import com.android.tools.r8.Jdk9TestUtils;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
@@ -54,6 +55,7 @@ public class RecordWithMembersTest extends TestBase {
     Path output =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)
+            .addLibraryFiles(Jdk9TestUtils.getJdk9LibraryFiles(temp))
             .setMinApi(parameters.getApiLevel())
             .addKeepRules(RECORD_KEEP_RULE)
             .addKeepMainRule(MAIN_TYPE)

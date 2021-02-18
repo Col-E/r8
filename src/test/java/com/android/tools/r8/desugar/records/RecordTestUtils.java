@@ -52,6 +52,7 @@ public class RecordTestUtils {
         JavaCompilerTool.create(getCheckedInJdk8(), temp)
             .addSourceFiles(Paths.get("src", "test", "javaStubs", "Record.java"))
             .addSourceFiles(Paths.get("src", "test", "javaStubs", "ObjectMethods.java"))
+            .addSourceFiles(Paths.get("src", "test", "javaStubs", "StringConcatFactory.java"))
             .addSourceFiles(Paths.get("src", "test", "javaStubs", "TypeDescriptor.java"))
             .addSourceFiles(Paths.get("src", "test", "javaStubs", "RecordComponent.java"))
             .compile();

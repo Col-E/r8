@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
+import com.android.tools.r8.Jdk11TestUtils;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -66,6 +67,7 @@ public class Java11R8BootstrapTest extends TestBase {
     // Shrink R8 11 with R8
     return testForR8(TestBase.getStaticTemp(), Backend.CF)
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR)
+        .addLibraryFiles(Jdk11TestUtils.getJdk11LibraryFiles(getStaticTemp()))
         .addKeepRuleFiles(MAIN_KEEP)
         .applyIf(
             desugar,
