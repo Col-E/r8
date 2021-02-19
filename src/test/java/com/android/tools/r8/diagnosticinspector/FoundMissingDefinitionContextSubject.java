@@ -5,12 +5,12 @@
 package com.android.tools.r8.diagnosticinspector;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.diagnostic.MissingDefinitionClassContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionContext;
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.FieldReference;
-import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.diagnostic.MissingDefinitionFieldContext;
+import com.android.tools.r8.diagnostic.MissingDefinitionMethodContext;
 
 public class FoundMissingDefinitionContextSubject {
 
@@ -21,19 +21,24 @@ public class FoundMissingDefinitionContextSubject {
   }
 
   public FoundMissingDefinitionContextSubject assertEqualTo(
-      MissingDefinitionContext expectedContext) {
-    Box<ClassReference> classReference = new Box<>();
-    Box<FieldReference> fieldReference = new Box<>();
-    Box<MethodReference> methodReference = new Box<>();
-    context.getReference(classReference::set, fieldReference::set, methodReference::set);
-    Box<ClassReference> expectedClassReference = new Box<>();
-    Box<FieldReference> expectedFieldReference = new Box<>();
-    Box<MethodReference> expectedMethodReference = new Box<>();
-    expectedContext.getReference(
-        expectedClassReference::set, expectedFieldReference::set, expectedMethodReference::set);
-    assertEquals(classReference, expectedClassReference);
-    assertEquals(fieldReference, expectedFieldReference);
-    assertEquals(methodReference, expectedMethodReference);
+      MissingDefinitionClassContext expectedContext) {
+    assertTrue(context.isClassContext());
+    assertEquals(expectedContext.getClassReference(), context.asClassContext().getClassReference());
+    return this;
+  }
+
+  public FoundMissingDefinitionContextSubject assertEqualTo(
+      MissingDefinitionFieldContext expectedContext) {
+    assertTrue(context.isFieldContext());
+    assertEquals(expectedContext.getFieldReference(), context.asFieldContext().getFieldReference());
+    return this;
+  }
+
+  public FoundMissingDefinitionContextSubject assertEqualTo(
+      MissingDefinitionMethodContext expectedContext) {
+    assertTrue(context.isMethodContext());
+    assertEquals(
+        expectedContext.getMethodReference(), context.asMethodContext().getMethodReference());
     return this;
   }
 }

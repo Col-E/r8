@@ -86,10 +86,15 @@ public class MissingDefinitionsDiagnosticImpl implements MissingDefinitionsDiagn
 
   private static void writeMissingDefinition(
       StringBuilder builder, MissingDefinitionInfo missingDefinitionInfo) {
-    missingDefinitionInfo.getMissingDefinition(
-        classReference -> builder.append(classReference.getTypeName()),
-        fieldReference -> builder.append(FieldReferenceUtils.toSourceString(fieldReference)),
-        methodReference -> builder.append(MethodReferenceUtils.toSourceString(methodReference)));
+    MissingDefinitionInfoUtils.accept(
+        missingDefinitionInfo,
+        missingClassInfo -> builder.append(missingClassInfo.getClassReference().getTypeName()),
+        missingFieldInfo ->
+            builder.append(
+                FieldReferenceUtils.toSourceString(missingFieldInfo.getFieldReference())),
+        missingMethodInfo ->
+            builder.append(
+                MethodReferenceUtils.toSourceString(missingMethodInfo.getMethodReference())));
     writeReferencedFromSuffix(builder, missingDefinitionInfo);
   }
 
@@ -100,10 +105,18 @@ public class MissingDefinitionsDiagnosticImpl implements MissingDefinitionsDiagn
     Box<MethodReference> methodContext = new Box<>();
     for (MissingDefinitionContext missingDefinitionContext :
         missingDefinitionInfo.getReferencedFromContexts()) {
-      missingDefinitionContext.getReference(
-          classReference -> classContext.setMin(classReference, getClassReferenceComparator()),
-          fieldReference -> fieldContext.setMin(fieldReference, getFieldReferenceComparator()),
-          methodReference -> methodContext.setMin(methodReference, getMethodReferenceComparator()));
+      MissingDefinitionContextUtils.accept(
+          missingDefinitionContext,
+          missingDefinitionClassContext ->
+              classContext.setMin(
+                  missingDefinitionClassContext.getClassReference(), getClassReferenceComparator()),
+          missingDefinitionFieldContext ->
+              fieldContext.setMin(
+                  missingDefinitionFieldContext.getFieldReference(), getFieldReferenceComparator()),
+          missingDefinitionMethodContext ->
+              methodContext.setMin(
+                  missingDefinitionMethodContext.getMethodReference(),
+                  getMethodReferenceComparator()));
     }
     if (fieldContext.isSet()) {
       writeReferencedFromSuffix(

@@ -8,7 +8,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.diagnostic.MissingDefinitionContext;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionFieldContext;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionFieldContextImpl;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.FieldReferenceUtils;
@@ -19,7 +19,7 @@ import org.junit.Test;
 public class MissingClassReferencedFromFieldAnnotationTest extends MissingClassesTestBase {
 
   private static final MissingDefinitionContext referencedFrom =
-      MissingDefinitionFieldContext.builder()
+      MissingDefinitionFieldContextImpl.builder()
           .setFieldContext(FieldReferenceUtils.fieldFromField(Main.class, "FIELD"))
           .setOrigin(getOrigin(Main.class))
           .build();

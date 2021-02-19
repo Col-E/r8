@@ -9,6 +9,7 @@ import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.diagnostic.MissingDefinitionContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionInfo;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionContextUtils;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -33,16 +34,20 @@ public class FoundMissingDefinitionInfoSubject {
         .getReferencedFromContexts()
         .forEach(
             context ->
-                context.getReference(
+                MissingDefinitionContextUtils.accept(
+                    context,
                     classContext ->
                         classContexts.put(
-                            classContext, new FoundMissingDefinitionContextSubject(context)),
+                            classContext.getClassReference(),
+                            new FoundMissingDefinitionContextSubject(context)),
                     fieldContext ->
                         fieldContexts.put(
-                            fieldContext, new FoundMissingDefinitionContextSubject(context)),
+                            fieldContext.getFieldReference(),
+                            new FoundMissingDefinitionContextSubject(context)),
                     methodContext ->
                         methodContexts.put(
-                            methodContext, new FoundMissingDefinitionContextSubject(context))));
+                            methodContext.getMethodReference(),
+                            new FoundMissingDefinitionContextSubject(context))));
   }
 
   public FoundMissingDefinitionInfoSubject assertExactContexts(
@@ -50,21 +55,25 @@ public class FoundMissingDefinitionInfoSubject {
     assertEquals(expectedContexts.size(), missingDefinitionInfo.getReferencedFromContexts().size());
     expectedContexts.forEach(
         expectedContext ->
-            expectedContext.getReference(
-                classContext -> {
-                  FoundMissingDefinitionContextSubject subject = classContexts.get(classContext);
+            MissingDefinitionContextUtils.accept(
+                expectedContext,
+                expectedClassContext -> {
+                  FoundMissingDefinitionContextSubject subject =
+                      classContexts.get(expectedClassContext.getClassReference());
                   assertNotNull(subject);
-                  subject.assertEqualTo(expectedContext);
+                  subject.assertEqualTo(expectedClassContext);
                 },
-                fieldContext -> {
-                  FoundMissingDefinitionContextSubject subject = fieldContexts.get(fieldContext);
+                expectedFieldContext -> {
+                  FoundMissingDefinitionContextSubject subject =
+                      fieldContexts.get(expectedFieldContext.getFieldReference());
                   assertNotNull(subject);
-                  subject.assertEqualTo(expectedContext);
+                  subject.assertEqualTo(expectedFieldContext);
                 },
-                methodContext -> {
-                  FoundMissingDefinitionContextSubject subject = methodContexts.get(methodContext);
+                expectedMethodContext -> {
+                  FoundMissingDefinitionContextSubject subject =
+                      methodContexts.get(expectedMethodContext.getMethodReference());
                   assertNotNull(subject);
-                  subject.assertEqualTo(expectedContext);
+                  subject.assertEqualTo(expectedMethodContext);
                 }));
     return this;
   }

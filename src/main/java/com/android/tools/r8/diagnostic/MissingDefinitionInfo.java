@@ -5,11 +5,7 @@
 package com.android.tools.r8.diagnostic;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.FieldReference;
-import com.android.tools.r8.references.MethodReference;
 import java.util.Collection;
-import java.util.function.Consumer;
 
 /**
  * Information about the contexts that references an item that was not part of the compilation unit.
@@ -18,14 +14,55 @@ import java.util.function.Consumer;
 public interface MissingDefinitionInfo {
 
   /**
-   * Provides the missing definition to {@param classReferenceConsumer} if the missing definition is
-   * a class, to {@param fieldReferenceConsumer} if the missing definition is a field, and to
-   * {@param methodReferenceConsumer} if the missing definition is a method..
+   * Predicate that is true iff the MissingDefinitionInfo is an instance of {@link
+   * MissingClassInfo}.
    */
-  void getMissingDefinition(
-      Consumer<ClassReference> classReferenceConsumer,
-      Consumer<FieldReference> fieldReferenceConsumer,
-      Consumer<MethodReference> methodReferenceConsumer);
+  default boolean isMissingClass() {
+    return false;
+  }
+
+  /**
+   * Predicate that is true iff the MissingDefinitionInfo is an instance of {@link
+   * MissingFieldInfo}.
+   */
+  default boolean isMissingField() {
+    return false;
+  }
+
+  /**
+   * Predicate that is true iff the MissingDefinitionInfo is an instance of {@link
+   * MissingMethodInfo}.
+   */
+  default boolean isMissingMethod() {
+    return false;
+  }
+
+  /**
+   * Return a non-null {@link MissingClassInfo} if this type is {@link MissingClassInfo}.
+   *
+   * @return this with static type of {@link MissingClassInfo}.
+   */
+  default MissingClassInfo asMissingClass() {
+    return null;
+  }
+
+  /**
+   * Return a non-null {@link MissingFieldInfo} if this type is {@link MissingFieldInfo}.
+   *
+   * @return this with static type of {@link MissingFieldInfo}.
+   */
+  default MissingFieldInfo asMissingField() {
+    return null;
+  }
+
+  /**
+   * Return a non-null {@link MissingMethodInfo} if this type is {@link MissingMethodInfo}.
+   *
+   * @return this with static type of {@link MissingMethodInfo}.
+   */
+  default MissingMethodInfo asMissingMethod() {
+    return null;
+  }
 
   /** The contexts from which this missing definition was referenced. */
   Collection<MissingDefinitionContext> getReferencedFromContexts();

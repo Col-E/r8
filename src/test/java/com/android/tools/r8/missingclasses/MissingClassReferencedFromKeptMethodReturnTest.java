@@ -9,7 +9,7 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.diagnostic.MissingDefinitionContext;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionMethodContext;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionMethodContextImpl;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import org.junit.Test;
 
@@ -17,7 +17,7 @@ import org.junit.Test;
 public class MissingClassReferencedFromKeptMethodReturnTest extends MissingClassesTestBase {
 
   private static final MissingDefinitionContext referencedFrom =
-      MissingDefinitionMethodContext.builder()
+      MissingDefinitionMethodContextImpl.builder()
           .setMethodContext(MethodReferenceUtils.methodFromMethod(Main.class, "get"))
           .setOrigin(getOrigin(Main.class))
           .build();

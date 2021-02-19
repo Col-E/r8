@@ -4,17 +4,16 @@
 
 package com.android.tools.r8.diagnostic.internal;
 
+import com.android.tools.r8.diagnostic.MissingDefinitionMethodContext;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
-import java.util.function.Consumer;
 
-public class MissingDefinitionMethodContext extends MissingDefinitionContextBase {
+public class MissingDefinitionMethodContextImpl extends MissingDefinitionContextBase
+    implements MissingDefinitionMethodContext {
 
   private final MethodReference methodReference;
 
-  private MissingDefinitionMethodContext(MethodReference methodReference, Origin origin) {
+  private MissingDefinitionMethodContextImpl(MethodReference methodReference, Origin origin) {
     super(origin);
     this.methodReference = methodReference;
   }
@@ -24,16 +23,8 @@ public class MissingDefinitionMethodContext extends MissingDefinitionContextBase
   }
 
   @Override
-  public ClassReference getClassReference() {
-    return methodReference.getHolderClass();
-  }
-
-  @Override
-  public void getReference(
-      Consumer<ClassReference> classReferenceConsumer,
-      Consumer<FieldReference> fieldReferenceConsumer,
-      Consumer<MethodReference> methodReferenceConsumer) {
-    methodReferenceConsumer.accept(methodReference);
+  public MethodReference getMethodReference() {
+    return methodReference;
   }
 
   public static class Builder extends MissingDefinitionContextBase.Builder<Builder> {
@@ -53,9 +44,9 @@ public class MissingDefinitionMethodContext extends MissingDefinitionContextBase
     }
 
     @Override
-    public MissingDefinitionMethodContext build() {
+    public MissingDefinitionMethodContextImpl build() {
       assert validate();
-      return new MissingDefinitionMethodContext(methodReference, origin);
+      return new MissingDefinitionMethodContextImpl(methodReference, origin);
     }
 
     @Override

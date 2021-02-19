@@ -6,28 +6,56 @@ package com.android.tools.r8.diagnostic;
 
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.FieldReference;
-import com.android.tools.r8.references.MethodReference;
-import java.util.function.Consumer;
 
 /** A context that references a missing definition in the program, classpath, or library. */
 @Keep
 public interface MissingDefinitionContext {
 
-  /** The class context from which a missing definition is referenced. */
-  ClassReference getClassReference();
-
   /** The origin of the context. */
   Origin getOrigin();
 
+  /** Predicate that is true iff this is an instance of {@link MissingDefinitionClassContext}. */
+  default boolean isClassContext() {
+    return false;
+  }
+
+  /** Predicate that is true iff this is an instance of {@link MissingDefinitionFieldContext}. */
+  default boolean isFieldContext() {
+    return false;
+  }
+
+  /** Predicate that is true iff this is an instance of {@link MissingDefinitionMethodContext}. */
+  default boolean isMethodContext() {
+    return false;
+  }
+
   /**
-   * Provides the context in which the missing definition is referenced to {@param
-   * classReferenceConsumer} if the context is a class, to {@param fieldReferenceConsumer} if the
-   * context is a field, and to {@param methodReferenceConsumer} if the context is a method..
+   * Return a non-null {@link MissingDefinitionClassContext} if this type is {@link
+   * MissingDefinitionClassContext}.
+   *
+   * @return this with static type of {@link MissingDefinitionClassContext}.
    */
-  void getReference(
-      Consumer<ClassReference> classReferenceConsumer,
-      Consumer<FieldReference> fieldReferenceConsumer,
-      Consumer<MethodReference> methodReferenceConsumer);
+  default MissingDefinitionClassContext asClassContext() {
+    return null;
+  }
+
+  /**
+   * Return a non-null {@link MissingDefinitionFieldContext} if this type is {@link
+   * MissingDefinitionFieldContext}.
+   *
+   * @return this with static type of {@link MissingDefinitionFieldContext}.
+   */
+  default MissingDefinitionFieldContext asFieldContext() {
+    return null;
+  }
+
+  /**
+   * Return a non-null {@link MissingDefinitionMethodContext} if this type is {@link
+   * MissingDefinitionMethodContext}.
+   *
+   * @return this with static type of {@link MissingDefinitionMethodContext}.
+   */
+  default MissingDefinitionMethodContext asMethodContext() {
+    return null;
+  }
 }

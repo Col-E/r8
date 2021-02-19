@@ -10,7 +10,7 @@ import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.EMULATE_LI
 import static com.android.tools.r8.utils.collections.IdentityHashSetFromMap.newProgramDerivedContextSet;
 
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
-import com.android.tools.r8.diagnostic.internal.MissingClassInfo;
+import com.android.tools.r8.diagnostic.internal.MissingClassInfoImpl;
 import com.android.tools.r8.diagnostic.internal.MissingDefinitionContextUtils;
 import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
 import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
@@ -161,8 +161,8 @@ public class MissingClasses {
           MissingDefinitionsDiagnosticImpl.builder();
       missingClassesToBeReported.forEach(
           (missingClass, programDerivedContexts) -> {
-            MissingClassInfo.Builder missingClassInfoBuilder =
-                MissingClassInfo.builder().setClass(missingClass.asClassReference());
+            MissingClassInfoImpl.Builder missingClassInfoBuilder =
+                MissingClassInfoImpl.builder().setClass(missingClass.asClassReference());
             for (ProgramDerivedContext programDerivedContext : programDerivedContexts) {
               missingClassInfoBuilder.addReferencedFromContext(
                   MissingDefinitionContextUtils.create(programDerivedContext));

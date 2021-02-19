@@ -10,7 +10,7 @@ import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.diagnostic.MissingDefinitionContext;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionClassContext;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionClassContextImpl;
 import com.android.tools.r8.missingclasses.MissingClassReferencedFromNestHostAttributeTest.MissingClass.Main;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
@@ -22,7 +22,7 @@ import org.junit.Test;
 public class MissingClassReferencedFromNestHostAttributeTest extends MissingClassesTestBase {
 
   private static final MissingDefinitionContext referencedFrom =
-      MissingDefinitionClassContext.builder()
+      MissingDefinitionClassContextImpl.builder()
           .setClassContext(Reference.classFromClass(Main.class))
           .setOrigin(getOrigin(Main.class))
           .build();

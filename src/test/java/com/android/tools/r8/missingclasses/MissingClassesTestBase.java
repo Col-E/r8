@@ -14,12 +14,10 @@ import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.diagnostic.MissingDefinitionContext;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionContextUtils;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.utils.Box;
-import com.android.tools.r8.utils.FieldReferenceUtils;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
-import com.android.tools.r8.utils.MethodReferenceUtils;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.List;
@@ -107,17 +105,12 @@ public abstract class MissingClassesTestBase extends TestBase {
   void inspectDiagnosticsWithIgnoreWarnings(
       TestDiagnosticMessages diagnostics, MissingDefinitionContext... referencedFrom) {
     assertTrue(referencedFrom.length > 0);
-    Box<String> referencedFromSourceString = new Box<>();
-    referencedFrom[0].getReference(
-        classReference -> referencedFromSourceString.set(classReference.getTypeName()),
-        fieldReference ->
-            referencedFromSourceString.set(FieldReferenceUtils.toSourceString(fieldReference)),
-        methodReference ->
-            referencedFromSourceString.set(MethodReferenceUtils.toSourceString(methodReference)));
     inspectDiagnosticsWithIgnoreWarnings(
         diagnostics,
         referencedFrom,
-        getExpectedDiagnosticMessage(referencedFromSourceString.get(), referencedFrom.length));
+        getExpectedDiagnosticMessage(
+            MissingDefinitionContextUtils.toSourceString(referencedFrom[0]),
+            referencedFrom.length));
   }
 
   void inspectDiagnosticsWithIgnoreWarnings(
@@ -143,17 +136,12 @@ public abstract class MissingClassesTestBase extends TestBase {
   void inspectDiagnosticsWithNoRules(
       TestDiagnosticMessages diagnostics, MissingDefinitionContext... referencedFrom) {
     assertTrue(referencedFrom.length > 0);
-    Box<String> referencedFromSourceString = new Box<>();
-    referencedFrom[0].getReference(
-        classReference -> referencedFromSourceString.set(classReference.getTypeName()),
-        fieldReference ->
-            referencedFromSourceString.set(FieldReferenceUtils.toSourceString(fieldReference)),
-        methodReference ->
-            referencedFromSourceString.set(MethodReferenceUtils.toSourceString(methodReference)));
     inspectDiagnosticsWithNoRules(
         diagnostics,
         referencedFrom,
-        getExpectedDiagnosticMessage(referencedFromSourceString.get(), referencedFrom.length));
+        getExpectedDiagnosticMessage(
+            MissingDefinitionContextUtils.toSourceString(referencedFrom[0]),
+            referencedFrom.length));
   }
 
   void inspectDiagnosticsWithNoRules(

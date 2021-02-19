@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.diagnosticinspector;
 
-import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ThrowableConsumer;
+import com.android.tools.r8.diagnostic.MissingClassInfo;
 import com.android.tools.r8.diagnostic.MissingDefinitionContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionInfo;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
@@ -23,18 +23,16 @@ import java.util.Map;
 public class FoundMissingDefinitionsDiagnosticSubject
     extends FoundDiagnosticSubject<MissingDefinitionsDiagnostic> {
 
-  private final Map<ClassReference, MissingDefinitionInfo> missingClasses = new HashMap<>();
+  private final Map<ClassReference, MissingClassInfo> missingClasses = new HashMap<>();
 
   public FoundMissingDefinitionsDiagnosticSubject(MissingDefinitionsDiagnostic diagnostic) {
     super(diagnostic);
-    diagnostic
-        .getMissingDefinitions()
+    diagnostic.getMissingDefinitions().stream()
+        .filter(MissingDefinitionInfo::isMissingClass)
+        .map(MissingDefinitionInfo::asMissingClass)
         .forEach(
-            missingDefinitionInfo ->
-                missingDefinitionInfo.getMissingDefinition(
-                    classReference -> missingClasses.put(classReference, missingDefinitionInfo),
-                    emptyConsumer(),
-                    emptyConsumer()));
+            missingClassInfo ->
+                missingClasses.put(missingClassInfo.getClassReference(), missingClassInfo));
   }
 
   public FoundMissingDefinitionsDiagnosticSubject assertHasMessage(String expectedMessage) {

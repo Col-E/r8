@@ -4,17 +4,16 @@
 
 package com.android.tools.r8.diagnostic.internal;
 
+import com.android.tools.r8.diagnostic.MissingDefinitionClassContext;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.FieldReference;
-import com.android.tools.r8.references.MethodReference;
-import java.util.function.Consumer;
 
-public class MissingDefinitionClassContext extends MissingDefinitionContextBase {
+public class MissingDefinitionClassContextImpl extends MissingDefinitionContextBase
+    implements MissingDefinitionClassContext {
 
   private final ClassReference classReference;
 
-  private MissingDefinitionClassContext(ClassReference classReference, Origin origin) {
+  private MissingDefinitionClassContextImpl(ClassReference classReference, Origin origin) {
     super(origin);
     this.classReference = classReference;
   }
@@ -26,14 +25,6 @@ public class MissingDefinitionClassContext extends MissingDefinitionContextBase 
   @Override
   public ClassReference getClassReference() {
     return classReference;
-  }
-
-  @Override
-  public void getReference(
-      Consumer<ClassReference> classReferenceConsumer,
-      Consumer<FieldReference> fieldReferenceConsumer,
-      Consumer<MethodReference> methodReferenceConsumer) {
-    classReferenceConsumer.accept(classReference);
   }
 
   public static class Builder extends MissingDefinitionContextBase.Builder<Builder> {
@@ -53,9 +44,9 @@ public class MissingDefinitionClassContext extends MissingDefinitionContextBase 
     }
 
     @Override
-    public MissingDefinitionClassContext build() {
+    public MissingDefinitionClassContextImpl build() {
       assert validate();
-      return new MissingDefinitionClassContext(classReference, origin);
+      return new MissingDefinitionClassContextImpl(classReference, origin);
     }
 
     @Override

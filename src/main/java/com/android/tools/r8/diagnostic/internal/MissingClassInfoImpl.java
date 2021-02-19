@@ -4,19 +4,17 @@
 
 package com.android.tools.r8.diagnostic.internal;
 
+import com.android.tools.r8.diagnostic.MissingClassInfo;
 import com.android.tools.r8.diagnostic.MissingDefinitionContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionInfo;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.FieldReference;
-import com.android.tools.r8.references.MethodReference;
 import java.util.Collection;
-import java.util.function.Consumer;
 
-public class MissingClassInfo extends MissingDefinitionInfoBase {
+public class MissingClassInfoImpl extends MissingDefinitionInfoBase implements MissingClassInfo {
 
   private final ClassReference classReference;
 
-  private MissingClassInfo(
+  private MissingClassInfoImpl(
       ClassReference classReference, Collection<MissingDefinitionContext> referencedFromContexts) {
     super(referencedFromContexts);
     this.classReference = classReference;
@@ -27,11 +25,8 @@ public class MissingClassInfo extends MissingDefinitionInfoBase {
   }
 
   @Override
-  public void getMissingDefinition(
-      Consumer<ClassReference> classReferenceConsumer,
-      Consumer<FieldReference> fieldReferenceConsumer,
-      Consumer<MethodReference> methodReferenceConsumer) {
-    classReferenceConsumer.accept(classReference);
+  public ClassReference getClassReference() {
+    return classReference;
   }
 
   public static class Builder extends MissingDefinitionInfoBase.Builder {
@@ -46,7 +41,7 @@ public class MissingClassInfo extends MissingDefinitionInfoBase {
     }
 
     public MissingDefinitionInfo build() {
-      return new MissingClassInfo(classReference, referencedFromContextsBuilder.build());
+      return new MissingClassInfoImpl(classReference, referencedFromContextsBuilder.build());
     }
   }
 }
