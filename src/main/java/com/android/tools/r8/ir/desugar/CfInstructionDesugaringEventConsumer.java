@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.ClassConverterResult;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialBridgeInfo;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaringEventConsumer;
@@ -39,8 +40,8 @@ public abstract class CfInstructionDesugaringEventConsumer
         TwrCloseResourceDesugaringEventConsumer {
 
   public static D8CfInstructionDesugaringEventConsumer createForD8(
-      Consumer<LambdaClass> lambdaClassConsumer, D8MethodProcessor methodProcessor) {
-    return new D8CfInstructionDesugaringEventConsumer(lambdaClassConsumer, methodProcessor);
+      D8MethodProcessor methodProcessor) {
+    return new D8CfInstructionDesugaringEventConsumer(methodProcessor);
   }
 
   public static R8CfInstructionDesugaringEventConsumer createForR8(
@@ -89,15 +90,13 @@ public abstract class CfInstructionDesugaringEventConsumer
   public static class D8CfInstructionDesugaringEventConsumer
       extends CfInstructionDesugaringEventConsumer {
 
-    private final Consumer<LambdaClass> lambdaClassConsumer;
     private final D8MethodProcessor methodProcessor;
 
     private final Map<DexReference, InvokeSpecialBridgeInfo> pendingInvokeSpecialBridges =
         new LinkedHashMap<>();
+    private final List<LambdaClass> synthesizedLambdaClasses = new ArrayList<>();
 
-    private D8CfInstructionDesugaringEventConsumer(
-        Consumer<LambdaClass> lambdaClassConsumer, D8MethodProcessor methodProcessor) {
-      this.lambdaClassConsumer = lambdaClassConsumer;
+    private D8CfInstructionDesugaringEventConsumer(D8MethodProcessor methodProcessor) {
       this.methodProcessor = methodProcessor;
     }
 
@@ -111,7 +110,9 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptLambdaClass(LambdaClass lambdaClass, ProgramMethod context) {
-      lambdaClassConsumer.accept(lambdaClass);
+      synchronized (synthesizedLambdaClasses) {
+        synthesizedLambdaClasses.add(lambdaClass);
+      }
     }
 
     @Override
@@ -134,10 +135,12 @@ public abstract class CfInstructionDesugaringEventConsumer
       methodProcessor.scheduleDesugaredMethodForProcessing(closeMethod);
     }
 
-    public List<ProgramMethod> finalizeDesugaring(AppView<?> appView) {
-      List<ProgramMethod> needsReprocessing = new ArrayList<>();
-      finalizeInvokeSpecialDesugaring(appView, needsReprocessing::add);
-      return needsReprocessing;
+    public List<ProgramMethod> finalizeDesugaring(
+        AppView<?> appView, ClassConverterResult.Builder classConverterResultBuilder) {
+      List<ProgramMethod> needsProcessing = new ArrayList<>();
+      finalizeInvokeSpecialDesugaring(appView, needsProcessing::add);
+      finalizeLambdaDesugaring(classConverterResultBuilder, needsProcessing::add);
+      return needsProcessing;
     }
 
     private void finalizeInvokeSpecialDesugaring(
@@ -168,8 +171,20 @@ public abstract class CfInstructionDesugaringEventConsumer
       pendingInvokeSpecialBridges.clear();
     }
 
+    private void finalizeLambdaDesugaring(
+        ClassConverterResult.Builder classConverterResultBuilder,
+        Consumer<ProgramMethod> needsProcessing) {
+      for (LambdaClass lambdaClass : synthesizedLambdaClasses) {
+        lambdaClass.target.ensureAccessibilityIfNeeded(
+            classConverterResultBuilder, needsProcessing);
+        lambdaClass.getLambdaProgramClass().forEachProgramMethod(needsProcessing);
+      }
+      synthesizedLambdaClasses.clear();
+    }
+
     public boolean verifyNothingToFinalize() {
       assert pendingInvokeSpecialBridges.isEmpty();
+      assert synthesizedLambdaClasses.isEmpty();
       return true;
     }
   }

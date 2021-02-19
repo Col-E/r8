@@ -67,28 +67,29 @@ public abstract class ClassConverter {
 
       // Process the wave and wait for all IR processing to complete.
       D8CfInstructionDesugaringEventConsumer desugaringEventConsumer =
-          CfInstructionDesugaringEventConsumer.createForD8(
-              resultBuilder::addSynthesizedLambdaClass, methodProcessor);
+          CfInstructionDesugaringEventConsumer.createForD8(methodProcessor);
       methodProcessor.newWave();
       ThreadUtils.processItems(
           wave, clazz -> convertClass(clazz, desugaringEventConsumer), executorService);
       methodProcessor.awaitMethodProcessing();
 
-      // Finalize the desugaring of the processed classes. This may require reprocessing of some
-      // methods, because nest-based access desugaring changes the body of virtual methods.
-      List<ProgramMethod> needsReprocessing = desugaringEventConsumer.finalizeDesugaring(appView);
-      if (!needsReprocessing.isEmpty()) {
+      // Finalize the desugaring of the processed classes. This may require processing (and
+      // reprocessing) of some methods.
+      List<ProgramMethod> needsProcessing =
+          desugaringEventConsumer.finalizeDesugaring(appView, resultBuilder);
+      if (!needsProcessing.isEmpty()) {
         // Create a new processor context to ensure unique method processing contexts.
         methodProcessor.newWave();
 
         // Process the methods that require reprocessing. These are all simple bridge methods and
         // should therefore not lead to additional desugaring.
         ThreadUtils.processItems(
-            needsReprocessing,
+            needsProcessing,
             method -> {
               DexEncodedMethod definition = method.getDefinition();
-              assert definition.isProcessed();
-              definition.markNotProcessed();
+              if (definition.isProcessed()) {
+                definition.markNotProcessed();
+              }
               methodProcessor.processMethod(method, desugaringEventConsumer);
             },
             executorService);

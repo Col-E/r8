@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.IncludeAllResources;
-import static com.android.tools.r8.ir.desugar.lambda.D8LambdaDesugaring.synthesizeAccessibilityBridgesForLambdaClasses;
+import static com.android.tools.r8.ir.desugar.lambda.D8LambdaDesugaring.rewriteEnclosingLambdaMethodAttributes;
 
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.CompilationError;
@@ -99,7 +99,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
-import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.SupplierUtils;
@@ -466,19 +465,15 @@ public class IRConverter {
     ClassConverterResult classConverterResult =
         ClassConverter.create(appView, this, methodProcessor).convertClasses(executorService);
 
-    // The synthesis of accessibility bridges in lambda desugaring and nest based access desugaring
-    // will schedule and await the processing of synthesized methods.
+    // The synthesis of accessibility bridges in nest based access desugaring will schedule and
+    // await the processing of synthesized methods.
     synthesizeBridgesForNestBasedAccessesOnClasspath(methodProcessor, executorService);
-    synthesizeAccessibilityBridgesForLambdaClasses(appView, classConverterResult, methodProcessor);
-    methodProcessor
-        .scheduleDesugaredMethodsForProcessing(
-            IterableUtils.flatMap(
-                classConverterResult.getSynthesizedLambdaClasses(),
-                lambdaClass -> lambdaClass.getLambdaProgramClass().programMethods()))
-        .awaitMethodProcessing();
 
     // There should be no outstanding method processing.
     methodProcessor.verifyNoPendingMethodProcessing();
+
+    rewriteEnclosingLambdaMethodAttributes(
+        appView, classConverterResult.getForcefullyMovedLambdaMethods());
   }
 
   void convertMethods(

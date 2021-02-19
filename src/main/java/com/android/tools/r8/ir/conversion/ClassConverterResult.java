@@ -4,48 +4,38 @@
 
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.ir.desugar.LambdaClass;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.function.Consumer;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.desugar.lambda.ForcefullyMovedLambdaMethodConsumer;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 public class ClassConverterResult {
 
-  private final List<LambdaClass> synthesizedLambdaClassesWithDeterministicOrder;
+  private final Map<DexMethod, DexMethod> forcefullyMovedLambdaMethods;
 
-  private ClassConverterResult(List<LambdaClass> synthesizedLambdaClassesWithDeterministicOrder) {
-    this.synthesizedLambdaClassesWithDeterministicOrder =
-        synthesizedLambdaClassesWithDeterministicOrder;
+  private ClassConverterResult(Map<DexMethod, DexMethod> forcefullyMovedLambdaMethods) {
+    this.forcefullyMovedLambdaMethods = forcefullyMovedLambdaMethods;
   }
 
   public static Builder builder() {
     return new Builder();
   }
 
-  public void forEachSynthesizedLambdaClassWithDeterministicOrdering(
-      Consumer<LambdaClass> consumer) {
-    synthesizedLambdaClassesWithDeterministicOrder.forEach(consumer);
+  public Map<DexMethod, DexMethod> getForcefullyMovedLambdaMethods() {
+    return forcefullyMovedLambdaMethods;
   }
 
-  public List<LambdaClass> getSynthesizedLambdaClasses() {
-    return synthesizedLambdaClassesWithDeterministicOrder;
-  }
+  public static class Builder implements ForcefullyMovedLambdaMethodConsumer {
 
-  public static class Builder {
+    private final Map<DexMethod, DexMethod> forcefullyMovedLambdaMethods = new IdentityHashMap<>();
 
-    private final List<LambdaClass> synthesizedLambdaClasses = new ArrayList<>();
-
-    public Builder addSynthesizedLambdaClass(LambdaClass lambdaClass) {
-      synchronized (synthesizedLambdaClasses) {
-        synthesizedLambdaClasses.add(lambdaClass);
-      }
-      return this;
+    @Override
+    public void acceptForcefullyMovedLambdaMethod(DexMethod from, DexMethod to) {
+      forcefullyMovedLambdaMethods.put(from, to);
     }
 
     public ClassConverterResult build() {
-      synthesizedLambdaClasses.sort(Comparator.comparing(LambdaClass::getType));
-      return new ClassConverterResult(synthesizedLambdaClasses);
+      return new ClassConverterResult(forcefullyMovedLambdaMethods);
     }
   }
 }
