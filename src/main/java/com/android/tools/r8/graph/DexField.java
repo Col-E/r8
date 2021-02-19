@@ -36,6 +36,19 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   }
 
   @Override
+  public int compareTo(DexReference other) {
+    if (other.isDexField()) {
+      return compareTo(other.asDexField());
+    }
+    if (other.isDexMethod()) {
+      int comparisonResult = getHolderType().compareTo(other.getContextType());
+      return comparisonResult != 0 ? comparisonResult : -1;
+    }
+    int comparisonResult = getHolderType().compareTo(other.asDexType());
+    return comparisonResult != 0 ? comparisonResult : 1;
+  }
+
+  @Override
   public DexField self() {
     return this;
   }

@@ -53,6 +53,15 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   }
 
   @Override
+  public int compareTo(DexReference other) {
+    if (other.isDexType()) {
+      return compareTo(other.asDexType());
+    }
+    int comparisonResult = compareTo(other.getContextType());
+    return comparisonResult != 0 ? comparisonResult : -1;
+  }
+
+  @Override
   public DexType self() {
     return this;
   }

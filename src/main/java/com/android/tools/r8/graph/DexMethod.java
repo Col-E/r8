@@ -36,6 +36,15 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   @Override
+  public int compareTo(DexReference other) {
+    if (other.isDexMethod()) {
+      return compareTo(other.asDexMethod());
+    }
+    int comparisonResult = getHolderType().compareTo(other.getContextType());
+    return comparisonResult != 0 ? comparisonResult : 1;
+  }
+
+  @Override
   public StructuralMapping<DexMethod> getStructuralMapping() {
     return DexMethod::specify;
   }

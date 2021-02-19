@@ -30,4 +30,9 @@ abstract class SyntheticClassReference<
   DexType getHolder() {
     return type;
   }
+
+  @Override
+  DexType getReference() {
+    return type;
+  }
 }

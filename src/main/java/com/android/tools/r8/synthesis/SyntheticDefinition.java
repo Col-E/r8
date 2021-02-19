@@ -59,12 +59,21 @@ abstract class SyntheticDefinition<
     return context;
   }
 
+  final String getPrefixForExternalSyntheticType() {
+    return SyntheticNaming.getPrefixForExternalSyntheticType(getKind(), getHolder().getType());
+  }
+
   public abstract C getHolder();
 
   final HashCode computeHash(
       RepresentativeMap map, boolean intermediate, ClassToFeatureSplitMap classToFeatureSplitMap) {
     Hasher hasher = Hashing.murmur3_128().newHasher();
-    if (intermediate || getKind().isFixedSuffixSynthetic) {
+    if (getKind().isFixedSuffixSynthetic) {
+      // Fixed synthetics are non-shareable. Its unique type is used as the hash key.
+      getHolder().getType().hash(hasher);
+      return hasher.hash();
+    }
+    if (intermediate) {
       // If in intermediate mode, include the context type as sharing is restricted to within a
       // single context.
       getContext().getSynthesizingContextType().hashWithTypeEquivalence(hasher, map);
@@ -95,7 +104,13 @@ abstract class SyntheticDefinition<
       boolean includeContext,
       GraphLens graphLens,
       ClassToFeatureSplitMap classToFeatureSplitMap) {
-    if (includeContext || getKind().isFixedSuffixSynthetic) {
+    DexType thisType = getHolder().getType();
+    DexType otherType = other.getHolder().getType();
+    if (getKind().isFixedSuffixSynthetic) {
+      // Fixed synthetics are non-shareable. Ordered by their unique type.
+      return thisType.compareTo(otherType);
+    }
+    if (includeContext) {
       int order = getContext().compareTo(other.getContext());
       if (order != 0) {
         return order;
@@ -113,8 +128,6 @@ abstract class SyntheticDefinition<
         return order;
       }
     }
-    DexType thisType = getHolder().getType();
-    DexType otherType = other.getHolder().getType();
     RepresentativeMap map = null;
     // If the synthetics have been moved include the original types in the equivalence.
     if (graphLens.isNonIdentityLens()) {
