@@ -251,6 +251,7 @@
     "-keepclassmembers class j$.util.DoubleSummaryStatistics { long count; double sum; double min; double max; }",
     "-keepattributes Signature",
     "-keepattributes EnclosingMethod",
-    "-keepattributes InnerClasses"
+    "-keepattributes InnerClasses",
+    "-dontwarn sun.misc.Unsafe"
   ]
 }
