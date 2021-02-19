@@ -12,6 +12,10 @@ public class ClassReferenceUtils {
   private static final Comparator<ClassReference> COMPARATOR =
       Comparator.comparing(ClassReference::getDescriptor);
 
+  public static int compare(ClassReference classReference, ClassReference other) {
+    return getClassReferenceComparator().compare(classReference, other);
+  }
+
   public static Comparator<ClassReference> getClassReferenceComparator() {
     return COMPARATOR;
   }

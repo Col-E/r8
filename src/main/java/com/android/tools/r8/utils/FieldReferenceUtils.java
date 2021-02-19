@@ -29,6 +29,10 @@ public class FieldReferenceUtils {
         return getTypeReferenceComparator().compare(field.getFieldType(), other.getFieldType());
       };
 
+  public static int compare(FieldReference fieldReference, FieldReference other) {
+    return getFieldReferenceComparator().compare(fieldReference, other);
+  }
+
   public static FieldReference fieldFromField(Class<?> clazz, String name) {
     try {
       return Reference.fieldFromField(clazz.getDeclaredField(name));

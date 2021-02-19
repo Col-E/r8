@@ -20,8 +20,10 @@ import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.FieldReferenceUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 
 public class MissingDefinitionsDiagnosticImpl implements MissingDefinitionsDiagnostic {
 
@@ -41,6 +43,13 @@ public class MissingDefinitionsDiagnosticImpl implements MissingDefinitionsDiagn
     return missingDefinitions;
   }
 
+  private Collection<MissingDefinitionInfo> getMissingDefinitionsWithDeterministicOrder() {
+    List<MissingDefinitionInfo> missingDefinitionsWithDeterministicOrder =
+        new ArrayList<>(getMissingDefinitions());
+    missingDefinitionsWithDeterministicOrder.sort(MissingDefinitionInfoUtils.getComparator());
+    return missingDefinitionsWithDeterministicOrder;
+  }
+
   /** A missing class(es) failure can generally not be attributed to a single origin. */
   @Override
   public Origin getOrigin() {
@@ -56,7 +65,8 @@ public class MissingDefinitionsDiagnosticImpl implements MissingDefinitionsDiagn
   @Override
   public String getDiagnosticMessage() {
     StringBuilder builder = new StringBuilder();
-    Iterator<MissingDefinitionInfo> missingDefinitionsIterator = missingDefinitions.iterator();
+    Iterator<MissingDefinitionInfo> missingDefinitionsIterator =
+        getMissingDefinitionsWithDeterministicOrder().iterator();
 
     // The diagnostic is always non-empty.
     assert missingDefinitionsIterator.hasNext();

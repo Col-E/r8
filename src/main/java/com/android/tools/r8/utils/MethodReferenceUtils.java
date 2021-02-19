@@ -52,6 +52,10 @@ public class MethodReferenceUtils {
         return method.getFormalTypes().size() - other.getFormalTypes().size();
       };
 
+  public static int compare(MethodReference methodReference, MethodReference other) {
+    return getMethodReferenceComparator().compare(methodReference, other);
+  }
+
   public static Comparator<MethodReference> getMethodReferenceComparator() {
     return COMPARATOR;
   }
