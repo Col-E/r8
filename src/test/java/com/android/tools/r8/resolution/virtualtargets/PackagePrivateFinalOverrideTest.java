@@ -61,7 +61,9 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(MyViewModel.class, ViewModel.class, Main.class, ViewModelRunner.class)
+            buildClassesWithTestingAnnotations(
+                    MyViewModel.class, ViewModel.class, Main.class, ViewModelRunner.class)
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
                 .build(),
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
@@ -110,7 +112,9 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(MyViewModel.class, ViewModel.class, Main.class, ViewModelRunner.class)
+            buildClassesWithTestingAnnotations(
+                    MyViewModel.class, ViewModel.class, Main.class, ViewModelRunner.class)
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
                 .build(),
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
@@ -156,8 +160,13 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(
-                    MyViewModel.class, ViewModel.class, Main.class, ViewModelRunnerWithCast.class)
+            buildClassesWithTestingAnnotations(
+                    MyViewModel.class,
+                    ViewModel.class,
+                    Main.class,
+                    ViewModelRunner.class,
+                    ViewModelRunnerWithCast.class)
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
                 .build(),
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();

@@ -50,8 +50,7 @@ public class R8CFRunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Bui
       for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
       }
-      // TODO(b/124041175): We should not be linking against the Java 8 runtime for Java 9 inputs.
-      builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+      builder.addLibraryFiles(Jdk9TestUtils.getJdk9LibraryFiles(temp));
       R8Command command =
           builder.addProgramFiles(inputFile).setOutput(out, OutputMode.ClassFile).build();
       ToolHelper.runR8(command, this::combinedOptionConsumer);

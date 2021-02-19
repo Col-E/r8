@@ -9,5 +9,5 @@
 }
 
 -alwaysinline class * {
-  @inlining.AlwaysInline <methods>;
+  @staticinlining.AlwaysInline <methods>;
 }

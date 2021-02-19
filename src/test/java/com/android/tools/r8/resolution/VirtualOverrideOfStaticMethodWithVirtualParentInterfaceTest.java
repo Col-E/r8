@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -90,14 +91,20 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
 
   public static List<Class<?>> CLASSES = ImmutableList.of(A.class, C.class, Main.class);
 
-  public static List<byte[]> DUMPS = ImmutableList.of(BDump.dump());
+  public static byte[] DUMP = BDump.dump();
 
   private static AppInfoWithLiveness appInfo;
 
   @BeforeClass
   public static void computeAppInfo() throws Exception {
     appInfo =
-        computeAppViewWithLiveness(readClassesAndAsmDump(CLASSES, DUMPS), Main.class).appInfo();
+        computeAppViewWithLiveness(
+                buildClasses(CLASSES)
+                    .addClassProgramData(DUMP)
+                    .addLibraryFile(getMostRecentAndroidJar())
+                    .build(),
+                Main.class)
+            .appInfo();
   }
 
   private static DexMethod buildMethod(Class clazz, String name) {
@@ -148,13 +155,13 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
       runResult =
           testForJvm()
               .addProgramClasses(CLASSES)
-              .addProgramClassFileData(DUMPS)
+              .addProgramClassFileData(DUMP)
               .run(parameters.getRuntime(), Main.class);
     } else {
       runResult =
           testForD8()
               .addProgramClasses(CLASSES)
-              .addProgramClassFileData(DUMPS)
+              .addProgramClassFileData(DUMP)
               .setMinApi(parameters.getApiLevel())
               .run(parameters.getRuntime(), Main.class);
     }
@@ -175,7 +182,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(CLASSES)
-            .addProgramClassFileData(DUMPS)
+            .addProgramClassFileData(DUMP)
             .addKeepMainRule(Main.class)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(o -> o.enableVerticalClassMerging = enableVerticalClassMerging)

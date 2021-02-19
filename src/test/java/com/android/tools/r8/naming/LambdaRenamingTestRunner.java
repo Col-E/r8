@@ -5,126 +5,106 @@ package com.android.tools.r8.naming;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ByteDataView;
-import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.ProgramConsumer;
-import com.android.tools.r8.R8Command;
-import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class LambdaRenamingTestRunner extends TestBase {
-  static final Class CLASS = LambdaRenamingTest.class;
-  static final Class[] CLASSES = LambdaRenamingTest.CLASSES;
+
+  private static final Class<?> CLASS = LambdaRenamingTest.class;
+  private static final Class<?>[] CLASSES = LambdaRenamingTest.CLASSES;
+  private static final String EXPECTED =
+      StringUtils.lines(
+          "null", "null", "null", "null", "10", "null", "null", "null", "null", "11", "10", "30",
+          "10", "30", "101", "301", "101", "301", "102", "302", "102", "302");
+
+  private final TestParameters parameters;
 
   private Path inputJar;
-  private ProcessResult runInput;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  public LambdaRenamingTestRunner(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Before
   public void writeAndRunInputJar() throws IOException {
     inputJar = temp.getRoot().toPath().resolve("input.jar");
     ArchiveConsumer buildInput = new ArchiveConsumer(inputJar);
-    for (Class clazz : CLASSES) {
+    for (Class<?> clazz : CLASSES) {
       buildInput.accept(
           ByteDataView.of(ToolHelper.getClassAsBytes(clazz)),
           DescriptorUtils.javaTypeToDescriptor(clazz.getName()),
           null);
     }
     buildInput.finished(null);
-    runInput = ToolHelper.runJava(inputJar, CLASS.getCanonicalName());
-    assertEquals(0, runInput.exitCode);
-  }
-
-  private Path writeProguardRules(boolean aggressive) throws IOException {
-    Path pgConfig = temp.getRoot().toPath().resolve("keep.txt");
-    FileUtils.writeTextFile(
-        pgConfig,
-        "-keep public class " + CLASS.getCanonicalName() + " {",
-        "  public static void main(...);",
-        "}",
-        "-keep interface " + CLASS.getCanonicalName() + "$ReservedNameObjectInterface1 {",
-        "  public java.lang.Object reservedMethod1();",
-        "}",
-        "-keep interface " + CLASS.getCanonicalName() + "$ReservedNameIntegerInterface2 {",
-        "  public java.lang.Integer reservedMethod2();",
-        "}",
-        aggressive ? "-overloadaggressively" : "# Not overloading aggressively");
-    return pgConfig;
   }
 
   @Test
   public void testProguard() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
     buildAndRunProguard("pg.jar", false);
   }
 
   @Test
   public void testProguardAggressive() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
     buildAndRunProguard("pg-aggressive.jar", true);
   }
 
   @Test
-  public void testCf() throws Exception {
-    buildAndRunCf("cf.zip", false);
+  public void testR8() throws Exception {
+    testR8(false);
   }
 
   @Test
-  public void testCfAggressive() throws Exception {
-    buildAndRunCf("cf-aggressive.zip", true);
+  public void testR8Aggressive() throws Exception {
+    testR8(true);
   }
 
-  @Test
-  public void testDex() throws Exception {
-    buildAndRunDex("dex.zip", false);
-  }
-
-  @Test
-  public void testDexAggressive() throws Exception {
-    buildAndRunDex("dex-aggressive.zip", true);
-  }
-
-  private void buildAndRunCf(String outName, boolean aggressive) throws Exception {
-    Path outCf = temp.getRoot().toPath().resolve(outName);
-    build(new ClassFileConsumer.ArchiveConsumer(outCf), aggressive);
-    ProcessResult runCf = ToolHelper.runJava(outCf, CLASS.getCanonicalName());
-    assertEquals(runInput.toString(), runCf.toString());
-  }
-
-  private void buildAndRunDex(String outName, boolean aggressive) throws Exception {
-    Path outDex = temp.getRoot().toPath().resolve(outName);
-    build(new DexIndexedConsumer.ArchiveConsumer(outDex), aggressive);
-    ProcessResult runDex =
-        ToolHelper.runArtNoVerificationErrorsRaw(outDex.toString(), CLASS.getCanonicalName());
-    assertEquals(runInput.stdout, runDex.stdout);
-    assertEquals(runInput.exitCode, runDex.exitCode);
-  }
-
-  private void build(ProgramConsumer consumer, boolean aggressive) throws Exception {
-    Builder builder =
-        ToolHelper.addProguardConfigurationConsumer(
-                R8Command.builder(), configuration -> configuration.setPrintMapping(true))
-            .setMode(CompilationMode.DEBUG)
-            .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
-            .addProgramFiles(inputJar)
-            .setProgramConsumer(consumer)
-            .addProguardConfigurationFiles(writeProguardRules(aggressive));
-    if (!(consumer instanceof ClassFileConsumer)) {
-      builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm().getLevel());
-    }
-    ToolHelper.runR8(builder.build());
+  private void testR8(boolean aggressive) throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramFiles(inputJar)
+        .addKeepMainRule(CLASS)
+        .addKeepRules(
+            "-keep interface " + CLASS.getCanonicalName() + "$ReservedNameObjectInterface1 {",
+            "  public java.lang.Object reservedMethod1();",
+            "}",
+            "-keep interface " + CLASS.getCanonicalName() + "$ReservedNameIntegerInterface2 {",
+            "  public java.lang.Integer reservedMethod2();",
+            "}")
+        .applyIf(aggressive, builder -> builder.addKeepRules("-overloadaggressively"))
+        .debug()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .apply(
+            compileResult ->
+                compileResult.run(parameters.getRuntime(), CLASS).assertSuccessWithOutput(EXPECTED))
+        .applyIf(
+            parameters.isDexRuntime(),
+            compileResult ->
+                compileResult.runDex2Oat(parameters.getRuntime()).assertNoVerificationErrors());
   }
 
   private void buildAndRunProguard(String outName, boolean aggressive) throws Exception {
@@ -143,5 +123,22 @@ public class LambdaRenamingTestRunner extends TestBase {
     // to different names, which causes AbstractMethodError.
     assertNotEquals(-1, runPg.stderr.indexOf("AbstractMethodError"));
     assertNotEquals(0, runPg.exitCode);
+  }
+
+  private Path writeProguardRules(boolean aggressive) throws IOException {
+    Path pgConfig = temp.getRoot().toPath().resolve("keep.txt");
+    FileUtils.writeTextFile(
+        pgConfig,
+        "-keep public class " + CLASS.getCanonicalName() + " {",
+        "  public static void main(...);",
+        "}",
+        "-keep interface " + CLASS.getCanonicalName() + "$ReservedNameObjectInterface1 {",
+        "  public java.lang.Object reservedMethod1();",
+        "}",
+        "-keep interface " + CLASS.getCanonicalName() + "$ReservedNameIntegerInterface2 {",
+        "  public java.lang.Integer reservedMethod2();",
+        "}",
+        aggressive ? "-overloadaggressively" : "# Not overloading aggressively");
+    return pgConfig;
   }
 }

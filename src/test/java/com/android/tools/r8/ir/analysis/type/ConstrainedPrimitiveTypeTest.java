@@ -29,11 +29,11 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ConstrainedPrimitiveTypeTest(TestParameters parameters) throws Exception {
-    super(parameters, TestClass.class);
+    super(parameters, TestClass.class, TestClass.class);
   }
 
   @Test
@@ -53,42 +53,42 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testIntWithInvokeUser() throws Exception {
+  public void testIntWithInvokeUser() {
     buildAndCheckIR("intWithInvokeUserTest", testInspector(getInt(), 1));
   }
 
   @Test
-  public void testIntWithIndirectInvokeUser() throws Exception {
+  public void testIntWithIndirectInvokeUser() {
     buildAndCheckIR("intWithIndirectInvokeUserTest", testInspector(getInt(), 2));
   }
 
   @Test
-  public void testFloatWithInvokeUser() throws Exception {
+  public void testFloatWithInvokeUser() {
     buildAndCheckIR("floatWithInvokeUserTest", testInspector(getFloat(), 1));
   }
 
   @Test
-  public void testFloatWithIndirectInvokeUser() throws Exception {
+  public void testFloatWithIndirectInvokeUser() {
     buildAndCheckIR("floatWithIndirectInvokeUserTest", testInspector(getFloat(), 2));
   }
 
   @Test
-  public void testLongWithInvokeUser() throws Exception {
+  public void testLongWithInvokeUser() {
     buildAndCheckIR("longWithInvokeUserTest", testInspector(getLong(), 1));
   }
 
   @Test
-  public void testLongWithIndirectInvokeUser() throws Exception {
+  public void testLongWithIndirectInvokeUser() {
     buildAndCheckIR("longWithIndirectInvokeUserTest", testInspector(getLong(), 2));
   }
 
   @Test
-  public void testDoubleWithInvokeUser() throws Exception {
+  public void testDoubleWithInvokeUser() {
     buildAndCheckIR("doubleWithInvokeUserTest", testInspector(getDouble(), 1));
   }
 
   @Test
-  public void testDoubleWithIndirectInvokeUser() throws Exception {
+  public void testDoubleWithIndirectInvokeUser() {
     buildAndCheckIR("doubleWithIndirectInvokeUserTest", testInspector(getDouble(), 2));
   }
 

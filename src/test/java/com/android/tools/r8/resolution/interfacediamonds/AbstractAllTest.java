@@ -35,13 +35,14 @@ public class AbstractAllTest extends TestBase {
   }
 
   private static final List<Class<?>> CLASSES =
-      ImmutableList.of(T.class, L.class, R.class, B.class, Main.class);
+      ImmutableList.of(T.class, L.class, R.class, B.class, C.class, Main.class);
 
   @Test
   public void testResolution() throws Exception {
     // The resolution is runtime independent, so just run it on the default CF VM.
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
-    AndroidApp app = readClasses(CLASSES);
+    AndroidApp app =
+        buildClasses(CLASSES).addLibraryFile(parameters.getDefaultRuntimeLibrary()).build();
     AppInfoWithLiveness appInfo = computeAppViewWithLiveness(app, Main.class).appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);

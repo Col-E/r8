@@ -4,8 +4,6 @@
 
 package staticinlining;
 
-import inlining.AlwaysInline;
-
 public class Sub1 extends SuperClass {
 
   @AlwaysInline

@@ -1622,6 +1622,8 @@ public class OutlineTest extends SmaliTestBase {
         "    sput-object         v0, LA;->L:Ljava/util/Hashtable;",
         "    return-void");
 
+    builder.addClass("A");
+
     Consumer<InternalOptions> options = configureOutlineOptions(outline -> outline.threshold = 2);
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);

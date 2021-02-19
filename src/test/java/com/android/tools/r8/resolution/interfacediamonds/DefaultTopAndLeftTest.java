@@ -41,7 +41,10 @@ public class DefaultTopAndLeftTest extends TestBase {
     // The resolution is runtime independent, so just run it on the default CF VM.
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppInfoWithLiveness appInfo =
-        computeAppViewWithLiveness(readClasses(CLASSES), Main.class).appInfo();
+        computeAppViewWithLiveness(
+                buildClasses(CLASSES).addLibraryFile(parameters.getDefaultRuntimeLibrary()).build(),
+                Main.class)
+            .appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();

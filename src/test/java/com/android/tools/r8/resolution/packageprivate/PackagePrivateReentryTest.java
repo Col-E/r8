@@ -53,7 +53,10 @@ public class PackagePrivateReentryTest extends TestBase {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(A.class, B.class, C.class, D.class, Main.class).build(), Main.class);
+            buildClasses(A.class, B.class, C.class, D.class, Main.class)
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
+                .build(),
+            Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "bar", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);

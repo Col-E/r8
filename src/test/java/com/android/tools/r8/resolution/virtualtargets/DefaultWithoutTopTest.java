@@ -53,8 +53,9 @@ public class DefaultWithoutTopTest extends TestBase {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(I.class, J.class, Main.class)
+            buildClassesWithTestingAnnotations(I.class, J.class, Main.class)
                 .addClassProgramData(setAImplementsIAndJ())
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
                 .build(),
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();

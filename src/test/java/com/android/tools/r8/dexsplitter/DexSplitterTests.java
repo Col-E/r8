@@ -52,6 +52,7 @@ public class DexSplitterTests {
   private static final String CLASS2_CLASS = CLASS_DIR + "/Class2.class";
   private static final String CLASS3_CLASS = CLASS_DIR + "/Class3.class";
   private static final String CLASS3_INNER_CLASS = CLASS_DIR + "/Class3$InnerClass.class";
+  private static final String CLASS3_SYNTHETIC_CLASS = CLASS_DIR + "/Class3$1.class";
   private static final String CLASS4_CLASS = CLASS_DIR + "/Class4.class";
   private static final String CLASS4_LAMBDA_INTERFACE = CLASS_DIR + "/Class4$LambdaInterface.class";
   private static final String TEXT_FILE =
@@ -71,6 +72,7 @@ public class DexSplitterTests {
             .addProgramFiles(Paths.get(CLASS2_CLASS))
             .addProgramFiles(Paths.get(CLASS3_CLASS))
             .addProgramFiles(Paths.get(CLASS3_INNER_CLASS))
+            .addProgramFiles(Paths.get(CLASS3_SYNTHETIC_CLASS))
             .addProgramFiles(Paths.get(CLASS4_CLASS))
             .addProgramFiles(Paths.get(CLASS4_LAMBDA_INTERFACE))
             .build();
@@ -264,6 +266,10 @@ public class DexSplitterTests {
     featureStream.putNextEntry(new ZipEntry(name));
     featureStream.write(Files.readAllBytes(Paths.get(CLASS3_INNER_CLASS)));
     featureStream.closeEntry();
+    name = "dexsplitsample/Class3$1.class";
+    featureStream.putNextEntry(new ZipEntry(name));
+    featureStream.write(Files.readAllBytes(Paths.get(CLASS3_SYNTHETIC_CLASS)));
+    featureStream.closeEntry();
     name = "dexsplitsample/Class4";
     featureStream.putNextEntry(new ZipEntry(name));
     featureStream.write(Files.readAllBytes(Paths.get(CLASS4_CLASS)));
@@ -325,6 +331,7 @@ public class DexSplitterTests {
             .addProgramFiles(Paths.get(CLASS2_CLASS))
             .addProgramFiles(Paths.get(CLASS3_CLASS))
             .addProgramFiles(Paths.get(CLASS3_INNER_CLASS))
+            .addProgramFiles(Paths.get(CLASS3_SYNTHETIC_CLASS))
             .addProgramFiles(Paths.get(CLASS4_CLASS))
             .addProgramFiles(Paths.get(CLASS4_LAMBDA_INTERFACE))
             .addLibraryFiles(ToolHelper.getDefaultAndroidJar())

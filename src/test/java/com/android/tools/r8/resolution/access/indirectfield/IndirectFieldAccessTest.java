@@ -49,7 +49,11 @@ public class IndirectFieldAccessTest extends TestBase {
   @Test
   public void testResolutionAccess() throws Exception {
     AppView<AppInfoWithLiveness> appView =
-        computeAppViewWithLiveness(readClasses(getClasses()), Main.class);
+        computeAppViewWithLiveness(
+            buildClasses(getClasses())
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
+                .build(),
+            Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexProgramClass cClass =
         appInfo.definitionFor(buildType(C.class, appInfo.dexItemFactory())).asProgramClass();

@@ -54,7 +54,10 @@ public class DefaultMethodAsOverrideWithLambdaTest extends TestBase {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(I.class, J.class, A.class, Main.class).build(), Main.class);
+            buildClassesWithTestingAnnotations(I.class, J.class, A.class, Main.class)
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
+                .build(),
+            Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(I.class, "bar", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnInterface(method.holder, method);

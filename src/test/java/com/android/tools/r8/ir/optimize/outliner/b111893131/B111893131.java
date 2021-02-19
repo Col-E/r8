@@ -62,7 +62,6 @@ class TestClass {
   }
 }
 
-@RunWith(VmTestRunner.class)
 public class B111893131 extends TestBase {
 
   @Test
@@ -109,5 +108,4 @@ public class B111893131 extends TestBase {
       }
     }
   }
-
 }

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.resolution.virtualtargets;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -62,7 +63,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
         methodToBeKept,
         classToBeKept,
         Arrays.asList(expectedMethodHolders),
-        Arrays.asList(I.class, A.class, B.class, C.class, Main.class),
+        Arrays.asList(I.class, A.class, B.class, C.class, Main.class, Unrelated.class),
         Main.class);
   }
 
@@ -76,7 +77,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
       throws Exception {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(classes).build(),
+            buildClasses(classes).addLibraryFile(getMostRecentAndroidJar()).build(),
             factory -> {
               List<ProguardConfigurationRule> rules = new ArrayList<>();
               rules.addAll(buildKeepRuleForClassAndMethods(methodToBeKept, factory));
@@ -267,7 +268,9 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     //   private foo() <-- kept
     // }
     AppView<AppInfoWithLiveness> appView =
-        computeAppViewWithLiveness(buildClasses(Unrelated.class).build(), Unrelated.class);
+        computeAppViewWithLiveness(
+            buildClasses(Unrelated.class).addLibraryFile(getMostRecentAndroidJar()).build(),
+            Unrelated.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(Unrelated.class, "foo", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);

@@ -50,6 +50,7 @@ class TestMain {
 
 @RunWith(Parameterized.class)
 public class ReserveOuterClassNameTest extends TestBase {
+
   private Backend backend;
 
   @Parameters(name = "Backend: {0}")
@@ -68,7 +69,8 @@ public class ReserveOuterClassNameTest extends TestBase {
         ToolHelper.getClassFileForTestClass(mainClass),
         ToolHelper.getClassFileForTestClass(Outer.class),
         ToolHelper.getClassFileForTestClass(Outer.Inner.class),
-        ToolHelper.getClassFileForTestClass(NeverInline.class));
+        ToolHelper.getClassFileForTestClass(NeverInline.class),
+        ToolHelper.getClassFileForTestClass(NoHorizontalClassMerging.class));
     builder.setProgramConsumer(emptyConsumer(backend));
     builder.addLibraryFiles(runtimeJar(backend));
     builder.addProguardConfiguration(

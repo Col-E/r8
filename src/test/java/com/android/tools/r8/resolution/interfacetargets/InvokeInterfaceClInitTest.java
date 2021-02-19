@@ -52,6 +52,7 @@ public class InvokeInterfaceClInitTest extends TestBase {
         computeAppViewWithLiveness(
             buildClasses(A.class, B.class)
                 .addClassProgramData(transformI(), transformMain())
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
                 .build(),
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();

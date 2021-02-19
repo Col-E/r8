@@ -3,10 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
@@ -25,6 +27,8 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,7 +36,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class NonNullTrackerTest extends NonNullTrackerTestBase {
+public class NonNullTrackerTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -44,12 +48,15 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
   }
 
   private void buildAndTest(
+      List<Class<?>> classes,
       Class<?> testClass,
       MethodSignature signature,
       int expectedNumberOfNonNull,
       Consumer<IRCode> testAugmentedIRCode)
       throws Exception {
-    AppView<AppInfoWithLiveness> appView = build(testClass);
+    AppView<AppInfoWithLiveness> appView =
+        computeAppViewWithLiveness(
+            buildClasses(classes).addLibraryFile(getMostRecentAndroidJar()).build());
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(testClass.getName()).method(signature);
     IRCode code = fooSubject.buildIR();
@@ -127,31 +134,56 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
   public void nonNullAfterSafeInvokes() throws Exception {
     MethodSignature foo =
         new MethodSignature("foo", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterInvoke.class, foo, 1, this::checkInvokeGetsNonNullReceiver);
+    buildAndTest(
+        ImmutableList.of(NonNullAfterInvoke.class),
+        NonNullAfterInvoke.class,
+        foo,
+        1,
+        this::checkInvokeGetsNonNullReceiver);
     MethodSignature bar =
         new MethodSignature("bar", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterInvoke.class, bar, 2, this::checkInvokeGetsNullReceiver);
+    buildAndTest(
+        ImmutableList.of(NonNullAfterInvoke.class),
+        NonNullAfterInvoke.class,
+        bar,
+        2,
+        this::checkInvokeGetsNullReceiver);
   }
 
   @Test
   public void nonNullAfterSafeArrayAccess() throws Exception {
     MethodSignature foo =
         new MethodSignature("foo", "int", new String[]{"java.lang.String[]"});
-    buildAndTest(NonNullAfterArrayAccess.class, foo, 1, null);
+    buildAndTest(
+        ImmutableList.of(NonNullAfterArrayAccess.class),
+        NonNullAfterArrayAccess.class,
+        foo,
+        1,
+        null);
   }
 
   @Test
   public void nonNullAfterSafeArrayLength() throws Exception {
     MethodSignature signature =
         new MethodSignature("arrayLength", "int", new String[]{"java.lang.String[]"});
-    buildAndTest(NonNullAfterArrayAccess.class, signature, 1, null);
+    buildAndTest(
+        ImmutableList.of(NonNullAfterArrayAccess.class),
+        NonNullAfterArrayAccess.class,
+        signature,
+        1,
+        null);
   }
 
   @Test
   public void nonNullAfterSafeFieldAccess() throws Exception {
     MethodSignature foo = new MethodSignature("foo", "int",
         new String[]{FieldAccessTest.class.getCanonicalName()});
-    buildAndTest(NonNullAfterFieldAccess.class, foo, 1, null);
+    buildAndTest(
+        ImmutableList.of(FieldAccessTest.class, NonNullAfterFieldAccess.class),
+        NonNullAfterFieldAccess.class,
+        foo,
+        1,
+        null);
   }
 
   @Test
@@ -159,6 +191,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
     MethodSignature signature = new MethodSignature("foo2", "int",
         new String[]{FieldAccessTest.class.getCanonicalName()});
     buildAndTest(
+        ImmutableList.of(FieldAccessTest.class, NonNullAfterFieldAccess.class),
         NonNullAfterFieldAccess.class,
         signature,
         1,
@@ -191,12 +224,27 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
   public void nonNullAfterNullCheck() throws Exception {
     MethodSignature foo =
         new MethodSignature("foo", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterNullCheck.class, foo, 1, this::checkInvokeGetsNonNullReceiver);
+    buildAndTest(
+        ImmutableList.of(NonNullAfterNullCheck.class),
+        NonNullAfterNullCheck.class,
+        foo,
+        1,
+        this::checkInvokeGetsNonNullReceiver);
     MethodSignature bar =
         new MethodSignature("bar", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterNullCheck.class, bar, 1, this::checkInvokeGetsNonNullReceiver);
+    buildAndTest(
+        ImmutableList.of(NonNullAfterNullCheck.class),
+        NonNullAfterNullCheck.class,
+        bar,
+        1,
+        this::checkInvokeGetsNonNullReceiver);
     MethodSignature baz =
         new MethodSignature("baz", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterNullCheck.class, baz, 2, this::checkInvokeGetsNullReceiver);
+    buildAndTest(
+        ImmutableList.of(NonNullAfterNullCheck.class),
+        NonNullAfterNullCheck.class,
+        baz,
+        2,
+        this::checkInvokeGetsNullReceiver);
   }
 }

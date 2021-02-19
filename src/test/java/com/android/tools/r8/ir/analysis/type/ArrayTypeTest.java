@@ -30,7 +30,7 @@ public class ArrayTypeTest extends AnalysisTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public ArrayTypeTest(TestParameters parameters) throws Exception {
@@ -38,12 +38,12 @@ public class ArrayTypeTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testArray() throws Exception {
+  public void testArray() {
     buildAndCheckIR("arrayTest", arrayTestInspector());
   }
 
   @Test
-  public void testNestedArray() throws Exception {
+  public void testNestedArray() {
     buildAndCheckIR("nestedArrayTest", nestedArrayTestInspector());
   }
 

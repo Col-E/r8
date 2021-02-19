@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-@RunWith(VmTestRunner.class)
 public class NativeMethodWithCodeTest extends TestBase {
 
   // Test that D8 removes code from native methods (to match the behavior of dx).

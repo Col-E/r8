@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.resolution.singletarget;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertNull;
@@ -31,14 +32,16 @@ public class SuccessAndInvalidLookupTest extends TestBase {
   }
 
   public SuccessAndInvalidLookupTest(TestParameters parameters) {
-    // Empty to satisfy construction of none-runtime.
+    assert parameters.isNoneRuntime();
   }
 
   @Test
   public void testSingleTargetWithInvalidInvokeInterfaceInvoke() throws Exception {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(I.class, A.class, Main.class).build(),
+            buildClasses(I.class, A.class, Main.class)
+                .addLibraryFile(getMostRecentAndroidJar())
+                .build(),
             factory ->
                 buildConfigForRules(factory, buildKeepRuleForClassAndMethods(Main.class, factory)));
     AppInfoWithLiveness appInfo = appView.appInfo();
@@ -62,7 +65,9 @@ public class SuccessAndInvalidLookupTest extends TestBase {
   public void testSingleTargetWithInvalidInvokeVirtualInvoke() throws Exception {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(I.class, A.class, Main.class).build(),
+            buildClasses(I.class, A.class, Main.class)
+                .addLibraryFile(getMostRecentAndroidJar())
+                .build(),
             factory ->
                 buildConfigForRules(factory, buildKeepRuleForClassAndMethods(Main.class, factory)));
     AppInfoWithLiveness appInfo = appView.appInfo();

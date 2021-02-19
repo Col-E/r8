@@ -8,15 +8,16 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Streams;
 import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,7 +28,7 @@ public class UnconstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public UnconstrainedPrimitiveTypeTest(TestParameters parameters) throws Exception {
@@ -81,32 +82,35 @@ public class UnconstrainedPrimitiveTypeTest extends AnalysisTestBase {
           "void", "unconstrainedWideWithIfUserTest", ImmutableList.of(), 4, code);
     }
 
-    return smaliBuilder.build();
+    return AndroidApp.builder()
+        .addDexProgramData(smaliBuilder.compile(), Origin.unknown())
+        .addLibraryFile(ToolHelper.getMostRecentAndroidJar())
+        .build();
   }
 
   @Test
-  public void testUnconstrainedSingleWithNoUsers() throws Exception {
+  public void testUnconstrainedSingleWithNoUsers() {
     buildAndCheckIR("unconstrainedSingleWithNoUsersTest", testInspector(TypeElement.getInt(), 1));
   }
 
   @Test
-  public void testUnconstrainedSingleWithIfUser() throws Exception {
+  public void testUnconstrainedSingleWithIfUser() {
     buildAndCheckIR("unconstrainedSingleWithIfUserTest", testInspector(TypeElement.getInt(), 2));
   }
 
   @Test
-  public void testUnconstrainedSingleWithIfZeroUser() throws Exception {
+  public void testUnconstrainedSingleWithIfZeroUser() {
     buildAndCheckIR(
         "unconstrainedSingleWithIfZeroUserTest", testInspector(IntTypeElement.getInt(), 1));
   }
 
   @Test
-  public void testUnconstrainedWideWithNoUsers() throws Exception {
+  public void testUnconstrainedWideWithNoUsers() {
     buildAndCheckIR("unconstrainedWideWithNoUsersTest", testInspector(TypeElement.getLong(), 1));
   }
 
   @Test
-  public void testUnconstrainedWideWithIfUser() throws Exception {
+  public void testUnconstrainedWideWithIfUser() {
     buildAndCheckIR("unconstrainedWideWithIfUserTest", testInspector(TypeElement.getLong(), 2));
   }
 
@@ -122,7 +126,7 @@ public class UnconstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
       assertEquals(
           expectedNumberOfConstNumberInstructions,
-          Streams.stream(code.instructionIterator()).filter(Instruction::isConstNumber).count());
+          code.streamInstructions().filter(Instruction::isConstNumber).count());
     };
   }
 }

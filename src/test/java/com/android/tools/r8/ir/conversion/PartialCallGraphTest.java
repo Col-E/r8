@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
 import static com.android.tools.r8.shaking.ProguardConfigurationSourceStrings.createConfigurationForTesting;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -35,7 +36,10 @@ public class PartialCallGraphTest extends CallGraphTestBase {
   private final ExecutorService executorService;
 
   public PartialCallGraphTest() throws Exception {
-    AndroidApp app = testForD8().addProgramClasses(TestClass.class).compile().app;
+    AndroidApp app =
+        AndroidApp.builder(testForD8().addProgramClasses(TestClass.class).compile().getApp())
+            .addLibraryFile(getMostRecentAndroidJar())
+            .build();
     this.appView =
         computeAppViewWithLiveness(
             app,

@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-@RunWith(VmTestRunner.class)
 public class B111080693 extends TestBase {
   @Test
   public void test() throws Exception {

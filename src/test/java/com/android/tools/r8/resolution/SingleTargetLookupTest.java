@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -87,7 +88,13 @@ public class SingleTargetLookupTest extends AsmTestBase {
 
   @BeforeClass
   public static void computeAppInfo() throws Exception {
-    appView = computeAppViewWithLiveness(readClassesAndAsmDump(CLASSES, ASM_CLASSES), Main.class);
+    appView =
+        computeAppViewWithLiveness(
+            buildClassesWithTestingAnnotations(CLASSES)
+                .addClassProgramData(ASM_CLASSES)
+                .addLibraryFile(getMostRecentAndroidJar())
+                .build(),
+            Main.class);
     appInfo = appView.appInfo();
   }
 

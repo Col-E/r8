@@ -18,5 +18,4 @@ public class Sub2 extends SuperClass {
     System.out.println("Do not inline me 9");
     System.out.println("Do not inline me 10");
   }
-
 }

@@ -62,9 +62,13 @@ public class FoundMethodSubject extends MethodSubject {
 
   @Override
   public IRCode buildIR() {
+    return buildIR(AppView.createForD8(AppInfo.createInitialAppInfo(codeInspector.application)));
+  }
+
+  @Override
+  public IRCode buildIR(AppView<?> appView) {
     assert codeInspector.application.options.programConsumer != null;
-    return getProgramMethod()
-        .buildIR(AppView.createForD8(AppInfo.createInitialAppInfo(codeInspector.application)));
+    return getProgramMethod().buildIR(appView);
   }
 
   @Override

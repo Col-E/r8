@@ -34,7 +34,7 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public EscapeAnalysisForNameReflectionTest(TestParameters parameters) throws Exception {

@@ -6,21 +6,33 @@ package com.android.tools.r8.debuginfo;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ByteDataView;
-import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.ProgramConsumer;
-import com.android.tools.r8.R8Command;
-import com.android.tools.r8.R8Command.Builder;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.origin.Origin;
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class KotlinDebugInfoTestRunner extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withCfRuntimes().build();
+  }
+
+  public KotlinDebugInfoTestRunner(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
   private Path buildInput(byte[] clazz, String descriptor) {
     Path inputJar = temp.getRoot().toPath().resolve("input.jar");
     ArchiveConsumer inputJarConsumer = new ArchiveConsumer(inputJar);
@@ -29,19 +41,16 @@ public class KotlinDebugInfoTestRunner extends TestBase {
     return inputJar;
   }
 
-  private Path buildCf(Path inputJar) throws Exception {
-    Path cfJar = temp.getRoot().toPath().resolve("r8cf.jar");
-    build(inputJar, new ArchiveConsumer(cfJar));
-    return cfJar;
-  }
-
   @Test
   public void testRingBuffer() throws Exception {
     // This test hits the case where we simplify a DebugLocalWrite v'(x) <- v
     // with debug use [live: y], and y is written between v and v'.
     // In this case we must not move [live: y] to the definition of v,
     // since it causes the live range of y to extend to the entry to the first block.
-    test(KotlinRingBufferDump.dump(), KotlinRingBufferDump.CLASS_NAME);
+    test(
+        KotlinRingBufferDump.dump(),
+        KotlinRingBufferDump.CLASS_NAME,
+        builder -> builder.addDontWarn("kotlin.Metadata"));
   }
 
   @Test
@@ -56,7 +65,11 @@ public class KotlinDebugInfoTestRunner extends TestBase {
     test(DebugInfoDump.dump(), DebugInfoDump.CLASS_NAME);
   }
 
-  public void test(byte[] bytes, String className) throws Exception {
+  public void test(byte[] bytes, String className) throws Exception {}
+
+  public void test(
+      byte[] bytes, String className, ThrowableConsumer<R8FullTestBuilder> configuration)
+      throws Exception {
     String descriptor = 'L' + className.replace('.', '/') + ';';
     Path inputJar = buildInput(bytes, descriptor);
     ProcessResult runInput = ToolHelper.runJava(inputJar, className);
@@ -64,26 +77,18 @@ public class KotlinDebugInfoTestRunner extends TestBase {
       System.out.println(runInput);
     }
     assertEquals(0, runInput.exitCode);
-    Path outCf = buildCf(inputJar);
-    ProcessResult runCf = ToolHelper.runJava(outCf, className);
-    assertEquals(runInput.toString(), runCf.toString());
-  }
 
-  private void build(Path inputJar, ProgramConsumer consumer) throws Exception {
-    Builder builder =
-        R8Command.builder()
-            .setMode(CompilationMode.DEBUG)
-            .setDisableTreeShaking(true)
-            .setDisableMinification(true)
-            .addProguardConfiguration(
-                ImmutableList.of("-keepattributes SourceFile,LineNumberTable"), Origin.unknown())
-            .setProgramConsumer(consumer)
-            .addProgramFiles(inputJar);
-    if ((consumer instanceof ClassFileConsumer)) {
-      builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
-    } else {
-      builder.addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()));
-    }
-    ToolHelper.runR8(builder.build(), options -> options.invalidDebugInfoFatal = true);
+    testForR8(parameters.getBackend())
+        .addProgramFiles(inputJar)
+        .addKeepAttributeLineNumberTable()
+        .addKeepAttributeSourceFile()
+        .addOptionsModification(options -> options.invalidDebugInfoFatal = true)
+        .apply(configuration)
+        .debug()
+        .noMinification()
+        .noTreeShaking()
+        .compile()
+        .run(parameters.getRuntime(), className)
+        .assertSuccessWithOutput(runInput.stdout);
   }
 }

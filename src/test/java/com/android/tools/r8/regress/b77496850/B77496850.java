@@ -406,7 +406,7 @@ public class B77496850 extends TestBase {
 
     public static void main(String[] args) {
       for (int i = 0; i < 100; i++) {
-        System.out.println(new Reproduction().test());
+        System.out.println(new ReproductionWithExceptionHandler().test());
       }
     }
   }

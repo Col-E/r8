@@ -27,7 +27,6 @@ import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-@RunWith(VmTestRunner.class)
 public class FieldTypeTest extends TestBase {
 
   private ClassBuilder addImplementor(
@@ -222,5 +221,4 @@ public class FieldTypeTest extends TestBase {
     ClassSubject itf1Subject = inspector.clazz(itf1.name);
     assertThat(itf1Subject, not(isPresent()));
   }
-
 }

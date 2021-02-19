@@ -438,13 +438,33 @@ public class DexItemFactory {
   public final DexType timeConversionsType =
       createStaticallyKnownType("Ljava/time/TimeConversions;");
 
-  public Iterable<DexType> getConversionTypes() {
+  public final DexType doubleSummaryStatisticsConversionsJ$Type =
+      createStaticallyKnownType("Lj$/util/DoubleSummaryStatisticsConversions;");
+  public final DexType intSummaryStatisticsConversionsJ$Type =
+      createStaticallyKnownType("Lj$/util/IntSummaryStatisticsConversions;");
+  public final DexType longSummaryStatisticsConversionsJ$Type =
+      createStaticallyKnownType("Lj$/util/LongSummaryStatisticsConversions;");
+  public final DexType optionalConversionsJ$Type =
+      createStaticallyKnownType("Lj$/util/OptionalConversions;");
+  public final DexType timeConversionsJ$Type =
+      createStaticallyKnownType("Lj$/time/TimeConversions;");
+
+  public Iterable<DexType> getJavaConversionTypes() {
     return ImmutableList.of(
         doubleSummaryStatisticsConversionsType,
         intSummaryStatisticsConversionsType,
         longSummaryStatisticsConversionsType,
         optionalConversionsType,
         timeConversionsType);
+  }
+
+  public Iterable<DexType> getJ$ConversionTypes() {
+    return ImmutableList.of(
+        doubleSummaryStatisticsConversionsJ$Type,
+        intSummaryStatisticsConversionsJ$Type,
+        longSummaryStatisticsConversionsJ$Type,
+        optionalConversionsJ$Type,
+        timeConversionsJ$Type);
   }
 
   public final DexType javaIoFileType = createStaticallyKnownType("Ljava/io/File;");

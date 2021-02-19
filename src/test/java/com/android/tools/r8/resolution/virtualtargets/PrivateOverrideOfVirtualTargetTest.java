@@ -56,6 +56,7 @@ public class PrivateOverrideOfVirtualTargetTest extends TestBase {
         computeAppViewWithLiveness(
             buildClasses(A.class, Main.class)
                 .addClassProgramData(getBWithModifiedInvokes())
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
                 .build(),
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();

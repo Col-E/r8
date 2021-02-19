@@ -19,7 +19,6 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-@RunWith(VmTestRunner.class)
 public class B80083341 extends TestBase {
 
   @Test

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.resolution.singletarget;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
@@ -46,7 +47,9 @@ public class InstantiatedLowerBoundTest extends TestBase {
   public void testSingleTargetLowerBoundInstantiated() throws Exception {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(A.class, B.class, Main.class).build(),
+            buildClasses(A.class, B.class, Main.class)
+                .addLibraryFile(getMostRecentAndroidJar())
+                .build(),
             factory ->
                 buildConfigForRules(factory, buildKeepRuleForClassAndMethods(Main.class, factory)));
     AppInfoWithLiveness appInfo = appView.appInfo();
@@ -71,7 +74,9 @@ public class InstantiatedLowerBoundTest extends TestBase {
   public void testSingleTargetLowerBoundInMiddleInstantiated() throws Exception {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(A.class, B.class, C.class, Main.class).build(),
+            buildClasses(A.class, B.class, C.class, Main.class)
+                .addLibraryFile(getMostRecentAndroidJar())
+                .build(),
             factory ->
                 buildConfigForRules(factory, buildKeepRuleForClassAndMethods(Main.class, factory)));
     AppInfoWithLiveness appInfo = appView.appInfo();
@@ -96,7 +101,9 @@ public class InstantiatedLowerBoundTest extends TestBase {
   public void testSingleTargetLowerAllInstantiated() throws Exception {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(A.class, B.class, C.class, MainAllInstantiated.class).build(),
+            buildClasses(A.class, B.class, C.class, MainAllInstantiated.class)
+                .addLibraryFile(getMostRecentAndroidJar())
+                .build(),
             factory ->
                 buildConfigForRules(
                     factory, buildKeepRuleForClassAndMethods(MainAllInstantiated.class, factory)));

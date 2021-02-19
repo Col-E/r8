@@ -46,7 +46,10 @@ public class InvokeInterfaceWithStaticTargetTest extends TestBase {
     assumeTrue(parameters.getRuntime().equals(TestRuntime.getDefaultJavaRuntime()));
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(A.class, I.class).addClassProgramData(transformMain()).build(),
+            buildClasses(A.class, I.class)
+                .addClassProgramData(transformMain())
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
+                .build(),
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(I.class, "bar", appInfo.dexItemFactory());

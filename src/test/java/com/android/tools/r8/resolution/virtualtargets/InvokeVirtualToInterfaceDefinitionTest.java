@@ -52,7 +52,11 @@ public class InvokeVirtualToInterfaceDefinitionTest extends TestBase {
   public void testResolution() throws Exception {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
-        computeAppViewWithLiveness(buildClasses(A.class, I.class, Main.class).build(), Main.class);
+        computeAppViewWithLiveness(
+            buildClassesWithTestingAnnotations(A.class, I.class, Main.class)
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
+                .build(),
+            Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);

@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.Jdk9TestUtils;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.classmerging.horizontal.NestClassTest.R.horizontalclassmerging.BasicNestHostHorizontalClassMerging;
@@ -57,12 +58,10 @@ public class NestClassTest extends HorizontalClassMergingTestBase {
     testForR8(parameters.getBackend())
         .addKeepMainRule(examplesTypeName(BasicNestHostHorizontalClassMerging.class))
         .addExamplesProgramFiles(R.class)
+        .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
         .addOptionsModification(
             options ->
                 options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
-        .applyIf(
-            parameters.isCfRuntime(),
-            builder -> builder.addDontWarn("java.lang.invoke.StringConcatFactory"))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .compile()

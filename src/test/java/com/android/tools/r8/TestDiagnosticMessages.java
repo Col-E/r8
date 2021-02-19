@@ -29,6 +29,7 @@ public abstract class TestDiagnosticMessages {
     return this;
   }
 
+  @SafeVarargs
   public final TestDiagnosticMessages inspectWarnings(
       ThrowableConsumer<DiagnosticSubject>... consumers) {
     return inspectWarnings(Arrays.asList(consumers));
@@ -49,6 +50,7 @@ public abstract class TestDiagnosticMessages {
 
   public abstract List<Diagnostic> getErrors();
 
+  @SafeVarargs
   public final TestDiagnosticMessages inspectErrors(
       ThrowableConsumer<DiagnosticSubject>... consumers) {
     return inspectErrors(Arrays.asList(consumers));

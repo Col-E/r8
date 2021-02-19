@@ -65,7 +65,11 @@ public class PackagePrivateClasspathWidenTest extends TestBase {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(C.class, Main.class).addClasspathFiles(classPathJar).build(), Main.class);
+            buildClasses(C.class, Main.class)
+                .addClasspathFiles(classPathJar)
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
+                .build(),
+            Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(Abstract.class, "foo", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);

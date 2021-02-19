@@ -137,7 +137,10 @@ public class NestInvokeSpecialMethodPublicAccessWithIntermediateTest extends Tes
 
   private AppView<AppInfoWithLiveness> getAppView() throws Exception {
     return computeAppViewWithLiveness(
-        buildClasses(getClasses()).addClassProgramData(getTransformedClasses()).build(),
+        buildClasses(getClasses())
+            .addClassProgramData(getTransformedClasses())
+            .addLibraryFile(parameters.getDefaultRuntimeLibrary())
+            .build(),
         Main.class);
   }
 

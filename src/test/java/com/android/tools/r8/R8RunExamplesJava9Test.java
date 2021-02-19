@@ -9,6 +9,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.function.UnaryOperator;
+import org.junit.Test;
 
 public class R8RunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Builder> {
 
@@ -54,5 +55,17 @@ public class R8RunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Build
   @Override
   R8TestRunner test(String testName, String packageName, String mainClass) {
     return new R8TestRunner(testName, packageName, mainClass);
+  }
+
+  @Test
+  public void varHandle() throws Throwable {
+    test("varhandle", "varhandle", "VarHandleTests")
+        .withBuilderTransformation(
+            builder ->
+                builder.addProguardConfiguration(
+                    ImmutableList.of("-dontwarn java.lang.invoke.VarHandle"), Origin.unknown()))
+        .withMinApiLevel(AndroidApiLevel.P.getLevel())
+        .withKeepAll()
+        .run();
   }
 }

@@ -103,7 +103,7 @@ public abstract class R8RunExamplesCommon {
     }
   }
 
-  private R8Command.Builder addInputFile(R8Command.Builder builder) {
+  public R8Command.Builder addInputFile(R8Command.Builder builder) {
     if (input == Input.DX) {
       // If input is DEX code, use the tool helper to add the DEX sources as R8 disallows them.
       ToolHelper.getAppBuilder(builder).addProgramFiles(getOriginalDexFile());
@@ -151,7 +151,7 @@ public abstract class R8RunExamplesCommon {
                   .addLibraryFiles(
                       output == Output.CF
                           ? ToolHelper.getJava8RuntimeJar()
-                          : ToolHelper.getDefaultAndroidJar())
+                          : ToolHelper.getMostRecentAndroidJar())
                   .setOutput(getOutputFile(), outputMode)
                   .setMode(mode)
                   .setDisableTreeShaking(true)

@@ -83,8 +83,9 @@ public class B169045091 extends TestBase {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(getProgramClasses())
+            buildClassesWithTestingAnnotations(getProgramClasses())
                 .addClassProgramData(getWorldGreeterClassFileData())
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
                 .build(),
             TestClass.class);
     AppInfoWithLiveness appInfo = appView.appInfo();

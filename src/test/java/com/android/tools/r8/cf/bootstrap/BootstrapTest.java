@@ -38,13 +38,14 @@ public class BootstrapTest extends TestBase {
   private static final String[] KEEP_R8 = {
     "-keep public class " + R8_NAME + " {", "  public static void main(...);", "}",
   };
+  private static final Path DONTWARN_R8 = Paths.get("src/main/dontwarn.txt");
 
   private static final String HELLO_NAME = "hello.Hello";
   private static final String[] KEEP_HELLO = {
     "-keep class " + HELLO_NAME + " {", "  public static void main(...);", "}",
   };
 
-  private class R8Result {
+  private static class R8Result {
 
     final ProcessResult processResult;
     final Path outputJar;
@@ -64,11 +65,12 @@ public class BootstrapTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntimes().build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   public BootstrapTest(TestParameters parameters) {
     // TODO: use parameters to fork the right Java.
+    assert parameters.isNoneRuntime();
   }
 
   @Test
@@ -96,7 +98,7 @@ public class BootstrapTest extends TestBase {
       String externalOutput)
       throws Exception {
     // Run R8 on r8.jar.
-    Path output = runR8(R8_STABLE_JAR, internalOutput, KEEP_R8, internalMode);
+    Path output = runR8(internalOutput, internalMode);
     // Run the resulting compiler on hello.jar.
     R8Result runR8R8 = runExternalR8(output, hello, externalOutput, KEEP_HELLO, externalMode);
     // Check that the process outputs (exit code, stdout, stderr) are the same.
@@ -105,19 +107,18 @@ public class BootstrapTest extends TestBase {
     assertProgramsEqual(runInputR8.outputJar, runR8R8.outputJar);
   }
 
-  private Path runR8(Path inputJar, String outputFolder, String[] keepRules, CompilationMode mode)
-      throws Exception {
+  private Path runR8(String outputFolder, CompilationMode mode) throws Exception {
     Path outputPath = temp.newFolder(outputFolder).toPath();
     Path outputJar = outputPath.resolve("output.jar");
     Path pgConfigFile = outputPath.resolve("keep.rules");
-    FileUtils.writeTextFile(pgConfigFile, keepRules);
+    FileUtils.writeTextFile(pgConfigFile, BootstrapTest.KEEP_R8);
     ToolHelper.runR8(
         R8Command.builder()
             .setMode(mode)
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(outputJar, true))
-            .addProgramFiles(inputJar)
-            .addProguardConfigurationFiles(pgConfigFile)
+            .addProgramFiles(R8_STABLE_JAR)
+            .addProguardConfigurationFiles(pgConfigFile, DONTWARN_R8)
             .build());
     return outputJar;
   }

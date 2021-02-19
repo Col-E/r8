@@ -25,35 +25,46 @@ import org.junit.runners.Parameterized.Parameters;
 public class Regress72485384Test extends TestBase {
   @Rule public ExpectedException thrown = ExpectedException.none();
 
-  @Parameters(name = "{0}")
+  @Parameters(name = "{1}, allowUnusedProguardConfigurationRules: {0}")
   public static Collection<Object[]> getParameters() {
     String baseConfig =
         keepMainProguardConfiguration(Main.class)
             + "-keepattributes Signature,InnerClasses,EnclosingMethod ";
     return Arrays.asList(
         new Object[][] {
-          {baseConfig, null},
-          {baseConfig + "-dontshrink", null},
-          {baseConfig + "-dontshrink -dontobfuscate", null},
-          {baseConfig + "-dontobfuscate", null},
-          {"-keep class DoesNotExist -dontshrink", "ClassNotFoundException"}
+          {false, baseConfig, null},
+          {false, baseConfig + "-dontshrink", null},
+          {false, baseConfig + "-dontshrink -dontobfuscate", null},
+          {false, baseConfig + "-dontobfuscate", null},
+          {true, "-keep class DoesNotExist -dontshrink", "ClassNotFoundException"}
         });
   }
 
   private static final List<Class<?>> CLASSES =
       ImmutableList.of(GenericOuter.class, GenericInner.class, Main.class);
 
+  private final boolean allowUnusedProguardConfigurationRules;
   private final String proguardConfig;
   private final String expectedErrorMessage;
 
-  public Regress72485384Test(String proguardConfig, String expectedErrorMessage) {
+  public Regress72485384Test(
+      boolean allowUnusedProguardConfigurationRules,
+      String proguardConfig,
+      String expectedErrorMessage) {
+    this.allowUnusedProguardConfigurationRules = allowUnusedProguardConfigurationRules;
     this.proguardConfig = proguardConfig;
     this.expectedErrorMessage = expectedErrorMessage;
   }
 
   @Test
   public void testSignatureRewrite() throws Exception {
-    AndroidApp app = compileWithR8(CLASSES, proguardConfig);
+    AndroidApp app =
+        testForR8(Backend.DEX)
+            .addProgramClasses(CLASSES)
+            .addKeepRules(proguardConfig)
+            .allowUnusedProguardConfigurationRules(allowUnusedProguardConfigurationRules)
+            .compile()
+            .getApp();
 
     if (expectedErrorMessage == null) {
       if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(ToolHelper.DexVm.Version.V6_0_1)) {

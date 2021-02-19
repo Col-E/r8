@@ -53,7 +53,10 @@ public class SubTypeMissingOverridesTest extends TestBase {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(I.class, A.class, B.class, C.class, Main.class).build(), Main.class);
+            buildClassesWithTestingAnnotations(I.class, A.class, B.class, C.class, Main.class)
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
+                .build(),
+            Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnInterface(method.holder, method);
@@ -65,11 +68,7 @@ public class SubTypeMissingOverridesTest extends TestBase {
     Set<String> targets = new HashSet<>();
     lookupResult
         .asLookupResultSuccess()
-        .forEach(
-            target -> targets.add(target.getDefinition().qualifiedName()),
-            lambda -> {
-              fail();
-            });
+        .forEach(target -> targets.add(target.getDefinition().qualifiedName()), lambda -> fail());
     ImmutableSet<String> expected =
         ImmutableSet.of(B.class.getTypeName() + ".foo", C.class.getTypeName() + ".foo");
     assertEquals(expected, targets);

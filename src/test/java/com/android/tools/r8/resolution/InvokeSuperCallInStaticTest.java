@@ -54,6 +54,7 @@ public class InvokeSuperCallInStaticTest extends TestBase {
         computeAppViewWithLiveness(
             buildClasses(Base.class, Main.class)
                 .addClassProgramData(getAWithRewrittenInvokeSpecialToBase())
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
                 .build(),
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();

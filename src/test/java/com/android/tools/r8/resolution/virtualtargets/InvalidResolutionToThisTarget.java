@@ -54,6 +54,7 @@ public class InvalidResolutionToThisTarget extends TestBase {
                   computeAppViewWithLiveness(
                       buildClasses(A.class)
                           .addClassProgramData(getMainWithModifiedReceiverCall())
+                          .addLibraryFile(parameters.getDefaultRuntimeLibrary())
                           .build(),
                       Main.class);
               AppInfoWithLiveness appInfo = appView.appInfo();

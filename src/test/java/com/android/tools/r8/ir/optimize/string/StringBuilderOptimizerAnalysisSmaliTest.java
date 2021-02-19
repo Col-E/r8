@@ -9,10 +9,12 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer.BuilderState;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
@@ -26,7 +28,7 @@ import org.junit.runners.Parameterized;
 public class StringBuilderOptimizerAnalysisSmaliTest extends AnalysisTestBase {
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public StringBuilderOptimizerAnalysisSmaliTest(TestParameters parameters) throws Exception {
@@ -61,7 +63,7 @@ public class StringBuilderOptimizerAnalysisSmaliTest extends AnalysisTestBase {
               "sget-object v2, Ljava/lang/System;->out:Ljava/io/PrintStream;",
               "invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
               "move-result-object v1",
-              "invoke-virtual {v2, v1}, Ljava/io/Stream;->println(Ljava/lang/String;)V",
+              "invoke-virtual {v2, v1}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V",
               "return-void");
       smaliBuilder.addStaticMethod(
           "void", "phiAtInit_5_1_1", ImmutableList.of(), 5, code);
@@ -93,7 +95,7 @@ public class StringBuilderOptimizerAnalysisSmaliTest extends AnalysisTestBase {
               "sget-object v2, Ljava/lang/System;->out:Ljava/io/PrintStream;",
               "invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
               "move-result-object v1",
-              "invoke-virtual {v2, v1}, Ljava/io/Stream;->println(Ljava/lang/String;)V",
+              "invoke-virtual {v2, v1}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V",
               "return-void");
       smaliBuilder.addStaticMethod(
           "void", "phiWithDifferentNewInstance", ImmutableList.of(), 5, code);
@@ -125,17 +127,20 @@ public class StringBuilderOptimizerAnalysisSmaliTest extends AnalysisTestBase {
               "sget-object v2, Ljava/lang/System;->out:Ljava/io/PrintStream;",
               "invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
               "move-result-object v1",
-              "invoke-virtual {v2, v1}, Ljava/io/Stream;->println(Ljava/lang/String;)V",
+              "invoke-virtual {v2, v1}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V",
               "return-void");
       smaliBuilder.addStaticMethod(
           "void", "phiAtInit", ImmutableList.of(), 5, code);
     }
 
-    return smaliBuilder.build();
+    return AndroidApp.builder()
+        .addDexProgramData(smaliBuilder.compile(), Origin.unknown())
+        .addLibraryFile(ToolHelper.getMostRecentAndroidJar())
+        .build();
   }
 
   @Test
-  public void testPhiAtInit_5_1_1() throws Exception {
+  public void testPhiAtInit_5_1_1() {
     buildAndCheckIR(
         "phiAtInit_5_1_1",
         checkOptimizerStates(appView, optimizer -> {
@@ -150,7 +155,7 @@ public class StringBuilderOptimizerAnalysisSmaliTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testPhiWithDifferentNewInstance() throws Exception {
+  public void testPhiWithDifferentNewInstance() {
     buildAndCheckIR(
         "phiWithDifferentNewInstance",
         checkOptimizerStates(appView, optimizer -> {
@@ -165,7 +170,7 @@ public class StringBuilderOptimizerAnalysisSmaliTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testPhiAtInit() throws Exception {
+  public void testPhiAtInit() {
     buildAndCheckIR(
         "phiAtInit",
         checkOptimizerStates(appView, optimizer -> {

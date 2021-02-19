@@ -44,7 +44,10 @@ public class ProtectedSamePackageLookupTest extends TestBase {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(A.class, C.class, Main.class).build(), PackagePrivateChainTest.Main.class);
+            buildClasses(A.class, C.class, Main.class)
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
+                .build(),
+            PackagePrivateChainTest.Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);

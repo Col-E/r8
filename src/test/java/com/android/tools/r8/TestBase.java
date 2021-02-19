@@ -4,6 +4,7 @@
 
 package com.android.tools.r8;
 
+import static com.android.tools.r8.TestBuilder.getTestingAnnotations;
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static com.google.common.collect.Lists.cartesianProduct;
 import static org.junit.Assert.assertEquals;
@@ -556,12 +557,26 @@ public class TestBase {
   }
 
   protected static AndroidApp.Builder buildClasses(Class<?>... programClasses) throws IOException {
-    return buildClasses(Arrays.asList(programClasses), Collections.emptyList());
+    return buildClasses(Arrays.asList(programClasses));
   }
 
   protected static AndroidApp.Builder buildClasses(Collection<Class<?>> programClasses)
       throws IOException {
     return buildClasses(programClasses, Collections.emptyList());
+  }
+
+  protected static AndroidApp.Builder buildClassesWithTestingAnnotations(Class<?>... programClasses)
+      throws IOException {
+    return buildClassesWithTestingAnnotations(Arrays.asList(programClasses));
+  }
+
+  protected static AndroidApp.Builder buildClassesWithTestingAnnotations(
+      Collection<Class<?>> programClasses) throws IOException {
+    AndroidApp.Builder builder = buildClasses(programClasses, Collections.emptyList());
+    for (Class<?> testingAnnotation : getTestingAnnotations()) {
+      builder.addProgramFile(ToolHelper.getClassFileForTestClass(testingAnnotation));
+    }
+    return builder;
   }
 
   protected static AndroidApp.Builder buildClasses(

@@ -45,6 +45,7 @@ public class DefaultRightAbstractLeftTest extends TestBase {
         computeAppViewWithLiveness(
                 buildClasses(CLASSES)
                     .addClassProgramData(Collections.singletonList(transformB()))
+                    .addLibraryFile(parameters.getDefaultRuntimeLibrary())
                     .build(),
                 Main.class)
             .appInfo();

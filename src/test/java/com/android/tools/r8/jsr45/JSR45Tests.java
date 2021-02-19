@@ -3,9 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jsr45;
 
+import static com.android.tools.r8.ToolHelper.getDefaultAndroidJar;
+import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
+import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
+
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
@@ -64,7 +69,10 @@ public class JSR45Tests {
     return ToolHelper.runR8(
         R8Command.builder()
             .addProgramFiles(inputPath)
-            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+            .addProgramFiles(
+                getKotlinStdlibJar(KotlinCompiler.latest()),
+                getKotlinAnnotationJar(KotlinCompiler.latest()))
+            .addLibraryFiles(getDefaultAndroidJar())
             .setOutput(outputPath, OutputMode.DexIndexed)
             .addProguardConfigurationFiles(keepRulesPath)
             .build());

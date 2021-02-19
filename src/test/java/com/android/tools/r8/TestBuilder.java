@@ -166,8 +166,9 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
     return addLibraryClasses(getTestingAnnotations());
   }
 
-  private List<Class<?>> getTestingAnnotations() {
+  public static List<Class<?>> getTestingAnnotations() {
     return ImmutableList.of(
+        AlwaysInline.class,
         AssumeMayHaveSideEffects.class,
         ForceInline.class,
         KeepConstantArguments.class,

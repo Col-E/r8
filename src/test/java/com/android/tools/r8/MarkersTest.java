@@ -45,13 +45,12 @@ public class MarkersTest extends TestBase {
         BooleanUtils.values());
   }
 
-  private final TestParameters parameters;
   private final CompilationMode compilationMode;
   private final boolean shrinkDesugaredLibrary;
 
   public MarkersTest(
       TestParameters parameters, CompilationMode compilationMode, boolean shrinkDesugaredLibrary) {
-    this.parameters = parameters;
+    assert parameters.isNoneRuntime();
     this.compilationMode = compilationMode;
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
   }

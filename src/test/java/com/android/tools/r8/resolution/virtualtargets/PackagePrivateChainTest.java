@@ -57,6 +57,7 @@ public class PackagePrivateChainTest extends TestBase {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
             buildClasses(Top.class, Middle.class, Bottom.class, TopRunner.class, Main.class)
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
                 .build(),
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();

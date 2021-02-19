@@ -4,11 +4,13 @@
 
 package com.android.tools.r8.ir;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
@@ -19,6 +21,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.EnqueuerResult;
@@ -27,6 +30,7 @@ import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.RootSetUtils.RootSet;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -34,6 +38,7 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -41,6 +46,7 @@ import java.util.ListIterator;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import org.antlr.runtime.RecognitionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -444,6 +450,19 @@ public class InlineTest extends IrInjectionTestBase {
 
     return buildTestApplication(
         application, options, methodSubject, ImmutableList.of(codeA, codeB));
+  }
+
+  protected DexApplication buildApplication(SmaliBuilder builder, InternalOptions options) {
+    try {
+      AndroidApp app =
+          AndroidApp.builder()
+              .addDexProgramData(builder.compile(), Origin.unknown())
+              .addLibraryFile(getMostRecentAndroidJar())
+              .build();
+      return new ApplicationReader(app, options, Timing.empty()).read();
+    } catch (IOException | RecognitionException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private void runInlineCallerHasCatchHandlersTest(

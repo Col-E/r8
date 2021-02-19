@@ -10,6 +10,7 @@ import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8Command.Builder;
@@ -87,7 +88,7 @@ public class MethodHandleTestRunner extends TestBase {
     }
   }
 
-  private final Class[] inputClasses = {
+  private final Class<?>[] inputClasses = {
     MethodHandleTest.class,
     MethodHandleTest.C.class,
     MethodHandleTest.I.class,
@@ -95,6 +96,7 @@ public class MethodHandleTestRunner extends TestBase {
     MethodHandleTest.D.class,
     MethodHandleTest.E.class,
     MethodHandleTest.F.class,
+    NoVerticalClassMerging.class
   };
 
   private void runInput() throws Exception {

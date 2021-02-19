@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertTrue;
 
@@ -78,7 +79,11 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends T
   public static void computeAppInfo() throws Exception {
     appInfo =
         computeAppViewWithLiveness(
-                buildClasses(CLASSES).addClassProgramData(getDumps()).build(), Main.class)
+                buildClasses(CLASSES)
+                    .addClassProgramData(getDumps())
+                    .addLibraryFile(getMostRecentAndroidJar())
+                    .build(),
+                Main.class)
             .appInfo();
   }
 

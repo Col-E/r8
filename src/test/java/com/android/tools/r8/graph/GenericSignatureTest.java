@@ -11,9 +11,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
@@ -56,7 +58,7 @@ public class GenericSignatureTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    AndroidApp app =
+    D8TestCompileResult compileResult =
         testForD8(parameters.getBackend())
             .debug()
             .addProgramClassesAndInnerClasses(
@@ -65,8 +67,14 @@ public class GenericSignatureTest extends TestBase {
                 GenericSignatureTestClassCY.class,
                 GenericSignatureTestClassCYY.class)
             .setMinApi(parameters.getApiLevel())
-            .compile()
-            .app;
+            .compile();
+    AndroidApp app =
+        AndroidApp.builder(compileResult.getApp())
+            .addLibraryFile(
+                parameters.isCfRuntime()
+                    ? ToolHelper.getJava8RuntimeJar()
+                    : ToolHelper.getMostRecentAndroidJar())
+            .build();
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(app);
     DexItemFactory factory = appView.dexItemFactory();
     CodeInspector inspector = new CodeInspector(appView.appInfo().app());

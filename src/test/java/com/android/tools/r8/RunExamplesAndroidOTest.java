@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.DexVm;
@@ -426,10 +427,9 @@ public abstract class RunExamplesAndroidOTest<
 
   @Test
   public void repeatAnnotations() throws Throwable {
-    // No need to specify minSdk as repeat annotations are handled by javac and we do not have
-    // to do anything to support them. The library methods to access them just have to be in
-    // the system.
+    // java.lang.annotation.Repeatable is introduced in Android N.
     test("repeat_annotations", "repeat_annotations", "RepeatAnnotations")
+        .withAndroidJar(AndroidApiLevel.N)
         .withKeepAll()
         .run();
   }
@@ -437,6 +437,7 @@ public abstract class RunExamplesAndroidOTest<
   @Test
   public void testTryWithResources() throws Throwable {
     test("try-with-resources-simplified", "trywithresources", "TryWithResourcesNotDesugaredTests")
+        .withAndroidJar(AndroidApiLevel.K)
         .withTryWithResourcesDesugaring(OffOrAuto.Off)
         .withKeepAll()
         .run();
@@ -445,11 +446,13 @@ public abstract class RunExamplesAndroidOTest<
   @Test
   public void testTryWithResourcesDesugared() throws Throwable {
     test("try-with-resources-simplified", "trywithresources", "TryWithResourcesDesugaredTests")
+        .withAndroidJar(AndroidApiLevel.K)
         .withTryWithResourcesDesugaring(OffOrAuto.Auto)
-        .withInstructionCheck(InstructionSubject::isInvoke,
+        .withInstructionCheck(
+            InstructionSubject::isInvoke,
             (InvokeInstructionSubject invoke) -> {
-              Assert.assertFalse(invoke.invokedMethod().name.toString().equals("addSuppressed"));
-              Assert.assertFalse(invoke.invokedMethod().name.toString().equals("getSuppressed"));
+              assertNotEquals("addSuppressed", invoke.invokedMethod().name.toString());
+              assertNotEquals("getSuppressed", invoke.invokedMethod().name.toString());
             })
         .withKeepAll()
         .run();

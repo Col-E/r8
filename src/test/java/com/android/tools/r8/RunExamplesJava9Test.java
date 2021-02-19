@@ -48,8 +48,6 @@ public abstract class RunExamplesJava9Test
     final String mainClass;
     final List<String> args = new ArrayList<>();
 
-    Integer androidJarVersion = null;
-
     final List<Consumer<InternalOptions>> optionConsumers = new ArrayList<>();
     final List<Consumer<CodeInspector>> dexInspectorChecks = new ArrayList<>();
     final List<UnaryOperator<B>> builderTransformations = new ArrayList<>();
@@ -81,14 +79,6 @@ public abstract class RunExamplesJava9Test
     C withBuilderTransformation(UnaryOperator<B> builderTransformation) {
       builderTransformations.add(builderTransformation);
       return self();
-    }
-
-    Path build() throws Throwable {
-      Path inputFile = getInputJar();
-      Path out = temp.getRoot().toPath().resolve(testName + ZIP_EXTENSION);
-
-      build(inputFile, out);
-      return out;
     }
 
     Path getInputJar() {
@@ -123,12 +113,6 @@ public abstract class RunExamplesJava9Test
     abstract C withMinApiLevel(int minApiLevel);
 
     C withKeepAll() {
-      return self();
-    }
-
-    C withAndroidJar(int androidJarVersion) {
-      assert this.androidJarVersion == null;
-      this.androidJarVersion = androidJarVersion;
       return self();
     }
 
@@ -274,7 +258,6 @@ public abstract class RunExamplesJava9Test
     test
         .withMinApiLevel(AndroidApiLevel.I.getLevel())
         .withKeepAll()
-        .withAndroidJar(AndroidApiLevel.K.getLevel())
         .withArg(test.getInputJar().toAbsolutePath().toString())
         .run();
   }

@@ -8,11 +8,13 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
@@ -85,26 +87,29 @@ public class TypeConstraintOnTrivialPhiTest extends AnalysisTestBase {
               "goto :label_1");
       smaliBuilder.addStaticMethod("void", config.getTestName(), ImmutableList.of("int"), 4, code);
     }
-    return smaliBuilder.build();
+    return AndroidApp.builder()
+        .addDexProgramData(smaliBuilder.compile(), Origin.unknown())
+        .addLibraryFile(ToolHelper.getMostRecentAndroidJar())
+        .build();
   }
 
   @Test
-  public void testIntConstraintOnTrivialPhi() throws Exception {
+  public void testIntConstraintOnTrivialPhi() {
     buildAndCheckIR("intConstraintOnTrivialPhiTest", testInspector(TypeElement.getInt()));
   }
 
   @Test
-  public void testFloatConstraintOnTrivialPhi() throws Exception {
+  public void testFloatConstraintOnTrivialPhi() {
     buildAndCheckIR("floatConstraintOnTrivialPhiTest", testInspector(TypeElement.getFloat()));
   }
 
   @Test
-  public void testLongConstraintOnTrivialPhi() throws Exception {
+  public void testLongConstraintOnTrivialPhi() {
     buildAndCheckIR("longConstraintOnTrivialPhiTest", testInspector(TypeElement.getLong()));
   }
 
   @Test
-  public void testDoubleConstraintOnTrivialPhi() throws Exception {
+  public void testDoubleConstraintOnTrivialPhi() {
     buildAndCheckIR("doubleConstraintOnTrivialPhiTest", testInspector(TypeElement.getDouble()));
   }
 

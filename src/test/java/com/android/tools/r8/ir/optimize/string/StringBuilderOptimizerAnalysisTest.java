@@ -9,7 +9,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.IRCode;
@@ -17,6 +16,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer.BuilderState;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.HashSet;
 import java.util.Map;
@@ -32,7 +32,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public StringBuilderOptimizerAnalysisTest(TestParameters parameters) throws Exception {
@@ -49,16 +49,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   public void testUnusedBuilder() {
     buildAndCheckIR(
         "unusedBuilder",
-        checkOptimizerStates(appView, optimizer -> {
-          assertEquals(1, optimizer.analysis.builderStates.size());
-          for (Value builder : optimizer.analysis.builderStates.keySet()) {
-            Map<Instruction, BuilderState> perBuilderState =
-                optimizer.analysis.builderStates.get(builder);
-            checkBuilderState(optimizer, perBuilderState, "42", true);
-          }
-          assertEquals(1, optimizer.analysis.deadBuilders.size());
-          assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
-        }));
+        code -> assertTrue(code.streamInstructions().allMatch(Instruction::isReturn)));
   }
 
   @Test
@@ -276,8 +267,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   public void testPhiAtInit() {
     int expectedNumOfNewBuilder = 2;
     boolean expectToMeetToString = false;
-    if (parameters.isDexRuntime()
-        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_5_1_1_HOST)) {
+    if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.M)) {
       expectedNumOfNewBuilder = 1;
       expectToMeetToString = true;
     }
@@ -315,15 +305,17 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   public void testConditionalPhiWithoutAppend() {
     buildAndCheckIR(
         "conditionalPhiWithoutAppend",
-        checkOptimizerStates(appView, optimizer -> {
-          assertEquals(1, optimizer.analysis.builderStates.size());
-          for (Value builder : optimizer.analysis.builderStates.keySet()) {
-            Map<Instruction, BuilderState> perBuilderState =
-                optimizer.analysis.builderStates.get(builder);
-            checkBuilderState(optimizer, perBuilderState, null, true);
-          }
-          assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
-        }));
+        checkOptimizerStates(
+            appView,
+            optimizer -> {
+              assertEquals(1, optimizer.analysis.builderStates.size());
+              for (Value builder : optimizer.analysis.builderStates.keySet()) {
+                Map<Instruction, BuilderState> perBuilderState =
+                    optimizer.analysis.builderStates.get(builder);
+                checkBuilderState(optimizer, perBuilderState, "initial:suffix", true);
+              }
+              assertEquals(1, optimizer.analysis.simplifiedBuilders.size());
+            }));
   }
 
   @Test

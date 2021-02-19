@@ -4,79 +4,56 @@
 package com.android.tools.r8.cf;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.ByteDataView;
-import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.R8;
-import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.TestDescriptionWatcher;
-import java.nio.file.Path;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-public class AlwaysNullGetItemTestRunner {
-  static final Class CLASS = AlwaysNullGetItemTest.class;
+@RunWith(Parameterized.class)
+public class AlwaysNullGetItemTestRunner extends TestBase {
 
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+  private static final Class<?> CLASS = AlwaysNullGetItemTest.class;
 
-  @Rule
-  public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  public AlwaysNullGetItemTestRunner(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void test() throws Exception {
     ProcessResult runInput =
         ToolHelper.runJava(ToolHelper.getClassPathForTests(), CLASS.getCanonicalName());
     assertEquals(0, runInput.exitCode);
-    Path outCf = temp.getRoot().toPath().resolve("cf.jar");
-    Path outDex = temp.getRoot().toPath().resolve("dex.zip");
-    R8.run(
-        R8Command.builder()
-            .setMode(CompilationMode.DEBUG)
-            .setDisableTreeShaking(true)
-            .setDisableMinification(true)
-            .addClassProgramData(ToolHelper.getClassAsBytes(CLASS), Origin.unknown())
-            .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
-            .setProgramConsumer(new DexIndexedConsumer.ArchiveConsumer(outDex))
-            .build());
-    R8.run(
-        R8Command.builder()
-            .setMode(CompilationMode.DEBUG)
-            .setDisableTreeShaking(true)
-            .setDisableMinification(true)
-            .addClassProgramData(ToolHelper.getClassAsBytes(CLASS), Origin.unknown())
-            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-            .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(outCf))
-            .build());
-    ProcessResult runCf = ToolHelper.runJava(outCf, CLASS.getCanonicalName());
-    ProcessResult runDex = ToolHelper.runArtRaw(outDex.toString(), CLASS.getCanonicalName());
-    assertEquals(runInput.toString(), runCf.toString());
-    // Only compare stdout and exitCode since dex2oat prints to stderr.
-    assertEquals(runInput.stdout, runDex.stdout);
-    assertEquals(runInput.exitCode, runDex.exitCode);
+    testForR8(parameters.getBackend())
+        .addProgramClassesAndInnerClasses(CLASS)
+        .debug()
+        .noMinification()
+        .noTreeShaking()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutputLines(NullPointerException.class.getSimpleName());
   }
 
   @Test
   public void testNoCheckCast() throws Exception {
     // Test that JVM accepts javac output when method calls have been replaced by ACONST_NULL.
-    Path out = temp.getRoot().toPath().resolve("aaload-null.jar");
-    ClassFileConsumer.ArchiveConsumer archiveConsumer = new ClassFileConsumer.ArchiveConsumer(out);
-    archiveConsumer.accept(
-        ByteDataView.of(AlwaysNullGetItemDump.dump()),
-        DescriptorUtils.javaTypeToDescriptor(CLASS.getCanonicalName()),
-        null);
-    archiveConsumer.finished(null);
-    ProcessResult processResult = ToolHelper.runJava(out, CLASS.getCanonicalName());
-    if (processResult.exitCode != 0) {
-      System.out.println(processResult);
-    }
-    assertEquals(0, processResult.exitCode);
+    assumeTrue(parameters.isCfRuntime());
+    testForJvm()
+        .addProgramClassFileData(AlwaysNullGetItemDump.dump())
+        .run(parameters.getRuntime(), CLASS)
+        .assertSuccessWithOutputLines(NullPointerException.class.getSimpleName());
   }
 }

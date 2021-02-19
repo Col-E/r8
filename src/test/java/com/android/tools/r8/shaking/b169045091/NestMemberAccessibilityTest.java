@@ -21,6 +21,7 @@ import com.android.tools.r8.shaking.b169045091.B169045091.TestClass;
 import com.android.tools.r8.shaking.b169045091.examples.NestHost;
 import com.android.tools.r8.shaking.b169045091.examples.NestHost.NestMember;
 import com.android.tools.r8.shaking.b169045091.examples.NonNestMember;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -52,7 +53,7 @@ public class NestMemberAccessibilityTest extends TestBase {
   public void testAccessibility() throws Exception {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses()
+            AndroidApp.builder()
                 .addProgramFiles(getProgramFiles())
                 .addClassProgramData(getNestHostClassFileData())
                 .build(),

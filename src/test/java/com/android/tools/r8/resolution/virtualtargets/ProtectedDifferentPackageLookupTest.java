@@ -50,6 +50,7 @@ public class ProtectedDifferentPackageLookupTest extends TestBase {
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(A.class));
     builder.addClassProgramData(
         ImmutableList.of(getBInAnotherPackage(), getMainWithCallToRelocatedB()));
+    builder.addLibraryFile(parameters.getDefaultRuntimeLibrary());
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(builder.build(), Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());

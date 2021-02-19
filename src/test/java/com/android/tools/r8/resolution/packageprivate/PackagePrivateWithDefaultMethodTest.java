@@ -62,6 +62,7 @@ public class PackagePrivateWithDefaultMethodTest extends TestBase {
                     J.class,
                     Main.class)
                 .addClassProgramData(getNonAbstractWithoutDeclaredMethods())
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
                 .build(),
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();

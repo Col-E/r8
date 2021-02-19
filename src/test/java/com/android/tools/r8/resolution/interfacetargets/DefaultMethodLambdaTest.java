@@ -52,7 +52,11 @@ public class DefaultMethodLambdaTest extends TestBase {
   public void testResolution() throws Exception {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
-        computeAppViewWithLiveness(buildClasses(I.class, A.class, Main.class).build(), Main.class);
+        computeAppViewWithLiveness(
+            buildClassesWithTestingAnnotations(I.class, A.class, Main.class)
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
+                .build(),
+            Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(I.class, "bar", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnInterface(method.holder, method);

@@ -56,7 +56,11 @@ public class IndirectMethodAccessTest extends TestBase {
   public void testResolutionAccess() throws Exception {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(getClasses()).addClassProgramData(getTransforms()).build(), Main.class);
+            buildClasses(getClasses())
+                .addClassProgramData(getTransforms())
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
+                .build(),
+            Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexProgramClass cClass =
         appInfo.definitionFor(buildType(C.class, appInfo.dexItemFactory())).asProgramClass();

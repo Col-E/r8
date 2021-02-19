@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -17,6 +18,8 @@ import java.util.stream.Stream;
 public abstract class MethodSubject extends MemberSubject {
 
   public abstract IRCode buildIR();
+
+  public abstract IRCode buildIR(AppView<?> appView);
 
   public final boolean isAbsent() {
     return !isPresent();

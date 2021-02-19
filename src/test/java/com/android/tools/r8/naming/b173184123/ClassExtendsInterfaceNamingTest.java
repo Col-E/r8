@@ -54,6 +54,7 @@ public class ClassExtendsInterfaceNamingTest extends TestBase {
             parameters.getBackend(),
             parameters.isCfRuntime() ? parameters.getRuntime() : TestRuntime.getCheckedInJdk11())
         .addProgramFiles(classFiles)
+        .addTestingAnnotationsAsProgramClasses()
         .enableAssertions(false)
         .useR8WithRelocatedDeps()
         .setMinApi(parameters.getApiLevel())

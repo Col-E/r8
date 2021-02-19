@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -37,13 +38,15 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
   }
 
   public KeptTargetsIncompleteDiamondTest(TestParameters parameters) {
-    // Empty to satisfy construction of none-runtime.
+    assert parameters.isNoneRuntime();
   }
 
   private AppView<AppInfoWithLiveness> computeAppViewWithLiveness(
       Class<?> methodToBeKept, Class<?> classToBeKept) throws Exception {
     return computeAppViewWithLiveness(
-        buildClasses(I.class, J.class, K.class, L.class, A.class, Main.class).build(),
+        buildClasses(I.class, J.class, K.class, L.class, A.class, Main.class)
+            .addLibraryFile(ToolHelper.getJava8RuntimeJar())
+            .build(),
         factory ->
             buildConfigForRules(
                 factory,

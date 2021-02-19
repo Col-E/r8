@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertTrue;
 
@@ -57,7 +58,10 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
 
   @BeforeClass
   public static void computeAppInfo() throws Exception {
-    appInfo = computeAppViewWithLiveness(readClasses(CLASSES), Main.class).appInfo();
+    appInfo =
+        computeAppViewWithLiveness(
+                buildClasses(CLASSES).addLibraryFile(getMostRecentAndroidJar()).build(), Main.class)
+            .appInfo();
   }
 
   private static DexMethod buildMethod(Class clazz, String name) {

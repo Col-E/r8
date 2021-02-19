@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppView;
@@ -43,7 +45,10 @@ public abstract class NamingTestBase extends TestBase {
   protected NamingLens runMinifier(List<Path> configPaths) throws Exception {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            AndroidApp.builder().addProgramFile(Paths.get(appFileName)).build(),
+            AndroidApp.builder()
+                .addProgramFile(Paths.get(appFileName))
+                .addLibraryFile(getMostRecentAndroidJar())
+                .build(),
             factory -> ToolHelper.loadProguardConfiguration(factory, configPaths));
     dexItemFactory = appView.dexItemFactory();
     ExecutorService executor = Executors.newSingleThreadExecutor();

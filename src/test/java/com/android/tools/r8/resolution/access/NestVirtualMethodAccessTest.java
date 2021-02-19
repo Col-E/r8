@@ -67,7 +67,10 @@ public class NestVirtualMethodAccessTest extends TestBase {
   public void testResolutionAccess() throws Exception {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(getClasses()).addClassProgramData(getTransformedClasses()).build(),
+            buildClassesWithTestingAnnotations(getClasses())
+                .addClassProgramData(getTransformedClasses())
+                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
+                .build(),
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexProgramClass bClass =

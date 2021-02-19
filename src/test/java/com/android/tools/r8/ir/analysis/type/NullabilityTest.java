@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
+import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.fromDexType;
@@ -11,6 +12,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
@@ -26,7 +28,6 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.AssumeInserter;
-import com.android.tools.r8.ir.optimize.NonNullTrackerTestBase;
 import com.android.tools.r8.ir.optimize.nonnull.FieldAccessTest;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterArrayAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
@@ -37,7 +38,9 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collection;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import org.junit.Test;
@@ -46,7 +49,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class NullabilityTest extends NonNullTrackerTestBase {
+public class NullabilityTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -58,12 +61,15 @@ public class NullabilityTest extends NonNullTrackerTestBase {
   }
 
   private void buildAndTest(
+      Collection<Class<?>> classes,
       Class<?> mainClass,
       MethodSignature signature,
       boolean npeCaught,
       BiConsumer<AppView<?>, IRCode> inspector)
       throws Exception {
-    AppView<AppInfoWithLiveness> appView = build(mainClass);
+    AppView<AppInfoWithLiveness> appView =
+        computeAppViewWithLiveness(
+            buildClasses(classes).addLibraryFile(getMostRecentAndroidJar()).build());
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(mainClass.getName()).method(signature);
     IRCode irCode = fooSubject.buildIR();
@@ -131,6 +137,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     MethodSignature signature =
         new MethodSignature("foo", "int", new String[]{"java.lang.String"});
     buildAndTest(
+        ImmutableList.of(NonNullAfterInvoke.class),
         NonNullAfterInvoke.class,
         signature,
         false,
@@ -158,6 +165,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     MethodSignature signature =
         new MethodSignature("bar", "int", new String[]{"java.lang.String"});
     buildAndTest(
+        ImmutableList.of(NonNullAfterInvoke.class),
         NonNullAfterInvoke.class,
         signature,
         true,
@@ -185,6 +193,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     MethodSignature signature =
         new MethodSignature("foo", "int", new String[]{"java.lang.String[]"});
     buildAndTest(
+        ImmutableList.of(NonNullAfterArrayAccess.class),
         NonNullAfterArrayAccess.class,
         signature,
         false,
@@ -227,6 +236,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     MethodSignature signature =
         new MethodSignature("bar", "int", new String[]{"java.lang.String[]"});
     buildAndTest(
+        ImmutableList.of(NonNullAfterArrayAccess.class),
         NonNullAfterArrayAccess.class,
         signature,
         true,
@@ -269,6 +279,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     MethodSignature signature = new MethodSignature("foo", "int",
         new String[]{FieldAccessTest.class.getCanonicalName()});
     buildAndTest(
+        ImmutableList.of(FieldAccessTest.class, NonNullAfterFieldAccess.class),
         NonNullAfterFieldAccess.class,
         signature,
         false,
@@ -305,6 +316,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     MethodSignature signature = new MethodSignature("bar", "int",
         new String[]{FieldAccessTest.class.getCanonicalName()});
     buildAndTest(
+        ImmutableList.of(FieldAccessTest.class, NonNullAfterFieldAccess.class),
         NonNullAfterFieldAccess.class,
         signature,
         true,

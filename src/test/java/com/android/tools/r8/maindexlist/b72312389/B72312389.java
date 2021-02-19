@@ -30,7 +30,6 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-@RunWith(VmTestRunner.class)
 public class B72312389 extends TestBase {
   // TODO(120884788): Remove this when default is true.
   private static boolean lookupLibraryBeforeProgram = false;

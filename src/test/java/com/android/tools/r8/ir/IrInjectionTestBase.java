@@ -30,14 +30,6 @@ import org.antlr.runtime.RecognitionException;
 
 public class IrInjectionTestBase extends SmaliTestBase {
 
-  protected DexApplication buildApplication(SmaliBuilder builder, InternalOptions options) {
-    try {
-      return new ApplicationReader(builder.build(), options, Timing.empty()).read();
-    } catch (IOException | RecognitionException | ExecutionException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   protected MethodSubject getMethodSubject(DexApplication application, MethodSignature signature) {
     return getMethodSubject(
         application,

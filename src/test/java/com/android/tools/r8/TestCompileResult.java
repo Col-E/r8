@@ -89,6 +89,10 @@ public abstract class TestCompileResult<
     return self();
   }
 
+  public final AndroidApp getApp() {
+    return app;
+  }
+
   public final Backend getBackend() {
     if (outputMode == OutputMode.ClassFile) {
       return Backend.CF;

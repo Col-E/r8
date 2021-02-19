@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+
 import java.util.function.Function;
 
 public interface ThrowableConsumer<Formal> {
@@ -18,7 +19,15 @@ public interface ThrowableConsumer<Formal> {
   }
 
   default void acceptWithRuntimeException(Formal formal) {
-    acceptWithHandler(formal, RuntimeException::new);
+    acceptWithHandler(
+        formal,
+        exception -> {
+          if (exception instanceof RuntimeException) {
+            throw (RuntimeException) exception;
+          } else {
+            throw new RuntimeException(exception);
+          }
+        });
   }
 
   default ThrowableConsumer<Formal> andThen(ThrowableConsumer<Formal> consumer) {

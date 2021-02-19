@@ -11,6 +11,7 @@ import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import java.nio.file.Path;
 
 // Actual test parameters for a specific configuration. Currently just the runtime configuration.
 public class TestParameters {
@@ -58,6 +59,12 @@ public class TestParameters {
           "Use of getApiLevel without configured API levels for TestParametersCollection.");
     }
     return apiLevel;
+  }
+
+  public Path getDefaultRuntimeLibrary() {
+    return isCfRuntime()
+        ? ToolHelper.getJava8RuntimeJar()
+        : ToolHelper.getFirstSupportedAndroidJar(getApiLevel());
   }
 
   // Access to underlying runtime/wrapper.

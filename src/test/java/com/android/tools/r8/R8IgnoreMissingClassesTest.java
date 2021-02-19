@@ -19,6 +19,7 @@ public class R8IgnoreMissingClassesTest {
   private R8Command.Builder config() {
     return R8Command.builder()
         .addProgramFiles(EXAMPLE)
+        .setDisableTreeShaking(true)
         .setMinApiLevel(MIN_API.getLevel())
         .setProgramConsumer(DexIndexedConsumer.emptyConsumer());
   }

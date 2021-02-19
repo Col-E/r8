@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.ArrayList;
@@ -21,10 +23,6 @@ public class R8RunExamplesKotlinTest extends R8RunExamplesCommon {
   @Override
   protected void configure(InternalOptions options) {
     super.configure(options);
-    if (output == Output.CF) {
-      // Class inliner is not supported with CF backend yet.
-      options.enableClassInlining = false;
-    }
   }
 
   @Parameters(name = "{0}_{1}_{2}_{3}_{5}_{6}")
@@ -47,6 +45,12 @@ public class R8RunExamplesKotlinTest extends R8RunExamplesCommon {
           makeTest(Input.JAVAC, CompilerUnderTest.R8, CompilationMode.RELEASE, test, Output.CF));
     }
     return fullTestList;
+  }
+
+  @Override
+  public Builder addInputFile(Builder builder) {
+    return super.addInputFile(builder)
+        .addProgramFiles(ToolHelper.getKotlinAnnotationJar(KotlinCompiler.latest()));
   }
 
   @Override
