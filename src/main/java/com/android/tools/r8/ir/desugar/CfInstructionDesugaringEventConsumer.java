@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.ClassConverterResult;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
+import com.android.tools.r8.ir.desugar.backports.BackportedMethodDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialBridgeInfo;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
@@ -34,7 +35,8 @@ import java.util.function.Consumer;
  * inserting of a new method).
  */
 public abstract class CfInstructionDesugaringEventConsumer
-    implements InvokeSpecialToSelfDesugaringEventConsumer,
+    implements BackportedMethodDesugaringEventConsumer,
+        InvokeSpecialToSelfDesugaringEventConsumer,
         LambdaDesugaringEventConsumer,
         NestBasedAccessDesugaringEventConsumer,
         TwrCloseResourceDesugaringEventConsumer {
@@ -54,6 +56,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
   public static CfInstructionDesugaringEventConsumer createForDesugaredCode() {
     return new CfInstructionDesugaringEventConsumer() {
+
+      @Override
+      public void acceptBackportedMethod(ProgramMethod backportedMethod, ProgramMethod context) {
+        assert false;
+      }
 
       @Override
       public void acceptInvokeSpecialBridgeInfo(InvokeSpecialBridgeInfo info) {
@@ -101,6 +108,11 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
+    public void acceptBackportedMethod(ProgramMethod backportedMethod, ProgramMethod context) {
+      methodProcessor.scheduleMethodForProcessing(backportedMethod, this);
+    }
+
+    @Override
     public void acceptInvokeSpecialBridgeInfo(InvokeSpecialBridgeInfo info) {
       synchronized (pendingInvokeSpecialBridges) {
         assert !pendingInvokeSpecialBridges.containsKey(info.getNewDirectMethod().getReference());
@@ -144,7 +156,7 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     private void finalizeInvokeSpecialDesugaring(
-        AppView<?> appView, Consumer<ProgramMethod> needsReprocessing) {
+        AppView<?> appView, Consumer<ProgramMethod> needsProcessing) {
       // Fixup the code of the new private methods have that been synthesized.
       pendingInvokeSpecialBridges
           .values()
@@ -165,7 +177,7 @@ public abstract class CfInstructionDesugaringEventConsumer
                 info.getVirtualMethod()
                     .getDefinition()
                     .setCode(info.getVirtualMethodCode(), appView);
-                needsReprocessing.accept(info.getVirtualMethod());
+                needsProcessing.accept(info.getVirtualMethod());
               });
 
       pendingInvokeSpecialBridges.clear();
@@ -210,6 +222,12 @@ public abstract class CfInstructionDesugaringEventConsumer
       this.appView = appView;
       this.lambdaClassConsumer = lambdaClassConsumer;
       this.twrCloseResourceMethodConsumer = twrCloseResourceMethodConsumer;
+    }
+
+    @Override
+    public void acceptBackportedMethod(ProgramMethod backportedMethod, ProgramMethod context) {
+      // Intentionally empty. The backported method will be hit by the tracing in R8 as if it was
+      // present in the input code, and thus nothing needs to be done.
     }
 
     @Override

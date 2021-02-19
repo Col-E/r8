@@ -88,7 +88,6 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.R8CfInstructionDesugaringEventConsumer;
@@ -114,7 +113,6 @@ import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleRes
 import com.android.tools.r8.synthesis.SyntheticItems.SynthesizingContextOracle;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
@@ -393,11 +391,7 @@ public class Enqueuer {
   private final GraphReporter graphReporter;
 
   private final CfInstructionDesugaringCollection desugaring;
-
-  private final BackportedMethodRewriter backportRewriter;
-
   private final DesugaredLibraryConversionWrapperAnalysis desugaredLibraryWrapperAnalysis;
-  private final Map<DexMethod, ProgramMethod> methodsWithBackports = new IdentityHashMap<>();
   private final ProgramMethodSet pendingDesugaring = ProgramMethodSet.create();
 
   Enqueuer(
@@ -444,8 +438,6 @@ public class Enqueuer {
         mode.isInitialTreeShaking()
             ? CfInstructionDesugaringCollection.create(appView)
             : CfInstructionDesugaringCollection.empty();
-    backportRewriter =
-        options.desugarState == DesugarState.ON ? new BackportedMethodRewriter(appView) : null;
 
     objectAllocationInfoCollection =
         ObjectAllocationInfoCollectionImpl.builder(mode.isInitialTreeShaking(), graphReporter);
@@ -1224,9 +1216,6 @@ public class Enqueuer {
 
   private void traceInvokeDirect(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
-    if (registerBackportInvoke(invokedMethod, context)) {
-      return;
-    }
     if (!registerMethodWithTargetAndContext(
         methodAccessInfoCollection::registerInvokeDirectInContext, invokedMethod, context)) {
       return;
@@ -1248,10 +1237,6 @@ public class Enqueuer {
 
   private void traceInvokeInterface(
       DexMethod method, ProgramMethod context, KeepReason keepReason) {
-    if (registerBackportInvoke(method, context)) {
-      return;
-    }
-
     if (!registerMethodWithTargetAndContext(
         methodAccessInfoCollection::registerInvokeInterfaceInContext, method, context)) {
       return;
@@ -1271,19 +1256,8 @@ public class Enqueuer {
     traceInvokeStatic(invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context));
   }
 
-  private boolean registerBackportInvoke(DexMethod invokedMethod, ProgramMethod context) {
-    if (backportRewriter != null && backportRewriter.needsDesugaring(invokedMethod)) {
-      methodsWithBackports.putIfAbsent(context.getReference(), context);
-      return true;
-    }
-    return false;
-  }
-
   private void traceInvokeStatic(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
-    if (registerBackportInvoke(invokedMethod, context)) {
-      return;
-    }
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     if (dexItemFactory.classMethods.isReflectiveClassLookup(invokedMethod)
         || dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod)) {
@@ -1315,9 +1289,6 @@ public class Enqueuer {
   }
 
   void traceInvokeSuper(DexMethod invokedMethod, ProgramMethod context) {
-    if (registerBackportInvoke(invokedMethod, context)) {
-      return;
-    }
     // We have to revisit super invokes based on the context they are found in. The same
     // method descriptor will hit different targets, depending on the context it is used in.
     DexMethod actualTarget = getInvokeSuperTarget(invokedMethod, context);
@@ -1342,10 +1313,6 @@ public class Enqueuer {
 
   private void traceInvokeVirtual(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
-    if (registerBackportInvoke(invokedMethod, context)) {
-      return;
-    }
-
     if (invokedMethod == appView.dexItemFactory().classMethods.newInstance
         || invokedMethod == appView.dexItemFactory().constructorMethods.newInstance) {
       pendingReflectiveUses.add(context);
@@ -3197,7 +3164,6 @@ public class Enqueuer {
     desugar(additions);
     synthesizeInterfaceMethodBridges(additions);
     synthesizeLibraryConversionWrappers(additions);
-    synthesizeBackports(additions);
     if (additions.isEmpty()) {
       return;
     }
@@ -3258,13 +3224,6 @@ public class Enqueuer {
       additions.addLiveMethodWithKeepAction(bridge, KeepMethodInfo.Joiner::pin);
     }
     syntheticInterfaceMethodBridges.clear();
-  }
-
-  private void synthesizeBackports(SyntheticAdditions additions) {
-    for (ProgramMethod method : methodsWithBackports.values()) {
-      backportRewriter.desugar(
-          method, appInfo, additions.getMethodContext(method), additions::addLiveMethod);
-    }
   }
 
   private void finalizeLibraryMethodOverrideInformation() {

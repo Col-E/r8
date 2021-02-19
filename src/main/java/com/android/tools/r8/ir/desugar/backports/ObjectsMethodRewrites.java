@@ -12,7 +12,8 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.FullMethodInvokeRewriter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.MethodInvokeRewriter;
-import java.util.ListIterator;
+import com.google.common.collect.ImmutableList;
+import java.util.Collection;
 import org.objectweb.asm.Opcodes;
 
 public final class ObjectsMethodRewrites {
@@ -31,13 +32,12 @@ public final class ObjectsMethodRewrites {
     return new FullMethodInvokeRewriter() {
 
       @Override
-      public void rewrite(
-          CfInvoke invoke, ListIterator<CfInstruction> iterator, DexItemFactory factory) {
-        iterator.remove();
+      public Collection<CfInstruction> rewrite(CfInvoke invoke, DexItemFactory factory) {
         // requireNonNull returns the operand, so dup top-of-stack, do getClass and pop the class.
-        iterator.add(new CfStackInstruction(Opcode.Dup));
-        iterator.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.objectMembers.getClass, false));
-        iterator.add(new CfStackInstruction(Opcode.Pop));
+        return ImmutableList.of(
+            new CfStackInstruction(Opcode.Dup),
+            new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.objectMembers.getClass, false),
+            new CfStackInstruction(Opcode.Pop));
       }
     };
   }

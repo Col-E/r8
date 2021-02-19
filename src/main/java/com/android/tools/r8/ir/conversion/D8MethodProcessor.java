@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Sets;
@@ -24,8 +25,17 @@ public class D8MethodProcessor extends MethodProcessor {
 
   private final IRConverter converter;
   private final ExecutorService executorService;
-  private final List<Future<?>> futures = Collections.synchronizedList(new ArrayList<>());
   private final Set<DexType> scheduled = Sets.newIdentityHashSet();
+
+  // Asynchronous method processing actions. These are "terminal" method processing actions in the
+  // sense that the method processing is known not to fork any other futures.
+  private final List<Future<?>> terminalFutures = Collections.synchronizedList(new ArrayList<>());
+
+  // Asynchronous method processing actions. This list includes both "terminal" and "non-terminal"
+  // method processing actions. Thus, before the asynchronous method processing finishes, it may
+  // fork the processing of another method.
+  private final List<Future<?>> nonTerminalFutures =
+      Collections.synchronizedList(new ArrayList<>());
 
   private ProcessorContext processorContext;
 
@@ -55,6 +65,27 @@ public class D8MethodProcessor extends MethodProcessor {
     return true;
   }
 
+  public void scheduleMethodForProcessing(
+      ProgramMethod method, D8CfInstructionDesugaringEventConsumer eventConsumer) {
+    // TODO(b/179755192): By building up waves of methods in the class converter, we can avoid the
+    //  following check and always process the method asynchronously.
+    if (!scheduled.contains(method.getHolderType())
+        && !converter.appView.getSyntheticItems().isNonLegacySynthetic(method.getHolder())) {
+      // The non-synthetic holder is not scheduled. It will be processed once holder is scheduled.
+      return;
+    }
+    nonTerminalFutures.add(
+        ThreadUtils.processAsynchronously(
+            () ->
+                converter.rewriteCode(
+                    method,
+                    eventConsumer,
+                    OptimizationFeedbackIgnore.getInstance(),
+                    this,
+                    processorContext.createMethodProcessingContext(method)),
+            executorService));
+  }
+
   @Override
   public void scheduleDesugaredMethodForProcessing(ProgramMethod method) {
     // TODO(b/179755192): By building up waves of methods in the class converter, we can avoid the
@@ -64,7 +95,7 @@ public class D8MethodProcessor extends MethodProcessor {
       // The non-synthetic holder is not scheduled. It will be processed once holder is scheduled.
       return;
     }
-    futures.add(
+    terminalFutures.add(
         ThreadUtils.processAsynchronously(
             () ->
                 converter.rewriteDesugaredCode(
@@ -86,8 +117,21 @@ public class D8MethodProcessor extends MethodProcessor {
   }
 
   public void awaitMethodProcessing() throws ExecutionException {
-    ThreadUtils.awaitFutures(futures);
-    futures.clear();
+    // Await the non-terminal futures until there are only terminal futures left.
+    while (!nonTerminalFutures.isEmpty()) {
+      List<Future<?>> futuresToAwait;
+      synchronized (nonTerminalFutures) {
+        futuresToAwait = new ArrayList<>(nonTerminalFutures);
+        nonTerminalFutures.clear();
+      }
+      ThreadUtils.awaitFutures(futuresToAwait);
+    }
+
+    // Await the terminal futures. There futures will by design not to fork new method processing.
+    int numberOfTerminalFutures = terminalFutures.size();
+    ThreadUtils.awaitFutures(terminalFutures);
+    assert terminalFutures.size() == numberOfTerminalFutures;
+    terminalFutures.clear();
   }
 
   public void processMethod(
@@ -99,12 +143,9 @@ public class D8MethodProcessor extends MethodProcessor {
         processorContext.createMethodProcessingContext(method));
   }
 
-  public void processDesugaredMethod(ProgramMethod method) {
-    processMethod(method, CfInstructionDesugaringEventConsumer.createForDesugaredCode());
-  }
-
   public boolean verifyNoPendingMethodProcessing() {
-    assert futures.isEmpty();
+    assert terminalFutures.isEmpty();
+    assert nonTerminalFutures.isEmpty();
     return true;
   }
 }

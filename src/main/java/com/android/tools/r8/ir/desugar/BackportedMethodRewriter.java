@@ -10,7 +10,6 @@ import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -22,7 +21,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.desugar.backports.BackportedMethodDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.ir.desugar.backports.BooleanMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.CollectionMethodGenerators;
@@ -36,42 +35,59 @@ import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.DesugarState;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import org.objectweb.asm.Opcodes;
 
-public final class BackportedMethodRewriter {
+public final class BackportedMethodRewriter implements CfInstructionDesugaring {
 
   private final AppView<?> appView;
   private final RewritableMethods rewritableMethods;
-  private final boolean enabled;
-
-  private final Queue<ProgramMethod> synthesizedMethods = new ConcurrentLinkedQueue<>();
 
   public BackportedMethodRewriter(AppView<?> appView) {
+    assert appView.options().desugarState.isOn();
     this.appView = appView;
     this.rewritableMethods = new RewritableMethods(appView.options(), appView);
-    // Disable rewriting if there are no methods to rewrite or if the API level is higher than
-    // the highest known API level when the compiler is built. This ensures that when this is used
-    // by the Android Platform build (which normally use an API level of 10000) there will be
-    // no rewriting of backported methods. See b/147480264.
-    this.enabled =
-        appView.options().desugarState == DesugarState.ON
-            && !this.rewritableMethods.isEmpty()
-            && appView.options().minApiLevel <= AndroidApiLevel.LATEST.getLevel();
+  }
+
+  public boolean hasBackports() {
+    return !rewritableMethods.isEmpty();
+  }
+
+  @Override
+  public Collection<CfInstruction> desugarInstruction(
+      CfInstruction instruction,
+      FreshLocalProvider freshLocalProvider,
+      LocalStackAllocator localStackAllocator,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramMethod context,
+      MethodProcessingContext methodProcessingContext) {
+    if (!instruction.isInvoke()) {
+      return null;
+    }
+
+    CfInvoke invoke = instruction.asInvoke();
+    DexMethod invokedMethod = invoke.getMethod();
+    if (!needsDesugaring(invokedMethod)) {
+      return null;
+    }
+
+    return getMethodProviderOrNull(invokedMethod)
+        .rewriteInvoke(invoke, appView, eventConsumer, methodProcessingContext);
+  }
+
+  @Override
+  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
+    return instruction.isInvoke() && needsDesugaring(instruction.asInvoke().getMethod());
   }
 
   public boolean needsDesugaring(DexMethod method) {
@@ -106,65 +122,6 @@ public final class BackportedMethodRewriter {
     BackportedMethods.registerSynthesizedCodeReferences(options.itemFactory);
   }
 
-  public boolean desugar(
-      ProgramMethod method,
-      AppInfoWithClassHierarchy appInfo,
-      MethodProcessingContext methodProcessingContext) {
-    return desugar(method, appInfo, methodProcessingContext, synthesizedMethods::add);
-  }
-
-  public boolean desugar(
-      ProgramMethod method,
-      AppInfoWithClassHierarchy appInfo,
-      MethodProcessingContext methodProcessingContext,
-      Consumer<ProgramMethod> consumer) {
-    if (!enabled) {
-      return false;
-    }
-    if (method.getDefinition().getCode().isDexCode()) {
-      appView
-          .options()
-          .reporter
-          .error(
-              new StringDiagnostic(
-                  "Unsupported attempt to desugar DEX code",
-                  method.getOrigin(),
-                  method.getPosition()));
-      return false;
-    }
-    CfCode code = method.getDefinition().getCode().asCfCode();
-    ListIterator<CfInstruction> iterator = code.getInstructions().listIterator();
-    boolean replaced = false;
-    while (iterator.hasNext()) {
-      CfInvoke invoke = iterator.next().asInvoke();
-      if (invoke == null) {
-        continue;
-      }
-      DexMethod invokedMethod = invoke.getMethod();
-      MethodProvider provider = getMethodProviderOrNull(invokedMethod);
-      if (provider != null) {
-        if (!replaced) {
-          // Create mutable instructions on first write.
-          ArrayList<CfInstruction> mutableInstructions = new ArrayList<>(code.getInstructions());
-          code.setInstructions(mutableInstructions);
-          iterator = mutableInstructions.listIterator(iterator.previousIndex());
-          iterator.next();
-        }
-        provider.rewriteInvoke(invoke, iterator, appInfo, consumer, methodProcessingContext);
-        replaced = true;
-      }
-    }
-    return replaced;
-  }
-
-  public void processSynthesizedClasses(IRConverter converter, ExecutorService executor)
-      throws ExecutionException {
-    while (!synthesizedMethods.isEmpty()) {
-      ArrayList<ProgramMethod> methods = new ArrayList<>(synthesizedMethods);
-      synthesizedMethods.clear();
-      converter.optimizeSynthesizedMethods(methods, executor);
-    }
-  }
 
   private MethodProvider getMethodProviderOrNull(DexMethod method) {
     DexMethod original = appView.graphLens().getOriginalMethodSignature(method);
@@ -212,7 +169,7 @@ public final class BackportedMethodRewriter {
       DexItemFactory factory = options.itemFactory;
 
       if (options.minApiLevel < AndroidApiLevel.K.getLevel()) {
-        initializeAndroidKMethodProviders(factory, appView);
+        initializeAndroidKMethodProviders(factory);
       }
       if (options.minApiLevel < AndroidApiLevel.N.getLevel()) {
         initializeAndroidNMethodProviders(factory);
@@ -253,7 +210,7 @@ public final class BackportedMethodRewriter {
       rewritable.keySet().forEach(consumer);
     }
 
-    private void initializeAndroidKMethodProviders(DexItemFactory factory, AppView<?> appView) {
+    private void initializeAndroidKMethodProviders(DexItemFactory factory) {
       // Byte
       DexType type = factory.boxedByteType;
       // int Byte.compare(byte a, byte b)
@@ -579,20 +536,19 @@ public final class BackportedMethodRewriter {
 
       // Math & StrictMath, which have some symmetric, binary-compatible APIs
       DexType[] mathTypes = {factory.mathType, factory.strictMathType};
-      for (int i = 0; i < mathTypes.length; i++) {
-        type = mathTypes[i];
+      for (DexType mathType : mathTypes) {
 
         // int {Math,StrictMath}.addExact(int, int)
         name = factory.createString("addExact");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(method, BackportedMethods::MathMethods_addExactInt, "addExactInt"));
 
         // long {Math,StrictMath}.addExact(long, long)
         name = factory.createString("addExact");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_addExactLong, "addExactLong"));
@@ -600,14 +556,14 @@ public final class BackportedMethodRewriter {
         // int {Math,StrictMath}.floorDiv(int, int)
         name = factory.createString("floorDiv");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(method, BackportedMethods::MathMethods_floorDivInt, "floorDivInt"));
 
         // long {Math,StrictMath}.floorDiv(long, long)
         name = factory.createString("floorDiv");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_floorDivLong, "floorDivLong"));
@@ -615,14 +571,14 @@ public final class BackportedMethodRewriter {
         // int {Math,StrictMath}.floorMod(int, int)
         name = factory.createString("floorMod");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(method, BackportedMethods::MathMethods_floorModInt, "floorModInt"));
 
         // long {Math,StrictMath}.floorMod(long, long)
         name = factory.createString("floorMod");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_floorModLong, "floorModLong"));
@@ -630,7 +586,7 @@ public final class BackportedMethodRewriter {
         // int {Math,StrictMath}.multiplyExact(int, int)
         name = factory.createString("multiplyExact");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_multiplyExactInt, "multiplyExactInt"));
@@ -638,7 +594,7 @@ public final class BackportedMethodRewriter {
         // long {Math,StrictMath}.multiplyExact(long, long)
         name = factory.createString("multiplyExact");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_multiplyExactLong, "multiplyExactLong"));
@@ -646,7 +602,7 @@ public final class BackportedMethodRewriter {
         // double {Math,StrictMath}.nextDown(double)
         name = factory.createString("nextDown");
         proto = factory.createProto(factory.doubleType, factory.doubleType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_nextDownDouble, "nextDownDouble"));
@@ -654,7 +610,7 @@ public final class BackportedMethodRewriter {
         // float {Math,StrictMath}.nextDown(float)
         name = factory.createString("nextDown");
         proto = factory.createProto(factory.floatType, factory.floatType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_nextDownFloat, "nextDownFloat"));
@@ -662,7 +618,7 @@ public final class BackportedMethodRewriter {
         // int {Math,StrictMath}.subtractExact(int, int)
         name = factory.createString("subtractExact");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_subtractExactInt, "subtractExactInt"));
@@ -670,7 +626,7 @@ public final class BackportedMethodRewriter {
         // long {Math,StrictMath}.subtractExact(long, long)
         name = factory.createString("subtractExact");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_subtractExactLong, "subtractExactLong"));
@@ -678,7 +634,7 @@ public final class BackportedMethodRewriter {
         // int {Math,StrictMath}.toIntExact(long)
         name = factory.createString("toIntExact");
         proto = factory.createProto(factory.intType, factory.longType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(new MethodGenerator(method, BackportedMethods::MathMethods_toIntExact));
       }
 
@@ -1015,13 +971,12 @@ public final class BackportedMethodRewriter {
     private void initializeJava9MethodProviders(DexItemFactory factory) {
       // Math & StrictMath, which have some symmetric, binary-compatible APIs
       DexType[] mathTypes = {factory.mathType, factory.strictMathType};
-      for (int i = 0; i < mathTypes.length; i++) {
-        DexType type = mathTypes[i];
+      for (DexType mathType : mathTypes) {
 
         // long {Math,StrictMath}.multiplyExact(long, int)
         DexString name = factory.createString("multiplyExact");
         DexProto proto = factory.createProto(factory.longType, factory.longType, factory.intType);
-        DexMethod method = factory.createMethod(type, proto, name);
+        DexMethod method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(
                 method,
@@ -1031,19 +986,19 @@ public final class BackportedMethodRewriter {
         // long {Math,StrictMath}.multiplyFull(int, int)
         name = factory.createString("multiplyFull");
         proto = factory.createProto(factory.longType, factory.intType, factory.intType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(new MethodGenerator(method, BackportedMethods::MathMethods_multiplyFull));
 
         // long {Math,StrictMath}.multiplyHigh(long, long)
         name = factory.createString("multiplyHigh");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(new MethodGenerator(method, BackportedMethods::MathMethods_multiplyHigh));
 
         // long {Math,StrictMath}.floorDiv(long, int)
         name = factory.createString("floorDiv");
         proto = factory.createProto(factory.longType, factory.longType, factory.intType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_floorDivLongInt, "floorDivLongInt"));
@@ -1051,7 +1006,7 @@ public final class BackportedMethodRewriter {
         // int {Math,StrictMath}.floorMod(long, int)
         name = factory.createString("floorMod");
         proto = factory.createProto(factory.intType, factory.longType, factory.intType);
-        method = factory.createMethod(type, proto, name);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_floorModLongInt, "floorModLongInt"));
@@ -1349,11 +1304,10 @@ public final class BackportedMethodRewriter {
       this.method = method;
     }
 
-    public abstract void rewriteInvoke(
+    public abstract Collection<CfInstruction> rewriteInvoke(
         CfInvoke invoke,
-        ListIterator<CfInstruction> iterator,
-        AppInfoWithClassHierarchy appInfo,
-        Consumer<ProgramMethod> registerSynthesizedMethod,
+        AppView<?> appView,
+        BackportedMethodDesugaringEventConsumer eventConsumer,
         MethodProcessingContext methodProcessingContext);
   }
 
@@ -1367,13 +1321,12 @@ public final class BackportedMethodRewriter {
     }
 
     @Override
-    public void rewriteInvoke(
+    public Collection<CfInstruction> rewriteInvoke(
         CfInvoke invoke,
-        ListIterator<CfInstruction> iterator,
-        AppInfoWithClassHierarchy appInfo,
-        Consumer<ProgramMethod> registerSynthesizedMethod,
+        AppView<?> appView,
+        BackportedMethodDesugaringEventConsumer eventConsumer,
         MethodProcessingContext methodProcessingContext) {
-      rewriter.rewrite(invoke, iterator, appInfo.dexItemFactory());
+      return rewriter.rewrite(invoke, appView.dexItemFactory());
     }
   }
 
@@ -1393,32 +1346,29 @@ public final class BackportedMethodRewriter {
     }
 
     @Override
-    public void rewriteInvoke(
+    public Collection<CfInstruction> rewriteInvoke(
         CfInvoke invoke,
-        ListIterator<CfInstruction> iterator,
-        AppInfoWithClassHierarchy appInfo,
-        Consumer<ProgramMethod> registerSynthesizedMethod,
+        AppView<?> appView,
+        BackportedMethodDesugaringEventConsumer eventConsumer,
         MethodProcessingContext methodProcessingContext) {
-      ProgramMethod method = getSyntheticMethod(appInfo, methodProcessingContext);
-      registerSynthesizedMethod.accept(method);
-      iterator.remove();
-      iterator.add(new CfInvoke(Opcodes.INVOKESTATIC, method.getReference(), false));
+      ProgramMethod method = getSyntheticMethod(appView, methodProcessingContext);
+      eventConsumer.acceptBackportedMethod(method, methodProcessingContext.getMethodContext());
+      return ImmutableList.of(new CfInvoke(Opcodes.INVOKESTATIC, method.getReference(), false));
     }
 
     private ProgramMethod getSyntheticMethod(
-        AppInfoWithClassHierarchy appInfo, MethodProcessingContext methodProcessingContext) {
-      return appInfo
+        AppView<?> appView, MethodProcessingContext methodProcessingContext) {
+      return appView
           .getSyntheticItems()
           .createMethod(
               SyntheticNaming.SyntheticKind.BACKPORT,
               methodProcessingContext.createUniqueContext(),
-              appInfo.dexItemFactory(),
+              appView.dexItemFactory(),
               builder ->
                   builder
-                      .setProto(getProto(appInfo.dexItemFactory()))
+                      .setProto(getProto(appView.dexItemFactory()))
                       .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                      .setCode(
-                          methodSig -> generateTemplateMethod(appInfo.app().options, methodSig)));
+                      .setCode(methodSig -> generateTemplateMethod(appView.options(), methodSig)));
     }
 
     public DexProto getProto(DexItemFactory itemFactory) {
@@ -1459,10 +1409,8 @@ public final class BackportedMethodRewriter {
     CfInstruction rewriteSingle(CfInvoke invoke, DexItemFactory factory);
 
     // Convenience wrapper since most rewrites are to a single instruction.
-    default void rewrite(
-        CfInvoke invoke, ListIterator<CfInstruction> iterator, DexItemFactory factory) {
-      iterator.remove();
-      iterator.add(rewriteSingle(invoke, factory));
+    default Collection<CfInstruction> rewrite(CfInvoke invoke, DexItemFactory factory) {
+      return ImmutableList.of(rewriteSingle(invoke, factory));
     }
   }
 
@@ -1474,7 +1422,6 @@ public final class BackportedMethodRewriter {
     }
 
     @Override
-    public abstract void rewrite(
-        CfInvoke invoke, ListIterator<CfInstruction> iterator, DexItemFactory factory);
+    public abstract Collection<CfInstruction> rewrite(CfInvoke invoke, DexItemFactory factory);
   }
 }

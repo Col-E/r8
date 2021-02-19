@@ -11,7 +11,6 @@ import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -43,7 +42,6 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
@@ -101,7 +99,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
-import com.android.tools.r8.utils.SupplierUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -135,7 +132,6 @@ public class IRConverter {
   private final StringBuilderOptimizer stringBuilderOptimizer;
   private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
-  private final BackportedMethodRewriter backportedMethodRewriter;
   private final DesugaredLibraryRetargeter desugaredLibraryRetargeter;
   private final ClassInliner classInliner;
   private final ClassStaticizer classStaticizer;
@@ -232,7 +228,6 @@ public class IRConverter {
               : new InterfaceMethodRewriter(appView, this);
       this.desugaredLibraryAPIConverter =
           new DesugaredLibraryAPIConverter(appView, Mode.GENERATE_CALLBACKS_AND_WRAPPERS);
-      this.backportedMethodRewriter = new BackportedMethodRewriter(appView);
       this.covariantReturnTypeAnnotationTransformer = null;
       this.dynamicTypeOptimization = null;
       this.classInliner = null;
@@ -261,10 +256,6 @@ public class IRConverter {
     this.interfaceMethodRewriter =
         options.isInterfaceMethodDesugaringEnabled()
             ? new InterfaceMethodRewriter(appView, this)
-            : null;
-    this.backportedMethodRewriter =
-        (options.desugarState == DesugarState.ON && !appView.enableWholeProgramOptimizations())
-            ? new BackportedMethodRewriter(appView)
             : null;
     this.desugaredLibraryRetargeter =
         options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()
@@ -395,13 +386,6 @@ public class IRConverter {
     }
   }
 
-  private void processSynthesizedJava8UtilityClasses(ExecutorService executorService)
-      throws ExecutionException {
-    if (backportedMethodRewriter != null) {
-      backportedMethodRewriter.processSynthesizedClasses(this, executorService);
-    }
-  }
-
   private void synthesizeRetargetClass(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
     if (desugaredLibraryRetargeter != null) {
@@ -446,7 +430,6 @@ public class IRConverter {
     Builder<?> builder = application.builder().setHighestSortingString(highestSortingString);
 
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
-    processSynthesizedJava8UtilityClasses(executor);
     synthesizeRetargetClass(builder, executor);
     processCovariantReturnTypeAnnotations(builder);
     generateDesugaredLibraryAPIWrappers(builder, executor);
@@ -572,7 +555,6 @@ public class IRConverter {
     NeedsIRDesugarUseRegistry useRegistry =
         new NeedsIRDesugarUseRegistry(
             appView,
-            backportedMethodRewriter,
             desugaredLibraryRetargeter,
             interfaceMethodRewriter,
             desugaredLibraryAPIConverter);
@@ -765,7 +747,6 @@ public class IRConverter {
     feedback.updateVisibleOptimizationInfo();
 
     printPhase("Utility classes synthesis");
-    processSynthesizedJava8UtilityClasses(executorService);
     synthesizeRetargetClass(builder, executorService);
     synthesizeEnumUnboxingUtilityMethods(executorService);
 
@@ -1101,8 +1082,7 @@ public class IRConverter {
           method.toSourceString(),
           logCode(options, method.getDefinition()));
     }
-    boolean didDesugar =
-        desugar(method, desugaringEventConsumer, methodProcessor, methodProcessingContext);
+    boolean didDesugar = desugar(method, desugaringEventConsumer, methodProcessingContext);
     if (Log.ENABLED && didDesugar) {
       Log.debug(
           getClass(),
@@ -1128,24 +1108,14 @@ public class IRConverter {
   private boolean desugar(
       ProgramMethod method,
       CfInstructionDesugaringEventConsumer desugaringEventConsumer,
-      MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
-    if (options.desugarState.isOff() || !method.getDefinition().getCode().isCfCode()) {
+    if (options.desugarState.isOff()
+        || !method.getDefinition().getCode().isCfCode()
+        || !desugaring.needsDesugaring(method)) {
       return false;
     }
-
-    boolean didDesugar = false;
-    Supplier<AppInfoWithClassHierarchy> lazyAppInfo =
-        SupplierUtils.nonThreadSafeMemoize(appView::appInfoForDesugaring);
-    if (desugaring.needsDesugaring(method)) {
-      desugaring.desugar(method, methodProcessingContext, desugaringEventConsumer);
-      didDesugar = true;
-    }
-    if (backportedMethodRewriter != null) {
-      didDesugar |=
-          backportedMethodRewriter.desugar(method, lazyAppInfo.get(), methodProcessingContext);
-    }
-    return didDesugar;
+    desugaring.desugar(method, methodProcessingContext, desugaringEventConsumer);
+    return true;
   }
 
   // TODO(b/140766440): Convert all sub steps an implementer of CodeOptimization

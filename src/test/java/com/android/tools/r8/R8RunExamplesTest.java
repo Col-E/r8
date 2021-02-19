@@ -160,9 +160,6 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
   @Override
   protected Set<String> getFailingCompileDxToDex() {
     return new ImmutableSet.Builder<String>()
-        .add("regress_72361252.Test") // requires desugar
-        .add("regress_70703087.Test") // requires desugar
-        .add("regress_70737019.Test") // requires desugar
         .build();
   }
 

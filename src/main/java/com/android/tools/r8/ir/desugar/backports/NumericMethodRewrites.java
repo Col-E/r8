@@ -8,7 +8,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.FullMethodInvokeRewriter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.MethodInvokeRewriter;
-import java.util.ListIterator;
+import java.util.Collection;
+import java.util.Collections;
 import org.objectweb.asm.Opcodes;
 
 public final class NumericMethodRewrites {
@@ -33,10 +34,9 @@ public final class NumericMethodRewrites {
   public static MethodInvokeRewriter rewriteAsIdentity() {
     return new FullMethodInvokeRewriter() {
       @Override
-      public void rewrite(
-          CfInvoke invoke, ListIterator<CfInstruction> iterator, DexItemFactory factory) {
+      public Collection<CfInstruction> rewrite(CfInvoke invoke, DexItemFactory factory) {
         // The invoke consumes the stack value and pushes another assumed to be the same.
-        iterator.remove();
+        return Collections.emptyList();
       }
     };
   }

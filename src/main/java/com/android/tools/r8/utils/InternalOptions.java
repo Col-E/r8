@@ -1465,6 +1465,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return !isDesugaring() || hasMinApi(AndroidApiLevel.K);
   }
 
+  public boolean enableBackportedMethodRewriting() {
+    // Disable rewriting if there are no methods to rewrite or if the API level is higher than
+    // the highest known API level when the compiler is built. This ensures that when this is used
+    // by the Android Platform build (which normally use an API level of 10000) there will be
+    // no rewriting of backported methods. See b/147480264.
+    return desugarState.isOn() && minApiLevel <= AndroidApiLevel.LATEST.getLevel();
+  }
+
   public boolean enableTryWithResourcesDesugaring() {
     switch (tryWithResourcesDesugaring) {
       case Off:

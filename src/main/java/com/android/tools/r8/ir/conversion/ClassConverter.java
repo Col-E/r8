@@ -94,10 +94,9 @@ public abstract class ClassConverter {
             },
             executorService);
 
-        // Verify that there is no more desugaring to do, and that all IR processing has been
-        // completed.
+        // Verify there is nothing to finalize once method processing finishes.
+        methodProcessor.awaitMethodProcessing();
         assert desugaringEventConsumer.verifyNothingToFinalize();
-        assert methodProcessor.verifyNoPendingMethodProcessing();
       }
 
       classes = deferred;

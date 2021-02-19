@@ -137,6 +137,10 @@ public class CompilationContext {
       return method.getHolder();
     }
 
+    public ProgramMethod getMethodContext() {
+      return method;
+    }
+
     private StringBuilder buildSuffix(StringBuilder builder) {
       // TODO(b/172194101): Sanitize the method descriptor instead of hashing.
       Hasher hasher = Hashing.sha256().newHasher();
