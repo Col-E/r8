@@ -3,79 +3,64 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.regress.b72485384;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.regress.b72485384.GenericOuter.GenericInner;
-import com.android.tools.r8.utils.AndroidApp;
-import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
+import com.android.tools.r8.utils.AndroidApiLevel;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class Regress72485384Test extends TestBase {
-  @Rule public ExpectedException thrown = ExpectedException.none();
 
   @Parameters(name = "{1}, allowUnusedProguardConfigurationRules: {0}")
   public static Collection<Object[]> getParameters() {
     String baseConfig =
         keepMainProguardConfiguration(Main.class)
             + "-keepattributes Signature,InnerClasses,EnclosingMethod ";
-    return Arrays.asList(
-        new Object[][] {
-          {false, baseConfig, null},
-          {false, baseConfig + "-dontshrink", null},
-          {false, baseConfig + "-dontshrink -dontobfuscate", null},
-          {false, baseConfig + "-dontobfuscate", null},
-          {true, "-keep class DoesNotExist -dontshrink", "ClassNotFoundException"}
-        });
+    TestParametersCollection parametersCollection =
+        getTestParameters()
+            .withDexRuntimes()
+            .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
+            .build();
+    List<Object[]> tests = new ArrayList<>();
+    for (TestParameters parameters : parametersCollection) {
+      Collections.addAll(
+          tests,
+          new Object[][] {
+            {parameters, baseConfig},
+            {parameters, baseConfig + "-dontshrink"},
+            {parameters, baseConfig + "-dontshrink -dontobfuscate"},
+            {parameters, baseConfig + "-dontobfuscate"}
+          });
+    }
+    return tests;
   }
 
-  private static final List<Class<?>> CLASSES =
-      ImmutableList.of(GenericOuter.class, GenericInner.class, Main.class);
-
-  private final boolean allowUnusedProguardConfigurationRules;
+  private final TestParameters parameters;
   private final String proguardConfig;
-  private final String expectedErrorMessage;
 
-  public Regress72485384Test(
-      boolean allowUnusedProguardConfigurationRules,
-      String proguardConfig,
-      String expectedErrorMessage) {
-    this.allowUnusedProguardConfigurationRules = allowUnusedProguardConfigurationRules;
+  public Regress72485384Test(TestParameters parameters, String proguardConfig) {
+    this.parameters = parameters;
     this.proguardConfig = proguardConfig;
-    this.expectedErrorMessage = expectedErrorMessage;
   }
 
   @Test
   public void testSignatureRewrite() throws Exception {
-    AndroidApp app =
-        testForR8(Backend.DEX)
-            .addProgramClasses(CLASSES)
-            .addKeepRules(proguardConfig)
-            .allowUnusedProguardConfigurationRules(allowUnusedProguardConfigurationRules)
-            .compile()
-            .getApp();
-
-    if (expectedErrorMessage == null) {
-      if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(ToolHelper.DexVm.Version.V6_0_1)) {
-        // Resolution of java.util.function.Function fails.
-        thrown.expect(AssertionError.class);
-      }
-
-      runOnArt(app, Main.class.getCanonicalName());
-    } else {
-      ToolHelper.ProcessResult result = runOnArtRaw(app, Main.class.getCanonicalName());
-      assertThat(result.stderr, containsString(expectedErrorMessage));
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(GenericOuter.class, GenericInner.class, Main.class)
+        .addKeepRules(proguardConfig)
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello World!", "Hello World!");
   }
 }
