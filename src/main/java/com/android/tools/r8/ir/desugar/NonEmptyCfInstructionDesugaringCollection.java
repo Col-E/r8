@@ -92,6 +92,9 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     IntBox maxLocalsForCode = new IntBox(cfCode.getMaxLocals());
     IntBox maxLocalsForInstruction = new IntBox(cfCode.getMaxLocals());
 
+    IntBox maxStackForCode = new IntBox(cfCode.getMaxStack());
+    IntBox maxStackForInstruction = new IntBox(cfCode.getMaxStack());
+
     List<CfInstruction> desugaredInstructions =
         ListUtils.flatMap(
             cfCode.getInstructions(),
@@ -100,6 +103,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
                   desugarInstruction(
                       instruction,
                       maxLocalsForInstruction::getAndIncrement,
+                      maxStackForInstruction::getAndIncrement,
                       eventConsumer,
                       method,
                       methodProcessingContext);
@@ -116,8 +120,10 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
             null);
     if (desugaredInstructions != null) {
       assert maxLocalsForCode.get() >= cfCode.getMaxLocals();
+      assert maxStackForCode.get() >= cfCode.getMaxStack();
       cfCode.setInstructions(desugaredInstructions);
       cfCode.setMaxLocals(maxLocalsForCode.get());
+      cfCode.setMaxStack(maxStackForCode.get());
     } else {
       assert false : "Expected code to be desugared";
     }
@@ -126,6 +132,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
   private Collection<CfInstruction> desugarInstruction(
       CfInstruction instruction,
       FreshLocalProvider freshLocalProvider,
+      LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext) {
@@ -135,7 +142,12 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       CfInstructionDesugaring desugaring = iterator.next();
       Collection<CfInstruction> replacement =
           desugaring.desugarInstruction(
-              instruction, freshLocalProvider, eventConsumer, context, methodProcessingContext);
+              instruction,
+              freshLocalProvider,
+              localStackAllocator,
+              eventConsumer,
+              context,
+              methodProcessingContext);
       if (replacement != null) {
         assert verifyNoOtherDesugaringNeeded(
             instruction, context, methodProcessingContext, iterator);
@@ -182,6 +194,9 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
                         requiredRegisters -> {
                           assert false;
                           return 0;
+                        },
+                        localStackHeight -> {
+                          assert false;
                         },
                         CfInstructionDesugaringEventConsumer.createForDesugaredCode(),
                         context,

@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
+import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.Box;
 import com.google.common.collect.ImmutableList;
@@ -44,6 +45,7 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
   public Collection<CfInstruction> desugarInstruction(
       CfInstruction instruction,
       FreshLocalProvider freshLocalProvider,
+      LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext) {
@@ -51,6 +53,7 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
       return desugarInvokeDynamicInstruction(
           instruction.asInvokeDynamic(),
           freshLocalProvider,
+          localStackAllocator,
           eventConsumer,
           context,
           methodProcessingContext);
@@ -61,6 +64,7 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
   private Collection<CfInstruction> desugarInvokeDynamicInstruction(
       CfInvokeDynamic invoke,
       FreshLocalProvider freshLocalProvider,
+      LocalStackAllocator localStackAllocator,
       LambdaDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext) {
@@ -89,6 +93,13 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
           replacement.addLast(new CfLoad(valueType, freshLocal));
         });
     replacement.add(new CfInvoke(Opcodes.INVOKESPECIAL, lambdaClass.constructor, false));
+
+    // Coming into the original invoke-dynamic instruction, we have N arguments on the stack. We pop
+    // the N arguments from the stack, and then add a new-instance and dup it. With those two new
+    // elements on the stack, we load all the N arguments back onto the stack. At this point, we
+    // have the original N arguments on the stack plus the 2 new stack elements.
+    localStackAllocator.allocateLocalStack(2);
+
     return replacement;
   }
 

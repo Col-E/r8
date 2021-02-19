@@ -32,6 +32,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
+import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
@@ -146,6 +147,7 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
   public Collection<CfInstruction> desugarInstruction(
       CfInstruction instruction,
       FreshLocalProvider freshLocalProvider,
+      LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext) {
@@ -153,7 +155,8 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
       return desugarFieldInstruction(instruction.asFieldInstruction(), context, eventConsumer);
     }
     if (instruction.isInvoke()) {
-      return desugarInvokeInstruction(instruction.asInvoke(), context, eventConsumer);
+      return desugarInvokeInstruction(
+          instruction.asInvoke(), localStackAllocator, context, eventConsumer);
     }
     return null;
   }
@@ -178,6 +181,7 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
 
   private List<CfInstruction> desugarInvokeInstruction(
       CfInvoke invoke,
+      LocalStackAllocator localStackAllocator,
       ProgramMethod context,
       NestBasedAccessDesugaringEventConsumer eventConsumer) {
     DexMethod invokedMethod = invoke.getMethod();
@@ -197,6 +201,8 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
     DexMethod bridge = ensureMethodBridge(target, eventConsumer);
     if (target.getDefinition().isInstanceInitializer()) {
       assert !invoke.isInterface();
+      // Ensure room on the stack for the extra null argument.
+      localStackAllocator.allocateLocalStack(1);
       return ImmutableList.of(
           new CfConstNull(), new CfInvoke(Opcodes.INVOKESPECIAL, bridge, false));
     }

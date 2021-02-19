@@ -31,6 +31,8 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
+import com.android.tools.r8.ir.desugar.LocalStackAllocator;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IteratorUtils;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -70,6 +72,7 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
   public Collection<CfInstruction> desugarInstruction(
       CfInstruction instruction,
       FreshLocalProvider freshLocalProvider,
+      LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext) {
@@ -81,10 +84,11 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
       if (callSite.bootstrapMethod.type.isInvokeStatic()) {
         DexMethod bootstrapMethod = callSite.bootstrapMethod.asMethod();
         if (bootstrapMethod == factory.stringConcatFactoryMembers.makeConcat) {
-          return desugarMakeConcat(invoke, freshLocalProvider);
+          return desugarMakeConcat(invoke, freshLocalProvider, localStackAllocator);
         }
         if (bootstrapMethod == factory.stringConcatFactoryMembers.makeConcatWithConstants) {
-          return desugarMakeConcatWithConstants(invoke, freshLocalProvider, context);
+          return desugarMakeConcatWithConstants(
+              invoke, freshLocalProvider, localStackAllocator, context);
         }
       }
     }
@@ -92,7 +96,9 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
   }
 
   private Collection<CfInstruction> desugarMakeConcat(
-      CfInvokeDynamic invoke, FreshLocalProvider freshLocalProvider) {
+      CfInvokeDynamic invoke,
+      FreshLocalProvider freshLocalProvider,
+      LocalStackAllocator localStackAllocator) {
     DexProto proto = invoke.getCallSite().methodProto;
     DexType[] parameters = proto.parameters.values;
 
@@ -107,11 +113,14 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
     }
 
     // Desugar the instruction.
-    return builder.desugar();
+    return builder.desugar(localStackAllocator);
   }
 
   private Collection<CfInstruction> desugarMakeConcatWithConstants(
-      CfInvokeDynamic invoke, FreshLocalProvider freshLocalProvider, ProgramMethod context) {
+      CfInvokeDynamic invoke,
+      FreshLocalProvider freshLocalProvider,
+      LocalStackAllocator localStackAllocator,
+      ProgramMethod context) {
     DexCallSite callSite = invoke.getCallSite();
     DexProto proto = callSite.methodProto;
     DexTypeList parameters = proto.getParameters();
@@ -201,7 +210,7 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
     }
 
     // Desugar the instruction.
-    return builder.desugar();
+    return builder.desugar(localStackAllocator);
   }
 
   @Override
@@ -231,12 +240,30 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
   }
 
   private final class ConcatBuilder {
+
     private final List<Chunk> chunks = new ArrayList<>();
+
+    private ArgumentChunk biggestArgumentChunk = null;
+    private ConstantChunk firstConstantChunk = null;
+    private int argumentChunksStackSize = 0;
 
     ConcatBuilder() {}
 
-    void addChunk(Chunk chunk) {
+    void addChunk(ArgumentChunk chunk) {
       chunks.add(chunk);
+      argumentChunksStackSize += chunk.getValueType().requiredRegisters();
+      if (biggestArgumentChunk == null
+          || chunk.getValueType().requiredRegisters()
+              > biggestArgumentChunk.getValueType().requiredRegisters()) {
+        biggestArgumentChunk = chunk;
+      }
+    }
+
+    void addChunk(ConstantChunk chunk) {
+      chunks.add(chunk);
+      if (firstConstantChunk == null) {
+        firstConstantChunk = chunk;
+      }
     }
 
     /**
@@ -256,7 +283,7 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
      *
      * </pre>
      */
-    final Collection<CfInstruction> desugar() {
+    final Collection<CfInstruction> desugar(LocalStackAllocator localStackAllocator) {
       Deque<CfInstruction> replacement = new ArrayDeque<>();
       for (Chunk chunk : chunks) {
         if (chunk.isArgumentChunk()) {
@@ -281,6 +308,21 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
         replacement.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, chunk.method, false));
       }
       replacement.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, stringBuilderMethods.toString, false));
+
+      // Coming into the original invoke-dynamic instruction, we have N arguments on the stack. We
+      // then pop the N arguments from the stack, allocate a new-instance on the stack, and dup it,
+      // to initialize the instance. We then one-by-one load the arguments and call append(). We
+      // therefore need a local stack of size 3 if there is a wide argument, and otherwise a local
+      // stack of size 2.
+      int maxLocalStackSizeAfterStores =
+          2
+              + BooleanUtils.intValue(
+                  biggestArgumentChunk != null
+                      && biggestArgumentChunk.getValueType().requiredRegisters() == 2);
+      if (maxLocalStackSizeAfterStores > argumentChunksStackSize) {
+        localStackAllocator.allocateLocalStack(
+            maxLocalStackSizeAfterStores - argumentChunksStackSize);
+      }
       return replacement;
     }
   }

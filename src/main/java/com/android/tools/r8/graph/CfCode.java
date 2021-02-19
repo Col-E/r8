@@ -135,8 +135,8 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
   // TODO(b/135969130): Make IR building lens aware and avoid caching the holder type.
   private final DexType originalHolder;
 
-  private final int maxStack;
   private int maxLocals;
+  private int maxStack;
   private List<CfInstruction> instructions;
   private final List<CfTryCatch> tryCatchRanges;
   private final List<LocalVariableInfo> localVariables;
@@ -186,6 +186,10 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
 
   public void setMaxLocals(int newMaxLocals) {
     maxLocals = newMaxLocals;
+  }
+
+  public void setMaxStack(int newMaxStack) {
+    maxStack = newMaxStack;
   }
 
   public List<CfTryCatch> getTryCatchRanges() {
