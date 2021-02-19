@@ -6,6 +6,7 @@ package com.android.tools.r8.maindexlist.b72312389;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.BaseCommand;
 import com.android.tools.r8.CompatProguardCommandBuilder;
@@ -18,7 +19,6 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
@@ -28,7 +28,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 public class B72312389 extends TestBase {
   // TODO(120884788): Remove this when default is true.
@@ -52,6 +51,7 @@ public class B72312389 extends TestBase {
 
   @Test
   public void testGenerateMainDexList() throws Exception {
+    assumeFalse(ToolHelper.isWindows());
     CollectingDiagnosticHandler diagnostics = new CollectingDiagnosticHandler();
     GenerateMainDexListCommand.Builder builder = GenerateMainDexListCommand.builder(diagnostics);
     buildInstrumentationTestCaseApplication(builder);
@@ -69,6 +69,7 @@ public class B72312389 extends TestBase {
 
   @Test
   public void testR8ForceProguardCompatibility() throws Exception {
+    assumeFalse(ToolHelper.isWindows());
     Box<String> mainDexList = new Box<>();
     // Build a app with a class extending InstrumentationTestCase and including both the junit
     // and the Android library.
@@ -97,6 +98,7 @@ public class B72312389 extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    assumeFalse(ToolHelper.isWindows());
     testForR8(Backend.DEX)
         .apply(b -> buildInstrumentationTestCaseApplication(b.getBuilder()))
         .setMinApi(AndroidApiLevel.B)
