@@ -1831,6 +1831,28 @@ public class JctfTestSpecifications {
           .put("lang.ref.WeakReference.get.WeakReference_get_A01", cf())
           .build(); // end of flakyWhenRun
 
+  public static final Set<String> hasMissingClasses =
+      ImmutableSet.of(
+          "lang.RuntimePermission.Class.RuntimePermission_class_A01",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A03",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A04",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A05",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A06",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A07",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A08",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A09",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A11",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A12",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A14",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A15",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A19",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A20",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A21",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A22",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A24",
+          "lang.RuntimePermission.Class.RuntimePermission_class_A25",
+          "lang.reflect.Proxy.serialization.Proxy_serialization_A02");
+
   public static final Multimap<String, TestCondition> timeoutsWhenRun =
       new ImmutableListMultimap.Builder<String, TestCondition>()
           .put("lang.Thread.interrupt.Thread_interrupt_A01", anyDexVm())
@@ -1956,7 +1978,7 @@ public class JctfTestSpecifications {
 
   public static final Set<String> compilationFailsWithAsmMethodTooLarge = ImmutableSet.of();
 
-  private static final boolean testMatch(
+  private static boolean testMatch(
       Multimap<String, TestCondition> testConditions,
       String name,
       CompilerUnderTest compilerUnderTest,
@@ -1971,7 +1993,7 @@ public class JctfTestSpecifications {
     return false;
   }
 
-  public static final <T> T getExpectedOutcome(
+  public static <T> T getExpectedOutcome(
       String name,
       CompilerUnderTest compilerUnderTest,
       Runtime runtime,

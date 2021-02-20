@@ -4217,7 +4217,7 @@ public class Enqueuer {
         continue;
       }
 
-      DexProgramClass clazz = getProgramClassOrNull(type, method);
+      DexProgramClass clazz = getProgramClassOrNullFromReflectiveAccess(type, method);
       if (clazz != null && clazz.isInterface()) {
         // Add this interface to the set of pinned items to ensure that we do not merge the
         // interface into its unique subtype, if any.

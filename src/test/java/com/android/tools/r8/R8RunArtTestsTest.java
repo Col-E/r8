@@ -1207,6 +1207,7 @@ public abstract class R8RunArtTestsTest {
           "111-unresolvable-exception",
           "124-missing-classes",
           "127-checker-secondarydex",
+          "138-duplicate-classes-check2",
           "140-field-packing",
           "143-string-value",
           "151-OpenFileLimit",
@@ -1372,6 +1373,7 @@ public abstract class R8RunArtTestsTest {
         boolean skipRun,
         boolean failsOnRun,
         boolean disableInlining,
+        boolean hasMissingClasses,
         DexVm dexVm) {
       this(
           name,
@@ -1388,7 +1390,7 @@ public abstract class R8RunArtTestsTest {
           false,
           disableInlining,
           true, // Disable class inlining for JCTF tests.
-          false,
+          hasMissingClasses,
           true, // Disable desugaring for JCTF tests.
           ImmutableList.of(),
           null);
@@ -1400,7 +1402,8 @@ public abstract class R8RunArtTestsTest {
         File directory,
         boolean skipRun,
         boolean failsOnRun,
-        boolean disableInlining) {
+        boolean disableInlining,
+        boolean hasMissingClasses) {
       this(
           name,
           dexTool,
@@ -1416,7 +1419,7 @@ public abstract class R8RunArtTestsTest {
           false,
           disableInlining,
           true, // Disable class inlining for JCTF tests.
-          false,
+          hasMissingClasses,
           true, // Disable desugaring for JCTF tests.
           ImmutableList.of(),
           null);
@@ -1937,6 +1940,7 @@ public abstract class R8RunArtTestsTest {
                 || outcome == JctfTestSpecifications.Outcome.FLAKY_WHEN_RUN,
             outcome == JctfTestSpecifications.Outcome.FAILS_WHEN_RUN,
             noInlining,
+            JctfTestSpecifications.hasMissingClasses.contains(name),
             dexVm);
   }
 
@@ -1950,7 +1954,8 @@ public abstract class R8RunArtTestsTest {
             outcome == JctfTestSpecifications.Outcome.TIMEOUTS_WHEN_RUN
                 || outcome == JctfTestSpecifications.Outcome.FLAKY_WHEN_RUN,
             outcome == JctfTestSpecifications.Outcome.FAILS_WHEN_RUN,
-            noInlining);
+            noInlining,
+            JctfTestSpecifications.hasMissingClasses.contains(name));
   }
 
   private static Runtime getRuntime(TestRuntime vm) {

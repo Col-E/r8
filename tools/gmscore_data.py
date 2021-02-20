@@ -77,7 +77,8 @@ VERSIONS = {
       'pgmap': '%s_proguard.map' % V9_PREFIX,
     },
     'deploy' : {
-      'pgconf': ['%s_proguard.config' % V9_PREFIX],
+      'pgconf': ['%s_proguard.config' % V9_PREFIX,
+                 os.path.join(BASE, 'ignorewarnings.rules')],
       'inputs': ['%s_deploy.jar' % V9_PREFIX],
       'min-api' : ANDROID_L_API,
     },
