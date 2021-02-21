@@ -78,7 +78,7 @@ VERSIONS = {
     },
     'deploy' : {
       'pgconf': ['%s_proguard.config' % V9_PREFIX,
-                 os.path.join(BASE, 'ignorewarnings.rules')],
+                 utils.IGNORE_WARNINGS_RULES],
       'inputs': ['%s_deploy.jar' % V9_PREFIX],
       'min-api' : ANDROID_L_API,
     },
@@ -98,7 +98,8 @@ VERSIONS = {
     },
     'deploy' : {
       'inputs': ['%s_deploy.jar' % V10_PREFIX],
-      'pgconf': ['%s_proguard.config' % V10_PREFIX],
+      'pgconf': ['%s_proguard.config' % V10_PREFIX,
+                 utils.IGNORE_WARNINGS_RULES],
       'min-api' : ANDROID_L_API,
     },
     'proguarded' : {
@@ -113,7 +114,8 @@ VERSIONS = {
       'inputs': ['%s_deploy.jar' % LATEST_PREFIX],
       'pgconf': [
           '%s_proguard.config' % LATEST_PREFIX,
-          '%s/proguardsettings/GmsCore_proguard.config' % utils.THIRD_PARTY],
+          '%s/proguardsettings/GmsCore_proguard.config' % utils.THIRD_PARTY,
+          utils.IGNORE_WARNINGS_RULES],
       'min-api' : ANDROID_L_API,
     },
     'proguarded' : {

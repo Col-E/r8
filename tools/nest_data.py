@@ -28,7 +28,8 @@ VERSIONS = {
       'pgconf': [
           os.path.join(V20180926_BASE, 'proguard', 'proguard.cfg'),
           os.path.join(V20180926_BASE, 'proguard', 'proguard-no-optimizations.cfg'),
-          os.path.join(V20180926_BASE, 'proguard', 'proguard-ignore-warnings.cfg')],
+          os.path.join(V20180926_BASE, 'proguard', 'proguard-ignore-warnings.cfg'),
+          utils.IGNORE_WARNINGS_RULES],
       # Build for native multi dex
       'min-api' : ANDROID_L_API,
     }

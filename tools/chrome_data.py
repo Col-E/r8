@@ -271,7 +271,8 @@ VERSIONS = {
             { 'inputs': [os.path.join(V200520_MINIMAL_BASE, 'feature-7.jar')] },
             { 'inputs': [os.path.join(V200520_MINIMAL_BASE, 'feature-8.jar')] }
         ],
-        'pgconf': [os.path.join(V200520_MINIMAL_BASE, 'proguard.config')],
+        'pgconf': [os.path.join(V200520_MINIMAL_BASE, 'proguard.config'),
+                   utils.IGNORE_WARNINGS_RULES],
         'libraries': [os.path.join(V200520_MINIMAL_BASE, 'library.jar')],
         'min-api': ANDROID_N_API
     },

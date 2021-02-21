@@ -52,7 +52,8 @@ VERSIONS = {
     'deploy' : {
       'inputs': ['%s_deploy.jar' % V12_10_PREFIX],
       'pgconf': ['%s_proguard.config' % V12_10_PREFIX,
-                 '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
+                 '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY,
+                 utils.IGNORE_WARNINGS_RULES],
       'min-api' : ANDROID_L_API,
     }
     # The 'proguarded' version cannot be handled by D8/R8 because there are
@@ -74,7 +75,8 @@ VERSIONS = {
     'deploy' : {
       'inputs': ['%s_deploy.jar' % V12_17_PREFIX],
       'pgconf': ['%s_proguard.config' % V12_17_PREFIX,
-                 '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
+                 '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY,
+                 utils.IGNORE_WARNINGS_RULES],
       'min-api' : ANDROID_L_API,
     },
     'proguarded' : {
@@ -94,7 +96,8 @@ VERSIONS = {
       'inputs': ['%s_deploy.jar' % V12_22_PREFIX],
       'pgconf': [
           '%s_proguard.config' % V12_22_PREFIX,
-          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY,
+          utils.IGNORE_WARNINGS_RULES],
       'maindexrules' : [
           os.path.join(V12_22_BASE, 'mainDexClasses.rules'),
           os.path.join(V12_22_BASE, 'main-dex-classes-release.cfg'),
@@ -117,7 +120,8 @@ VERSIONS = {
       'inputs': ['%s_deploy.jar' % V13_37_PREFIX],
       'pgconf': [
           '%s_proguard.config' % V13_37_PREFIX,
-          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY,
+          utils.IGNORE_WARNINGS_RULES],
       # Build for native multi dex, as Currently R8 cannot meet the main-dex
       # constraints.
       #'maindexrules' : [
@@ -143,7 +147,8 @@ VERSIONS = {
       'inputs': ['%s_deploy.jar' % V14_19_PREFIX],
       'pgconf': [
           '%s_proguard.config' % V14_19_PREFIX,
-          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY,
+          utils.IGNORE_WARNINGS_RULES],
       'maindexrules' : [
           os.path.join(V14_19_BASE, 'mainDexClasses.rules'),
           os.path.join(V14_19_BASE, 'main-dex-classes-release-optimized.pgcfg'),
@@ -172,7 +177,8 @@ VERSIONS = {
       'libraries' : [os.path.join(V14_44_BASE, 'legacy_YouTubeRelease_combined_library_jars.jar')],
       'pgconf': [
           '%s_proguard.config' % V14_44_PREFIX,
-          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY,
+          utils.IGNORE_WARNINGS_RULES],
       'maindexrules' : [
           os.path.join(V14_44_BASE, 'mainDexClasses.rules'),
           os.path.join(V14_44_BASE, 'main-dex-classes-release-optimized.pgcfg'),
@@ -202,7 +208,8 @@ VERSIONS = {
       'pgconf': [
           '%s_proguard.config' % V15_08_PREFIX,
           '%s_proto_safety.pgcfg' % V15_08_PREFIX,
-          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY,
+          utils.IGNORE_WARNINGS_RULES],
       'maindexrules' : [
           os.path.join(V15_08_BASE, 'mainDexClasses.rules'),
           os.path.join(V15_08_BASE, 'main-dex-classes-release-optimized.pgcfg'),
@@ -231,7 +238,8 @@ VERSIONS = {
       'libraries' : [os.path.join(V15_09_BASE, 'legacy_YouTubeRelease_combined_library_jars.jar')],
       'pgconf': [
           '%s_proguard.config' % V15_09_PREFIX,
-          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY,
+          utils.IGNORE_WARNINGS_RULES],
       'maindexrules' : [
           os.path.join(V15_09_BASE, 'mainDexClasses.rules'),
           os.path.join(V15_09_BASE, 'main-dex-classes-release-optimized.pgcfg'),
@@ -261,7 +269,8 @@ VERSIONS = {
       'pgconf': [
           '%s_proguard.config' % V15_33_PREFIX,
           '%s_proguard_missing_classes.config' % V15_33_PREFIX,
-          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY,
+          utils.IGNORE_WARNINGS_RULES],
       'maindexrules' : [
           os.path.join(V15_33_BASE, 'mainDexClasses.rules'),
           os.path.join(V15_33_BASE, 'main-dex-classes-release-optimized.pgcfg'),

@@ -27,7 +27,8 @@ VERSIONS = {
     },
     'deploy' : {
       'inputs': ['%s_deploy.jar' % V170604_16_PREFIX],
-      'pgconf': ['%s_proguard.config' % V170604_16_PREFIX],
+      'pgconf': ['%s_proguard.config' % V170604_16_PREFIX,
+                 utils.IGNORE_WARNINGS_RULES],
     },
     'proguarded' : {
       'inputs': ['%s_proguard.jar' % V170604_16_PREFIX],
@@ -47,7 +48,8 @@ VERSIONS = {
       'inputs': ['%s_deploy.jar' % V180826_15_PREFIX],
       'pgconf': [
           '%s_proguard.config' % V180826_15_PREFIX,
-          '%s/proguardsettings/Gmail_proguard.config' % utils.THIRD_PARTY],
+          '%s/proguardsettings/Gmail_proguard.config' % utils.THIRD_PARTY,
+          utils.IGNORE_WARNINGS_RULES],
       'min-api' : ANDROID_L_API,
       'allow-type-errors' : 1,
     },
