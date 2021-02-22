@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.TypeReferenceUtils.getTypeReferenceComp
 
 import com.android.tools.r8.references.ArrayReference;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
@@ -51,6 +52,14 @@ public class MethodReferenceUtils {
         }
         return method.getFormalTypes().size() - other.getFormalTypes().size();
       };
+
+  public static int compare(MethodReference methodReference, ClassReference other) {
+    return ClassReferenceUtils.compare(other, methodReference) * -1;
+  }
+
+  public static int compare(MethodReference methodReference, FieldReference other) {
+    return FieldReferenceUtils.compare(other, methodReference) * -1;
+  }
 
   public static int compare(MethodReference methodReference, MethodReference other) {
     return getMethodReferenceComparator().compare(methodReference, other);

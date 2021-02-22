@@ -29,34 +29,31 @@ public class MissingDefinitionInfoUtils {
           }
           if (other.isMissingField()) {
             return ClassReferenceUtils.compare(
-                classReference, other.asMissingField().getFieldReference().getHolderClass());
+                classReference, other.asMissingField().getFieldReference());
           }
           return ClassReferenceUtils.compare(
-              classReference, other.asMissingMethod().getMethodReference().getHolderClass());
+              classReference, other.asMissingMethod().getMethodReference());
         }
         if (info.isMissingField()) {
           FieldReference fieldReference = info.asMissingField().getFieldReference();
           if (other.isMissingClass()) {
-            return ClassReferenceUtils.compare(
-                fieldReference.getHolderClass(), other.asMissingClass().getClassReference());
+            return FieldReferenceUtils.compare(
+                fieldReference, other.asMissingClass().getClassReference());
           }
           if (other.isMissingField()) {
             return FieldReferenceUtils.compare(
                 fieldReference, other.asMissingField().getFieldReference());
           }
-          return ClassReferenceUtils.compare(
-              fieldReference.getHolderClass(),
-              other.asMissingMethod().getMethodReference().getHolderClass());
+          return FieldReferenceUtils.compare(
+              fieldReference, other.asMissingMethod().getMethodReference());
         }
         MethodReference methodReference = info.asMissingMethod().getMethodReference();
         if (other.isMissingClass()) {
-          return ClassReferenceUtils.compare(
-              methodReference.getHolderClass(), other.asMissingClass().getClassReference());
+          return MethodReferenceUtils.compare(
+              methodReference, other.asMissingClass().getClassReference());
         }
         if (other.isMissingField()) {
-          ClassReferenceUtils.compare(
-              methodReference.getHolderClass(),
-              other.asMissingField().getFieldReference().getHolderClass());
+          MethodReferenceUtils.compare(methodReference, other.asMissingField().getFieldReference());
         }
         return MethodReferenceUtils.compare(
             methodReference, other.asMissingMethod().getMethodReference());

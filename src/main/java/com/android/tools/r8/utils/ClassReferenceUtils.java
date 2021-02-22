@@ -5,6 +5,8 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.references.MethodReference;
 import java.util.Comparator;
 
 public class ClassReferenceUtils {
@@ -14,6 +16,18 @@ public class ClassReferenceUtils {
 
   public static int compare(ClassReference classReference, ClassReference other) {
     return getClassReferenceComparator().compare(classReference, other);
+  }
+
+  public static int compare(ClassReference classReference, FieldReference other) {
+    int comparisonResult =
+        getClassReferenceComparator().compare(classReference, other.getHolderClass());
+    return comparisonResult != 0 ? comparisonResult : -1;
+  }
+
+  public static int compare(ClassReference classReference, MethodReference other) {
+    int comparisonResult =
+        getClassReferenceComparator().compare(classReference, other.getHolderClass());
+    return comparisonResult != 0 ? comparisonResult : -1;
   }
 
   public static Comparator<ClassReference> getClassReferenceComparator() {
