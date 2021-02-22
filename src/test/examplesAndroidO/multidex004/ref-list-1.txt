@@ -1,4 +1,4 @@
-Lmultidex004/MainActivity-$$ExternalSyntheticLambda0;
+Lmultidex004/MainActivity$$ExternalSyntheticLambda0;
 Lmultidex004/MainActivity;
 Lmultidex004/VersionInterface;
 Lmultidex004/VersionStatic;

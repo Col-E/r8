@@ -63,7 +63,7 @@ public class SyntheticNaming {
     }
   }
 
-  private static final String SYNTHETIC_CLASS_SEPARATOR = "-$$";
+  private static final String SYNTHETIC_CLASS_SEPARATOR = "$$";
   /**
    * The internal synthetic class separator is only used for representing synthetic items during
    * compilation. In particular, this separator must never be used to write synthetic classes to the
