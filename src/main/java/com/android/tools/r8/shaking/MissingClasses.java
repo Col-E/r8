@@ -48,10 +48,6 @@ public class MissingClasses {
     return new Builder(missingClasses);
   }
 
-  public static Builder builderForInitialMissingClasses() {
-    return new Builder();
-  }
-
   public static MissingClasses empty() {
     return new MissingClasses(Sets.newIdentityHashSet());
   }
@@ -60,7 +56,7 @@ public class MissingClasses {
     return builder()
         // TODO(b/175542052): Synthetic types should not be reported as missing in the first place.
         .removeAlreadyMissingClasses(committedItems.getLegacySyntheticTypes())
-        .ignoreMissingClasses();
+        .build();
   }
 
   public boolean contains(DexType type) {
@@ -129,15 +125,6 @@ public class MissingClasses {
       assert getMissingClassesToBeReported(appView, clazz -> ImmutableSet.of(clazz.getType()))
           .isEmpty();
       return build();
-    }
-
-    @Deprecated
-    public MissingClasses ignoreMissingClasses() {
-      return build();
-    }
-
-    public MissingClasses reportMissingClasses(AppView<?> appView) {
-      return reportMissingClasses(appView, clazz -> ImmutableSet.of(clazz.getType()));
     }
 
     public MissingClasses reportMissingClasses(
@@ -244,13 +231,6 @@ public class MissingClasses {
           (missingClass, contexts) -> {
             // Don't report "allowed" missing classes (e.g., classes matched by -dontwarn).
             if (allowedMissingClassesPredicate.test(missingClass)) {
-              return;
-            }
-
-            // TODO(b/175543745): This is a legacy reported missing class; remove once no longer
-            //  supported.
-            if (contexts.isEmpty()) {
-              missingClassesToBeReported.put(missingClass, contexts);
               return;
             }
 

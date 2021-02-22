@@ -11,7 +11,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import java.io.IOException;
 import org.junit.Test;
@@ -69,22 +68,20 @@ public class MissingClassThrowingTest extends TestBase {
                 .addProgramClasses(Program.class)
                 .addKeepAllClassesRule()
                 .addKeepAllAttributes()
-                .addOptionsModification(TestingOptions::enableExperimentalMissingClassesReporting)
                 .noMinification()
                 .noTreeShaking()
                 .enableInliningAnnotations()
                 .enableNoHorizontalClassMergingAnnotations()
                 .debug()
                 .compileWithExpectedDiagnostics(
-                    diagnostics -> {
-                      diagnostics
-                          .assertOnlyErrors()
-                          .inspectErrors(
-                              diagnostic ->
-                                  diagnostic
-                                      .assertIsMissingDefinitionsDiagnostic()
-                                      .assertIsMissingClass(MissingException.class)
-                                      .assertNumberOfMissingClasses(1));
-                    }));
+                    diagnostics ->
+                        diagnostics
+                            .assertOnlyErrors()
+                            .inspectErrors(
+                                diagnostic ->
+                                    diagnostic
+                                        .assertIsMissingDefinitionsDiagnostic()
+                                        .assertIsMissingClass(MissingException.class)
+                                        .assertNumberOfMissingClasses(1))));
   }
 }

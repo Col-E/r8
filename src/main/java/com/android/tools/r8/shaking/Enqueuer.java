@@ -3307,12 +3307,10 @@ public class Enqueuer {
             appInfo.getClassToFeatureSplitMap(),
             appInfo.getMainDexInfo(),
             deadProtoTypes,
-            appView.testing().enableExperimentalMissingClassesReporting
-                ? (mode.isInitialTreeShaking()
-                    ? missingClassesBuilder.reportMissingClasses(
-                        appView, lambdaSynthesizingContextOracle)
-                    : missingClassesBuilder.assertNoMissingClasses(appView))
-                : missingClassesBuilder.ignoreMissingClasses(),
+            mode.isInitialTreeShaking()
+                ? missingClassesBuilder.reportMissingClasses(
+                    appView, lambdaSynthesizingContextOracle)
+                : missingClassesBuilder.assertNoMissingClasses(appView),
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toDescriptorSet(targetedMethods.getItems()),
             Collections.unmodifiableSet(failedMethodResolutionTargets),

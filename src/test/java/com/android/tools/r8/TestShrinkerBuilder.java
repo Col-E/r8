@@ -136,7 +136,11 @@ public abstract class TestShrinkerBuilder<
   }
 
   public T addIgnoreWarnings() {
-    return addKeepRules("-ignorewarnings");
+    return addIgnoreWarnings(true);
+  }
+
+  public T addIgnoreWarnings(boolean condition) {
+    return condition ? addKeepRules("-ignorewarnings") : self();
   }
 
   public T addKeepKotlinMetadata() {

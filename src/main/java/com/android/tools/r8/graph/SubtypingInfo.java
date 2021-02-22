@@ -3,13 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.utils.structural.StructuralItem;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -37,10 +37,6 @@ public class SubtypingInfo {
   // Map from types to their subtypes.
   private final Map<DexType, ImmutableSet<DexType>> subtypeMap = new IdentityHashMap<>();
 
-  // TODO(b/154849103): Don't compute these here.
-  // Set of missing classes, discovered during subtypeMap computation.
-  private final Set<DexType> missingClasses = Sets.newIdentityHashSet();
-
   public SubtypingInfo(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this(appView.appInfo());
   }
@@ -53,18 +49,6 @@ public class SubtypingInfo {
     factory = definitions.dexItemFactory();
     // Recompute subtype map if we have modified the graph.
     populateSubtypeMap(classes, definitions::definitionFor, factory);
-  }
-
-  public boolean verifyEquals(Collection<DexClass> classes, DexDefinitionSupplier definitions) {
-    SubtypingInfo subtypingInfo = new SubtypingInfo(classes, definitions);
-    assert typeInfo.equals(subtypingInfo.typeInfo);
-    assert subtypeMap.keySet().equals(subtypingInfo.subtypeMap.keySet());
-    subtypeMap.forEach(
-        (key, value) -> {
-          assert subtypingInfo.subtypeMap.get(key).equals(value);
-        });
-    assert missingClasses.equals(subtypingInfo.missingClasses);
-    return true;
   }
 
   private void populateSuperType(
@@ -113,9 +97,6 @@ public class SubtypingInfo {
         getTypeInfo(holder).tagAsInterface();
       }
     } else {
-      if (baseClass.isProgramClass() || baseClass.isClasspathClass()) {
-        missingClasses.add(holder);
-      }
       // The subtype chain is broken, at least make this type a subtype of Object.
       if (holder != dexItemFactory().objectType) {
         getTypeInfo(dexItemFactory().objectType).addDirectSubtype(getTypeInfo(holder));
@@ -179,10 +160,6 @@ public class SubtypingInfo {
       }
     }
     return true;
-  }
-
-  public Set<DexType> getMissingClasses() {
-    return Collections.unmodifiableSet(missingClasses);
   }
 
   public Set<DexType> subtypes(DexType type) {
@@ -251,7 +228,7 @@ public class SubtypingInfo {
     int hierarchyLevel = UNKNOWN_LEVEL;
     /**
      * Set of direct subtypes. This set has to remain sorted to ensure determinism. The actual
-     * sorting is not important but {@link DexType#slowCompareTo(DexType)} works well.
+     * sorting is not important but {@link DexType#compareTo(StructuralItem)} works well.
      */
     Set<DexType> directSubtypes = NO_DIRECT_SUBTYPE;
 

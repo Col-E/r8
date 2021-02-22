@@ -90,7 +90,6 @@ import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.EnqueuerResult;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.shaking.MainDexListBuilder;
-import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardConfigurationUtils;
 import com.android.tools.r8.shaking.RootSetUtils.MainDexRootSet;
@@ -319,18 +318,6 @@ public class R8 {
       RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder =
           new RuntimeTypeCheckInfo.Builder(appView.dexItemFactory());
       try {
-        // TODO(b/154849103): Remove once reported by the Enqueuer.
-        if (!appView.testing().enableExperimentalMissingClassesReporting) {
-          appView.setAppInfo(
-              appView
-                  .appInfo()
-                  .rebuildWithClassHierarchy(
-                      MissingClasses.builderForInitialMissingClasses()
-                          .legacyAddNewMissingClasses(
-                              new SubtypingInfo(appView).getMissingClasses())
-                          .reportMissingClasses(appView)));
-        }
-
         // Add synthesized -assumenosideeffects from min api if relevant.
         if (options.isGeneratingDex()) {
           if (!ProguardConfigurationUtils.hasExplicitAssumeValuesOrAssumeNoSideEffectsRuleForMinSdk(

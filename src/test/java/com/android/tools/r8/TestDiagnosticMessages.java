@@ -30,6 +30,7 @@ public abstract class TestDiagnosticMessages {
   }
 
   @SafeVarargs
+  @SuppressWarnings("unchecked")
   public final TestDiagnosticMessages inspectWarnings(
       ThrowableConsumer<DiagnosticSubject>... consumers) {
     return inspectWarnings(Arrays.asList(consumers));
@@ -51,6 +52,7 @@ public abstract class TestDiagnosticMessages {
   public abstract List<Diagnostic> getErrors();
 
   @SafeVarargs
+  @SuppressWarnings("unchecked")
   public final TestDiagnosticMessages inspectErrors(
       ThrowableConsumer<DiagnosticSubject>... consumers) {
     return inspectErrors(Arrays.asList(consumers));

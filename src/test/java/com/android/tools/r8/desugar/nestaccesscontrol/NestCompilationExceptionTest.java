@@ -96,11 +96,7 @@ public class NestCompilationExceptionTest extends TestBase {
           .setMinApi(parameters.getApiLevel())
           .addProgramFiles(matchingClasses)
           .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
-          .addOptionsModification(
-              options -> {
-                options.ignoreMissingClasses = ignoreMissingClasses;
-                options.testing.enableExperimentalMissingClassesReporting = true;
-              })
+          .addIgnoreWarnings(ignoreMissingClasses)
           .allowDiagnosticWarningMessages(allowDiagnosticWarningMessages);
     }
   }

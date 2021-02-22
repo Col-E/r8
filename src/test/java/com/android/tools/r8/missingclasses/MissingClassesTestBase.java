@@ -17,7 +17,6 @@ import com.android.tools.r8.diagnostic.MissingDefinitionContext;
 import com.android.tools.r8.diagnostic.internal.MissingDefinitionContextUtils;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.List;
@@ -93,7 +92,6 @@ public abstract class MissingClassesTestBase extends TestBase {
       throws CompilationFailedException {
     testForR8(parameters.getBackend())
         .apply(configuration)
-        .addOptionsModification(TestingOptions::enableExperimentalMissingClassesReporting)
         .setMinApi(parameters.getApiLevel())
         .compileWithExpectedDiagnostics(diagnosticsConsumer);
   }

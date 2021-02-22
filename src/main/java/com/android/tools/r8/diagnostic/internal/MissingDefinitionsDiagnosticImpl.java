@@ -118,17 +118,15 @@ public class MissingDefinitionsDiagnosticImpl implements MissingDefinitionsDiagn
                   missingDefinitionMethodContext.getMethodReference(),
                   getMethodReferenceComparator()));
     }
+    assert classContext.isSet() || fieldContext.isSet() || methodContext.isSet();
     if (fieldContext.isSet()) {
       writeReferencedFromSuffix(
           builder, missingDefinitionInfo, FieldReferenceUtils.toSourceString(fieldContext.get()));
     } else if (methodContext.isSet()) {
       writeReferencedFromSuffix(
           builder, missingDefinitionInfo, MethodReferenceUtils.toSourceString(methodContext.get()));
-    } else if (classContext.isSet()) {
-      writeReferencedFromSuffix(builder, missingDefinitionInfo, classContext.get().getTypeName());
     } else {
-      // TODO(b/175543745): Once legacy reporting is removed this should never happen.
-      builder.append(" (referenced from: <not known>)");
+      writeReferencedFromSuffix(builder, missingDefinitionInfo, classContext.get().getTypeName());
     }
   }
 
