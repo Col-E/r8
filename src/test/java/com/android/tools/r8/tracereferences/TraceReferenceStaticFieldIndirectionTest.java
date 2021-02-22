@@ -33,7 +33,9 @@ public class TraceReferenceStaticFieldIndirectionTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public TraceReferenceStaticFieldIndirectionTest(TestParameters parameters) {}
+  public TraceReferenceStaticFieldIndirectionTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   static class MissingReferencesConsumer implements TraceReferencesConsumer {
 

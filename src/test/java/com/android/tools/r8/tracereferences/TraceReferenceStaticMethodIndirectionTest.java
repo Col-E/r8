@@ -34,7 +34,9 @@ public class TraceReferenceStaticMethodIndirectionTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public TraceReferenceStaticMethodIndirectionTest(TestParameters parameters) {}
+  public TraceReferenceStaticMethodIndirectionTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   static class MissingReferencesConsumer implements TraceReferencesConsumer {
 

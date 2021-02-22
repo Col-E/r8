@@ -50,7 +50,9 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public D8CommandTest(TestParameters parameters) {}
+  public D8CommandTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test(expected = CompilationFailedException.class)
   public void emptyBuilder() throws Throwable {

@@ -127,6 +127,7 @@ public class MainDexListTests extends TestBase {
 
   public MainDexListTests(TestParameters parameters) {
     // We ignore the paramters, but only run once instead of running on every vm
+    parameters.assertNoneRuntime();
   }
 
   interface Runner {

@@ -33,10 +33,8 @@ public class ConstraintWithTargetTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  private final TestParameters parameters;
-
   public ConstraintWithTargetTest(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @BeforeClass

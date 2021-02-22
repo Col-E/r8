@@ -18,15 +18,13 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class Regress148661132Test extends TestBase {
 
-  private final TestParameters parameters;
-
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
   }
 
   public Regress148661132Test(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @Test

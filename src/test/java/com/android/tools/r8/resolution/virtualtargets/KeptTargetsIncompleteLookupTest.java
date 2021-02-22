@@ -45,7 +45,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
   }
 
   public KeptTargetsIncompleteLookupTest(TestParameters parameters) {
-    // Empty to satisfy construction of none-runtime.
+    parameters.assertNoneRuntime();
   }
 
   private LookupResultSuccess testLookup(Class<?> methodToBeKept) throws Exception {

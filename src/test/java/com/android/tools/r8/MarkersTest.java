@@ -50,7 +50,7 @@ public class MarkersTest extends TestBase {
 
   public MarkersTest(
       TestParameters parameters, CompilationMode compilationMode, boolean shrinkDesugaredLibrary) {
-    assert parameters.isNoneRuntime();
+    parameters.assertNoneRuntime();
     this.compilationMode = compilationMode;
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
   }

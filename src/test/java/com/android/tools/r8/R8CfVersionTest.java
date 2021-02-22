@@ -24,7 +24,9 @@ public class R8CfVersionTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public R8CfVersionTest(TestParameters parameters) {}
+  public R8CfVersionTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test
   public void testCfVersionR8() throws IOException {

@@ -32,7 +32,9 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public StackTraceRegularExpressionParserTests(TestParameters parameters) {}
+  public StackTraceRegularExpressionParserTests(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test
   public void ensureNotMatchingOnLiteral() {

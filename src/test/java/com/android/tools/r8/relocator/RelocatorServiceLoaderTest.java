@@ -45,7 +45,9 @@ public class RelocatorServiceLoaderTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public RelocatorServiceLoaderTest(TestParameters parameters) {}
+  public RelocatorServiceLoaderTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test
   public void testRewritingOfServicesForNotFoundClasses()

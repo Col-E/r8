@@ -49,7 +49,9 @@ public class ErrorDuringIrConversionTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public ErrorDuringIrConversionTest(TestParameters parameters) {}
+  public ErrorDuringIrConversionTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   private ThrowableConsumer<D8TestBuilder> addTestClassWithOrigin() {
     return b ->

@@ -32,7 +32,7 @@ public class SuccessAndInvalidLookupTest extends TestBase {
   }
 
   public SuccessAndInvalidLookupTest(TestParameters parameters) {
-    assert parameters.isNoneRuntime();
+    parameters.assertNoneRuntime();
   }
 
   @Test

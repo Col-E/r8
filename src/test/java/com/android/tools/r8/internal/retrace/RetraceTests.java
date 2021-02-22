@@ -40,7 +40,9 @@ public class RetraceTests extends TestBase {
   private static String FINSKY_REGEX = "(?:.*Finsky\\s+:\\s+\\[\\d+\\]\\s+%c\\.%m\\(%l\\):.*)";
   private static String SMILEY_EMOJI = "\uD83D\uDE00";
 
-  public RetraceTests(TestParameters parameters) {}
+  public RetraceTests(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test
   public void testCronetStackTrace() {

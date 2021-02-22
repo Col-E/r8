@@ -29,7 +29,7 @@ public class NegatedClassMemberTest extends TestBase {
   }
 
   public NegatedClassMemberTest(TestParameters parameters) {
-
+    parameters.assertNoneRuntime();
   }
 
   @Test

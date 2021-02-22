@@ -36,7 +36,9 @@ public class TraceReferencesDiagnosticTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public TraceReferencesDiagnosticTest(TestParameters parameters) {}
+  public TraceReferencesDiagnosticTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test
   public void traceReferencesDiagnosticClassesFieldsAndMethods() throws Throwable {

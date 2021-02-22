@@ -28,8 +28,6 @@ public class YouTubeV1444TreeShakeJarVerificationTest extends YouTubeCompilation
   private static final boolean DUMP = false;
   private static final int MAX_SIZE = 27500000;
 
-  private final TestParameters parameters;
-
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
@@ -37,7 +35,7 @@ public class YouTubeV1444TreeShakeJarVerificationTest extends YouTubeCompilation
 
   public YouTubeV1444TreeShakeJarVerificationTest(TestParameters parameters) {
     super(14, 44);
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @Test

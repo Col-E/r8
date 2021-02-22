@@ -28,7 +28,9 @@ public class InconsistentPrefixTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public InconsistentPrefixTest(TestParameters parameters) {}
+  public InconsistentPrefixTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test(expected = CompilationFailedException.class)
   public void testNoInconsistentPrefixes() throws Exception {

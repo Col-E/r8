@@ -42,7 +42,7 @@ public class NestMemberAccessibilityTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return TestBase.getTestParameters().withNoneRuntime().build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   public NestMemberAccessibilityTest(TestParameters parameters) {

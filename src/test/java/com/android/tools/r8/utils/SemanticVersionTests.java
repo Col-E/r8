@@ -4,14 +4,12 @@
 package com.android.tools.r8.utils;
 
 import static com.android.tools.r8.utils.SemanticVersion.parse;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime.NoneRuntime;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -25,7 +23,7 @@ public class SemanticVersionTests extends TestBase {
   }
 
   public SemanticVersionTests(TestParameters parameters) {
-    assertEquals(NoneRuntime.getInstance(), parameters.getRuntime());
+    parameters.assertNoneRuntime();
   }
 
   @Test

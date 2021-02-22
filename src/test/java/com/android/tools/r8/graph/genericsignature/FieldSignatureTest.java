@@ -39,7 +39,9 @@ public class FieldSignatureTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public FieldSignatureTest(TestParameters parameters) {}
+  public FieldSignatureTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test
   public void testClass() {

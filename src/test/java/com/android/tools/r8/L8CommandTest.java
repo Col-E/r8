@@ -43,7 +43,9 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public L8CommandTest(TestParameters parameters) {}
+  public L8CommandTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test(expected = CompilationFailedException.class)
   public void emptyBuilder() throws Throwable {

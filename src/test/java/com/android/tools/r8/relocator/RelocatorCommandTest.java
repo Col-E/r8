@@ -41,7 +41,9 @@ public class RelocatorCommandTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public RelocatorCommandTest(TestParameters parameters) {}
+  public RelocatorCommandTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test
   public void testCommandBuilder() throws CompilationFailedException, IOException {

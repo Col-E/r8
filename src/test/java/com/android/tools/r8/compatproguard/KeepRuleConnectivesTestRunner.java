@@ -30,10 +30,8 @@ public class KeepRuleConnectivesTestRunner extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  private final TestParameters parameters;
-
   public KeepRuleConnectivesTestRunner(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   private <

@@ -27,7 +27,9 @@ public class KotlinSourceDebugExtensionParserTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public KotlinSourceDebugExtensionParserTest(TestParameters parameters) {}
+  public KotlinSourceDebugExtensionParserTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test
   public void testParsingEmpty() {

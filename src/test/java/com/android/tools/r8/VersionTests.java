@@ -23,10 +23,8 @@ public class VersionTests extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  private final TestParameters parameters;
-
   public VersionTests(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @Test

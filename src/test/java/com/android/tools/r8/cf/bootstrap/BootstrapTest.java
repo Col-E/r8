@@ -70,7 +70,7 @@ public class BootstrapTest extends TestBase {
 
   public BootstrapTest(TestParameters parameters) {
     // TODO: use parameters to fork the right Java.
-    assert parameters.isNoneRuntime();
+    parameters.assertNoneRuntime();
   }
 
   @Test

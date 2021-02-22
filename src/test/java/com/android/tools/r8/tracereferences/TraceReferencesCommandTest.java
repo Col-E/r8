@@ -48,7 +48,9 @@ public class TraceReferencesCommandTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public TraceReferencesCommandTest(TestParameters parameters) {}
+  public TraceReferencesCommandTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test(expected = CompilationFailedException.class)
   public void emptyBuilder() throws Throwable {

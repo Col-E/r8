@@ -29,15 +29,13 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class AndroidAppDumpsTest extends TestBase {
 
-  private final TestParameters parameters;
-
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
   }
 
   public AndroidAppDumpsTest(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @Test

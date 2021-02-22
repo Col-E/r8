@@ -38,7 +38,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
   }
 
   public KeptTargetsIncompleteDiamondTest(TestParameters parameters) {
-    assert parameters.isNoneRuntime();
+    parameters.assertNoneRuntime();
   }
 
   private AppView<AppInfoWithLiveness> computeAppViewWithLiveness(

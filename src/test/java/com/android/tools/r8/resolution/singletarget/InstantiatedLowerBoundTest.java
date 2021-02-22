@@ -40,7 +40,7 @@ public class InstantiatedLowerBoundTest extends TestBase {
   }
 
   public InstantiatedLowerBoundTest(TestParameters parameters) {
-    // Empty to satisfy construction of none-runtime.
+    parameters.assertNoneRuntime();
   }
 
   @Test

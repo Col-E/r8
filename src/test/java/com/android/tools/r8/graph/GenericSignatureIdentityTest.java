@@ -31,15 +31,13 @@ import org.objectweb.asm.ClassVisitor;
 @RunWith(Parameterized.class)
 public class GenericSignatureIdentityTest extends TestBase {
 
-  private final TestParameters parameters;
-
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
   }
 
   public GenericSignatureIdentityTest(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @Test

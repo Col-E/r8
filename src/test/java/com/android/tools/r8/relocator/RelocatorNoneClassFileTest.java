@@ -39,7 +39,9 @@ public class RelocatorNoneClassFileTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public RelocatorNoneClassFileTest(TestParameters parameters) {}
+  public RelocatorNoneClassFileTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test
   public void testRewritingFiles()

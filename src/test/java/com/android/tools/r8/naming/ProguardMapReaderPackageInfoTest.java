@@ -17,7 +17,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ProguardMapReaderPackageInfoTest extends TestBase {
 
-  private final TestParameters parameters;
   private final String MAPPING =
       StringUtils.joinLines(
           "android.support.v4.internal.package-info -> android.support.v4.internal.package-info:",
@@ -29,7 +28,7 @@ public class ProguardMapReaderPackageInfoTest extends TestBase {
   }
 
   public ProguardMapReaderPackageInfoTest(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @Test

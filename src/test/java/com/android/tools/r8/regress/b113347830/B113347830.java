@@ -20,9 +20,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class B113347830 extends TestBase {
 
-  public static final Class CLASS = B113347830.class;
+  public static final Class<?> CLASS = B113347830.class;
   public static final String NAME = CLASS.getSimpleName();
-  private final TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -30,7 +29,7 @@ public class B113347830 extends TestBase {
   }
 
   public B113347830(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @Test

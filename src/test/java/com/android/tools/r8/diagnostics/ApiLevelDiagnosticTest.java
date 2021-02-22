@@ -35,7 +35,9 @@ public class ApiLevelDiagnosticTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public ApiLevelDiagnosticTest(TestParameters parameters) {}
+  public ApiLevelDiagnosticTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test(expected = CompilationFailedException.class)
   public void testInvokeLambdaMetafactory() throws Exception {

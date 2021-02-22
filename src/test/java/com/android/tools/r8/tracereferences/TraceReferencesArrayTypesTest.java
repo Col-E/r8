@@ -33,7 +33,9 @@ public class TraceReferencesArrayTypesTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public TraceReferencesArrayTypesTest(TestParameters parameters) {}
+  public TraceReferencesArrayTypesTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   static class MissingReferencesConsumer implements TraceReferencesConsumer {
 

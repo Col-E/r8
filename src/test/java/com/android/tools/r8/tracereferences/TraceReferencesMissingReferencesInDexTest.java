@@ -31,7 +31,9 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public TraceReferencesMissingReferencesInDexTest(TestParameters parameters) {}
+  public TraceReferencesMissingReferencesInDexTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   static class MissingReferencesConsumer implements TraceReferencesConsumer {
 

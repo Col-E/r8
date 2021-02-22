@@ -168,7 +168,9 @@ public class ProguardConfigurationParserTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public ProguardConfigurationParserTest(TestParameters parameters) {}
+  public ProguardConfigurationParserTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Before
   public void reset() {

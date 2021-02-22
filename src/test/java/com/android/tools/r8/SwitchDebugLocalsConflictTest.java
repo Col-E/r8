@@ -18,15 +18,13 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class SwitchDebugLocalsConflictTest extends TestBase {
 
-  private final TestParameters parameters;
-
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
   }
 
   public SwitchDebugLocalsConflictTest(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @Test

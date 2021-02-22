@@ -19,7 +19,9 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class Java11D8CompilationTest extends TestBase {
 
-  public Java11D8CompilationTest(TestParameters parameters) {}
+  public Java11D8CompilationTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {

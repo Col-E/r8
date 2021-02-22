@@ -52,7 +52,9 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public R8CommandTest(TestParameters parameters) {}
+  public R8CommandTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test(expected = CompilationFailedException.class)
   public void emptyBuilder() throws Throwable {
