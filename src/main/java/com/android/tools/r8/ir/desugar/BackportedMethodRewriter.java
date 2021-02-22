@@ -76,22 +76,16 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
 
     CfInvoke invoke = instruction.asInvoke();
-    DexMethod invokedMethod = invoke.getMethod();
-    if (!needsDesugaring(invokedMethod)) {
-      return null;
-    }
-
-    return getMethodProviderOrNull(invokedMethod)
-        .rewriteInvoke(invoke, appView, eventConsumer, methodProcessingContext);
+    MethodProvider methodProvider = getMethodProviderOrNull(invoke.getMethod());
+    return methodProvider != null
+        ? methodProvider.rewriteInvoke(invoke, appView, eventConsumer, methodProcessingContext)
+        : null;
   }
 
   @Override
   public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return instruction.isInvoke() && needsDesugaring(instruction.asInvoke().getMethod());
-  }
-
-  public boolean needsDesugaring(DexMethod method) {
-    return getMethodProviderOrNull(method) != null;
+    return instruction.isInvoke()
+        && getMethodProviderOrNull(instruction.asInvoke().getMethod()) != null;
   }
 
   public static List<DexMethod> generateListOfBackportedMethods(
