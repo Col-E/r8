@@ -20,16 +20,22 @@ import org.junit.rules.TemporaryFolder;
 /** Test configuration with utilities for compiling with D8 and adding results to the classpath. */
 public class D8DebugTestConfig extends DexDebugTestConfig {
 
+  // Use the option with api-level below.
+  @Deprecated()
   public static AndroidApp d8Compile(List<Path> paths, Consumer<InternalOptions> optionsConsumer) {
+    return d8Compile(paths, ToolHelper.getMinApiLevelForDexVm(), optionsConsumer);
+  }
+
+  public static AndroidApp d8Compile(
+      List<Path> paths, AndroidApiLevel apiLevel, Consumer<InternalOptions> optionsConsumer) {
     try {
-      AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
       D8Command.Builder builder = D8Command.builder();
       return ToolHelper.runD8(
           builder
               .addProgramFiles(paths)
-              .setMinApiLevel(minSdk.getLevel())
+              .setMinApiLevel(apiLevel.getLevel())
               .setMode(CompilationMode.DEBUG)
-              .addLibraryFiles(ToolHelper.getAndroidJar(minSdk)),
+              .addLibraryFiles(ToolHelper.getAndroidJar(apiLevel)),
           optionsConsumer);
     } catch (Exception e) {
       throw new RuntimeException(e);

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.KotlinTestParameters;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -32,9 +34,10 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.stream.Collectors;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
+import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -44,17 +47,22 @@ public class ContinuousSteppingTest extends DebugTestBase {
 
   private static final String MAIN_METHOD_NAME = "main";
 
+  private static final TemporaryFolder testTemp = ToolHelper.getTemporaryFolderForTest();
+
   // A list of self-contained jars to process (which do not depend on other jar files).
-  private static final List<Pair<Path, Predicate<Version>>> LIST_OF_JARS = new ConfigListBuilder()
-      .add(DebugTestBase.DEBUGGEE_JAR, ContinuousSteppingTest::allVersions)
-      .add(DebugTestBase.DEBUGGEE_JAVA8_JAR, ContinuousSteppingTest::allVersions)
-      .add(KotlinD8Config.DEBUGGEE_KOTLIN_JAR, ContinuousSteppingTest::allVersions)
-      .addAll(findAllJarsIn(Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR)),
-          ContinuousSteppingTest::fromAndroidN)
-      // TODO(b/79911828) Investigate timeout issues for Android O examples.
-      //  .addAll(findAllJarsIn(Paths.get(ToolHelper.EXAMPLES_ANDROID_O_BUILD_DIR)),
-      //      ContinuousSteppingTest::fromAndroidO)
-      .build();
+  private static List<Pair<Path, Predicate<Version>>> listOfJars() {
+    return new ConfigListBuilder()
+        .add(DebugTestBase.DEBUGGEE_JAR, ContinuousSteppingTest::allVersions)
+        .add(DebugTestBase.DEBUGGEE_JAVA8_JAR, ContinuousSteppingTest::allVersions)
+        .addAllKotlinDebugJars(testTemp, ContinuousSteppingTest::allVersions)
+        .addAll(
+            findAllJarsIn(Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR)),
+            ContinuousSteppingTest::fromAndroidN)
+        // TODO(b/79911828) Investigate timeout issues for Android O examples.
+        //  .addAll(findAllJarsIn(Paths.get(ToolHelper.EXAMPLES_ANDROID_O_BUILD_DIR)),
+        //      ContinuousSteppingTest::fromAndroidO)
+        .build();
+  }
 
   private static final Map<Path, DebugTestConfig> compiledJarConfig = new HashMap<>();
 
@@ -73,6 +81,15 @@ public class ContinuousSteppingTest extends DebugTestBase {
     public ConfigListBuilder addAll(List<Path> paths, Predicate<Version> predicate) {
       for (Path path : paths) {
         add(path, predicate);
+      }
+      return this;
+    }
+
+    public ConfigListBuilder addAllKotlinDebugJars(
+        TemporaryFolder temp, Predicate<Version> predicate) {
+      for (KotlinTestParameters kotlinParameter :
+          TestBase.getKotlinTestParameters().withAllCompilersAndTargetVersions().build()) {
+        add(KotlinD8Config.compileKotlinMemoized.apply(temp, kotlinParameter), predicate);
       }
       return this;
     }
@@ -100,27 +117,25 @@ public class ContinuousSteppingTest extends DebugTestBase {
     }
   }
 
-  @BeforeClass
-  public static void setup() {
-    LIST_OF_JARS.forEach(pair -> {
-      if (pair.getSecond().test(ToolHelper.getDexVm().getVersion())) {
-        Path jarPath = pair.getFirst();
-        DebugTestConfig config = new D8DebugTestConfig().compileAndAdd(temp, jarPath);
-        compiledJarConfig.put(jarPath, config);
-      }
-    });
+  @AfterClass
+  public static void tearDown() {
+    testTemp.delete();
   }
 
   @Parameters(name = "{0} from {1}")
   public static Collection<Object[]> getData() throws IOException {
+    testTemp.create();
     List<Object[]> testCases = new ArrayList<>();
-    for (Pair<Path, Predicate<Version>> pair : LIST_OF_JARS) {
+    for (Pair<Path, Predicate<Version>> pair : listOfJars()) {
       if (pair.getSecond().test(ToolHelper.getDexVm().getVersion())) {
         Path jarPath = pair.getFirst();
         List<String> mainClasses = getAllMainClassesFromJar(jarPath);
         for (String className : mainClasses) {
           testCases.add(new Object[]{className, jarPath});
         }
+
+        DebugTestConfig config = new D8DebugTestConfig().compileAndAdd(testTemp, jarPath);
+        compiledJarConfig.put(jarPath, config);
       }
     }
     return testCases;

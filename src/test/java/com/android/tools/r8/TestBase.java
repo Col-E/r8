@@ -404,7 +404,7 @@ public class TestBase {
     return KotlinTestParameters.builder();
   }
 
-  protected static <S, T, E extends Throwable> Function<S, T> memoizeFunction(
+  public static <S, T, E extends Throwable> Function<S, T> memoizeFunction(
       ThrowingFunction<S, T, E> fn) {
     return CacheBuilder.newBuilder()
         .build(
@@ -418,7 +418,7 @@ public class TestBase {
                 }));
   }
 
-  protected static <S, T, U, E extends Throwable> BiFunction<S, T, U> memoizeBiFunction(
+  public static <S, T, U, E extends Throwable> BiFunction<S, T, U> memoizeBiFunction(
       ThrowingBiFunction<S, T, U, E> fn) {
     class Pair {
       final S first;

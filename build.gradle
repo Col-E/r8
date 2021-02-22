@@ -108,12 +108,6 @@ sourceSets {
         }
         output.resourcesDir = 'build/classes/debugTestResourcesJava8'
     }
-    debugTestResourcesKotlin {
-        java {
-            srcDirs = ['src/test/debugTestResourcesKotlin']
-        }
-        output.resourcesDir = 'build/classes/debugTestResourcesKotlin'
-    }
     examples {
         java {
             srcDirs = ['src/test/examples']
@@ -280,7 +274,6 @@ dependencies {
     supportLibs "com.android.support.test.espresso:espresso-core:$espressoVersion"
     apiUsageSampleCompile sourceSets.main.output
     apiUsageSampleCompile "com.google.guava:guava:$guavaVersion"
-    debugTestResourcesKotlinCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     examplesKotlinCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     kotlinR8TestResourcesCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     errorprone("com.google.errorprone:error_prone_core:$errorproneVersion")
@@ -1222,16 +1215,9 @@ task buildDebugTestResourcesJars {
         from "build/test/debugTestResourcesJava8/classes"
         include "**/*.class"
     }
-    def kotlinResourcesDir = file("src/test/debugTestResourcesKotlin")
-    def kotlinHostJar = "debug_test_resources_kotlin.jar"
-    task "jar_debugTestResourcesKotlin"(type: kotlin.Kotlinc, dependsOn: downloadDeps) {
-        source = fileTree(dir: kotlinResourcesDir, include: '**/*.kt')
-        destination = file("build/test/${kotlinHostJar}")
-    }
     dependsOn downloadDeps
     dependsOn jar_debugTestResources
     dependsOn jar_debugTestResourcesJava8
-    dependsOn jar_debugTestResourcesKotlin
 }
 
 // Examples used by tests, where Android specific APIs are used.

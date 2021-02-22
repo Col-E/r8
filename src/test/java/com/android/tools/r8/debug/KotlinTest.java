@@ -5,21 +5,35 @@ package com.android.tools.r8.debug;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KotlinTestParameters;
+import com.android.tools.r8.TestParameters;
+import java.util.List;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class KotlinTest extends KotlinDebugTestBase {
 
-  private static KotlinD8Config d8Config;
+  private final TestParameters parameters;
+  private final KotlinTestParameters kotlinParameters;
 
-  @BeforeClass
-  public static void setup() {
-    d8Config = new KotlinD8Config(temp);
+  @Parameters(name = "{0}, {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
+  }
+
+  public KotlinTest(TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    this.parameters = parameters;
+    this.kotlinParameters = kotlinParameters;
   }
 
   protected KotlinD8Config getD8Config() {
-    return d8Config;
+    return KotlinD8Config.build(kotlinParameters, parameters.getApiLevel());
   }
 
   // TODO(shertz) simplify test

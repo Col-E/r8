@@ -6,28 +6,41 @@ package com.android.tools.r8.debug;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.KotlinTestParameters;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.List;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class KotlinInlineTest extends KotlinDebugTestBase {
 
   public static final String DEBUGGEE_CLASS = "KotlinInline";
   public static final String SOURCE_FILE = "KotlinInline.kt";
 
-  private static KotlinD8Config d8Config;
+  private final TestParameters parameters;
+  private final KotlinTestParameters kotlinParameters;
 
-  @BeforeClass
-  public static void setup() {
-    d8Config = new KotlinD8Config(temp);
+  @Parameters(name = "{0}, {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
+  }
+
+  public KotlinInlineTest(TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    this.parameters = parameters;
+    this.kotlinParameters = kotlinParameters;
   }
 
   protected KotlinD8Config getD8Config() {
-    return d8Config;
+    return KotlinD8Config.build(kotlinParameters, parameters.getApiLevel());
   }
 
   @Test
@@ -242,7 +255,8 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
   public void testNestedInlining() throws Throwable {
     // Count the number of lines in the source file. This is needed to check that inlined code
     // refers to non-existing line numbers.
-    Path sourceFilePath = Paths.get(ToolHelper.TESTS_DIR, "debugTestResourcesKotlin", SOURCE_FILE);
+    Path sourceFilePath =
+        AbstractR8KotlinTestBase.getKotlinFileInResource("debug", SOURCE_FILE.replace(".kt", ""));
     assert sourceFilePath.toFile().exists();
     final int maxLineNumber = Files.readAllLines(sourceFilePath).size();
     final String inliningMethodName = "testNestedInlining";

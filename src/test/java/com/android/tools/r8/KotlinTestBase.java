@@ -66,11 +66,11 @@ public abstract class KotlinTestBase extends TestBase {
     return Paths.get(ToolHelper.TESTS_DIR, "java", folder, fileName + FileUtils.KT_EXTENSION);
   }
 
-  protected static Path getKotlinFileInResource(String folder, String fileName) {
+  public static Path getKotlinFileInResource(String folder, String fileName) {
     return Paths.get(ToolHelper.TESTS_DIR, RSRC, folder, fileName + FileUtils.KT_EXTENSION);
   }
 
-  protected static List<Path> getKotlinFilesInResource(String folder) {
+  public static List<Path> getKotlinFilesInResource(String folder) {
     try {
       return Files.walk(Paths.get(ToolHelper.TESTS_DIR, RSRC, folder))
           .filter(path -> path.toString().endsWith(".kt") || path.toString().endsWith(".java"))
