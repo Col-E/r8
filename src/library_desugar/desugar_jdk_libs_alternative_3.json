@@ -2,7 +2,7 @@
   "configuration_format_version": 3,
   "group_id" : "com.tools.android",
   "artifact_id" : "desugar_jdk_libs_alternative_3",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "required_compilation_api_level": 26,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": false,
@@ -254,6 +254,7 @@
     "-keepclassmembers class j$.util.DoubleSummaryStatistics { long count; double sum; double min; double max; }",
     "-keepattributes Signature",
     "-keepattributes EnclosingMethod",
-    "-keepattributes InnerClasses"
+    "-keepattributes InnerClasses",
+    "-dontwarn sun.misc.Unsafe"
   ]
 }
