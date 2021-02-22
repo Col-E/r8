@@ -100,7 +100,8 @@ public class RepackagingConstraintGraph {
   }
 
   private void registerReferencesFromClass(DexProgramClass clazz) {
-    RepackagingUseRegistry registry = new RepackagingUseRegistry(appView, this, clazz);
+    RepackagingUseRegistry registry =
+        new RepackagingUseRegistry(appView, this, clazz, libraryBoundaryNode);
 
     // Trace the references to the immediate super types.
     registry.registerTypeReference(clazz.getSuperType());
@@ -133,7 +134,8 @@ public class RepackagingConstraintGraph {
   }
 
   private void registerReferencesFromField(ProgramField field) {
-    RepackagingUseRegistry registry = new RepackagingUseRegistry(appView, this, field);
+    RepackagingUseRegistry registry =
+        new RepackagingUseRegistry(appView, this, field, libraryBoundaryNode);
 
     // Trace the type of the field.
     registry.registerTypeReference(field.getReference().getType());
@@ -144,7 +146,8 @@ public class RepackagingConstraintGraph {
 
   private void registerReferencesFromMethod(ProgramMethod method) {
     DexEncodedMethod definition = method.getDefinition();
-    RepackagingUseRegistry registry = new RepackagingUseRegistry(appView, this, method);
+    RepackagingUseRegistry registry =
+        new RepackagingUseRegistry(appView, this, method, libraryBoundaryNode);
 
     // Trace the type references in the method signature.
     definition.getProto().forEachType(registry::registerTypeReference);

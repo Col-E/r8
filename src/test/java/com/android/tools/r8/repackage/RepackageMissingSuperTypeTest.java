@@ -10,13 +10,20 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class RepackageMissingSuperTypeTest extends RepackageTestBase {
+
+  private final String[] EXPECTED =
+      new String[] {
+        "ClassWithSuperCall::foo",
+        "MissingSuperType::foo",
+        "ClassWithoutSuperCall::foo",
+        "MissingSuperType::foo"
+      };
 
   public RepackageMissingSuperTypeTest(
       String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
@@ -25,23 +32,12 @@ public class RepackageMissingSuperTypeTest extends RepackageTestBase {
 
   @Test
   public void testR8WithoutRepackaging() throws Exception {
-    runTest(false)
-        .assertSuccessWithOutputLines(
-            "ClassWithSuperCall::foo",
-            "MissingSuperType::foo",
-            "ClassWithoutSuperCall::foo",
-            "MissingSuperType::foo");
+    runTest(false).assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
   public void testR8() throws Exception {
-    R8TestRunResult r8TestRunResult = runTest(true);
-    if (parameters.isDexRuntime()
-        && parameters.getDexRuntimeVersion().isOlderThanOrEqual(Version.V4_4_4)) {
-      r8TestRunResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
-    } else {
-      r8TestRunResult.assertFailureWithErrorThatThrows(IllegalAccessError.class);
-    }
+    runTest(true).assertSuccessWithOutputLines(EXPECTED);
   }
 
   private R8TestRunResult runTest(boolean repackage) throws Exception {
@@ -60,9 +56,8 @@ public class RepackageMissingSuperTypeTest extends RepackageTestBase {
         .compile()
         .inspect(
             inspector -> {
-              // TODO(b/179889105): These should probably not be repackaged.
-              assertThat(ClassWithSuperCall.class, isRepackagedIf(inspector, repackage));
-              assertThat(ClassWithoutSuperCall.class, isRepackagedIf(inspector, repackage));
+              assertThat(ClassWithSuperCall.class, isNotRepackaged(inspector));
+              assertThat(ClassWithoutSuperCall.class, isNotRepackaged(inspector));
             })
         .addRunClasspathClasses(MissingSuperType.class)
         .run(parameters.getRuntime(), Main.class);

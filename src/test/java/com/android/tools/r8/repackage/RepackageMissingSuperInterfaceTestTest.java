@@ -10,13 +10,14 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class RepackageMissingSuperInterfaceTestTest extends RepackageTestBase {
+
+  private final String[] EXPECTED = new String[] {"ClassImplementingMissingInterface::bar"};
 
   public RepackageMissingSuperInterfaceTestTest(
       String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
@@ -25,18 +26,12 @@ public class RepackageMissingSuperInterfaceTestTest extends RepackageTestBase {
 
   @Test
   public void testR8WithoutRepackaging() throws Exception {
-    runTest(false).assertSuccessWithOutputLines("ClassImplementingMissingInterface::bar");
+    runTest(false).assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
   public void testR8() throws Exception {
-    R8TestRunResult r8TestRunResult = runTest(true);
-    if (parameters.isDexRuntime()
-        && parameters.getDexRuntimeVersion().isOlderThanOrEqual(Version.V4_4_4)) {
-      r8TestRunResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
-    } else {
-      r8TestRunResult.assertFailureWithErrorThatThrows(IllegalAccessError.class);
-    }
+    runTest(true).assertSuccessWithOutputLines(EXPECTED);
   }
 
   private R8TestRunResult runTest(boolean repackage) throws Exception {
@@ -51,9 +46,7 @@ public class RepackageMissingSuperInterfaceTestTest extends RepackageTestBase {
         .compile()
         .inspect(
             inspector -> {
-              // TODO(b/179889105): This should probably not be repackaged.
-              assertThat(
-                  ClassImplementingMissingInterface.class, isRepackagedIf(inspector, repackage));
+              assertThat(ClassImplementingMissingInterface.class, isNotRepackaged(inspector));
             })
         .addRunClasspathClasses(MissingInterface.class)
         .run(parameters.getRuntime(), Main.class);

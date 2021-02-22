@@ -9,7 +9,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,12 +30,7 @@ public class RepackageMissingMemberReferenceTest extends RepackageTestBase {
 
   @Test
   public void testR8() throws Exception {
-    R8TestRunResult r8TestRunResult = runTest(true);
-    if (parameters.isDexRuntime() && parameters.getDexRuntimeVersion() == Version.V8_1_0) {
-      r8TestRunResult.assertSuccessWithOutputLines(EXPECTED);
-    } else {
-      r8TestRunResult.assertFailureWithErrorThatThrows(IllegalAccessError.class);
-    }
+    runTest(true).assertSuccessWithOutputLines(EXPECTED);
   }
 
   private R8TestRunResult runTest(boolean repackage) throws Exception {
@@ -49,11 +43,8 @@ public class RepackageMissingMemberReferenceTest extends RepackageTestBase {
         .enableInliningAnnotations()
         .compile()
         .inspect(
-            inspector -> {
-              // TODO(b/179889105): This should probably not be repackaged.
-              assertThat(
-                  ClassWithMissingReferenceInCode.class, isRepackagedIf(inspector, repackage));
-            })
+            inspector ->
+                assertThat(ClassWithMissingReferenceInCode.class, isNotRepackaged(inspector)))
         .addRunClasspathClasses(MissingReference.class)
         .run(parameters.getRuntime(), Main.class);
   }

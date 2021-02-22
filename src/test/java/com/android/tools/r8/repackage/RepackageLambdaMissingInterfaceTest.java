@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.repackage;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,19 +31,16 @@ public class RepackageLambdaMissingInterfaceTest extends RepackageTestBase {
 
   @Test
   public void testR8() throws Exception {
-    R8TestRunResult r8TestRunResult = runTest(true);
-    if (parameters.isDexRuntime()
-        && parameters.getDexRuntimeVersion().isOlderThanOrEqual(Version.V4_4_4)) {
-      r8TestRunResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
-    } else {
-      r8TestRunResult.assertFailureWithErrorThatThrows(IllegalAccessError.class);
-    }
+    runTest(true)
+        .assertFailureWithErrorThatThrowsIf(parameters.isDexRuntime(), AbstractMethodError.class)
+        .assertSuccessWithOutputLinesIf(parameters.isCfRuntime(), "0");
   }
 
   private R8TestRunResult runTest(boolean repackage) throws Exception {
     return testForR8(parameters.getBackend())
         .addProgramClasses(ClassWithLambda.class, Main.class)
         .addKeepMainRule(Main.class)
+        .addKeepAttributeInnerClassesAndEnclosingMethod()
         .applyIf(repackage, this::configureRepackaging)
         .setMinApi(parameters.getApiLevel())
         .addDontWarn(MissingInterface.class)
@@ -52,8 +49,20 @@ public class RepackageLambdaMissingInterfaceTest extends RepackageTestBase {
         .compile()
         .inspect(
             inspector -> {
-              // TODO(b/179889105): This should probably not be repackaged.
-              assertThat(ClassWithLambda.class, isRepackagedIf(inspector, repackage));
+              // Find the generated lambda class
+              assertThat(
+                  ClassWithLambda.class,
+                  isRepackagedIf(inspector, repackage && parameters.isDexRuntime()));
+              if (!parameters.isDexRuntime()) {
+                return;
+              }
+              inspector.forAllClasses(
+                  clazz -> {
+                    if (clazz.isSynthesizedJavaLambdaClass()) {
+                      assertThat(
+                          clazz.getFinalName(), containsString(Main.class.getPackage().getName()));
+                    }
+                  });
             })
         .addRunClasspathClasses(MissingInterface.class)
         .run(parameters.getRuntime(), Main.class);

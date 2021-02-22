@@ -959,6 +959,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (!keepInfo.getInfo(clazz).isRepackagingAllowed(options())) {
       return false;
     }
+    for (DexType superType : clazz.allImmediateSupertypes()) {
+      if (definitionFor(superType) == null) {
+        return false;
+      }
+    }
     return clazz
         .traverseProgramMembers(
             member -> {

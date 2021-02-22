@@ -40,11 +40,13 @@ public class RepackagingUseRegistry extends UseRegistry {
   private final ProgramDefinition context;
   private final InitClassLens initClassLens;
   private final RepackagingConstraintGraph.Node node;
+  private final RepackagingConstraintGraph.Node missingTypeNode;
 
   public RepackagingUseRegistry(
       AppView<AppInfoWithLiveness> appView,
       RepackagingConstraintGraph constraintGraph,
-      ProgramDefinition context) {
+      ProgramDefinition context,
+      RepackagingConstraintGraph.Node missingTypeNode) {
     super(appView.dexItemFactory());
     this.appInfo = appView.appInfo();
     this.options = appView.options();
@@ -52,6 +54,7 @@ public class RepackagingUseRegistry extends UseRegistry {
     this.context = context;
     this.initClassLens = appView.initClassLens();
     this.node = constraintGraph.getNode(context.getDefinition());
+    this.missingTypeNode = missingTypeNode;
   }
 
   private boolean isOnlyAccessibleFromSamePackage(DexClass referencedClass) {
@@ -111,15 +114,20 @@ public class RepackagingUseRegistry extends UseRegistry {
 
   private void registerMemberAccess(
       MemberResolutionResult<?, ?> resolutionResult, boolean isInvoke) {
-    SuccessfulMemberResolutionResult<?, ?> successfulResolutionResult =
-        resolutionResult.asSuccessfulMemberResolutionResult();
-    if (successfulResolutionResult == null) {
-      // TODO(b/165783399): If we want to preserve errors in the original program, we need to look
-      //  at the failure dependencies. For example, if this method accesses in a package-private
-      //  method in another package, and we move the two methods to the same package, then the
-      //  invoke would no longer fail with an IllegalAccessError.
+    if (!resolutionResult.isSuccessfulMemberResolutionResult()) {
+      // To preserve errors in the original program, we need to look at the failure dependencies.
+      // For example, if this method accesses in a package-private method in another package, and we
+      // move the two methods to the same package, then the invoke would no longer fail with an
+      // IllegalAccessError.
+      if (isInvoke) {
+        // TODO(b/150589374): Only add this if we are in the minification mode of repackaging.
+        node.addNeighbor(missingTypeNode);
+      }
       return;
     }
+
+    SuccessfulMemberResolutionResult<?, ?> successfulResolutionResult =
+        resolutionResult.asSuccessfulMemberResolutionResult();
 
     // Check access to the initial resolution holder.
     DexClass initialResolutionHolder = successfulResolutionResult.getInitialResolutionHolder();
@@ -153,6 +161,9 @@ public class RepackagingUseRegistry extends UseRegistry {
     DexClass clazz = appInfo.definitionFor(type);
     if (clazz != null) {
       consumer.accept(clazz);
+    } else {
+      // The missing type reference can be package private and we cannot repackage.
+      node.addNeighbor(missingTypeNode);
     }
   }
 
