@@ -53,6 +53,7 @@ import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner.EligibilityStatus;
+import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
@@ -1096,33 +1097,22 @@ final class InlineCandidateProcessor {
     }
 
     MethodOptimizationInfo optimizationInfo = singleTarget.getDefinition().getOptimizationInfo();
-    ClassInlinerEligibilityInfo eligibility = optimizationInfo.getClassInlinerEligibility();
-    if (eligibility == null) {
-      return false;
-    }
-
-    if (root.isStaticGet()) {
-      // If we are class inlining a singleton instance from a static-get, then we don't know the
-      // value of the fields.
-      ParameterUsage receiverUsage = optimizationInfo.getParameterUsages(0);
-      if (receiverUsage == null || receiverUsage.hasFieldRead) {
+    ClassInlinerMethodConstraint classInlinerMethodConstraint =
+        optimizationInfo.getClassInlinerMethodConstraint();
+    if (root.isNewInstance()) {
+      if (!classInlinerMethodConstraint.isEligibleForNewInstanceClassInlining(singleTarget)) {
         return false;
       }
-      if (eligibility.hasMonitorOnReceiver) {
-        // We will not be able to remove the monitor instruction afterwards.
-        return false;
-      }
-      if (eligibility.modifiesInstanceFields) {
-        // The static instance could be accessed from elsewhere. Therefore, we cannot
-        // allow side-effects to be removed and therefore cannot class inline method
-        // calls that modifies the instance.
+    } else {
+      assert root.isStaticGet();
+      if (!classInlinerMethodConstraint.isEligibleForStaticGetClassInlining(singleTarget)) {
         return false;
       }
     }
 
     // If the method returns receiver and the return value is actually
     // used in the code we need to make some additional checks.
-    if (!eligibilityAcceptanceCheck.test(eligibility)) {
+    if (!eligibilityAcceptanceCheck.test(optimizationInfo.getClassInlinerEligibility())) {
       return false;
     }
 

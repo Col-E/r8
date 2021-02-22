@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
+import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
@@ -59,6 +60,9 @@ public interface MethodOptimizationFeedback {
   void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
 
   void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo);
+
+  void setClassInlinerMethodConstraint(
+      ProgramMethod method, ClassInlinerMethodConstraint classInlinerConstraint);
 
   void setClassInlinerEligibility(DexEncodedMethod method, ClassInlinerEligibilityInfo eligibility);
 

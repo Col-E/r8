@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
+import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
@@ -34,6 +35,8 @@ public abstract class MethodOptimizationInfo {
   public abstract boolean cannotBeKept();
 
   public abstract boolean classInitializerMayBePostponed();
+
+  public abstract ClassInlinerMethodConstraint getClassInlinerMethodConstraint();
 
   public abstract TypeElement getDynamicUpperBoundType();
 

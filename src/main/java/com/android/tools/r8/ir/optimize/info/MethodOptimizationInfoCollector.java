@@ -90,6 +90,8 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerReceiverAnalysis;
+import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
+import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraintAnalysis;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsageBuilder;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeAnalyzer;
@@ -143,12 +145,16 @@ public class MethodOptimizationInfoCollector {
       Timing timing) {
     DexEncodedMethod definition = method.getDefinition();
     identifyBridgeInfo(definition, code, feedback, timing);
-    identifyClassInlinerEligibility(code, feedback, timing);
-    identifyParameterUsages(definition, code, feedback, timing);
+    ClassInlinerEligibilityInfo classInlinerEligibilityInfo =
+        identifyClassInlinerEligibility(code, feedback, timing);
+    ParameterUsagesInfo parameterUsagesInfo =
+        identifyParameterUsages(definition, code, feedback, timing);
     analyzeReturns(code, feedback, timing);
     if (options.enableInlining) {
       identifyInvokeSemanticsForInlining(definition, code, feedback, timing);
     }
+    computeClassInlinerMethodConstraint(
+        method, code, feedback, classInlinerEligibilityInfo, parameterUsagesInfo, timing);
     computeSimpleInliningConstraint(method, code, feedback, timing);
     computeDynamicReturnType(dynamicTypeOptimization, feedback, definition, code, timing);
     computeInitializedClassesOnNormalExit(feedback, definition, code, timing);
@@ -167,14 +173,17 @@ public class MethodOptimizationInfoCollector {
     timing.end();
   }
 
-  private void identifyClassInlinerEligibility(
+  private ClassInlinerEligibilityInfo identifyClassInlinerEligibility(
       IRCode code, OptimizationFeedback feedback, Timing timing) {
     timing.begin("Identify class inliner eligibility");
-    identifyClassInlinerEligibility(code, feedback);
+    ClassInlinerEligibilityInfo classInlinerEligibilityInfo =
+        identifyClassInlinerEligibility(code, feedback);
     timing.end();
+    return classInlinerEligibilityInfo;
   }
 
-  private void identifyClassInlinerEligibility(IRCode code, OptimizationFeedback feedback) {
+  private ClassInlinerEligibilityInfo identifyClassInlinerEligibility(
+      IRCode code, OptimizationFeedback feedback) {
     // Method eligibility is calculated in similar way for regular method
     // and for the constructor. To be eligible method should only be using its
     // receiver in the following ways:
@@ -193,14 +202,14 @@ public class MethodOptimizationInfoCollector {
     boolean instanceInitializer = definition.isInstanceInitializer();
     if (definition.isNative()
         || (!definition.isNonAbstractVirtualMethod() && !instanceInitializer)) {
-      return;
+      return null;
     }
 
     feedback.setClassInlinerEligibility(definition, null); // To allow returns below.
 
     Value receiver = code.getThis();
     if (receiver.numberOfPhiUsers() > 0) {
-      return;
+      return null;
     }
 
     List<Pair<Invoke.Type, DexMethod>> callsReceiver = new ArrayList<>();
@@ -229,17 +238,17 @@ public class MethodOptimizationInfoCollector {
               InstancePut instancePutInstruction = insn.asInstancePut();
               // Only allow field writes to the receiver.
               if (!isReceiverAlias.test(instancePutInstruction.object())) {
-                return;
+                return null;
               }
               // Do not allow the receiver to escape via a field write.
               if (isReceiverAlias.test(instancePutInstruction.value())) {
-                return;
+                return null;
               }
               modifiesInstanceFields = true;
             }
             DexField field = insn.asFieldInstruction().getField();
             if (appView.appInfo().resolveField(field).isFailedOrUnknownResolution()) {
-              return;
+              return null;
             }
             break;
           }
@@ -257,7 +266,7 @@ public class MethodOptimizationInfoCollector {
               break;
             }
             // We don't support other direct calls yet.
-            return;
+            return null;
           }
 
         case INVOKE_STATIC:
@@ -265,27 +274,27 @@ public class MethodOptimizationInfoCollector {
             InvokeStatic invoke = insn.asInvokeStatic();
             DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
             if (singleTarget == null) {
-              return; // Not allowed.
+              return null; // Not allowed.
             }
             if (singleTarget.getReference() == dexItemFactory.objectsMethods.requireNonNull) {
               if (!invoke.hasOutValue() || !invoke.outValue().hasAnyUsers()) {
                 continue;
               }
             }
-            return;
+            return null;
           }
 
         case INVOKE_VIRTUAL:
           {
             InvokeVirtual invoke = insn.asInvokeVirtual();
             if (ListUtils.lastIndexMatching(invoke.arguments(), isReceiverAlias) != 0) {
-              return; // Not allowed.
+              return null; // Not allowed.
             }
             DexMethod invokedMethod = invoke.getInvokedMethod();
             DexType returnType = invokedMethod.proto.returnType;
             if (returnType.isClassType()
                 && appView.appInfo().inSameHierarchy(returnType, context.getHolderType())) {
-              return; // Not allowed, could introduce an alias of the receiver.
+              return null; // Not allowed, could introduce an alias of the receiver.
             }
             callsReceiver.add(new Pair<>(Invoke.Type.VIRTUAL, invokedMethod));
           }
@@ -293,34 +302,35 @@ public class MethodOptimizationInfoCollector {
 
         default:
           // Other receiver usages make the method not eligible.
-          return;
+          return null;
       }
     }
 
     if (instanceInitializer && !seenSuperInitCall) {
       // Call to super constructor not found?
-      return;
+      return null;
     }
 
     boolean synchronizedVirtualMethod = definition.isSynchronized() && definition.isVirtualMethod();
-
-    feedback.setClassInlinerEligibility(
-        definition,
+    ClassInlinerEligibilityInfo classInlinerEligibilityInfo =
         new ClassInlinerEligibilityInfo(
             callsReceiver,
             new ClassInlinerReceiverAnalysis(appView, definition, code).computeReturnsReceiver(),
             seenMonitor || synchronizedVirtualMethod,
-            modifiesInstanceFields));
+            modifiesInstanceFields);
+    feedback.setClassInlinerEligibility(definition, classInlinerEligibilityInfo);
+    return classInlinerEligibilityInfo;
   }
 
-  private void identifyParameterUsages(
+  private ParameterUsagesInfo identifyParameterUsages(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
     timing.begin("Identify parameter usages");
-    identifyParameterUsages(method, code, feedback);
+    ParameterUsagesInfo parameterUsagesInfo = identifyParameterUsages(method, code, feedback);
     timing.end();
+    return parameterUsagesInfo;
   }
 
-  private void identifyParameterUsages(
+  private ParameterUsagesInfo identifyParameterUsages(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     List<ParameterUsage> usages = new ArrayList<>();
     List<Value> values = code.collectArguments();
@@ -331,11 +341,10 @@ public class MethodOptimizationInfoCollector {
         usages.add(usage);
       }
     }
-    feedback.setParameterUsages(
-        method,
-        usages.isEmpty()
-            ? DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO
-            : new ParameterUsagesInfo(usages));
+    ParameterUsagesInfo parameterUsagesInfo =
+        !usages.isEmpty() ? new ParameterUsagesInfo(usages) : null;
+    feedback.setParameterUsages(method, parameterUsagesInfo);
+    return parameterUsagesInfo;
   }
 
   private ParameterUsage collectParameterUsages(int i, Value root) {
@@ -967,6 +976,31 @@ public class MethodOptimizationInfoCollector {
       return false;
     }
     return true;
+  }
+
+  private void computeClassInlinerMethodConstraint(
+      ProgramMethod method,
+      IRCode code,
+      OptimizationFeedback feedback,
+      ClassInlinerEligibilityInfo classInlinerEligibilityInfo,
+      ParameterUsagesInfo parameterUsagesInfo,
+      Timing timing) {
+    timing.begin("Compute class inlining constraint");
+    computeClassInlinerMethodConstraint(
+        method, code, feedback, classInlinerEligibilityInfo, parameterUsagesInfo);
+    timing.end();
+  }
+
+  private void computeClassInlinerMethodConstraint(
+      ProgramMethod method,
+      IRCode code,
+      OptimizationFeedback feedback,
+      ClassInlinerEligibilityInfo classInlinerEligibilityInfo,
+      ParameterUsagesInfo parameterUsagesInfo) {
+    ClassInlinerMethodConstraint classInlinerMethodConstraint =
+        ClassInlinerMethodConstraintAnalysis.analyze(
+            classInlinerEligibilityInfo, parameterUsagesInfo);
+    feedback.setClassInlinerMethodConstraint(method, classInlinerMethodConstraint);
   }
 
   private void computeSimpleInliningConstraint(

@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
+import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -250,8 +251,15 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo) {
+  public synchronized void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo) {
     getMethodOptimizationInfoForUpdating(method).setBridgeInfo(bridgeInfo);
+  }
+
+  @Override
+  public synchronized void setClassInlinerMethodConstraint(
+      ProgramMethod method, ClassInlinerMethodConstraint classInlinerConstraint) {
+    getMethodOptimizationInfoForUpdating(method)
+        .setClassInlinerMethodConstraint(classInlinerConstraint);
   }
 
   @Override

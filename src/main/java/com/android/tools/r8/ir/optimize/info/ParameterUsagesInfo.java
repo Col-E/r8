@@ -39,7 +39,7 @@ public final class ParameterUsagesInfo {
         parametersUsages.stream().map(usage -> usage.index).collect(Collectors.toSet()).size();
   }
 
-  ParameterUsage getParameterUsage(int index) {
+  public ParameterUsage getParameterUsage(int index) {
     for (ParameterUsage usage : parametersUsages) {
       if (usage.index == index) {
         return usage;

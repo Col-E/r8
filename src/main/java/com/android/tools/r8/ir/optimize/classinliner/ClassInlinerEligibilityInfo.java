@@ -21,8 +21,8 @@ public class ClassInlinerEligibilityInfo {
    */
   final OptionalBool returnsReceiver;
 
-  final boolean hasMonitorOnReceiver;
-  final boolean modifiesInstanceFields;
+  public final boolean hasMonitorOnReceiver;
+  public final boolean modifiesInstanceFields;
 
   public ClassInlinerEligibilityInfo(
       List<Pair<Invoke.Type, DexMethod>> callsReceiver,

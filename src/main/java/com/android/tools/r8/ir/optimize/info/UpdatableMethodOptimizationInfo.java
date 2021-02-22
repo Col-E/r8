@@ -16,6 +16,8 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
+import com.android.tools.r8.ir.optimize.classinliner.constraint.AlwaysFalseClassInlinerMethodConstraint;
+import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
@@ -33,6 +35,8 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
   private int returnedArgument = DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT;
   private AbstractValue abstractReturnValue =
       DefaultMethodOptimizationInfo.UNKNOWN_ABSTRACT_RETURN_VALUE;
+  private ClassInlinerMethodConstraint classInlinerConstraint =
+      AlwaysFalseClassInlinerMethodConstraint.getInstance();
   private TypeElement returnsObjectWithUpperBoundType = DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
   private ClassTypeElement returnsObjectWithLowerBoundType =
       DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
@@ -236,6 +240,15 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
 
   void markClassInitializerMayBePostponed() {
     setFlag(CLASS_INITIALIZER_MAY_BE_POSTPONED_FLAG);
+  }
+
+  @Override
+  public ClassInlinerMethodConstraint getClassInlinerMethodConstraint() {
+    return classInlinerConstraint;
+  }
+
+  void setClassInlinerMethodConstraint(ClassInlinerMethodConstraint classInlinerConstraint) {
+    this.classInlinerConstraint = classInlinerConstraint;
   }
 
   @Override
