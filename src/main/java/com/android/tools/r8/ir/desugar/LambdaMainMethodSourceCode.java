@@ -237,9 +237,8 @@ final class LambdaMainMethodSourceCode {
       maxLocals += valueType.requiredRegisters();
       DexType expectedParamType = implReceiverAndArgs.get(i + capturedValues);
       maxStack +=
-          valueType.requiredRegisters()
-              + prepareParameterValue(
-                  erasedParams[i], enforcedParams[i], expectedParamType, instructions, factory);
+          prepareParameterValue(
+              erasedParams[i], enforcedParams[i], expectedParamType, instructions, factory);
     }
 
     instructions.add(
@@ -259,13 +258,15 @@ final class LambdaMainMethodSourceCode {
     } else {
       // Either the new instance or the called-method result is on top of stack.
       assert constructorTarget || !methodToCallReturnType.isVoidType();
-      maxStack +=
-          prepareReturnValue(
-              erasedReturnType,
-              enforcedReturnType,
-              constructorTarget ? methodToCall.holder : methodToCallReturnType,
-              instructions,
-              factory);
+      maxStack =
+          Math.max(
+              maxStack,
+              prepareReturnValue(
+                  erasedReturnType,
+                  enforcedReturnType,
+                  constructorTarget ? methodToCall.holder : methodToCallReturnType,
+                  instructions,
+                  factory));
       instructions.add(new CfReturn(ValueType.fromDexType(enforcedReturnType)));
     }
 
@@ -360,12 +361,9 @@ final class LambdaMainMethodSourceCode {
       Builder<CfInstruction> instructions,
       DexItemFactory factory) {
     internalAdjustType(fromType, toType, returnType, instructions, factory);
-    int inSize = ValueType.fromDexType(fromType).requiredRegisters();
-    int outSize = ValueType.fromDexType(toType).requiredRegisters();
-    if (outSize > inSize) {
-      return outSize - inSize;
-    }
-    return 0;
+    return Math.max(
+        ValueType.fromDexType(fromType).requiredRegisters(),
+        ValueType.fromDexType(toType).requiredRegisters());
   }
 
   private static void internalAdjustType(
