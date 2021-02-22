@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.retrace;
 
-import static com.android.tools.r8.retrace.internal.RetraceUtils.firstNonWhiteSpaceCharacterFromIndex;
 import static com.android.tools.r8.utils.ExceptionUtils.failWithFakeEntry;
 
 import com.android.tools.r8.Diagnostic;
@@ -12,12 +11,11 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
-import com.android.tools.r8.retrace.internal.PlainStackTraceVisitor;
+import com.android.tools.r8.retrace.internal.PlainStackTraceLineParser;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
-import com.android.tools.r8.retrace.internal.RetraceRegularExpression;
-import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
-import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -33,13 +31,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.Set;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * A retrace tool for obfuscated stack traces.
@@ -48,14 +46,7 @@ import java.util.function.BiConsumer;
  * tool.
  */
 @Keep
-public class Retrace {
-
-  // This is a slight modification of the default regular expression shown for proguard retrace
-  // that allow for retracing classes in the form <class>: lorem ipsum...
-  // Seems like Proguard retrace is expecting the form "Caused by: <class>".
-  public static final String DEFAULT_REGULAR_EXPRESSION =
-      "(?:.*?\\bat\\s+%c\\.%m\\s*\\(%s(?::%l)?\\)\\s*(?:~\\[.*\\])?)"
-          + "|(?:(?:(?:%c|.*)?[:\"]\\s+)?%c(?::.*)?)";
+public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
 
   public static final String USAGE_MESSAGE =
       StringUtils.lines(
@@ -68,7 +59,6 @@ public class Retrace {
     Builder builder = RetraceCommand.builder(diagnosticsHandler);
     boolean hasSetProguardMap = false;
     boolean hasSetStackTrace = false;
-    boolean hasSetRegularExpression = false;
     boolean hasSetQuiet = false;
     while (context.head() != null) {
       Boolean help = OptionsParsing.tryParseBoolean(context, "--help");
@@ -97,7 +87,6 @@ public class Retrace {
       String regex = OptionsParsing.tryParseSingle(context, "--regex", "r");
       if (regex != null && !regex.isEmpty()) {
         builder.setRegularExpression(regex);
-        hasSetRegularExpression = true;
         continue;
       }
       if (!hasSetProguardMap) {
@@ -122,9 +111,6 @@ public class Retrace {
     }
     if (!hasSetStackTrace) {
       builder.setStackTrace(getStackTraceFromStandardInput(hasSetQuiet));
-    }
-    if (!hasSetRegularExpression) {
-      builder.setRegularExpression(DEFAULT_REGULAR_EXPRESSION);
     }
     return builder;
   }
@@ -158,6 +144,96 @@ public class Retrace {
     }
   }
 
+  private final StackTraceLineParser<T, ST> stackTraceLineParser;
+  private final StackTraceElementProxyRetracer<T, ST> proxyRetracer;
+  private final DiagnosticsHandler diagnosticsHandler;
+  private final boolean isVerbose;
+
+  Retrace(
+      StackTraceLineParser<T, ST> stackTraceLineParser,
+      StackTraceElementProxyRetracer<T, ST> proxyRetracer,
+      DiagnosticsHandler diagnosticsHandler,
+      boolean isVerbose) {
+    this.stackTraceLineParser = stackTraceLineParser;
+    this.proxyRetracer = proxyRetracer;
+    this.diagnosticsHandler = diagnosticsHandler;
+    this.isVerbose = isVerbose;
+  }
+
+  public static <T, ST extends StackTraceElementProxy<T, ST>> Retrace<T, ST> createRetrace(
+      StackTraceLineParser<T, ST> stackTraceLineParser,
+      StackTraceElementProxyRetracer<T, ST> proxyRetracer,
+      DiagnosticsHandler diagnosticsHandler,
+      boolean isVerbose) {
+    return new Retrace<>(stackTraceLineParser, proxyRetracer, diagnosticsHandler, isVerbose);
+  }
+
+  /**
+   * Retraces a stack frame and calls the consumer for each retraced line
+   *
+   * @param stackTrace the stack trace to be retrace
+   * @param retracedFrameConsumer the consumer to accept the retraced stack trace.
+   */
+  public void retraceStackTrace(List<T> stackTrace, Consumer<List<List<T>>> retracedFrameConsumer) {
+    ListUtils.forEachWithIndex(
+        stackTrace,
+        (line, lineNumber) -> {
+          if (line == null) {
+            diagnosticsHandler.error(
+                RetraceInvalidStackTraceLineDiagnostics.createNull(lineNumber));
+            throw new RetraceAbortException();
+          }
+        });
+    stackTrace.forEach(line -> retracedFrameConsumer.accept(retraceFrame(line)));
+  }
+
+  /**
+   * Retraces a stack trace frame with support for splitting up ambiguous results.
+   *
+   * @param stackTraceFrame The frame to retrace that can give rise to ambiguous results
+   * @return A collection of retraced frame where each entry in the outer list is ambiguous
+   */
+  public List<List<T>> retraceFrame(T stackTraceFrame) {
+    Map<RetraceStackTraceProxy<T, ST>, List<T>> ambiguousBlocks = new HashMap<>();
+    List<RetraceStackTraceProxy<T, ST>> ambiguousKeys = new ArrayList<>();
+    ST parsedLine = stackTraceLineParser.parse(stackTraceFrame);
+    proxyRetracer
+        .retrace(parsedLine)
+        .forEach(
+            retracedElement -> {
+              if (retracedElement.isTopFrame() || !retracedElement.hasRetracedClass()) {
+                ambiguousKeys.add(retracedElement);
+                ambiguousBlocks.put(retracedElement, new ArrayList<>());
+              }
+              ambiguousBlocks
+                  .get(ListUtils.last(ambiguousKeys))
+                  .add(parsedLine.toRetracedItem(retracedElement, isVerbose));
+            });
+    Collections.sort(ambiguousKeys);
+    List<List<T>> retracedList = new ArrayList<>();
+    ambiguousKeys.forEach(key -> retracedList.add(ambiguousBlocks.get(key)));
+    return retracedList;
+  }
+
+  /**
+   * Utility method for tracing a single line that also retraces ambiguous lines without being able
+   * to distinguish them. For retracing with ambiguous results separated, use {@link #retraceFrame}
+   *
+   * @param stackTraceLine the stack trace line to retrace
+   * @return the retraced stack trace line
+   */
+  public List<T> retraceLine(T stackTraceLine) {
+    ST parsedLine = stackTraceLineParser.parse(stackTraceLine);
+    return proxyRetracer
+        .retrace(parsedLine)
+        .map(
+            retraceFrame -> {
+              retraceFrame.getOriginalItem().toRetracedItem(retraceFrame, isVerbose);
+              return parsedLine.toRetracedItem(retraceFrame, isVerbose);
+            })
+        .collect(Collectors.toList());
+  }
+
   /**
    * The main entry point for running retrace.
    *
@@ -167,108 +243,31 @@ public class Retrace {
     try {
       Timing timing = Timing.create("R8 retrace", command.printMemory());
       timing.begin("Read proguard map");
+      RetraceOptions options = command.getOptions();
+      DiagnosticsHandler diagnosticsHandler = options.getDiagnosticsHandler();
       Retracer retracer =
-          Retracer.createDefault(command.proguardMapProducer, command.diagnosticsHandler);
-      timing.end();
-      timing.begin("Parse and Retrace");
-      StackTraceVisitor<StackTraceElementStringProxy> stackTraceVisitor =
-          command.regularExpression != null
-              ? new RetraceRegularExpression(command.stackTrace, command.regularExpression)
-              : new PlainStackTraceVisitor(command.stackTrace, command.diagnosticsHandler);
+          Retracer.createDefault(options.getProguardMapProducer(), diagnosticsHandler);
       timing.end();
       timing.begin("Report result");
-      command.retracedStackTraceConsumer.accept(
-          runInternal(stackTraceVisitor, retracer, command.isVerbose));
+      StringRetrace stringRetrace =
+          new StringRetrace(
+              options.getRegularExpression() == null
+                  ? new PlainStackTraceLineParser()
+                  : new StackTraceRegularExpressionParser(options.getRegularExpression()),
+              StackTraceElementProxyRetracer.createDefault(retracer),
+              diagnosticsHandler,
+              options.isVerbose());
+      command
+          .getRetracedStackTraceConsumer()
+          .accept(stringRetrace.retrace(command.getStackTrace()));
       timing.end();
       if (command.printTimes()) {
         timing.report();
       }
     } catch (InvalidMappingFileException e) {
-      command.diagnosticsHandler.error(new ExceptionDiagnostic(e));
+      command.getOptions().getDiagnosticsHandler().error(new ExceptionDiagnostic(e));
       throw e;
     }
-  }
-
-  /**
-   * Entry point for running retrace with default parsing on a stack trace
-   *
-   * @param retracer the retracer used to parse each stack trace frame.
-   * @param stackTrace the stack trace to be parsed.
-   * @param isVerbose if the output should embed verbose information.
-   * @return the retraced strings in flat format
-   */
-  public static List<String> run(Retracer retracer, List<String> stackTrace, boolean isVerbose) {
-    return runInternal(
-        new RetraceRegularExpression(stackTrace, DEFAULT_REGULAR_EXPRESSION), retracer, isVerbose);
-  }
-
-  private static List<String> runInternal(
-      StackTraceVisitor<StackTraceElementStringProxy> stackTraceVisitor,
-      Retracer retracer,
-      boolean isVerbose) {
-    List<String> retracedStrings = new ArrayList<>();
-    Box<StackTraceElementStringProxy> lastReportedFrame = new Box<>();
-    Set<String> seenSetForLastReportedFrame = new HashSet<>();
-    run(
-        stackTraceVisitor,
-        StackTraceElementProxyRetracer.createDefault(retracer),
-        (stackTraceElement, frames) -> {
-          frames.forEach(
-              frame -> {
-                StackTraceElementStringProxy originalItem = frame.getOriginalItem();
-                boolean newFrame =
-                    lastReportedFrame.getAndSet(stackTraceElement) != stackTraceElement;
-                if (newFrame) {
-                  seenSetForLastReportedFrame.clear();
-                }
-                String retracedString = originalItem.toRetracedItem(frame, isVerbose);
-                if (seenSetForLastReportedFrame.add(retracedString)) {
-                  if (frame.isAmbiguous() && !newFrame) {
-                    int firstCharIndex = firstNonWhiteSpaceCharacterFromIndex(retracedString, 0);
-                    retracedString =
-                        retracedString.substring(0, firstCharIndex)
-                            + "<OR> "
-                            + retracedString.substring(firstCharIndex);
-                  }
-                  retracedStrings.add(retracedString);
-                }
-              });
-        });
-    return retracedStrings;
-  }
-
-  /**
-   * @param stackTraceVisitor the stack trace visitor.
-   * @param proxyRetracer the retracer used to parse each stack trace frame.
-   * @param resultConsumer consumer to accept each parsed stack trace frame. The stack-trace element
-   *     is guaranteed to be unique per line.
-   */
-  public static <T extends StackTraceElementProxy<?>> void run(
-      StackTraceVisitor<T> stackTraceVisitor,
-      StackTraceElementProxyRetracer<T> proxyRetracer,
-      BiConsumer<T, List<RetraceStackTraceProxy<T>>> resultConsumer) {
-    stackTraceVisitor.forEach(
-        stackTraceElement -> {
-          Box<List<RetraceStackTraceProxy<T>>> currentList = new Box<>();
-          Map<RetraceStackTraceProxy<T>, List<RetraceStackTraceProxy<T>>> ambiguousBlocks =
-              new HashMap<>();
-          proxyRetracer
-              .retrace(stackTraceElement)
-              .forEach(
-                  retracedElement -> {
-                    if (retracedElement.isTopFrame() || !retracedElement.hasRetracedClass()) {
-                      List<RetraceStackTraceProxy<T>> block = new ArrayList<>();
-                      ambiguousBlocks.put(retracedElement, block);
-                      currentList.set(block);
-                    }
-                    currentList.get().add(retracedElement);
-                  });
-          ambiguousBlocks.keySet().stream()
-              .sorted()
-              .forEach(
-                  topFrame ->
-                      resultConsumer.accept(stackTraceElement, ambiguousBlocks.get(topFrame)));
-        });
   }
 
   public static void run(String[] args) throws RetraceFailedException {

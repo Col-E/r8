@@ -8,7 +8,7 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.ClassReference;
 
 @Keep
-public abstract class StackTraceElementProxy<T> {
+public abstract class StackTraceElementProxy<T, ST extends StackTraceElementProxy<T, ST>> {
 
   public abstract boolean hasClassName();
 
@@ -37,4 +37,6 @@ public abstract class StackTraceElementProxy<T> {
   public abstract String getFieldOrReturnType();
 
   public abstract String getMethodArguments();
+
+  public abstract T toRetracedItem(RetraceStackTraceProxy<T, ST> retracedProxy, boolean verbose);
 }

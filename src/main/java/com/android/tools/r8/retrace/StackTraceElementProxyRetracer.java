@@ -9,12 +9,12 @@ import com.android.tools.r8.retrace.internal.StackTraceElementProxyRetracerImpl;
 import java.util.stream.Stream;
 
 @Keep
-public interface StackTraceElementProxyRetracer<T extends StackTraceElementProxy<?>> {
+public interface StackTraceElementProxyRetracer<T, ST extends StackTraceElementProxy<T, ST>> {
 
-  Stream<RetraceStackTraceProxy<T>> retrace(T element);
+  Stream<RetraceStackTraceProxy<T, ST>> retrace(ST element);
 
-  static <T extends StackTraceElementProxy<?>> StackTraceElementProxyRetracer<T> createDefault(
-      Retracer retracer) {
+  static <T, ST extends StackTraceElementProxy<T, ST>>
+      StackTraceElementProxyRetracer<T, ST> createDefault(Retracer retracer) {
     return new StackTraceElementProxyRetracerImpl<>(retracer);
   }
 }

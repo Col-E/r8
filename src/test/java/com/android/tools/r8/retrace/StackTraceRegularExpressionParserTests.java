@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.retrace;
 
-import static com.android.tools.r8.retrace.Retrace.DEFAULT_REGULAR_EXPRESSION;
+import static com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
 import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -25,14 +25,14 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class RetraceRegularExpressionTests extends TestBase {
+public class StackTraceRegularExpressionParserTests extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public RetraceRegularExpressionTests(TestParameters parameters) {}
+  public StackTraceRegularExpressionParserTests(TestParameters parameters) {}
 
   @Test
   public void ensureNotMatchingOnLiteral() {

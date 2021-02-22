@@ -43,9 +43,4 @@ public class RetraceInvalidStackTraceLineDiagnostics implements Diagnostic {
   public static RetraceInvalidStackTraceLineDiagnostics createNull(int lineNumber) {
     return new RetraceInvalidStackTraceLineDiagnostics(lineNumber, NULL_STACK_TRACE_LINE_MESSAGE);
   }
-
-  static RetraceInvalidStackTraceLineDiagnostics createParse(int lineNumber, String line) {
-    return new RetraceInvalidStackTraceLineDiagnostics(
-        lineNumber, String.format(PARSE_STACK_TRACE_LINE_MESSAGE, line));
-  }
 }

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.retrace;
 
+import static com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 
@@ -106,8 +107,7 @@ public class SourceFileTest extends TestBase {
     StackTrace originalStackTrace = runResult.getOriginalStackTrace();
     StackTrace retracedStackTrace =
         originalStackTrace.retrace(
-            runResult.proguardMap(),
-            useRegularExpression ? Retrace.DEFAULT_REGULAR_EXPRESSION : null);
+            runResult.proguardMap(), useRegularExpression ? DEFAULT_REGULAR_EXPRESSION : null);
     runResult.inspectFailure(inspector -> consumer.accept(retracedStackTrace, inspector));
   }
 

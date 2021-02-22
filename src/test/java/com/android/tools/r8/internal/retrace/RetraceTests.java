@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.internal.retrace;
 
-import static com.android.tools.r8.retrace.Retrace.DEFAULT_REGULAR_EXPRESSION;
+import static com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;

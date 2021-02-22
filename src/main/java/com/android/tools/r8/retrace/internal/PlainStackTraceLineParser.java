@@ -7,33 +7,20 @@ package com.android.tools.r8.retrace.internal;
 import static com.android.tools.r8.retrace.internal.RetraceUtils.firstCharFromIndex;
 import static com.android.tools.r8.retrace.internal.RetraceUtils.firstNonWhiteSpaceCharacterFromIndex;
 
-import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.retrace.RetraceInvalidStackTraceLineDiagnostics;
-import com.android.tools.r8.retrace.StackTraceVisitor;
+import com.android.tools.r8.retrace.StackTraceLineParser;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.ClassNameType;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.StackTraceElementStringProxyBuilder;
 import com.android.tools.r8.utils.DescriptorUtils;
-import java.util.List;
-import java.util.function.Consumer;
 
-public final class PlainStackTraceVisitor
-    implements StackTraceVisitor<StackTraceElementStringProxy> {
+public final class PlainStackTraceLineParser
+    implements StackTraceLineParser<String, StackTraceElementStringProxy> {
 
-  private final List<String> stackTrace;
-  private final DiagnosticsHandler diagnosticsHandler;
-
-  public PlainStackTraceVisitor(List<String> stackTrace, DiagnosticsHandler diagnosticsHandler) {
-    this.stackTrace = stackTrace;
-    this.diagnosticsHandler = diagnosticsHandler;
-  }
+  public PlainStackTraceLineParser() {}
 
   @Override
-  public void forEach(Consumer<StackTraceElementStringProxy> consumer) {
-    for (int i = 0; i < stackTrace.size(); i++) {
-      consumer.accept(parseLine(i + 1, stackTrace.get(i)));
-    }
+  public StackTraceElementStringProxy parse(String stackTraceLine) {
+    return parseLine(stackTraceLine);
   }
-
 
   /**
    * Captures a stack trace line of the following formats:
@@ -193,11 +180,7 @@ public final class PlainStackTraceVisitor
     }
   }
 
-  private StackTraceElementStringProxy parseLine(int lineNumber, String line) {
-    if (line == null) {
-      diagnosticsHandler.error(RetraceInvalidStackTraceLineDiagnostics.createNull(lineNumber));
-      throw new RetraceAbortException();
-    }
+  private StackTraceElementStringProxy parseLine(String line) {
     // Most lines are 'at lines' so attempt to parse it first.
     StackTraceElementStringProxy parsedLine = AtLine.tryParse(line);
     if (parsedLine != null) {

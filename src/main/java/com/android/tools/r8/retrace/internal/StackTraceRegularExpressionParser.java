@@ -5,24 +5,31 @@
 package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.retrace.StackTraceVisitor;
+import com.android.tools.r8.retrace.StackTraceLineParser;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.ClassNameType;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.StackTraceElementStringProxyBuilder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RetraceRegularExpression implements StackTraceVisitor<StackTraceElementStringProxy> {
+public class StackTraceRegularExpressionParser
+    implements StackTraceLineParser<String, StackTraceElementStringProxy> {
 
-  private final List<String> stackTrace;
-  private final String regularExpression;
+  // This is a slight modification of the default regular expression shown for proguard retrace
+  // that allow for retracing classes in the form <class>: lorem ipsum...
+  // Seems like Proguard retrace is expecting the form "Caused by: <class>".
+  public static final String DEFAULT_REGULAR_EXPRESSION =
+      "(?:.*?\\bat\\s+%c\\.%m\\s*\\(%s(?::%l)?\\)\\s*(?:~\\[.*\\])?)"
+          + "|(?:(?:(?:%c|.*)?[:\"]\\s+)?%c(?::.*)?)";
+
+  private final Pattern compiledPattern;
 
   private static final int NO_MATCH = -1;
 
   private final SourceFileLineNumberGroup sourceFileLineNumberGroup =
       new SourceFileLineNumberGroup();
+  private final List<RegularExpressionGroupHandler> handlers;
   private final TypeNameGroup typeNameGroup = new TypeNameGroup();
   private final BinaryNameGroup binaryNameGroup = new BinaryNameGroup();
   private final SourceFileGroup sourceFileGroup = new SourceFileGroup();
@@ -35,39 +42,35 @@ public class RetraceRegularExpression implements StackTraceVisitor<StackTraceEle
   private static final String CAPTURE_GROUP_PREFIX = "captureGroup";
   private static final int FIRST_CAPTURE_GROUP_INDEX = 0;
 
-  public RetraceRegularExpression(List<String> stackTrace, String regularExpression) {
-    this.stackTrace = stackTrace;
-    this.regularExpression = regularExpression;
+  public StackTraceRegularExpressionParser() {
+    this(DEFAULT_REGULAR_EXPRESSION);
+  }
+
+  public StackTraceRegularExpressionParser(String regularExpression) {
+    handlers = new ArrayList<>();
+    StringBuilder refinedRegularExpressionBuilder = new StringBuilder();
+    registerGroups(
+        regularExpression, refinedRegularExpressionBuilder, handlers, FIRST_CAPTURE_GROUP_INDEX);
+    compiledPattern = Pattern.compile(refinedRegularExpressionBuilder.toString());
   }
 
   @Override
-  public void forEach(Consumer<StackTraceElementStringProxy> consumer) {
-    List<RegularExpressionGroupHandler> handlers = new ArrayList<>();
-    StringBuilder refinedRegularExpressionBuilder = new StringBuilder();
-    registerGroups(
-        this.regularExpression,
-        refinedRegularExpressionBuilder,
-        handlers,
-        FIRST_CAPTURE_GROUP_INDEX);
-    String refinedRegularExpression = refinedRegularExpressionBuilder.toString();
-    Pattern compiledPattern = Pattern.compile(refinedRegularExpression);
-    for (String string : stackTrace) {
-      StackTraceElementStringProxyBuilder proxyBuilder =
-          StackTraceElementStringProxy.builder(string);
-      Matcher matcher = compiledPattern.matcher(string);
-      if (matcher.matches()) {
-        boolean seenMatchedClassHandler = false;
-        for (RegularExpressionGroupHandler handler : handlers) {
-          if (seenMatchedClassHandler && handler.isClassHandler()) {
-            continue;
-          }
-          if (handler.matchHandler(proxyBuilder, matcher)) {
-            seenMatchedClassHandler |= handler.isClassHandler();
-          }
+  public StackTraceElementStringProxy parse(String stackTraceLine) {
+    StackTraceElementStringProxyBuilder proxyBuilder =
+        StackTraceElementStringProxy.builder(stackTraceLine);
+    Matcher matcher = compiledPattern.matcher(stackTraceLine);
+    if (matcher.matches()) {
+      boolean seenMatchedClassHandler = false;
+      for (RegularExpressionGroupHandler handler : handlers) {
+        if (seenMatchedClassHandler && handler.isClassHandler()) {
+          continue;
+        }
+        if (handler.matchHandler(proxyBuilder, matcher)) {
+          seenMatchedClassHandler |= handler.isClassHandler();
         }
       }
-      consumer.accept(proxyBuilder.build());
     }
+    return proxyBuilder.build();
   }
 
   private int registerGroups(
@@ -165,9 +168,6 @@ public class RetraceRegularExpression implements StackTraceVisitor<StackTraceEle
       return false;
     }
   }
-
-  private static final String anyNonDigitLetterCharWithMarkers = "\\p{L}\\p{M}*+";
-  private static final String anyDigit = "\\p{N}";
 
   // TODO(b/145731185): Extend support for identifiers with strings inside back ticks.
   private static final String javaIdentifierSegment =
@@ -376,4 +376,3 @@ public class RetraceRegularExpression implements StackTraceVisitor<StackTraceEle
     }
   }
 }
-

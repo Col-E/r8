@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.retrace;
 
-import static com.android.tools.r8.retrace.Retrace.DEFAULT_REGULAR_EXPRESSION;
+import static com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assume.assumeFalse;
 

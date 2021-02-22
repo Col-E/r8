@@ -8,8 +8,8 @@ import com.android.tools.r8.Keep;
 import java.util.List;
 
 @Keep
-public interface RetraceStackTraceProxy<T extends StackTraceElementProxy<?>>
-    extends Comparable<RetraceStackTraceProxy<T>> {
+public interface RetraceStackTraceProxy<T, ST extends StackTraceElementProxy<T, ST>>
+    extends Comparable<RetraceStackTraceProxy<T, ST>> {
 
   boolean isAmbiguous();
 
@@ -29,7 +29,7 @@ public interface RetraceStackTraceProxy<T extends StackTraceElementProxy<?>>
 
   boolean hasMethodArguments();
 
-  T getOriginalItem();
+  ST getOriginalItem();
 
   RetracedClass getRetracedClass();
 

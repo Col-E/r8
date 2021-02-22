@@ -6,35 +6,30 @@ package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser;
 import java.util.List;
 import java.util.function.Consumer;
 
 @Keep
 public class RetraceCommand {
 
-  final boolean isVerbose;
-  final String regularExpression;
-  final DiagnosticsHandler diagnosticsHandler;
-  final ProguardMapProducer proguardMapProducer;
-  final List<String> stackTrace;
-  final Consumer<List<String>> retracedStackTraceConsumer;
+  private final List<String> stackTrace;
+  private final Consumer<List<String>> retracedStackTraceConsumer;
+  // Not inheriting to allow for static builder methods.
+  private final RetraceOptions options;
 
   private RetraceCommand(
-      boolean isVerbose,
       String regularExpression,
       DiagnosticsHandler diagnosticsHandler,
       ProguardMapProducer proguardMapProducer,
       List<String> stackTrace,
-      Consumer<List<String>> retracedStackTraceConsumer) {
-    this.isVerbose = isVerbose;
-    this.regularExpression = regularExpression;
-    this.diagnosticsHandler = diagnosticsHandler;
-    this.proguardMapProducer = proguardMapProducer;
+      Consumer<List<String>> retracedStackTraceConsumer,
+      boolean isVerbose) {
+    options =
+        new RetraceOptions(regularExpression, diagnosticsHandler, proguardMapProducer, isVerbose);
     this.stackTrace = stackTrace;
     this.retracedStackTraceConsumer = retracedStackTraceConsumer;
 
-    assert this.diagnosticsHandler != null;
-    assert this.proguardMapProducer != null;
     assert this.stackTrace != null;
     assert this.retracedStackTraceConsumer != null;
   }
@@ -45,6 +40,18 @@ public class RetraceCommand {
 
   public boolean printMemory() {
     return System.getProperty("com.android.tools.r8.printmemory") != null;
+  }
+
+  public List<String> getStackTrace() {
+    return stackTrace;
+  }
+
+  public Consumer<List<String>> getRetracedStackTraceConsumer() {
+    return retracedStackTraceConsumer;
+  }
+
+  public RetraceOptions getOptions() {
+    return options;
   }
 
   /**
@@ -61,12 +68,13 @@ public class RetraceCommand {
     return new Builder(new DiagnosticsHandler() {});
   }
 
+  @Keep
   public static class Builder {
 
     private boolean isVerbose;
     private final DiagnosticsHandler diagnosticsHandler;
     private ProguardMapProducer proguardMapProducer;
-    private String regularExpression;
+    private String regularExpression = StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
     private List<String> stackTrace;
     private Consumer<List<String>> retracedStackTraceConsumer;
 
@@ -92,7 +100,8 @@ public class RetraceCommand {
 
     /**
      * Set a regular expression for parsing the incoming text. The Regular expression must not use
-     * naming groups and has special wild cards according to proguard retrace.
+     * naming groups and has special wild cards according to proguard retrace. Note, this will
+     * override the default regular expression.
      *
      * @param regularExpression The regular expression to use.
      */
@@ -136,13 +145,12 @@ public class RetraceCommand {
         throw new RuntimeException("RetracedStackConsumer not specified");
       }
       return new RetraceCommand(
-          isVerbose,
           regularExpression,
           diagnosticsHandler,
           proguardMapProducer,
           stackTrace,
-          retracedStackTraceConsumer);
+          retracedStackTraceConsumer,
+          isVerbose);
     }
   }
-
 }

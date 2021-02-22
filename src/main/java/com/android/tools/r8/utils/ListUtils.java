@@ -145,4 +145,14 @@ public class ListUtils {
     }
     return result;
   }
+
+  public static <T> void forEachWithIndex(List<T> items, ReferenceAndIntConsumer<T> consumer) {
+    for (int i = 0; i < items.size(); i++) {
+      consumer.accept(items.get(i), i);
+    }
+  }
+
+  public interface ReferenceAndIntConsumer<T> {
+    void accept(T item, int index);
+  }
 }
