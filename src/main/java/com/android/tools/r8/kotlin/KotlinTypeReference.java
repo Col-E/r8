@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -65,11 +66,12 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
     if (!known.isClassType()) {
       return known.descriptor.toString();
     }
+    DexType rewrittenType = appView.graphLens().lookupClassType(known);
     if (appView.appInfo().hasLiveness()
-        && !appView.withLiveness().appInfo().isNonProgramTypeOrLiveProgramType(known)) {
+        && !appView.withLiveness().appInfo().isNonProgramTypeOrLiveProgramType(rewrittenType)) {
       return defaultValue;
     }
-    DexString descriptor = namingLens.lookupDescriptor(known);
+    DexString descriptor = namingLens.lookupDescriptor(rewrittenType);
     if (descriptor != null) {
       return descriptor.toString();
     }
@@ -102,7 +104,14 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
   public void trace(DexDefinitionSupplier definitionSupplier) {
     if (known != null && known.isClassType()) {
       // Lookup the definition, ignoring the result. This populates the sets in the Enqueuer.
-      definitionSupplier.definitionFor(known);
+      definitionSupplier.contextIndependentDefinitionFor(known);
     }
+  }
+
+  public DexType rewriteType(GraphLens graphLens) {
+    if (known != null && known.isClassType()) {
+      return graphLens.lookupClassType(known);
+    }
+    return null;
   }
 }

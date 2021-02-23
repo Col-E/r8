@@ -7,6 +7,8 @@ package com.android.tools.r8.kotlin;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
@@ -48,6 +50,10 @@ public abstract class KotlinClassifierInfo implements EnqueuerMetadataTraceable 
 
   abstract void rewrite(KmTypeVisitor visitor, AppView<?> appView, NamingLens namingLens);
 
+  public DexType rewriteType(GraphLens graphLens) {
+    return null;
+  }
+
   public static class KotlinClassClassifierInfo extends KotlinClassifierInfo {
 
     private final KotlinTypeReference type;
@@ -74,6 +80,11 @@ public abstract class KotlinClassifierInfo implements EnqueuerMetadataTraceable 
     @Override
     public void trace(DexDefinitionSupplier definitionSupplier) {
       type.trace(definitionSupplier);
+    }
+
+    @Override
+    public DexType rewriteType(GraphLens graphLens) {
+      return type.rewriteType(graphLens);
     }
   }
 

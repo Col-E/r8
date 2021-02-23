@@ -9,6 +9,8 @@ import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
@@ -119,5 +121,9 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
     forEachApply(arguments, argument -> argument::trace, definitionSupplier);
     flexibleTypeUpperBound.trace(definitionSupplier);
     forEachApply(annotations, annotation -> annotation::trace, definitionSupplier);
+  }
+
+  public DexType rewriteType(GraphLens graphLens) {
+    return classifier.rewriteType(graphLens);
   }
 }

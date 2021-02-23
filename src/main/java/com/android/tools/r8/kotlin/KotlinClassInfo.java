@@ -249,7 +249,10 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     }
     // Rewrite super types.
     for (KotlinTypeInfo superType : superTypes) {
-      superType.rewrite(kmClass::visitSupertype, appView, namingLens);
+      // Ensure the rewritten super type is not this type.
+      if (clazz.getType() != superType.rewriteType(appView.graphLens())) {
+        superType.rewrite(kmClass::visitSupertype, appView, namingLens);
+      }
     }
     // Rewrite nested classes.
     for (KotlinTypeReference nestedClass : nestedClasses) {
