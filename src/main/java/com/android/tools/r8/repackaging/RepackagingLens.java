@@ -6,10 +6,13 @@ package com.android.tools.r8.repackaging;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
@@ -42,8 +45,36 @@ public class RepackagingLens extends NestedGraphLens {
   }
 
   @Override
-  public boolean isSimpleRenaming(DexType from, DexType to) {
-    return originalTypes.get(to) == from || super.isSimpleRenaming(from, to);
+  public <T extends DexReference> boolean isSimpleRenaming(T from, T to) {
+    if (from == to) {
+      assert false : "The from and to references should not be equal";
+      return false;
+    }
+    if (super.isSimpleRenaming(from, to)) {
+      // Repackaging only move classes and therefore if a previous lens has a simple renaming it
+      // will be maintained here.
+      return true;
+    }
+    return DexReference.applyPair(
+        from,
+        to,
+        this::isSimpleTypeRenamingOrEqual,
+        this::isSimpleTypeRenamingOrEqual,
+        this::isSimpleTypeRenamingOrEqual);
+  }
+
+  private boolean isSimpleTypeRenamingOrEqual(DexType from, DexType to) {
+    return from == to || originalTypes.get(to) == from;
+  }
+
+  private boolean isSimpleTypeRenamingOrEqual(DexMember<?, ?> from, DexMember<?, ?> to) {
+    if (!isSimpleTypeRenamingOrEqual(from.getHolderType(), to.getHolderType())) {
+      return false;
+    }
+    return IterableUtils.testPairs(
+        this::isSimpleTypeRenamingOrEqual,
+        from.getReferencedBaseTypes(dexItemFactory),
+        to.getReferencedBaseTypes(dexItemFactory));
   }
 
   public static class Builder {

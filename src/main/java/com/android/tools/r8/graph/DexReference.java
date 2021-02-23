@@ -4,7 +4,9 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.errors.Unreachable;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -26,6 +28,22 @@ public abstract class DexReference extends IndexedDexItem {
       BiConsumer<DexField, T> fieldConsumer,
       BiConsumer<DexMethod, T> methodConsumer,
       T arg);
+
+  public static <R extends DexReference, T> T applyPair(
+      R one,
+      R other,
+      BiFunction<DexType, DexType, T> classConsumer,
+      BiFunction<DexField, DexField, T> fieldConsumer,
+      BiFunction<DexMethod, DexMethod, T> methodConsumer) {
+    if (one.isDexType()) {
+      return classConsumer.apply(one.asDexType(), other.asDexType());
+    } else if (one.isDexField()) {
+      return fieldConsumer.apply(one.asDexField(), other.asDexField());
+    } else if (one.isDexMethod()) {
+      return methodConsumer.apply(one.asDexMethod(), other.asDexMethod());
+    }
+    throw new Unreachable();
+  }
 
   public abstract void collectIndexedItems(IndexedItemCollection indexedItems);
 

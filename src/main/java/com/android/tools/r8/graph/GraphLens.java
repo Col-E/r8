@@ -355,10 +355,12 @@ public abstract class GraphLens {
     return newMethod.lookupOnProgramClass(holder);
   }
 
-  // Predicate indicating if a rewritten type is a simple renaming, meaning the move from type to
-  // rewritten is just a renaming of the type to another. In other words, the content of the
-  // definition, including the definition of all of its members is the same modulo the renaming.
-  public boolean isSimpleRenaming(DexType from, DexType to) {
+  // Predicate indicating if a rewritten reference is a simple renaming, meaning the move from one
+  // reference to another is simply either just a renaming or/also renaming of the references. In
+  // other words, the content of the definition, including the definition of all of its members is
+  // the same modulo the renaming.
+  public <T extends DexReference> boolean isSimpleRenaming(T from, T to) {
+    assert from != to;
     return false;
   }
 

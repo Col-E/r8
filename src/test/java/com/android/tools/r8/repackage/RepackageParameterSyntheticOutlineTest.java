@@ -4,11 +4,8 @@
 
 package com.android.tools.r8.repackage;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
-import static org.hamcrest.CoreMatchers.containsString;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -49,7 +46,7 @@ public class RepackageParameterSyntheticOutlineTest extends RepackageTestBase {
         .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(Param.class, Return.class)
@@ -67,13 +64,8 @@ public class RepackageParameterSyntheticOutlineTest extends RepackageTestBase {
             })
         .apply(this::configureRepackaging)
         .addKeepPackageNamesRule("bar**")
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              // TODO(b/180092122): This should not fail.
-              diagnostics.assertErrorsMatch(
-                  diagnosticMessage(
-                      containsString("The synthetic method reference should have moved")));
-            });
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   private byte[] rewrittenPackageForClassWithCodeToBeOutlined() throws Exception {

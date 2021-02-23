@@ -8,8 +8,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -129,5 +131,24 @@ public class IterableUtils {
     } else {
       return iterable;
     }
+  }
+
+  /**
+   * Utility method for testing the the elements in one and other pair-wise. Returns false if the
+   * lengths differ.
+   */
+  public static <T> boolean testPairs(
+      BiPredicate<T, T> predicate, Iterable<T> one, Iterable<T> other) {
+    Iterator<T> iterator = other.iterator();
+    for (T first : one) {
+      if (!iterator.hasNext()) {
+        return false;
+      }
+      T second = iterator.next();
+      if (!predicate.test(first, second)) {
+        return false;
+      }
+    }
+    return !iterator.hasNext();
   }
 }
