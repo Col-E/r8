@@ -152,9 +152,6 @@ public final class L8Command extends BaseCompilerCommand {
     InternalOptions internal = new InternalOptions(factory, getReporter());
     assert !internal.debug;
     internal.debug = getMode() == CompilationMode.DEBUG;
-    // TODO(b/180903899): Remove once -dontwarn sun.misc.Unsafe is in place.
-    assert !internal.ignoreMissingClasses;
-    internal.ignoreMissingClasses = true;
     assert internal.mainDexListConsumer == null;
     assert !internal.minimalMainDex;
     internal.minApiLevel = getMinApiLevel();

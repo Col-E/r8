@@ -133,7 +133,9 @@ public class MissingClasses {
           getMissingClassesToBeReported(appView, synthesizingContextOracle);
       if (!missingClassesToBeReported.isEmpty()) {
         MissingDefinitionsDiagnostic diagnostic = createDiagnostic(missingClassesToBeReported);
-        if (appView.options().ignoreMissingClasses) {
+        InternalOptions options = appView.options();
+        // TODO(b/180903899): Remove L8 special handling when -dontwarn sun.misc.Unsafe is in place.
+        if (options.ignoreMissingClasses || options.isDesugaredLibraryCompilation()) {
           appView.reporter().warning(diagnostic);
         } else {
           throw appView.reporter().fatalError(diagnostic);
