@@ -73,10 +73,6 @@ public class MissingClasses {
     // if the same type is in newMissingClasses in which case it is reported regardless.
     private final Set<DexType> newIgnoredMissingClasses = Sets.newIdentityHashSet();
 
-    private Builder() {
-      this(Sets.newIdentityHashSet());
-    }
-
     private Builder(Set<DexType> alreadyMissingClasses) {
       this.alreadyMissingClasses = alreadyMissingClasses;
     }
@@ -133,9 +129,7 @@ public class MissingClasses {
           getMissingClassesToBeReported(appView, synthesizingContextOracle);
       if (!missingClassesToBeReported.isEmpty()) {
         MissingDefinitionsDiagnostic diagnostic = createDiagnostic(missingClassesToBeReported);
-        InternalOptions options = appView.options();
-        // TODO(b/180903899): Remove L8 special handling when -dontwarn sun.misc.Unsafe is in place.
-        if (options.ignoreMissingClasses || options.isDesugaredLibraryCompilation()) {
+        if (appView.options().ignoreMissingClasses) {
           appView.reporter().warning(diagnostic);
         } else {
           throw appView.reporter().fatalError(diagnostic);

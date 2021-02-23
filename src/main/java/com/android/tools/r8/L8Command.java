@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -315,6 +316,9 @@ public final class L8Command extends BaseCompilerCommand {
         }
         r8Builder.addProguardConfiguration(
             libraryConfiguration.getExtraKeepRules(), Origin.unknown());
+        // TODO(b/180903899): Remove rule when -dontwarn sun.misc.Unsafe is part of config.
+        r8Builder.addProguardConfiguration(
+            ImmutableList.of("-dontwarn sun.misc.Unsafe"), Origin.unknown());
         r8Builder.addProguardConfigurationFiles(proguardConfigFiles);
         r8Builder.setDisableDesugaring(true);
         r8Builder.skipDump();
