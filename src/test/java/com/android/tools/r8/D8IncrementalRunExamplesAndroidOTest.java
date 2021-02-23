@@ -362,11 +362,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
 
   @Override
   protected void testIntermediateWithMainDexList(
-      String packageName,
-      Path input,
-      int expectedMainDexListSize,
-      List<String> mainDexClasses,
-      List<String> mainDexOverApproximation)
+      String packageName, Path input, int expectedMainDexListSize, List<String> mainDexClasses)
       throws Throwable {
     // Skip those tests.
     Assume.assumeTrue(false);

@@ -122,7 +122,7 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
     appView.rewritePrefix.rewriteType(hygienicType, rewrittenType);
   }
 
-  // TODO(b/180074885): Remove this once main-dex is traced at the end of of compilation.
+  // TODO(b/181010111): Remove this once main-dex is a computed property on synthetics.
   void addIfDerivedFromMainDexClass(
       DexProgramClass externalSyntheticClass, MainDexInfo mainDexInfo) {
     if (mainDexInfo.isMainDex(externalSyntheticClass)) {
