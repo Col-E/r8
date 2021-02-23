@@ -65,12 +65,11 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
     if (!known.isClassType()) {
       return known.descriptor.toString();
     }
-    DexType rewrittenType = appView.graphLens().lookupClassType(known);
     if (appView.appInfo().hasLiveness()
-        && !appView.withLiveness().appInfo().isNonProgramTypeOrLiveProgramType(rewrittenType)) {
+        && !appView.withLiveness().appInfo().isNonProgramTypeOrLiveProgramType(known)) {
       return defaultValue;
     }
-    DexString descriptor = namingLens.lookupDescriptor(rewrittenType);
+    DexString descriptor = namingLens.lookupDescriptor(known);
     if (descriptor != null) {
       return descriptor.toString();
     }
@@ -103,7 +102,7 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
   public void trace(DexDefinitionSupplier definitionSupplier) {
     if (known != null && known.isClassType()) {
       // Lookup the definition, ignoring the result. This populates the sets in the Enqueuer.
-      definitionSupplier.contextIndependentDefinitionFor(known);
+      definitionSupplier.definitionFor(known);
     }
   }
 }
