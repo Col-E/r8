@@ -11,6 +11,9 @@ public class TypeReferenceUtils {
 
   private static final Comparator<TypeReference> COMPARATOR =
       (type, other) -> {
+        if (type == other) {
+          return 0;
+        }
         // Handle null inputs (void).
         if (type == null) {
           return -1;
