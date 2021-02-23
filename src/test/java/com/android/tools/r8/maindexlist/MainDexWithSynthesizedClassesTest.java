@@ -72,7 +72,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
     D8TestCompileResult compileResult =
         testForD8()
             .addProgramFiles(intermediateResult.writeToZip())
-            .addMainDexListClasses(TestClass.class, A.class)
+            .addMainDexKeepClassRules(TestClass.class, A.class)
             .setMinApiThreshold(parameters.getApiLevel())
             .compile();
     checkCompilationResult(compileResult);
