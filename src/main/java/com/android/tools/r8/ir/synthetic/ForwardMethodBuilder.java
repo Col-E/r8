@@ -177,6 +177,7 @@ public class ForwardMethodBuilder {
       DexType parameter = sourceParameters[i];
       ValueType parameterType = ValueType.fromDexType(parameter);
       instructions.add(new CfLoad(parameterType, maxLocals));
+      maxStack += parameterType.requiredRegisters();
       maxLocals += parameterType.requiredRegisters();
       maybeInsertArgumentCast(i, parameter, instructions);
     }
