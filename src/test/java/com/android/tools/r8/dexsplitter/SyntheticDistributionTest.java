@@ -16,6 +16,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -55,7 +56,6 @@ public class SyntheticDistributionTest extends SplitterTestBase {
             r8FullTestBuilder
                 .noMinification()
                 .enableInliningAnnotations()
-                .addInliningAnnotations()
                 .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O));
     ThrowingConsumer<R8TestCompileResult, Exception> ensureLambdaNotInBase =
         r8TestCompileResult -> {
@@ -87,6 +87,10 @@ public class SyntheticDistributionTest extends SplitterTestBase {
             .addFeatureSplit(FeatureClass.class)
             .addFeatureSplit(Feature2Class.class)
             .addKeepFeatureMainRules(BaseSuperClass.class, FeatureClass.class, Feature2Class.class)
+            .addKeepMethodRules(
+                Reference.methodFromMethod(
+                    BaseSuperClass.class.getDeclaredMethod(
+                        "keptApplyLambda", MyFunction.class, String.class)))
             .noMinification()
             .enableInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
@@ -108,6 +112,10 @@ public class SyntheticDistributionTest extends SplitterTestBase {
     }
 
     public abstract String getFromFeature();
+
+    public String keptApplyLambda(MyFunction fn, String arg) {
+      return fn.apply(arg);
+    }
   }
 
   public interface MyFunction {
@@ -133,7 +141,7 @@ public class SyntheticDistributionTest extends SplitterTestBase {
 
     @NeverInline
     private String useTheLambda(MyFunction f) {
-      return f.apply("42");
+      return keptApplyLambda(f, "42");
     }
   }
 
@@ -159,7 +167,7 @@ public class SyntheticDistributionTest extends SplitterTestBase {
 
     @NeverInline
     private String useTheLambda(MyFunction f) {
-      return f.apply("43");
+      return keptApplyLambda(f, "43");
     }
   }
 }

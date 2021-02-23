@@ -84,6 +84,11 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   private final PendingSynthetics pending = new PendingSynthetics();
 
+  // Empty collection for use only in tests and utilities.
+  public static SyntheticItems empty() {
+    return new SyntheticItems(-1, CommittedSyntheticsCollection.empty());
+  }
+
   // Only for use from initial AppInfo/AppInfoWithClassHierarchy create functions. */
   public static CommittedItems createInitialSyntheticItems(DexApplication application) {
     return new CommittedItems(
@@ -213,6 +218,18 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   public boolean isSyntheticClass(DexProgramClass clazz) {
     return isSyntheticClass(clazz.type);
+  }
+
+  public Collection<DexType> getSynthesizingContexts(DexType type) {
+    SyntheticReference<?, ?, ?> reference = committed.getNonLegacyItem(type);
+    if (reference != null) {
+      return Collections.singletonList(reference.getContext().getSynthesizingContextType());
+    }
+    SyntheticDefinition<?, ?, ?> definition = pending.nonLegacyDefinitions.get(type);
+    if (definition != null) {
+      return Collections.singletonList(definition.getContext().getSynthesizingContextType());
+    }
+    return Collections.emptyList();
   }
 
   // TODO(b/180091213): Implement this and remove client provided the oracle.
@@ -445,6 +462,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   Result computeFinalSynthetics(AppView<?> appView) {
     assert !hasPendingSyntheticClasses();
-    return new SyntheticFinalization(appView.options(), committed).computeFinalSynthetics(appView);
+    return new SyntheticFinalization(appView.options(), this, committed)
+        .computeFinalSynthetics(appView);
   }
 }

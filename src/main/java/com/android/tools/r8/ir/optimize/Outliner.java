@@ -11,6 +11,7 @@ import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.Code;
@@ -1287,7 +1288,7 @@ public class Outliner {
         code -> {
           ProgramMethod context = code.context();
           assert !context.getDefinition().getCode().isOutlineCode();
-          if (appView.appInfo().getClassToFeatureSplitMap().isInFeature(context.getHolder())) {
+          if (ClassToFeatureSplitMap.isInFeature(context.getHolder(), appView)) {
             return;
           }
           for (BasicBlock block : code.blocks) {
@@ -1306,7 +1307,7 @@ public class Outliner {
   public void identifyOutlineSites(IRCode code) {
     ProgramMethod context = code.context();
     assert !context.getDefinition().getCode().isOutlineCode();
-    assert !appView.appInfo().getClassToFeatureSplitMap().isInFeature(context.getHolder());
+    assert !ClassToFeatureSplitMap.isInFeature(context.getHolder(), appView);
     for (BasicBlock block : code.blocks) {
       new OutlineSiteIdentifier(context, block).process();
     }

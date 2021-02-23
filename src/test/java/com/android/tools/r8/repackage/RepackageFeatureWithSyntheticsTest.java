@@ -12,7 +12,6 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -37,12 +36,16 @@ public class RepackageFeatureWithSyntheticsTest extends RepackageTestBase {
   private static final List<Class<?>> FIRST_CLASSES =
       ImmutableList.of(FIRST_FOO, FIRST_PKG_PRIVATE);
 
+  private static final Class<?> FIRST_FIRST_FOO =
+      com.android.tools.r8.repackage.testclasses.repackagefeaturewithsynthetics.first.first.Foo
+          .class;
+
+  private static final Class<?> FIRST_FIRST_PKG_PRIVATE =
+      com.android.tools.r8.repackage.testclasses.repackagefeaturewithsynthetics.first.first
+          .PkgProtectedMethod.class;
+
   private static final List<Class<?>> FIRST_FIRST_CLASSES =
-      ImmutableList.of(
-          com.android.tools.r8.repackage.testclasses.repackagefeaturewithsynthetics.first.first.Foo
-              .class,
-          com.android.tools.r8.repackage.testclasses.repackagefeaturewithsynthetics.first.first
-              .PkgProtectedMethod.class);
+      ImmutableList.of(FIRST_FIRST_FOO, FIRST_FIRST_PKG_PRIVATE);
 
   private static List<Class<?>> getTestClasses() {
     return ImmutableList.<Class<?>>builder()
@@ -84,11 +87,7 @@ public class RepackageFeatureWithSyntheticsTest extends RepackageTestBase {
             .addProgramClasses(getTestClasses())
             .addFeatureSplit(getFeatureClasses().toArray(new Class<?>[0]))
             .addKeepMainRule(TestClass.class)
-            .addKeepClassAndMembersRules(
-                com.android.tools.r8.repackage.testclasses.repackagefeaturewithsynthetics.first
-                    .PkgProtectedMethod.class,
-                com.android.tools.r8.repackage.testclasses.repackagefeaturewithsynthetics.first
-                    .first.PkgProtectedMethod.class)
+            .addKeepClassAndMembersRules(FIRST_PKG_PRIVATE, FIRST_FIRST_PKG_PRIVATE)
             .addKeepClassAndMembersRules(I.class)
             .addKeepMethodRules(
                 Reference.methodFromMethod(TestClass.class.getDeclaredMethod("run", I.class)))
@@ -106,20 +105,21 @@ public class RepackageFeatureWithSyntheticsTest extends RepackageTestBase {
     // Check that the first.Foo is repackaged but that the pkg private access class is not.
     // The implies that the lambda which is doing a package private access cannot be repackaged.
     // If it is, the access will fail resulting in a runtime exception.
-    CodeInspector baseInspector = compileResult.inspector();
-    assertThat(FIRST_FOO, isRepackagedAsExpected(baseInspector, "first"));
-    assertThat(FIRST_PKG_PRIVATE, isNotRepackaged(baseInspector));
-    assertEquals(
-        getTestClasses().size() + expectedSyntheticsInBase, baseInspector.allClasses().size());
-
-    // The feature first.first.Foo is not repackaged and neither is the lambda.
-    // TODO(b/180086194): first.first.Foo should have been repackaged, but is currently identified
-    //   as being in 'base' when inlining takes place.
-    CodeInspector featureInspector = new CodeInspector(compileResult.getFeature(0));
-    getFeatureClasses().forEach(c -> assertThat(c, isNotRepackaged(featureInspector)));
-    assertEquals(
-        getFeatureClasses().size() + expectedSyntheticsInFeature,
-        featureInspector.allClasses().size());
+    compileResult.inspect(
+        baseInspector -> {
+          assertThat(FIRST_FOO, isRepackagedAsExpected(baseInspector, "first"));
+          assertThat(FIRST_PKG_PRIVATE, isNotRepackaged(baseInspector));
+          assertEquals(
+              getTestClasses().size() + expectedSyntheticsInBase,
+              baseInspector.allClasses().size());
+        },
+        featureInspector -> {
+          assertThat(FIRST_FIRST_FOO, isRepackagedAsExpected(featureInspector, "first$1"));
+          assertThat(FIRST_FIRST_PKG_PRIVATE, isNotRepackaged(featureInspector));
+          assertEquals(
+              getFeatureClasses().size() + expectedSyntheticsInFeature,
+              featureInspector.allClasses().size());
+        });
 
     compileResult
         .addFeatureSplitsToRunClasspathFiles()

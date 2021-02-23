@@ -66,7 +66,10 @@ abstract class SyntheticDefinition<
   public abstract C getHolder();
 
   final HashCode computeHash(
-      RepresentativeMap map, boolean intermediate, ClassToFeatureSplitMap classToFeatureSplitMap) {
+      RepresentativeMap map,
+      boolean intermediate,
+      ClassToFeatureSplitMap classToFeatureSplitMap,
+      SyntheticItems syntheticItems) {
     Hasher hasher = Hashing.murmur3_128().newHasher();
     if (getKind().isFixedSuffixSynthetic) {
       // Fixed synthetics are non-shareable. Its unique type is used as the hash key.
@@ -81,7 +84,7 @@ abstract class SyntheticDefinition<
     if (!classToFeatureSplitMap.isEmpty()) {
       hasher.putInt(
           classToFeatureSplitMap
-              .getFeatureSplit(getContext().getSynthesizingContextType())
+              .getFeatureSplit(getContext().getSynthesizingContextType(), syntheticItems)
               .hashCode());
     }
 
@@ -95,15 +98,17 @@ abstract class SyntheticDefinition<
       D other,
       boolean includeContext,
       GraphLens graphLens,
-      ClassToFeatureSplitMap classToFeatureSplitMap) {
-    return compareTo(other, includeContext, graphLens, classToFeatureSplitMap) == 0;
+      ClassToFeatureSplitMap classToFeatureSplitMap,
+      SyntheticItems syntheticItems) {
+    return compareTo(other, includeContext, graphLens, classToFeatureSplitMap, syntheticItems) == 0;
   }
 
   int compareTo(
       D other,
       boolean includeContext,
       GraphLens graphLens,
-      ClassToFeatureSplitMap classToFeatureSplitMap) {
+      ClassToFeatureSplitMap classToFeatureSplitMap,
+      SyntheticItems syntheticItems) {
     DexType thisType = getHolder().getType();
     DexType otherType = other.getHolder().getType();
     if (getKind().isFixedSuffixSynthetic) {
@@ -120,10 +125,10 @@ abstract class SyntheticDefinition<
       DexType synthesizingContextType = this.getContext().getSynthesizingContextType();
       DexType otherSynthesizingContextType = other.getContext().getSynthesizingContextType();
       if (!classToFeatureSplitMap.isInSameFeatureOrBothInBase(
-          synthesizingContextType, otherSynthesizingContextType)) {
+          synthesizingContextType, otherSynthesizingContextType, syntheticItems)) {
         int order =
             classToFeatureSplitMap.compareFeatureSplitsForDexTypes(
-                synthesizingContextType, otherSynthesizingContextType);
+                synthesizingContextType, otherSynthesizingContextType, syntheticItems);
         assert order != 0;
         return order;
       }

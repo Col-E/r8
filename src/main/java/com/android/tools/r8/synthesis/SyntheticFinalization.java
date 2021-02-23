@@ -203,9 +203,11 @@ public class SyntheticFinalization {
     public int compareToIncludingContext(
         EquivalenceGroup<T> other,
         GraphLens graphLens,
-        ClassToFeatureSplitMap classToFeatureSplitMap) {
+        ClassToFeatureSplitMap classToFeatureSplitMap,
+        SyntheticItems syntheticItems) {
       return getRepresentative()
-          .compareTo(other.getRepresentative(), true, graphLens, classToFeatureSplitMap);
+          .compareTo(
+              other.getRepresentative(), true, graphLens, classToFeatureSplitMap, syntheticItems);
     }
 
     @Override
@@ -219,11 +221,14 @@ public class SyntheticFinalization {
   }
 
   private final InternalOptions options;
-  private final CommittedSyntheticsCollection synthetics;
+  private final SyntheticItems synthetics;
+  private final CommittedSyntheticsCollection committed;
 
-  SyntheticFinalization(InternalOptions options, CommittedSyntheticsCollection synthetics) {
+  SyntheticFinalization(
+      InternalOptions options, SyntheticItems synthetics, CommittedSyntheticsCollection committed) {
     this.options = options;
     this.synthetics = synthetics;
+    this.committed = committed;
   }
 
   public static void finalize(AppView<AppInfo> appView) {
@@ -269,8 +274,8 @@ public class SyntheticFinalization {
       application =
           buildLensAndProgram(
               appView,
-              computeEquivalences(appView, synthetics.getNonLegacyMethods().values(), generators),
-              computeEquivalences(appView, synthetics.getNonLegacyClasses().values(), generators),
+              computeEquivalences(appView, committed.getNonLegacyMethods().values(), generators),
+              computeEquivalences(appView, committed.getNonLegacyClasses().values(), generators),
               lensBuilder,
               (clazz, reference) -> {
                 finalSyntheticProgramDefinitions.add(clazz);
@@ -291,7 +296,7 @@ public class SyntheticFinalization {
     assert appView.appInfo().getMainDexInfo() == mainDexInfo;
 
     Set<DexType> prunedSynthetics = Sets.newIdentityHashSet();
-    synthetics.forEachNonLegacyItem(
+    committed.forEachNonLegacyItem(
         reference -> {
           DexType type = reference.getHolder();
           if (!finalMethods.containsKey(type) && !finalClasses.containsKey(type)) {
@@ -304,7 +309,7 @@ public class SyntheticFinalization {
             SyntheticItems.INVALID_ID_AFTER_SYNTHETIC_FINALIZATION,
             application,
             new CommittedSyntheticsCollection(
-                synthetics.getLegacyTypes(), finalMethods, finalClasses),
+                committed.getLegacyTypes(), finalMethods, finalClasses),
             ImmutableList.of()),
         lensBuilder.build(appView.graphLens(), appView.dexItemFactory()),
         PrunedItems.builder()
@@ -330,18 +335,19 @@ public class SyntheticFinalization {
             intermediate,
             appView.dexItemFactory(),
             appView.graphLens(),
-            classToFeatureSplitMap);
+            classToFeatureSplitMap,
+            synthetics);
     return computeActualEquivalences(
         potentialEquivalences, generators, appView, intermediate, classToFeatureSplitMap);
   }
 
   private boolean isNotSyntheticType(DexType type) {
-    return !synthetics.containsNonLegacyType(type);
+    return !committed.containsNonLegacyType(type);
   }
 
   private boolean verifyNoNestedSynthetics() {
     // Check that a context is never itself synthetic class.
-    synthetics.forEachNonLegacyItem(
+    committed.forEachNonLegacyItem(
         item -> {
           assert isNotSyntheticType(item.getContext().getSynthesizingContextType());
         });
@@ -368,7 +374,7 @@ public class SyntheticFinalization {
       DexApplication application, List<DexProgramClass> finalSyntheticClasses) {
     ListMultimap<DexProgramClass, DexProgramClass> originalToSynthesized =
         ArrayListMultimap.create();
-    for (DexType type : synthetics.getLegacyTypes()) {
+    for (DexType type : committed.getLegacyTypes()) {
       DexProgramClass clazz = DexProgramClass.asProgramClassOrNull(application.definitionFor(type));
       if (clazz != null) {
         for (DexProgramClass origin : clazz.getSynthesizedFrom()) {
@@ -670,10 +676,12 @@ public class SyntheticFinalization {
     potentialEquivalences.forEach(
         members -> {
           List<List<T>> groups =
-              groupEquivalent(members, intermediate, appView.graphLens(), classToFeatureSplitMap);
+              groupEquivalent(
+                  members, intermediate, appView.graphLens(), classToFeatureSplitMap, synthetics);
           for (List<T> group : groups) {
             T representative =
-                findDeterministicRepresentative(group, appView.graphLens(), classToFeatureSplitMap);
+                findDeterministicRepresentative(
+                    group, appView.graphLens(), classToFeatureSplitMap, synthetics);
             // The representative is required to be the first element of the group.
             group.remove(representative);
             group.add(0, representative);
@@ -691,7 +699,8 @@ public class SyntheticFinalization {
           // representative which is equal to 'context' here (see assert below).
           groups.sort(
               (a, b) ->
-                  a.compareToIncludingContext(b, appView.graphLens(), classToFeatureSplitMap));
+                  a.compareToIncludingContext(
+                      b, appView.graphLens(), classToFeatureSplitMap, synthetics));
           for (int i = 0; i < groups.size(); i++) {
             EquivalenceGroup<T> group = groups.get(i);
             assert group
@@ -702,7 +711,11 @@ public class SyntheticFinalization {
             // of the synthetic name will be non-deterministic between the two.
             assert i == 0
                 || checkGroupsAreDistinct(
-                    groups.get(i - 1), group, appView.graphLens(), classToFeatureSplitMap);
+                    groups.get(i - 1),
+                    group,
+                    appView.graphLens(),
+                    classToFeatureSplitMap,
+                    synthetics);
             SyntheticKind kind = group.members.get(0).getKind();
             DexType representativeType =
                 createExternalType(kind, externalSyntheticTypePrefix, generators, appView);
@@ -716,14 +729,15 @@ public class SyntheticFinalization {
       List<T> potentialEquivalence,
       boolean intermediate,
       GraphLens graphLens,
-      ClassToFeatureSplitMap classToFeatureSplitMap) {
+      ClassToFeatureSplitMap classToFeatureSplitMap,
+      SyntheticItems syntheticItems) {
     List<List<T>> groups = new ArrayList<>();
     // Each other member is in a shared group if it is actually equivalent to the first member.
     for (T synthetic : potentialEquivalence) {
       boolean requireNewGroup = true;
       for (List<T> group : groups) {
         if (synthetic.isEquivalentTo(
-            group.get(0), intermediate, graphLens, classToFeatureSplitMap)) {
+            group.get(0), intermediate, graphLens, classToFeatureSplitMap, syntheticItems)) {
           requireNewGroup = false;
           group.add(synthetic);
           break;
@@ -742,15 +756,20 @@ public class SyntheticFinalization {
       EquivalenceGroup<T> g1,
       EquivalenceGroup<T> g2,
       GraphLens graphLens,
-      ClassToFeatureSplitMap classToFeatureSplitMap) {
-    int order = g1.compareToIncludingContext(g2, graphLens, classToFeatureSplitMap);
+      ClassToFeatureSplitMap classToFeatureSplitMap,
+      SyntheticItems syntheticItems) {
+    int order = g1.compareToIncludingContext(g2, graphLens, classToFeatureSplitMap, syntheticItems);
     assert order != 0;
-    assert order != g2.compareToIncludingContext(g1, graphLens, classToFeatureSplitMap);
+    assert order
+        != g2.compareToIncludingContext(g1, graphLens, classToFeatureSplitMap, syntheticItems);
     return true;
   }
 
   private static <T extends SyntheticDefinition<?, T, ?>> T findDeterministicRepresentative(
-      List<T> members, GraphLens graphLens, ClassToFeatureSplitMap classToFeatureSplitMap) {
+      List<T> members,
+      GraphLens graphLens,
+      ClassToFeatureSplitMap classToFeatureSplitMap,
+      SyntheticItems syntheticItems) {
     // Pick a deterministic member as representative.
     T smallest = members.get(0);
     for (int i = 1; i < members.size(); i++) {
@@ -794,7 +813,8 @@ public class SyntheticFinalization {
           boolean intermediate,
           DexItemFactory factory,
           GraphLens graphLens,
-          ClassToFeatureSplitMap classToFeatureSplitMap) {
+          ClassToFeatureSplitMap classToFeatureSplitMap,
+          SyntheticItems syntheticItems) {
     if (definitions.isEmpty()) {
       return Collections.emptyList();
     }
@@ -817,7 +837,8 @@ public class SyntheticFinalization {
     RepresentativeMap map = t -> syntheticTypes.contains(t) ? factory.voidType : t;
     Map<HashCode, List<T>> equivalences = new HashMap<>(definitions.size());
     for (T definition : definitions.values()) {
-      HashCode hash = definition.computeHash(map, intermediate, classToFeatureSplitMap);
+      HashCode hash =
+          definition.computeHash(map, intermediate, classToFeatureSplitMap, syntheticItems);
       equivalences.computeIfAbsent(hash, k -> new ArrayList<>()).add(definition);
     }
     return equivalences.values();

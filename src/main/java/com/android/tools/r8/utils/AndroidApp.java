@@ -42,6 +42,7 @@ import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
@@ -611,7 +612,8 @@ public class AndroidApp {
                       classDescriptor -> {
                         if (featureSplitConfiguration != null) {
                           DexType type = dexItemFactory.createType(classDescriptor);
-                          FeatureSplit featureSplit = classToFeatureSplitMap.getFeatureSplit(type);
+                          FeatureSplit featureSplit =
+                              classToFeatureSplitMap.getFeatureSplit(type, SyntheticItems.empty());
                           if (featureSplit != null && !featureSplit.isBase()) {
                             return featureSplitArchiveOutputStreams.get(featureSplit);
                           }

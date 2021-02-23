@@ -38,6 +38,7 @@ import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -152,10 +153,11 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
+    SyntheticItems syntheticItems = appView.getSyntheticItems();
     ClassToFeatureSplitMap classToFeatureSplitMap = appView.appInfo().getClassToFeatureSplitMap();
-    if (!classToFeatureSplitMap.isInSameFeatureOrBothInBase(singleTarget, method)) {
+    if (!classToFeatureSplitMap.isInSameFeatureOrBothInBase(singleTarget, method, syntheticItems)) {
       // Still allow inlining if we inline from the base into a feature.
-      if (!classToFeatureSplitMap.isInBase(singleTarget.getHolder())) {
+      if (!classToFeatureSplitMap.isInBase(singleTarget.getHolder(), syntheticItems)) {
         whyAreYouNotInliningReporter.reportInliningAcrossFeatureSplit();
         return false;
       }

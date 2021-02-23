@@ -19,6 +19,9 @@ public class SameFeatureSplit extends MultiClassSameReferencePolicy<FeatureSplit
 
   @Override
   public FeatureSplit getMergeKey(DexProgramClass clazz) {
-    return appView.appInfo().getClassToFeatureSplitMap().getFeatureSplit(clazz);
+    return appView
+        .appInfo()
+        .getClassToFeatureSplitMap()
+        .getFeatureSplit(clazz, appView.getSyntheticItems());
   }
 }

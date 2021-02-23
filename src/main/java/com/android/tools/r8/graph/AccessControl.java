@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.OptionalBool;
 
 /**
@@ -18,16 +19,21 @@ public class AccessControl {
       DexClass clazz,
       ProgramDefinition context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
-    return isClassAccessible(clazz, context, appView.appInfo().getClassToFeatureSplitMap());
+    return isClassAccessible(
+        clazz, context, appView.appInfo().getClassToFeatureSplitMap(), appView.getSyntheticItems());
   }
 
   public static OptionalBool isClassAccessible(
-      DexClass clazz, ProgramDefinition context, ClassToFeatureSplitMap classToFeatureSplitMap) {
+      DexClass clazz,
+      ProgramDefinition context,
+      ClassToFeatureSplitMap classToFeatureSplitMap,
+      SyntheticItems syntheticItems) {
     if (!clazz.isPublic() && !clazz.getType().isSamePackage(context.getContextType())) {
       return OptionalBool.FALSE;
     }
     if (clazz.isProgramClass()
-        && !classToFeatureSplitMap.isInBaseOrSameFeatureAs(clazz.asProgramClass(), context)) {
+        && !classToFeatureSplitMap.isInBaseOrSameFeatureAs(
+            clazz.asProgramClass(), context, syntheticItems)) {
       return OptionalBool.UNKNOWN;
     }
     return OptionalBool.TRUE;
@@ -60,7 +66,11 @@ public class AccessControl {
       AppInfoWithClassHierarchy appInfo) {
     AccessFlags<?> memberFlags = member.getDefinition().getAccessFlags();
     OptionalBool classAccessibility =
-        isClassAccessible(initialResolutionHolder, context, appInfo.getClassToFeatureSplitMap());
+        isClassAccessible(
+            initialResolutionHolder,
+            context,
+            appInfo.getClassToFeatureSplitMap(),
+            appInfo.getSyntheticItems());
     if (classAccessibility.isFalse()) {
       return OptionalBool.FALSE;
     }

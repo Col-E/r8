@@ -17,11 +17,15 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -88,9 +92,9 @@ public class ClassToFeatureSplitMap {
     return result;
   }
 
-  public int compareFeatureSplitsForDexTypes(DexType a, DexType b) {
-    FeatureSplit featureSplitA = getFeatureSplit(a);
-    FeatureSplit featureSplitB = getFeatureSplit(b);
+  public int compareFeatureSplitsForDexTypes(DexType a, DexType b, SyntheticItems syntheticItems) {
+    FeatureSplit featureSplitA = getFeatureSplit(a, syntheticItems);
+    FeatureSplit featureSplitB = getFeatureSplit(b, syntheticItems);
     assert featureSplitA != null;
     assert featureSplitB != null;
     if (featureSplitA == featureSplitB) {
@@ -109,10 +113,10 @@ public class ClassToFeatureSplitMap {
   }
 
   public Map<FeatureSplit, Set<DexProgramClass>> getFeatureSplitClasses(
-      Set<DexProgramClass> classes) {
+      Set<DexProgramClass> classes, SyntheticItems syntheticItems) {
     Map<FeatureSplit, Set<DexProgramClass>> result = new IdentityHashMap<>();
     for (DexProgramClass clazz : classes) {
-      FeatureSplit featureSplit = getFeatureSplit(clazz);
+      FeatureSplit featureSplit = getFeatureSplit(clazz, syntheticItems);
       if (featureSplit != null && !featureSplit.isBase()) {
         result.computeIfAbsent(featureSplit, ignore -> Sets.newIdentityHashSet()).add(clazz);
       }
@@ -120,41 +124,61 @@ public class ClassToFeatureSplitMap {
     return result;
   }
 
-  public FeatureSplit getFeatureSplit(ProgramDefinition clazz) {
-    return getFeatureSplit(clazz.getContextType());
+  public FeatureSplit getFeatureSplit(ProgramDefinition clazz, SyntheticItems syntheticItems) {
+    return getFeatureSplit(clazz.getContextType(), syntheticItems);
   }
 
-  public FeatureSplit getFeatureSplit(DexType type) {
+  public FeatureSplit getFeatureSplit(DexType type, SyntheticItems syntheticItems) {
+    Collection<DexType> contexts = syntheticItems.getSynthesizingContexts(type);
+    if (!contexts.isEmpty()) {
+      Iterator<DexType> iterator = contexts.iterator();
+      DexType context = iterator.next();
+      FeatureSplit feature = classToFeatureSplitMap.getOrDefault(context, FeatureSplit.BASE);
+      assert verifyConsistentFeatureContexts(iterator, feature);
+      return feature;
+    }
     return classToFeatureSplitMap.getOrDefault(type, FeatureSplit.BASE);
+  }
+
+  private boolean verifyConsistentFeatureContexts(
+      Iterator<DexType> contextIterator, FeatureSplit feature) {
+    while (contextIterator.hasNext()) {
+      assert feature
+          == classToFeatureSplitMap.getOrDefault(contextIterator.next(), FeatureSplit.BASE);
+    }
+    return true;
   }
 
   public boolean isEmpty() {
     return classToFeatureSplitMap.isEmpty();
   }
 
-  public boolean isInBase(DexProgramClass clazz) {
-    return getFeatureSplit(clazz).isBase();
+  public boolean isInBase(DexProgramClass clazz, SyntheticItems syntheticItems) {
+    return getFeatureSplit(clazz, syntheticItems).isBase();
   }
 
-  public boolean isInBaseOrSameFeatureAs(DexProgramClass clazz, ProgramDefinition context) {
-    FeatureSplit split = getFeatureSplit(clazz);
-    return split.isBase() || split == getFeatureSplit(context);
+  public boolean isInBaseOrSameFeatureAs(
+      DexProgramClass clazz, ProgramDefinition context, SyntheticItems syntheticItems) {
+    FeatureSplit split = getFeatureSplit(clazz, syntheticItems);
+    return split.isBase() || split == getFeatureSplit(context, syntheticItems);
   }
 
-  public boolean isInFeature(DexProgramClass clazz) {
-    return !isInBase(clazz);
+  public boolean isInFeature(DexProgramClass clazz, SyntheticItems syntheticItems) {
+    return !isInBase(clazz, syntheticItems);
   }
 
-  public boolean isInSameFeatureOrBothInBase(ProgramMethod a, ProgramMethod b) {
-    return isInSameFeatureOrBothInBase(a.getHolder(), b.getHolder());
+  public boolean isInSameFeatureOrBothInBase(
+      ProgramMethod a, ProgramMethod b, SyntheticItems syntheticItems) {
+    return isInSameFeatureOrBothInBase(a.getHolder(), b.getHolder(), syntheticItems);
   }
 
-  public boolean isInSameFeatureOrBothInBase(DexProgramClass a, DexProgramClass b) {
-    return getFeatureSplit(a) == getFeatureSplit(b);
+  public boolean isInSameFeatureOrBothInBase(
+      DexProgramClass a, DexProgramClass b, SyntheticItems syntheticItems) {
+    return getFeatureSplit(a, syntheticItems) == getFeatureSplit(b, syntheticItems);
   }
 
-  public boolean isInSameFeatureOrBothInBase(DexType a, DexType b) {
-    return getFeatureSplit(a) == getFeatureSplit(b);
+  public boolean isInSameFeatureOrBothInBase(DexType a, DexType b, SyntheticItems syntheticItems) {
+    return getFeatureSplit(a, syntheticItems) == getFeatureSplit(b, syntheticItems);
   }
 
   public ClassToFeatureSplitMap rewrittenWithLens(GraphLens lens) {
@@ -186,5 +210,15 @@ public class ClassToFeatureSplitMap {
           }
         });
     return classToFeatureSplitMapAfterPruning;
+  }
+
+  // Static helpers to avoid verbose predicates.
+
+  private static ClassToFeatureSplitMap getMap(AppView<AppInfoWithLiveness> appView) {
+    return appView.appInfo().getClassToFeatureSplitMap();
+  }
+
+  public static boolean isInFeature(DexProgramClass clazz, AppView<AppInfoWithLiveness> appView) {
+    return getMap(appView).isInFeature(clazz, appView.getSyntheticItems());
   }
 }

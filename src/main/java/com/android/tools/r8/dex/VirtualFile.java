@@ -467,7 +467,7 @@ public class VirtualFile {
 
       // Pull out the classes that should go into feature splits.
       Map<FeatureSplit, Set<DexProgramClass>> featureSplitClasses =
-          classToFeatureSplitMap.getFeatureSplitClasses(classes);
+          classToFeatureSplitMap.getFeatureSplitClasses(classes, appView.getSyntheticItems());
       if (featureSplitClasses.size() > 0) {
         for (Set<DexProgramClass> featureClasses : featureSplitClasses.values()) {
           classes.removeAll(featureClasses);
@@ -475,14 +475,17 @@ public class VirtualFile {
       }
       List<DexProgramClass> toRemove = new ArrayList<>();
       for (DexProgramClass dexProgramClass : classes) {
-        Collection<DexProgramClass> synthesizedFrom = dexProgramClass.getSynthesizedFrom();
-        if (!synthesizedFrom.isEmpty()) {
-          DexProgramClass from = Iterables.getFirst(synthesizedFrom, null);
-          FeatureSplit featureSplit = classToFeatureSplitMap.getFeatureSplit(from);
-          if (!featureSplit.isBase()) {
-            Set<DexProgramClass> dexProgramClasses = featureSplitClasses.get(featureSplit);
-            dexProgramClasses.add(dexProgramClass);
-            toRemove.add(dexProgramClass);
+        if (appView.getSyntheticItems().isLegacySyntheticClass(dexProgramClass)) {
+          Collection<DexProgramClass> synthesizedFrom = dexProgramClass.getSynthesizedFrom();
+          if (!synthesizedFrom.isEmpty()) {
+            DexProgramClass from = Iterables.getFirst(synthesizedFrom, null);
+            FeatureSplit featureSplit =
+                classToFeatureSplitMap.getFeatureSplit(from, appView.getSyntheticItems());
+            if (!featureSplit.isBase()) {
+              Set<DexProgramClass> dexProgramClasses = featureSplitClasses.get(featureSplit);
+              dexProgramClasses.add(dexProgramClass);
+              toRemove.add(dexProgramClass);
+            }
           }
         }
       }
