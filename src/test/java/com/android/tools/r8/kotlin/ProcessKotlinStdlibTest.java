@@ -74,4 +74,20 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
   public void testDontObfuscate() throws Exception {
     test(ImmutableList.of("-dontobfuscate"));
   }
+
+  @Test
+  public void testRepackage() throws Exception {
+    test(
+        ImmutableList.of(
+            "-keep,allowobfuscation class kotlin.Metadata { *; }", "-repackageclasses ''"));
+  }
+
+  @Test
+  public void testRepackageWithKeepAttributes() throws Exception {
+    test(
+        ImmutableList.of(
+            "-keep,allowobfuscation class kotlin.Metadata { *; }",
+            "-repackageclasses ''",
+            "-keepattributes *"));
+  }
 }

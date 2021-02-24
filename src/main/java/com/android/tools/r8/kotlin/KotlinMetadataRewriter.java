@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
@@ -79,14 +80,14 @@ public class KotlinMetadataRewriter {
     this.kotlin = factory.kotlin;
   }
 
-  private static boolean isNotKotlinMetadata(AppView<?> appView, DexAnnotation annotation) {
-    return annotation.annotation.type != appView.dexItemFactory().kotlinMetadataType;
+  private static boolean isNotKotlinMetadata(DexAnnotation annotation, DexType kotlinMetadataType) {
+    return annotation.annotation.type != kotlinMetadataType;
   }
 
   public void runForR8(ExecutorService executorService) throws ExecutionException {
-    final DexClass kotlinMetadata =
-        appView.definitionFor(appView.dexItemFactory().kotlinMetadataType);
-    final WriteMetadataFieldInfo writeMetadataFieldInfo =
+    DexType rewrittenMetadataType = appView.graphLens().lookupClassType(factory.kotlinMetadataType);
+    DexClass kotlinMetadata = appView.definitionFor(rewrittenMetadataType);
+    WriteMetadataFieldInfo writeMetadataFieldInfo =
         new WriteMetadataFieldInfo(
             kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.kind),
             kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.metadataVersion),
@@ -100,11 +101,13 @@ public class KotlinMetadataRewriter {
         appView.appInfo().classes(),
         clazz -> {
           KotlinClassLevelInfo kotlinInfo = clazz.getKotlinInfo();
-          DexAnnotation oldMeta = clazz.annotations().getFirstMatching(factory.kotlinMetadataType);
+          DexAnnotation oldMeta = clazz.annotations().getFirstMatching(rewrittenMetadataType);
           if (kotlinInfo == INVALID_KOTLIN_INFO) {
             // Maintain invalid kotlin info for classes.
             return;
           }
+          // TODO(b/181103083): Consider removing if rewrittenMetadataType
+          //  != factory.kotlinMetadataType
           if (oldMeta == null
               || kotlinInfo == NO_KOTLIN_INFO
               || (appView.appInfo().hasLiveness()
@@ -113,7 +116,9 @@ public class KotlinMetadataRewriter {
             // missing.
             if (oldMeta != null) {
               clazz.setAnnotations(
-                  clazz.annotations().keepIf(anno -> isNotKotlinMetadata(appView, anno)));
+                  clazz
+                      .annotations()
+                      .keepIf(anno -> isNotKotlinMetadata(anno, rewrittenMetadataType)));
             }
             return;
           }
