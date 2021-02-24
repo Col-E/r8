@@ -4,58 +4,47 @@
 
 package com.android.tools.r8.debug;
 
-import static com.android.tools.r8.TestBase.kotlinc;
+import static com.android.tools.r8.KotlinTestBase.getCompileMemoizer;
 import static com.android.tools.r8.TestBase.memoizeBiFunction;
 
+import com.android.tools.r8.KotlinCompilerTool;
 import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.KotlinTestBase.KotlinCompileMemoizer;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.function.BiFunction;
-import org.junit.rules.TemporaryFolder;
 
 /** Shared test configuration for D8 compiled resources from the "kotlinR8TestResources/debug". */
-class KotlinD8Config extends D8DebugTestConfig {
+class KotlinDebugD8Config extends D8DebugTestConfig {
 
-  public static BiFunction<TemporaryFolder, KotlinTestParameters, Path> compileKotlinMemoized =
-      memoizeBiFunction(KotlinD8Config::compileWithKotlinC);
+  static final KotlinCompileMemoizer compiledKotlinJars =
+      getCompileMemoizer(KotlinTestBase.getKotlinFilesInResource("debug"))
+          .configure(KotlinCompilerTool::includeRuntime);
 
-  private static Path compileWithKotlinC(TemporaryFolder temp, KotlinTestParameters parameters)
-      throws IOException {
-    return kotlinc(
-            TestRuntime.getCheckedInJdk9(),
-            temp,
-            parameters.getCompiler(),
-            parameters.getTargetVersion())
-        .addSourceFiles(KotlinTestBase.getKotlinFilesInResource("debug"))
-        .includeRuntime()
-        .compile();
-  }
-
-  private static BiFunction<KotlinTestParameters, AndroidApiLevel, Path> compiledResourcesMemoized =
-      memoizeBiFunction(KotlinD8Config::getCompiledResources);
+  private static final BiFunction<KotlinTestParameters, AndroidApiLevel, Path>
+      compiledResourcesMemoized = memoizeBiFunction(KotlinDebugD8Config::getCompiledResources);
 
   private static Path getCompiledResources(
       KotlinTestParameters kotlinTestParameters, AndroidApiLevel apiLevel) throws IOException {
     Path outputPath =
         TestBase.getStaticTemp().newFolder().toPath().resolve("d8_debug_test_resources_kotlin.jar");
-    Path kotlinJar = compileKotlinMemoized.apply(TestBase.getStaticTemp(), kotlinTestParameters);
+    Path kotlinJar = compiledKotlinJars.getForConfiguration(kotlinTestParameters);
     D8DebugTestConfig.d8Compile(Collections.singletonList(kotlinJar), apiLevel, null)
         .write(outputPath, OutputMode.DexIndexed);
     return outputPath;
   }
 
-  public static KotlinD8Config build(
+  public static KotlinDebugD8Config build(
       KotlinTestParameters kotlinTestParameters, AndroidApiLevel apiLevel) {
     try {
-      KotlinD8Config kotlinD8Config = new KotlinD8Config();
-      kotlinD8Config.addPaths(compiledResourcesMemoized.apply(kotlinTestParameters, apiLevel));
-      return kotlinD8Config;
+      KotlinDebugD8Config kotlinDebugD8Config = new KotlinDebugD8Config();
+      kotlinDebugD8Config.addPaths(compiledResourcesMemoized.apply(kotlinTestParameters, apiLevel));
+      return kotlinDebugD8Config;
     } catch (Throwable e) {
       throw new RuntimeException(e);
     }

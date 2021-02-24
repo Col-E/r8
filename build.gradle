@@ -43,6 +43,8 @@ ext {
     gsonVersion = '2.7'
     junitVersion = '4.13-beta-2'
     mockitoVersion = '2.10.0'
+    // The kotlin version is only here to specify the kotlin language level,
+    // all kotlin compilations are done in tests.
     kotlinVersion = '1.3.72'
     kotlinExtMetadataJVMVersion = '0.1.0'
     smaliVersion = '2.2b4'
@@ -147,12 +149,6 @@ sourceSets {
         java {
             srcDirs = ['src/test/testngrunner']
         }
-    }
-    examplesKotlin {
-        java {
-            srcDirs = ['src/test/examplesKotlin']
-        }
-        output.resourcesDir = 'build/classes/examplesKotlin'
     }
     examplesAndroidN {
         java {
@@ -274,7 +270,6 @@ dependencies {
     supportLibs "com.android.support.test.espresso:espresso-core:$espressoVersion"
     apiUsageSampleCompile sourceSets.main.output
     apiUsageSampleCompile "com.google.guava:guava:$guavaVersion"
-    examplesKotlinCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     kotlinR8TestResourcesCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     errorprone("com.google.errorprone:error_prone_core:$errorproneVersion")
     testImplementation "org.jetbrains.kotlin:kotlin-reflect:1.3.31"
@@ -1229,18 +1224,6 @@ task buildExampleAndroidApi(type: JavaCompile) {
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
-task buildExampleKotlinJars {
-    def kotlinSrcDir = file("src/test/examplesKotlin")
-    kotlinSrcDir.eachDir { dir ->
-        def name = dir.getName();
-        dependsOn "compile_example_kotlin_${name}"
-        task "compile_example_kotlin_${name}"(type: kotlin.Kotlinc) {
-            source = fileTree(dir: file("src/test/examplesKotlin/${name}"), include: '**/*.kt')
-            destination = file("build/test/examplesKotlin/${name}.jar")
-        }
-    }
-}
-
 task buildProtoGeneratedSources {
     def examplesProtoDir = file("src/test/examplesProto")
     examplesProtoDir.eachDir { dir ->
@@ -1622,52 +1605,15 @@ task buildJdk11TimeTestsJar {
     }
 }
 
-task buildExamplesKotlin {
-    if (OperatingSystem.current().isMacOsX() || OperatingSystem.current().isWindows()) {
-        logger.lifecycle("WARNING: Testing (including building kotlin examples) is only partially" +
-                " supported on your platform (" + OperatingSystem.current().getName() + ").")
-    } else if (!OperatingSystem.current().isLinux()) {
-        logger.lifecycle("WARNING: Testing (including building kotlin examples) is not supported " +
-                "on your platform. It is fully supported on Linux and partially supported on " +
-                "Mac OS and Windows")
-        return;
-    }
-    def examplesDir = file("src/test/examplesKotlin")
-    examplesDir.eachDir { dir ->
-        def name = dir.getName();
-        dependsOn "dex_example_kotlin_${name}"
-        def exampleOutputDir = file("build/test/examplesKotlin/" + name);
-        def dexPath = file("${exampleOutputDir}")
-        task "dex_example_kotlin_${name}"(type: DxTask,
-                dependsOn: "compile_example_kotlin_${name}") {
-            doFirst {
-                if (!dexPath.exists()) {
-                    dexPath.mkdirs()
-                }
-            }
-            source = files(tasks.getByPath("compile_example_kotlin_${name}")).asFileTree
-            destination = dexPath
-            debug = false
-        }
-    }
-}
-
 task buildKotlinR8TestResources {
     def examplesDir = file("src/test/kotlinR8TestResources")
     examplesDir.eachDir { dir ->
         kotlin.Kotlinc.KotlinTargetVersion.values().each { kotlinTargetVersion ->
             def name = dir.getName()
             def taskName = "jar_kotlinR8TestResources_${name}_${kotlinTargetVersion}"
-            def outputFile = "build/test/kotlinR8TestResources/${kotlinTargetVersion}/${name}.jar"
             def javaOutput = "build/test/kotlinR8TestResources/${kotlinTargetVersion}/${name}/java"
             def javaOutputJarName = "${name}.java.jar"
             def javaOutputJarDir = "build/test/kotlinR8TestResources/${kotlinTargetVersion}"
-            task "${taskName}Kotlin"(type: kotlin.Kotlinc) {
-                source = fileTree(dir: file("${examplesDir}/${name}"),
-                        include: ['**/*.kt', '**/*.java'])
-                destination = file(outputFile)
-                targetVersion = kotlinTargetVersion
-            }
             task "${taskName}Java"(type: JavaCompile) {
                 source = fileTree(dir: file("${examplesDir}/${name}"), include: '**/*.java')
                 destinationDir = file(javaOutput)
@@ -1682,7 +1628,7 @@ task buildKotlinR8TestResources {
                 from javaOutput
                 include "**/*.class"
             }
-            dependsOn "${taskName}Kotlin", "${taskName}JavaJar"
+            dependsOn "${taskName}JavaJar"
         }
     }
 }
@@ -2101,7 +2047,6 @@ test {
         }
         dependsOn downloadDeps
         dependsOn buildExamples
-        dependsOn buildExamplesKotlin
         dependsOn buildKotlinR8TestResources
         dependsOn buildSmali
         dependsOn jctfCommonJar

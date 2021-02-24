@@ -39,8 +39,8 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
     this.kotlinParameters = kotlinParameters;
   }
 
-  protected KotlinD8Config getD8Config() {
-    return KotlinD8Config.build(kotlinParameters, parameters.getApiLevel());
+  protected KotlinDebugD8Config getD8Config() {
+    return KotlinDebugD8Config.build(kotlinParameters, parameters.getApiLevel());
   }
 
   @Test

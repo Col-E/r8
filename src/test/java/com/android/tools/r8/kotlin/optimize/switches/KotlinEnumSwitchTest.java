@@ -10,12 +10,12 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotEquals;
 
-import com.android.tools.r8.TestBase;
+import com.android.tools.r8.KotlinCompilerTool;
+import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import java.nio.file.Paths;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,18 +23,28 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class KotlinEnumSwitchTest extends TestBase {
+public class KotlinEnumSwitchTest extends KotlinTestBase {
 
   private final boolean enableSwitchMapRemoval;
   private final TestParameters parameters;
 
-  @Parameters(name = "{1}, enable switch map removal: {0}")
+  @Parameters(name = "{1}, enable switch map removal: {0}, {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+        BooleanUtils.values(),
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
-  public KotlinEnumSwitchTest(boolean enableSwitchMapRemoval, TestParameters parameters) {
+  private static final KotlinCompileMemoizer kotlinJars =
+      getCompileMemoizer(getKotlinFilesInResource("enumswitch"))
+          .configure(KotlinCompilerTool::includeRuntime);
+
+  public KotlinEnumSwitchTest(
+      boolean enableSwitchMapRemoval,
+      TestParameters parameters,
+      KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.enableSwitchMapRemoval = enableSwitchMapRemoval;
     this.parameters = parameters;
   }
@@ -43,8 +53,7 @@ public class KotlinEnumSwitchTest extends TestBase {
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(
-            Paths.get(ToolHelper.EXAMPLES_KOTLIN_BUILD_DIR, "enumswitch.jar"),
-            getMostRecentKotlinAnnotationJar())
+            kotlinJars.getForConfiguration(kotlinParameters), getMostRecentKotlinAnnotationJar())
         .addKeepMainRule("enumswitch.EnumSwitchKt")
         .addOptionsModification(
             options -> {

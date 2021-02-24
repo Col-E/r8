@@ -4,8 +4,12 @@
 
 package com.android.tools.r8.debug;
 
+import com.android.tools.r8.KotlinCompilerTool;
+import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.KotlinTestBase.KotlinCompileMemoizer;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -87,9 +91,15 @@ public class ContinuousSteppingTest extends DebugTestBase {
 
     public ConfigListBuilder addAllKotlinDebugJars(
         TemporaryFolder temp, Predicate<Version> predicate) {
+      KotlinCompileMemoizer compiledJars =
+          KotlinTestBase.getCompileMemoizer(
+                  KotlinTestBase.getKotlinFilesInResource("debug"),
+                  CfRuntime.getCheckedInJdk9(),
+                  temp)
+              .configure(KotlinCompilerTool::includeRuntime);
       for (KotlinTestParameters kotlinParameter :
           TestBase.getKotlinTestParameters().withAllCompilersAndTargetVersions().build()) {
-        add(KotlinD8Config.compileKotlinMemoized.apply(temp, kotlinParameter), predicate);
+        add(compiledJars.getForConfiguration(kotlinParameter), predicate);
       }
       return this;
     }

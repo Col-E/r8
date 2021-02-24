@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
+import org.junit.rules.TemporaryFolder;
 
 public abstract class KotlinTestBase extends TestBase {
 
@@ -107,6 +108,11 @@ public abstract class KotlinTestBase extends TestBase {
   }
 
   public static KotlinCompileMemoizer getCompileMemoizer(
+      Collection<Path> sources, CfRuntime runtime, TemporaryFolder temporaryFolder) {
+    return new KotlinCompileMemoizer(sources, runtime, temporaryFolder);
+  }
+
+  public static KotlinCompileMemoizer getCompileMemoizer(
       Collection<Path> sources, String sharedFolder) {
     return compileMemoizers.computeIfAbsent(
         sharedFolder, ignore -> new KotlinCompileMemoizer(sources));
@@ -131,12 +137,22 @@ public abstract class KotlinTestBase extends TestBase {
   public static class KotlinCompileMemoizer {
 
     private final Collection<Path> sources;
+    private final CfRuntime runtime;
+    private final TemporaryFolder temporaryFolder;
+
     private Consumer<KotlinCompilerTool> kotlinCompilerToolConsumer = x -> {};
     private final Map<KotlinCompiler, Map<KotlinTargetVersion, Path>> compiledPaths =
         new IdentityHashMap<>();
 
     public KotlinCompileMemoizer(Collection<Path> sources) {
+      this(sources, CfRuntime.getCheckedInJdk9(), null);
+    }
+
+    public KotlinCompileMemoizer(
+        Collection<Path> sources, CfRuntime runtime, TemporaryFolder temporaryFolder) {
       this.sources = sources;
+      this.runtime = runtime;
+      this.temporaryFolder = temporaryFolder;
     }
 
     public KotlinCompileMemoizer configure(Consumer<KotlinCompilerTool> consumer) {
@@ -159,10 +175,11 @@ public abstract class KotlinTestBase extends TestBase {
           targetVersion,
           ignored -> {
             try {
-              return kotlinc(compiler, targetVersion)
-                  .addSourceFiles(sources)
-                  .apply(kotlinCompilerToolConsumer)
-                  .compile();
+              KotlinCompilerTool kotlinc =
+                  temporaryFolder == null
+                      ? kotlinc(compiler, targetVersion)
+                      : kotlinc(runtime, temporaryFolder, compiler, targetVersion);
+              return kotlinc.addSourceFiles(sources).apply(kotlinCompilerToolConsumer).compile();
             } catch (IOException e) {
               throw new RuntimeException(e);
             }

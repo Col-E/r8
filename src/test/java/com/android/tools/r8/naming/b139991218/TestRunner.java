@@ -10,15 +10,15 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.TestBase;
+import com.android.tools.r8.KotlinCompilerTool;
+import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
-import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,16 +33,26 @@ import org.junit.runners.Parameterized.Parameters;
  * which is why the ASMified code is generated from kotlin.
  */
 @RunWith(Parameterized.class)
-public class TestRunner extends TestBase {
+public class TestRunner extends KotlinTestBase {
 
   private final TestParameters parameters;
 
+  private static final KotlinCompileMemoizer kotlinJars =
+      getCompileMemoizer(getKotlinFilesInResource("lambdas_kstyle_generics"))
+          .configure(KotlinCompilerTool::includeRuntime);
+
   @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getKotlinTestParameters()
+            .withAllCompilers()
+            .withTargetVersion(KotlinTargetVersion.JAVA_8)
+            .build());
   }
 
-  public TestRunner(TestParameters parameters) {
+  public TestRunner(TestParameters parameters, KotlinTestParameters kotlinParameters) {
+    super(kotlinParameters);
     this.parameters = parameters;
   }
 
@@ -52,12 +62,7 @@ public class TestRunner extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(Lambda1.dump(), Lambda2.dump(), Main.dump(), Alpha.dump())
         .addProgramFiles(
-            Paths.get(
-                ToolHelper.TESTS_BUILD_DIR,
-                "kotlinR8TestResources",
-                "JAVA_8",
-                "lambdas_kstyle_generics" + FileUtils.JAR_EXTENSION),
-            getMostRecentKotlinAnnotationJar())
+            kotlinJars.getForConfiguration(kotlinParameters), getMostRecentKotlinAnnotationJar())
         .addKeepMainRule(Main.class)
         .addKeepAllAttributes()
         .addOptionsModification(
