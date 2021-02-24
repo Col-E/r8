@@ -388,7 +388,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
         buildWithMemberNamesRule(testForR8(parameters.getBackend())).compile());
   }
 
-  // Tests for "-keepclassmembernames" and *no* minification.
+  // Tests for "-keepclassmembernames" and minification.
 
   private <
           C extends BaseCompilerCommand,

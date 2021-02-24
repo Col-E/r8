@@ -25,6 +25,7 @@ public class InvalidBootstrapMethodHandleTestClass
   public int nonStaticField = 42;
 
   // Virtual method to target.
+  @Override
   public CallSite virtualMethod(MethodHandles.Lookup caller, String name, MethodType type)
       throws Exception {
     return new ConstantCallSite(caller.findStatic(caller.lookupClass(), name, type));

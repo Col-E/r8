@@ -1184,6 +1184,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return this;
     }
     Builder builder = builder(this);
+    if (isNonPrivateVirtualMethod() && isLibraryMethodOverride() != OptionalBool.unknown()) {
+      builder.setIsLibraryMethodOverride(isLibraryMethodOverride());
+    }
     builder.setMethod(method);
     // TODO(b/112847660): Fix type fixers that use this method: Class staticizer
     // TODO(b/112847660): Fix type fixers that use this method: Uninstantiated type optimization

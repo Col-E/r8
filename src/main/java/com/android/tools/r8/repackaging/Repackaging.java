@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.DescriptorUtils.DESCRIPTOR_PACKAGE_SEPA
 import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -26,6 +27,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -291,31 +293,69 @@ public class Repackaging {
 
   public static class DefaultRepackagingConfiguration implements RepackagingConfiguration {
 
+    private final AppView<?> appView;
     private final DexItemFactory dexItemFactory;
     private final ProguardConfiguration proguardConfiguration;
+    public static final String TEMPORARY_PACKAGE_NAME = "TEMPORARY_PACKAGE_NAME_FOR_";
 
-    public DefaultRepackagingConfiguration(
-        DexItemFactory dexItemFactory, ProguardConfiguration proguardConfiguration) {
-      this.dexItemFactory = dexItemFactory;
-      this.proguardConfiguration = proguardConfiguration;
+    public DefaultRepackagingConfiguration(AppView<?> appView) {
+      this.appView = appView;
+      this.dexItemFactory = appView.dexItemFactory();
+      this.proguardConfiguration = appView.options().getProguardConfiguration();
     }
 
     @Override
     public String getNewPackageDescriptor(ProgramPackage pkg, Set<String> seenPackageDescriptors) {
       String newPackageDescriptor =
           DescriptorUtils.getBinaryNameFromJavaType(proguardConfiguration.getPackagePrefix());
-      if (proguardConfiguration.getPackageObfuscationMode().isRepackageClasses()) {
+      PackageObfuscationMode packageObfuscationMode =
+          proguardConfiguration.getPackageObfuscationMode();
+      if (packageObfuscationMode.isRepackageClasses()) {
         return newPackageDescriptor;
       }
+      assert packageObfuscationMode.isFlattenPackageHierarchy()
+          || packageObfuscationMode.isMinification();
       if (!newPackageDescriptor.isEmpty()) {
         newPackageDescriptor += DESCRIPTOR_PACKAGE_SEPARATOR;
       }
-      newPackageDescriptor += pkg.getLastPackageName();
+      if (packageObfuscationMode.isMinification()) {
+        assert !proguardConfiguration.hasApplyMappingFile();
+        // Always keep top-level classes since there packages can never be minified.
+        if (pkg.getPackageDescriptor().equals("")
+            || proguardConfiguration.getKeepPackageNamesPatterns().matches(pkg)
+            || mayHavePinnedPackagePrivateOrProtectedItem(pkg)) {
+          return pkg.getPackageDescriptor();
+        }
+        // For us to rename shaking/A to a/a if we have a class shaking/Kept, we have to propose
+        // a different name than the last package name - the class will be minified in
+        // ClassNameMinifier.
+        newPackageDescriptor += TEMPORARY_PACKAGE_NAME + pkg.getLastPackageName();
+      } else {
+        newPackageDescriptor += pkg.getLastPackageName();
+      }
       String finalPackageDescriptor = newPackageDescriptor;
       for (int i = 1; seenPackageDescriptors.contains(finalPackageDescriptor); i++) {
         finalPackageDescriptor = newPackageDescriptor + INNER_CLASS_SEPARATOR + i;
       }
       return finalPackageDescriptor;
+    }
+
+    private boolean mayHavePinnedPackagePrivateOrProtectedItem(ProgramPackage pkg) {
+      // Go through all package classes and members to see if there is a pinned package-private
+      // item, in which case we cannot move it because there may be a reflective access to it.
+      for (DexProgramClass clazz : pkg.classesInPackage()) {
+        if (clazz.getAccessFlags().isPackagePrivateOrProtected()
+            && appView.getKeepInfo().getClassInfo(clazz).isPinned()) {
+          return true;
+        }
+        for (DexEncodedMember<?, ?> member : clazz.members()) {
+          if (member.getAccessFlags().isPackagePrivateOrProtected()
+              && appView.getKeepInfo().getMemberInfo(member, clazz).isPinned()) {
+            return true;
+          }
+        }
+      }
+      return false;
     }
 
     @Override

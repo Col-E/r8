@@ -7,7 +7,6 @@ package com.android.tools.r8.kotlin;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
@@ -34,6 +33,10 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
     this.known = null;
     this.unknown = unknown;
     assert unknown != null;
+  }
+
+  public DexType getKnown() {
+    return known;
   }
 
   static KotlinTypeReference fromBinaryName(String binaryName, DexItemFactory factory) {
@@ -63,19 +66,11 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
       return unknown;
     }
     assert known != null;
-    if (!known.isClassType()) {
-      return known.descriptor.toString();
-    }
-    DexType rewrittenType = appView.graphLens().lookupClassType(known);
-    if (appView.appInfo().hasLiveness()
-        && !appView.withLiveness().appInfo().isNonProgramTypeOrLiveProgramType(rewrittenType)) {
+    DexType rewrittenType = toRewrittenTypeOrNull(appView, known);
+    if (rewrittenType == null) {
       return defaultValue;
     }
-    DexString descriptor = namingLens.lookupDescriptor(rewrittenType);
-    if (descriptor != null) {
-      return descriptor.toString();
-    }
-    return defaultValue;
+    return namingLens.lookupDescriptor(rewrittenType).toString();
   }
 
   String toRenamedBinaryNameOrDefault(
@@ -93,6 +88,25 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
       return descriptor;
     }
     return DescriptorUtils.getBinaryNameFromDescriptor(descriptor);
+  }
+
+  private static DexType toRewrittenTypeOrNull(AppView<?> appView, DexType type) {
+    if (type.isArrayType()) {
+      DexType rewrittenBaseType =
+          toRewrittenTypeOrNull(appView, type.toBaseType(appView.dexItemFactory()));
+      return rewrittenBaseType != null
+          ? type.replaceBaseType(rewrittenBaseType, appView.dexItemFactory())
+          : null;
+    }
+    if (!type.isClassType()) {
+      return type;
+    }
+    DexType rewrittenType = appView.graphLens().lookupClassType(type);
+    if (appView.appInfo().hasLiveness()
+        && !appView.withLiveness().appInfo().isNonProgramTypeOrLiveProgramType(rewrittenType)) {
+      return null;
+    }
+    return rewrittenType;
   }
 
   @Override

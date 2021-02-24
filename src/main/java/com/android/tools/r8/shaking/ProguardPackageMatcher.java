@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.graph.DexType;
-
 public class ProguardPackageMatcher {
   private final String pattern;
 
@@ -13,8 +11,8 @@ public class ProguardPackageMatcher {
     this.pattern = pattern;
   }
 
-  public boolean matches(DexType type) {
-    return matchPackageNameImpl(pattern, 0, type.getPackageName(), 0);
+  public boolean matches(String packageName) {
+    return matchPackageNameImpl(pattern, 0, packageName, 0);
   }
 
   private static boolean matchPackageNameImpl(

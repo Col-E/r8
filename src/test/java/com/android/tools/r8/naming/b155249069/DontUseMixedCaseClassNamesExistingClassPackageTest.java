@@ -12,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.b155249069.package_b.A;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import java.io.IOException;
@@ -29,6 +30,8 @@ public class DontUseMixedCaseClassNamesExistingClassPackageTest extends TestBase
   private final TestParameters parameters;
   private final boolean dontUseMixedCase;
 
+  private final String renamedATypeName = "Testpackage.A";
+
   @Parameters(name = "{0}, dontusemixedcaseclassnames: {1}")
   public static List<Object[]> data() {
     return buildParameters(
@@ -45,12 +48,22 @@ public class DontUseMixedCaseClassNamesExistingClassPackageTest extends TestBase
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
     Path packageDictionary = temp.getRoot().toPath().resolve("packagedictionary.txt");
     // Suggest the name 'a' for the package, to force a collision with A.A.
-    FileUtils.writeTextFile(packageDictionary, "a");
+    FileUtils.writeTextFile(packageDictionary, "testpackage");
     testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class, com.android.tools.r8.naming.b155249069.A.A.class, A.class)
+        .addProgramClasses(A.class)
+        .addProgramClassFileData(
+            transformer(Main.class)
+                .replaceClassDescriptorInMethodInstructions(
+                    DescriptorUtils.javaTypeToDescriptor(
+                        com.android.tools.r8.naming.b155249069.A.A.class.getTypeName()),
+                    DescriptorUtils.javaTypeToDescriptor(renamedATypeName))
+                .transform(),
+            transformer(com.android.tools.r8.naming.b155249069.A.A.class)
+                .setClassDescriptor(DescriptorUtils.javaTypeToDescriptor(renamedATypeName))
+                .transform())
         .setMinApi(parameters.getApiLevel())
-        // Keep A.A such that the package A is kept.
-        .addKeepClassRules(com.android.tools.r8.naming.b155249069.A.A.class)
+        // Keep testpackage.A such that the package A is kept.
+        .addKeepClassRules(renamedATypeName)
         .addKeepClassRulesWithAllowObfuscation(A.class)
         .addKeepMainRule(Main.class)
         .addKeepRules("-packageobfuscationdictionary " + packageDictionary.toString())
@@ -59,8 +72,7 @@ public class DontUseMixedCaseClassNamesExistingClassPackageTest extends TestBase
         .assertSuccessWithOutputLines("A.A.foo()", "package_b.B.foo()")
         .inspect(
             inspector -> {
-              ClassSubject aSubject =
-                  inspector.clazz(com.android.tools.r8.naming.b155249069.A.A.class);
+              ClassSubject aSubject = inspector.clazz(renamedATypeName);
               ClassSubject bSubject = inspector.clazz(A.class);
               if (dontUseMixedCase) {
                 assertNotEquals(

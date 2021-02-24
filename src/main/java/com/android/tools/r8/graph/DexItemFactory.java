@@ -2330,8 +2330,17 @@ public class DexItemFactory {
       MethodHandleType type,
       DexMember<? extends DexItem, ? extends DexMember<?, ?>> fieldOrMethod,
       boolean isInterface) {
+    return createMethodHandle(type, fieldOrMethod, isInterface, null);
+  }
+
+  public DexMethodHandle createMethodHandle(
+      MethodHandleType type,
+      DexMember<? extends DexItem, ? extends DexMember<?, ?>> fieldOrMethod,
+      boolean isInterface,
+      DexMethod rewrittenTarget) {
     assert !sorted;
-    DexMethodHandle methodHandle = new DexMethodHandle(type, fieldOrMethod, isInterface);
+    DexMethodHandle methodHandle =
+        new DexMethodHandle(type, fieldOrMethod, isInterface, rewrittenTarget);
     return canonicalize(methodHandles, methodHandle);
   }
 

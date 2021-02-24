@@ -8,7 +8,6 @@ import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.desugar.desugaredlibrary.conversiontests.MoreFunctionConversionTest.CustomLibClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;

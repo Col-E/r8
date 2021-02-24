@@ -207,13 +207,6 @@ public class DexMethodHandle extends IndexedDexItem
   public DexMethodHandle(
       MethodHandleType type,
       DexMember<? extends DexItem, ? extends DexMember<?, ?>> member,
-      boolean isInterface) {
-    this(type, member, isInterface, null);
-  }
-
-  public DexMethodHandle(
-      MethodHandleType type,
-      DexMember<? extends DexItem, ? extends DexMember<?, ?>> member,
       boolean isInterface,
       DexMethod rewrittenTarget) {
     this.type = type;

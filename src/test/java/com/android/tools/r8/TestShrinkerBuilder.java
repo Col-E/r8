@@ -4,7 +4,6 @@
 
 package com.android.tools.r8;
 
-
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
 import com.android.tools.r8.references.MethodReference;

@@ -1046,8 +1046,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public enum PackageObfuscationMode {
-    // General package obfuscation.
+    // No package obfuscation.
     NONE,
+    // Strategy based on ordinary package obfuscation when no package-obfuscation mode is specified
+    // by the users. In practice this falls back to FLATTEN but with keeping package-names.
+    MINIFICATION,
     // Repackaging all classes into the single user-given (or top-level) package.
     REPACKAGE,
     // Repackaging all packages into the single user-given (or top-level) package.
@@ -1063,6 +1066,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean isRepackageClasses() {
       return this == REPACKAGE;
+    }
+
+    public boolean isMinification() {
+      return this == MINIFICATION;
     }
 
     public boolean isSome() {
@@ -1242,10 +1249,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public Consumer<String> processingContextsConsumer = null;
 
     public Function<AppView<AppInfoWithLiveness>, RepackagingConfiguration>
-        repackagingConfigurationFactory =
-            appView ->
-                new DefaultRepackagingConfiguration(
-                    appView.dexItemFactory(), appView.options().getProguardConfiguration());
+        repackagingConfigurationFactory = DefaultRepackagingConfiguration::new;
 
     public BiConsumer<DexItemFactory, HorizontallyMergedClasses> horizontallyMergedClassesConsumer =
         ConsumerUtils.emptyBiConsumer();

@@ -53,10 +53,6 @@ public class PackagePrivateAllowAccessModificationPackageTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(
-            options -> {
-              options.enablePackagePrivateAwarePublicization = true;
-            })
         .compile()
         .inspect(
             inspector -> {
@@ -64,8 +60,7 @@ public class PackagePrivateAllowAccessModificationPackageTest extends TestBase {
               assertThat(clazz, isPresentAndRenamed());
             })
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/172496438): This should not fail.
-        .assertFailureWithErrorThatThrows(IllegalAccessError.class);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @NeverClassInline

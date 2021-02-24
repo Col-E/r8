@@ -24,7 +24,7 @@ public class MissingInterfaceTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public MissingInterfaceTest(TestParameters parameters) {
@@ -39,6 +39,7 @@ public class MissingInterfaceTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClassForB112849320.class)
         .addOptionsModification(options -> options.enableInlining = false)
+        .addKeepPackageNamesRule(GoingToBeMissed.class.getPackage())
         .compile()
         .addRunClasspathFiles(
             buildOnDexRuntime(

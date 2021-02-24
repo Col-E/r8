@@ -32,18 +32,19 @@ public class ClassesWithNativeMethodsTest extends HorizontalClassMergingTestBase
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
+        .addKeepPackageNamesRule(Main.class.getPackage())
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(
-            allOf(
-                containsString("java.lang.UnsatisfiedLinkError:"),
-                containsString("com.android.tools.r8.classmerging.horizontal.b.a(")))
         .inspectFailure(
             codeInspector -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
               assertThat(codeInspector.clazz(B.class), isPresent());
-            });
+            })
+        .assertFailureWithErrorThatMatches(
+            allOf(
+                containsString("java.lang.UnsatisfiedLinkError:"),
+                containsString("com.android.tools.r8.classmerging.horizontal.b.a(")));
   }
 
   @NeverClassInline

@@ -99,10 +99,8 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
             shrinkDesugaredLibrary)
         .addRunClasspathFiles(CUSTOM_LIB)
         .run(parameters.getRuntime(), Executor.class)
-        .apply(
-            r ->
-                r.assertSuccessWithOutput(
-                    supportAllCallbacksFromLibrary ? EXPECTED_RESULT : FAILING_EXPECTED_RESULT));
+        .assertSuccessWithOutput(
+            supportAllCallbacksFromLibrary ? EXPECTED_RESULT : FAILING_EXPECTED_RESULT);
   }
 
   private void assertDoubleForEach(CodeInspector inspector) {
@@ -164,10 +162,8 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
             shrinkDesugaredLibrary)
         .addRunClasspathFiles(CUSTOM_LIB)
         .run(parameters.getRuntime(), Executor.class)
-        .apply(
-            r ->
-                r.assertSuccessWithOutput(
-                    supportAllCallbacksFromLibrary ? EXPECTED_RESULT : FAILING_EXPECTED_RESULT));
+        .assertSuccessWithOutput(
+            supportAllCallbacksFromLibrary ? EXPECTED_RESULT : FAILING_EXPECTED_RESULT);
   }
 
   static class CustomLibClass {

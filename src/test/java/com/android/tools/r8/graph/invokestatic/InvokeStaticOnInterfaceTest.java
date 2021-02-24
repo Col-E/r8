@@ -49,8 +49,9 @@ public class InvokeStaticOnInterfaceTest extends TestBase {
     if (parameters.getRuntime().asCf().isNewerThan(CfVm.JDK8)) {
       runResult.assertFailureWithErrorThatMatches(
           containsString(
-              "java.lang.IncompatibleClassChangeError: Method"
-                  + " com.android.tools.r8.graph.invokestatic.InvokeStaticOnInterfaceTest$I.foo()V"
+              "java.lang.IncompatibleClassChangeError: Method "
+                  + I.class.getTypeName()
+                  + ".foo()V"
                   + " must be InterfaceMethodref constant"));
     } else {
       runResult.assertSuccessWithOutputLines("Hello World!");
@@ -79,13 +80,14 @@ public class InvokeStaticOnInterfaceTest extends TestBase {
             .enableInliningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
             .addOptionsModification(o -> o.testing.allowInvokeErrors = true)
+            .noMinification()
             .addKeepMainRule(Main.class)
             .run(parameters.getRuntime(), Main.class);
     if (parameters.getRuntime().asCf().isNewerThan(CfVm.JDK8)) {
       runResult.assertFailureWithErrorThatMatches(
           containsString(
               "java.lang.IncompatibleClassChangeError: Method"
-                  + " com.android.tools.r8.graph.invokestatic.a.a()V"
+                  + " com.android.tools.r8.graph.invokestatic.InvokeStaticOnInterfaceTest$I.foo()V"
                   + " must be InterfaceMethodref constant"));
     } else {
       runResult.assertSuccessWithOutputLines("Hello World!");

@@ -57,9 +57,9 @@ public class PackageObfuscationDictionaryDuplicateTest extends TestBase {
         .inspect(
             inspector -> {
               ClassSubject clazzTop = inspector.clazz(Top.class);
-              assertTrue(clazzTop.getFinalName().endsWith(".a.a"));
+              assertTrue(clazzTop.getFinalName().endsWith("a.a"));
               ClassSubject clazzA = inspector.clazz(A.class);
-              assertTrue(clazzA.getFinalName().endsWith(".b.a"));
+              assertTrue(clazzA.getFinalName().endsWith("b.a"));
             });
   }
 }

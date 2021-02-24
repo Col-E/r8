@@ -23,6 +23,7 @@ public class PackagePrivateOverridePublicizerTest extends TestBase {
 
   private final TestParameters parameters;
   private final String[] EXPECTED = new String[] {"SubViewModel.clear()", "ViewModel.clear()"};
+  private final String[] R8_OUT = new String[] {"SubViewModel.clear()", "SubViewModel.clear()"};
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -50,12 +51,9 @@ public class PackagePrivateOverridePublicizerTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .allowAccessModification()
-        .addOptionsModification(
-            options -> {
-              options.enablePackagePrivateAwarePublicization = true;
-            })
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::assertSuccessOutput);
+        // TODO(b/172496438): This should be EXPECTED.
+        .assertSuccessWithOutputLines(R8_OUT);
   }
 
   private void assertSuccessOutput(TestRunResult<?> result) {

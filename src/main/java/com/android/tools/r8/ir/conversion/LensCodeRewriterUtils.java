@@ -137,17 +137,21 @@ public class LensCodeRewriterUtils {
       if (newType != oldType || actualTarget != invokedMethod || rewrittenTarget != actualTarget) {
         DexClass holder = definitions.definitionFor(actualTarget.holder, context);
         boolean isInterface = holder != null ? holder.isInterface() : methodHandle.isInterface;
-        return new DexMethodHandle(
-            newType,
-            actualTarget,
-            isInterface,
-            rewrittenTarget != actualTarget ? rewrittenTarget : null);
+        return definitions
+            .dexItemFactory()
+            .createMethodHandle(
+                newType,
+                actualTarget,
+                isInterface,
+                rewrittenTarget != actualTarget ? rewrittenTarget : null);
       }
     } else {
       DexField field = methodHandle.asField();
       DexField actualField = graphLens().lookupField(field);
       if (actualField != field) {
-        return new DexMethodHandle(methodHandle.type, actualField, methodHandle.isInterface);
+        return definitions
+            .dexItemFactory()
+            .createMethodHandle(methodHandle.type, actualField, methodHandle.isInterface);
       }
     }
     return methodHandle;

@@ -39,8 +39,6 @@ class ClassNameMinifier {
   private final ClassNamingStrategy classNamingStrategy;
   private final PackageNamingStrategy packageNamingStrategy;
   private final Iterable<? extends DexClass> classes;
-  private final boolean isAccessModificationAllowed;
-  private final Set<String> noObfuscationPrefixes = Sets.newHashSet();
   private final Set<String> usedPackagePrefixes = Sets.newHashSet();
   private final Set<String> usedTypeNames = Sets.newHashSet();
   private final Map<DexType, DexString> renaming = Maps.newIdentityHashMap();
@@ -50,6 +48,7 @@ class ClassNameMinifier {
   private final Namespace topLevelState;
   private final boolean allowMixedCaseNaming;
   private final Predicate<String> isUsed;
+  private final ProguardPackageNameList keepPackageNames;
 
   ClassNameMinifier(
       AppView<AppInfoWithLiveness> appView,
@@ -61,8 +60,6 @@ class ClassNameMinifier {
     this.packageNamingStrategy = packageNamingStrategy;
     this.classes = classes;
     InternalOptions options = appView.options();
-    this.isAccessModificationAllowed =
-        options.getProguardConfiguration().isAccessModificationAllowed();
     this.keepInnerClassStructure = options.keepInnerClassStructure();
 
     // Initialize top-level naming state.
@@ -70,9 +67,8 @@ class ClassNameMinifier {
     String newPackageDescriptor =
         StringUtils.replaceAll(options.getProguardConfiguration().getPackagePrefix(), ".", "/");
     if (!newPackageDescriptor.isEmpty()) {
-      registerPackagePrefixesAsUsed(newPackageDescriptor, false);
+      registerPackagePrefixesAsUsed(newPackageDescriptor);
     }
-
     states.put("", topLevelState);
 
     if (options.getProguardConfiguration().hasDontUseMixedCaseClassnames()) {
@@ -82,6 +78,7 @@ class ClassNameMinifier {
       allowMixedCaseNaming = true;
       isUsed = usedTypeNames::contains;
     }
+    keepPackageNames = options.getProguardConfiguration().getKeepPackageNamesPatterns();
   }
 
   private void setUsedTypeName(String typeName) {
@@ -180,8 +177,7 @@ class ClassNameMinifier {
   private void registerClassAsUsed(DexType type, DexString descriptor) {
     renaming.put(type, descriptor);
     registerPackagePrefixesAsUsed(
-        getParentPackagePrefix(getClassBinaryNameFromDescriptor(descriptor.toSourceString())),
-        isAccessModificationAllowed);
+        getParentPackagePrefix(getClassBinaryNameFromDescriptor(descriptor.toSourceString())));
     setUsedTypeName(descriptor.toString());
     if (keepInnerClassStructure) {
       DexType outerClass = getOutClassForType(type);
@@ -197,15 +193,13 @@ class ClassNameMinifier {
   }
 
   /** Registers the given package prefix and all of parent packages as used. */
-  private void registerPackagePrefixesAsUsed(String packagePrefix, boolean isMinificationAllowed) {
-    // If -allowaccessmodification is not set, we may keep classes in their original packages,
-    // accounting for package-private accesses.
-    if (!isMinificationAllowed) {
-      noObfuscationPrefixes.add(packagePrefix);
-    }
+  private void registerPackagePrefixesAsUsed(String packagePrefix) {
     String usedPrefix = packagePrefix;
     while (usedPrefix.length() > 0) {
+      // Only reserve the actual package and not all parent packages.
+      // TODO(b/178563208): Only mark prefix as used if usedPrefix.equals(packagePrefix)
       usedPackagePrefixes.add(usedPrefix);
+      states.computeIfAbsent(usedPrefix, Namespace::new);
       usedPrefix = getParentPackagePrefix(usedPrefix);
     }
   }
@@ -259,9 +253,7 @@ class ClassNameMinifier {
     String packageName = getPackageBinaryNameFromJavaType(type.getPackageDescriptor());
     // Check whether the given class should be kept.
     // or check whether the given class belongs to a package that is kept for another class.
-    ProguardPackageNameList keepPackageNames =
-        appView.options().getProguardConfiguration().getKeepPackageNamesPatterns();
-    if (noObfuscationPrefixes.contains(packageName) || keepPackageNames.matches(type)) {
+    if (keepPackageNames.matches(type)) {
       return states.computeIfAbsent(packageName, Namespace::new);
     }
     return getStateForPackagePrefix(packageName);
@@ -272,15 +264,9 @@ class ClassNameMinifier {
     if (state == null) {
       // Calculate the parent package prefix, e.g., La/b/c -> La/b
       String parentPackage = getParentPackagePrefix(prefix);
-      Namespace superState;
-      if (noObfuscationPrefixes.contains(parentPackage)) {
-        // Restore a state for parent package prefix if it should be kept.
-        superState = states.computeIfAbsent(parentPackage, Namespace::new);
-      } else {
-        // Create a state for parent package prefix, if necessary, in a recursive manner.
-        // That recursion should end when the parent package hits the top-level, "".
-        superState = getStateForPackagePrefix(parentPackage);
-      }
+      // Create a state for parent package prefix, if necessary, in a recursive manner.
+      // That recursion should end when the parent package hits the top-level, "".
+      Namespace superState = getStateForPackagePrefix(parentPackage);
       // From the super state, get a renamed package prefix for the current level.
       String renamedPackagePrefix = superState.nextPackagePrefix();
       // Create a new state, which corresponds to a new name space, for the current level.

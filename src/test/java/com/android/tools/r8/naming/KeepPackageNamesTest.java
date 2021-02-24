@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.keeppackagenames.Top;
@@ -47,6 +48,7 @@ public class KeepPackageNamesTest extends TestBase {
       assertEquals(
           getPackageNameFromDescriptor(top.getOriginalDescriptor()),
           getPackageNameFromDescriptor(top.getFinalDescriptor()));
+      assertEquals(PACKAGE_NAME, getPackageNameFromDescriptor(top.getFinalDescriptor()));
 
       ClassSubject sub = inspector.clazz(SubClass.class);
       assertThat(sub, isPresentAndRenamed());
@@ -55,13 +57,13 @@ public class KeepPackageNamesTest extends TestBase {
           assertNotEquals(
               getPackageNameFromDescriptor(sub.getOriginalDescriptor()),
               getPackageNameFromDescriptor(sub.getFinalDescriptor()));
-          assertThat(
-              getPackageNameFromDescriptor(sub.getFinalDescriptor()), containsString(PACKAGE_NAME));
           break;
         case DOUBLE_ASTERISKS:
           assertEquals(
               getPackageNameFromDescriptor(sub.getOriginalDescriptor()),
               getPackageNameFromDescriptor(sub.getFinalDescriptor()));
+          assertThat(
+              getPackageNameFromDescriptor(sub.getFinalDescriptor()), containsString(PACKAGE_NAME));
           break;
       }
     }
@@ -80,7 +82,7 @@ public class KeepPackageNamesTest extends TestBase {
 
   @Test
   public void testProguard() throws Exception {
-    testForProguard()
+    testForProguard(ProguardVersion.V6_0_1)
         .addProgramClasses(CLASSES)
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepRules(config.getKeepRule())

@@ -238,9 +238,9 @@ public class PackageNamingTest extends TestBase {
         b.getDexProgramClass().getType().getPackageName());
 
     ClassSubject sub_a = inspector.clazz("naming044.sub.SubA");
-    assertEquals(2, countPackageDepth(sub_a));
+    assertEquals(1, countPackageDepth(sub_a));
     ClassSubject sub_b = inspector.clazz("naming044.sub.SubB");
-    assertEquals(2, countPackageDepth(sub_b));
+    assertEquals(1, countPackageDepth(sub_b));
     assertEquals(
         sub_a.getDexProgramClass().getType().getPackageName(),
         sub_b.getDexProgramClass().getType().getPackageName());
@@ -327,9 +327,9 @@ public class PackageNamingTest extends TestBase {
 
     // All packages are renamed somehow. Need to check package hierarchy is consistent.
     ClassSubject aa = inspector.clazz("naming101.a.a");
-    assertEquals(2, countPackageDepth(aa));
+    assertEquals(1, countPackageDepth(aa));
     ClassSubject abc = inspector.clazz("naming101.a.b.c");
-    assertEquals(3, countPackageDepth(abc));
+    assertEquals(1, countPackageDepth(abc));
 
     // naming101.a/a; -> La/a/a; --prefix--> La/a
     // naming101.a/b/c; -> La/a/a/a; --prefix--> La/a/a --prefix--> La/a
@@ -356,14 +356,20 @@ public class PackageNamingTest extends TestBase {
         ba.getDexProgramClass().getType().getPackageName(),
         bb.getDexProgramClass().getType().getPackageName());
 
-    // All other classes can be repackaged to naming101.a, but naming101.a.a exists to make a name
-    // conflict. Thus, those should not be renamed to 'a'.
-    List<String> klasses = ImmutableList.of("naming101.c", "naming101.d", "naming101.a.b.c");
+    // We cannot repackage c or d since these have package-private members and a
+    // keep,allowobfuscation. For us to be able to repackage them, we have to use
+    // -allowaccesmodification.
+    List<String> klasses = ImmutableList.of("naming101.c", "naming101.d");
     for (String klass : klasses) {
       ClassSubject k = inspector.clazz(klass);
-      assertEquals("naming101.a", k.getDexProgramClass().getType().getPackageName());
-      assertNotEquals("naming101.a.a", k.getFinalName());
+      assertNotEquals("naming101.a", k.getDexProgramClass().getType().getPackageName());
     }
+
+    // All other classes can be repackaged to naming101.a, but naming101.a.a exists to make a name
+    // conflict. Thus, those should not be renamed to 'a'.
+    ClassSubject namingAbc = inspector.clazz("naming101.a.b.c");
+    assertEquals("naming101.a", namingAbc.getDexProgramClass().getType().getPackageName());
+    assertNotEquals("naming101.a.a", namingAbc.getFinalName());
   }
 
   private static void test101_rule104(CodeInspector inspector) {
@@ -411,11 +417,12 @@ public class PackageNamingTest extends TestBase {
     ClassSubject topD = inspector.clazz("naming101.d");
     assertEquals("naming101", topD.getDexProgramClass().getType().getPackageName());
 
-    // Due to the keep rule for naming101.c, package prefix naming101 is reserved.
-    // That is, every renamed class should have naming101 as parent package prefix.
-    for (String klass : klasses) {
-      ClassSubject t = inspector.clazz(klass);
-      assertTrue(t.getFinalName().startsWith("naming101."));
-    }
+    // The remaining classes are in subpackages of naming101 and will therefore not have
+    // package-private access to namin101.c
+    ClassSubject subAC = inspector.clazz("naming101.a.c");
+    assertEquals(1, countPackageDepth(subAC));
+
+    ClassSubject subABC = inspector.clazz("naming101.a.b.c");
+    assertEquals(1, countPackageDepth(subABC));
   }
 }

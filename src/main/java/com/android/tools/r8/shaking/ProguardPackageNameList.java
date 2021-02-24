@@ -5,6 +5,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramPackage;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
@@ -56,9 +57,17 @@ public class ProguardPackageNameList {
   }
 
   public boolean matches(DexType type) {
+    return matches(type.getPackageName());
+  }
+
+  public boolean matches(ProgramPackage pkg) {
+    return matches(pkg.getPackageName());
+  }
+
+  private boolean matches(String pkgName) {
     for (Object2BooleanMap.Entry<ProguardPackageMatcher> packageName :
         packageNames.object2BooleanEntrySet()) {
-      if (packageName.getKey().matches(type)) {
+      if (packageName.getKey().matches(pkgName)) {
         // If we match a negation, abort as non-match. If we match a positive, return true.
         return !packageName.getBooleanValue();
       }

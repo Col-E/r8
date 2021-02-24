@@ -96,6 +96,7 @@ public class NestAttributesUpdateTest extends TestBase {
             })
         .addProgramFiles(classesMatching(outerNestName))
         .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
+        .addKeepPackageNamesRule("nesthostexample")
         .addInliningAnnotations()
         .compile()
         .inspect(

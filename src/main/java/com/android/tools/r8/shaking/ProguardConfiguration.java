@@ -397,6 +397,12 @@ public class ProguardConfiguration {
         synthesizeKeepRulesForRecompilation();
       }
 
+      if (packageObfuscationMode == PackageObfuscationMode.NONE
+          && obfuscating
+          && !hasApplyMappingFile()) {
+        packageObfuscationMode = PackageObfuscationMode.MINIFICATION;
+      }
+
       return buildRaw();
     }
   }

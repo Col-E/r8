@@ -86,6 +86,7 @@ public class DoubleProcessingMergeEnumUnboxingTest extends EnumUnboxingTestBase 
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .minification(minification)
+        .addKeepPackageNamesRule(libClass.getPackage())
         .setMinApi(parameters.getApiLevel())
         .compile()
         .writeToZip();

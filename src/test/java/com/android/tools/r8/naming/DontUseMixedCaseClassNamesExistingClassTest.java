@@ -50,6 +50,7 @@ public class DontUseMixedCaseClassNamesExistingClassTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepClassRulesWithAllowObfuscation(A.class)
         .addKeepMainRule(Main.class)
+        .addKeepPackageNamesRule(Main.class.getPackage())
         .addKeepRules("-classobfuscationdictionary " + dictionary.toString())
         .applyIf(dontUseMixedCase, b -> b.addKeepRules("-dontusemixedcaseclassnames"))
         .run(parameters.getRuntime(), Main.class)

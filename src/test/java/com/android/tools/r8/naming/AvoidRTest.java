@@ -47,16 +47,16 @@ public class AvoidRTest extends JasminTestBase {
     JasminBuilder jasminBuilder = new JasminBuilder();
     R8FullTestBuilder builder = testForR8(parameters.getBackend());
     for (int i = 0; i < 4; i++) {
-      jasminBuilder.addClass("TopLevel" + Integer.toString(i));
+      jasminBuilder.addClass("TopLevel" + i);
     }
     for (int i = 0; i < 4; i++) {
-      jasminBuilder.addClass("p1/SecondLevel" + Integer.toString(i));
+      jasminBuilder.addClass("p1/SecondLevel" + i);
     }
     for (int i = 0; i < 4; i++) {
-      jasminBuilder.addClass("p1/p2/ThirdLevel" + Integer.toString(i));
+      jasminBuilder.addClass("p1/p2/ThirdLevel" + i);
     }
     for (int i = 0; i < 4; i++) {
-      jasminBuilder.addClass("p2/SecondLevel" + Integer.toString(i));
+      jasminBuilder.addClass("p2/SecondLevel" + i);
     }
     builder.addProgramClassFileData(jasminBuilder.buildClasses());
     Set<String> usedDescriptors = new HashSet<>();
@@ -84,7 +84,7 @@ public class AvoidRTest extends JasminTestBase {
     JasminBuilder jasminBuilder = new JasminBuilder();
     R8FullTestBuilder builder = testForR8(parameters.getBackend());
     for (int i = 0; i < 26 * 2; i++) {
-      jasminBuilder.addClass("TestClass" + Integer.toString(i));
+      jasminBuilder.addClass("TestClass" + i);
     }
     builder.addProgramClassFileData(jasminBuilder.buildClasses());
     Set<String> usedNames = new HashSet<>();

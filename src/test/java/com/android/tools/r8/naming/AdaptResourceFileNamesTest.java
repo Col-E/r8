@@ -86,6 +86,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
     return String.join(
         System.lineSeparator(),
         adaptResourceFilenamesRule,
+        "-keeppackagenames adaptresourcefilenames**",
         "-keep class adaptresourcefilenames.TestClass {",
         "  public static void main(...);",
         "}");

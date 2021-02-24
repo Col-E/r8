@@ -99,6 +99,7 @@ public class NestClassMergingTest extends TestBase {
             .enableInliningAnnotations()
             .addProgramFiles(bothNestsAndOutsideClassToCompile)
             .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
+            .addKeepPackageNamesRule("nesthostexample")
             .compile()
             .inspect(NestAttributesUpdateTest::assertNestAttributesCorrect);
     for (int i = 0; i < mainClasses.length; i++) {

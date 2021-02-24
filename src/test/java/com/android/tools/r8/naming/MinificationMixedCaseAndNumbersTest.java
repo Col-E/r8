@@ -34,7 +34,7 @@ public class MinificationMixedCaseAndNumbersTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public MinificationMixedCaseAndNumbersTest(TestParameters parameters) {
@@ -55,8 +55,9 @@ public class MinificationMixedCaseAndNumbersTest extends TestBase {
         .addInnerClasses(MinificationMixedCaseAndNumbersTest.class)
         .addKeepMainRule(Main.class)
         .noTreeShaking()
-        .addKeepRules("-dontusemixedcaseclassnames")
-        .setMinApi(parameters.getRuntime())
+        .addKeepRules(
+            "-dontusemixedcaseclassnames", "-keeppackagenames com.android.tools.r8.naming")
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .inspect(
             inspector -> {

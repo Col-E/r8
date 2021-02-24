@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -71,6 +72,14 @@ public abstract class KeepInfoCollection {
    * <p>See comment on class access for why this is typed at program field.
    */
   public abstract KeepFieldInfo getFieldInfo(DexEncodedField field, DexProgramClass holder);
+
+  public KeepMemberInfo<?, ?> getMemberInfo(DexEncodedMember<?, ?> member, DexProgramClass holder) {
+    if (member.isDexEncodedField()) {
+      return getFieldInfo(member.asDexEncodedField(), holder);
+    }
+    assert member.isDexEncodedMethod();
+    return getMethodInfo(member.asDexEncodedMethod(), holder);
+  }
 
   public final KeepClassInfo getClassInfo(DexType type, DexDefinitionSupplier definitions) {
     DexProgramClass clazz = asProgramClassOrNull(definitions.definitionFor(type));

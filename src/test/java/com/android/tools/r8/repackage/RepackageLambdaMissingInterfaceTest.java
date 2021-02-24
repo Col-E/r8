@@ -4,12 +4,14 @@
 
 package com.android.tools.r8.repackage;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -50,11 +52,15 @@ public class RepackageLambdaMissingInterfaceTest extends RepackageTestBase {
         .inspect(
             inspector -> {
               // Find the generated lambda class
-              assertThat(
-                  ClassWithLambda.class,
-                  isRepackagedIf(inspector, repackage && parameters.isDexRuntime()));
               if (!parameters.isDexRuntime()) {
+                assertThat(ClassWithLambda.class, isNotRepackaged(inspector));
                 return;
+              }
+              if (repackage) {
+                assertThat(ClassWithLambda.class, isRepackaged(inspector));
+              } else {
+                ClassSubject classWithLambdaSubject = inspector.clazz(ClassWithLambda.class);
+                assertThat(classWithLambdaSubject, isPresentAndRenamed());
               }
               inspector.forAllClasses(
                   clazz -> {
