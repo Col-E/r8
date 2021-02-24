@@ -120,20 +120,22 @@ public class AppInfo implements DexDefinitionSupplier {
     return syntheticItems;
   }
 
-  public void addSynthesizedClass(DexProgramClass clazz, boolean addToMainDex) {
+  public void addSynthesizedClassForLibraryDesugaring(DexProgramClass clazz) {
     assert checkIfObsolete();
-    syntheticItems.addLegacySyntheticClass(clazz);
-    if (addToMainDex) {
-      mainDexInfo.addSyntheticClass(clazz);
-    }
+    assert options().desugaredLibraryConfiguration != null;
+    syntheticItems.addLegacySyntheticClassForLibraryDesugaring(clazz);
   }
 
   public void addSynthesizedClass(DexProgramClass clazz, ProgramDefinition context) {
     assert checkIfObsolete();
-    syntheticItems.addLegacySyntheticClass(clazz);
-    if (context != null) {
-      mainDexInfo.addLegacySyntheticClass(clazz, context);
-    }
+    assert context != null;
+    syntheticItems.addLegacySyntheticClass(clazz, context);
+    mainDexInfo.addLegacySyntheticClass(clazz, context);
+  }
+
+  public void addSynthesizedClass(DexProgramClass clazz, Iterable<DexProgramClass> contexts) {
+    assert checkIfObsolete();
+    contexts.forEach(context -> addSynthesizedClass(clazz, context));
   }
 
   public List<DexProgramClass> classes() {

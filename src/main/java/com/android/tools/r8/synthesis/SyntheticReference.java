@@ -44,7 +44,7 @@ abstract class SyntheticReference<
 
   abstract DexReference getReference();
 
-  final R rewrite(NonIdentityGraphLens lens) {
+  public final R rewrite(NonIdentityGraphLens lens) {
     SynthesizingContext rewrittenContext = getContext().rewrite(lens);
     return internalRewrite(rewrittenContext, lens);
   }

@@ -537,7 +537,7 @@ public class DesugaredLibraryWrapperSynthesizer {
       throws ExecutionException {
     for (DexProgramClass wrapper : wrappers) {
       builder.addSynthesizedClass(wrapper);
-      appView.appInfo().addSynthesizedClass(wrapper, false);
+      appView.appInfo().addSynthesizedClassForLibraryDesugaring(wrapper);
     }
     irConverter.optimizeSynthesizedClasses(wrappers, executorService);
   }

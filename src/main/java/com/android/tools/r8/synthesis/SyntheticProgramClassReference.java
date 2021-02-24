@@ -19,7 +19,7 @@ import java.util.function.Function;
 class SyntheticProgramClassReference
     extends SyntheticClassReference<
         SyntheticProgramClassReference, SyntheticProgramClassDefinition, DexProgramClass>
-    implements SyntheticProgramReference {
+    implements SyntheticProgramReference, Rewritable<SyntheticProgramClassReference> {
 
   SyntheticProgramClassReference(SyntheticKind kind, SynthesizingContext context, DexType type) {
     super(kind, context, type);

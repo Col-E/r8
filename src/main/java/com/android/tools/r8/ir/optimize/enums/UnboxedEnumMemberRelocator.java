@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize.enums;
 
 import static com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter.createValuesField;
-import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
@@ -24,7 +23,6 @@ import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
-import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
@@ -34,7 +32,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Predicate;
 
 public class UnboxedEnumMemberRelocator {
 
@@ -132,7 +129,7 @@ public class UnboxedEnumMemberRelocator {
         Set<DexProgramClass> relocatedEnums,
         DirectMappedDexApplication.Builder appBuilder,
         FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder) {
-      DexProgramClass deterministicContext = findDeterministicContextType(contexts, alwaysTrue());
+      DexProgramClass deterministicContext = findDeterministicContextType(contexts);
       String descriptorString = deterministicContext.getType().toDescriptorString();
       String descriptorPrefix = descriptorString.substring(0, descriptorString.length() - 1);
       String syntheticClassDescriptor = descriptorPrefix + ENUM_UNBOXING_UTILITY_CLASS_SUFFIX + ";";
@@ -182,21 +179,13 @@ public class UnboxedEnumMemberRelocator {
               appView.dexItemFactory().getSkipNameValidationForTesting(),
               DexProgramClass::checksumFromType);
       appBuilder.addSynthesizedClass(syntheticClass);
-      MainDexInfo mainDexInfo = appView.appInfo().getMainDexInfo();
-      appView
-          .appInfo()
-          .addSynthesizedClass(
-              syntheticClass, findDeterministicContextType(contexts, mainDexInfo::isMainDex));
+      appView.appInfo().addSynthesizedClass(syntheticClass, contexts);
       return syntheticClass;
     }
 
-    private DexProgramClass findDeterministicContextType(
-        Set<DexProgramClass> contexts, Predicate<DexProgramClass> predicate) {
+    private DexProgramClass findDeterministicContextType(Set<DexProgramClass> contexts) {
       DexProgramClass deterministicContext = null;
       for (DexProgramClass context : contexts) {
-        if (!predicate.test(context)) {
-          continue;
-        }
         if (deterministicContext == null) {
           deterministicContext = context;
         } else if (context.type.compareTo(deterministicContext.type) < 0) {

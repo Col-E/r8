@@ -17,8 +17,6 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.MainDexInfo;
-import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -64,9 +62,7 @@ public class SyntheticArgumentClass {
     }
 
     private DexType synthesizeClass(
-        DexProgramClass context,
-        boolean requiresMainDex,
-        int index) {
+        DexProgramClass context, Iterable<DexProgramClass> mergeClasses, int index) {
       DexType syntheticClassType =
           appView
               .dexItemFactory()
@@ -98,25 +94,18 @@ public class SyntheticArgumentClass {
               DexProgramClass::checksumFromType);
 
       appBuilder.addSynthesizedClass(clazz);
-      appView.appInfo().addSynthesizedClass(clazz, requiresMainDex);
+      appView.appInfo().addSynthesizedClass(clazz, mergeClasses);
       return clazz.type;
     }
 
     public SyntheticArgumentClass build(Iterable<DexProgramClass> mergeClasses) {
       // Find a fresh name in an existing package.
       DexProgramClass context = mergeClasses.iterator().next();
-
-      // Add as a root to the main dex tracing result if any of the merged classes is a root.
-      // This is needed to satisfy an assertion in the inliner that verifies that we do not inline
-      // methods with references to non-roots into classes that are roots.
-      MainDexInfo mainDexInfo = appView.appInfo().getMainDexInfo();
-      boolean requiresMainDex = Iterables.any(mergeClasses, mainDexInfo::isMainDex);
-
       List<DexType> syntheticArgumentTypes = new ArrayList<>();
       for (int i = 0;
           i < appView.options().horizontalClassMergerOptions().getSyntheticArgumentCount();
           i++) {
-        syntheticArgumentTypes.add(synthesizeClass(context, requiresMainDex, i));
+        syntheticArgumentTypes.add(synthesizeClass(context, mergeClasses, i));
       }
 
       return new SyntheticArgumentClass(syntheticArgumentTypes);

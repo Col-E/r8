@@ -256,7 +256,7 @@ public class DesugaredLibraryRetargeter {
                 : new DexEncodedMethod[] {uniqueMethod},
             factory.getSkipNameValidationForTesting(),
             getChecksumSupplier(uniqueMethod, appView));
-    appView.appInfo().addSynthesizedClass(newClass, false);
+    appView.appInfo().addSynthesizedClassForLibraryDesugaring(newClass);
     builder.addSynthesizedClass(newClass);
   }
 

@@ -56,7 +56,7 @@ public class CommittedItems implements SyntheticDefinitionsProvider {
 
   @Deprecated
   public Collection<DexType> getLegacySyntheticTypes() {
-    return committed.getLegacyTypes();
+    return committed.getLegacyTypes().keySet();
   }
 
   @Override

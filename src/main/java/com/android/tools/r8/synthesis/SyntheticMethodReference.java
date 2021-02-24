@@ -20,7 +20,7 @@ import java.util.function.Function;
  */
 class SyntheticMethodReference
     extends SyntheticReference<SyntheticMethodReference, SyntheticMethodDefinition, DexProgramClass>
-    implements SyntheticProgramReference {
+    implements SyntheticProgramReference, Rewritable<SyntheticMethodReference> {
   final DexMethod method;
 
   SyntheticMethodReference(SyntheticKind kind, SynthesizingContext context, DexMethod method) {
@@ -29,7 +29,7 @@ class SyntheticMethodReference
   }
 
   @Override
-  DexType getHolder() {
+  public DexType getHolder() {
     return method.holder;
   }
 
