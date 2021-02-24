@@ -361,25 +361,15 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
   abstract D8IncrementalTestRunner test(String testName, String packageName, String mainClass);
 
   @Override
-  protected void testIntermediateWithMainDexList(
-      String packageName,
-      Path input,
-      int expectedMainDexListSize,
-      List<String> mainDexClasses,
-      List<String> mainDexOverApproximation)
-      throws Throwable {
+  protected void testIntermediateWithMainDexList(String packageName, Path input,
+      int expectedMainDexListSize, String... mainDexClasses) throws Throwable {
     // Skip those tests.
     Assume.assumeTrue(false);
   }
 
   @Override
-  protected Path buildDexThroughIntermediate(
-      String packageName,
-      Path input,
-      OutputMode outputMode,
-      AndroidApiLevel minApi,
-      List<String> mainDexClasses)
-      throws Throwable {
+  protected Path buildDexThroughIntermediate(String packageName, Path input, OutputMode outputMode,
+      AndroidApiLevel minApi, String... mainDexClasses) throws Throwable {
     // tests using this should already been skipped.
     throw new Unreachable();
   }

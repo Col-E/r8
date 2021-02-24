@@ -91,11 +91,6 @@ public class MainDexInfo {
     return this == NONE;
   }
 
-  public boolean isMainDexTypeThatShouldIncludeDependencies(DexType type) {
-    // Dependencies of 'type' are only needed if 'type' is a direct/executed main-dex type.
-    return classList.contains(type) || tracedRoots.contains(type);
-  }
-
   public boolean isMainDex(ProgramDefinition definition) {
     return isFromList(definition) || isTracedRoot(definition) || isDependency(definition);
   }

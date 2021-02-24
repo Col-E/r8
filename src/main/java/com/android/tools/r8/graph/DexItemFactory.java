@@ -605,6 +605,8 @@ public class DexItemFactory {
   public final DexType annotationThrows = createStaticallyKnownType("Ldalvik/annotation/Throws;");
   public final DexType annotationSynthesizedClass =
       createStaticallyKnownType("Lcom/android/tools/r8/annotations/SynthesizedClass;");
+  public final DexType annotationSynthesizedClassMap =
+      createStaticallyKnownType("Lcom/android/tools/r8/annotations/SynthesizedClassMap;");
   public final DexType annotationCovariantReturnType =
       createStaticallyKnownType("Ldalvik/annotation/codegen/CovariantReturnType;");
   public final DexType annotationCovariantReturnTypes =

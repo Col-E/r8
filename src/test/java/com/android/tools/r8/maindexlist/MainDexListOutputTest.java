@@ -116,11 +116,12 @@ public class MainDexListOutputTest extends TestBase {
 
   @Test
   public void testD8DesugaredLambdasInMainDexList() throws Exception {
+    Path mainDexList = writeTextToTempFile(testClassMainDexName);
     TestMainDexListConsumer consumer = new TestMainDexListConsumer();
     testForD8()
         .setMinApi(AndroidApiLevel.K)
         .addProgramClasses(ImmutableList.of(TestClass.class, MyConsumer.class))
-        .addMainDexListClasses(TestClass.class)
+        .addMainDexListFiles(ImmutableList.of(mainDexList))
         .setMainDexListConsumer(consumer)
         .compile();
     assertTrue(consumer.called);
@@ -128,6 +129,7 @@ public class MainDexListOutputTest extends TestBase {
 
   @Test
   public void testD8DesugaredLambdasInMainDexListMerging() throws Exception {
+    Path mainDexList = writeTextToTempFile(testClassMainDexName);
     // Build intermediate dex code first.
     Path dexOutput =
         testForD8()
@@ -141,7 +143,7 @@ public class MainDexListOutputTest extends TestBase {
     testForD8()
         .setMinApi(AndroidApiLevel.K)
         .addProgramFiles(dexOutput)
-        .addMainDexKeepClassRules(TestClass.class)
+        .addMainDexListFiles(ImmutableList.of(mainDexList))
         .setMainDexListConsumer(consumer)
         .compile();
     assertTrue(consumer.called);

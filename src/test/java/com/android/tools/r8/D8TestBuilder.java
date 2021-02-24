@@ -6,7 +6,6 @@ package com.android.tools.r8;
 import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -85,18 +84,6 @@ public class D8TestBuilder
 
   public D8TestBuilder addMainDexRulesFiles(Path... mainDexRuleFiles) {
     builder.addMainDexRulesFiles(mainDexRuleFiles);
-    return self();
-  }
-
-  public D8TestBuilder addMainDexRules(String... rules) {
-    builder.addMainDexRules(Arrays.asList(rules), Origin.unknown());
-    return self();
-  }
-
-  public D8TestBuilder addMainDexKeepClassRules(Class<?>... classes) {
-    for (Class<?> clazz : classes) {
-      addMainDexRules("-keep class " + clazz.getTypeName());
-    }
     return self();
   }
 }

@@ -115,6 +115,10 @@ public class AnnotationRemover {
         return isAnnotationTypeLive;
 
       case DexAnnotation.VISIBILITY_BUILD:
+        if (DexAnnotation.isSynthesizedClassMapAnnotation(annotation, dexItemFactory)) {
+          // TODO(sgjesse) When should these be removed?
+          return true;
+        }
         if (!config.runtimeInvisibleAnnotations) {
           return false;
         }

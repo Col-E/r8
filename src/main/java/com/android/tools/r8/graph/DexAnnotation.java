@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
@@ -21,7 +22,10 @@ import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.function.Function;
 
 public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotation> {
@@ -92,7 +96,8 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     }
     if (annotation == options.itemFactory.dalvikFastNativeAnnotation
         || annotation == options.itemFactory.dalvikCriticalNativeAnnotation
-        || annotation == options.itemFactory.annotationSynthesizedClass) {
+        || annotation == options.itemFactory.annotationSynthesizedClass
+        || annotation == options.itemFactory.annotationSynthesizedClassMap) {
       return true;
     }
     if (options.processCovariantReturnTypeAnnotations) {
@@ -358,6 +363,43 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     return new DexValueString(factory.createString(string));
   }
 
+  public static Collection<DexType> readAnnotationSynthesizedClassMap(
+      DexProgramClass clazz, DexItemFactory dexItemFactory) {
+    DexAnnotation foundAnnotation =
+        clazz.annotations().getFirstMatching(dexItemFactory.annotationSynthesizedClassMap);
+    if (foundAnnotation != null) {
+      if (foundAnnotation.annotation.elements.length != 1) {
+        throw new CompilationError(getInvalidSynthesizedClassMapMessage(clazz, foundAnnotation));
+      }
+      DexAnnotationElement value = foundAnnotation.annotation.elements[0];
+      if (value.name != dexItemFactory.valueString) {
+        throw new CompilationError(getInvalidSynthesizedClassMapMessage(clazz, foundAnnotation));
+      }
+      DexValueArray existingList = value.value.asDexValueArray();
+      if (existingList == null) {
+        throw new CompilationError(getInvalidSynthesizedClassMapMessage(clazz, foundAnnotation));
+      }
+      Collection<DexType> synthesized = new ArrayList<>(existingList.values.length);
+      for (DexValue element : existingList.getValues()) {
+        if (!element.isDexValueType()) {
+          throw new CompilationError(getInvalidSynthesizedClassMapMessage(clazz, foundAnnotation));
+        }
+        synthesized.add(element.asDexValueType().value);
+      }
+      return synthesized;
+    }
+    return Collections.emptyList();
+  }
+
+  private static String getInvalidSynthesizedClassMapMessage(
+      DexProgramClass annotatedClass,
+      DexAnnotation invalidAnnotation) {
+    return annotatedClass.toSourceString()
+        + " is annotated with invalid "
+        + invalidAnnotation.annotation.type.toString()
+        + ": " + invalidAnnotation.toString();
+  }
+
   public static DexAnnotation createAnnotationSynthesizedClass(
       SyntheticKind kind, DexType synthesizingContext, DexItemFactory dexItemFactory) {
     DexAnnotationElement kindElement =
@@ -412,6 +454,26 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
       return null;
     }
     return new Pair<>(kind, valueElement.value.asDexValueType().getValue());
+  }
+
+  public static DexAnnotation createAnnotationSynthesizedClassMap(
+      TreeSet<DexType> synthesized,
+      DexItemFactory dexItemFactory) {
+    DexValueType[] values = synthesized.stream()
+        .map(DexValueType::new)
+        .toArray(DexValueType[]::new);
+    DexValueArray array = new DexValueArray(values);
+    DexAnnotationElement pair =
+        new DexAnnotationElement(dexItemFactory.createString("value"), array);
+    return new DexAnnotation(
+        VISIBILITY_BUILD,
+        new DexEncodedAnnotation(
+            dexItemFactory.annotationSynthesizedClassMap, new DexAnnotationElement[]{pair}));
+  }
+
+  public static boolean isSynthesizedClassMapAnnotation(DexAnnotation annotation,
+      DexItemFactory factory) {
+    return annotation.annotation.type == factory.annotationSynthesizedClassMap;
   }
 
   public DexAnnotation rewrite(Function<DexEncodedAnnotation, DexEncodedAnnotation> rewriter) {

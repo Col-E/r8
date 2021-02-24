@@ -7,6 +7,7 @@ import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -31,9 +32,11 @@ import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentati
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.structural.RepresentativeMap;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import java.util.ArrayList;
@@ -45,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -258,6 +262,7 @@ public class SyntheticFinalization {
   Result computeFinalSynthetics(AppView<?> appView) {
     assert verifyNoNestedSynthetics();
     DexApplication application;
+    MainDexInfo mainDexInfo = appView.appInfo().getMainDexInfo();
     Builder lensBuilder = new Builder();
     ImmutableMap.Builder<DexType, SyntheticMethodReference> finalMethodsBuilder =
         ImmutableMap.builder();
@@ -284,6 +289,11 @@ public class SyntheticFinalization {
     ImmutableMap<DexType, SyntheticMethodReference> finalMethods = finalMethodsBuilder.build();
     ImmutableMap<DexType, SyntheticProgramClassReference> finalClasses =
         finalClassesBuilder.build();
+
+    handleSynthesizedClassMapping(
+        finalSyntheticProgramDefinitions, application, options, mainDexInfo, lensBuilder.typeMap);
+
+    assert appView.appInfo().getMainDexInfo() == mainDexInfo;
 
     Set<DexType> prunedSynthetics = Sets.newIdentityHashSet();
     committed.forEachNonLegacyItem(
@@ -344,6 +354,96 @@ public class SyntheticFinalization {
     return true;
   }
 
+  private void handleSynthesizedClassMapping(
+      List<DexProgramClass> finalSyntheticClasses,
+      DexApplication application,
+      InternalOptions options,
+      MainDexInfo mainDexInfo,
+      Map<DexType, DexType> derivedMainDexTypesToIgnore) {
+    boolean includeSynthesizedClassMappingInOutput = shouldAnnotateSynthetics(options);
+    if (includeSynthesizedClassMappingInOutput) {
+      updateSynthesizedClassMapping(application, finalSyntheticClasses);
+    }
+    updateMainDexListWithSynthesizedClassMap(application, mainDexInfo, derivedMainDexTypesToIgnore);
+    if (!includeSynthesizedClassMappingInOutput) {
+      clearSynthesizedClassMapping(application);
+    }
+  }
+
+  private void updateSynthesizedClassMapping(
+      DexApplication application, List<DexProgramClass> finalSyntheticClasses) {
+    ListMultimap<DexProgramClass, DexProgramClass> originalToSynthesized =
+        ArrayListMultimap.create();
+    for (DexType type : committed.getLegacyTypes()) {
+      DexProgramClass clazz = DexProgramClass.asProgramClassOrNull(application.definitionFor(type));
+      if (clazz != null) {
+        for (DexProgramClass origin : clazz.getSynthesizedFrom()) {
+          originalToSynthesized.put(origin, clazz);
+        }
+      }
+    }
+    for (DexProgramClass clazz : finalSyntheticClasses) {
+      for (DexProgramClass origin : clazz.getSynthesizedFrom()) {
+        originalToSynthesized.put(origin, clazz);
+      }
+    }
+    for (Map.Entry<DexProgramClass, Collection<DexProgramClass>> entry :
+        originalToSynthesized.asMap().entrySet()) {
+      DexProgramClass original = entry.getKey();
+      // Use a tree set to make sure that we have an ordering on the types.
+      // These types are put in an array in annotations in the output and we
+      // need a consistent ordering on them.
+      TreeSet<DexType> synthesized = new TreeSet<>(DexType::compareTo);
+      entry.getValue().stream()
+          .map(dexProgramClass -> dexProgramClass.type)
+          .forEach(synthesized::add);
+      synthesized.addAll(
+          DexAnnotation.readAnnotationSynthesizedClassMap(original, application.dexItemFactory));
+
+      DexAnnotation updatedAnnotation =
+          DexAnnotation.createAnnotationSynthesizedClassMap(
+              synthesized, application.dexItemFactory);
+
+      original.setAnnotations(original.annotations().getWithAddedOrReplaced(updatedAnnotation));
+    }
+  }
+
+  private void updateMainDexListWithSynthesizedClassMap(
+      DexApplication application,
+      MainDexInfo mainDexInfo,
+      Map<DexType, DexType> derivedMainDexTypesToIgnore) {
+    if (mainDexInfo.isEmpty()) {
+      return;
+    }
+    List<DexProgramClass> newMainDexClasses = new ArrayList<>();
+    mainDexInfo.forEachExcludingDependencies(
+        dexType -> {
+          DexProgramClass programClass =
+              DexProgramClass.asProgramClassOrNull(application.definitionFor(dexType));
+          if (programClass != null) {
+            Collection<DexType> derived =
+                DexAnnotation.readAnnotationSynthesizedClassMap(
+                    programClass, application.dexItemFactory);
+            for (DexType type : derived) {
+              DexType mappedType = derivedMainDexTypesToIgnore.getOrDefault(type, type);
+              DexProgramClass syntheticClass =
+                  DexProgramClass.asProgramClassOrNull(application.definitionFor(mappedType));
+              if (syntheticClass != null) {
+                newMainDexClasses.add(syntheticClass);
+              }
+            }
+          }
+        });
+    newMainDexClasses.forEach(mainDexInfo::addSyntheticClass);
+  }
+
+  private void clearSynthesizedClassMapping(DexApplication application) {
+    for (DexProgramClass clazz : application.classes()) {
+      clazz.setAnnotations(
+          clazz.annotations().getWithout(application.dexItemFactory.annotationSynthesizedClassMap));
+    }
+  }
+
   private static DexApplication buildLensAndProgram(
       AppView<?> appView,
       Map<DexType, EquivalenceGroup<SyntheticMethodDefinition>> syntheticMethodGroups,
@@ -354,8 +454,23 @@ public class SyntheticFinalization {
     DexApplication application = appView.appInfo().app();
     DexItemFactory factory = appView.dexItemFactory();
     List<DexProgramClass> newProgramClasses = new ArrayList<>();
-    Set<DexType> pruned = Sets.newIdentityHashSet();
 
+    // TODO(b/168584485): Remove this once class-mapping support is removed.
+    Set<DexType> derivedMainDexTypes = Sets.newIdentityHashSet();
+    MainDexInfo mainDexInfo = appView.appInfo().getMainDexInfo();
+    mainDexInfo.forEachExcludingDependencies(
+        mainDexType -> {
+          derivedMainDexTypes.add(mainDexType);
+          DexProgramClass mainDexClass =
+              DexProgramClass.asProgramClassOrNull(
+                  appView.appInfo().definitionForWithoutExistenceAssert(mainDexType));
+          if (mainDexClass != null) {
+            derivedMainDexTypes.addAll(
+                DexAnnotation.readAnnotationSynthesizedClassMap(mainDexClass, factory));
+          }
+        });
+
+    Set<DexType> pruned = Sets.newIdentityHashSet();
     syntheticMethodGroups.forEach(
         (syntheticType, syntheticGroup) -> {
           SyntheticMethodDefinition representative = syntheticGroup.getRepresentative();
@@ -456,7 +571,8 @@ public class SyntheticFinalization {
             addMainDexAndSynthesizedFromForMember(
                 member,
                 externalSyntheticClass,
-                appView.appInfo().getMainDexInfo(),
+                mainDexInfo,
+                derivedMainDexTypes,
                 appForLookup::programDefinitionFor);
           }
         });
@@ -477,7 +593,8 @@ public class SyntheticFinalization {
             addMainDexAndSynthesizedFromForMember(
                 member,
                 externalSyntheticClass,
-                appView.appInfo().getMainDexInfo(),
+                mainDexInfo,
+                derivedMainDexTypes,
                 appForLookup::programDefinitionFor);
           }
         });
@@ -527,8 +644,11 @@ public class SyntheticFinalization {
       SyntheticDefinition<?, ?, ?> member,
       DexProgramClass externalSyntheticClass,
       MainDexInfo mainDexInfo,
+      Set<DexType> derivedMainDexTypes,
       Function<DexType, DexProgramClass> definitions) {
-    member.getContext().addIfDerivedFromMainDexClass(externalSyntheticClass, mainDexInfo);
+    member
+        .getContext()
+        .addIfDerivedFromMainDexClass(externalSyntheticClass, mainDexInfo, derivedMainDexTypes);
     // TODO(b/168584485): Remove this once class-mapping support is removed.
     DexProgramClass from = definitions.apply(member.getContext().getSynthesizingContextType());
     if (from != null) {
@@ -541,6 +661,7 @@ public class SyntheticFinalization {
     // This is currently also disabled on CF to CF desugaring to avoid missing class references to
     // the annotated classes.
     // TODO(b/147485959): Find an alternative encoding for synthetics to avoid missing-class refs.
+    // TODO(b/168584485): Remove support for main-dex tracing with the class-map annotation.
     return options.intermediate && !options.cfToCfDesugar;
   }
 

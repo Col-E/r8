@@ -9,19 +9,15 @@ import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -31,8 +27,6 @@ import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,12 +35,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
@@ -117,24 +112,6 @@ public abstract class RunExamplesAndroidOTest<
 
     C withMainDexClass(String... classes) {
       return withBuilderTransformation(builder -> builder.addMainDexClasses(classes));
-    }
-
-    C withMainDexKeepClassRules(List<String> classes) {
-      return withBuilderTransformation(
-          builder -> {
-            if (builder instanceof D8Command.Builder) {
-              ((D8Command.Builder) builder)
-                  .addMainDexRules(
-                      ListUtils.map(classes, c -> "-keep class " + c), Origin.unknown());
-            } else if (builder instanceof R8Command.Builder) {
-              ((R8Command.Builder) builder)
-                  .addMainDexRules(
-                      ListUtils.map(classes, c -> "-keep class " + c), Origin.unknown());
-            } else {
-              fail("Unexpected builder type: " + builder.getClass());
-            }
-            return builder;
-          });
     }
 
     C withInterfaceMethodDesugaring(OffOrAuto behavior) {
@@ -488,20 +465,15 @@ public abstract class RunExamplesAndroidOTest<
     testIntermediateWithMainDexList(
         "lambdadesugaring",
         1,
-        ImmutableList.of("lambdadesugaring.LambdaDesugaring$I"),
-        ImmutableList.of());
+        "lambdadesugaring.LambdaDesugaring$I");
   }
 
   @Test
   public void testLambdaDesugaringWithMainDexList2() throws Throwable {
     // Main dex class has many lambdas.
-    testIntermediateWithMainDexList(
-        "lambdadesugaring",
-        // TODO(b/180074885): Over approximation not present in R8.
-        this instanceof R8RunExamplesAndroidOTest ? 51 : 52,
-        ImmutableList.of("lambdadesugaring.LambdaDesugaring$Refs$B"),
-        // TODO(b/180074885): Over approximation due to invoke-dynamic reference adds as dependency.
-        ImmutableList.of("lambdadesugaring.LambdaDesugaring$Refs$D"));
+    testIntermediateWithMainDexList("lambdadesugaring",
+        33,
+        "lambdadesugaring.LambdaDesugaring$Refs$B");
   }
 
   @Test
@@ -511,11 +483,7 @@ public abstract class RunExamplesAndroidOTest<
         "interfacemethods",
         Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION),
         2,
-        ImmutableList.of("interfacemethods.I1"),
-        // TODO(b/180074885): Over approximation due to including I1-CC by being derived from I1,
-        //  but after desugaring I1 does not reference I1$-CC (the static method is moved), so it
-        //  is incorrect to include I1-CC in the main dex.
-        ImmutableList.of("interfacemethods.I1$-CC"));
+        "interfacemethods.I1");
   }
 
 
@@ -526,11 +494,7 @@ public abstract class RunExamplesAndroidOTest<
         "interfacemethods",
         Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION),
         2,
-        ImmutableList.of("interfacemethods.I2"),
-        // TODO(b/180074885): Over approximation due to including I2$-CC by being derived from I2,
-        //  but after desugaring I2 does not reference I2$-CC (the default method is moved), so it
-        //  is incorrect to include I2$-CC in the main dex.
-        ImmutableList.of("interfacemethods.I2$-CC"));
+        "interfacemethods.I2");
   }
 
   @Test
@@ -546,23 +510,20 @@ public abstract class RunExamplesAndroidOTest<
   private void testIntermediateWithMainDexList(
       String packageName,
       int expectedMainDexListSize,
-      List<String> mainDexClasses,
-      List<String> mainDexOverApproximation)
+      String... mainDexClasses)
       throws Throwable {
     testIntermediateWithMainDexList(
         packageName,
         Paths.get(EXAMPLE_DIR, packageName + JAR_EXTENSION),
         expectedMainDexListSize,
-        mainDexClasses,
-        mainDexOverApproximation);
+        mainDexClasses);
   }
 
   protected void testIntermediateWithMainDexList(
       String packageName,
       Path input,
       int expectedMainDexListSize,
-      List<String> mainDexClasses,
-      List<String> mainDexOverApproximation)
+      String... mainDexClasses)
       throws Throwable {
     AndroidApiLevel minApi = AndroidApiLevel.K;
 
@@ -573,18 +534,16 @@ public abstract class RunExamplesAndroidOTest<
             .withMinApiLevel(minApi)
             .withOptionConsumer(option -> option.minimalMainDex = true)
             .withOptionConsumer(option -> option.enableInheritanceClassInDexDistributor = false)
-            .withMainDexKeepClassRules(mainDexClasses)
+            .withMainDexClass(mainDexClasses)
             .withKeepAll();
     Path fullDexes = temp.getRoot().toPath().resolve(packageName + "full" + ZIP_EXTENSION);
     full.build(input, fullDexes);
 
     // Builds with intermediate in both output mode.
-    Path dexesThroughIndexedIntermediate =
-        buildDexThroughIntermediate(
-            packageName, input, OutputMode.DexIndexed, minApi, mainDexClasses);
-    Path dexesThroughFilePerInputClassIntermediate =
-        buildDexThroughIntermediate(
-            packageName, input, OutputMode.DexFilePerClassFile, minApi, mainDexClasses);
+    Path dexesThroughIndexedIntermediate = buildDexThroughIntermediate(
+        packageName, input, OutputMode.DexIndexed, minApi, mainDexClasses);
+    Path dexesThroughFilePerInputClassIntermediate = buildDexThroughIntermediate(
+        packageName, input, OutputMode.DexFilePerClassFile, minApi, mainDexClasses);
 
     // Collect main dex types.
     CodeInspector fullInspector = getMainDexInspector(fullDexes);
@@ -592,45 +551,20 @@ public abstract class RunExamplesAndroidOTest<
         getMainDexInspector(dexesThroughIndexedIntermediate);
     CodeInspector filePerInputClassIntermediateInspector =
         getMainDexInspector(dexesThroughFilePerInputClassIntermediate);
-    Set<String> fullMainClasses = new HashSet<>();
+    Collection<String> fullMainClasses = new HashSet<>();
     fullInspector.forAllClasses(
         clazz -> fullMainClasses.add(clazz.getFinalDescriptor()));
-    Set<String> indexedIntermediateMainClasses = new HashSet<>();
+    Collection<String> indexedIntermediateMainClasses = new HashSet<>();
     indexedIntermediateInspector.forAllClasses(
         clazz -> indexedIntermediateMainClasses.add(clazz.getFinalDescriptor()));
-    Set<String> filePerInputClassIntermediateMainClasses = new HashSet<>();
+    Collection<String> filePerInputClassIntermediateMainClasses = new HashSet<>();
     filePerInputClassIntermediateInspector.forAllClasses(
         clazz -> filePerInputClassIntermediateMainClasses.add(clazz.getFinalDescriptor()));
 
     // Check.
     Assert.assertEquals(expectedMainDexListSize, fullMainClasses.size());
-    SetView<String> adjustedFull =
-        Sets.difference(
-            fullMainClasses,
-            new HashSet<>(
-                ListUtils.map(mainDexOverApproximation, DescriptorUtils::javaTypeToDescriptor)));
-    assertEqualSets(adjustedFull, indexedIntermediateMainClasses);
-    assertEqualSets(adjustedFull, filePerInputClassIntermediateMainClasses);
-  }
-
-  <T> void assertEqualSets(Set<T> expected, Set<T> actual) {
-    SetView<T> missing = Sets.difference(expected, actual);
-    SetView<T> unexpected = Sets.difference(actual, expected);
-    if (missing.isEmpty() && unexpected.isEmpty()) {
-      return;
-    }
-    StringBuilder builder = new StringBuilder("Sets differ.");
-    if (!missing.isEmpty()) {
-      builder.append("\nMissing items: [\n  ");
-      StringUtils.append(builder, missing, "\n  ", BraceType.NONE);
-      builder.append("\n]");
-    }
-    if (!unexpected.isEmpty()) {
-      builder.append("\nUnexpected items: [\n  ");
-      StringUtils.append(builder, unexpected, "\n  ", BraceType.NONE);
-      builder.append("\n]");
-    }
-    fail(builder.toString());
+    Assert.assertEquals(fullMainClasses, indexedIntermediateMainClasses);
+    Assert.assertEquals(fullMainClasses, filePerInputClassIntermediateMainClasses);
   }
 
   protected Path buildDexThroughIntermediate(
@@ -638,7 +572,7 @@ public abstract class RunExamplesAndroidOTest<
       Path input,
       OutputMode outputMode,
       AndroidApiLevel minApi,
-      List<String> mainDexClasses)
+      String... mainDexClasses)
       throws Throwable {
     Path intermediateDex =
         temp.getRoot().toPath().resolve(packageName + "intermediate" + ZIP_EXTENSION);
@@ -657,7 +591,7 @@ public abstract class RunExamplesAndroidOTest<
         test(packageName + "dex", packageName, "N/A")
             .withOptionConsumer(option -> option.minimalMainDex = true)
             .withOptionConsumer(option -> option.enableInheritanceClassInDexDistributor = false)
-            .withMainDexKeepClassRules(mainDexClasses)
+            .withMainDexClass(mainDexClasses)
             .withMinApiLevel(minApi)
             .withKeepAll();
 
@@ -710,7 +644,8 @@ public abstract class RunExamplesAndroidOTest<
     }
   }
 
-  protected CodeInspector getMainDexInspector(Path zip) throws IOException {
+  protected CodeInspector getMainDexInspector(Path zip)
+      throws IOException, ExecutionException {
     try (ZipFile zipFile = new ZipFile(zip.toFile(), StandardCharsets.UTF_8)) {
       try (InputStream in =
           zipFile.getInputStream(zipFile.getEntry(ToolHelper.DEFAULT_DEX_FILENAME))) {
