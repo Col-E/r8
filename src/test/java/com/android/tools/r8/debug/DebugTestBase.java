@@ -2208,4 +2208,24 @@ public abstract class DebugTestBase extends TestBase {
       }
     }
   }
+
+  protected void runContinuousTest(
+      String debuggeeClassName, DebugTestConfig config, String mainMethodName) throws Throwable {
+    runDebugTest(
+        config,
+        debuggeeClassName,
+        breakpoint(debuggeeClassName, mainMethodName),
+        run(),
+        stepUntil(
+            StepKind.OVER,
+            StepLevel.INSTRUCTION,
+            debuggeeState -> {
+              // Fetch local variables.
+              Map<String, Value> localValues = debuggeeState.getLocalValues();
+              Assert.assertNotNull(localValues);
+
+              // Always step until we actually exit the program.
+              return false;
+            }));
+  }
 }

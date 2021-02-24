@@ -30,16 +30,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.stream.Collectors;
-import org.apache.harmony.jpda.tests.framework.jdwp.Value;
-import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -51,14 +47,11 @@ public class ContinuousSteppingTest extends DebugTestBase {
 
   private static final String MAIN_METHOD_NAME = "main";
 
-  private static final TemporaryFolder testTemp = ToolHelper.getTemporaryFolderForTest();
-
   // A list of self-contained jars to process (which do not depend on other jar files).
   private static List<Pair<Path, Predicate<Version>>> listOfJars() {
     return new ConfigListBuilder()
         .add(DebugTestBase.DEBUGGEE_JAR, ContinuousSteppingTest::allVersions)
         .add(DebugTestBase.DEBUGGEE_JAVA8_JAR, ContinuousSteppingTest::allVersions)
-        .addAllKotlinDebugJars(testTemp, ContinuousSteppingTest::allVersions)
         .addAll(
             findAllJarsIn(Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR)),
             ContinuousSteppingTest::fromAndroidN)
@@ -67,8 +60,6 @@ public class ContinuousSteppingTest extends DebugTestBase {
         //      ContinuousSteppingTest::fromAndroidO)
         .build();
   }
-
-  private static final Map<Path, DebugTestConfig> compiledJarConfig = new HashMap<>();
 
   private final String mainClass;
   private final Path jarPath;
@@ -127,14 +118,8 @@ public class ContinuousSteppingTest extends DebugTestBase {
     }
   }
 
-  @AfterClass
-  public static void tearDown() {
-    testTemp.delete();
-  }
-
   @Parameters(name = "{0} from {1}")
   public static Collection<Object[]> getData() throws IOException {
-    testTemp.create();
     List<Object[]> testCases = new ArrayList<>();
     for (Pair<Path, Predicate<Version>> pair : listOfJars()) {
       if (pair.getSecond().test(ToolHelper.getDexVm().getVersion())) {
@@ -143,13 +128,13 @@ public class ContinuousSteppingTest extends DebugTestBase {
         for (String className : mainClasses) {
           testCases.add(new Object[]{className, jarPath});
         }
-
-        DebugTestConfig config = new D8DebugTestConfig().compileAndAdd(testTemp, jarPath);
-        compiledJarConfig.put(jarPath, config);
       }
     }
     return testCases;
   }
+
+  private static final Function<Path, DebugTestConfig> compiledJars =
+      memoizeFunction(path -> new D8DebugTestConfig().compileAndAdd(getStaticTemp(), path));
 
   public ContinuousSteppingTest(String mainClass, Path jarPath) {
     this.mainClass = mainClass;
@@ -158,10 +143,9 @@ public class ContinuousSteppingTest extends DebugTestBase {
 
   @Test
   public void testContinuousSingleStep() throws Throwable {
-    assert compiledJarConfig.containsKey(jarPath);
-    DebugTestConfig config = compiledJarConfig.get(jarPath);
+    DebugTestConfig config = compiledJars.apply(jarPath);
     assert config != null;
-    runContinuousTest(mainClass, config);
+    runContinuousTest(mainClass, config, MAIN_METHOD_NAME);
   }
 
   // Returns a list of classes with a "public static void main(String[])" method in the given jar
@@ -216,22 +200,4 @@ public class ContinuousSteppingTest extends DebugTestBase {
         && m.getParameterCount() == 1
         && m.getParameterTypes()[0] == String[].class;
   }
-
-  private void runContinuousTest(String debuggeeClassName, DebugTestConfig config)
-      throws Throwable {
-    runDebugTest(
-        config,
-        debuggeeClassName,
-        breakpoint(debuggeeClassName, MAIN_METHOD_NAME),
-        run(),
-        stepUntil(StepKind.OVER, StepLevel.INSTRUCTION, debuggeeState -> {
-          // Fetch local variables.
-          Map<String, Value> localValues = debuggeeState.getLocalValues();
-          Assert.assertNotNull(localValues);
-
-          // Always step until we actually exit the program.
-          return false;
-        }));
-  }
-
 }
