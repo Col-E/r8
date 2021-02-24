@@ -163,7 +163,8 @@ def maybe_check_call(args, cmd):
 
 def update_prebuilds(r8_checkout, version, checkout):
   path = os.path.join(r8_checkout, 'tools', 'update_prebuilds_in_android.py')
-  subprocess.check_call([path, '--targets=lib', '--maps', '--version=' + version, checkout])
+  commit_arg = '--commit_hash=' if len(version) == 40 else '--version='
+  subprocess.check_call([path, '--targets=lib', '--maps', commit_arg + version, checkout])
 
 
 def release_studio_or_aosp(r8_checkout, path, options, git_message):
