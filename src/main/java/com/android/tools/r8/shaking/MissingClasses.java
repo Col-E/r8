@@ -266,7 +266,8 @@ public class MissingClasses {
               dexItemFactory.annotationSynthesizedClass,
               dexItemFactory.annotationSynthesizedClassMap,
               dexItemFactory.annotationThrows,
-              dexItemFactory.serializedLambdaType)
+              dexItemFactory.serializedLambdaType,
+              dexItemFactory.unsafeType)
           .addAll(dexItemFactory.getJavaConversionTypes())
           .addAll(dexItemFactory.getJ$ConversionTypes())
           .build();

@@ -638,6 +638,7 @@ public class DexItemFactory {
   public final DexType comparableType = createStaticallyKnownType("Ljava/lang/Comparable;");
   public final DexType stringConcatFactoryType =
       createStaticallyKnownType("Ljava/lang/invoke/StringConcatFactory;");
+  public final DexType unsafeType = createStaticallyKnownType("Lsun/misc/Unsafe;");
 
   public final ServiceLoaderMethods serviceLoaderMethods = new ServiceLoaderMethods();
   public final StringConcatFactoryMembers stringConcatFactoryMembers =
