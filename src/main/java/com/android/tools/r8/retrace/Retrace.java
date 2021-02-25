@@ -160,14 +160,6 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
     this.isVerbose = isVerbose;
   }
 
-  public static <T, ST extends StackTraceElementProxy<T, ST>> Retrace<T, ST> createRetrace(
-      StackTraceLineParser<T, ST> stackTraceLineParser,
-      StackTraceElementProxyRetracer<T, ST> proxyRetracer,
-      DiagnosticsHandler diagnosticsHandler,
-      boolean isVerbose) {
-    return new Retrace<>(stackTraceLineParser, proxyRetracer, diagnosticsHandler, isVerbose);
-  }
-
   /**
    * Retraces a stack frame and calls the consumer for each retraced line
    *

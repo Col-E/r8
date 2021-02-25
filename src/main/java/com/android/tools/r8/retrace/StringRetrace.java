@@ -47,7 +47,7 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
   }
 
   /**
-   * Retraces a list of stack-traces strings and returns a list. Ambiguous and inline frames will be
+   * Retraces a list of stack-trace lines and returns a list. Ambiguous and inline frames will be
    * appended automatically to the retraced string.
    *
    * @param stackTrace the incoming stack trace
