@@ -64,6 +64,9 @@ public interface MissingDefinitionInfo {
     return null;
   }
 
+  /** User friendly description of the missing definition. */
+  String getDiagnosticMessage();
+
   /** The contexts from which this missing definition was referenced. */
   Collection<MissingDefinitionContext> getReferencedFromContexts();
 }

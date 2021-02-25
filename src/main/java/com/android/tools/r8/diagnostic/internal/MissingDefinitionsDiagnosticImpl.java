@@ -4,21 +4,10 @@
 
 package com.android.tools.r8.diagnostic.internal;
 
-import static com.android.tools.r8.utils.ClassReferenceUtils.getClassReferenceComparator;
-import static com.android.tools.r8.utils.FieldReferenceUtils.getFieldReferenceComparator;
-import static com.android.tools.r8.utils.MethodReferenceUtils.getMethodReferenceComparator;
-
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionInfo;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.FieldReference;
-import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.utils.Box;
-import com.android.tools.r8.utils.FieldReferenceUtils;
-import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,12 +29,12 @@ public class MissingDefinitionsDiagnosticImpl implements MissingDefinitionsDiagn
 
   @Override
   public Collection<MissingDefinitionInfo> getMissingDefinitions() {
-    return missingDefinitions;
+    return getMissingDefinitionsWithDeterministicOrder();
   }
 
   private Collection<MissingDefinitionInfo> getMissingDefinitionsWithDeterministicOrder() {
     List<MissingDefinitionInfo> missingDefinitionsWithDeterministicOrder =
-        new ArrayList<>(getMissingDefinitions());
+        new ArrayList<>(missingDefinitions);
     missingDefinitionsWithDeterministicOrder.sort(MissingDefinitionInfoUtils.getComparator());
     return missingDefinitionsWithDeterministicOrder;
   }
@@ -72,76 +61,15 @@ public class MissingDefinitionsDiagnosticImpl implements MissingDefinitionsDiagn
     assert missingDefinitionsIterator.hasNext();
 
     // Write first line.
-    writeMissingDefinition(builder.append("Missing class "), missingDefinitionsIterator.next());
+    MissingDefinitionInfoUtils.writeDiagnosticMessage(builder, missingDefinitionsIterator.next());
 
     // Write remaining lines with line separator before.
     missingDefinitionsIterator.forEachRemaining(
         missingDefinition ->
-            writeMissingDefinition(
-                builder.append(System.lineSeparator()).append("Missing class "),
-                missingDefinition));
+            MissingDefinitionInfoUtils.writeDiagnosticMessage(
+                builder.append(System.lineSeparator()), missingDefinition));
 
     return builder.toString();
-  }
-
-  private static void writeMissingDefinition(
-      StringBuilder builder, MissingDefinitionInfo missingDefinitionInfo) {
-    MissingDefinitionInfoUtils.accept(
-        missingDefinitionInfo,
-        missingClassInfo -> builder.append(missingClassInfo.getClassReference().getTypeName()),
-        missingFieldInfo ->
-            builder.append(
-                FieldReferenceUtils.toSourceString(missingFieldInfo.getFieldReference())),
-        missingMethodInfo ->
-            builder.append(
-                MethodReferenceUtils.toSourceString(missingMethodInfo.getMethodReference())));
-    writeReferencedFromSuffix(builder, missingDefinitionInfo);
-  }
-
-  private static void writeReferencedFromSuffix(
-      StringBuilder builder, MissingDefinitionInfo missingDefinitionInfo) {
-    Box<ClassReference> classContext = new Box<>();
-    Box<FieldReference> fieldContext = new Box<>();
-    Box<MethodReference> methodContext = new Box<>();
-    for (MissingDefinitionContext missingDefinitionContext :
-        missingDefinitionInfo.getReferencedFromContexts()) {
-      MissingDefinitionContextUtils.accept(
-          missingDefinitionContext,
-          missingDefinitionClassContext ->
-              classContext.setMin(
-                  missingDefinitionClassContext.getClassReference(), getClassReferenceComparator()),
-          missingDefinitionFieldContext ->
-              fieldContext.setMin(
-                  missingDefinitionFieldContext.getFieldReference(), getFieldReferenceComparator()),
-          missingDefinitionMethodContext ->
-              methodContext.setMin(
-                  missingDefinitionMethodContext.getMethodReference(),
-                  getMethodReferenceComparator()));
-    }
-    assert classContext.isSet() || fieldContext.isSet() || methodContext.isSet();
-    if (fieldContext.isSet()) {
-      writeReferencedFromSuffix(
-          builder, missingDefinitionInfo, FieldReferenceUtils.toSourceString(fieldContext.get()));
-    } else if (methodContext.isSet()) {
-      writeReferencedFromSuffix(
-          builder, missingDefinitionInfo, MethodReferenceUtils.toSourceString(methodContext.get()));
-    } else {
-      writeReferencedFromSuffix(builder, missingDefinitionInfo, classContext.get().getTypeName());
-    }
-  }
-
-  private static void writeReferencedFromSuffix(
-      StringBuilder builder, MissingDefinitionInfo missingDefinitionInfo, String referencedFrom) {
-    int numberOfOtherContexts = missingDefinitionInfo.getReferencedFromContexts().size() - 1;
-    assert numberOfOtherContexts >= 0;
-    builder.append(" (referenced from: ").append(referencedFrom);
-    if (numberOfOtherContexts >= 1) {
-      builder.append(", and ").append(numberOfOtherContexts).append(" other context");
-      if (numberOfOtherContexts >= 2) {
-        builder.append("s");
-      }
-    }
-    builder.append(")");
   }
 
   public static class Builder {

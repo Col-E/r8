@@ -18,6 +18,13 @@ public abstract class MissingDefinitionInfoBase implements MissingDefinitionInfo
   }
 
   @Override
+  public String getDiagnosticMessage() {
+    StringBuilder builder = new StringBuilder();
+    MissingDefinitionInfoUtils.writeDiagnosticMessage(builder, this);
+    return builder.toString();
+  }
+
+  @Override
   public final Collection<MissingDefinitionContext> getReferencedFromContexts() {
     return referencedFromContexts;
   }

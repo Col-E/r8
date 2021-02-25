@@ -169,7 +169,7 @@ public abstract class MissingClassesTestBase extends TestBase {
             .append(" (referenced from: ")
             .append(referencedFrom);
     if (numberOfContexts > 1) {
-      builder.append(", and ").append(numberOfContexts - 1).append(" other context");
+      builder.append(" and ").append(numberOfContexts - 1).append(" other context");
       if (numberOfContexts > 2) {
         builder.append("s");
       }
