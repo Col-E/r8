@@ -401,9 +401,7 @@ public class VirtualFile {
       VirtualFile mainDexFile = virtualFiles.get(0);
       mainDexInfo.forEach(
           type -> {
-            // TODO(b/178577273): We should ensure only live types in main dex.
-            DexProgramClass clazz =
-                asProgramClassOrNull(appView.appInfo().definitionForWithoutExistenceAssert(type));
+            DexProgramClass clazz = asProgramClassOrNull(appView.appInfo().definitionFor(type));
             if (clazz != null) {
               mainDexFile.addClass(clazz);
               classes.remove(clazz);
