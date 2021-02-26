@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.CfCodeStackMapValidatingException;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
@@ -37,6 +38,7 @@ public class CfFrameVerificationHelper {
   private final BiPredicate<DexType, DexType> isJavaAssignable;
   private final DexItemFactory factory;
   private final List<CfTryCatch> tryCatchRanges;
+  private final GraphLens graphLens;
 
   private final Deque<CfTryCatch> currentCatchRanges = new ArrayDeque<>();
   private final Set<CfLabel> tryCatchRangeLabels;
@@ -46,12 +48,14 @@ public class CfFrameVerificationHelper {
       Map<CfLabel, CfFrame> stateMap,
       List<CfTryCatch> tryCatchRanges,
       BiPredicate<DexType, DexType> isJavaAssignable,
-      DexItemFactory factory) {
+      DexItemFactory factory,
+      GraphLens graphLens) {
     this.context = context;
     this.stateMap = stateMap;
     this.tryCatchRanges = tryCatchRanges;
     this.isJavaAssignable = isJavaAssignable;
     this.factory = factory;
+    this.graphLens = graphLens;
     throwStack = ImmutableDeque.of(FrameType.initialized(factory.throwableType));
     // Compute all labels that marks a start or end to catch ranges.
     tryCatchRangeLabels = Sets.newIdentityHashSet();
@@ -230,10 +234,11 @@ public class CfFrameVerificationHelper {
 
   public void verifyIsAssignable(FrameType source, DexType target) {
     if (!source.isInitialized()) {
-      if (source.isUninitializedThis() && target == context) {
+      DexType rewrittenTarget = graphLens.lookupClassType(target);
+      if (source.isUninitializedThis() && rewrittenTarget == context) {
         return;
       }
-      if (target == factory.objectType) {
+      if (rewrittenTarget == factory.objectType) {
         return;
       }
       throw CfCodeStackMapValidatingException.error(

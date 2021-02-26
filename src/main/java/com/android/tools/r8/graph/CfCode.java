@@ -305,9 +305,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
     GraphLens graphLens = appView.graphLens();
-    // TODO(b/170073151): Handle unapplied code rewritings.
-    assert graphLens.hasCodeRewritings()
-        || verifyFrames(method.getDefinition(), appView, null, false);
+    assert verifyFrames(method.getDefinition(), appView, null, false);
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     InitClassLens initClassLens = appView.initClassLens();
     InternalOptions options = appView.options();
@@ -791,7 +789,8 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
             stateMap,
             tryCatchRanges,
             isAssignablePredicate(appView),
-            appView.dexItemFactory());
+            appView.dexItemFactory(),
+            appView.graphLens());
     if (stateMap.containsKey(null)) {
       assert !shouldComputeInitialFrame();
       builder.verifyFrameAndSet(stateMap.get(null));
