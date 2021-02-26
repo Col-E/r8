@@ -39,7 +39,8 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   O_MR1(27),
   P(28),
   Q(29),
-  R(30);
+  R(30),
+  S(31);
 
   public static final AndroidApiLevel LATEST = R;
 

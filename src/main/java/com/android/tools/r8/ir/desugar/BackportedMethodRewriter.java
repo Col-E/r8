@@ -174,6 +174,9 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       if (options.minApiLevel < AndroidApiLevel.R.getLevel()) {
         initializeAndroidRMethodProviders(factory);
       }
+      if (options.minApiLevel < AndroidApiLevel.S.getLevel()) {
+        initializeAndroidSMethodProviders(factory);
+      }
 
       // The following providers are currently not implemented at any API level in Android.
       // They however require the Optional/Stream class to be present, either through desugared
@@ -191,7 +194,6 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       }
 
       // These are currently not implemented at any API level in Android.
-      initializeJava9MethodProviders(factory);
       initializeJava10MethodProviders(factory);
       initializeJava11MethodProviders(factory);
     }
@@ -962,15 +964,49 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       addProvider(new MethodGenerator(method, BackportedMethods::CollectionMethods_mapEntry));
     }
 
-    private void initializeJava9MethodProviders(DexItemFactory factory) {
+    private void initializeAndroidSMethodProviders(DexItemFactory factory) {
+      DexType type;
+      DexString name;
+      DexProto proto;
+      DexMethod method;
+
+      // Set
+      type = factory.setType;
+
+      // Set Set.copyOf(Collection)
+      name = factory.createString("copyOf");
+      proto = factory.createProto(factory.setType, factory.collectionType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::CollectionsMethods_copyOfSet, "copyOfSet"));
+
+      // Byte
+      type = factory.boxedByteType;
+
+      // int Byte.compareUnsigned(byte, byte)
+      name = factory.createString("compareUnsigned");
+      proto = factory.createProto(factory.intType, factory.byteType, factory.byteType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BackportedMethods::ByteMethods_compareUnsigned));
+
+      // Short
+      type = factory.boxedShortType;
+
+      // int Short.compareUnsigned(short, short)
+      name = factory.createString("compareUnsigned");
+      proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BackportedMethods::ShortMethods_compareUnsigned));
+
       // Math & StrictMath, which have some symmetric, binary-compatible APIs
       DexType[] mathTypes = {factory.mathType, factory.strictMathType};
       for (DexType mathType : mathTypes) {
 
         // long {Math,StrictMath}.multiplyExact(long, int)
-        DexString name = factory.createString("multiplyExact");
-        DexProto proto = factory.createProto(factory.longType, factory.longType, factory.intType);
-        DexMethod method = factory.createMethod(mathType, proto, name);
+        name = factory.createString("multiplyExact");
+        proto = factory.createProto(factory.longType, factory.longType, factory.intType);
+        method = factory.createMethod(mathType, proto, name);
         addProvider(
             new MethodGenerator(
                 method,
@@ -1005,24 +1041,6 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_floorModLongInt, "floorModLongInt"));
       }
-
-      // Byte
-      DexType type = factory.boxedByteType;
-
-      // int Byte.compareUnsigned(byte, byte)
-      DexString name = factory.createString("compareUnsigned");
-      DexProto proto = factory.createProto(factory.intType, factory.byteType, factory.byteType);
-      DexMethod method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::ByteMethods_compareUnsigned));
-
-      // Short
-      type = factory.boxedShortType;
-
-      // int Short.compareUnsigned(short, short)
-      name = factory.createString("compareUnsigned");
-      proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::ShortMethods_compareUnsigned));
     }
 
     private void initializeJava10MethodProviders(DexItemFactory factory) {
@@ -1037,18 +1055,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
           new MethodGenerator(
               method, BackportedMethods::CollectionsMethods_copyOfList, "copyOfList"));
 
-      // Set
-      type = factory.setType;
-
-      // Set Set.copyOf(Collection)
-      name = factory.createString("copyOf");
-      proto = factory.createProto(factory.setType, factory.collectionType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(
-          new MethodGenerator(
-              method, BackportedMethods::CollectionsMethods_copyOfSet, "copyOfSet"));
-
-      // Set
+      // Map
       type = factory.mapType;
 
       // Map Map.copyOf(Map)
