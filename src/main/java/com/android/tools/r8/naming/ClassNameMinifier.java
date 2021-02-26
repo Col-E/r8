@@ -196,8 +196,6 @@ class ClassNameMinifier {
   private void registerPackagePrefixesAsUsed(String packagePrefix) {
     String usedPrefix = packagePrefix;
     while (usedPrefix.length() > 0) {
-      // Only reserve the actual package and not all parent packages.
-      // TODO(b/178563208): Only mark prefix as used if usedPrefix.equals(packagePrefix)
       usedPackagePrefixes.add(usedPrefix);
       states.computeIfAbsent(usedPrefix, Namespace::new);
       usedPrefix = getParentPackagePrefix(usedPrefix);
