@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ArchiveBuilder;
+import com.android.tools.r8.utils.DexUtils;
 import com.android.tools.r8.utils.DirectoryBuilder;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
@@ -88,16 +89,6 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
       this.consumer = consumer;
     }
 
-    protected static String getDefaultDexFileName(int fileIndex) {
-      return fileIndex == 0
-          ? "classes" + FileUtils.DEX_EXTENSION
-          : ("classes" + (fileIndex + 1) + FileUtils.DEX_EXTENSION);
-    }
-
-    protected String getDexFileName(int fileIndex) {
-      return getDefaultDexFileName(fileIndex);
-    }
-
     @Override
     public DataResourceConsumer getDataResourceConsumer() {
       return consumer != null ? consumer.getDataResourceConsumer() : null;
@@ -162,7 +153,8 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
     public void accept(
         int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
       super.accept(fileIndex, data, descriptors, handler);
-      outputBuilder.addIndexedClassFile(fileIndex, getDexFileName(fileIndex), data, handler);
+      outputBuilder.addIndexedClassFile(
+          fileIndex, DexUtils.getDefaultDexFileName(fileIndex), data, handler);
     }
 
     @Override
@@ -192,7 +184,7 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
                 new BufferedOutputStream(Files.newOutputStream(archive, options)))) {
           for (int i = 0; i < resources.size(); i++) {
             ProgramResource resource = resources.get(i);
-            String entryName = getDefaultDexFileName(i);
+            String entryName = DexUtils.getDefaultDexFileName(i);
             byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getByteStream()));
             ZipUtils.writeToZipStream(out, entryName, bytes, ZipEntry.STORED);
           }
@@ -253,7 +245,7 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
       } catch (IOException e) {
         handler.error(new ExceptionDiagnostic(e, new PathOrigin(directory)));
       }
-      outputBuilder.addFile(getDexFileName(fileIndex), data, handler);
+      outputBuilder.addFile(DexUtils.getDefaultDexFileName(fileIndex), data, handler);
     }
 
     @Override
@@ -303,7 +295,7 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
     }
 
     private static Path getTargetDexFile(Path directory, int fileIndex) {
-      return directory.resolve(ForwardingConsumer.getDefaultDexFileName(fileIndex));
+      return directory.resolve(DexUtils.getDefaultDexFileName(fileIndex));
     }
 
     private static void writeFile(byte[] contents, Path target) throws IOException {

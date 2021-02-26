@@ -64,7 +64,8 @@ public interface StringConsumer {
   }
 
   /** Forwarding consumer to delegate to an optional existing consumer. */
-  class ForwardingConsumer implements StringConsumer {
+  @Keep
+  public class ForwardingConsumer implements StringConsumer {
 
     private final StringConsumer consumer;
 
