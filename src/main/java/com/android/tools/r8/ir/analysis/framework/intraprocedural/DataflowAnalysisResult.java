@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.framework.intraprocedural;
 
 import com.android.tools.r8.ir.code.BasicBlock;
+import java.util.Map;
 
 /**
  * The result returned by {@link IntraproceduralDataflowAnalysis#run(BasicBlock)}.
@@ -23,15 +24,33 @@ public abstract class DataflowAnalysisResult {
     return false;
   }
 
+  public <StateType extends AbstractState<StateType>>
+      SuccessfulDataflowAnalysisResult<StateType> asSuccessfulAnalysisResult() {
+    return null;
+  }
+
   public boolean isFailedAnalysisResult() {
     return false;
   }
 
-  public static class SuccessfulDataflowAnalysisResult extends DataflowAnalysisResult {
+  public static class SuccessfulDataflowAnalysisResult<StateType extends AbstractState<StateType>>
+      extends DataflowAnalysisResult {
+
+    private final Map<BasicBlock, StateType> blockExitStates;
+
+    public SuccessfulDataflowAnalysisResult(Map<BasicBlock, StateType> blockExitStates) {
+      this.blockExitStates = blockExitStates;
+    }
 
     @Override
     public boolean isSuccessfulAnalysisResult() {
       return true;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public SuccessfulDataflowAnalysisResult<StateType> asSuccessfulAnalysisResult() {
+      return this;
     }
   }
 

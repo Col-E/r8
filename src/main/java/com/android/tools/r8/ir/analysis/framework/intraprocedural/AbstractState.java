@@ -12,6 +12,11 @@ public abstract class AbstractState<StateType extends AbstractState<StateType>>
 
   public abstract StateType join(StateType state);
 
+  public boolean isGreaterThanOrEquals(StateType state) {
+    StateType leastUpperBound = join(state);
+    return equals(leastUpperBound);
+  }
+
   @Override
   public abstract boolean equals(Object other);
 

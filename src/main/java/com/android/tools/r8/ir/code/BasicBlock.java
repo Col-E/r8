@@ -190,6 +190,10 @@ public class BasicBlock {
     return successors.size() == 1;
   }
 
+  public boolean hasUniqueSuccessorWithUniquePredecessor() {
+    return hasUniqueSuccessor() && getUniqueSuccessor().getPredecessors().size() == 1;
+  }
+
   public boolean hasUniqueNormalSuccessor() {
     return numberOfNormalSuccessors() == 1;
   }

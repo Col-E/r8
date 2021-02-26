@@ -45,37 +45,50 @@ public class IntraproceduralDataflowAnalysis<StateType extends AbstractState<Sta
   private DataflowAnalysisResult run(WorkList<BasicBlock> worklist) {
     while (worklist.hasNext()) {
       BasicBlock block = worklist.next();
+      BasicBlock end = null;
       // Compute the abstract state upon entry to the basic block, by joining all the predecessor
       // exit states.
       StateType state = computeBlockEntryState(block);
-      for (Instruction instruction : block.getInstructions()) {
-        TransferFunctionResult<StateType> transferResult = transfer.apply(instruction, state);
-        if (transferResult.isFailedTransferResult()) {
-          return new FailedDataflowAnalysisResult();
+      do {
+        for (Instruction instruction : block.getInstructions()) {
+          TransferFunctionResult<StateType> transferResult = transfer.apply(instruction, state);
+          if (transferResult.isFailedTransferResult()) {
+            return new FailedDataflowAnalysisResult();
+          }
+          assert transferResult.isAbstractState();
+          state = transferResult.asAbstractState();
         }
-        assert transferResult.isAbstractState();
-        state = transferResult.asAbstractState();
-      }
+        if (block.hasUniqueSuccessorWithUniquePredecessor()) {
+          block = block.getUniqueSuccessor();
+        } else {
+          end = block;
+          block = null;
+        }
+      } while (block != null);
       // Update the block exit state, and re-enqueue all successor blocks if the abstract state
       // changed.
-      if (setBlockExitState(block, state)) {
-        worklist.addAllIgnoringSeenSet(block.getSuccessors());
+      if (setBlockExitState(end, state)) {
+        worklist.addAllIgnoringSeenSet(end.getSuccessors());
       }
     }
-    return new SuccessfulDataflowAnalysisResult();
+    return new SuccessfulDataflowAnalysisResult<>(blockExitStates);
   }
 
   private StateType computeBlockEntryState(BasicBlock block) {
     StateType result = bottom;
     for (BasicBlock predecessor : block.getPredecessors()) {
-      StateType predecessorState = blockExitStates.getOrDefault(predecessor, bottom);
-      result = result.join(predecessorState);
+      StateType edgeState =
+          transfer.computeBlockEntryState(
+              block, predecessor, blockExitStates.getOrDefault(predecessor, bottom));
+      result = result.join(edgeState);
     }
     return result;
   }
 
   private boolean setBlockExitState(BasicBlock block, StateType state) {
+    assert !block.hasUniqueSuccessorWithUniquePredecessor();
     StateType previous = blockExitStates.put(block, state);
+    assert previous == null || state.isGreaterThanOrEquals(previous);
     return !state.equals(previous);
   }
 }

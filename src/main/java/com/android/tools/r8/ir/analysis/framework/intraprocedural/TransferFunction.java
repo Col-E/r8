@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.framework.intraprocedural;
 
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.Instruction;
 
 /**
@@ -13,4 +14,9 @@ import com.android.tools.r8.ir.code.Instruction;
 public interface TransferFunction<StateType extends AbstractState<StateType>> {
 
   TransferFunctionResult<StateType> apply(Instruction instruction, StateType state);
+
+  default StateType computeBlockEntryState(
+      BasicBlock block, BasicBlock predecessor, StateType predecessorExitState) {
+    return predecessorExitState;
+  }
 }
