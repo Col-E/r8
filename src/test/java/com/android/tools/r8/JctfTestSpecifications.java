@@ -1780,6 +1780,7 @@ public class JctfTestSpecifications {
               anyDexVm())
           .put("lang.Thread.getState.Thread_getState_A01", anyDexVm())
           .put("lang.Thread.join.Thread_join_A01", anyDexVm())
+          .put("lang.ThreadGroup.destroy.ThreadGroup_destroy_A01", match(JAVA_RUNTIME))
           .put(
               "util.concurrent.ScheduledThreadPoolExecutor.getTaskCount.ScheduledThreadPoolExecutor_getTaskCount_A01",
               any())
