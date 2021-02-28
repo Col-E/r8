@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.optimize.info.LibraryOptimizationInfoInitializerFeedback;
+import com.android.tools.r8.ir.optimize.info.field.EmptyInstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
@@ -57,6 +58,16 @@ public class LibraryOptimizationInfoInitializer {
   }
 
   private void modelInstanceInitializers() {
+    DexEncodedMethod objectConstructor = lookupMethod(dexItemFactory.objectMembers.constructor);
+    if (objectConstructor != null) {
+      InstanceFieldInitializationInfoCollection fieldInitializationInfos =
+          EmptyInstanceFieldInitializationInfoCollection.getInstance();
+      feedback.setInstanceInitializerInfoCollection(
+          objectConstructor,
+          InstanceInitializerInfoCollection.of(
+              NonTrivialInstanceInitializerInfo.builder(fieldInitializationInfos).build()));
+    }
+
     EnumMembers enumMembers = dexItemFactory.enumMembers;
     DexEncodedMethod enumConstructor = lookupMethod(enumMembers.constructor);
     if (enumConstructor != null) {
