@@ -83,20 +83,20 @@ class SwitchCaseEliminator {
   boolean optimize() {
     if (canBeOptimized()) {
       int originalNumberOfSuccessors = block.getSuccessors().size();
-      unlinkDeadSuccessors();
+      IntList removedSuccessorIndices = unlinkDeadSuccessors();
       if (hasAlwaysHitCase() || allSwitchCasesMarkedForRemoval()) {
         // Replace switch with a simple goto.
         replaceSwitchByGoto();
       } else {
         // Replace switch by a new switch where the dead switch cases have been removed.
-        replaceSwitchByOptimizedSwitch(originalNumberOfSuccessors);
+        replaceSwitchByOptimizedSwitch(originalNumberOfSuccessors, removedSuccessorIndices);
       }
       return true;
     }
     return false;
   }
 
-  private void unlinkDeadSuccessors() {
+  private IntList unlinkDeadSuccessors() {
     IntPredicate successorHasBecomeDeadPredicate = computeSuccessorHasBecomeDeadPredicate();
     IntList successorIndicesToBeRemoved = new IntArrayList();
     for (int i = 0; i < block.getSuccessors().size(); i++) {
@@ -111,6 +111,7 @@ class SwitchCaseEliminator {
     }
     successorIndicesToBeRemoved.sort(Comparator.naturalOrder());
     block.removeSuccessorsByIndex(successorIndicesToBeRemoved);
+    return successorIndicesToBeRemoved;
   }
 
   private IntPredicate computeSuccessorHasBecomeDeadPredicate() {
@@ -136,16 +137,12 @@ class SwitchCaseEliminator {
     iterator.replaceCurrentInstruction(new Goto(target));
   }
 
-  private void replaceSwitchByOptimizedSwitch(int originalNumberOfSuccessors) {
+  private void replaceSwitchByOptimizedSwitch(
+      int originalNumberOfSuccessors, IntList removedSuccessorIndices) {
     int[] targetBlockIndexOffset = new int[originalNumberOfSuccessors];
-    for (int i : switchCasesToBeRemoved) {
-      int targetBlockIndex = theSwitch.getTargetBlockIndex(i);
-      // Add 1 because we are interested in the number of targets removed before a given index.
-      if (targetBlockIndex + 1 < targetBlockIndexOffset.length) {
-        targetBlockIndexOffset[targetBlockIndex + 1] = 1;
-      }
+    for (int removedSuccessorIndex : removedSuccessorIndices) {
+      targetBlockIndexOffset[removedSuccessorIndex] = 1;
     }
-
     for (int i = 1; i < targetBlockIndexOffset.length; i++) {
       targetBlockIndexOffset[i] += targetBlockIndexOffset[i - 1];
     }
