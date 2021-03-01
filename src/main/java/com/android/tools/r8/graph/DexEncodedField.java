@@ -51,23 +51,6 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     // TODO(b/171867022): Should the optimization info and member info be part of the definition?
   }
 
-  public DexEncodedField(
-      DexField field,
-      FieldAccessFlags accessFlags,
-      FieldTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      DexValue staticValue,
-      boolean deprecated) {
-    super(annotations);
-    this.field = field;
-    this.accessFlags = accessFlags;
-    this.staticValue = staticValue;
-    this.deprecated = deprecated;
-    this.genericSignature = genericSignature;
-    assert genericSignature != null;
-    assert GenericSignatureUtils.verifyNoDuplicateGenericDefinitions(genericSignature, annotations);
-  }
-
   public DexEncodedField(DexField field, FieldAccessFlags accessFlags) {
     this(field, accessFlags, FieldTypeSignature.noSignature(), DexAnnotationSet.empty(), null);
   }
@@ -79,6 +62,34 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       DexAnnotationSet annotations,
       DexValue staticValue) {
     this(field, accessFlags, genericSignature, annotations, staticValue, false);
+  }
+
+  public DexEncodedField(
+      DexField field,
+      FieldAccessFlags accessFlags,
+      FieldTypeSignature genericSignature,
+      DexAnnotationSet annotations,
+      DexValue staticValue,
+      boolean deprecated) {
+    this(field, accessFlags, genericSignature, annotations, staticValue, deprecated, false);
+  }
+
+  public DexEncodedField(
+      DexField field,
+      FieldAccessFlags accessFlags,
+      FieldTypeSignature genericSignature,
+      DexAnnotationSet annotations,
+      DexValue staticValue,
+      boolean deprecated,
+      boolean d8R8Synthesized) {
+    super(annotations, d8R8Synthesized);
+    this.field = field;
+    this.accessFlags = accessFlags;
+    this.staticValue = staticValue;
+    this.deprecated = deprecated;
+    this.genericSignature = genericSignature;
+    assert genericSignature != null;
+    assert GenericSignatureUtils.verifyNoDuplicateGenericDefinitions(genericSignature, annotations);
   }
 
   @Override
@@ -356,6 +367,8 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     private FieldTypeSignature genericSignature;
     private DexValue staticValue;
     private FieldOptimizationInfo optimizationInfo;
+    private boolean deprecated;
+    private boolean d8R8Synthesized;
     private Consumer<DexEncodedField> buildConsumer = ConsumerUtils.emptyConsumer();
 
     Builder(DexEncodedField from) {
@@ -370,6 +383,8 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
           from.optimizationInfo.isDefaultFieldOptimizationInfo()
               ? DefaultFieldOptimizationInfo.getInstance()
               : from.optimizationInfo.mutableCopy();
+      deprecated = from.isDeprecated();
+      d8R8Synthesized = from.isD8R8Synthesized();
     }
 
     public Builder apply(Consumer<Builder> consumer) {
@@ -397,7 +412,14 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
 
     DexEncodedField build() {
       DexEncodedField dexEncodedField =
-          new DexEncodedField(field, accessFlags, genericSignature, annotations, staticValue);
+          new DexEncodedField(
+              field,
+              accessFlags,
+              genericSignature,
+              annotations,
+              staticValue,
+              deprecated,
+              d8R8Synthesized);
       if (optimizationInfo.isMutableFieldOptimizationInfo()) {
         dexEncodedField.setOptimizationInfo(optimizationInfo.asMutableFieldOptimizationInfo());
       }

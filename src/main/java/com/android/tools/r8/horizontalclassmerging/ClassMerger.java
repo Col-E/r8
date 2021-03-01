@@ -194,14 +194,17 @@ public class ClassMerger {
   }
 
   void appendClassIdField() {
+    boolean deprecated = false;
+    boolean d8R8Synthesized = true;
     classInstanceFieldsMerger.setClassIdField(
         new DexEncodedField(
             group.getClassIdField(),
-            FieldAccessFlags.fromSharedAccessFlags(
-                Constants.ACC_PUBLIC + Constants.ACC_FINAL + Constants.ACC_SYNTHETIC),
+            FieldAccessFlags.createPublicFinalSynthetic(),
             FieldTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
-            null));
+            null,
+            deprecated,
+            d8R8Synthesized));
   }
 
   void mergeStaticFields() {

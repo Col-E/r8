@@ -160,7 +160,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
   private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
   private CallSiteOptimizationInfo callSiteOptimizationInfo = CallSiteOptimizationInfo.bottom();
-  private CfVersion classFileVersion = null;
+  private CfVersion classFileVersion;
   private KotlinMethodLevelInfo kotlinMemberInfo = NO_KOTLIN_INFO;
   /** Generic signature information if the attribute is present in the input */
   private MethodTypeSignature genericSignature;
@@ -176,18 +176,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   // to catch potential bugs due to the inconsistency (e.g., http://b/111893131)
   // Any newly added `public` method should check if `this` instance is obsolete.
   private boolean obsolete = false;
-
-  // This flag indicates if the method has been synthesized by D8/R8. Such method do not require
-  // a proguard mapping file entry. This flag is different from the synthesized access flag. When a
-  // non synthesized method is inlined into a synthesized method, the method no longer has the
-  // synthesized access flag, but the d8R8Synthesized flag is still there. Methods can also have
-  // the synthesized access flag prior to D8/R8 compilation, in which case d8R8Synthesized is not
-  // set.
-  private final boolean d8R8Synthesized;
-
-  public boolean isD8R8Synthesized() {
-    return d8R8Synthesized;
-  }
 
   private void checkIfObsolete() {
     assert !obsolete;
@@ -319,7 +307,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       boolean d8R8Synthesized,
       CfVersion classFileVersion,
       boolean deprecated) {
-    super(annotations);
+    super(annotations, d8R8Synthesized);
     this.method = method;
     this.accessFlags = accessFlags;
     this.deprecated = deprecated;
@@ -327,7 +315,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     this.parameterAnnotationsList = parameterAnnotationsList;
     this.code = code;
     this.classFileVersion = classFileVersion;
-    this.d8R8Synthesized = d8R8Synthesized;
     assert accessFlags != null;
     assert code == null || !shouldNotHaveCode();
     assert parameterAnnotationsList != null;
@@ -354,15 +341,15 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   // Visitor specifying the structure of the method with respect to its "synthetic" content.
   // TODO(b/171867022): Generalize this so that it determines any method in full.
   private static void syntheticSpecify(StructuralSpecification<DexEncodedMethod, ?> spec) {
-    spec.withItem(m -> m.method)
-        .withItem(m -> m.accessFlags)
+    spec.withItem(DexEncodedMethod::getReference)
+        .withItem(DexEncodedMethod::getAccessFlags)
         .withItem(DexDefinition::annotations)
         .withItem(m -> m.parameterAnnotationsList)
         .withNullableItem(m -> m.classFileVersion)
-        .withBool(m -> m.d8R8Synthesized)
+        .withBool(DexEncodedMember::isD8R8Synthesized)
         // TODO(b/171867022): Make signatures structural and include it in the definition.
         .withAssert(m -> m.genericSignature.hasNoSignature())
-        .withAssert(m1 -> m1.code != null)
+        .withAssert(DexEncodedMethod::hasCode)
         .withCustomItem(
             DexEncodedMethod::getCode,
             DexEncodedMethod::compareCodeObject,
@@ -1547,7 +1534,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     private Consumer<DexEncodedMethod> buildConsumer = ConsumerUtils.emptyConsumer();
 
     private Builder(DexEncodedMethod from) {
-      this(from, from.d8R8Synthesized);
+      this(from, from.isD8R8Synthesized());
     }
 
     private Builder(DexEncodedMethod from, boolean d8R8Synthesized) {

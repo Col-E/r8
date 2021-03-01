@@ -230,16 +230,17 @@ public final class LambdaClass {
     int fieldCount = fieldTypes.length;
     List<DexEncodedField> fields = new ArrayList<>(fieldCount);
     for (int i = 0; i < fieldCount; i++) {
-      FieldAccessFlags accessFlags =
-          FieldAccessFlags.fromSharedAccessFlags(
-              Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC);
+      boolean deprecated = false;
+      boolean d8R8Synthesized = true;
       fields.add(
           new DexEncodedField(
               getCaptureField(i),
-              accessFlags,
+              FieldAccessFlags.createPublicFinalSynthetic(),
               FieldTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
-              null));
+              null,
+              deprecated,
+              d8R8Synthesized));
     }
     builder.setInstanceFields(fields);
   }
@@ -249,6 +250,8 @@ public final class LambdaClass {
     if (isStateless()) {
       // Create instance field for stateless lambda.
       assert this.lambdaField != null;
+      boolean deprecated = false;
+      boolean d8R8Synthesized = true;
       builder.setStaticFields(
           Collections.singletonList(
               new DexEncodedField(
@@ -260,7 +263,9 @@ public final class LambdaClass {
                           | Constants.ACC_STATIC),
                   FieldTypeSignature.noSignature(),
                   DexAnnotationSet.empty(),
-                  DexValueNull.NULL)));
+                  DexValueNull.NULL,
+                  deprecated,
+                  d8R8Synthesized)));
     }
   }
 

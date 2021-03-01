@@ -4,7 +4,6 @@
 package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
-import static com.android.tools.r8.horizontalclassmerging.ClassMerger.CLASS_ID_FIELD_NAME;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -616,11 +615,12 @@ public abstract class GraphLens {
         continue;
       }
       for (DexEncodedField field : clazz.fields()) {
-        // Fields synthesized by R8 are not present in the input, and therefore we do not require
-        // that they can be mapped back to the original program.
+        if (field.isD8R8Synthesized()) {
+          // Fields synthesized by D8/R8 may not be mapped.
+          continue;
+        }
         DexField originalField = getOriginalFieldSignature(field.getReference());
         assert originalFields.contains(originalField)
-                || isD8R8SynthesizedField(field.getReference(), appView)
             : "Unable to map field `"
                 + field.getReference().toSourceString()
                 + "` back to original program";
@@ -636,23 +636,6 @@ public abstract class GraphLens {
     }
 
     return true;
-  }
-
-  private boolean isD8R8SynthesizedField(DexField field, AppView<?> appView) {
-    // TODO(b/167947782): Should be a general check to see if the field is D8/R8 synthesized
-    //  instead of relying on field names.
-    DexItemFactory dexItemFactory = appView.dexItemFactory();
-    if (field.match(dexItemFactory.objectMembers.clinitField)) {
-      return true;
-    }
-    if (field.getName().toSourceString().equals(CLASS_ID_FIELD_NAME)) {
-      return true;
-    }
-    if (appView.getSyntheticItems().isNonLegacySynthetic(field.getHolderType())
-        && field.getName() == dexItemFactory.lambdaInstanceFieldName) {
-      return true;
-    }
-    return false;
   }
 
   public abstract static class NonIdentityGraphLens extends GraphLens {

@@ -63,6 +63,11 @@ public class FieldAccessFlags extends AccessFlags<FieldAccessFlags> {
         Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC);
   }
 
+  public static FieldAccessFlags createPublicFinalSynthetic() {
+    return fromSharedAccessFlags(
+        Constants.ACC_PUBLIC | Constants.ACC_FINAL | Constants.ACC_SYNTHETIC);
+  }
+
   public static FieldAccessFlags fromSharedAccessFlags(int access) {
     assert (access & FLAGS) == access;
     return new FieldAccessFlags(access & FLAGS);

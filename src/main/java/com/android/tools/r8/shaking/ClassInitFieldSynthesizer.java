@@ -77,13 +77,17 @@ public class ClassInitFieldSynthesizer {
                   | Constants.ACC_FINAL
                   | Constants.ACC_PUBLIC
                   | Constants.ACC_STATIC);
+      boolean deprecated = false;
+      boolean d8R8Synthesized = true;
       encodedClinitField =
           new DexEncodedField(
               appView.dexItemFactory().createField(clazz.type, clinitField.type, clinitField.name),
               accessFlags,
               FieldTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
-              null);
+              null,
+              deprecated,
+              d8R8Synthesized);
       clazz.appendStaticField(encodedClinitField);
     }
     lensBuilder.map(type, encodedClinitField.field);

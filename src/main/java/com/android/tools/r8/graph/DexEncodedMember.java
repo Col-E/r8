@@ -8,8 +8,17 @@ import com.android.tools.r8.kotlin.KotlinMemberLevelInfo;
 public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
     extends DexDefinition {
 
-  public DexEncodedMember(DexAnnotationSet annotations) {
+  // This flag indicates if this member has been synthesized by D8/R8. Such members do not require
+  // a proguard mapping file entry. This flag is different from the synthesized access flag. When a
+  // non synthesized member is inlined into a synthesized member, the member no longer has the
+  // synthesized access flag, but the d8R8Synthesized flag is still there. Members can also have
+  // the synthesized access flag prior to D8/R8 compilation, in which case d8R8Synthesized is not
+  // set.
+  private final boolean d8R8Synthesized;
+
+  public DexEncodedMember(DexAnnotationSet annotations, boolean d8R8Synthesized) {
     super(annotations);
+    this.d8R8Synthesized = d8R8Synthesized;
   }
 
   public abstract KotlinMemberLevelInfo getKotlinMemberInfo();
@@ -24,6 +33,10 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
 
   @Override
   public abstract R getReference();
+
+  public boolean isD8R8Synthesized() {
+    return d8R8Synthesized;
+  }
 
   @Override
   public boolean isDexEncodedMember() {
