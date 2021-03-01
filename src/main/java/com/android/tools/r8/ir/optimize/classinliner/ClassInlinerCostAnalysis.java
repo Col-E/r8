@@ -28,17 +28,17 @@ class ClassInlinerCostAnalysis {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final InliningIRProvider inliningIRProvider;
-  private final Set<Value> definiteReceiverAliases;
+  private final ClassInlinerReceiverSet receivers;
 
   private int estimatedCost = 0;
 
   ClassInlinerCostAnalysis(
       AppView<AppInfoWithLiveness> appView,
       InliningIRProvider inliningIRProvider,
-      Set<Value> definiteReceiverAliases) {
+      ClassInlinerReceiverSet receivers) {
     this.appView = appView;
     this.inliningIRProvider = inliningIRProvider;
-    this.definiteReceiverAliases = definiteReceiverAliases;
+    this.receivers = receivers;
   }
 
   boolean willExceedInstructionBudget(
@@ -145,10 +145,10 @@ class ClassInlinerCostAnalysis {
     Set<Value> receiverAliasesInInlinee = Sets.newIdentityHashSet();
     for (int i = 0; i < invoke.inValues().size(); i++) {
       Value inValue = invoke.inValues().get(i);
-      if (definiteReceiverAliases.contains(inValue)) {
+      if (receivers.isReceiverAlias(inValue)) {
         receiverAliasesInInlinee.add(arguments.get(i));
       } else {
-        assert !definiteReceiverAliases.contains(inValue.getAliasedValue());
+        assert !receivers.isReceiverAlias(inValue.getAliasedValue());
       }
     }
     return receiverAliasesInInlinee;

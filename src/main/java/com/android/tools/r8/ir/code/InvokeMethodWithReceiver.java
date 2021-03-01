@@ -24,12 +24,17 @@ import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.google.common.collect.Iterables;
 import java.util.List;
 
 public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
   InvokeMethodWithReceiver(DexMethod target, Value result, List<Value> arguments) {
     super(target, result, arguments);
+  }
+
+  public Iterable<Value> getNonReceiverArguments() {
+    return Iterables.skip(arguments(), 1);
   }
 
   public boolean hasRefinedReceiverLowerBoundType(AppView<AppInfoWithLiveness> appView) {

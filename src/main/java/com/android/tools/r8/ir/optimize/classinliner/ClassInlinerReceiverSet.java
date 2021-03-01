@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize.classinliner;
 
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.classinliner.InlineCandidateProcessor.AliasKind;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -19,8 +18,7 @@ class ClassInlinerReceiverSet {
 
   private final Value root;
 
-  private final Set<Value> definiteReceiverAliases;
-  private final Set<Value> maybeReceiverAliases = Sets.newIdentityHashSet();
+  private final Set<Value> receiverAliases;
 
   // Set of values that are not allowed to become an alias of the receiver.
   private final Set<Value> illegalReceiverAliases = Sets.newIdentityHashSet();
@@ -30,32 +28,18 @@ class ClassInlinerReceiverSet {
       new IdentityHashMap<>();
 
   ClassInlinerReceiverSet(Value root) {
-    this.definiteReceiverAliases = SetUtils.newIdentityHashSet(root);
+    this.receiverAliases = SetUtils.newIdentityHashSet(root);
     this.root = root;
   }
 
-  Set<Value> getDefiniteReceiverAliases() {
-    return definiteReceiverAliases;
-  }
-
-  Set<Value> getMaybeReceiverAliases() {
-    return maybeReceiverAliases;
-  }
-
-  boolean addReceiverAlias(Value alias, AliasKind kind) {
+  boolean addReceiverAlias(Value alias) {
     if (isIllegalReceiverAlias(alias)) {
       return false; // Not allowed.
     }
     // All checks passed.
     deferredAliasValidityChecks.remove(alias);
     boolean changed;
-    if (kind == AliasKind.DEFINITE) {
-      assert !maybeReceiverAliases.contains(alias);
-      changed = definiteReceiverAliases.add(alias);
-    } else {
-      assert !definiteReceiverAliases.contains(alias);
-      changed = maybeReceiverAliases.add(alias);
-    }
+    changed = receiverAliases.add(alias);
     // Verify that the state changed. Otherwise, we are analyzing the same instruction more than
     // once.
     assert changed : alias.toString() + " already added as an alias";
@@ -87,15 +71,11 @@ class ClassInlinerReceiverSet {
   }
 
   boolean isReceiverAlias(Value value) {
-    return isDefiniteReceiverAlias(value) || isMaybeReceiverAlias(value);
+    return isDefiniteReceiverAlias(value);
   }
 
   boolean isDefiniteReceiverAlias(Value value) {
-    return definiteReceiverAliases.contains(value);
-  }
-
-  private boolean isMaybeReceiverAlias(Value value) {
-    return maybeReceiverAliases.contains(value);
+    return receiverAliases.contains(value);
   }
 
   private boolean isIllegalReceiverAlias(Value value) {
@@ -115,13 +95,7 @@ class ClassInlinerReceiverSet {
 
   void reset() {
     deferredAliasValidityChecks.clear();
-    definiteReceiverAliases.clear();
-    definiteReceiverAliases.add(root);
-    maybeReceiverAliases.clear();
-  }
-
-  boolean verifyReceiverSetsAreDisjoint() {
-    assert Sets.intersection(getMaybeReceiverAliases(), getDefiniteReceiverAliases()).isEmpty();
-    return true;
+    receiverAliases.clear();
+    receiverAliases.add(root);
   }
 }
