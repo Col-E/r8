@@ -212,6 +212,22 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return isCommittedSynthetic(type) || isPendingSynthetic(type);
   }
 
+  public SyntheticKind getNonLegacySyntheticKind(DexProgramClass clazz) {
+    assert isNonLegacySynthetic(clazz);
+    SyntheticReference<?, ?, ?> reference = committed.getNonLegacyItem(clazz.getType());
+    if (reference == null) {
+      SyntheticDefinition<?, ?, ?> definition = pending.nonLegacyDefinitions.get(clazz.getType());
+      if (definition != null) {
+        reference = definition.toReference();
+      }
+    }
+    if (reference != null) {
+      return reference.getKind();
+    }
+    assert false;
+    return null;
+  }
+
   public boolean isSyntheticClass(DexType type) {
     return isLegacySyntheticClass(type) || isNonLegacySynthetic(type);
   }

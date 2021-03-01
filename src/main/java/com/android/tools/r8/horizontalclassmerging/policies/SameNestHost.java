@@ -4,13 +4,23 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class SameNestHost extends MultiClassSameReferencePolicy<DexType> {
+
+  private final DexItemFactory dexItemFactory;
+
+  public SameNestHost(AppView<AppInfoWithLiveness> appView) {
+    this.dexItemFactory = appView.dexItemFactory();
+  }
+
   @Override
   public DexType getMergeKey(DexProgramClass clazz) {
-    return clazz.getNestHost();
+    return clazz.isInANest() ? clazz.getNestHost() : dexItemFactory.objectType;
   }
 }

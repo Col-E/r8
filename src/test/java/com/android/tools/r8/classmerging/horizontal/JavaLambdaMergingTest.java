@@ -15,7 +15,6 @@ import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class JavaLambdaMergingTest extends HorizontalClassMergingTestBase {
@@ -25,7 +24,6 @@ public class JavaLambdaMergingTest extends HorizontalClassMergingTestBase {
   }
 
   @Test
-  @Ignore("b/174809311): Test does not work with hygienic lambdas. Rewrite or remove")
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
@@ -59,7 +57,7 @@ public class JavaLambdaMergingTest extends HorizontalClassMergingTestBase {
   }
 
   private static boolean isLambda(DexType type) {
-    return SyntheticItemsTestUtils.isExternalLambda(
+    return SyntheticItemsTestUtils.isInternalLambda(
         Reference.classFromDescriptor(type.toDescriptorString()));
   }
 

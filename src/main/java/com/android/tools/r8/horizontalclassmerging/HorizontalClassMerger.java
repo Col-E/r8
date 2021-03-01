@@ -11,7 +11,6 @@ import com.android.tools.r8.horizontalclassmerging.policies.AllInstantiatedOrUni
 import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.DontInlinePolicy;
 import com.android.tools.r8.horizontalclassmerging.policies.DontMergeSynchronizedClasses;
-import com.android.tools.r8.horizontalclassmerging.policies.IgnoreSynthetics;
 import com.android.tools.r8.horizontalclassmerging.policies.LimitGroups;
 import com.android.tools.r8.horizontalclassmerging.policies.MinimizeFieldCasts;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotations;
@@ -37,6 +36,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.SameFeatureSplit;
 import com.android.tools.r8.horizontalclassmerging.policies.SameInstanceFields;
 import com.android.tools.r8.horizontalclassmerging.policies.SameNestHost;
 import com.android.tools.r8.horizontalclassmerging.policies.SameParentClass;
+import com.android.tools.r8.horizontalclassmerging.policies.SyntheticItemsPolicy;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -57,7 +57,6 @@ public class HorizontalClassMerger {
     assert appView.options().enableInlining;
   }
 
-  // TODO(b/165577835): replace Collection<DexProgramClass> with MergeGroup
   public HorizontalClassMergerResult run(
       DirectMappedDexApplication.Builder appBuilder,
       RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
@@ -128,7 +127,7 @@ public class HorizontalClassMerger {
         new NoAnnotations(),
         new NoEnums(appView),
         new CheckAbstractClasses(appView),
-        new IgnoreSynthetics(appView),
+        new SyntheticItemsPolicy(appView),
         new NoClassesOrMembersWithAnnotations(appView),
         new NoInnerClasses(),
         new NoClassInitializerWithObservableSideEffects(),
@@ -145,7 +144,7 @@ public class HorizontalClassMerger {
         new PreventMergeIntoDifferentMainDexGroups(appView),
         new AllInstantiatedOrUninstantiated(appView),
         new SameParentClass(),
-        new SameNestHost(),
+        new SameNestHost(appView),
         new PreserveMethodCharacteristics(appView),
         new SameFeatureSplit(appView),
         new RespectPackageBoundaries(appView),

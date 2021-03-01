@@ -15,11 +15,18 @@ public abstract class MultiClassSameReferencePolicy<T> extends MultiClassPolicy 
   public final Collection<MergeGroup> apply(MergeGroup group) {
     Map<T, MergeGroup> groups = new LinkedHashMap<>();
     for (DexProgramClass clazz : group) {
-      groups.computeIfAbsent(getMergeKey(clazz), ignore -> new MergeGroup()).add(clazz);
+      T mergeKey = getMergeKey(clazz);
+      if (mergeKey != null) {
+        groups.computeIfAbsent(mergeKey, ignore -> new MergeGroup()).add(clazz);
+      }
     }
     removeTrivialGroups(groups.values());
     return groups.values();
   }
 
   public abstract T getMergeKey(DexProgramClass clazz);
+
+  protected final T ineligibleForClassInlining() {
+    return null;
+  }
 }

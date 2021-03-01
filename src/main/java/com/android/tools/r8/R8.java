@@ -513,7 +513,7 @@ public class R8 {
                 PrunedItems.builder()
                     .setPrunedApp(appView.appInfo().app())
                     .addRemovedClasses(appView.horizontallyMergedClasses().getSources())
-                    .addNoLongerSyntheticItems(appView.horizontallyMergedClasses().getTargets())
+                    .addNoLongerSyntheticItems(appView.horizontallyMergedClasses().getSources())
                     .build());
           }
           timing.end();
