@@ -18,8 +18,8 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -75,7 +75,7 @@ public class DexSplitterInlineRegression extends SplitterTestBase {
   @Test
   public void testOnR8Splitter() throws IOException, CompilationFailedException {
     assumeTrue(parameters.isDexRuntime());
-    Consumer<R8FullTestBuilder> configurator =
+    ThrowableConsumer<R8FullTestBuilder> configurator =
         r8FullTestBuilder ->
             r8FullTestBuilder.enableNoVerticalClassMergingAnnotations().noMinification();
     ProcessResult processResult =
@@ -84,7 +84,7 @@ public class DexSplitterInlineRegression extends SplitterTestBase {
             ImmutableSet.of(BaseSuperClass.class),
             ImmutableSet.of(FeatureClass.class),
             FeatureClass.class,
-            ConsumerUtils.emptyThrowingConsumer(),
+            ThrowableConsumer.empty(),
             configurator);
 
     assertEquals(processResult.exitCode, 0);

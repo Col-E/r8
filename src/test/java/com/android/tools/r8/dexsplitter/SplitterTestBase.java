@@ -13,6 +13,7 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -119,14 +120,14 @@ public class SplitterTestBase extends TestBase {
     return builder.build();
   }
 
-  <E extends Throwable> ProcessResult testR8Splitter(
+  ProcessResult testR8Splitter(
       TestParameters parameters,
       Set<Class<?>> baseClasses,
       Set<Class<?>> featureClasses,
       Class<?> toRun,
-      ThrowingConsumer<R8TestCompileResult, E> compileResultConsumer,
-      Consumer<R8FullTestBuilder> r8TestConfigurator)
-      throws IOException, CompilationFailedException, E {
+      ThrowableConsumer<R8TestCompileResult> compileResultConsumer,
+      ThrowableConsumer<R8FullTestBuilder> r8TestConfigurator)
+      throws IOException, CompilationFailedException {
     R8FullTestBuilder r8FullTestBuilder = testForR8(parameters.getBackend());
     if (parameters.isCfRuntime()) {
       // Compiling to jar we need to support the same way of loading code at runtime as
@@ -136,19 +137,19 @@ public class SplitterTestBase extends TestBase {
           .addKeepClassAndMembersRules(PathClassLoader.class);
     }
 
-    r8FullTestBuilder
-        .addProgramClasses(SplitRunner.class, RunInterface.class)
-        .addProgramClasses(baseClasses)
-        .addFeatureSplit(featureClasses.toArray(new Class[0]))
-        .addInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(SplitRunner.class)
-        .addKeepClassRules(toRun);
+    R8TestCompileResult r8TestCompileResult =
+        r8FullTestBuilder
+            .addProgramClasses(SplitRunner.class, RunInterface.class)
+            .addProgramClasses(baseClasses)
+            .addFeatureSplit(featureClasses.toArray(new Class[0]))
+            .addInliningAnnotations()
+            .setMinApi(parameters.getApiLevel())
+            .addKeepMainRule(SplitRunner.class)
+            .addKeepClassRules(toRun)
+            .apply(r8TestConfigurator)
+            .compile()
+            .apply(compileResultConsumer);
 
-    r8TestConfigurator.accept(r8FullTestBuilder);
-
-    R8TestCompileResult r8TestCompileResult = r8FullTestBuilder.compile();
-    compileResultConsumer.accept(r8TestCompileResult);
     Path baseOutput = r8TestCompileResult.writeToZip();
     return runFeatureOnArt(
         toRun, baseOutput, r8TestCompileResult.getFeature(0), parameters.getRuntime());

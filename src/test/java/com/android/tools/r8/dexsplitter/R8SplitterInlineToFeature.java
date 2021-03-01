@@ -15,12 +15,11 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableSet;
-import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,10 +48,10 @@ public class R8SplitterInlineToFeature extends SplitterTestBase {
   @Test
   public void testInlining() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    Consumer<R8FullTestBuilder> configurator =
+    ThrowableConsumer<R8FullTestBuilder> configurator =
         r8FullTestBuilder ->
             r8FullTestBuilder.enableNoVerticalClassMergingAnnotations().noMinification();
-    ThrowingConsumer<R8TestCompileResult, Exception> ensureInlined =
+    ThrowableConsumer<R8TestCompileResult> ensureInlined =
         r8TestCompileResult -> {
           // Ensure that isEarly from BaseUtilClass is inlined into the feature
           ClassSubject clazz = r8TestCompileResult.inspector().clazz(BaseUtilClass.class);

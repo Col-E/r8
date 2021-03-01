@@ -18,8 +18,8 @@ import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -77,7 +77,7 @@ public class DexSplitterMemberValuePropagationRegression extends SplitterTestBas
             ImmutableSet.of(BaseSuperClass.class),
             ImmutableSet.of(FeatureClass.class, FeatureEnum.class),
             FeatureClass.class,
-            ConsumerUtils.emptyThrowingConsumer(),
+            ThrowableConsumer.empty(),
             R8TestBuilder::enableInliningAnnotations);
     assertEquals(processResult.exitCode, 0);
     assertEquals(processResult.stdout, EXPECTED);

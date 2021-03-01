@@ -14,15 +14,14 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableSet;
-import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -51,31 +50,31 @@ public class SyntheticDistributionTest extends SplitterTestBase {
   @Test
   public void testDistribution() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    Consumer<R8FullTestBuilder> configurator =
+    ThrowableConsumer<R8FullTestBuilder> configurator =
         r8FullTestBuilder ->
             r8FullTestBuilder
                 .noMinification()
                 .enableInliningAnnotations()
                 .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O));
-    ThrowingConsumer<R8TestCompileResult, Exception> ensureLambdaNotInBase =
-        r8TestCompileResult -> {
-          r8TestCompileResult.inspect(
-              base ->
-                  assertFalse(base.allClasses().stream().anyMatch(FoundClassSubject::isSynthetic)),
-              feature ->
-                  assertTrue(
-                      feature.allClasses().stream().anyMatch(FoundClassSubject::isSynthetic)));
-        };
+    ThrowableConsumer<R8TestCompileResult> ensureLambdaNotInBase =
+        r8TestCompileResult ->
+            r8TestCompileResult.inspect(
+                base ->
+                    assertFalse(
+                        base.allClasses().stream().anyMatch(FoundClassSubject::isSynthetic)),
+                feature ->
+                    assertTrue(
+                        feature.allClasses().stream().anyMatch(FoundClassSubject::isSynthetic)));
     ProcessResult processResult =
         testR8Splitter(
             parameters,
-            ImmutableSet.of(BaseSuperClass.class),
-            ImmutableSet.of(FeatureClass.class, MyFunction.class),
+            ImmutableSet.of(BaseSuperClass.class, MyFunction.class),
+            ImmutableSet.of(FeatureClass.class),
             FeatureClass.class,
             ensureLambdaNotInBase,
             configurator);
-    assertEquals(processResult.exitCode, 0);
-    assertEquals(processResult.stdout, StringUtils.lines("42foobar"));
+    assertEquals(0, processResult.exitCode);
+    assertEquals(StringUtils.lines("42foobar"), processResult.stdout);
   }
 
   @Test
