@@ -149,10 +149,10 @@ public class CfSwitch extends CfInstruction {
       InitClassLens initClassLens) {
     // ..., index/key →
     // ...
-    frameBuilder.pop(factory.intType);
-    frameBuilder.verifyTarget(defaultTarget);
+    frameBuilder.popInitialized(factory.intType);
+    frameBuilder.checkTarget(defaultTarget);
     for (CfLabel target : targets) {
-      frameBuilder.verifyTarget(target);
+      frameBuilder.checkTarget(target);
     }
     frameBuilder.setNoFrame();
   }

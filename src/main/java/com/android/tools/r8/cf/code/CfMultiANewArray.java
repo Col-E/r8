@@ -114,7 +114,7 @@ public class CfMultiANewArray extends CfInstruction {
     // ..., count1, [count2, ...] →
     // ..., arrayref
     for (int i = 0; i < dimensions; i++) {
-      frameBuilder.pop(factory.intType);
+      frameBuilder.popInitialized(factory.intType);
     }
     frameBuilder.push(type);
   }

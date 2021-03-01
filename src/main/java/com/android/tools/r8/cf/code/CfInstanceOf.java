@@ -110,6 +110,6 @@ public class CfInstanceOf extends CfInstruction {
       InitClassLens initClassLens) {
     // ..., objectref →
     // ..., result
-    frameBuilder.popAndDiscard(factory.objectType).push(factory.intType);
+    frameBuilder.popAndDiscardInitialized(factory.objectType).push(factory.intType);
   }
 }

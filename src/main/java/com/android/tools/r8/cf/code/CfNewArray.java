@@ -150,6 +150,6 @@ public class CfNewArray extends CfInstruction {
     // ..., count →
     // ..., arrayref
     assert type.isArrayType();
-    frameBuilder.popAndDiscard(factory.intType).push(type);
+    frameBuilder.popAndDiscardInitialized(factory.intType).push(type);
   }
 }

@@ -128,7 +128,7 @@ public class CfArrayLoad extends CfInstruction {
       InitClassLens initClassLens) {
     // ..., arrayref, index →
     // ..., value
-    frameBuilder.popAndDiscard(factory.objectArrayType, factory.intType);
+    frameBuilder.popAndDiscardInitialized(factory.objectArrayType, factory.intType);
     frameBuilder.push(FrameType.fromMemberType(type, factory));
   }
 }

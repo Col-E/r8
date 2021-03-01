@@ -82,6 +82,6 @@ public class CfArrayLength extends CfInstruction {
       InitClassLens initClassLens) {
     // ..., arrayref →
     // ..., length
-    frameBuilder.popAndDiscard(factory.objectArrayType).push(factory.intType);
+    frameBuilder.popAndDiscardInitialized(factory.objectArrayType).push(factory.intType);
   }
 }

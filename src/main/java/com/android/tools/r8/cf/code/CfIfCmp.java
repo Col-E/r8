@@ -138,7 +138,7 @@ public class CfIfCmp extends CfInstruction {
     // ...
     DexType type =
         this.type.isObject() ? factory.objectType : this.type.toPrimitiveType().toDexType(factory);
-    frameBuilder.popAndDiscard(type, type);
-    frameBuilder.verifyTarget(target);
+    frameBuilder.popAndDiscardInitialized(type, type);
+    frameBuilder.checkTarget(target);
   }
 }

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.cf.code;
 
+import static com.android.tools.r8.utils.BiPredicateUtils.or;
+
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.CfCodeStackMapValidatingException;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -70,50 +72,60 @@ public class CfFrameVerificationHelper {
   }
 
   public FrameType readLocal(int index, DexType expectedType) {
-    verifyFrameIsSet();
+    checkFrameIsSet();
     FrameType frameType = currentFrame.getLocals().get(index);
     if (frameType == null) {
       throw CfCodeStackMapValidatingException.error("No local at index " + index);
     }
-    verifyIsAssignable(frameType, expectedType);
+    checkIsAssignable(
+        frameType,
+        expectedType,
+        or(
+            this::isUninitializedThisAndTarget,
+            this::isUninitializedNewAndTarget,
+            this::isAssignableAndInitialized));
     return frameType;
   }
 
   public void storeLocal(int index, FrameType frameType) {
-    verifyFrameIsSet();
+    checkFrameIsSet();
     currentFrame.getLocals().put(index, frameType);
   }
 
   public FrameType pop() {
-    verifyFrameIsSet();
+    checkFrameIsSet();
     if (currentFrame.getStack().isEmpty()) {
       throw CfCodeStackMapValidatingException.error("Cannot pop() from an empty stack");
     }
     return currentFrame.getStack().removeLast();
   }
 
-  public FrameType pop(DexType expectedType) {
+  public FrameType popInitialized(DexType expectedType) {
+    return pop(expectedType, this::isAssignableAndInitialized);
+  }
+
+  public FrameType pop(DexType expectedType, BiPredicate<FrameType, DexType> isAssignable) {
     FrameType frameType = pop();
-    verifyIsAssignable(frameType, expectedType);
+    checkIsAssignable(frameType, expectedType, isAssignable);
     return frameType;
   }
 
-  public CfFrameVerificationHelper popAndDiscard(DexType... expectedTypes) {
-    verifyFrameIsSet();
+  public CfFrameVerificationHelper popAndDiscardInitialized(DexType... expectedTypes) {
+    checkFrameIsSet();
     for (int i = expectedTypes.length - 1; i >= 0; i--) {
-      pop(expectedTypes[i]);
+      popInitialized(expectedTypes[i]);
     }
     return this;
   }
 
   public FrameType pop(FrameType expectedType) {
     FrameType frameType = pop();
-    verifyIsAssignable(frameType, expectedType);
+    checkIsAssignable(frameType, expectedType);
     return frameType;
   }
 
   public CfFrameVerificationHelper popAndDiscard(FrameType... expectedTypes) {
-    verifyFrameIsSet();
+    checkFrameIsSet();
     for (int i = expectedTypes.length - 1; i >= 0; i--) {
       pop(expectedTypes[i]);
     }
@@ -121,17 +133,20 @@ public class CfFrameVerificationHelper {
   }
 
   public void popAndInitialize(DexType context, DexType methodHolder) {
-    verifyFrameIsSet();
-    FrameType objectRef = pop(factory.objectType);
+    checkFrameIsSet();
+    FrameType objectRef =
+        pop(
+            factory.objectType,
+            or(this::isUninitializedThisAndTarget, this::isUninitializedNewAndTarget));
     CfFrame newFrame =
         currentFrame.markInstantiated(
             objectRef, objectRef.isUninitializedNew() ? methodHolder : context);
     setNoFrame();
-    verifyFrameAndSet(newFrame);
+    checkFrameAndSet(newFrame);
   }
 
   public CfFrameVerificationHelper push(FrameType type) {
-    verifyFrameIsSet();
+    checkFrameIsSet();
     currentFrame.getStack().addLast(type);
     return this;
   }
@@ -153,7 +168,7 @@ public class CfFrameVerificationHelper {
           if (destinationFrame == null) {
             throw CfCodeStackMapValidatingException.error("No frame for target catch range target");
           }
-          verifyStackIsAssignable(
+          checkStackIsAssignable(
               destinationFrame.getStack(), throwStack, factory, isJavaAssignable);
         }
       }
@@ -162,15 +177,15 @@ public class CfFrameVerificationHelper {
     return this;
   }
 
-  private void verifyFrameIsSet() {
+  private void checkFrameIsSet() {
     if (currentFrame == NO_FRAME) {
       throw CfCodeStackMapValidatingException.error("Unexpected state change");
     }
   }
 
-  public void verifyFrameAndSet(CfFrame newFrame) {
+  public void checkFrameAndSet(CfFrame newFrame) {
     if (currentFrame != NO_FRAME) {
-      verifyFrame(newFrame);
+      checkFrame(newFrame);
     }
     setFrame(newFrame);
   }
@@ -182,7 +197,7 @@ public class CfFrameVerificationHelper {
             new Int2ReferenceAVLTreeMap<>(frame.getLocals()), new ArrayDeque<>(frame.getStack()));
   }
 
-  public void verifyExceptionEdges() {
+  public void checkExceptionEdges() {
     for (CfTryCatch currentCatchRange : currentCatchRanges) {
       for (CfLabel target : currentCatchRange.targets) {
         CfFrame destinationFrame = stateMap.get(target);
@@ -192,7 +207,7 @@ public class CfFrameVerificationHelper {
         // We have to check all current handler targets have assignable locals and a 1-element
         // stack assignable to throwable. It is not required that the the thrown error is
         // handled.
-        verifyLocalsIsAssignable(
+        checkLocalsIsAssignable(
             currentFrame.getLocals(), destinationFrame.getLocals(), factory, isJavaAssignable);
       }
     }
@@ -202,19 +217,19 @@ public class CfFrameVerificationHelper {
     return currentFrame;
   }
 
-  public void verifyTarget(CfLabel label) {
-    verifyFrame(stateMap.get(label));
+  public void checkTarget(CfLabel label) {
+    checkFrame(stateMap.get(label));
   }
 
-  public void verifyFrame(CfFrame destinationFrame) {
+  public void checkFrame(CfFrame destinationFrame) {
     if (destinationFrame == null) {
       throw CfCodeStackMapValidatingException.error("No destination frame");
     }
-    verifyFrame(destinationFrame.getLocals(), destinationFrame.getStack());
+    checkFrame(destinationFrame.getLocals(), destinationFrame.getStack());
   }
 
-  public void verifyFrame(Int2ReferenceSortedMap<FrameType> locals, Deque<FrameType> stack) {
-    verifyIsAssignable(
+  public void checkFrame(Int2ReferenceSortedMap<FrameType> locals, Deque<FrameType> stack) {
+    checkIsAssignable(
         currentFrame.getLocals(),
         currentFrame.getStack(),
         locals,
@@ -227,30 +242,37 @@ public class CfFrameVerificationHelper {
     currentFrame = NO_FRAME;
   }
 
-  public void clearStack() {
-    verifyFrameIsSet();
-    currentFrame.getStack().clear();
+  public boolean isUninitializedThisAndTarget(FrameType source, DexType target) {
+    if (!source.isUninitializedThis()) {
+      return false;
+    }
+    return target == factory.objectType || graphLens.lookupClassType(target) == context;
   }
 
-  public void verifyIsAssignable(FrameType source, DexType target) {
+  public boolean isUninitializedNewAndTarget(FrameType source, DexType target) {
+    if (!source.isUninitializedNew()) {
+      return false;
+    }
+    return target == factory.objectType || graphLens.lookupClassType(target) == context;
+  }
+
+  public boolean isAssignableAndInitialized(FrameType source, DexType target) {
     if (!source.isInitialized()) {
-      DexType rewrittenTarget = graphLens.lookupClassType(target);
-      if (source.isUninitializedThis() && rewrittenTarget == context) {
-        return;
-      }
-      if (rewrittenTarget == factory.objectType) {
-        return;
-      }
-      throw CfCodeStackMapValidatingException.error(
-          "The expected type " + source + " is not assignable to " + target.toSourceString());
+      return false;
     }
-    if (!isJavaAssignable.test(source.getInitializedType(), target)) {
-      throw CfCodeStackMapValidatingException.error(
-          "The expected type " + source + " is not assignable to " + target.toSourceString());
-    }
+    return isJavaAssignable.test(source.getInitializedType(), target);
   }
 
-  public void verifyIsAssignable(FrameType source, FrameType target) {
+  public void checkIsAssignable(
+      FrameType source, DexType target, BiPredicate<FrameType, DexType> predicate) {
+    if (predicate.test(source, target)) {
+      return;
+    }
+    throw CfCodeStackMapValidatingException.error(
+        "The expected type " + source + " is not assignable to " + target.toSourceString());
+  }
+
+  public void checkIsAssignable(FrameType source, FrameType target) {
     if (!canBeAssigned(source, target, factory, isJavaAssignable)) {
       throw CfCodeStackMapValidatingException.error(
           "The expected type " + source + " is not assignable to " + target);
@@ -258,18 +280,18 @@ public class CfFrameVerificationHelper {
   }
 
   // Based on https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.4.
-  public static void verifyIsAssignable(
+  public static void checkIsAssignable(
       Int2ReferenceSortedMap<FrameType> sourceLocals,
       Deque<FrameType> sourceStack,
       Int2ReferenceSortedMap<FrameType> destLocals,
       Deque<FrameType> destStack,
       DexItemFactory factory,
       BiPredicate<DexType, DexType> isJavaAssignable) {
-    verifyLocalsIsAssignable(sourceLocals, destLocals, factory, isJavaAssignable);
-    verifyStackIsAssignable(sourceStack, destStack, factory, isJavaAssignable);
+    checkLocalsIsAssignable(sourceLocals, destLocals, factory, isJavaAssignable);
+    checkStackIsAssignable(sourceStack, destStack, factory, isJavaAssignable);
   }
 
-  private static void verifyLocalsIsAssignable(
+  private static void checkLocalsIsAssignable(
       Int2ReferenceSortedMap<FrameType> sourceLocals,
       Int2ReferenceSortedMap<FrameType> destLocals,
       DexItemFactory factory,
@@ -305,7 +327,7 @@ public class CfFrameVerificationHelper {
     }
   }
 
-  private static void verifyStackIsAssignable(
+  private static void checkStackIsAssignable(
       Deque<FrameType> sourceStack,
       Deque<FrameType> destStack,
       DexItemFactory factory,

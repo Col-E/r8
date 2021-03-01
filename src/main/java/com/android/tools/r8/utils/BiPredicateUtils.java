@@ -15,4 +15,16 @@ public class BiPredicateUtils {
   public static <S, T> BiPredicate<S, T> alwaysTrue() {
     return (s, t) -> true;
   }
+
+  @SafeVarargs
+  public static <S, T> BiPredicate<S, T> or(BiPredicate<S, T>... predicates) {
+    return (s, t) -> {
+      for (BiPredicate<S, T> predicate : predicates) {
+        if (predicate.test(s, t)) {
+          return true;
+        }
+      }
+      return false;
+    };
+  }
 }

@@ -95,7 +95,7 @@ public class CfThrow extends CfInstruction {
       InitClassLens initClassLens) {
     // ..., objectref →
     // objectref
-    frameBuilder.pop(factory.throwableType);
+    frameBuilder.popInitialized(factory.throwableType);
     // The exception edges are verified in CfCode since this is a throwing instruction.
     frameBuilder.setNoFrame();
   }

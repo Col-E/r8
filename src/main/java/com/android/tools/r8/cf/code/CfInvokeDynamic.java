@@ -167,7 +167,7 @@ public class CfInvokeDynamic extends CfInstruction {
       InitClassLens initClassLens) {
     // ..., [arg1, [arg2 ...]] →
     // ...
-    frameBuilder.popAndDiscard(callSite.methodProto.parameters.values);
+    frameBuilder.popAndDiscardInitialized(callSite.methodProto.parameters.values);
     if (callSite.methodProto.returnType != factory.voidType) {
       frameBuilder.push(callSite.methodProto.returnType);
     }

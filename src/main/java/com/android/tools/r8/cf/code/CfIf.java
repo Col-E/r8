@@ -135,8 +135,8 @@ public class CfIf extends CfInstruction {
       InitClassLens initClassLens) {
     // ..., value →
     // ...
-    frameBuilder.pop(
+    frameBuilder.popAndDiscardInitialized(
         type.isObject() ? factory.objectType : type.toPrimitiveType().toDexType(factory));
-    frameBuilder.verifyTarget(target);
+    frameBuilder.checkTarget(target);
   }
 }

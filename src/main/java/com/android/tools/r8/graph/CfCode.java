@@ -305,7 +305,8 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
     GraphLens graphLens = appView.graphLens();
-    assert verifyFrames(method.getDefinition(), appView, null, false);
+    assert verifyFrames(method.getDefinition(), appView, null, false)
+        : "Could not validate stack map frames";
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     InitClassLens initClassLens = appView.initClassLens();
     InternalOptions options = appView.options();
@@ -793,9 +794,9 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
             appView.graphLens());
     if (stateMap.containsKey(null)) {
       assert !shouldComputeInitialFrame();
-      builder.verifyFrameAndSet(stateMap.get(null));
+      builder.checkFrameAndSet(stateMap.get(null));
     } else if (shouldComputeInitialFrame()) {
-      builder.verifyFrameAndSet(
+      builder.checkFrameAndSet(
           new CfFrame(
               computeInitialLocals(context, method, rewrittenDescription), new ArrayDeque<>()));
     }
@@ -807,7 +808,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
         // affect the exceptional transfer (the exception edge is always a singleton stack).
         if (instruction.canThrow()) {
           assert !instruction.isStore();
-          builder.verifyExceptionEdges();
+          builder.checkExceptionEdges();
         }
         instruction.evaluate(
             builder, context, returnType, appView.dexItemFactory(), appView.initClassLens());

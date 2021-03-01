@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
+import static com.android.tools.r8.utils.BiPredicateUtils.or;
+
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -189,7 +191,7 @@ public class CfFieldInstruction extends CfInstruction {
       case Opcodes.GETFIELD:
         // ..., objectref →
         // ..., value
-        frameBuilder.popAndDiscard(field.holder).push(field.type);
+        frameBuilder.popAndDiscardInitialized(field.holder).push(field.type);
         return;
       case Opcodes.GETSTATIC:
         // ..., →
@@ -199,12 +201,18 @@ public class CfFieldInstruction extends CfInstruction {
       case Opcodes.PUTFIELD:
         // ..., objectref, value →
         // ...,
-        frameBuilder.popAndDiscard(field.holder, field.type);
+        frameBuilder
+            .popAndDiscardInitialized(field.type)
+            .pop(
+                field.holder,
+                or(
+                    frameBuilder::isUninitializedThisAndTarget,
+                    frameBuilder::isAssignableAndInitialized));
         return;
       case Opcodes.PUTSTATIC:
         // ..., value →
         // ...
-        frameBuilder.pop(field.type);
+        frameBuilder.popAndDiscardInitialized(field.type);
         return;
       default:
         throw new Unreachable("Unexpected opcode " + opcode);

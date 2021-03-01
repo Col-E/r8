@@ -102,6 +102,6 @@ public class CfCheckCast extends CfInstruction {
       InitClassLens initClassLens) {
     // ..., objectref →
     // ..., objectref
-    frameBuilder.popAndDiscard(factory.objectType).push(type);
+    frameBuilder.popAndDiscardInitialized(factory.objectType).push(type);
   }
 }

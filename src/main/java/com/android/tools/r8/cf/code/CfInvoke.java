@@ -354,11 +354,11 @@ public class CfInvoke extends CfInstruction {
     // OR, for static method calls:
     // ..., [arg1, [arg2 ...]] →
     // ...
-    frameBuilder.popAndDiscard(this.method.proto.parameters.values);
+    frameBuilder.popAndDiscardInitialized(this.method.proto.parameters.values);
     if (opcode == Opcodes.INVOKESPECIAL && method.isInstanceInitializer(factory)) {
       frameBuilder.popAndInitialize(context, method.holder);
     } else if (opcode != Opcodes.INVOKESTATIC) {
-      frameBuilder.pop(method.holder);
+      frameBuilder.popInitialized(method.holder);
     }
     if (this.method.proto.returnType != factory.voidType) {
       frameBuilder.push(this.method.proto.returnType);

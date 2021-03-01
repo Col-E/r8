@@ -120,6 +120,6 @@ public class CfArrayStore extends CfInstruction {
     // ...
     frameBuilder
         .popAndDiscard(FrameType.fromMemberType(type, factory))
-        .popAndDiscard(factory.objectArrayType, factory.intType);
+        .popAndDiscardInitialized(factory.objectArrayType, factory.intType);
   }
 }

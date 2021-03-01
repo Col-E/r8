@@ -368,7 +368,7 @@ public class CfStackInstruction extends CfInstruction {
         // ...
         final FrameType pop = frameBuilder.pop();
         if (!pop.isWide()) {
-          frameBuilder.verifyIsAssignable(pop, FrameType.oneWord());
+          frameBuilder.checkIsAssignable(pop, FrameType.oneWord());
           frameBuilder.pop(FrameType.oneWord());
         }
         return;
@@ -399,7 +399,7 @@ public class CfStackInstruction extends CfInstruction {
           FrameType value1 = frameBuilder.pop(FrameType.oneWord());
           FrameType value2 = frameBuilder.pop();
           if (!value2.isWide()) {
-            frameBuilder.verifyIsAssignable(value2, FrameType.oneWord());
+            frameBuilder.checkIsAssignable(value2, FrameType.oneWord());
             FrameType value3 = frameBuilder.pop(FrameType.oneWord());
             frameBuilder.push(value1).push(value3);
           } else {
@@ -417,7 +417,7 @@ public class CfStackInstruction extends CfInstruction {
           // ..., value, value
           FrameType value1 = frameBuilder.pop();
           if (!value1.isWide()) {
-            frameBuilder.verifyIsAssignable(value1, FrameType.oneWord());
+            frameBuilder.checkIsAssignable(value1, FrameType.oneWord());
             FrameType value2 = frameBuilder.pop(FrameType.oneWord());
             frameBuilder.push(value2).push(value1).push(value2);
           } else {
@@ -436,7 +436,7 @@ public class CfStackInstruction extends CfInstruction {
           FrameType value1 = frameBuilder.pop();
           FrameType value2 = frameBuilder.pop(FrameType.oneWord());
           if (!value1.isWide()) {
-            frameBuilder.verifyIsAssignable(value1, FrameType.oneWord());
+            frameBuilder.checkIsAssignable(value1, FrameType.oneWord());
             FrameType value3 = frameBuilder.pop(FrameType.oneWord());
             frameBuilder.push(value2).push(value1).push(value3);
           } else {
@@ -466,9 +466,9 @@ public class CfStackInstruction extends CfInstruction {
             FrameType value3 = frameBuilder.pop();
             if (!value3.isWide()) {
               // (1)
-              frameBuilder.verifyIsAssignable(value1, FrameType.oneWord());
-              frameBuilder.verifyIsAssignable(value2, FrameType.oneWord());
-              frameBuilder.verifyIsAssignable(value3, FrameType.oneWord());
+              frameBuilder.checkIsAssignable(value1, FrameType.oneWord());
+              frameBuilder.checkIsAssignable(value2, FrameType.oneWord());
+              frameBuilder.checkIsAssignable(value3, FrameType.oneWord());
               FrameType value4 = frameBuilder.pop(FrameType.oneWord());
               frameBuilder
                   .push(value2)
@@ -479,13 +479,13 @@ public class CfStackInstruction extends CfInstruction {
                   .push(value1);
             } else {
               // (3)
-              frameBuilder.verifyIsAssignable(value1, FrameType.oneWord());
-              frameBuilder.verifyIsAssignable(value2, FrameType.oneWord());
+              frameBuilder.checkIsAssignable(value1, FrameType.oneWord());
+              frameBuilder.checkIsAssignable(value2, FrameType.oneWord());
               frameBuilder.push(value2).push(value1).push(value3).push(value2).push(value1);
             }
           } else if (!value2.isWide()) {
             // (2)
-            frameBuilder.verifyIsAssignable(value2, FrameType.oneWord());
+            frameBuilder.checkIsAssignable(value2, FrameType.oneWord());
             FrameType value3 = frameBuilder.pop(FrameType.oneWord());
             frameBuilder.push(value1).push(value3).push(value2).push(value1);
           } else {

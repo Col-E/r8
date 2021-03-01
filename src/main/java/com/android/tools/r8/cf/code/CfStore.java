@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
+import static com.android.tools.r8.utils.BiPredicateUtils.or;
+
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.errors.Unreachable;
@@ -129,24 +131,34 @@ public class CfStore extends CfInstruction {
     FrameType pop = frameBuilder.pop();
     switch (type) {
       case OBJECT:
-        frameBuilder.verifyIsAssignable(pop, factory.objectType);
+        frameBuilder.checkIsAssignable(
+            pop,
+            factory.objectType,
+            or(
+                frameBuilder::isUninitializedThisAndTarget,
+                frameBuilder::isUninitializedNewAndTarget,
+                frameBuilder::isAssignableAndInitialized));
         frameBuilder.storeLocal(var, pop);
         return;
       case INT:
-        frameBuilder.verifyIsAssignable(pop, factory.intType);
+        frameBuilder.checkIsAssignable(
+            pop, factory.intType, frameBuilder::isAssignableAndInitialized);
         frameBuilder.storeLocal(var, FrameType.initialized(factory.intType));
         return;
       case FLOAT:
-        frameBuilder.verifyIsAssignable(pop, factory.floatType);
+        frameBuilder.checkIsAssignable(
+            pop, factory.floatType, frameBuilder::isAssignableAndInitialized);
         frameBuilder.storeLocal(var, FrameType.initialized(factory.floatType));
         return;
       case LONG:
-        frameBuilder.verifyIsAssignable(pop, factory.longType);
+        frameBuilder.checkIsAssignable(
+            pop, factory.longType, frameBuilder::isAssignableAndInitialized);
         frameBuilder.storeLocal(var, FrameType.initialized(factory.longType));
         frameBuilder.storeLocal(var + 1, FrameType.initialized(factory.longType));
         return;
       case DOUBLE:
-        frameBuilder.verifyIsAssignable(pop, factory.doubleType);
+        frameBuilder.checkIsAssignable(
+            pop, factory.doubleType, frameBuilder::isAssignableAndInitialized);
         frameBuilder.storeLocal(var, FrameType.initialized(factory.doubleType));
         frameBuilder.storeLocal(var + 1, FrameType.initialized(factory.doubleType));
         return;

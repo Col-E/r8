@@ -452,7 +452,7 @@ public class CfFrame extends CfInstruction {
       DexType returnType,
       DexItemFactory factory,
       InitClassLens initClassLens) {
-    frameBuilder.verifyFrameAndSet(this);
+    frameBuilder.checkFrameAndSet(this);
   }
 
   public CfFrame markInstantiated(FrameType uninitializedType, DexType initType) {

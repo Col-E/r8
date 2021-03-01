@@ -97,7 +97,7 @@ public class CfGoto extends CfInstruction {
       DexType returnType,
       DexItemFactory factory,
       InitClassLens initClassLens) {
-    frameBuilder.verifyTarget(target);
+    frameBuilder.checkTarget(target);
     frameBuilder.setNoFrame();
   }
 }

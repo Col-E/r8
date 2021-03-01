@@ -113,7 +113,7 @@ public class CfReturn extends CfInstruction {
       DexItemFactory factory,
       InitClassLens initClassLens) {
     assert returnType != null;
-    frameBuilder.popAndDiscard(returnType);
+    frameBuilder.popAndDiscardInitialized(returnType);
     frameBuilder.setNoFrame();
   }
 }
