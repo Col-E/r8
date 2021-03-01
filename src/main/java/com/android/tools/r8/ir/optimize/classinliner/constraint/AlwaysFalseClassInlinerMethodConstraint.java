@@ -13,7 +13,7 @@ public class AlwaysFalseClassInlinerMethodConstraint implements ClassInlinerMeth
 
   private AlwaysFalseClassInlinerMethodConstraint() {}
 
-  public static AlwaysFalseClassInlinerMethodConstraint getInstance() {
+  static AlwaysFalseClassInlinerMethodConstraint getInstance() {
     return INSTANCE;
   }
 

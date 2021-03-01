@@ -11,4 +11,16 @@ public interface ClassInlinerMethodConstraint {
   boolean isEligibleForNewInstanceClassInlining(ProgramMethod method);
 
   boolean isEligibleForStaticGetClassInlining(ProgramMethod method);
+
+  static AlwaysFalseClassInlinerMethodConstraint alwaysFalse() {
+    return AlwaysFalseClassInlinerMethodConstraint.getInstance();
+  }
+
+  static AlwaysTrueClassInlinerMethodConstraint alwaysTrue() {
+    return AlwaysTrueClassInlinerMethodConstraint.getInstance();
+  }
+
+  static OnlyNewInstanceClassInlinerMethodConstraint onlyNewInstanceClassInlining() {
+    return OnlyNewInstanceClassInlinerMethodConstraint.getInstance();
+  }
 }

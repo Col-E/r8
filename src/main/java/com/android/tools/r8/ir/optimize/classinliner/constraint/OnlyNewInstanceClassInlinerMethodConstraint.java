@@ -13,7 +13,7 @@ public class OnlyNewInstanceClassInlinerMethodConstraint implements ClassInliner
 
   private OnlyNewInstanceClassInlinerMethodConstraint() {}
 
-  public static OnlyNewInstanceClassInlinerMethodConstraint getInstance() {
+  static OnlyNewInstanceClassInlinerMethodConstraint getInstance() {
     return INSTANCE;
   }
 

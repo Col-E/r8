@@ -13,7 +13,6 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
-import com.android.tools.r8.ir.optimize.classinliner.constraint.AlwaysFalseClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
@@ -77,7 +76,7 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
 
   @Override
   public ClassInlinerMethodConstraint getClassInlinerMethodConstraint() {
-    return AlwaysFalseClassInlinerMethodConstraint.getInstance();
+    return ClassInlinerMethodConstraint.alwaysFalse();
   }
 
   @Override

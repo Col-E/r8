@@ -13,7 +13,7 @@ public class AlwaysTrueClassInlinerMethodConstraint implements ClassInlinerMetho
 
   private AlwaysTrueClassInlinerMethodConstraint() {}
 
-  public static AlwaysTrueClassInlinerMethodConstraint getInstance() {
+  static AlwaysTrueClassInlinerMethodConstraint getInstance() {
     return INSTANCE;
   }
 

@@ -16,7 +16,6 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
-import com.android.tools.r8.ir.optimize.classinliner.constraint.AlwaysFalseClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
@@ -36,7 +35,7 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
   private AbstractValue abstractReturnValue =
       DefaultMethodOptimizationInfo.UNKNOWN_ABSTRACT_RETURN_VALUE;
   private ClassInlinerMethodConstraint classInlinerConstraint =
-      AlwaysFalseClassInlinerMethodConstraint.getInstance();
+      ClassInlinerMethodConstraint.alwaysFalse();
   private TypeElement returnsObjectWithUpperBoundType = DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
   private ClassTypeElement returnsObjectWithLowerBoundType =
       DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;

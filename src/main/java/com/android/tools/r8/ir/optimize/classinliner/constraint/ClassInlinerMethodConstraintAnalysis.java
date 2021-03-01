@@ -19,12 +19,12 @@ public class ClassInlinerMethodConstraintAnalysis {
         isEligibleForStaticGetClassInlining(classInlinerEligibilityInfo, parameterUsagesInfo);
     if (isEligibleForNewInstanceClassInlining) {
       if (isEligibleForStaticGetClassInlining) {
-        return alwaysTrue();
+        return ClassInlinerMethodConstraint.alwaysTrue();
       }
-      return onlyNewInstanceClassInlining();
+      return ClassInlinerMethodConstraint.onlyNewInstanceClassInlining();
     }
     assert !isEligibleForStaticGetClassInlining;
-    return alwaysFalse();
+    return ClassInlinerMethodConstraint.alwaysFalse();
   }
 
   private static boolean isEligibleForNewInstanceClassInlining(
@@ -57,17 +57,5 @@ public class ClassInlinerMethodConstraintAnalysis {
       return false;
     }
     return true;
-  }
-
-  private static AlwaysFalseClassInlinerMethodConstraint alwaysFalse() {
-    return AlwaysFalseClassInlinerMethodConstraint.getInstance();
-  }
-
-  private static AlwaysTrueClassInlinerMethodConstraint alwaysTrue() {
-    return AlwaysTrueClassInlinerMethodConstraint.getInstance();
-  }
-
-  private static OnlyNewInstanceClassInlinerMethodConstraint onlyNewInstanceClassInlining() {
-    return OnlyNewInstanceClassInlinerMethodConstraint.getInstance();
   }
 }
