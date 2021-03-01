@@ -147,9 +147,12 @@ class Dump(object):
     if self.if_exists('proguard_input.config'):
       print("Unimplemented: proguard_input configuration.")
 
-  def main_dex_resource(self):
+  def main_dex_list_resource(self):
     if self.if_exists('main-dex-list.txt'):
       print("Unimplemented: main-dex-list.")
+
+  def main_dex_rules_resource(self):
+    return self.if_exists('main-dex-rules.txt')
 
   def build_properties_file(self):
     return self.if_exists('build.properties')
@@ -318,6 +321,8 @@ def run1(out, args, otherargs):
       if hasattr(args, 'config_file_consumer') and args.config_file_consumer:
         args.config_file_consumer(dump.config_file())
       cmd.extend(['--pg-conf', dump.config_file()])
+    if dump.main_dex_rules_resource():
+      cmd.extend(['--main-dex-rules', dump.main_dex_rules_resource()])
     if compiler != 'd8':
       cmd.extend(['--pg-map-output', '%s.map' % out])
     if min_api:

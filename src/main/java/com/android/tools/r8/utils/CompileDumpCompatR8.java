@@ -75,6 +75,7 @@ public class CompileDumpCompatR8 {
     List<Path> library = new ArrayList<>();
     List<Path> classpath = new ArrayList<>();
     List<Path> config = new ArrayList<>();
+    List<Path> mainDexRulesFiles = new ArrayList<>();
     int minApi = 1;
     int threads = -1;
     for (int i = 0; i < args.length; i++) {
@@ -147,6 +148,11 @@ public class CompileDumpCompatR8 {
               threads = Integer.parseInt(operand);
               break;
             }
+          case "--main-dex-rules":
+            {
+              mainDexRulesFiles.add(Paths.get(operand));
+              break;
+            }
           default:
             throw new IllegalArgumentException("Unimplemented option: " + option);
         }
@@ -178,6 +184,7 @@ public class CompileDumpCompatR8 {
             .addLibraryFiles(library)
             .addClasspathFiles(classpath)
             .addProguardConfigurationFiles(config)
+            .addMainDexRulesFiles(mainDexRulesFiles)
             .setOutput(outputPath, outputMode)
             .setMode(compilationMode);
     if (desugaredLibJson != null) {
