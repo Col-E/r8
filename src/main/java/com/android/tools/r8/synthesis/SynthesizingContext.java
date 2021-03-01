@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexInfo;
 import java.util.Comparator;
-import java.util.Set;
 
 /**
  * A synthesizing context is a description of the context that gives rise to a synthetic item.
@@ -123,14 +122,15 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
     appView.rewritePrefix.rewriteType(hygienicType, rewrittenType);
   }
 
+  // TODO(b/180074885): Remove this once main-dex is traced at the end of of compilation.
   void addIfDerivedFromMainDexClass(
-      DexProgramClass externalSyntheticClass,
-      MainDexInfo mainDexInfo,
-      Set<DexType> allMainDexTypes) {
+      DexProgramClass externalSyntheticClass, MainDexInfo mainDexInfo) {
+    if (mainDexInfo.isMainDex(externalSyntheticClass)) {
+      return;
+    }
     // The input context type (not the annotated context) determines if the derived class is to be
-    // in main dex.
-    // TODO(b/168584485): Once resolved allMainDexTypes == mainDexClasses.
-    if (allMainDexTypes.contains(inputContextType)) {
+    // in main dex, as it is the input context type that is traced as part of main-dex tracing.
+    if (mainDexInfo.isMainDexTypeThatShouldIncludeDependencies(inputContextType)) {
       mainDexInfo.addSyntheticClass(externalSyntheticClass);
     }
   }

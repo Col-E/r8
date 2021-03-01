@@ -264,7 +264,6 @@ public class MissingClasses {
               dexItemFactory.annotationMethodParameters,
               dexItemFactory.annotationSourceDebugExtension,
               dexItemFactory.annotationSynthesizedClass,
-              dexItemFactory.annotationSynthesizedClassMap,
               dexItemFactory.annotationThrows,
               dexItemFactory.serializedLambdaType,
               dexItemFactory.unsafeType)

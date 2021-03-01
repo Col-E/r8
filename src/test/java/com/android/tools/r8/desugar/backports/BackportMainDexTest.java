@@ -153,7 +153,7 @@ public class BackportMainDexTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClasses(CLASSES)
         .setMinApi(parameters.getApiLevel())
-        .addMainDexListClasses(MiniAssert.class, TestClass.class, User2.class)
+        .addMainDexRules(keepMainProguardConfiguration(TestClass.class))
         .setProgramConsumer(mainDexConsumer)
         .compile()
         .inspect(this::checkExpectedSynthetics)
@@ -185,44 +185,8 @@ public class BackportMainDexTest extends TestBase {
     testForD8()
         .addProgramFiles(perClassOutput)
         .setMinApi(parameters.getApiLevel())
-        .addMainDexListClasses(MiniAssert.class, TestClass.class, User2.class)
-        .setProgramConsumer(mainDexConsumer)
-        .compile()
-        .inspect(this::checkExpectedSynthetics)
-        .run(parameters.getRuntime(), TestClass.class, getRunArgs())
-        .assertSuccessWithOutput(EXPECTED);
-    checkMainDex(mainDexConsumer);
-  }
-
-  // TODO(b/168584485): This test should be removed once support is dropped.
-  @Test
-  public void testD8MergingWithTraceCf() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    Path out1 =
-        testForD8()
-            .addProgramClasses(User1.class)
-            .addClasspathClasses(CLASSES)
-            .setIntermediate(true)
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .writeToZip();
-
-    Path out2 =
-        testForD8()
-            .addProgramClasses(User2.class)
-            .addClasspathClasses(CLASSES)
-            .setIntermediate(true)
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .writeToZip();
-
-    MainDexConsumer mainDexConsumer = new MainDexConsumer();
-    testForD8(parameters.getBackend())
-        .addProgramClasses(TestClass.class, MiniAssert.class)
-        .addProgramFiles(out1, out2)
-        .setMinApi(parameters.getApiLevel())
-        .addMainDexListClassReferences(
-            traceMainDex(CLASSES, Collections.emptyList()).getMainDexList())
+        // Trace the classes run by main which will pick up their dependencies.
+        .addMainDexRules(keepMainProguardConfiguration(TestClass.class))
         .setProgramConsumer(mainDexConsumer)
         .compile()
         .inspect(this::checkExpectedSynthetics)
