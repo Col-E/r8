@@ -8,8 +8,10 @@ import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.shaking.ProguardConfiguration;
+import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.ThreadUtils;
+import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -49,6 +51,7 @@ public class DumpOptions {
   private final DesugaredLibraryConfiguration desugaredLibraryConfiguration;
   private final FeatureSplitConfiguration featureSplitConfiguration;
   private final ProguardConfiguration proguardConfiguration;
+  private final List<ProguardConfigurationRule> mainDexKeepRules;
 
   // Reporting only.
   private final boolean dumpInputToFile;
@@ -68,6 +71,7 @@ public class DumpOptions {
       Optional<Boolean> forceProguardCompatibility,
       FeatureSplitConfiguration featureSplitConfiguration,
       ProguardConfiguration proguardConfiguration,
+      List<ProguardConfigurationRule> mainDexKeepRules,
       boolean dumpInputToFile) {
     this.tool = tool;
     this.compilationMode = compilationMode;
@@ -83,6 +87,7 @@ public class DumpOptions {
     this.forceProguardCompatibility = forceProguardCompatibility;
     this.featureSplitConfiguration = featureSplitConfiguration;
     this.proguardConfiguration = proguardConfiguration;
+    this.mainDexKeepRules = mainDexKeepRules;
     this.dumpInputToFile = dumpInputToFile;
   }
 
@@ -137,6 +142,14 @@ public class DumpOptions {
     return proguardConfiguration == null ? null : proguardConfiguration.getParsedConfiguration();
   }
 
+  public boolean hasMainDexKeepRules() {
+    return mainDexKeepRules != null;
+  }
+
+  public List<ProguardConfigurationRule> getMainDexKeepRules() {
+    return mainDexKeepRules;
+  }
+
   public boolean dumpInputToFile() {
     return dumpInputToFile;
   }
@@ -161,6 +174,7 @@ public class DumpOptions {
     private DesugaredLibraryConfiguration desugaredLibraryConfiguration;
     private FeatureSplitConfiguration featureSplitConfiguration;
     private ProguardConfiguration proguardConfiguration;
+    private List<ProguardConfigurationRule> mainDexKeepRules;
 
     // Reporting only.
     private boolean dumpInputToFile;
@@ -241,6 +255,11 @@ public class DumpOptions {
       return this;
     }
 
+    public Builder setMainDexKeepRules(List<ProguardConfigurationRule> mainDexKeepRules) {
+      this.mainDexKeepRules = mainDexKeepRules;
+      return this;
+    }
+
     public DumpOptions build() {
       return new DumpOptions(
           tool,
@@ -257,6 +276,7 @@ public class DumpOptions {
           forceProguardCompatibility,
           featureSplitConfiguration,
           proguardConfiguration,
+          mainDexKeepRules,
           dumpInputToFile);
     }
   }

@@ -5,6 +5,7 @@ package com.android.tools.r8.dump;
 
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -20,7 +21,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.Assume;
@@ -32,6 +32,16 @@ import org.junit.runners.Parameterized;
 public class DumpMainDexInputsTest extends TestBase {
 
   private final TestParameters parameters;
+  private final String mainDexRulesForMainDexFile1AndMainDexFile2 =
+      StringUtils.lines(
+          "-keep class " + MainDexFile1.class.getTypeName() + " {",
+          "  *;",
+          "}",
+          "-keep class " + MainDexFile2.class.getTypeName() + " {",
+          "  *;",
+          "}");
+  private final String mainDexRulesForMainDexFile3 =
+      "-keep class " + MainDexFile3.class.getTypeName();
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -42,11 +52,30 @@ public class DumpMainDexInputsTest extends TestBase {
     this.parameters = parameters;
   }
 
-  private Path newMainDexListPath() throws IOException {
-    Path mainDexPath = temp.newFile("main-dex-list.txt").toPath();
+  private Path mainDexListForMainDexFile1AndMainDexFile2() throws IOException {
+    Path mainDexPath = temp.newFile("mylist1.txt").toPath();
     String mainDexList =
         StringUtils.lines(toMainDexFormat(MainDexFile1.class), toMainDexFormat(MainDexFile2.class));
     Files.write(mainDexPath, mainDexList.getBytes());
+    return mainDexPath;
+  }
+
+  private Path mainDexListForMainDexFile3() throws IOException {
+    Path mainDexPath = temp.newFile("mylist2.txt").toPath();
+    String mainDexList = StringUtils.lines(toMainDexFormat(MainDexFile3.class));
+    Files.write(mainDexPath, mainDexList.getBytes());
+    return mainDexPath;
+  }
+
+  private Path newMainDexRulesPath1() throws IOException {
+    Path mainDexPath = temp.newFile("myrules1.txt").toPath();
+    Files.write(mainDexPath, mainDexRulesForMainDexFile1AndMainDexFile2.getBytes());
+    return mainDexPath;
+  }
+
+  private Path newMainDexRulesPath2() throws IOException {
+    Path mainDexPath = temp.newFile("myrules2.txt").toPath();
+    Files.write(mainDexPath, mainDexRulesForMainDexFile3.getBytes());
     return mainDexPath;
   }
 
@@ -63,7 +92,8 @@ public class DumpMainDexInputsTest extends TestBase {
     testForD8()
         .setMinApi(parameters.getApiLevel())
         .addInnerClasses(DumpMainDexInputsTest.class)
-        .addMainDexListFiles(Collections.singleton(newMainDexListPath()))
+        .addMainDexListFiles(
+            mainDexListForMainDexFile1AndMainDexFile2(), mainDexListForMainDexFile3())
         .addMainDexListClasses(MainDexClass1.class, MainDexClass2.class, TestClass.class)
         .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
         .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
@@ -74,24 +104,64 @@ public class DumpMainDexInputsTest extends TestBase {
                 "Dumping main dex list resources may have side effects due to I/O on Paths."))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello, world");
-    verifyDumpDir(dumpDir);
+    verifyDumpDir(dumpDir, true);
   }
 
-  private void verifyDumpDir(Path dumpDir) throws IOException {
+  @Test
+  public void testD8MainDexRules() throws Exception {
+    Assume.assumeTrue(
+        "pre-native-multidex only",
+        parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.K));
+    Path dumpDir = temp.newFolder().toPath();
+    testForD8()
+        .setMinApi(parameters.getApiLevel())
+        .addInnerClasses(DumpMainDexInputsTest.class)
+        .addMainDexRulesFiles(newMainDexRulesPath1(), newMainDexRulesPath2())
+        .addMainDexListClasses(MainDexClass1.class, MainDexClass2.class, TestClass.class)
+        .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
+        .compile()
+        .assertAllInfoMessagesMatch(containsString("Dumped compilation inputs to:"))
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutputLines("Hello, world");
+    verifyDumpDir(dumpDir, false);
+  }
+
+  @Test
+  public void testR8MainDexRules() throws Exception {
+    Assume.assumeTrue(
+        "pre-native-multidex only",
+        parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.K));
+    Path dumpDir = temp.newFolder().toPath();
+    testForR8(parameters.getBackend())
+        .setMinApi(parameters.getApiLevel())
+        .addInnerClasses(DumpMainDexInputsTest.class)
+        .addMainDexRuleFiles(newMainDexRulesPath1(), newMainDexRulesPath2())
+        .addMainDexListClasses(MainDexClass1.class, MainDexClass2.class, TestClass.class)
+        .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
+        .addKeepAllClassesRule()
+        .allowDiagnosticMessages()
+        .compile()
+        .assertAllInfoMessagesMatch(containsString("Dumped compilation inputs to:"))
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutputLines("Hello, world");
+    verifyDumpDir(dumpDir, false);
+  }
+
+  private void verifyDumpDir(Path dumpDir, boolean checkMainDexList) throws IOException {
     assertTrue(Files.isDirectory(dumpDir));
     List<Path> paths = Files.walk(dumpDir, 1).collect(toList());
     boolean hasVerified = false;
     for (Path path : paths) {
       if (!path.equals(dumpDir)) {
         // The non-external run here results in assert code calling application read.
-        verifyDump(path);
+        verifyDump(path, checkMainDexList);
         hasVerified = true;
       }
     }
     assertTrue(hasVerified);
   }
 
-  private void verifyDump(Path dumpFile) throws IOException {
+  private void verifyDump(Path dumpFile, boolean checkMainDexList) throws IOException {
     assertTrue(Files.exists(dumpFile));
     Path unzipped = temp.newFolder().toPath();
     ZipUtils.unzip(dumpFile.toString(), unzipped.toFile());
@@ -99,20 +169,27 @@ public class DumpMainDexInputsTest extends TestBase {
     assertTrue(Files.exists(unzipped.resolve("program.jar")));
     assertTrue(Files.exists(unzipped.resolve("library.jar")));
     assertTrue(Files.exists(unzipped.resolve("main-dex-list.txt")));
-    String mainDex = new String(Files.readAllBytes(unzipped.resolve("main-dex-list.txt")));
-    List<String> mainDexLines =
-        Arrays.stream(mainDex.split("\n")).filter(s -> !s.isEmpty()).collect(toList());
-    assertEquals(5, mainDexLines.size());
-    List<String> expected =
-        Stream.of(
-                MainDexFile1.class,
-                MainDexFile2.class,
-                MainDexClass1.class,
-                MainDexClass2.class,
-                TestClass.class)
-            .map(DumpMainDexInputsTest::toMainDexFormat)
-            .collect(toList());
-    assertEquals(expected, mainDexLines);
+    if (checkMainDexList) {
+      String mainDex = new String(Files.readAllBytes(unzipped.resolve("main-dex-list.txt")));
+      List<String> mainDexLines =
+          Arrays.stream(mainDex.split("\n")).filter(s -> !s.isEmpty()).collect(toList());
+      assertEquals(6, mainDexLines.size());
+      List<String> expected =
+          Stream.of(
+                  MainDexFile1.class,
+                  MainDexFile2.class,
+                  MainDexFile3.class,
+                  MainDexClass1.class,
+                  MainDexClass2.class,
+                  TestClass.class)
+              .map(DumpMainDexInputsTest::toMainDexFormat)
+              .collect(toList());
+      assertEquals(expected, mainDexLines);
+    } else {
+      String mainDexRules = new String(Files.readAllBytes(unzipped.resolve("main-dex-rules.txt")));
+      assertThat(mainDexRules, containsString(mainDexRulesForMainDexFile1AndMainDexFile2));
+      assertThat(mainDexRules, containsString(mainDexRulesForMainDexFile3));
+    }
   }
 
   static class TestClass {
@@ -128,6 +205,8 @@ public class DumpMainDexInputsTest extends TestBase {
   static class MainDexFile1 {}
 
   static class MainDexFile2 {}
+
+  static class MainDexFile3 {}
 
   static class NonMainDex1 {}
 

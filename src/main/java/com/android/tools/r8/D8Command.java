@@ -515,6 +515,7 @@ public final class D8Command extends BaseCompilerCommand {
     return builder
         .setIntermediate(intermediate)
         .setDesugaredLibraryConfiguration(libraryConfiguration)
+        .setMainDexKeepRules(mainDexKeepRules)
         .build();
   }
 }

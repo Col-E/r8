@@ -89,6 +89,7 @@ public class AndroidApp {
   private static final String dumpBuildPropertiesFileName = "build.properties";
   private static final String dumpDesugaredLibraryFileName = "desugared-library.json";
   private static final String dumpMainDexListResourceFileName = "main-dex-list.txt";
+  private static final String dumpMainDexRulesResourceFileName = "main-dex-rules.txt";
   private static final String dumpProgramFileName = "program.jar";
   private static final String dumpClasspathFileName = "classpath.jar";
   private static final String dumpLibraryFileName = "library.jar";
@@ -511,6 +512,13 @@ public class AndroidApp {
         }
         String join = StringUtils.join(mainDexList, "\n");
         writeToZipStream(out, dumpMainDexListResourceFileName, join.getBytes(), ZipEntry.DEFLATED);
+      }
+      if (options.hasMainDexKeepRules()) {
+        writeToZipStream(
+            out,
+            dumpMainDexRulesResourceFileName,
+            StringUtils.joinLines(options.getMainDexKeepRules()).getBytes(),
+            ZipEntry.DEFLATED);
       }
       nextDexIndex =
           dumpProgramResources(
