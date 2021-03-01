@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
+import java.util.function.BiFunction;
+
 public abstract class ParameterUsagePerContext {
 
   NonEmptyParameterUsagePerContext asKnown() {
@@ -37,6 +39,9 @@ public abstract class ParameterUsagePerContext {
     }
     return asKnown().join(parameterUsagePerContext.asKnown());
   }
+
+  abstract ParameterUsagePerContext rebuild(
+      BiFunction<AnalysisContext, ParameterUsage, ParameterUsage> transformation);
 
   static BottomParameterUsagePerContext bottom() {
     return BottomParameterUsagePerContext.getInstance();

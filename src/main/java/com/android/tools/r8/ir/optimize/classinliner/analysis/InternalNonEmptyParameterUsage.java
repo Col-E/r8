@@ -55,6 +55,34 @@ public class InternalNonEmptyParameterUsage extends ParameterUsage {
   }
 
   @Override
+  InternalNonEmptyParameterUsage addFieldReadFromParameter(DexField field) {
+    ImmutableSet.Builder<DexField> newFieldsReadFromParameterBuilder = ImmutableSet.builder();
+    newFieldsReadFromParameterBuilder.addAll(fieldsReadFromParameter);
+    newFieldsReadFromParameterBuilder.add(field);
+    return new InternalNonEmptyParameterUsage(
+        newFieldsReadFromParameterBuilder.build(),
+        methodCallsWithParameterAsReceiver,
+        isParameterMutated,
+        isParameterReturned,
+        isParameterUsedAsLock);
+  }
+
+  @Override
+  InternalNonEmptyParameterUsage addMethodCallWithParameterAsReceiver(
+      InvokeMethodWithReceiver invoke) {
+    ImmutableSet.Builder<InvokeMethodWithReceiver> newMethodCallsWithParameterAsReceiverBuilder =
+        ImmutableSet.builder();
+    newMethodCallsWithParameterAsReceiverBuilder.addAll(methodCallsWithParameterAsReceiver);
+    newMethodCallsWithParameterAsReceiverBuilder.add(invoke);
+    return new InternalNonEmptyParameterUsage(
+        fieldsReadFromParameter,
+        newMethodCallsWithParameterAsReceiverBuilder.build(),
+        isParameterMutated,
+        isParameterReturned,
+        isParameterUsedAsLock);
+  }
+
+  @Override
   public InternalNonEmptyParameterUsage asInternalNonEmpty() {
     return this;
   }
@@ -82,6 +110,45 @@ public class InternalNonEmptyParameterUsage extends ParameterUsage {
         .joinIsReceiverReturned(other.isParameterReturned)
         .joinIsReceiverUsedAsLock(other.isParameterUsedAsLock)
         .build();
+  }
+
+  @Override
+  InternalNonEmptyParameterUsage setParameterMutated() {
+    if (isParameterMutated) {
+      return this;
+    }
+    return new InternalNonEmptyParameterUsage(
+        fieldsReadFromParameter,
+        methodCallsWithParameterAsReceiver,
+        true,
+        isParameterReturned,
+        isParameterUsedAsLock);
+  }
+
+  @Override
+  InternalNonEmptyParameterUsage setParameterReturned() {
+    if (isParameterReturned) {
+      return this;
+    }
+    return new InternalNonEmptyParameterUsage(
+        fieldsReadFromParameter,
+        methodCallsWithParameterAsReceiver,
+        isParameterMutated,
+        true,
+        isParameterUsedAsLock);
+  }
+
+  @Override
+  InternalNonEmptyParameterUsage setParameterUsedAsLock() {
+    if (isParameterUsedAsLock) {
+      return this;
+    }
+    return new InternalNonEmptyParameterUsage(
+        fieldsReadFromParameter,
+        methodCallsWithParameterAsReceiver,
+        isParameterMutated,
+        isParameterReturned,
+        true);
   }
 
   @Override

@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 class NonEmptyParameterUsagePerContext extends ParameterUsagePerContext {
 
@@ -56,6 +57,33 @@ class NonEmptyParameterUsagePerContext extends ParameterUsagePerContext {
   public ParameterUsage get(AnalysisContext context) {
     assert backing.containsKey(context);
     return backing.get(context);
+  }
+
+  @Override
+  ParameterUsagePerContext rebuild(
+      BiFunction<AnalysisContext, ParameterUsage, ParameterUsage> transformation) {
+    ImmutableMap.Builder<AnalysisContext, ParameterUsage> builder = null;
+    for (Map.Entry<AnalysisContext, ParameterUsage> entry : backing.entrySet()) {
+      AnalysisContext context = entry.getKey();
+      ParameterUsage usage = entry.getValue();
+      ParameterUsage newUsage = transformation.apply(context, usage);
+      if (newUsage != usage) {
+        if (builder == null) {
+          builder = ImmutableMap.builder();
+          for (Map.Entry<AnalysisContext, ParameterUsage> previousEntry : backing.entrySet()) {
+            AnalysisContext previousContext = previousEntry.getKey();
+            if (previousContext == context) {
+              break;
+            }
+            builder.put(previousContext, previousEntry.getValue());
+          }
+        }
+        builder.put(context, newUsage);
+      } else if (builder != null) {
+        builder.put(context, newUsage);
+      }
+    }
+    return builder != null ? create(builder.build()) : this;
   }
 
   @Override

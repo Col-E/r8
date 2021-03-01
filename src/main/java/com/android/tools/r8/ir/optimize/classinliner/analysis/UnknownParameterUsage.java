@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
+
 class UnknownParameterUsage extends ParameterUsage {
 
   private static final UnknownParameterUsage TOP = new UnknownParameterUsage();
@@ -12,6 +15,16 @@ class UnknownParameterUsage extends ParameterUsage {
 
   public static UnknownParameterUsage getInstance() {
     return TOP;
+  }
+
+  @Override
+  UnknownParameterUsage addFieldReadFromParameter(DexField field) {
+    return this;
+  }
+
+  @Override
+  UnknownParameterUsage addMethodCallWithParameterAsReceiver(InvokeMethodWithReceiver invoke) {
+    return this;
   }
 
   @Override
@@ -32,5 +45,20 @@ class UnknownParameterUsage extends ParameterUsage {
   @Override
   public boolean isTop() {
     return true;
+  }
+
+  @Override
+  UnknownParameterUsage setParameterMutated() {
+    return this;
+  }
+
+  @Override
+  UnknownParameterUsage setParameterReturned() {
+    return this;
+  }
+
+  @Override
+  UnknownParameterUsage setParameterUsedAsLock() {
+    return this;
   }
 }

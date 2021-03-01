@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.Multiset;
 import java.util.Objects;
@@ -39,6 +41,16 @@ public class NonEmptyParameterUsage extends ParameterUsage {
   }
 
   @Override
+  ParameterUsage addFieldReadFromParameter(DexField field) {
+    throw new Unreachable();
+  }
+
+  @Override
+  ParameterUsage addMethodCallWithParameterAsReceiver(InvokeMethodWithReceiver invoke) {
+    throw new Unreachable();
+  }
+
+  @Override
   public NonEmptyParameterUsage asNonEmpty() {
     return this;
   }
@@ -68,6 +80,21 @@ public class NonEmptyParameterUsage extends ParameterUsage {
   @Override
   public boolean isParameterUsedAsLock() {
     return isParameterUsedAsLock;
+  }
+
+  @Override
+  ParameterUsage setParameterMutated() {
+    throw new Unreachable();
+  }
+
+  @Override
+  ParameterUsage setParameterReturned() {
+    throw new Unreachable();
+  }
+
+  @Override
+  ParameterUsage setParameterUsedAsLock() {
+    throw new Unreachable();
   }
 
   @Override

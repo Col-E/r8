@@ -5,11 +5,21 @@
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractState;
+import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
+import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Int2ObjectMapUtils;
 import com.android.tools.r8.utils.IntObjConsumer;
+import com.android.tools.r8.utils.IntObjToObjFunction;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
 
 /**
  * This implements the lattice for the dataflow analysis used to determine if a given method is
@@ -56,6 +66,8 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 public class AnalysisState extends AbstractState<AnalysisState> {
 
   private static final AnalysisState BOTTOM = new AnalysisState();
+  private static final AssumeAndCheckCastAliasedValueConfiguration aliasedValueConfiguration =
+      AssumeAndCheckCastAliasedValueConfiguration.getInstance();
 
   private final Int2ObjectMap<ParameterUsagePerContext> backing;
 
@@ -96,6 +108,78 @@ public class AnalysisState extends AbstractState<AnalysisState> {
   public boolean isBottom() {
     assert !backing.isEmpty() || this == bottom();
     return backing.isEmpty();
+  }
+
+  AnalysisState abandonClassInliningInCurrentContexts(Value value) {
+    return rebuildParameter(value, (context, usage) -> ParameterUsage.top());
+  }
+
+  AnalysisState abandonClassInliningInCurrentContexts(Collection<Value> values) {
+    if (values.isEmpty()) {
+      return this;
+    }
+    int[] parametersToRebuild = new int[values.size()];
+    Iterator<Value> iterator = values.iterator();
+    for (int i = 0; i < values.size(); i++) {
+      parametersToRebuild[i] = iterator.next().getDefinition().asArgument().getIndex();
+    }
+    return rebuildParameters(
+        (currentParameter, usagePerContext) ->
+            ArrayUtils.containsInt(parametersToRebuild, currentParameter)
+                ? usagePerContext.rebuild((context, usage) -> ParameterUsage.top())
+                : usagePerContext);
+  }
+
+  AnalysisState abandonClassInliningInCurrentContexts(
+      Iterable<Value> values, Predicate<Value> predicate) {
+    List<Value> filtered = new ArrayList<>();
+    for (Value value : values) {
+      Value root = value.getAliasedValue(aliasedValueConfiguration);
+      if (predicate.test(root)) {
+        filtered.add(root);
+      }
+    }
+    return abandonClassInliningInCurrentContexts(filtered);
+  }
+
+  AnalysisState rebuildParameter(
+      Value value, BiFunction<AnalysisContext, ParameterUsage, ParameterUsage> transformation) {
+    Value valueRoot = value.getAliasedValue(aliasedValueConfiguration);
+    assert valueRoot.isArgument();
+    int parameter = valueRoot.getDefinition().asArgument().getIndex();
+    return rebuildParameters(
+        (currentParameter, usagePerContext) ->
+            currentParameter == parameter
+                ? usagePerContext.rebuild(transformation)
+                : usagePerContext);
+  }
+
+  AnalysisState rebuildParameters(
+      IntObjToObjFunction<ParameterUsagePerContext, ParameterUsagePerContext> transformation) {
+    Int2ObjectMap<ParameterUsagePerContext> rebuiltBacking = null;
+    for (Int2ObjectMap.Entry<ParameterUsagePerContext> entry : backing.int2ObjectEntrySet()) {
+      int parameter = entry.getIntKey();
+      ParameterUsagePerContext usagePerContext = entry.getValue();
+      ParameterUsagePerContext newUsagePerContext =
+          transformation.apply(parameter, entry.getValue());
+      if (newUsagePerContext != usagePerContext) {
+        if (rebuiltBacking == null) {
+          rebuiltBacking = new Int2ObjectOpenHashMap<>();
+          for (Int2ObjectMap.Entry<ParameterUsagePerContext> previousEntry :
+              backing.int2ObjectEntrySet()) {
+            int previousParameter = previousEntry.getIntKey();
+            if (previousParameter == parameter) {
+              break;
+            }
+            rebuiltBacking.put(previousParameter, previousEntry.getValue());
+          }
+        }
+        rebuiltBacking.put(parameter, newUsagePerContext);
+      } else if (rebuiltBacking != null) {
+        rebuiltBacking.put(parameter, newUsagePerContext);
+      }
+    }
+    return rebuiltBacking != null ? create(rebuiltBacking) : this;
   }
 
   @Override

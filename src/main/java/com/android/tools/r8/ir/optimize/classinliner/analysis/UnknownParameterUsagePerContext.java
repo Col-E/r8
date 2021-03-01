@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
+import java.util.function.BiFunction;
+
 class UnknownParameterUsagePerContext extends ParameterUsagePerContext {
 
   private static final UnknownParameterUsagePerContext INSTANCE =
@@ -23,5 +25,11 @@ class UnknownParameterUsagePerContext extends ParameterUsagePerContext {
   @Override
   public boolean isTop() {
     return true;
+  }
+
+  @Override
+  ParameterUsagePerContext rebuild(
+      BiFunction<AnalysisContext, ParameterUsage, ParameterUsage> transformation) {
+    return this;
   }
 }

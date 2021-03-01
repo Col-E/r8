@@ -125,6 +125,15 @@ public class ArrayUtils {
     return false;
   }
 
+  public static boolean containsInt(int[] elements, int elementToLookFor) {
+    for (int element : elements) {
+      if (element == elementToLookFor) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public static int[] fromPredicate(IntPredicate predicate, int size) {
     int[] result = new int[size];
     for (int i = 0; i < size; i++) {

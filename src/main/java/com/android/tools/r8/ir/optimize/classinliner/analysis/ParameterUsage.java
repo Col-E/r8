@@ -4,7 +4,14 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
+
 public abstract class ParameterUsage {
+
+  abstract ParameterUsage addFieldReadFromParameter(DexField field);
+
+  abstract ParameterUsage addMethodCallWithParameterAsReceiver(InvokeMethodWithReceiver invoke);
 
   public NonEmptyParameterUsage asNonEmpty() {
     return null;
@@ -64,6 +71,12 @@ public abstract class ParameterUsage {
     }
     return asInternalNonEmpty().join(parameterUsage.asInternalNonEmpty());
   }
+
+  abstract ParameterUsage setParameterMutated();
+
+  abstract ParameterUsage setParameterReturned();
+
+  abstract ParameterUsage setParameterUsedAsLock();
 
   static BottomParameterUsage bottom() {
     return BottomParameterUsage.getInstance();

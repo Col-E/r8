@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
+import java.util.function.BiFunction;
+
 class BottomParameterUsagePerContext extends ParameterUsagePerContext {
 
   private static final BottomParameterUsagePerContext INSTANCE =
@@ -23,5 +25,11 @@ class BottomParameterUsagePerContext extends ParameterUsagePerContext {
   @Override
   public boolean isBottom() {
     return true;
+  }
+
+  @Override
+  ParameterUsagePerContext rebuild(
+      BiFunction<AnalysisContext, ParameterUsage, ParameterUsage> transformation) {
+    return this;
   }
 }
