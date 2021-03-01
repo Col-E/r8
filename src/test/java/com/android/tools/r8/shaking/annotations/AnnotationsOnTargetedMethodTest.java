@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking.annotations;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
@@ -55,6 +56,7 @@ public class AnnotationsOnTargetedMethodTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRuntimeVisibleAnnotations()
         .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .noMinification()
@@ -94,6 +96,7 @@ public class AnnotationsOnTargetedMethodTest extends TestBase {
     void targetedMethod();
   }
 
+  @NeverClassInline
   @NoHorizontalClassMerging
   static class InterfaceImpl implements Interface {
 
@@ -104,6 +107,7 @@ public class AnnotationsOnTargetedMethodTest extends TestBase {
     }
   }
 
+  @NeverClassInline
   @NoHorizontalClassMerging
   static class OtherInterfaceImpl implements Interface {
 

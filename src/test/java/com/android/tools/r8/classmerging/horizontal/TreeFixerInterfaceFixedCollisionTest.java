@@ -99,6 +99,7 @@ public class TreeFixerInterfaceFixedCollisionTest extends HorizontalClassMerging
     }
   }
 
+  @NeverClassInline
   public static class C extends Parent implements I {
     @Override
     @NeverInline

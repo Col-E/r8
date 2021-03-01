@@ -7,6 +7,7 @@ package com.android.tools.r8.classmerging.horizontal.dispatch;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
@@ -15,6 +16,7 @@ import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspect
 import org.junit.Test;
 
 public class OverrideAbstractMethodWithDefaultTest extends HorizontalClassMergingTestBase {
+
   public OverrideAbstractMethodWithDefaultTest(
       TestParameters parameters, boolean enableHorizontalClassMerging) {
     super(parameters, enableHorizontalClassMerging);
@@ -29,6 +31,7 @@ public class OverrideAbstractMethodWithDefaultTest extends HorizontalClassMergin
             options ->
                 options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addHorizontallyMergedClassesInspectorIf(
@@ -73,8 +76,10 @@ public class OverrideAbstractMethodWithDefaultTest extends HorizontalClassMergin
     }
   }
 
+  @NeverClassInline
   static class C1 extends B1 implements J {}
 
+  @NeverClassInline
   static class C2 extends B2 {}
 
   static class Main {

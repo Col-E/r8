@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -40,6 +41,7 @@ public class UnusedInterfaceWithDefaultMethodTest extends TestBase {
         .addInnerClasses(UnusedInterfaceWithDefaultMethodTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -94,5 +96,6 @@ public class UnusedInterfaceWithDefaultMethodTest extends TestBase {
     }
   }
 
+  @NeverClassInline
   static class A implements J {}
 }

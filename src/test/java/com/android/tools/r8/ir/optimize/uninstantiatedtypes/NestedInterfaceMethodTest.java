@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.uninstantiatedtypes;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -49,6 +50,7 @@ public class NestedInterfaceMethodTest extends TestBase {
             .addInnerClasses(NestedInterfaceMethodTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
             .addOptionsModification(
                 options -> {
@@ -91,6 +93,7 @@ public class NestedInterfaceMethodTest extends TestBase {
   @NoVerticalClassMerging
   interface J extends I {}
 
+  @NeverClassInline
   static class A implements J {
 
     @Override
@@ -100,11 +103,13 @@ public class NestedInterfaceMethodTest extends TestBase {
     }
   }
 
+  @NeverClassInline
   static class B extends A {}
 
   // The purpose of this class is merely to avoid that the invoke-interface instruction in
   // TestClass.test() gets devirtualized to an invoke-virtual instruction. Otherwise the method
   // I.m() would not be present in the output.
+  @NeverClassInline
   static class C extends A {}
 
   static class Uninstantiated {}

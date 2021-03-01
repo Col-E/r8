@@ -23,7 +23,6 @@ import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
-import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -48,7 +47,6 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner;
-import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningOracle;
@@ -1171,15 +1169,12 @@ final class InlineCandidateProcessor {
 
     // Check if the method is inline-able by standard inliner.
     InliningOracle oracle = defaultOracle.get();
-    InlineAction inlineAction =
-        oracle.computeInlining(
-            invoke,
-            resolutionResult,
-            singleTarget,
-            method,
-            ClassInitializationAnalysis.trivial(),
-            NopWhyAreYouNotInliningReporter.getInstance());
-    if (inlineAction == null) {
+    if (!oracle.passesInliningConstraints(
+        invoke,
+        resolutionResult,
+        singleTarget,
+        Reason.SIMPLE,
+        NopWhyAreYouNotInliningReporter.getInstance())) {
       return false;
     }
 
