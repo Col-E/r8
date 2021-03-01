@@ -6,7 +6,10 @@ package com.android.tools.r8.ir.analysis.framework.intraprocedural;
 
 import com.android.tools.r8.errors.Unreachable;
 
-/** Used by the {@link TransferFunction} to signal that the dataflow analysis should be aborted. */
+/**
+ * Used by the {@link AbstractTransferFunction} to signal that the dataflow analysis should be
+ * aborted.
+ */
 public class FailedTransferFunctionResult<StateType extends AbstractState<StateType>>
     implements TransferFunctionResult<StateType> {
 

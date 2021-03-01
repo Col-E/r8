@@ -16,11 +16,11 @@ import java.util.Map;
  * This defines a simple fixpoint solver for running an intraprocedural dataflow analysis.
  *
  * <p>The solver computes an {@link AbstractState} for each {@link BasicBlock} using the {@link
- * TransferFunction} which defines the abstract semantics for each instruction.
+ * AbstractTransferFunction} which defines the abstract semantics for each instruction.
  *
  * <p>Once the fixpoint is reached the analysis returns a {@link SuccessfulDataflowAnalysisResult}.
- * If the supplied {@link TransferFunction} returns a {@link FailedTransferFunctionResult} for a
- * given instruction and abstract state, then the analysis return a {@link
+ * If the supplied {@link AbstractTransferFunction} returns a {@link FailedTransferFunctionResult}
+ * for a given instruction and abstract state, then the analysis return a {@link
  * FailedDataflowAnalysisResult}.
  */
 public class IntraproceduralDataflowAnalysis<StateType extends AbstractState<StateType>> {
@@ -28,12 +28,13 @@ public class IntraproceduralDataflowAnalysis<StateType extends AbstractState<Sta
   private final StateType bottom;
 
   // The transfer function that defines the abstract semantics for each instruction.
-  private final TransferFunction<StateType> transfer;
+  private final AbstractTransferFunction<StateType> transfer;
 
   // The state of the analysis.
   private final Map<BasicBlock, StateType> blockExitStates = new IdentityHashMap<>();
 
-  public IntraproceduralDataflowAnalysis(StateType bottom, TransferFunction<StateType> transfer) {
+  public IntraproceduralDataflowAnalysis(
+      StateType bottom, AbstractTransferFunction<StateType> transfer) {
     this.bottom = bottom;
     this.transfer = transfer;
   }

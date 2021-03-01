@@ -6,10 +6,10 @@ package com.android.tools.r8.ir.optimize.string;
 
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractState;
+import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractTransferFunction;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.DataflowAnalysisResult;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.FailedTransferFunctionResult;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.IntraproceduralDataflowAnalysis;
-import com.android.tools.r8.ir.analysis.framework.intraprocedural.TransferFunction;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.TransferFunctionResult;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.Instruction;
@@ -42,7 +42,7 @@ class StringBuilderAppendFlowAnalysis {
       Value builder, StringBuilderOptimizationConfiguration configuration) {
     IntraproceduralDataflowAnalysis<AbstractStateImpl> analysis =
         new IntraproceduralDataflowAnalysis<>(
-            AbstractStateImpl.bottom(), new TransferFunctionImpl(builder, configuration));
+            AbstractStateImpl.bottom(), new TransferFunction(builder, configuration));
     DataflowAnalysisResult result = analysis.run(builder.definition.getBlock());
     return result.isFailedAnalysisResult();
   }
@@ -121,13 +121,12 @@ class StringBuilderAppendFlowAnalysis {
    * <p>If a call to {@code toString()} on the builder i seen, then the abstract state is reset to
    * bottom.
    */
-  private static class TransferFunctionImpl implements TransferFunction<AbstractStateImpl> {
+  private static class TransferFunction implements AbstractTransferFunction<AbstractStateImpl> {
 
     private final Value builder;
     private final StringBuilderOptimizationConfiguration configuration;
 
-    private TransferFunctionImpl(
-        Value builder, StringBuilderOptimizationConfiguration configuration) {
+    private TransferFunction(Value builder, StringBuilderOptimizationConfiguration configuration) {
       this.builder = builder;
       this.configuration = configuration;
     }

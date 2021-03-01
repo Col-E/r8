@@ -7,8 +7,8 @@ package com.android.tools.r8.ir.analysis.framework.intraprocedural;
 import com.android.tools.r8.ir.code.Instruction;
 
 /**
- * The result of applying the {@link TransferFunction} to an {@link Instruction} and an {@link
- * AbstractState}.
+ * The result of applying the {@link AbstractTransferFunction} to an {@link Instruction} and an
+ * {@link AbstractState}.
  *
  * <p>The result can either be a new {@link AbstractState} or a failure, in which case the dataflow
  * analysis is aborted.

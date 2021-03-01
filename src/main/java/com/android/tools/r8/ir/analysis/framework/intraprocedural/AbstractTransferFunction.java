@@ -11,7 +11,7 @@ import com.android.tools.r8.ir.code.Instruction;
  * A transfer function that defines the abstract semantics of the instructions in the program
  * according to some abstract state {@link StateType}.
  */
-public interface TransferFunction<StateType extends AbstractState<StateType>> {
+public interface AbstractTransferFunction<StateType extends AbstractState<StateType>> {
 
   TransferFunctionResult<StateType> apply(Instruction instruction, StateType state);
 
