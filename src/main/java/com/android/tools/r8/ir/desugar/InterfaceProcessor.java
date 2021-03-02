@@ -135,8 +135,7 @@ public final class InterfaceProcessor {
             companionMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
             DexEncodedMethod.EMPTY_ARRAY,
             rewriter.factory.getSkipNameValidationForTesting(),
-            getChecksumSupplier(iface),
-            Collections.singletonList(iface));
+            getChecksumSupplier(iface));
     syntheticClasses.put(iface, companionClass);
     if (companionClass.hasClassInitializer()) {
       newSynthesizedMethodConsumer.accept(companionClass.getProgramClassInitializer());

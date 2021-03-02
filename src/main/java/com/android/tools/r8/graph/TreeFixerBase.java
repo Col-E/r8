@@ -113,8 +113,7 @@ public abstract class TreeFixerBase {
             DexEncodedMethod.EMPTY_ARRAY,
             DexEncodedMethod.EMPTY_ARRAY,
             dexItemFactory.getSkipNameValidationForTesting(),
-            clazz.getChecksumSupplier(),
-            fixupSynthesizedFrom(clazz.getSynthesizedFrom()));
+            clazz.getChecksumSupplier());
     newClass.setInstanceFields(fixupFields(clazz.instanceFields()));
     newClass.setStaticFields(fixupFields(clazz.staticFields()));
     newClass.setDirectMethods(

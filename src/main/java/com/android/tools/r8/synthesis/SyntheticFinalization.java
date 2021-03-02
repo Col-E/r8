@@ -46,7 +46,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 public class SyntheticFinalization {
 
@@ -454,10 +453,7 @@ public class SyntheticFinalization {
                   externalSyntheticClass.type));
           for (SyntheticProgramClassDefinition member : syntheticGroup.getMembers()) {
             addMainDexAndSynthesizedFromForMember(
-                member,
-                externalSyntheticClass,
-                appView.appInfo().getMainDexInfo(),
-                appForLookup::programDefinitionFor);
+                member, externalSyntheticClass, appView.appInfo().getMainDexInfo());
           }
         });
     syntheticMethodGroups.forEach(
@@ -475,10 +471,7 @@ public class SyntheticFinalization {
                       .withHolder(externalSyntheticClass.type, factory)));
           for (SyntheticMethodDefinition member : syntheticGroup.getMembers()) {
             addMainDexAndSynthesizedFromForMember(
-                member,
-                externalSyntheticClass,
-                appView.appInfo().getMainDexInfo(),
-                appForLookup::programDefinitionFor);
+                member, externalSyntheticClass, appView.appInfo().getMainDexInfo());
           }
         });
 
@@ -526,14 +519,8 @@ public class SyntheticFinalization {
   private static void addMainDexAndSynthesizedFromForMember(
       SyntheticDefinition<?, ?, ?> member,
       DexProgramClass externalSyntheticClass,
-      MainDexInfo mainDexInfo,
-      Function<DexType, DexProgramClass> definitions) {
+      MainDexInfo mainDexInfo) {
     member.getContext().addIfDerivedFromMainDexClass(externalSyntheticClass, mainDexInfo);
-    // TODO(b/168584485): Remove this once class-mapping support is removed.
-    DexProgramClass from = definitions.apply(member.getContext().getSynthesizingContextType());
-    if (from != null) {
-      externalSyntheticClass.addSynthesizedFrom(from);
-    }
   }
 
   private static boolean shouldAnnotateSynthetics(InternalOptions options) {

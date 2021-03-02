@@ -28,9 +28,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -50,7 +47,6 @@ public class DexProgramClass extends DexClass
   public static final DexProgramClass[] EMPTY_ARRAY = {};
 
   private final ProgramResource.Kind originKind;
-  private final Collection<DexProgramClass> synthesizedFrom;
   private CfVersion initialClassFileVersion = null;
   private boolean deprecated = false;
   private KotlinClassLevelInfo kotlinInfo = NO_KOTLIN_INFO;
@@ -77,50 +73,6 @@ public class DexProgramClass extends DexClass
       DexEncodedMethod[] virtualMethods,
       boolean skipNameValidationForTesting,
       ChecksumSupplier checksumSupplier) {
-    this(
-        type,
-        originKind,
-        origin,
-        accessFlags,
-        superType,
-        interfaces,
-        sourceFile,
-        nestHost,
-        nestMembers,
-        enclosingMember,
-        innerClasses,
-        classSignature,
-        classAnnotations,
-        staticFields,
-        instanceFields,
-        directMethods,
-        virtualMethods,
-        skipNameValidationForTesting,
-        checksumSupplier,
-        Collections.emptyList());
-  }
-
-  public DexProgramClass(
-      DexType type,
-      Kind originKind,
-      Origin origin,
-      ClassAccessFlags accessFlags,
-      DexType superType,
-      DexTypeList interfaces,
-      DexString sourceFile,
-      NestHostClassAttribute nestHost,
-      List<NestMemberClassAttribute> nestMembers,
-      EnclosingMethodAttribute enclosingMember,
-      List<InnerClassAttribute> innerClasses,
-      ClassSignature classSignature,
-      DexAnnotationSet classAnnotations,
-      DexEncodedField[] staticFields,
-      DexEncodedField[] instanceFields,
-      DexEncodedMethod[] directMethods,
-      DexEncodedMethod[] virtualMethods,
-      boolean skipNameValidationForTesting,
-      ChecksumSupplier checksumSupplier,
-      Collection<DexProgramClass> synthesizedDirectlyFrom) {
     super(
         sourceFile,
         interfaces,
@@ -143,8 +95,6 @@ public class DexProgramClass extends DexClass
     assert classAnnotations != null;
     this.originKind = originKind;
     this.checksumSupplier = checksumSupplier;
-    this.synthesizedFrom = new HashSet<>();
-    synthesizedDirectlyFrom.forEach(this::addSynthesizedFrom);
   }
 
   @Override
@@ -185,9 +135,7 @@ public class DexProgramClass extends DexClass
         .withAssert(c -> c.classSignature == ClassSignature.noSignature())
         .withItemArray(c -> c.staticFields)
         .withItemArray(c -> c.instanceFields)
-        .withItemCollection(DexClass::allMethodsSorted)
-        // TODO(b/168584485): Synthesized-from is being removed (empty for new synthetics).
-        .withAssert(c -> c.synthesizedFrom.isEmpty());
+        .withItemCollection(DexClass::allMethodsSorted);
   }
 
   public void forEachProgramField(Consumer<? super ProgramField> consumer) {
@@ -381,10 +329,6 @@ public class DexProgramClass extends DexClass
       forEachProgramField(field -> field.collectIndexedItems(indexedItems));
       forEachProgramMethod(method -> method.collectIndexedItems(indexedItems, graphLens, rewriter));
     }
-  }
-
-  public Collection<DexProgramClass> getSynthesizedFrom() {
-    return synthesizedFrom;
   }
 
   @Override
@@ -606,14 +550,6 @@ public class DexProgramClass extends DexClass
   private boolean hasAnnotations(MethodCollection methods) {
     synchronized (methods) {
       return methods.hasAnnotations();
-    }
-  }
-
-  public void addSynthesizedFrom(DexProgramClass clazz) {
-    if (clazz.synthesizedFrom.isEmpty()) {
-      synthesizedFrom.add(clazz);
-    } else {
-      clazz.synthesizedFrom.forEach(this::addSynthesizedFrom);
     }
   }
 

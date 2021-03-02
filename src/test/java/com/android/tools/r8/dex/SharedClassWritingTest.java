@@ -122,8 +122,7 @@ public class SharedClassWritingTest {
             DexEncodedMethod.EMPTY_ARRAY,
             new DexEncodedMethod[] {makeMethod(type, stringCount, startOffset)},
             false,
-            DexProgramClass::invalidChecksumRequest,
-            synthesizedFrom);
+            DexProgramClass::invalidChecksumRequest);
     return programClass;
   }
 
