@@ -5,10 +5,11 @@
 package com.android.tools.r8.cf.stackmap;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static com.android.tools.r8.cf.stackmap.UninitializedGetFieldTest.UninitializedGetFieldTest$MainDump.dump;
+import static com.android.tools.r8.cf.stackmap.UninitializedGetFieldTest.MainDump.dump;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -42,10 +43,10 @@ public class UninitializedGetFieldTest extends TestBase {
     testForJvm()
         .addProgramClassFileData(dump())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
+        .assertFailureWithErrorThatThrows(VerifyError.class);
   }
 
-  @Test()
+  @Test(expected = CompilationFailedException.class)
   public void testD8Cf() throws Exception {
     assumeTrue(parameters.isCfRuntime());
     testForD8(parameters.getBackend())
@@ -53,11 +54,9 @@ public class UninitializedGetFieldTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compileWithExpectedDiagnostics(
             diagnostics -> {
-              diagnostics.assertNoWarningsMatch(
+              diagnostics.assertWarningThatMatches(
                   diagnosticMessage(containsString("The expected type uninitialized")));
-            })
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
+            });
   }
 
   @Test
@@ -68,11 +67,11 @@ public class UninitializedGetFieldTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compileWithExpectedDiagnostics(
             diagnostics -> {
-              diagnostics.assertNoWarningsMatch(
+              diagnostics.assertWarningThatMatches(
                   diagnosticMessage(containsString("The expected type uninitialized")));
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
+        .assertFailureWithErrorThatThrows(VerifyError.class);
   }
 
   public static class Main {
@@ -94,8 +93,8 @@ public class UninitializedGetFieldTest extends TestBase {
   }
 
   // The dump is generated from the above code. The change made is to Main::<init> where we
-  // now putfield before initializing.
-  static class UninitializedGetFieldTest$MainDump implements Opcodes {
+  // now putfield and getfield before initializing.
+  static class MainDump implements Opcodes {
 
     static byte[] dump() throws Exception {
 
