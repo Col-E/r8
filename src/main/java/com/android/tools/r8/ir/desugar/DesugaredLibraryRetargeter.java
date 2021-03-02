@@ -409,6 +409,21 @@ public class DesugaredLibraryRetargeter {
             itemFactory.createMethod(
                 itemFactory.createType("Ljava/util/DesugarArrays;"), proto, name);
         retargetLibraryMember.put(source, target);
+
+        // TODO(b/181629049): This is only a workaround rewriting invokes of
+        //  j.u.TimeZone.getTimeZone taking a java.time.ZoneId.
+        // to j.u.DesugarArrays.deepEquals0.
+        name = itemFactory.createString("getTimeZone");
+        proto =
+            itemFactory.createProto(
+                itemFactory.createType("Ljava/util/TimeZone;"),
+                itemFactory.createType("Ljava/time/ZoneId;"));
+        source =
+            itemFactory.createMethod(itemFactory.createType("Ljava/util/TimeZone;"), proto, name);
+        target =
+            itemFactory.createMethod(
+                itemFactory.createType("Ljava/util/DesugarTimeZone;"), proto, name);
+        retargetLibraryMember.put(source, target);
       }
     }
 
