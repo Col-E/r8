@@ -14,7 +14,6 @@ import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.JoiningStringConsumer;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
@@ -116,7 +115,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
           factory,
           getAppBuilder().build(),
           mainDexKeepRules,
-          new JoiningStringConsumer(mainDexListConsumer, "\n"),
+          mainDexListConsumer,
           mainDexKeptGraphConsumer,
           getReporter());
     }
