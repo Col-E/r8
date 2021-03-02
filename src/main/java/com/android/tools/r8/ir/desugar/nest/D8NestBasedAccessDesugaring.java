@@ -45,8 +45,8 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
           DexClass hostClass = nest.getHostClass();
           for (DexClass memberClass : nest.getMembers()) {
             if (hostClass.isProgramClass() || memberClass.isProgramClass()) {
-              reportDependencyEdge(hostClass, memberClass, appView.options());
-              reportDependencyEdge(memberClass, hostClass, appView.options());
+              reportDependencyEdge(hostClass, memberClass, appView.appInfo());
+              reportDependencyEdge(memberClass, hostClass, appView.appInfo());
             }
           }
         },

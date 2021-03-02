@@ -251,6 +251,14 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     if (definition != null) {
       return Collections.singletonList(definition.getContext().getSynthesizingContextType());
     }
+    LegacySyntheticReference legacyReference = committed.getLegacyTypes().get(type);
+    if (legacyReference != null) {
+      return legacyReference.getContexts();
+    }
+    LegacySyntheticDefinition legacyDefinition = pending.legacyClasses.get(type);
+    if (legacyDefinition != null) {
+      return legacyDefinition.getContexts();
+    }
     return Collections.emptyList();
   }
 

@@ -21,6 +21,10 @@ public class LegacySyntheticReference implements Rewritable<LegacySyntheticRefer
     return type;
   }
 
+  public Set<DexType> getContexts() {
+    return contexts;
+  }
+
   @Override
   public LegacySyntheticReference rewrite(NonIdentityGraphLens lens) {
     return null;

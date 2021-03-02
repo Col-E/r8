@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LegacySyntheticDefinition {
@@ -21,6 +22,10 @@ public class LegacySyntheticDefinition {
   public void addContext(ProgramDefinition clazz) {
     DexType type = clazz.getContextType();
     contexts.put(type, type);
+  }
+
+  public Set<DexType> getContexts() {
+    return contexts.keySet();
   }
 
   public LegacySyntheticReference toReference() {

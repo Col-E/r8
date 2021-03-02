@@ -170,7 +170,7 @@ public class AppInfo implements DexDefinitionSupplier {
     }
     DexClass definition = definitionFor(type);
     if (definition != null && !definition.isLibraryClass() && !dependent.isLibraryClass()) {
-      InterfaceMethodRewriter.reportDependencyEdge(dependent, definition, options());
+      InterfaceMethodRewriter.reportDependencyEdge(dependent, definition, this);
     }
     return definition;
   }

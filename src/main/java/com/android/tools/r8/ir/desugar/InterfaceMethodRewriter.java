@@ -1467,7 +1467,7 @@ public final class InterfaceMethodRewriter {
     // At this point we likely have a non-library type that may depend on default method information
     // from its interfaces and the dependency should be reported.
     if (implementing.isProgramClass() && !definedInterface.isLibraryClass()) {
-      reportDependencyEdge(implementing.asProgramClass(), definedInterface, appView.options());
+      reportDependencyEdge(implementing.asProgramClass(), definedInterface, appView.appInfo());
     }
 
     // Merge information from all superinterfaces.
@@ -1491,19 +1491,19 @@ public final class InterfaceMethodRewriter {
   }
 
   public static void reportDependencyEdge(
-      DexClass dependent, DexClass dependency, InternalOptions options) {
+      DexClass dependent, DexClass dependency, AppInfo appInfo) {
     assert !dependent.isLibraryClass();
     assert !dependency.isLibraryClass();
-    DesugarGraphConsumer consumer = options.desugarGraphConsumer;
+    DesugarGraphConsumer consumer = appInfo.app().options.desugarGraphConsumer;
     if (consumer != null) {
       Origin dependencyOrigin = dependency.getOrigin();
-      java.util.Collection<DexProgramClass> dependents =
-          dependent.isProgramClass() ? dependent.asProgramClass().getSynthesizedFrom() : null;
-      if (dependents == null || dependents.isEmpty()) {
+      java.util.Collection<DexType> dependents =
+          appInfo.getSyntheticItems().getSynthesizingContexts(dependent.getType());
+      if (dependents.isEmpty()) {
         reportDependencyEdge(consumer, dependencyOrigin, dependent);
       } else {
-        for (DexClass clazz : dependents) {
-          reportDependencyEdge(consumer, dependencyOrigin, clazz);
+        for (DexType type : dependents) {
+          reportDependencyEdge(consumer, dependencyOrigin, appInfo.definitionFor(type));
         }
       }
     }
