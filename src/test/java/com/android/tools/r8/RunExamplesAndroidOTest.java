@@ -498,22 +498,30 @@ public abstract class RunExamplesAndroidOTest<
   @Test
   public void testInterfaceDesugaringWithMainDexList1() throws Throwable {
     // Main dex interface has one static method.
+    // TODO(b/178127572): See if we can update R8 to not extend the main dex content.
+    boolean isR8 = this instanceof R8RunExamplesAndroidOTest;
     testIntermediateWithMainDexList(
         "interfacemethods",
         Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION),
-        1,
-        ImmutableList.of("interfacemethods.I1"));
+        isR8 ? 2 : 1,
+        isR8
+            ? ImmutableList.of("interfacemethods.I2", "interfacemethods.I2$-CC")
+            : ImmutableList.of("interfacemethods.I2"));
   }
 
 
   @Test
   public void testInterfaceDesugaringWithMainDexList2() throws Throwable {
     // Main dex interface has one default method.
+    // TODO(b/178127572): See if we can update R8 to not extend the main dex content.
+    boolean isR8 = this instanceof R8RunExamplesAndroidOTest;
     testIntermediateWithMainDexList(
         "interfacemethods",
         Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION),
-        1,
-        ImmutableList.of("interfacemethods.I2"));
+        isR8 ? 2 : 1,
+        isR8
+            ? ImmutableList.of("interfacemethods.I2", "interfacemethods.I2$-CC")
+            : ImmutableList.of("interfacemethods.I2"));
   }
 
   @Test
