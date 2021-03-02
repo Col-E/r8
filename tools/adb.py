@@ -20,6 +20,8 @@ def uninstall_apk_on_emulator(app_id, emulator_id):
     ['adb', '-s', emulator_id, 'uninstall', app_id],
     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   stdout, stderr = process.communicate()
+  stdout = stdout.decode('UTF-8')
+  stderr = stderr.decode('UTF-8')
 
   if stdout.strip() == 'Success':
     # Successfully uninstalled
@@ -40,7 +42,7 @@ def uninstall_apk_on_emulator(app_id, emulator_id):
 
 
 def wait_for_emulator(emulator_id):
-  stdout = subprocess.check_output(['adb', 'devices'])
+  stdout = subprocess.check_output(['adb', 'devices']).decode('UTF-8')
   if '{}\tdevice'.format(emulator_id) in stdout:
     return True
 
@@ -51,7 +53,7 @@ def wait_for_emulator(emulator_id):
   while True:
     time.sleep(10)
     time_waited += 10
-    stdout = subprocess.check_output(['adb', 'devices'])
+    stdout = subprocess.check_output(['adb', 'devices']).decode('UTF-8')
     if '{}\tdevice'.format(emulator_id) not in stdout:
       print('... still waiting for connection')
       if time_waited >= 5 * 60:
