@@ -337,10 +337,9 @@ def run1(out, args, otherargs):
       print(subprocess.check_output(cmd, stderr=subprocess.STDOUT))
       return 0
     except subprocess.CalledProcessError as e:
-      print(e.output)
       if not args.nolib and version != 'source':
         stacktrace = os.path.join(temp, 'stacktrace')
-        open(stacktrace, 'w+').write(e.output)
+        open(stacktrace, 'w+').write(e.output.decode('UTF-8'))
         local_map = utils.R8LIB_MAP if version == 'master' else None
         hash_or_version = None if version == 'master' else version
         print("=" * 80)
@@ -348,6 +347,8 @@ def run1(out, args, otherargs):
         print("=" * 80)
         retrace.run(
           local_map, hash_or_version, stacktrace, is_hash(version), no_r8lib=False)
+      else:
+        print(e.output.decode('UTF-8'))
       return 1
 
 def run(args, otherargs):

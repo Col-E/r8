@@ -50,6 +50,7 @@ class App(object):
       'folder': None,
       'skip_recompilation': False,
       'compiler_properties': [],
+      'internal': False,
     }
     # This below does not work in python3
     defaults.update(fields.items())
@@ -434,6 +435,16 @@ APPS = [
     # TODO(b/173176042): Fix recompilation
     'skip_recompilation': True,
   }),
+  App({
+    'id': 'youtube_15_33',
+    'name': 'youtube_15_33',
+    'dump_app': 'dump.zip',
+    'apk_app': 'YouTubeRelease_unsigned.apk',
+    'folder': 'youtube_15_33',
+    'internal': True,
+    # TODO(b/181629268): Fix recompilation
+    'skip_recompilation': True,
+  })
 ]
 
 
@@ -453,8 +464,11 @@ def remove_print_lines(file):
         f.write(line)
 
 
-def download_app(app_sha):
-  utils.DownloadFromGoogleCloudStorage(app_sha)
+def download_app(app_sha, internal):
+  if internal:
+    utils.DownloadFromX20(app_sha)
+  else:
+    utils.DownloadFromGoogleCloudStorage(app_sha)
 
 
 def is_logging_enabled_for(app, options):
@@ -503,11 +517,12 @@ def get_r8_jar(options, temp_dir, shrinker):
 
 def get_results_for_app(app, options, temp_dir):
   app_folder = app.folder if app.folder else app.name + "_" + app.revision
-  app_dir = os.path.join(utils.OPENSOURCE_DUMPS_DIR, app_folder)
+  app_dir = (os.path.join(utils.INTERNAL_DUMPS_DIR, app_folder) if app.internal
+              else os.path.join(utils.OPENSOURCE_DUMPS_DIR, app_folder))
 
   if not os.path.exists(app_dir) and not options.golem:
     # Download the app from google storage.
-    download_app(app_dir + ".tar.gz.sha1")
+    download_app(app_dir + ".tar.gz.sha1", app.internal)
 
   # Ensure that the dumps are in place
   assert os.path.isfile(dump_for_app(app_dir, app)), "Could not find dump " \
@@ -839,6 +854,9 @@ def parse_options(argv):
                     help='What app collection to run',
                     choices=[collection.name for collection in APP_COLLECTIONS],
                     action='append')
+  result.add_option('--app-logging-filter', '--app_logging_filter',
+                    help='The apps for which to turn on logging',
+                    action='append')
   result.add_option('--bot',
                     help='Running on bot, use third_party dependency.',
                     default=False,
@@ -861,15 +879,16 @@ def parse_options(argv):
                     action='store_true')
   result.add_option('--hash',
                     help='The commit of R8 to use')
+  result.add_option('--internal',
+                    help='Run internal apps if set, otherwise run opensource',
+                    default=False,
+                    action='store_true')
   result.add_option('--keystore',
                     help='Path to app.keystore',
                     default=os.path.join(utils.TOOLS_DIR, 'debug.keystore'))
   result.add_option('--keystore-password', '--keystore_password',
                     help='Password for app.keystore',
                     default='android')
-  result.add_option('--app-logging-filter', '--app_logging_filter',
-                    help='The apps for which to turn on logging',
-                    action='append')
   result.add_option('--monkey',
                     help='Whether to install and run app(s) with monkey',
                     default=False,
@@ -934,7 +953,7 @@ def parse_options(argv):
     del options.app
     del options.app_collection
   else:
-    options.apps = APPS
+    options.apps = [app for app in APPS if app.internal == options.internal]
 
   if options.app_logging_filter:
     for app_name in options.app_logging_filter:

@@ -79,6 +79,7 @@ OPENSOURCE_APPS_SHA_FILE = os.path.join(
 # TODO(b/152155164): Remove this when all apps has been migrated.
 OPENSOURCE_APPS_FOLDER = os.path.join(THIRD_PARTY, 'opensource_apps')
 OPENSOURCE_DUMPS_DIR = os.path.join(THIRD_PARTY, 'opensource-apps')
+INTERNAL_DUMPS_DIR = os.path.join(THIRD_PARTY, 'internal-apps')
 BAZEL_SHA_FILE = os.path.join(THIRD_PARTY, 'bazel.tar.gz.sha1')
 BAZEL_TOOL = os.path.join(THIRD_PARTY, 'bazel')
 JAVA8_SHA_FILE = os.path.join(THIRD_PARTY, 'openjdk', 'jdk8', 'linux-x86.tar.gz.sha1')
