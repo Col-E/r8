@@ -127,6 +127,7 @@ public class SharedClassWritingTest {
     return programClass;
   }
 
+  // TODO(b/181636450): Reconsider this test as it no longer reflects the compiler synthetics.
   @Test
   public void manyFilesWithSharedSynthesizedClass() throws ExecutionException, IOException {
     InternalOptions options = new InternalOptions(dexItemFactory, new Reporter());
@@ -154,12 +155,15 @@ public class SharedClassWritingTest {
     builder.addSynthesizedClass(sharedSynthesizedClass);
     classes.forEach(builder::addProgramClass);
     DexApplication application = builder.build();
+    AppView<AppInfo> appView = AppView.createForD8(AppInfo.createInitialAppInfo(application));
+    classes.forEach(
+        c -> appView.getSyntheticItems().addLegacySyntheticClass(sharedSynthesizedClass, c));
 
     CollectInfoConsumer consumer = new CollectInfoConsumer();
     options.programConsumer = consumer;
     ApplicationWriter writer =
         new ApplicationWriter(
-            AppView.createForD8(AppInfo.createInitialAppInfo(application)),
+            appView,
             null,
             GraphLens.getIdentityLens(),
             InitClassLens.getDefault(),

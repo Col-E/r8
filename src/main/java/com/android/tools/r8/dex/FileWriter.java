@@ -12,6 +12,7 @@ import com.android.tools.r8.errors.DefaultInterfaceMethodDiagnostic;
 import com.android.tools.r8.errors.InvokeCustomDiagnostic;
 import com.android.tools.r8.errors.PrivateInterfaceMethodDiagnostic;
 import com.android.tools.r8.errors.StaticInterfaceMethodDiagnostic;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationElement;
@@ -99,6 +100,7 @@ public class FileWriter {
 
   private final ObjectToOffsetMapping mapping;
   private final MethodToCodeObjectMapping codeMapping;
+  private final AppInfo appInfo;
   private final DexApplication application;
   private final InternalOptions options;
   private final GraphLens graphLens;
@@ -112,13 +114,14 @@ public class FileWriter {
       ByteBufferProvider provider,
       ObjectToOffsetMapping mapping,
       MethodToCodeObjectMapping codeMapping,
-      DexApplication application,
+      AppInfo appInfo,
       InternalOptions options,
       NamingLens namingLens,
       CodeToKeep desugaredLibraryCodeToKeep) {
     this.mapping = mapping;
     this.codeMapping = codeMapping;
-    this.application = application;
+    this.appInfo = appInfo;
+    this.application = appInfo.app();
     this.options = options;
     this.graphLens = mapping.getGraphLens();
     this.namingLens = namingLens;
@@ -680,7 +683,8 @@ public class FileWriter {
     dest.putUleb128(clazz.getMethodCollection().numberOfVirtualMethods());
     writeEncodedFields(clazz.staticFields());
     writeEncodedFields(clazz.instanceFields());
-    boolean isSharedSynthetic = clazz.getSynthesizedFrom().size() > 1;
+    boolean isSharedSynthetic =
+        appInfo.getSyntheticItems().getSynthesizingContexts(clazz.getType()).size() > 1;
     writeEncodedMethods(clazz.directMethods(), isSharedSynthetic);
     writeEncodedMethods(clazz.virtualMethods(), isSharedSynthetic);
   }

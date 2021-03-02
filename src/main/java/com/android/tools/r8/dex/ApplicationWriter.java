@@ -643,7 +643,10 @@ public class ApplicationWriter {
     // for all code objects and write the processed results into that map.
     Map<DexEncodedMethod, DexCode> codeMapping = new IdentityHashMap<>();
     for (DexProgramClass clazz : classes) {
-      boolean isSharedSynthetic = clazz.getSynthesizedFrom().size() > 1;
+      // TODO(b/181636450): Reconsider the code mapping setup now that synthetics are never
+      //  duplicated in outputs.
+      boolean isSharedSynthetic =
+          appView.getSyntheticItems().getSynthesizingContexts(clazz.getType()).size() > 1;
       clazz.forEachMethod(
           method -> {
             DexCode code =
@@ -672,7 +675,7 @@ public class ApplicationWriter {
             provider,
             objectMapping,
             codeMapping,
-            appView.appInfo().app(),
+            appView.appInfo(),
             options,
             namingLens,
             desugaredLibraryCodeToKeep);

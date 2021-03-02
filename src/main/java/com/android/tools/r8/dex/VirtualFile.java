@@ -36,7 +36,6 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -330,7 +329,11 @@ public class VirtualFile {
       Collection<DexProgramClass> synthetics = new ArrayList<>();
       // Assign dedicated virtual files for all program classes.
       for (DexProgramClass clazz : appView.appInfo().classes()) {
-        if (!combineSyntheticClassesWithPrimaryClass || clazz.getSynthesizedFrom().isEmpty()) {
+        Collection<DexType> contexts =
+            appView.getSyntheticItems().getSynthesizingContexts(clazz.getType());
+        // TODO(b/181636450): Simplify this making use of the assumption that synthetics are never
+        //  duplicated.
+        if (!combineSyntheticClassesWithPrimaryClass || contexts.isEmpty()) {
           VirtualFile file =
               new VirtualFile(
                   virtualFiles.size(),
@@ -350,7 +353,9 @@ public class VirtualFile {
         }
       }
       for (DexProgramClass synthetic : synthetics) {
-        for (DexProgramClass inputType : synthetic.getSynthesizedFrom()) {
+        for (DexType context :
+            appView.getSyntheticItems().getSynthesizingContexts(synthetic.getType())) {
+          DexProgramClass inputType = appView.definitionForProgramType(context);
           VirtualFile file = files.get(inputType);
           file.addClass(synthetic);
           file.commitTransaction();
@@ -471,23 +476,6 @@ public class VirtualFile {
           classes.removeAll(featureClasses);
         }
       }
-      List<DexProgramClass> toRemove = new ArrayList<>();
-      for (DexProgramClass dexProgramClass : classes) {
-        if (appView.getSyntheticItems().isLegacySyntheticClass(dexProgramClass)) {
-          Collection<DexProgramClass> synthesizedFrom = dexProgramClass.getSynthesizedFrom();
-          if (!synthesizedFrom.isEmpty()) {
-            DexProgramClass from = Iterables.getFirst(synthesizedFrom, null);
-            FeatureSplit featureSplit =
-                classToFeatureSplitMap.getFeatureSplit(from, appView.getSyntheticItems());
-            if (!featureSplit.isBase()) {
-              Set<DexProgramClass> dexProgramClasses = featureSplitClasses.get(featureSplit);
-              dexProgramClasses.add(dexProgramClass);
-              toRemove.add(dexProgramClass);
-            }
-          }
-        }
-      }
-      classes.removeAll(toRemove);
       return featureSplitClasses;
     }
 
