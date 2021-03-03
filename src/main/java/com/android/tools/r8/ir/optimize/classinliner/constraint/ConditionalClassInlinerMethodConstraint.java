@@ -4,12 +4,18 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.constraint;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.optimize.classinliner.analysis.AnalysisContext;
 import com.android.tools.r8.ir.optimize.classinliner.analysis.AnalysisState;
 import com.android.tools.r8.ir.optimize.classinliner.analysis.NonEmptyParameterUsage;
 import com.android.tools.r8.ir.optimize.classinliner.analysis.ParameterUsage;
 import com.android.tools.r8.ir.optimize.classinliner.analysis.ParameterUsagePerContext;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
@@ -51,7 +57,8 @@ public class ConditionalClassInlinerMethodConstraint implements ClassInlinerMeth
   }
 
   @Override
-  public boolean isEligibleForStaticGetClassInlining(ProgramMethod method, int parameter) {
+  public boolean isEligibleForStaticGetClassInlining(
+      AppView<AppInfoWithLiveness> appView, int parameter, ObjectState objectState) {
     AnalysisContext defaultContext = AnalysisContext.getDefaultContext();
     ParameterUsage usage = usages.get(parameter).get(defaultContext);
     if (usage.isBottom()) {
@@ -72,9 +79,13 @@ public class ConditionalClassInlinerMethodConstraint implements ClassInlinerMeth
       // We will not be able to remove the monitor instruction afterwards.
       return false;
     }
-    if (!knownUsage.getFieldsReadFromParameter().isEmpty()) {
-      // We don't know the value of the field.
-      return false;
+    for (DexField fieldReadFromParameter : knownUsage.getFieldsReadFromParameter()) {
+      DexClass holder = appView.definitionFor(fieldReadFromParameter.getHolderType());
+      DexEncodedField definition = fieldReadFromParameter.lookupOnClass(holder);
+      if (definition == null
+          || !objectState.getAbstractFieldValue(definition).isSingleConstValue()) {
+        return false;
+      }
     }
     return true;
   }

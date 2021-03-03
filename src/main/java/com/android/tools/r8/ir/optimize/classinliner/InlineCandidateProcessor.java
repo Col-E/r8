@@ -25,11 +25,12 @@ import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.code.AliasedValueConfiguration;
 import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
-import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -59,7 +60,6 @@ import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.OptionalBool;
-import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
@@ -93,6 +93,7 @@ final class InlineCandidateProcessor {
 
   private Value eligibleInstance;
   private DexProgramClass eligibleClass;
+  private ObjectState objectState;
 
   private final Map<InvokeMethodWithReceiver, InliningInfo> methodCallsOnInstance =
       new IdentityHashMap<>();
@@ -100,8 +101,6 @@ final class InlineCandidateProcessor {
   private final ProgramMethodSet indirectMethodCallsOnInstance = ProgramMethodSet.create();
   private final Map<InvokeMethod, InliningInfo> extraMethodCalls
       = new IdentityHashMap<>();
-  private final List<Pair<InvokeMethod, Integer>> unusedArguments
-      = new ArrayList<>();
 
   private final Map<InvokeMethod, ProgramMethod> directInlinees = new IdentityHashMap<>();
   private final List<ProgramMethod> indirectInlinees = new ArrayList<>();
@@ -191,6 +190,11 @@ final class InlineCandidateProcessor {
     if (eligibleClass == null) {
       return EligibilityStatus.NOT_ELIGIBLE;
     }
+    AbstractValue abstractValue = optimizationInfo.getAbstractValue();
+    objectState =
+        abstractValue.isSingleFieldValue()
+            ? abstractValue.asSingleFieldValue().getState()
+            : ObjectState.empty();
     return EligibilityStatus.ELIGIBLE;
   }
 
@@ -382,7 +386,6 @@ final class InlineCandidateProcessor {
   // Process inlining, includes the following steps:
   //
   //  * remove linked assume instructions if any so that users of the eligible field are up-to-date.
-  //  * replace unused instance usages as arguments which are never used
   //  * inline extra methods if any, collect new direct method calls
   //  * inline direct methods if any
   //  * remove superclass initializer call and field reads
@@ -398,7 +401,6 @@ final class InlineCandidateProcessor {
       throws IllegalClassInlinerStateException {
     // Verify that `eligibleInstance` is not aliased.
     assert eligibleInstance == eligibleInstance.getAliasedValue();
-    replaceUsagesAsUnusedArgument(code);
 
     boolean anyInlinedMethods = forceInlineExtraMethodInvocations(code, inliningIRProvider);
     if (anyInlinedMethods) {
@@ -412,8 +414,6 @@ final class InlineCandidateProcessor {
       }
       assert extraMethodCalls.isEmpty()
           : "Remaining extra method calls: " + StringUtils.join(extraMethodCalls.entrySet(), ", ");
-      assert unusedArguments.isEmpty()
-          : "Remaining unused arg: " + StringUtils.join(unusedArguments, ", ");
     }
 
     anyInlinedMethods |= forceInlineDirectMethodInvocations(code, inliningIRProvider);
@@ -431,24 +431,7 @@ final class InlineCandidateProcessor {
     methodCallsOnInstance.clear();
     indirectMethodCallsOnInstance.clear();
     extraMethodCalls.clear();
-    unusedArguments.clear();
     receivers.reset();
-  }
-
-  private void replaceUsagesAsUnusedArgument(IRCode code) {
-    for (Pair<InvokeMethod, Integer> unusedArgument : unusedArguments) {
-      InvokeMethod invoke = unusedArgument.getFirst();
-      BasicBlock block = invoke.getBlock();
-
-      ConstNumber nullValue = code.createConstNull();
-      nullValue.setPosition(invoke.getPosition());
-      block.listIterator(code, invoke).add(nullValue);
-      assert nullValue.getBlock() == block;
-
-      int argIndex = unusedArgument.getSecond();
-      invoke.replaceValue(argIndex, nullValue.outValue());
-    }
-    unusedArguments.clear();
   }
 
   private boolean forceInlineExtraMethodInvocations(
@@ -737,6 +720,7 @@ final class InlineCandidateProcessor {
         new TreeSet<>(Comparator.comparingInt(x -> x.outValue().getNumber()));
     for (Instruction user : eligibleInstance.uniqueUsers()) {
       if (user.isInstanceGet()) {
+        assert root.isNewInstance();
         if (user.outValue().hasAnyUsers()) {
           uniqueInstanceGetUsersWithDeterministicOrder.add(user.asInstanceGet());
         } else {
@@ -748,6 +732,7 @@ final class InlineCandidateProcessor {
       if (user.isInstancePut()) {
         // Skip in this iteration since these instructions are needed to properly calculate what
         // value should field reads be replaced with.
+        assert root.isNewInstance();
         continue;
       }
 
@@ -1111,7 +1096,7 @@ final class InlineCandidateProcessor {
 
     assert root.isStaticGet();
     return classInlinerMethodConstraint.isEligibleForStaticGetClassInlining(
-        singleTarget, parameter);
+        appView, parameter, objectState);
   }
 
   private boolean isExtraMethodCall(InvokeMethod invoke) {
@@ -1135,10 +1120,6 @@ final class InlineCandidateProcessor {
 
   // Analyzes if a method invoke the eligible instance is passed to is eligible. In short,
   // it can be eligible if:
-  //
-  //   -- eligible instance is passed as argument #N which is not used in the method,
-  //      such cases are collected in 'unusedArguments' parameter and later replaced
-  //      with 'null' value
   //
   //   -- eligible instance is passed as argument #N which is only used in the method to
   //      call a method on this object (we call it indirect method call), and method is
