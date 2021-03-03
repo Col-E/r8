@@ -22,7 +22,8 @@ public class PreventMergeIntoDifferentMainDexGroups
 
   @Override
   public MainDexGroup getMergeKey(DexProgramClass clazz) {
-    assert !mainDexInfo.isFromList(clazz);
-    return mainDexInfo.getMergeKey(clazz);
+    return mainDexInfo.canMerge(clazz)
+        ? mainDexInfo.getMergeKey(clazz)
+        : ineligibleForClassMerging();
   }
 }

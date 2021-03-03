@@ -175,6 +175,7 @@ public class MainDexInfo {
   }
 
   public MainDexGroup getMergeKey(ProgramDefinition mergeCandidate) {
+    assert canMerge(mergeCandidate);
     MainDexGroup mainDexGroupInternal = getMainDexGroupInternal(mergeCandidate);
     return mainDexGroupInternal == MainDexGroup.MAIN_DEX_LIST ? null : mainDexGroupInternal;
   }

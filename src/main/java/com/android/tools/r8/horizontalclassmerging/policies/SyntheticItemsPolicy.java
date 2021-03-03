@@ -37,7 +37,7 @@ public class SyntheticItemsPolicy extends MultiClassSameReferencePolicy<ClassKin
     // Do not allow merging synthetics that are not lambdas.
     if (!syntheticItems.isNonLegacySynthetic(clazz)
         || syntheticItems.getNonLegacySyntheticKind(clazz) != SyntheticKind.LAMBDA) {
-      return ineligibleForClassInlining();
+      return ineligibleForClassMerging();
     }
 
     // Allow merging Java lambdas with Java lambdas.
@@ -46,6 +46,6 @@ public class SyntheticItemsPolicy extends MultiClassSameReferencePolicy<ClassKin
     }
 
     // Java lambda merging is disabled.
-    return ineligibleForClassInlining();
+    return ineligibleForClassMerging();
   }
 }

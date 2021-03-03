@@ -26,7 +26,7 @@ public abstract class MultiClassSameReferencePolicy<T> extends MultiClassPolicy 
 
   public abstract T getMergeKey(DexProgramClass clazz);
 
-  protected final T ineligibleForClassInlining() {
+  protected final T ineligibleForClassMerging() {
     return null;
   }
 }

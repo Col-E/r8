@@ -140,7 +140,6 @@ public class HorizontalClassMerger {
         new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
         new PreventMethodImplementation(appView),
         new DontInlinePolicy(appView),
-        new PreventMergeIntoMainDexList(appView),
         new PreventMergeIntoDifferentMainDexGroups(appView),
         new AllInstantiatedOrUninstantiated(appView),
         new SameParentClass(),
