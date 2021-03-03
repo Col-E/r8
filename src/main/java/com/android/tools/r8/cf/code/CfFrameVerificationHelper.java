@@ -41,6 +41,7 @@ public class CfFrameVerificationHelper {
   private final DexItemFactory factory;
   private final List<CfTryCatch> tryCatchRanges;
   private final GraphLens graphLens;
+  private final int maxStackHeight;
 
   private final Deque<CfTryCatch> currentCatchRanges = new ArrayDeque<>();
   private final Set<CfLabel> tryCatchRangeLabels;
@@ -51,13 +52,15 @@ public class CfFrameVerificationHelper {
       List<CfTryCatch> tryCatchRanges,
       BiPredicate<DexType, DexType> isJavaAssignable,
       DexItemFactory factory,
-      GraphLens graphLens) {
+      GraphLens graphLens,
+      int maxStackHeight) {
     this.context = context;
     this.stateMap = stateMap;
     this.tryCatchRanges = tryCatchRanges;
     this.isJavaAssignable = isJavaAssignable;
     this.factory = factory;
     this.graphLens = graphLens;
+    this.maxStackHeight = maxStackHeight;
     throwStack = ImmutableDeque.of(FrameType.initialized(factory.throwableType));
     // Compute all labels that marks a start or end to catch ranges.
     tryCatchRangeLabels = Sets.newIdentityHashSet();
@@ -148,6 +151,15 @@ public class CfFrameVerificationHelper {
   public CfFrameVerificationHelper push(FrameType type) {
     checkFrameIsSet();
     currentFrame.getStack().addLast(type);
+    if (currentFrame.computeStackSize() > maxStackHeight) {
+      throw CfCodeStackMapValidatingException.error(
+          "The max stack height of "
+              + maxStackHeight
+              + " is violated when pushing type "
+              + type
+              + " to existing stack of size "
+              + currentFrame.getStack().size());
+    }
     return this;
   }
 

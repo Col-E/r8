@@ -67,8 +67,17 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
 
   public enum StackMapStatus {
     NOT_VERIFIED,
-    INVALID_OR_NOT_PRESENT,
-    VALID
+    NOT_PRESENT,
+    INVALID,
+    VALID;
+
+    public boolean isValid() {
+      return this == VALID || this == NOT_PRESENT;
+    }
+
+    public boolean isInvalidOrNotPresent() {
+      return this == INVALID || this == NOT_PRESENT;
+    }
   }
 
   public static class LocalVariableInfo {
@@ -305,7 +314,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
     GraphLens graphLens = appView.graphLens();
-    assert verifyFrames(method.getDefinition(), appView, null, false)
+    assert verifyFrames(method.getDefinition(), appView, null, false).isValid()
         : "Could not validate stack map frames";
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     InitClassLens initClassLens = appView.initClassLens();
@@ -433,7 +442,8 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       AppView<?> appView,
       Origin origin,
       boolean shouldApplyCodeRewritings) {
-    if (!verifyFrames(method, appView, origin, shouldApplyCodeRewritings)) {
+    stackMapStatus = verifyFrames(method, appView, origin, shouldApplyCodeRewritings);
+    if (!stackMapStatus.isValid()) {
       ArrayList<CfInstruction> copy = new ArrayList<>(instructions);
       copy.removeIf(CfInstruction::isFrame);
       setInstructions(copy);
@@ -706,16 +716,14 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
             thisLocalInfo.index, debugLocalInfo, thisLocalInfo.start, thisLocalInfo.end));
   }
 
-  public boolean verifyFrames(
+  public StackMapStatus verifyFrames(
       DexEncodedMethod method, AppView<?> appView, Origin origin, boolean applyProtoTypeChanges) {
     if (!appView.options().canUseInputStackMaps()
         || appView.options().testing.disableStackMapVerification) {
-      stackMapStatus = StackMapStatus.INVALID_OR_NOT_PRESENT;
-      return true;
+      return StackMapStatus.NOT_PRESENT;
     }
     if (method.hasClassFileVersion() && method.getClassFileVersion().isLessThan(CfVersion.V1_7)) {
-      stackMapStatus = StackMapStatus.INVALID_OR_NOT_PRESENT;
-      return true;
+      return StackMapStatus.NOT_PRESENT;
     }
     if (!method.isInstanceInitializer()
         && appView
@@ -723,8 +731,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
             .getOriginalMethodSignature(method.method)
             .isInstanceInitializer(appView.dexItemFactory())) {
       // We cannot verify instance initializers if they are moved.
-      stackMapStatus = StackMapStatus.INVALID_OR_NOT_PRESENT;
-      return true;
+      return StackMapStatus.NOT_PRESENT;
     }
     // Build a map from labels to frames.
     Map<CfLabel, CfFrame> stateMap = new IdentityHashMap<>();
@@ -791,7 +798,8 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
             tryCatchRanges,
             isAssignablePredicate(appView),
             appView.dexItemFactory(),
-            appView.graphLens());
+            appView.graphLens(),
+            maxStack);
     if (stateMap.containsKey(null)) {
       assert !shouldComputeInitialFrame();
       builder.checkFrameAndSet(stateMap.get(null));
@@ -824,18 +832,16 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
             appView);
       }
     }
-    stackMapStatus = StackMapStatus.VALID;
-    return true;
+    return StackMapStatus.VALID;
   }
 
-  private boolean reportStackMapError(CfCodeDiagnostics diagnostics, AppView<?> appView) {
+  private StackMapStatus reportStackMapError(CfCodeDiagnostics diagnostics, AppView<?> appView) {
     // Stack maps was required from version V1_6 (50), but the JVM gave a grace-period and only
     // started enforcing stack maps from 51 in JVM 8. As a consequence, we have different android
     // libraries that has V1_7 code but has no stack maps. To not fail on compilations we only
     // report a warning.
-    stackMapStatus = StackMapStatus.INVALID_OR_NOT_PRESENT;
     appView.options().reporter.warning(diagnostics);
-    return false;
+    return StackMapStatus.INVALID;
   }
 
   private boolean finalAndExitInstruction(CfInstruction instruction) {

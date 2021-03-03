@@ -517,6 +517,16 @@ public class ClassFileTransformer {
     static MethodPredicate onName(String name) {
       return (access, otherName, descriptor, signature, exceptions) -> name.equals(otherName);
     }
+
+    static boolean testContext(MethodPredicate predicate, MethodContext context) {
+      MethodReference reference = context.getReference();
+      return predicate.test(
+          context.accessFlags,
+          reference.getMethodName(),
+          reference.getMethodDescriptor(),
+          null,
+          null);
+    }
   }
 
   @FunctionalInterface
@@ -967,6 +977,18 @@ public class ClassFileTransformer {
             if (!getContext().method.getMethodName().equals(methodName)) {
               super.visitFrame(type, numLocal, local, numStack, stack);
             }
+          }
+        });
+  }
+
+  public ClassFileTransformer setMaxStackHeight(MethodPredicate predicate, int newMaxStack) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public void visitMaxs(int maxStack, int maxLocals) {
+            super.visitMaxs(
+                MethodPredicate.testContext(predicate, getContext()) ? newMaxStack : maxStack,
+                maxLocals);
           }
         });
   }

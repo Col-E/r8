@@ -671,7 +671,7 @@ public class CfSourceCode implements SourceCode {
   public DexType getPhiTypeForBlock(
       int register, int blockOffset, ValueTypeConstraint constraint, RegisterReadType readType) {
     assert code.getStackMapStatus() != StackMapStatus.NOT_VERIFIED;
-    if (code.getStackMapStatus() == StackMapStatus.INVALID_OR_NOT_PRESENT) {
+    if (code.getStackMapStatus().isInvalidOrNotPresent()) {
       return null;
     }
     // We should be able to find the a snapshot at the block-offset:

@@ -371,6 +371,14 @@ public class CfFrame extends CfInstruction {
     return stack.size();
   }
 
+  public int computeStackSize() {
+    int size = 0;
+    for (FrameType frameType : stack) {
+      size += frameType.isWide() ? 2 : 1;
+    }
+    return size;
+  }
+
   private Object[] computeStackTypes(int stackCount, GraphLens graphLens, NamingLens namingLens) {
     assert stackCount == stack.size();
     if (stackCount == 0) {
