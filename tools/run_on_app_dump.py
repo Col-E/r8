@@ -1011,7 +1011,7 @@ def print_golem_config(options):
   print('final Suite dumpsSuite = new Suite("OpenSourceAppDumps");')
   print('')
   print('createOpenSourceAppBenchmarks() {')
-  print_indented('var cpus = ["Lenovo M90"];', 2)
+  print_indented('final cpus = ["Lenovo M90"];', 2)
   for app in options.apps:
     if app.folder and not app.internal:
       indentation = 2;
@@ -1028,7 +1028,7 @@ def print_golem_config(options):
       print_indented('options.cpus = cpus;', indentation)
       print_indented('options.isScript = true;', indentation)
       print_indented('options.fromRevision = 9700;', indentation);
-      print_indented('options.mainFile = "tools/run_on_app_dump.py"', indentation)
+      print_indented('options.mainFile = "tools/run_on_app_dump.py "', indentation)
       print_indented('"--golem --shrinker r8 --app %s";' % app.name, indentation + 4)
       app_gz = os.path.join(utils.OPENSOURCE_DUMPS_DIR, app.folder + '.tar.gz')
       app_sha = app_gz + '.sha1'
