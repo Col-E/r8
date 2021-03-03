@@ -10,6 +10,11 @@ public final class LongMethods {
     return (int) (l ^ (l >>> 32));
   }
 
+  public static long parseLongSubsequenceWithRadix(
+      CharSequence s, int beginIndex, int endIndex, int radix) {
+    return Long.parseLong(s.subSequence(beginIndex, endIndex).toString(), radix);
+  }
+
   public static long divideUnsigned(long dividend, long divisor) {
     // This implementation is adapted from Guava's UnsignedLongs.java and Longs.java.
 
@@ -92,10 +97,20 @@ public final class LongMethods {
     return Long.parseUnsignedLong(s, 10);
   }
 
+  private static long javaLangLongParseUnsignedLongStub(
+      CharSequence s, int beginIndex, int endIndex, int radix) {
+    throw new RuntimeException("Stub invoked");
+  }
+
   public static long parseUnsignedLongWithRadix(String s, int radix) {
+    return javaLangLongParseUnsignedLongStub(s, 0, s.length(), radix);
+  }
+
+  public static long parseUnsignedLongSubsequenceWithRadix(
+      CharSequence s, int beginIndex, int endIndex, int radix) {
     // This implementation is adapted from Guava's UnsignedLongs.java
 
-    int length = s.length();
+    int length = endIndex - beginIndex;
     if (length == 0) {
       throw new NumberFormatException("empty string");
     }
@@ -106,23 +121,23 @@ public final class LongMethods {
     long maxValueBeforeRadixMultiply = Long.divideUnsigned(-1L, radix);
 
     // If the string starts with '+' and contains at least two characters, skip the plus.
-    int start = s.charAt(0) == '+' && length > 1 ? 1 : 0;
+    int start = s.charAt(beginIndex) == '+' && length > 1 ? beginIndex + 1 : beginIndex;
 
     long value = 0;
-    for (int pos = start; pos < length; pos++) {
+    for (int pos = start; pos < endIndex; pos++) {
       int digit = Character.digit(s.charAt(pos), radix);
       if (digit == -1) {
-        throw new NumberFormatException(s);
+        throw new NumberFormatException(s.toString());
       }
-      if (// high bit is already set
-          value < 0
+      if ( // high bit is already set
+      value < 0
           // or radix multiply will overflow
           || value > maxValueBeforeRadixMultiply
           // or digit add will overflow after radix multiply
           || (value == maxValueBeforeRadixMultiply
               && digit > (int) Long.remainderUnsigned(-1L, radix))) {
         // Explicit String.concat to work around https://issuetracker.google.com/issues/136596951.
-        throw new NumberFormatException("Too large for unsigned long: ".concat(s));
+        throw new NumberFormatException("Too large for unsigned long: ".concat(s.toString()));
       }
       value = (value * radix) + digit;
     }

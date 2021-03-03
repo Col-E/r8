@@ -8,6 +8,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.cf.CfCodePrinter;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -18,6 +19,7 @@ import com.android.tools.r8.graph.JarClassFileReader;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
@@ -66,6 +68,10 @@ public abstract class MethodGenerationBase extends TestBase {
     return Paths.get(ToolHelper.SOURCE_DIR, getGeneratedType().getInternalName() + ".java");
   }
 
+  protected CfCode getCode(String holderName, String methodName, CfCode code) {
+    return code;
+  }
+
   private String getGeneratedClassName() {
     return getGeneratedType().getName();
   }
@@ -94,7 +100,7 @@ public abstract class MethodGenerationBase extends TestBase {
   }
 
   private void readMethodTemplatesInto(CfCodePrinter codePrinter) throws IOException {
-    InternalOptions options = new InternalOptions();
+    InternalOptions options = new InternalOptions(factory, new Reporter());
     options.testing.readInputStackMaps = true;
     JarClassFileReader<DexProgramClass> reader =
         new JarClassFileReader<>(
@@ -104,9 +110,13 @@ public abstract class MethodGenerationBase extends TestBase {
                 if (method.isInitializer()) {
                   continue;
                 }
-                String methodName =
-                    method.getHolderType().getName() + "_" + method.method.name.toString();
-                codePrinter.visitMethod(methodName, method.getCode().asCfCode());
+                String holderName = method.getHolderType().getName();
+                String methodName = method.method.name.toString();
+                String generatedMethodName = holderName + "_" + methodName;
+                CfCode code = getCode(holderName, methodName, method.getCode().asCfCode());
+                if (code != null) {
+                  codePrinter.visitMethod(generatedMethodName, code);
+                }
               }
             },
             ClassKind.PROGRAM);

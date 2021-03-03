@@ -9,7 +9,11 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cfmethodgeneration.MethodGenerationBase;
+import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
@@ -17,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -71,6 +76,44 @@ public class GenerateBackportMethods extends MethodGenerationBase {
   @Override
   protected int getYear() {
     return 2020;
+  }
+
+  private static CfInstruction rewriteToJava9API(
+      DexItemFactory itemFactory, CfInstruction instruction) {
+    // Rewrite static invoke of javaUtilLongParseUnsignedLongStub to j.l.Long.parseUnsignedLong.
+    if (instruction.isInvoke()
+        && instruction
+            .asInvoke()
+            .getMethod()
+            .getName()
+            .toString()
+            .equals("javaLangLongParseUnsignedLongStub")) {
+      CfInvoke invoke = instruction.asInvoke();
+      return new CfInvoke(
+          invoke.getOpcode(),
+          itemFactory.createMethod(
+              itemFactory.createType("Ljava/lang/Long;"),
+              invoke.getMethod().getProto(),
+              itemFactory.createString("parseUnsignedLong")),
+          invoke.isInterface());
+    } else {
+      return instruction;
+    }
+  }
+
+  @Override
+  protected CfCode getCode(String holderName, String methodName, CfCode code) {
+    if (methodName.endsWith("Stub")) {
+      // Don't include stubs targeted only for rewriting in the generated code.
+      return null;
+    }
+    if (holderName.equals("LongMethods") && methodName.equals("parseUnsignedLongWithRadix")) {
+      code.setInstructions(
+          code.getInstructions().stream()
+              .map(instruction -> rewriteToJava9API(factory, instruction))
+              .collect(Collectors.toList()));
+    }
+    return code;
   }
 
   @Test

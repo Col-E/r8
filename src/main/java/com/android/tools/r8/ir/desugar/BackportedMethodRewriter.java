@@ -194,6 +194,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       }
 
       // These are currently not implemented at any API level in Android.
+      initializeJava9MethodProviders(factory);
       initializeJava10MethodProviders(factory);
       initializeJava11MethodProviders(factory);
     }
@@ -1041,6 +1042,60 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_floorModLongInt, "floorModLongInt"));
       }
+    }
+
+    private void initializeJava9MethodProviders(DexItemFactory factory) {
+      // Integer
+      DexType type = factory.boxedIntType;
+      // long Long.parseLong(CharSequence s, int beginIndex, int endIndex, int radix)
+      DexString name = factory.createString("parseInt");
+      DexProto proto =
+          factory.createProto(
+              factory.intType,
+              factory.charSequenceType,
+              factory.intType,
+              factory.intType,
+              factory.intType);
+      DexMethod method = factory.createMethod(type, proto, name);
+      addProvider(
+          new MethodGenerator(
+              method,
+              BackportedMethods::IntegerMethods_parseIntSubsequenceWithRadix,
+              "parseIntSubsequenceWithRadix"));
+
+      // Long
+      type = factory.boxedLongType;
+      // long Long.parseLong(CharSequence s, int beginIndex, int endIndex, int radix)
+      name = factory.createString("parseLong");
+      proto =
+          factory.createProto(
+              factory.longType,
+              factory.charSequenceType,
+              factory.intType,
+              factory.intType,
+              factory.intType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new MethodGenerator(
+              method,
+              BackportedMethods::LongMethods_parseLongSubsequenceWithRadix,
+              "parseLongSubsequenceWithRadix"));
+
+      // long Long.parseUnsignedLong(CharSequence s, int beginIndex, int endIndex, int radix)
+      name = factory.createString("parseUnsignedLong");
+      proto =
+          factory.createProto(
+              factory.longType,
+              factory.charSequenceType,
+              factory.intType,
+              factory.intType,
+              factory.intType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new MethodGenerator(
+              method,
+              BackportedMethods::LongMethods_parseUnsignedLongSubsequenceWithRadix,
+              "parseUnsignedLongSubsequenceWithRadix"));
     }
 
     private void initializeJava10MethodProviders(DexItemFactory factory) {

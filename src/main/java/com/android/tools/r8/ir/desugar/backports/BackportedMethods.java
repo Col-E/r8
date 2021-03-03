@@ -2115,6 +2115,53 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode IntegerMethods_parseIntSubsequenceWithRadix(
+      InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 2),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.charSequenceType,
+                        options.itemFactory.intType,
+                        options.itemFactory.intType),
+                    options.itemFactory.createString("subSequence")),
+                true),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(options.itemFactory.stringType),
+                    options.itemFactory.createString("toString")),
+                true),
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Integer;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.intType,
+                        options.itemFactory.stringType,
+                        options.itemFactory.intType),
+                    options.itemFactory.createString("parseInt")),
+                false),
+            new CfReturn(ValueType.INT),
+            label1),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode IntegerMethods_parseUnsignedInt(InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
@@ -2643,6 +2690,53 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode LongMethods_parseLongSubsequenceWithRadix(
+      InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 2),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.charSequenceType,
+                        options.itemFactory.intType,
+                        options.itemFactory.intType),
+                    options.itemFactory.createString("subSequence")),
+                true),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(options.itemFactory.stringType),
+                    options.itemFactory.createString("toString")),
+                true),
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Long;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.longType,
+                        options.itemFactory.stringType,
+                        options.itemFactory.intType),
+                    options.itemFactory.createString("parseLong")),
+                false),
+            new CfReturn(ValueType.LONG),
+            label1),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode LongMethods_parseUnsignedLong(InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
@@ -2670,7 +2764,7 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode LongMethods_parseUnsignedLongWithRadix(
+  public static CfCode LongMethods_parseUnsignedLongSubsequenceWithRadix(
       InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
@@ -2697,20 +2791,15 @@ public final class BackportedMethods {
     return new CfCode(
         method.holder,
         5,
-        10,
+        12,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
-                    options.itemFactory.createProto(options.itemFactory.intType),
-                    options.itemFactory.createString("length")),
-                false),
-            new CfStore(ValueType.INT, 2),
-            label1,
             new CfLoad(ValueType.INT, 2),
+            new CfLoad(ValueType.INT, 1),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
+            new CfStore(ValueType.INT, 4),
+            label1,
+            new CfLoad(ValueType.INT, 4),
             new CfIf(If.Type.NE, ValueType.INT, label3),
             label2,
             new CfNew(options.itemFactory.createType("Ljava/lang/NumberFormatException;")),
@@ -2728,25 +2817,29 @@ public final class BackportedMethods {
             label3,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2},
+                    new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
                 new ArrayDeque<>(Arrays.asList())),
-            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 3),
             new CfConstNumber(2, ValueType.INT),
             new CfIfCmp(If.Type.LT, ValueType.INT, label4),
-            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 3),
             new CfConstNumber(36, ValueType.INT),
             new CfIfCmp(If.Type.LE, ValueType.INT, label5),
             label4,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2},
+                    new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
@@ -2754,7 +2847,7 @@ public final class BackportedMethods {
             new CfNew(options.itemFactory.createType("Ljava/lang/NumberFormatException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstString(options.itemFactory.createString("illegal radix: ")),
-            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
                 options.itemFactory.createMethod(
@@ -2783,15 +2876,17 @@ public final class BackportedMethods {
             label5,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2},
+                    new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
                 new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(-1, ValueType.LONG),
-            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 3),
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
             new CfInvoke(
                 184,
@@ -2803,62 +2898,70 @@ public final class BackportedMethods {
                         options.itemFactory.longType),
                     options.itemFactory.createString("divideUnsigned")),
                 false),
-            new CfStore(ValueType.LONG, 3),
+            new CfStore(ValueType.LONG, 5),
             label6,
             new CfLoad(ValueType.OBJECT, 0),
-            new CfConstNumber(0, ValueType.INT),
+            new CfLoad(ValueType.INT, 1),
             new CfInvoke(
-                182,
+                185,
                 options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
+                    options.itemFactory.charSequenceType,
                     options.itemFactory.createProto(
                         options.itemFactory.charType, options.itemFactory.intType),
                     options.itemFactory.createString("charAt")),
-                false),
+                true),
             new CfConstNumber(43, ValueType.INT),
             new CfIfCmp(If.Type.NE, ValueType.INT, label7),
-            new CfLoad(ValueType.INT, 2),
+            new CfLoad(ValueType.INT, 4),
             new CfConstNumber(1, ValueType.INT),
             new CfIfCmp(If.Type.LE, ValueType.INT, label7),
+            new CfLoad(ValueType.INT, 1),
             new CfConstNumber(1, ValueType.INT),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
             new CfGoto(label8),
             label7,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2, 3},
+                    new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
                 new ArrayDeque<>(Arrays.asList())),
-            new CfConstNumber(0, ValueType.INT),
+            new CfLoad(ValueType.INT, 1),
             label8,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2, 3},
+                    new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
                 new ArrayDeque<>(
                     Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
-            new CfStore(ValueType.INT, 5),
+            new CfStore(ValueType.INT, 7),
             label9,
             new CfConstNumber(0, ValueType.LONG),
-            new CfStore(ValueType.LONG, 6),
+            new CfStore(ValueType.LONG, 8),
             label10,
-            new CfLoad(ValueType.INT, 5),
-            new CfStore(ValueType.INT, 8),
+            new CfLoad(ValueType.INT, 7),
+            new CfStore(ValueType.INT, 10),
             label11,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2, 3, 5, 6, 8},
+                    new int[] {0, 1, 2, 3, 4, 5, 7, 8, 10},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.longType),
@@ -2867,21 +2970,21 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType)
                     }),
                 new ArrayDeque<>(Arrays.asList())),
-            new CfLoad(ValueType.INT, 8),
+            new CfLoad(ValueType.INT, 10),
             new CfLoad(ValueType.INT, 2),
             new CfIfCmp(If.Type.GE, ValueType.INT, label20),
             label12,
             new CfLoad(ValueType.OBJECT, 0),
-            new CfLoad(ValueType.INT, 8),
+            new CfLoad(ValueType.INT, 10),
             new CfInvoke(
-                182,
+                185,
                 options.itemFactory.createMethod(
-                    options.itemFactory.stringType,
+                    options.itemFactory.charSequenceType,
                     options.itemFactory.createProto(
                         options.itemFactory.charType, options.itemFactory.intType),
                     options.itemFactory.createString("charAt")),
-                false),
-            new CfLoad(ValueType.INT, 1),
+                true),
+            new CfLoad(ValueType.INT, 3),
             new CfInvoke(
                 184,
                 options.itemFactory.createMethod(
@@ -2892,15 +2995,22 @@ public final class BackportedMethods {
                         options.itemFactory.intType),
                     options.itemFactory.createString("digit")),
                 false),
-            new CfStore(ValueType.INT, 9),
+            new CfStore(ValueType.INT, 11),
             label13,
-            new CfLoad(ValueType.INT, 9),
+            new CfLoad(ValueType.INT, 11),
             new CfConstNumber(-1, ValueType.INT),
             new CfIfCmp(If.Type.NE, ValueType.INT, label15),
             label14,
             new CfNew(options.itemFactory.createType("Ljava/lang/NumberFormatException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(options.itemFactory.stringType),
+                    options.itemFactory.createString("toString")),
+                true),
             new CfInvoke(
                 183,
                 options.itemFactory.createMethod(
@@ -2913,9 +3023,11 @@ public final class BackportedMethods {
             label15,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2, 3, 5, 6, 8, 9},
+                    new int[] {0, 1, 2, 3, 4, 5, 7, 8, 10, 11},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.longType),
@@ -2925,21 +3037,21 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType)
                     }),
                 new ArrayDeque<>(Arrays.asList())),
-            new CfLoad(ValueType.LONG, 6),
+            new CfLoad(ValueType.LONG, 8),
             new CfConstNumber(0, ValueType.LONG),
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
             new CfIf(If.Type.LT, ValueType.INT, label17),
-            new CfLoad(ValueType.LONG, 6),
-            new CfLoad(ValueType.LONG, 3),
+            new CfLoad(ValueType.LONG, 8),
+            new CfLoad(ValueType.LONG, 5),
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
             new CfIf(If.Type.GT, ValueType.INT, label17),
-            new CfLoad(ValueType.LONG, 6),
-            new CfLoad(ValueType.LONG, 3),
+            new CfLoad(ValueType.LONG, 8),
+            new CfLoad(ValueType.LONG, 5),
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
             new CfIf(If.Type.NE, ValueType.INT, label18),
-            new CfLoad(ValueType.INT, 9),
+            new CfLoad(ValueType.INT, 11),
             new CfConstNumber(-1, ValueType.LONG),
-            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 3),
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
             label16,
             new CfInvoke(
@@ -2957,9 +3069,11 @@ public final class BackportedMethods {
             label17,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2, 3, 5, 6, 8, 9},
+                    new int[] {0, 1, 2, 3, 4, 5, 7, 8, 10, 11},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.longType),
@@ -2973,6 +3087,13 @@ public final class BackportedMethods {
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstString(options.itemFactory.createString("Too large for unsigned long: ")),
             new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(options.itemFactory.stringType),
+                    options.itemFactory.createString("toString")),
+                true),
             new CfInvoke(
                 182,
                 options.itemFactory.createMethod(
@@ -2993,9 +3114,11 @@ public final class BackportedMethods {
             label18,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2, 3, 5, 6, 8, 9},
+                    new int[] {0, 1, 2, 3, 4, 5, 7, 8, 10, 11},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.longType),
@@ -3005,23 +3128,25 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType)
                     }),
                 new ArrayDeque<>(Arrays.asList())),
-            new CfLoad(ValueType.LONG, 6),
-            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.LONG, 8),
+            new CfLoad(ValueType.INT, 3),
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
-            new CfLoad(ValueType.INT, 9),
+            new CfLoad(ValueType.INT, 11),
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
-            new CfStore(ValueType.LONG, 6),
+            new CfStore(ValueType.LONG, 8),
             label19,
-            new CfIinc(8, 1),
+            new CfIinc(10, 1),
             new CfGoto(label11),
             label20,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2, 3, 5, 6},
+                    new int[] {0, 1, 2, 3, 4, 5, 7, 8},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.longType),
@@ -3029,9 +3154,48 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType)
                     }),
                 new ArrayDeque<>(Arrays.asList())),
-            new CfLoad(ValueType.LONG, 6),
+            new CfLoad(ValueType.LONG, 8),
             new CfReturn(ValueType.LONG),
             label21),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode LongMethods_parseUnsignedLongWithRadix(
+      InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        4,
+        2,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfConstNumber(0, ValueType.INT),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.stringType,
+                    options.itemFactory.createProto(options.itemFactory.intType),
+                    options.itemFactory.createString("length")),
+                false),
+            new CfLoad(ValueType.INT, 1),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Long;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.longType,
+                        options.itemFactory.charSequenceType,
+                        options.itemFactory.intType,
+                        options.itemFactory.intType,
+                        options.itemFactory.intType),
+                    options.itemFactory.createString("parseUnsignedLong")),
+                false),
+            new CfReturn(ValueType.LONG),
+            label1),
         ImmutableList.of(),
         ImmutableList.of());
   }

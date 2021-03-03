@@ -57,4 +57,9 @@ public final class IntegerMethods {
     long asLong = i & 0xffffffffL;
     return Long.toString(asLong, radix);
   }
+
+  public static int parseIntSubsequenceWithRadix(
+      CharSequence s, int beginIndex, int endIndex, int radix) throws NumberFormatException {
+    return Integer.parseInt(s.subSequence(beginIndex, endIndex).toString(), radix);
+  }
 }
