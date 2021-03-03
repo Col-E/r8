@@ -238,15 +238,19 @@ def DownloadFromX20(sha1_file):
   PrintCmd(cmd)
   subprocess.check_call(cmd)
 
-def DownloadFromGoogleCloudStorage(sha1_file, bucket='r8-deps', auth=False):
+def DownloadFromGoogleCloudStorage(sha1_file, bucket='r8-deps', auth=False,
+                                   quiet=False):
   suffix = '.bat' if IsWindows() else ''
   download_script = 'download_from_google_storage%s' % suffix
   cmd = [download_script]
   if not auth:
     cmd.append('-n')
   cmd.extend(['-b', bucket, '-u', '-s',  sha1_file])
-  PrintCmd(cmd)
-  subprocess.check_call(cmd)
+  if not quiet:
+    PrintCmd(cmd)
+    subprocess.check_call(cmd)
+  else:
+    subprocess.check_output(cmd)
 
 def get_sha1(filename):
   sha1 = hashlib.sha1()
