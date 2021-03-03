@@ -12,6 +12,7 @@ import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IterableUtils;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -135,6 +136,7 @@ public class AppInfo implements DexDefinitionSupplier {
 
   public void addSynthesizedClass(DexProgramClass clazz, Iterable<DexProgramClass> contexts) {
     assert checkIfObsolete();
+    assert !IterableUtils.isEmpty(contexts);
     contexts.forEach(context -> addSynthesizedClass(clazz, context));
   }
 

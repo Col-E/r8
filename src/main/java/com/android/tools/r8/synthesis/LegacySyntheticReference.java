@@ -27,6 +27,11 @@ public class LegacySyntheticReference implements Rewritable<LegacySyntheticRefer
 
   @Override
   public LegacySyntheticReference rewrite(NonIdentityGraphLens lens) {
-    return null;
+    DexType rewrittenType = lens.lookupType(type);
+    Set<DexType> rewrittenContexts = lens.rewriteTypes(getContexts());
+    if (type == rewrittenType && contexts.equals(rewrittenContexts)) {
+      return this;
+    }
+    return new LegacySyntheticReference(rewrittenType, rewrittenContexts);
   }
 }

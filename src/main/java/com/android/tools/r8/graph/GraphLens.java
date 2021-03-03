@@ -594,7 +594,6 @@ public abstract class GraphLens {
 
   public boolean verifyMappingToOriginalProgram(
       AppView<?> appView, DexApplication originalApplication) {
-    DexItemFactory dexItemFactory = appView.dexItemFactory();
     Iterable<DexProgramClass> classes = appView.appInfo().classesWithDeterministicOrder();
     // Collect all original fields and methods for efficient querying.
     Set<DexField> originalFields = Sets.newIdentityHashSet();
