@@ -141,7 +141,7 @@ public class MainDexListOutputTest extends TestBase {
     testForD8()
         .setMinApi(AndroidApiLevel.K)
         .addProgramFiles(dexOutput)
-        .addMainDexKeepClassRules(TestClass.class)
+        .addMainDexKeepClassAndMemberRules(TestClass.class)
         .setMainDexListConsumer(consumer)
         .compile();
     assertTrue(consumer.called);

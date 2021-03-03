@@ -99,4 +99,11 @@ public class D8TestBuilder
     }
     return self();
   }
+
+  public D8TestBuilder addMainDexKeepClassAndMemberRules(Class<?>... classes) {
+    for (Class<?> clazz : classes) {
+      addMainDexRules("-keep class " + clazz.getTypeName() + " { *; }");
+    }
+    return self();
+  }
 }

@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -114,21 +115,19 @@ public abstract class RunExamplesAndroidOTest<
       return self();
     }
 
-    C withMainDexClass(String... classes) {
-      return withBuilderTransformation(builder -> builder.addMainDexClasses(classes));
-    }
-
     C withMainDexKeepClassRules(List<String> classes) {
       return withBuilderTransformation(
           builder -> {
             if (builder instanceof D8Command.Builder) {
               ((D8Command.Builder) builder)
                   .addMainDexRules(
-                      ListUtils.map(classes, c -> "-keep class " + c), Origin.unknown());
+                      ListUtils.map(classes, c -> "-keep class " + c + " { *; }"),
+                      Origin.unknown());
             } else if (builder instanceof R8Command.Builder) {
               ((R8Command.Builder) builder)
                   .addMainDexRules(
-                      ListUtils.map(classes, c -> "-keep class " + c), Origin.unknown());
+                      ListUtils.map(classes, c -> "-keep class " + c + " { *; }"),
+                      Origin.unknown());
             } else {
               fail("Unexpected builder type: " + builder.getClass());
             }
@@ -492,36 +491,28 @@ public abstract class RunExamplesAndroidOTest<
   public void testLambdaDesugaringWithMainDexList2() throws Throwable {
     // Main dex class has many lambdas.
     testIntermediateWithMainDexList(
-        "lambdadesugaring", 51, ImmutableList.of("lambdadesugaring.LambdaDesugaring$Refs$B"));
+        "lambdadesugaring", 98, ImmutableList.of("lambdadesugaring.LambdaDesugaring$Refs$B"));
   }
 
   @Test
   public void testInterfaceDesugaringWithMainDexList1() throws Throwable {
     // Main dex interface has one static method.
-    // TODO(b/178127572): See if we can update R8 to not extend the main dex content.
-    boolean isR8 = this instanceof R8RunExamplesAndroidOTest;
     testIntermediateWithMainDexList(
         "interfacemethods",
         Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION),
-        isR8 ? 2 : 1,
-        isR8
-            ? ImmutableList.of("interfacemethods.I2", "interfacemethods.I2$-CC")
-            : ImmutableList.of("interfacemethods.I2"));
+        2,
+        ImmutableList.of("interfacemethods.I2", "interfacemethods.I2$-CC"));
   }
 
 
   @Test
   public void testInterfaceDesugaringWithMainDexList2() throws Throwable {
     // Main dex interface has one default method.
-    // TODO(b/178127572): See if we can update R8 to not extend the main dex content.
-    boolean isR8 = this instanceof R8RunExamplesAndroidOTest;
     testIntermediateWithMainDexList(
         "interfacemethods",
         Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR, "interfacemethods" + JAR_EXTENSION),
-        isR8 ? 2 : 1,
-        isR8
-            ? ImmutableList.of("interfacemethods.I2", "interfacemethods.I2$-CC")
-            : ImmutableList.of("interfacemethods.I2"));
+        2,
+        ImmutableList.of("interfacemethods.I2", "interfacemethods.I2$-CC"));
   }
 
   @Test
@@ -547,6 +538,9 @@ public abstract class RunExamplesAndroidOTest<
   protected void testIntermediateWithMainDexList(
       String packageName, Path input, int expectedMainDexListSize, List<String> mainDexClasses)
       throws Throwable {
+    // R8 does not support merging intermediate builds via DEX.
+    assumeFalse(this instanceof R8RunExamplesAndroidOTest);
+
     AndroidApiLevel minApi = AndroidApiLevel.K;
 
     // Full build, will be used as reference.
