@@ -30,11 +30,7 @@ public class MergedVirtualMethodStaticizerTest extends HorizontalClassMergingTes
             enableHorizontalClassMerging,
             inspector -> inspector.assertMergedInto(Program.B.class, Program.A.class))
         .run(parameters.getRuntime(), Program.Main.class)
-        .applyIf(
-            parameters.isDexRuntime() && enableHorizontalClassMerging,
-            // TODO(b/181493713): Should not fail.
-            result -> result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class),
-            result -> result.assertSuccessWithOutputLines("A::foo", "Staticized::foo", "B::foo"));
+        .assertSuccessWithOutputLines("A::foo", "Staticized::foo", "B::foo");
   }
 
   public static class Program {

@@ -361,10 +361,11 @@ public class IRConverter {
         D8NestBasedAccessDesugaring::reportDesugarDependencies);
   }
 
-  private void staticizeClasses(OptimizationFeedback feedback, ExecutorService executorService)
+  private void staticizeClasses(
+      OptimizationFeedback feedback, ExecutorService executorService, GraphLens applied)
       throws ExecutionException {
     if (classStaticizer != null) {
-      classStaticizer.staticizeCandidates(feedback, executorService);
+      classStaticizer.staticizeCandidates(feedback, executorService, applied);
     }
   }
 
@@ -723,7 +724,7 @@ public class IRConverter {
     if (!options.isGeneratingClassFiles()) {
       printPhase("Class staticizer post processing");
       // TODO(b/127694949): Adapt to PostOptimization.
-      staticizeClasses(feedback, executorService);
+      staticizeClasses(feedback, executorService, initialGraphLensForIR);
       feedback.updateVisibleOptimizationInfo();
       // The class staticizer lens shall not be applied through lens code rewriting or it breaks
       // the lambda merger.

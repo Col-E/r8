@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
@@ -686,8 +687,9 @@ public final class ClassStaticizer {
   //  3. Rewrite methods referencing staticized members, also remove instance creation
   //
   public final void staticizeCandidates(
-      OptimizationFeedback feedback, ExecutorService executorService) throws ExecutionException {
-    new StaticizingProcessor(appView, this, converter).run(feedback, executorService);
+      OptimizationFeedback feedback, ExecutorService executorService, GraphLens applied)
+      throws ExecutionException {
+    new StaticizingProcessor(appView, this, converter, applied).run(feedback, executorService);
   }
 
   private class CallSiteReferencesInvalidator extends UseRegistry {
