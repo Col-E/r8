@@ -12,6 +12,8 @@ public abstract class ParameterUsagePerContext {
     return null;
   }
 
+  abstract ParameterUsagePerContext externalize();
+
   /** Returns the usage information for this parameter in the given context. */
   public abstract ParameterUsage get(AnalysisContext context);
 

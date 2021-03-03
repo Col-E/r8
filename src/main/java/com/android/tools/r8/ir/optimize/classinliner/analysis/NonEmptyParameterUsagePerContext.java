@@ -54,6 +54,11 @@ class NonEmptyParameterUsagePerContext extends ParameterUsagePerContext {
   }
 
   @Override
+  ParameterUsagePerContext externalize() {
+    return rebuild((context, usage) -> usage.externalize());
+  }
+
+  @Override
   public ParameterUsage get(AnalysisContext context) {
     assert backing.containsKey(context);
     return backing.get(context);

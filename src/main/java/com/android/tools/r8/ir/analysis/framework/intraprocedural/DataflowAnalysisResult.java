@@ -42,6 +42,14 @@ public abstract class DataflowAnalysisResult {
       this.blockExitStates = blockExitStates;
     }
 
+    public StateType join() {
+      StateType result = null;
+      for (StateType blockExitState : blockExitStates.values()) {
+        result = result != null ? result.join(blockExitState) : blockExitState;
+      }
+      return result;
+    }
+
     @Override
     public boolean isSuccessfulAnalysisResult() {
       return true;

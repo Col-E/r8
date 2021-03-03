@@ -10,9 +10,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
-import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
-import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import java.util.BitSet;
@@ -47,8 +45,6 @@ public abstract class MethodOptimizationInfo {
 
   public abstract ClassTypeElement getDynamicLowerBoundType();
 
-  public abstract ParameterUsage getParameterUsages(int parameter);
-
   public final boolean hasNonNullParamOrThrow() {
     return getNonNullParamOrThrow() != null;
   }
@@ -72,8 +68,6 @@ public abstract class MethodOptimizationInfo {
   public abstract boolean neverReturnsNormally();
 
   public abstract BridgeInfo getBridgeInfo();
-
-  public abstract ClassInlinerEligibilityInfo getClassInlinerEligibility();
 
   public abstract Set<DexType> getInitializedClassesOnNormalExit();
 

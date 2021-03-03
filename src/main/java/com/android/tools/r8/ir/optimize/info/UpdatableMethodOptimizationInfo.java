@@ -15,9 +15,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
-import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
-import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
@@ -43,12 +41,8 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
   // Stores information about instance methods and constructors for
   // class inliner, null value indicates that the method is not eligible.
   private BridgeInfo bridgeInfo = null;
-  private ClassInlinerEligibilityInfo classInlinerEligibility =
-      DefaultMethodOptimizationInfo.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
   private InstanceInitializerInfoCollection instanceInitializerInfoCollection =
       InstanceInitializerInfoCollection.empty();
-  private ParameterUsagesInfo parametersUsages =
-      DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO;
   // Stores information about nullability hint per parameter. If set, that means, the method
   // somehow (e.g., null check, such as arg != null, or using checkParameterIsNotNull) ensures
   // the corresponding parameter is not null, or throws NPE before any other side effects.
@@ -147,9 +141,7 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     inlining = template.inlining;
     simpleInliningConstraint = template.simpleInliningConstraint;
     bridgeInfo = template.bridgeInfo;
-    classInlinerEligibility = template.classInlinerEligibility;
     instanceInitializerInfoCollection = template.instanceInitializerInfoCollection;
-    parametersUsages = template.parametersUsages;
     nonNullParamOrThrow = template.nonNullParamOrThrow;
     nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
   }
@@ -276,11 +268,6 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
-  public ParameterUsage getParameterUsages(int parameter) {
-    return parametersUsages == null ? null : parametersUsages.getParameterUsage(parameter);
-  }
-
-  @Override
   public BitSet getNonNullParamOrThrow() {
     return nonNullParamOrThrow;
   }
@@ -330,11 +317,6 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
-  public ClassInlinerEligibilityInfo getClassInlinerEligibility() {
-    return classInlinerEligibility;
-  }
-
-  @Override
   public AbstractValue getAbstractReturnValue() {
     return abstractReturnValue;
   }
@@ -379,10 +361,6 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     return isFlagSet(RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS_FLAG);
   }
 
-  void setParameterUsages(ParameterUsagesInfo parametersUsages) {
-    this.parametersUsages = parametersUsages;
-  }
-
   void setNonNullParamOrThrow(BitSet facts) {
     this.nonNullParamOrThrow = facts;
   }
@@ -397,10 +375,6 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
 
   void setSimpleInliningConstraint(SimpleInliningConstraint constraint) {
     this.simpleInliningConstraint = constraint;
-  }
-
-  void setClassInlinerEligibility(ClassInlinerEligibilityInfo eligibility) {
-    this.classInlinerEligibility = eligibility;
   }
 
   void setInstanceInitializerInfoCollection(
@@ -517,6 +491,7 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   public void adjustOptimizationInfoAfterRemovingThisParameter() {
+    classInlinerConstraint = classInlinerConstraint.fixupAfterRemovingThisParameter();
     // cannotBeKept: doesn't depend on `this`
     // classInitializerMayBePostponed: `this` could trigger <clinit> of the previous holder.
     clearFlag(CLASS_INITIALIZER_MAY_BE_POSTPONED_FLAG);
@@ -549,18 +524,12 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     // triggersClassInitBeforeAnySideEffect: code is not changed.
     markTriggerClassInitBeforeAnySideEffect(
         DefaultMethodOptimizationInfo.UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT);
-    // classInlinerEligibility: chances are the method is not an instance method anymore.
-    classInlinerEligibility = DefaultMethodOptimizationInfo.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
     // initializerInfo: the computed initializer info may become invalid.
     instanceInitializerInfoCollection = InstanceInitializerInfoCollection.empty();
     // initializerEnablingJavaAssertions: `this` could trigger <clinit> of the previous holder.
     setFlag(
         INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG,
         DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS);
-    parametersUsages =
-        parametersUsages == DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO
-            ? DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO
-            : parametersUsages.remove(0);
     nonNullParamOrThrow =
         nonNullParamOrThrow == DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_OR_THROW_FACTS
             ? DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_OR_THROW_FACTS

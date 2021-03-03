@@ -15,10 +15,8 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableSet;
@@ -50,12 +48,6 @@ public class SyntheticDistributionTest extends SplitterTestBase {
   @Test
   public void testDistribution() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    ThrowableConsumer<R8FullTestBuilder> configurator =
-        r8FullTestBuilder ->
-            r8FullTestBuilder
-                .noMinification()
-                .enableInliningAnnotations()
-                .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O));
     ThrowableConsumer<R8TestCompileResult> ensureLambdaNotInBase =
         r8TestCompileResult ->
             r8TestCompileResult.inspect(
@@ -72,7 +64,7 @@ public class SyntheticDistributionTest extends SplitterTestBase {
             ImmutableSet.of(FeatureClass.class),
             FeatureClass.class,
             ensureLambdaNotInBase,
-            configurator);
+            this::configure);
     assertEquals(0, processResult.exitCode);
     assertEquals(StringUtils.lines("42foobar"), processResult.stdout);
   }
@@ -86,13 +78,7 @@ public class SyntheticDistributionTest extends SplitterTestBase {
             .addFeatureSplit(FeatureClass.class)
             .addFeatureSplit(Feature2Class.class)
             .addKeepFeatureMainRules(BaseSuperClass.class, FeatureClass.class, Feature2Class.class)
-            .addKeepMethodRules(
-                Reference.methodFromMethod(
-                    BaseSuperClass.class.getDeclaredMethod(
-                        "keptApplyLambda", MyFunction.class, String.class)))
-            .noMinification()
-            .enableInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .apply(this::configure)
             .compile();
 
     compileResult
@@ -102,6 +88,17 @@ public class SyntheticDistributionTest extends SplitterTestBase {
     compileResult
         .runFeature(parameters.getRuntime(), Feature2Class.class, compileResult.getFeature(1))
         .assertSuccessWithOutputLines("43barfoo");
+  }
+
+  private void configure(R8FullTestBuilder testBuilder) throws NoSuchMethodException {
+    testBuilder
+        .addKeepMethodRules(
+            Reference.methodFromMethod(
+                BaseSuperClass.class.getDeclaredMethod(
+                    "keptApplyLambda", MyFunction.class, String.class)))
+        .enableInliningAnnotations()
+        .noMinification()
+        .setMinApi(parameters.getApiLevel());
   }
 
   public abstract static class BaseSuperClass implements RunInterface {

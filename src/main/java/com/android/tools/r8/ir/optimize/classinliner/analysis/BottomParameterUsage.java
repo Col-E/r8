@@ -30,6 +30,11 @@ class BottomParameterUsage extends ParameterUsage {
   }
 
   @Override
+  ParameterUsage externalize() {
+    return this;
+  }
+
+  @Override
   public boolean isBottom() {
     return true;
   }

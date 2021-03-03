@@ -12,6 +12,7 @@ import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.OffOrAuto;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -204,14 +205,14 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   }
 
   private void checkLambdaCount(CodeInspector inspector, int maxExpectedCount, String prefix) {
-    int count = 0;
+    List<String> found = new ArrayList<>();
     for (FoundClassSubject clazz : inspector.allClasses()) {
       if (clazz.isSynthesizedJavaLambdaClass() &&
           clazz.getOriginalName().startsWith(prefix)) {
-        count++;
+        found.add(clazz.getOriginalName());
       }
     }
-    assertEquals(maxExpectedCount, count);
+    assertEquals(StringUtils.lines(found), maxExpectedCount, found.size());
   }
 
   private void checkTestMultipleInterfacesCheckCastCount(

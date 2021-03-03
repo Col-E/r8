@@ -28,6 +28,11 @@ class UnknownParameterUsage extends ParameterUsage {
   }
 
   @Override
+  ParameterUsage externalize() {
+    return this;
+  }
+
+  @Override
   public boolean isParameterMutated() {
     return true;
   }

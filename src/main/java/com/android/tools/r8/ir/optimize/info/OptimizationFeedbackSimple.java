@@ -14,7 +14,6 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
-import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
@@ -170,12 +169,6 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void setClassInlinerEligibility(
-      DexEncodedMethod method, ClassInlinerEligibilityInfo eligibility) {
-    // Ignored.
-  }
-
-  @Override
   public void setInstanceInitializerInfoCollection(
       DexEncodedMethod method,
       InstanceInitializerInfoCollection instanceInitializerInfoCollection) {
@@ -187,11 +180,6 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   @Override
   public void setInitializerEnablingJavaVmAssertions(DexEncodedMethod method) {
     method.getMutableOptimizationInfo().setInitializerEnablingJavaAssertions();
-  }
-
-  @Override
-  public void setParameterUsages(DexEncodedMethod method, ParameterUsagesInfo parameterUsagesInfo) {
-    // Ignored.
   }
 
   @Override

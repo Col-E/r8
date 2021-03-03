@@ -55,6 +55,11 @@ public class NonEmptyParameterUsage extends ParameterUsage {
     return this;
   }
 
+  @Override
+  ParameterUsage externalize() {
+    throw new Unreachable();
+  }
+
   public boolean hasFieldsReadFromParameter() {
     return !getFieldsReadFromParameter().isEmpty();
   }

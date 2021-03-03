@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner.constraint;
 
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.optimize.classinliner.analysis.ParameterUsage;
 
 public class AlwaysFalseClassInlinerMethodConstraint implements ClassInlinerMethodConstraint {
 
@@ -18,12 +19,22 @@ public class AlwaysFalseClassInlinerMethodConstraint implements ClassInlinerMeth
   }
 
   @Override
-  public boolean isEligibleForNewInstanceClassInlining(ProgramMethod method) {
+  public ClassInlinerMethodConstraint fixupAfterRemovingThisParameter() {
+    return this;
+  }
+
+  @Override
+  public ParameterUsage getParameterUsage(int parameter) {
+    return ParameterUsage.top();
+  }
+
+  @Override
+  public boolean isEligibleForNewInstanceClassInlining(ProgramMethod method, int parameter) {
     return false;
   }
 
   @Override
-  public boolean isEligibleForStaticGetClassInlining(ProgramMethod method) {
+  public boolean isEligibleForStaticGetClassInlining(ProgramMethod method, int parameter) {
     return false;
   }
 }

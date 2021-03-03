@@ -84,8 +84,19 @@ public class AnalysisState extends AbstractState<AnalysisState> {
     return BOTTOM;
   }
 
-  static AnalysisState create(Int2ObjectMap<ParameterUsagePerContext> backing) {
+  public static AnalysisState create(Int2ObjectMap<ParameterUsagePerContext> backing) {
     return backing.isEmpty() ? bottom() : new AnalysisState(backing);
+  }
+
+  /**
+   * Converts instances of {@link InternalNonEmptyParameterUsage} to {@link NonEmptyParameterUsage}.
+   *
+   * <p>This is needed because {@link InternalNonEmptyParameterUsage} is not suitable for being
+   * stored in {@link com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo}, since it
+   * contains references to IR instructions.
+   */
+  AnalysisState externalize() {
+    return rebuildParameters((parameter, usagePerContext) -> usagePerContext.externalize());
   }
 
   AnalysisState put(int parameter, ParameterUsagePerContext parameterUsagePerContext) {
@@ -95,7 +106,7 @@ public class AnalysisState extends AbstractState<AnalysisState> {
     return create(newBacking);
   }
 
-  void forEach(IntObjConsumer<ParameterUsagePerContext> consumer) {
+  public void forEach(IntObjConsumer<ParameterUsagePerContext> consumer) {
     Int2ObjectMapUtils.forEach(backing, consumer);
   }
 

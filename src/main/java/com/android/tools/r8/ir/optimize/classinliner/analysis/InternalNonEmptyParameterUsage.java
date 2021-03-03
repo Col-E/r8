@@ -5,8 +5,10 @@
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Objects;
@@ -85,6 +87,20 @@ public class InternalNonEmptyParameterUsage extends ParameterUsage {
   @Override
   public InternalNonEmptyParameterUsage asInternalNonEmpty() {
     return this;
+  }
+
+  @Override
+  ParameterUsage externalize() {
+    ImmutableMultiset.Builder<DexMethod> methodCallsWithParameterAsReceiverBuilder =
+        ImmutableMultiset.builder();
+    methodCallsWithParameterAsReceiver.forEach(
+        invoke -> methodCallsWithParameterAsReceiverBuilder.add(invoke.getInvokedMethod()));
+    return new NonEmptyParameterUsage(
+        fieldsReadFromParameter,
+        methodCallsWithParameterAsReceiverBuilder.build(),
+        isParameterMutated,
+        isParameterReturned,
+        isParameterUsedAsLock);
   }
 
   @Override

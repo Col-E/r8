@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -94,11 +93,6 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   public boolean hasUsefulOptimizationInfo(AppView<?> appView, DexEncodedMethod method) {
     TypeElement[] staticTypes = getStaticTypes(appView, method);
     for (int i = 0; i < size; i++) {
-      ParameterUsage parameterUsage = method.getOptimizationInfo().getParameterUsages(i);
-      // If the parameter is not used, passing accurate argument info doesn't matter.
-      if (parameterUsage != null && parameterUsage.notUsed()) {
-        continue;
-      }
       AbstractValue abstractValue = getAbstractArgumentValue(i);
       if (abstractValue.isNonTrivial()) {
         assert appView.options().callSiteOptimizationOptions().isConstantPropagationEnabled();

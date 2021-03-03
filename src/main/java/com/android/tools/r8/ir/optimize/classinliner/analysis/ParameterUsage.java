@@ -21,6 +21,8 @@ public abstract class ParameterUsage {
     return null;
   }
 
+  abstract ParameterUsage externalize();
+
   /**
    * Returns true if this is an instanceof {@link BottomParameterUsage}.
    *

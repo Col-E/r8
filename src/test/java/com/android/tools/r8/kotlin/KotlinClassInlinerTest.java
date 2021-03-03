@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Lists;
@@ -61,15 +60,6 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
   private static boolean isJStyleLambda(DexClass clazz) {
     return clazz.getSuperType().getTypeName().equals(Object.class.getTypeName())
         && clazz.getInterfaces().size() == 1;
-  }
-
-  private static Predicate<DexType> createLambdaCheck(CodeInspector inspector) {
-    Set<DexType> lambdaClasses =
-        inspector.allClasses().stream()
-            .filter(clazz -> isLambda(clazz.getDexProgramClass()))
-            .map(clazz -> clazz.getDexProgramClass().type)
-            .collect(Collectors.toSet());
-    return lambdaClasses::contains;
   }
 
   @Test

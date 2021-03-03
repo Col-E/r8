@@ -18,6 +18,11 @@ class UnknownParameterUsagePerContext extends ParameterUsagePerContext {
   }
 
   @Override
+  ParameterUsagePerContext externalize() {
+    return this;
+  }
+
+  @Override
   public ParameterUsage get(AnalysisContext context) {
     return ParameterUsage.top();
   }

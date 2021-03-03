@@ -5,22 +5,19 @@
 package com.android.tools.r8.ir.optimize.classinliner.constraint;
 
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.optimize.classinliner.analysis.ParameterUsage;
 
 public interface ClassInlinerMethodConstraint {
 
-  boolean isEligibleForNewInstanceClassInlining(ProgramMethod method);
+  ClassInlinerMethodConstraint fixupAfterRemovingThisParameter();
 
-  boolean isEligibleForStaticGetClassInlining(ProgramMethod method);
+  ParameterUsage getParameterUsage(int parameter);
+
+  boolean isEligibleForNewInstanceClassInlining(ProgramMethod method, int parameter);
+
+  boolean isEligibleForStaticGetClassInlining(ProgramMethod method, int parameter);
 
   static AlwaysFalseClassInlinerMethodConstraint alwaysFalse() {
     return AlwaysFalseClassInlinerMethodConstraint.getInstance();
-  }
-
-  static AlwaysTrueClassInlinerMethodConstraint alwaysTrue() {
-    return AlwaysTrueClassInlinerMethodConstraint.getInstance();
-  }
-
-  static OnlyNewInstanceClassInlinerMethodConstraint onlyNewInstanceClassInlining() {
-    return OnlyNewInstanceClassInlinerMethodConstraint.getInstance();
   }
 }
