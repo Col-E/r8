@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
+import com.android.tools.r8.StringConsumer.ForwardingConsumer;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -21,14 +22,13 @@ import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.RootSetUtils.MainDexRootSet;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.SortingStringConsumer;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -42,21 +42,13 @@ public class GenerateMainDexList {
     this.options = options;
   }
 
-  private List<String> run(AndroidApp app, ExecutorService executor)
+  private void run(AndroidApp app, ExecutorService executor, SortingStringConsumer consumer)
       throws IOException {
     try {
-      // TODO(b/178231294): Clean up this such that we do not both return the result and call the
-      //  consumer.
       DexApplication application = new ApplicationReader(app, options, timing).read(executor);
-      List<String> result = new ArrayList<>();
       traceMainDex(executor, application, MainDexInfo.none())
-          .forEach(type -> result.add(type.toBinaryName() + ".class"));
-      Collections.sort(result);
-      if (options.mainDexListConsumer != null) {
-        options.mainDexListConsumer.accept(String.join("\n", result), options.reporter);
-        options.mainDexListConsumer.finished(options.reporter);
-      }
-      return result;
+          .forEach(type -> consumer.accept(type.toBinaryName() + ".class", options.reporter));
+      consumer.finished(options.reporter);
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);
     }
@@ -137,11 +129,11 @@ public class GenerateMainDexList {
   /**
    * Main API entry for computing the main-dex list.
    *
-   * The main-dex list is represented as a list of strings, each string specifies one class to
+   * <p>The main-dex list is represented as a list of strings, each string specifies one class to
    * keep in the primary dex file (<code>classes.dex</code>).
    *
-   * A class is specified using the following format: "com/example/MyClass.class". That is
-   * "/" as separator between package components, and a trailing ".class".
+   * <p>A class is specified using the following format: "com/example/MyClass.class". That is "/" as
+   * separator between package components, and a trailing ".class".
    *
    * @param command main dex-list generator command.
    * @param executor executor service from which to get threads for multi-threaded processing.
@@ -151,17 +143,28 @@ public class GenerateMainDexList {
       throws CompilationFailedException {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
-    Box<List<String>> result = new Box<>();
+    List<String> result = new ArrayList<>();
     ExceptionUtils.withMainDexListHandler(
         command.getReporter(),
         () -> {
           try {
-            result.set(new GenerateMainDexList(options).run(app, executor));
+            new GenerateMainDexList(options)
+                .run(
+                    app,
+                    executor,
+                    new SortingStringConsumer(
+                        new ForwardingConsumer(options.mainDexListConsumer) {
+                          @Override
+                          public void accept(String string, DiagnosticsHandler handler) {
+                            result.add(string);
+                            super.accept(string, handler);
+                          }
+                        }));
           } finally {
             executor.shutdown();
           }
         });
-    return result.get();
+    return result;
   }
 
   public static void main(String[] args) throws CompilationFailedException {

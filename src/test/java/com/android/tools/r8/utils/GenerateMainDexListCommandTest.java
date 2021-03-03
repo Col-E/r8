@@ -42,6 +42,9 @@ public class GenerateMainDexListCommandTest {
 
   private Path getOutputPath(GenerateMainDexListCommand command) {
     StringConsumer consumer = command.getMainDexListConsumer();
+    if (consumer instanceof JoiningStringConsumer) {
+      consumer = ((JoiningStringConsumer) consumer).getConsumer();
+    }
     if (consumer instanceof StringConsumer.FileConsumer) {
       return ((StringConsumer.FileConsumer) consumer).getOutputPath();
     }
