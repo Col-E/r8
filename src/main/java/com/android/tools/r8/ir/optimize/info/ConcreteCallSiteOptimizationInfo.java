@@ -39,16 +39,21 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
 
   CallSiteOptimizationInfo join(
       ConcreteCallSiteOptimizationInfo other, AppView<?> appView, DexEncodedMethod method) {
-    assert this.size == other.size;
+    assert size == other.size;
+    assert size == method.getNumberOfArguments();
     boolean allowConstantPropagation =
         appView.options().callSiteOptimizationOptions().isConstantPropagationEnabled();
     ConcreteCallSiteOptimizationInfo result =
-        new ConcreteCallSiteOptimizationInfo(this.size, allowConstantPropagation);
+        new ConcreteCallSiteOptimizationInfo(size, allowConstantPropagation);
     for (int i = 0; i < result.size; i++) {
       if (allowConstantPropagation) {
         assert result.constants != null;
         AbstractValue abstractValue =
-            getAbstractArgumentValue(i).join(other.getAbstractArgumentValue(i));
+            getAbstractArgumentValue(i)
+                .join(
+                    other.getAbstractArgumentValue(i),
+                    appView.abstractValueFactory(),
+                    method.getArgumentType(i));
         if (abstractValue.isNonTrivial()) {
           result.constants.put(i, abstractValue);
         }

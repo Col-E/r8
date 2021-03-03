@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -104,7 +105,47 @@ public abstract class AbstractValue {
     return null;
   }
 
-  public AbstractValue join(AbstractValue other) {
+  public boolean isConstantOrNonConstantNumberValue() {
+    return false;
+  }
+
+  public ConstantOrNonConstantNumberValue asConstantOrNonConstantNumberValue() {
+    return null;
+  }
+
+  public boolean isNonConstantNumberValue() {
+    return false;
+  }
+
+  public NonConstantNumberValue asNonConstantNumberValue() {
+    return null;
+  }
+
+  public boolean isNumberFromIntervalValue() {
+    return false;
+  }
+
+  public NumberFromIntervalValue asNumberFromIntervalValue() {
+    return null;
+  }
+
+  public boolean isNumberFromSetValue() {
+    return false;
+  }
+
+  public NumberFromSetValue asNumberFromSetValue() {
+    return null;
+  }
+
+  public AbstractValue join(AbstractValue other, AbstractValueFactory factory, DexType type) {
+    return join(other, factory, type, false);
+  }
+
+  public AbstractValue join(
+      AbstractValue other,
+      AbstractValueFactory factory,
+      DexType type,
+      boolean allowNonConstantNumbers) {
     if (isBottom() || other.isUnknown()) {
       return other;
     }
@@ -114,11 +155,31 @@ public abstract class AbstractValue {
     if (equals(other)) {
       return this;
     }
-    if (isNull()) {
-      return NullOrAbstractValue.create(other);
+    if (type.isReferenceType()) {
+      if (isNull()) {
+        return NullOrAbstractValue.create(other);
+      }
+      if (other.isNull()) {
+        return NullOrAbstractValue.create(this);
+      }
     }
-    if (other.isNull()) {
-      return NullOrAbstractValue.create(this);
+    if (allowNonConstantNumbers
+        && isConstantOrNonConstantNumberValue()
+        && other.isConstantOrNonConstantNumberValue()) {
+      NumberFromSetValue.Builder numberFromSetValueBuilder;
+      if (isSingleNumberValue()) {
+        numberFromSetValueBuilder = NumberFromSetValue.builder(asSingleNumberValue());
+      } else {
+        assert isNumberFromSetValue();
+        numberFromSetValueBuilder = asNumberFromSetValue().instanceBuilder();
+      }
+      if (other.isSingleNumberValue()) {
+        numberFromSetValueBuilder.addInt(other.asSingleNumberValue().getIntValue());
+      } else {
+        assert other.isNumberFromSetValue();
+        numberFromSetValueBuilder.addInts(other.asNumberFromSetValue());
+      }
+      return numberFromSetValueBuilder.build(factory);
     }
     return UnknownValue.getInstance();
   }

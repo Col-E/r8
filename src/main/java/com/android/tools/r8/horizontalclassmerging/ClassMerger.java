@@ -26,6 +26,9 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.value.NumberFromIntervalValue;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -51,6 +54,8 @@ import java.util.Set;
 public class ClassMerger {
 
   public static final String CLASS_ID_FIELD_NAME = "$r8$classId";
+
+  private static final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
   private final AppView<AppInfoWithLiveness> appView;
   private final MergeGroup group;
@@ -196,7 +201,7 @@ public class ClassMerger {
   void appendClassIdField() {
     boolean deprecated = false;
     boolean d8R8Synthesized = true;
-    classInstanceFieldsMerger.setClassIdField(
+    DexEncodedField classIdField =
         new DexEncodedField(
             group.getClassIdField(),
             FieldAccessFlags.createPublicFinalSynthetic(),
@@ -204,7 +209,19 @@ public class ClassMerger {
             DexAnnotationSet.empty(),
             null,
             deprecated,
-            d8R8Synthesized));
+            d8R8Synthesized);
+
+    // For the $r8$classId synthesized fields, we try to over-approximate the set of values it may
+    // have. For example, for a merge group of size 4, we may compute the set {0, 2, 3}, if the
+    // instances with $r8$classId == 1 ends up dead as a result of optimizations). If no instances
+    // end up being dead, we would compute the set {0, 1, 2, 3}. The latter information does not
+    // provide any value, and therefore we should not save it in the optimization info. In order to
+    // be able to recognize that {0, 1, 2, 3} is useless, we record that the value of the field is
+    // known to be in [0; 3] here.
+    NumberFromIntervalValue abstractValue = new NumberFromIntervalValue(0, group.size() - 1);
+    feedback.recordFieldHasAbstractValue(classIdField, appView, abstractValue);
+
+    classInstanceFieldsMerger.setClassIdField(classIdField);
   }
 
   void mergeStaticFields() {

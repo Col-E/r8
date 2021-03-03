@@ -40,6 +40,12 @@ import java.util.concurrent.ExecutorService;
 
 public class TrivialFieldAccessReprocessor {
 
+  enum FieldClassification {
+    CONSTANT,
+    NON_CONSTANT,
+    UNKNOWN
+  }
+
   private final AppView<AppInfoWithLiveness> appView;
   private final PostMethodProcessor.Builder postMethodProcessorBuilder;
 
@@ -52,6 +58,9 @@ public class TrivialFieldAccessReprocessor {
 
   /** Updated concurrently from {@link #processClass(DexProgramClass)}. */
   private final Set<DexEncodedField> constantFields = Sets.newConcurrentHashSet();
+
+  /** Updated concurrently from {@link #processClass(DexProgramClass)}. */
+  private final Set<DexEncodedField> nonConstantFields = Sets.newConcurrentHashSet();
 
   /** Updated concurrently from {@link #processClass(DexProgramClass)}. */
   private final ProgramMethodSet methodsToReprocess = ProgramMethodSet.createConcurrent();
@@ -72,7 +81,7 @@ public class TrivialFieldAccessReprocessor {
     assert feedback.noUpdatesLeft();
 
     timing.begin("Compute fields of interest");
-    computeConstantFields();
+    computeFieldsWithNonTrivialValue();
     timing.end(); // Compute fields of interest
 
     timing.begin("Enqueue methods for reprocessing");
@@ -89,17 +98,32 @@ public class TrivialFieldAccessReprocessor {
     writtenFields.keySet().forEach(OptimizationFeedbackSimple.getInstance()::markFieldAsDead);
   }
 
-  private void computeConstantFields() {
+  private void computeFieldsWithNonTrivialValue() {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       for (DexEncodedField field : clazz.instanceFields()) {
-        if (canOptimizeField(field, appView)) {
-          constantFields.add(field);
+        FieldClassification fieldClassification = classifyField(field, appView);
+        switch (fieldClassification) {
+          case CONSTANT:
+            // Reprocess reads and writes.
+            constantFields.add(field);
+            break;
+          case NON_CONSTANT:
+            // Only reprocess writes, to allow branch pruning.
+            nonConstantFields.add(field);
+            break;
+          default:
+            assert fieldClassification == FieldClassification.UNKNOWN;
+            break;
         }
       }
       if (appView.canUseInitClass() || !clazz.classInitializationMayHaveSideEffects(appView)) {
         for (DexEncodedField field : clazz.staticFields()) {
-          if (canOptimizeField(field, appView)) {
+          FieldClassification fieldClassification = classifyField(field, appView);
+          if (fieldClassification == FieldClassification.CONSTANT) {
             constantFields.add(field);
+          } else {
+            assert fieldClassification == FieldClassification.NON_CONSTANT
+                || fieldClassification == FieldClassification.UNKNOWN;
           }
         }
       }
@@ -138,30 +162,39 @@ public class TrivialFieldAccessReprocessor {
         method -> method.registerCodeReferences(new TrivialFieldAccessUseRegistry(method)));
   }
 
-  private static boolean canOptimizeField(
+  private static FieldClassification classifyField(
       DexEncodedField field, AppView<AppInfoWithLiveness> appView) {
     FieldAccessInfo fieldAccessInfo =
         appView.appInfo().getFieldAccessInfoCollection().get(field.field);
-    if (fieldAccessInfo == null || fieldAccessInfo.isAccessedFromMethodHandle()) {
-      return false;
+    if (fieldAccessInfo == null
+        || fieldAccessInfo.hasReflectiveAccess()
+        || fieldAccessInfo.isAccessedFromMethodHandle()
+        || fieldAccessInfo.isReadFromAnnotation()) {
+      return FieldClassification.UNKNOWN;
     }
     AbstractValue abstractValue = field.getOptimizationInfo().getAbstractValue();
     if (abstractValue.isSingleValue()) {
       SingleValue singleValue = abstractValue.asSingleValue();
       if (!singleValue.isMaterializableInAllContexts(appView)) {
-        return false;
+        return FieldClassification.UNKNOWN;
       }
       if (singleValue.isSingleConstValue()) {
-        return true;
+        return FieldClassification.CONSTANT;
       }
       if (singleValue.isSingleFieldValue()) {
         SingleFieldValue singleFieldValue = singleValue.asSingleFieldValue();
         DexField singleField = singleFieldValue.getField();
-        return singleField != field.field
-            && !singleFieldValue.mayHaveFinalizeMethodDirectlyOrIndirectly(appView);
+        if (singleField != field.field
+            && !singleFieldValue.mayHaveFinalizeMethodDirectlyOrIndirectly(appView)) {
+          return FieldClassification.CONSTANT;
+        }
       }
+      return FieldClassification.UNKNOWN;
     }
-    return false;
+    if (abstractValue.isNonConstantNumberValue()) {
+      return FieldClassification.NON_CONSTANT;
+    }
+    return FieldClassification.UNKNOWN;
   }
 
   private void processFieldsNeverRead(AppInfoWithLiveness appInfo) {
@@ -282,7 +315,8 @@ public class TrivialFieldAccessReprocessor {
       }
 
       if (definition.isStatic() == isStatic) {
-        if (constantFields.contains(definition)) {
+        if (constantFields.contains(definition)
+            || (!isWrite && nonConstantFields.contains(definition))) {
           methodsToReprocess.add(method);
         }
       } else {

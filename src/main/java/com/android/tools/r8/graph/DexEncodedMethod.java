@@ -208,6 +208,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return getReference().getParameter(argumentIndex - 1);
   }
 
+  public int getNumberOfArguments() {
+    return getReference().getArity() + BooleanUtils.intValue(isInstance());
+  }
+
   public CompilationState getCompilationState() {
     return compilationState;
   }

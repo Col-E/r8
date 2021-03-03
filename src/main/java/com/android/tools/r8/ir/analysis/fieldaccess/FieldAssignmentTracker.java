@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerUtils;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.BottomValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
@@ -173,31 +174,62 @@ public class FieldAssignmentTracker {
       while (iterator.hasNext()) {
         Map.Entry<DexEncodedField, AbstractValue> entry = iterator.next();
         DexEncodedField field = entry.getKey();
+        AbstractValue abstractValue = entry.getValue();
+
+        // The power set lattice is an expensive abstraction, so use it with caution.
+        boolean allowNonConstantNumbers = HorizontalClassMergerUtils.isClassIdField(appView, field);
+
         InstanceFieldInitializationInfo initializationInfo =
             initializationInfoCollection.get(field);
         if (initializationInfo.isArgumentInitializationInfo()) {
           InstanceFieldArgumentInitializationInfo argumentInitializationInfo =
               initializationInfo.asArgumentInitializationInfo();
           Value argument = invoke.arguments().get(argumentInitializationInfo.getArgumentIndex());
-          AbstractValue abstractValue =
-              entry.getValue().join(argument.getAbstractValue(appView, context));
+          AbstractValue argumentAbstractValue = argument.getAbstractValue(appView, context);
+          abstractValue =
+              abstractValue.join(
+                  argumentAbstractValue,
+                  appView.abstractValueFactory(),
+                  field.getType(),
+                  allowNonConstantNumbers);
           assert !abstractValue.isBottom();
-          if (!abstractValue.isUnknown()) {
-            entry.setValue(abstractValue);
-            continue;
-          }
         } else if (initializationInfo.isSingleValue()) {
           SingleValue singleValueInitializationInfo = initializationInfo.asSingleValue();
-          AbstractValue abstractValue = entry.getValue().join(singleValueInitializationInfo);
-          assert !abstractValue.isBottom();
-          if (!abstractValue.isUnknown()) {
-            entry.setValue(abstractValue);
-            continue;
-          }
+          abstractValue =
+              abstractValue.join(
+                  singleValueInitializationInfo,
+                  appView.abstractValueFactory(),
+                  field.getType(),
+                  allowNonConstantNumbers);
         } else if (initializationInfo.isTypeInitializationInfo()) {
           // TODO(b/149732532): Not handled, for now.
+          abstractValue = UnknownValue.getInstance();
         } else {
           assert initializationInfo.isUnknown();
+          abstractValue = UnknownValue.getInstance();
+        }
+
+        assert !abstractValue.isBottom();
+
+        // When approximating the possible values for the $r8$classId fields from horizontal class
+        // merging, give up if the set of possible values equals the size of the merge group. In
+        // this case, the information is useless.
+        if (allowNonConstantNumbers
+            && abstractValue.isNonConstantNumberValue()
+            && field.getOptimizationInfo().getAbstractValue().isNonConstantNumberValue()) {
+          if (abstractValue.asNonConstantNumberValue().getAbstractionSize()
+              >= field
+                  .getOptimizationInfo()
+                  .getAbstractValue()
+                  .asNonConstantNumberValue()
+                  .getAbstractionSize()) {
+            abstractValue = UnknownValue.getInstance();
+          }
+        }
+
+        if (!abstractValue.isUnknown()) {
+          entry.setValue(abstractValue);
+          continue;
         }
 
         // We just lost track for this field.
@@ -236,7 +268,11 @@ public class FieldAssignmentTracker {
                 .fieldInitializationInfos()
                 .get(field);
         if (fieldInitializationInfo.isSingleValue()) {
-          abstractValue = abstractValue.join(fieldInitializationInfo.asSingleValue());
+          abstractValue =
+              abstractValue.join(
+                  fieldInitializationInfo.asSingleValue(),
+                  appView.abstractValueFactory(),
+                  field.getType());
           if (abstractValue.isUnknown()) {
             break;
           }

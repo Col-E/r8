@@ -27,11 +27,14 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerUtils;
 import com.android.tools.r8.ir.analysis.equivalence.BasicBlockBehavioralSubsumption;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.ConstantOrNonConstantNumberValue;
 import com.android.tools.r8.ir.analysis.value.SingleConstClassValue;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.code.AlwaysMaterializingNop;
@@ -54,6 +57,7 @@ import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.InstanceFieldInstruction;
+import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Instruction.SideEffectAssumption;
@@ -1092,6 +1096,10 @@ public class CodeRewriter {
       BasicBlock block,
       InstructionListIterator iterator,
       IntSwitch theSwitch) {
+    if (disableSwitchToIfRewritingForClassIdComparisons(theSwitch)) {
+      return;
+    }
+
     if (theSwitch.numberOfKeys() == 1) {
       rewriteSingleKeySwitchToIf(code, block, iterator, theSwitch);
       return;
@@ -1186,6 +1194,27 @@ public class CodeRewriter {
     }
   }
 
+  // TODO(b/181732463): We currently disable switch-to-if rewritings for switches on $r8$classId
+  //  field values (from horizontal class merging. See bug for more details.
+  private boolean disableSwitchToIfRewritingForClassIdComparisons(IntSwitch theSwitch) {
+    Value switchValue = theSwitch.value().getAliasedValue();
+    if (!switchValue.isDefinedByInstructionSatisfying(Instruction::isInstanceGet)) {
+      return false;
+    }
+    AppInfoWithLiveness appInfo = appView.appInfoWithLiveness();
+    if (appInfo == null) {
+      return false;
+    }
+    InstanceGet instanceGet = switchValue.getDefinition().asInstanceGet();
+    SuccessfulFieldResolutionResult resolutionResult =
+        appInfo.resolveField(instanceGet.getField()).asSuccessfulResolution();
+    if (resolutionResult == null) {
+      return false;
+    }
+    DexEncodedField resolvedField = resolutionResult.getResolvedField();
+    return HorizontalClassMergerUtils.isClassIdField(appView, resolvedField);
+  }
+
   private SwitchCaseEliminator removeUnnecessarySwitchCases(
       IRCode code,
       Switch theSwitch,
@@ -1197,6 +1226,7 @@ public class CodeRewriter {
         new BasicBlockBehavioralSubsumption(appView, code);
 
     // Compute the set of switch cases that can be removed.
+    AbstractValue switchAbstractValue = theSwitch.value().getAbstractValue(appView, code.context());
     for (int i = 0; i < theSwitch.numberOfKeys(); i++) {
       BasicBlock targetBlock = theSwitch.targetBlock(i);
 
@@ -1210,7 +1240,7 @@ public class CodeRewriter {
 
       // This switch case can be removed if the behavior of the target block is equivalent to the
       // behavior of the default block, or if the switch case is unreachable.
-      if (switchCaseAnalyzer.switchCaseIsUnreachable(theSwitch, i)
+      if (switchCaseAnalyzer.switchCaseIsUnreachable(theSwitch, switchAbstractValue, i)
           || behavioralSubsumption.isSubsumedBy(targetBlock, defaultTarget)) {
         if (eliminator == null) {
           eliminator = new SwitchCaseEliminator(theSwitch, iterator);
@@ -1218,6 +1248,16 @@ public class CodeRewriter {
         eliminator.markSwitchCaseForRemoval(i);
       }
     }
+
+    if (eliminator == null || eliminator.isFallthroughLive()) {
+      if (switchCaseAnalyzer.switchFallthroughIsNeverHit(theSwitch, switchAbstractValue)) {
+        if (eliminator == null) {
+          eliminator = new SwitchCaseEliminator(theSwitch, iterator);
+        }
+        eliminator.markSwitchFallthroughAsNeverHit();
+      }
+    }
+
     if (eliminator != null) {
       eliminator.optimize();
     }
@@ -2619,6 +2659,16 @@ public class CodeRewriter {
       }
     }
 
+    if (theIf.getType() == Type.EQ || theIf.getType() == Type.NE) {
+      AbstractValue lhsAbstractValue = lhs.getAbstractValue(appView, code.context());
+      if (lhsAbstractValue.isConstantOrNonConstantNumberValue()
+          && !lhsAbstractValue.asConstantOrNonConstantNumberValue().containsInt(0)) {
+        // Value doesn't contain zero at all.
+        simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromCondition(1));
+        return true;
+      }
+    }
+
     if (lhs.hasValueRange()) {
       LongInterval interval = lhs.getValueRange();
       if (!interval.containsValue(0)) {
@@ -2689,6 +2739,23 @@ public class CodeRewriter {
       BasicBlock target = theIf.targetFromCondition(left, right);
       simplifyIfWithKnownCondition(code, block, theIf, target);
       return true;
+    }
+
+    if (theIf.getType() == Type.EQ || theIf.getType() == Type.NE) {
+      AbstractValue lhsAbstractValue = lhs.getAbstractValue(appView, code.context());
+      AbstractValue rhsAbstractValue = rhs.getAbstractValue(appView, code.context());
+      if (lhsAbstractValue.isConstantOrNonConstantNumberValue()
+          && rhsAbstractValue.isConstantOrNonConstantNumberValue()) {
+        ConstantOrNonConstantNumberValue lhsNumberValue =
+            lhsAbstractValue.asConstantOrNonConstantNumberValue();
+        ConstantOrNonConstantNumberValue rhsNumberValue =
+            rhsAbstractValue.asConstantOrNonConstantNumberValue();
+        if (!lhsNumberValue.mayOverlapWith(rhsNumberValue)) {
+          // No overlap.
+          simplifyIfWithKnownCondition(code, block, theIf, 1);
+          return true;
+        }
+      }
     }
 
     if (lhs.hasValueRange() && rhs.hasValueRange()) {

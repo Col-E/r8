@@ -5,7 +5,9 @@
 package com.android.tools.r8.ir.optimize.controlflow;
 
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.LongInterval;
@@ -37,11 +39,17 @@ public class SwitchCaseAnalyzer {
         && key == rootSwitchValue.definition.asConstString().getValue();
   }
 
-  public boolean switchCaseIsUnreachable(Switch theSwitch, int index) {
+  public boolean switchCaseIsUnreachable(
+      Switch theSwitch, AbstractValue switchAbstractValue, int index) {
     Value switchValue = theSwitch.value();
     if (theSwitch.isIntSwitch()) {
-      return switchValue.hasValueRange()
-          && !switchValue.getValueRange().containsValue(theSwitch.asIntSwitch().getKey(index));
+      int key = theSwitch.asIntSwitch().getKey(index);
+      if (switchAbstractValue.isConstantOrNonConstantNumberValue()
+          && !switchAbstractValue.asConstantOrNonConstantNumberValue().containsInt(key)) {
+        return true;
+      }
+      // TODO(b/150836439): Reimplement using AbstractValue.
+      return switchValue.hasValueRange() && !switchValue.getValueRange().containsValue(key);
     }
 
     assert theSwitch.isStringSwitch();
@@ -50,5 +58,22 @@ public class SwitchCaseAnalyzer {
     DexString key = theSwitch.asStringSwitch().getKey(index);
     return rootSwitchValue.isDefinedByInstructionSatisfying(Instruction::isConstString)
         && key != rootSwitchValue.definition.asConstString().getValue();
+  }
+
+  public boolean switchFallthroughIsNeverHit(Switch theSwitch, AbstractValue switchAbstractValue) {
+    if (theSwitch.isIntSwitch()) {
+      IntSwitch intSwitch = theSwitch.asIntSwitch();
+      if (switchAbstractValue.isConstantOrNonConstantNumberValue()) {
+        return switchAbstractValue
+            .asConstantOrNonConstantNumberValue()
+            .isSubsetOf(intSwitch.getKeys())
+            .isTrue();
+      }
+      return false;
+    }
+
+    assert theSwitch.isStringSwitch();
+
+    return false;
   }
 }

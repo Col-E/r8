@@ -13,6 +13,15 @@ import java.util.function.Predicate;
 
 public class ArrayUtils {
 
+  public static boolean containsInt(int[] array, int value) {
+    for (int element : array) {
+      if (element == value) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
    * Copies the input array and then applies specified sparse changes.
    *
@@ -71,6 +80,13 @@ public class ArrayUtils {
         clazz.cast(Array.newInstance(clazz.getComponentType(), filtered.size())));
   }
 
+  public static boolean isSorted(int[] array) {
+    for (int i = 0; i < array.length - 1; i++) {
+      assert array[i] < array[i + 1];
+    }
+    return true;
+  }
+
   /**
    * Rewrites the input array based on the given function.
    *
@@ -119,15 +135,6 @@ public class ArrayUtils {
   public static <T> boolean contains(T[] elements, T elementToLookFor) {
     for (Object element : elements) {
       if (element.equals(elementToLookFor)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  public static boolean containsInt(int[] elements, int elementToLookFor) {
-    for (int element : elements) {
-      if (element == elementToLookFor) {
         return true;
       }
     }

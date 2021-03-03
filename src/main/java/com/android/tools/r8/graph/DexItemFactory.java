@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.horizontalclassmerging.ClassMerger.CLASS_ID_FIELD_NAME;
 import static com.android.tools.r8.ir.analysis.type.ClassTypeElement.computeLeastUpperBoundOfInterfaces;
 import static com.android.tools.r8.ir.desugar.LambdaClass.LAMBDA_INSTANCE_FIELD_NAME;
 
@@ -1204,6 +1205,12 @@ public class DexItemFactory {
   }
 
   public class ObjectMembers {
+
+    /**
+     * This field is not on {@link Object}, but will be synthesized on horizontally merged classes
+     * as an instance field.
+     */
+    public final DexField classIdField = createField(objectType, intType, CLASS_ID_FIELD_NAME);
 
     /**
      * This field is not on {@link Object}, but will be synthesized on program classes as a static

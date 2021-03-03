@@ -16,14 +16,27 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.OptionalBool;
 
-public class SingleNumberValue extends SingleConstValue {
+public class SingleNumberValue extends SingleConstValue
+    implements ConstantOrNonConstantNumberValue {
 
   private final long value;
 
   /** Intentionally package private, use {@link AbstractValueFactory} instead. */
   SingleNumberValue(long value) {
     this.value = value;
+  }
+
+  @Override
+  public boolean containsInt(int value) {
+    return value == getIntValue();
+  }
+
+  @Override
+  public OptionalBool isSubsetOf(int[] values) {
+    return OptionalBool.of(ArrayUtils.containsInt(values, getIntValue()));
   }
 
   @Override
@@ -51,6 +64,16 @@ public class SingleNumberValue extends SingleConstValue {
     return this;
   }
 
+  @Override
+  public boolean isConstantOrNonConstantNumberValue() {
+    return true;
+  }
+
+  @Override
+  public ConstantOrNonConstantNumberValue asConstantOrNonConstantNumberValue() {
+    return this;
+  }
+
   public boolean getBooleanValue() {
     assert value == 0 || value == 1;
     return value != 0;
@@ -74,6 +97,15 @@ public class SingleNumberValue extends SingleConstValue {
 
   public long getValue() {
     return value;
+  }
+
+  @Override
+  public boolean mayOverlapWith(ConstantOrNonConstantNumberValue other) {
+    if (other.isSingleNumberValue()) {
+      return equals(other.asSingleNumberValue());
+    }
+    assert other.isNonConstantNumberValue();
+    return other.asNonConstantNumberValue().containsInt(getIntValue());
   }
 
   @Override

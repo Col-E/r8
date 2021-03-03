@@ -55,11 +55,10 @@ public class SwitchOnNonConstantClassIdAfterBranchPruningTest extends TestBase {
               MethodSubject mMethodSubject =
                   aClassSubject.uniqueMethodThatMatches(FoundMethodSubject::isVirtual);
               assertThat(mMethodSubject, isPresent());
-              // TODO(b/173340579): Body from C.m() should have been removed.
               assertTrue(
                   mMethodSubject
                       .streamInstructions()
-                      .anyMatch(instruction -> instruction.isConstString("C")));
+                      .noneMatch(instruction -> instruction.isConstString("C")));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A", "B");

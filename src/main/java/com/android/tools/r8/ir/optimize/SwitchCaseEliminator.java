@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.StringSwitch;
 import com.android.tools.r8.ir.code.Switch;
+import com.android.tools.r8.utils.BooleanUtils;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -28,6 +29,7 @@ class SwitchCaseEliminator {
 
   private int alwaysHitCase = -1;
   private BasicBlock alwaysHitTarget;
+  private boolean liveFallthrough = true;
   private boolean mayHaveIntroducedUnreachableBlocks = false;
   private IntSet switchCasesToBeRemoved;
 
@@ -39,13 +41,13 @@ class SwitchCaseEliminator {
   }
 
   private boolean allSwitchCasesMarkedForRemoval() {
-    assert switchCasesToBeRemoved != null;
-    return switchCasesToBeRemoved.size() == theSwitch.numberOfKeys();
+    return switchCasesToBeRemoved != null
+        && switchCasesToBeRemoved.size() == theSwitch.numberOfKeys();
   }
 
   private boolean canBeOptimized() {
     assert switchCasesToBeRemoved == null || !switchCasesToBeRemoved.isEmpty();
-    return switchCasesToBeRemoved != null || hasAlwaysHitCase();
+    return switchCasesToBeRemoved != null || hasAlwaysHitCase() || !isFallthroughLive();
   }
 
   boolean mayHaveIntroducedUnreachableBlocks() {
@@ -56,11 +58,19 @@ class SwitchCaseEliminator {
     if (hasAlwaysHitCase()) {
       return index == alwaysHitCase;
     }
-    return !switchCasesToBeRemoved.contains(index);
+    if (switchCasesToBeRemoved != null) {
+      return !switchCasesToBeRemoved.contains(index);
+    }
+    assert !isFallthroughLive();
+    return true;
+  }
+
+  public boolean isFallthroughDead() {
+    return !isFallthroughLive();
   }
 
   public boolean isFallthroughLive() {
-    return !hasAlwaysHitCase();
+    return liveFallthrough;
   }
 
   public boolean hasAlwaysHitCase() {
@@ -71,6 +81,7 @@ class SwitchCaseEliminator {
     assert alwaysHitCase < 0;
     alwaysHitCase = i;
     alwaysHitTarget = theSwitch.targetBlock(i);
+    liveFallthrough = false;
   }
 
   void markSwitchCaseForRemoval(int i) {
@@ -78,6 +89,11 @@ class SwitchCaseEliminator {
       switchCasesToBeRemoved = new IntOpenHashSet();
     }
     switchCasesToBeRemoved.add(i);
+  }
+
+  void markSwitchFallthroughAsNeverHit() {
+    assert !hasAlwaysHitCase();
+    liveFallthrough = false;
   }
 
   boolean optimize() {
@@ -147,53 +163,70 @@ class SwitchCaseEliminator {
       targetBlockIndexOffset[i] += targetBlockIndexOffset[i - 1];
     }
 
-    int newNumberOfKeys = theSwitch.numberOfKeys() - switchCasesToBeRemoved.size();
+    int newFallthrough = theSwitch.numberOfKeys();
+    if (isFallthroughDead()) {
+      for (int i = theSwitch.numberOfKeys() - 1; i >= 0; i--) {
+        if (isSwitchCaseLive(i)) {
+          newFallthrough = i;
+          break;
+        }
+      }
+    }
+
+    // Compute the number of removed switch cases. If the fallthrough is dead, we promote one of the
+    // live switch cases to being the fallthrough instead.
+    int numberOfRemovedSwitchCases =
+        switchCasesToBeRemoved != null ? switchCasesToBeRemoved.size() : 0;
+    numberOfRemovedSwitchCases += BooleanUtils.intValue(isFallthroughDead());
+
+    int newNumberOfKeys = theSwitch.numberOfKeys() - numberOfRemovedSwitchCases;
     int[] newTargetBlockIndices = new int[newNumberOfKeys];
-    for (int i = 0, j = 0; i < theSwitch.numberOfKeys(); i++) {
-      if (!switchCasesToBeRemoved.contains(i)) {
+    for (int i = 0, j = 0; i < newFallthrough; i++) {
+      if (isSwitchCaseLive(i)) {
         newTargetBlockIndices[j] =
             theSwitch.getTargetBlockIndex(i)
                 - targetBlockIndexOffset[theSwitch.getTargetBlockIndex(i)];
         assert newTargetBlockIndices[j] < block.getSuccessors().size();
-        assert newTargetBlockIndices[j] != theSwitch.getFallthroughBlockIndex();
         j++;
       }
+    }
+
+    int fallthroughBlockIndex;
+    if (isFallthroughLive()) {
+      fallthroughBlockIndex =
+          theSwitch.getFallthroughBlockIndex()
+              - targetBlockIndexOffset[theSwitch.getFallthroughBlockIndex()];
+    } else {
+      fallthroughBlockIndex =
+          theSwitch.getTargetBlockIndex(newFallthrough)
+              - targetBlockIndexOffset[theSwitch.getTargetBlockIndex(newFallthrough)];
     }
 
     Switch replacement;
     if (theSwitch.isIntSwitch()) {
       IntSwitch intSwitch = theSwitch.asIntSwitch();
       int[] newKeys = new int[newNumberOfKeys];
-      for (int i = 0, j = 0; i < theSwitch.numberOfKeys(); i++) {
-        if (!switchCasesToBeRemoved.contains(i)) {
+      for (int i = 0, j = 0; i < newFallthrough; i++) {
+        if (isSwitchCaseLive(i)) {
           newKeys[j] = intSwitch.getKey(i);
           j++;
         }
       }
       replacement =
-          new IntSwitch(
-              theSwitch.value(),
-              newKeys,
-              newTargetBlockIndices,
-              theSwitch.getFallthroughBlockIndex()
-                  - targetBlockIndexOffset[theSwitch.getFallthroughBlockIndex()]);
+          new IntSwitch(theSwitch.value(), newKeys, newTargetBlockIndices, fallthroughBlockIndex);
     } else {
       assert theSwitch.isStringSwitch();
       StringSwitch stringSwitch = theSwitch.asStringSwitch();
       DexString[] newKeys = new DexString[newNumberOfKeys];
-      for (int i = 0, j = 0; i < theSwitch.numberOfKeys(); i++) {
-        if (!switchCasesToBeRemoved.contains(i)) {
+      for (int i = 0, j = 0; i < newFallthrough; i++) {
+        if (isSwitchCaseLive(i)) {
           newKeys[j] = stringSwitch.getKey(i);
           j++;
         }
       }
       replacement =
           new StringSwitch(
-              theSwitch.value(),
-              newKeys,
-              newTargetBlockIndices,
-              theSwitch.getFallthroughBlockIndex()
-                  - targetBlockIndexOffset[theSwitch.getFallthroughBlockIndex()]);
+              theSwitch.value(), newKeys, newTargetBlockIndices, fallthroughBlockIndex);
     }
     iterator.replaceCurrentInstruction(replacement);
   }
