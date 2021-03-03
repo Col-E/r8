@@ -50,15 +50,13 @@ public class SwitchOnConstantClassIdAfterBranchPruningTest extends TestBase {
             inspector -> {
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              // TODO(b/173340579): $r8$classId field should have been removed.
-              assertEquals(1, aClassSubject.allInstanceFields().size());
+              assertEquals(0, aClassSubject.allInstanceFields().size());
 
               MethodSubject mMethodSubject =
                   aClassSubject.uniqueMethodThatMatches(FoundMethodSubject::isVirtual);
               assertThat(mMethodSubject, isPresent());
-              // TODO(b/173340579): Branches should have been removed.
               assertTrue(
-                  mMethodSubject.streamInstructions().anyMatch(x -> x.isIf() || x.isSwitch()));
+                  mMethodSubject.streamInstructions().noneMatch(x -> x.isIf() || x.isSwitch()));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A");

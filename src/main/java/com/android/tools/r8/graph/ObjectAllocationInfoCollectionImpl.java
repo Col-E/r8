@@ -302,8 +302,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
         // We already gave up on tracking the allocation sites for `clazz` previously.
         return false;
       }
-      // We currently only use allocation site information for instance field value propagation.
-      return !clazz.instanceFields().isEmpty();
+      return true;
     }
 
     /**

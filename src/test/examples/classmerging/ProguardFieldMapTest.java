@@ -13,7 +13,7 @@ public class ProguardFieldMapTest {
 
   public static class A {
 
-    public String f = "A.f";
+    public String f = System.currentTimeMillis() > 0 ? "A.f" : null;
   }
 
   @NeverClassInline
