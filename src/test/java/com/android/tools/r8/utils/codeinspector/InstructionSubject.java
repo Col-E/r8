@@ -63,6 +63,10 @@ public interface InstructionSubject {
 
   boolean isConstString(String value, JumboStringMode jumboStringMode);
 
+  default boolean isConstString(String value) {
+    return isConstString(value, JumboStringMode.ALLOW);
+  }
+
   boolean isJumboString();
 
   long getConstNumber();
