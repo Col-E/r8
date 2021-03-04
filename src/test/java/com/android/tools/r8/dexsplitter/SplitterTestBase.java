@@ -120,7 +120,7 @@ public class SplitterTestBase extends TestBase {
     return builder.build();
   }
 
-  ProcessResult testR8Splitter(
+  public ProcessResult testR8Splitter(
       TestParameters parameters,
       Set<Class<?>> baseClasses,
       Set<Class<?>> featureClasses,
