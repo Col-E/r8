@@ -18,8 +18,9 @@ public abstract class ParameterUsages extends AbstractState<ParameterUsages> {
   }
 
   /**
-   * This converts instances inside this {@link ParameterUsages} instance that are not suitable for
-   * being stored in optimization info into instances that can be stored in the optimization info.
+   * Prepares this instance for being stored in the optimization info. This converts instances
+   * inside this {@link ParameterUsages} instance that are not suitable for being stored in
+   * optimization info into instances that can be stored in the optimization info.
    *
    * <p>For example, converts instances of {@link InternalNonEmptyParameterUsage} to {@link
    * NonEmptyParameterUsage}. This is needed because {@link InternalNonEmptyParameterUsage} is not

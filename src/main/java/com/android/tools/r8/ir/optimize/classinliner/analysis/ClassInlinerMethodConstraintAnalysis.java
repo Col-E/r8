@@ -31,16 +31,13 @@ public class ClassInlinerMethodConstraintAnalysis {
     if (result == null) {
       return ClassInlinerMethodConstraint.alwaysFalse();
     }
-
-    // TODO(b/181746071): This always returns a non-empty result, that should be transformed into
-    //  bottom or top.
-    ParameterUsages usages = result.join();
+    ParameterUsages usages = result.join().externalize();
     if (usages.isBottom()) {
       return ClassInlinerMethodConstraint.alwaysTrue();
     }
     if (usages.isTop()) {
       return ClassInlinerMethodConstraint.alwaysFalse();
     }
-    return new ConditionalClassInlinerMethodConstraint(usages.externalize());
+    return new ConditionalClassInlinerMethodConstraint(usages);
   }
 }

@@ -55,13 +55,34 @@ class NonEmptyParameterUsagePerContext extends ParameterUsagePerContext {
 
   @Override
   ParameterUsagePerContext externalize() {
-    return rebuild((context, usage) -> usage.externalize());
+    boolean allBottom = true;
+    boolean allTop = true;
+    for (ParameterUsage usage : backing.values()) {
+      if (!usage.isBottom()) {
+        allBottom = false;
+      }
+      if (!usage.isTop()) {
+        allTop = false;
+      }
+    }
+    if (allBottom) {
+      return bottom();
+    }
+    if (allTop) {
+      return top();
+    }
+    // Remove mappings to top. These mappings represent unknown information, which there is no point
+    // in storing. After the removal of these mappings, the result should still be non-empty.
+    ParameterUsagePerContext rebuilt =
+        rebuild((context, usage) -> usage.isTop() ? null : usage.externalize());
+    assert !rebuilt.isBottom();
+    assert !rebuilt.isTop();
+    return rebuilt;
   }
 
   @Override
   public ParameterUsage get(AnalysisContext context) {
-    assert backing.containsKey(context);
-    return backing.get(context);
+    return backing.getOrDefault(context, ParameterUsage.top());
   }
 
   @Override
@@ -72,20 +93,22 @@ class NonEmptyParameterUsagePerContext extends ParameterUsagePerContext {
       AnalysisContext context = entry.getKey();
       ParameterUsage usage = entry.getValue();
       ParameterUsage newUsage = transformation.apply(context, usage);
-      if (newUsage != usage) {
-        if (builder == null) {
-          builder = ImmutableMap.builder();
-          for (Map.Entry<AnalysisContext, ParameterUsage> previousEntry : backing.entrySet()) {
-            AnalysisContext previousContext = previousEntry.getKey();
-            if (previousContext == context) {
-              break;
+      if (newUsage != null) {
+        if (newUsage != usage) {
+          if (builder == null) {
+            builder = ImmutableMap.builder();
+            for (Map.Entry<AnalysisContext, ParameterUsage> previousEntry : backing.entrySet()) {
+              AnalysisContext previousContext = previousEntry.getKey();
+              if (previousContext == context) {
+                break;
+              }
+              builder.put(previousContext, previousEntry.getValue());
             }
-            builder.put(previousContext, previousEntry.getValue());
           }
+          builder.put(context, newUsage);
+        } else if (builder != null) {
+          builder.put(context, newUsage);
         }
-        builder.put(context, newUsage);
-      } else if (builder != null) {
-        builder.put(context, newUsage);
       }
     }
     return builder != null ? create(builder.build()) : this;

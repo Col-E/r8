@@ -83,8 +83,26 @@ public class NonEmptyParameterUsages extends ParameterUsages {
   }
 
   @Override
-  NonEmptyParameterUsages externalize() {
-    return rebuildParameters((parameter, usagePerContext) -> usagePerContext.externalize());
+  ParameterUsages externalize() {
+    NonEmptyParameterUsages rebuilt =
+        rebuildParameters((parameter, usagePerContext) -> usagePerContext.externalize());
+    boolean allBottom = true;
+    boolean allTop = true;
+    for (ParameterUsagePerContext usagePerContext : rebuilt.backing.values()) {
+      if (!usagePerContext.isBottom()) {
+        allBottom = false;
+      }
+      if (!usagePerContext.isTop()) {
+        allTop = false;
+      }
+    }
+    if (allBottom) {
+      return bottom();
+    }
+    if (allTop) {
+      return top();
+    }
+    return rebuilt;
   }
 
   @Override
@@ -101,9 +119,7 @@ public class NonEmptyParameterUsages extends ParameterUsages {
 
   @Override
   public ParameterUsagePerContext get(int parameter) {
-    assert backing.containsKey(parameter);
-    ParameterUsagePerContext value = backing.get(parameter);
-    return value != null ? value : ParameterUsagePerContext.bottom();
+    return backing.getOrDefault(parameter, ParameterUsagePerContext.top());
   }
 
   NonEmptyParameterUsages abandonClassInliningInCurrentContexts(Value value) {
