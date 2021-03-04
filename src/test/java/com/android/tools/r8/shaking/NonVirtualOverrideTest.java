@@ -44,25 +44,21 @@ import org.objectweb.asm.Opcodes;
 public class NonVirtualOverrideTest extends TestBase {
 
   private final TestParameters parameters;
-  private final boolean enableClassInlining;
   private final boolean enableVerticalClassMerging;
 
   static class Dimensions {
 
     private final Backend backend;
-    private final boolean enableClassInlining;
     private final boolean enableVerticalClassMerging;
 
-    public Dimensions(
-        Backend backend, boolean enableClassInlining, boolean enableVerticalClassMerging) {
+    public Dimensions(Backend backend, boolean enableVerticalClassMerging) {
       this.backend = backend;
-      this.enableClassInlining = enableClassInlining;
       this.enableVerticalClassMerging = enableVerticalClassMerging;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(backend, enableClassInlining, enableVerticalClassMerging);
+      return Objects.hash(backend, enableVerticalClassMerging);
     }
 
     @Override
@@ -72,23 +68,19 @@ public class NonVirtualOverrideTest extends TestBase {
       }
       Dimensions other = (Dimensions) o;
       return this.backend == other.backend
-          && this.enableClassInlining == other.enableClassInlining
           && this.enableVerticalClassMerging == other.enableVerticalClassMerging;
     }
   }
 
-  @Parameterized.Parameters(name = "Backend: {0}, class inlining: {1}, vertical class merging: {2}")
+  @Parameterized.Parameters(name = "{0}, vertical class merging: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimes().build(),
-        BooleanUtils.values(),
         BooleanUtils.values());
   }
 
-  public NonVirtualOverrideTest(
-      TestParameters parameters, boolean enableClassInlining, boolean enableVerticalClassMerging) {
+  public NonVirtualOverrideTest(TestParameters parameters, boolean enableVerticalClassMerging) {
     this.parameters = parameters;
-    this.enableClassInlining = enableClassInlining;
     this.enableVerticalClassMerging = enableVerticalClassMerging;
   }
 
@@ -162,7 +154,6 @@ public class NonVirtualOverrideTest extends TestBase {
         .addKeepMainRule(NonVirtualOverrideTestClass.class)
         .addOptionsModification(
             options -> {
-              options.enableClassInlining = dimensions.enableClassInlining;
               options.enableVerticalClassMerging = dimensions.enableVerticalClassMerging;
               options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
             })
@@ -173,18 +164,16 @@ public class NonVirtualOverrideTest extends TestBase {
   @Test
   public void test() throws Exception {
     // Run the program on Art after is has been compiled with R8.
-    String referenceResult =
-        expectedResults.apply(!enableClassInlining && isDexVmBetween5_1_1and7_0_0(parameters));
+    String referenceResult = expectedResults.apply(isDexVmBetween5_1_1and7_0_0(parameters));
     R8TestCompileResult compiled =
         compilationResults.apply(
-            new Dimensions(
-                parameters.getBackend(), enableClassInlining, enableVerticalClassMerging));
+            new Dimensions(parameters.getBackend(), enableVerticalClassMerging));
     compiled
         .run(parameters.getRuntime(), NonVirtualOverrideTestClass.class)
         .assertSuccessWithOutput(referenceResult);
 
     // Check that B is present and that it doesn't contain the unused private method m2.
-    if (!enableClassInlining && !enableVerticalClassMerging) {
+    if (!enableVerticalClassMerging) {
       CodeInspector inspector = compiled.inspector();
       ClassSubject classSubject = inspector.clazz(B.class.getName());
       assertThat(classSubject, isPresentAndRenamed());
