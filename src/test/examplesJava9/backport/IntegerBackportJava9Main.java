@@ -22,10 +22,10 @@ public final class IntegerBackportJava9Main {
   };
 
   public static void main(String[] args) {
-    testParseIntegerSubsequenceWithRadix();
+    testParseIntegerSubsequenceWithRadix(args.length == 0 || !args[0].startsWith("4."));
   }
 
-  private static void testParseIntegerSubsequenceWithRadix() {
+  private static void testParseIntegerSubsequenceWithRadix(boolean supportsPlusPrefix) {
     for (int value : interestingValues) {
       for (int radix = Character.MIN_RADIX; radix <= Character.MAX_RADIX; radix++) {
         for (String prefix : new String[] {"", "x", "xxx"}) {
@@ -34,7 +34,7 @@ public final class IntegerBackportJava9Main {
             int start = prefix.length();
             int end = valueString.length() - postfix.length();
             assertEquals(valueString, value, Integer.parseInt(valueString, start, end, radix));
-            if (value > 0) {
+            if (value > 0 && supportsPlusPrefix) {
               valueString = prefix + '+' + Long.toString(value, radix) + postfix;
               end++;
               assertEquals(valueString, value, Integer.parseInt(valueString, start, end, radix));
