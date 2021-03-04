@@ -6,35 +6,38 @@ package com.android.tools.r8.ir.optimize.classinliner.constraint;
 
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.classinliner.analysis.AnalysisContext;
-import com.android.tools.r8.ir.optimize.classinliner.analysis.AnalysisState;
 import com.android.tools.r8.ir.optimize.classinliner.analysis.NonEmptyParameterUsage;
+import com.android.tools.r8.ir.optimize.classinliner.analysis.NonEmptyParameterUsages;
 import com.android.tools.r8.ir.optimize.classinliner.analysis.ParameterUsage;
 import com.android.tools.r8.ir.optimize.classinliner.analysis.ParameterUsagePerContext;
+import com.android.tools.r8.ir.optimize.classinliner.analysis.ParameterUsages;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 public class ConditionalClassInlinerMethodConstraint implements ClassInlinerMethodConstraint {
 
-  private final AnalysisState usages;
+  private final ParameterUsages usages;
 
-  public ConditionalClassInlinerMethodConstraint(AnalysisState usages) {
+  public ConditionalClassInlinerMethodConstraint(ParameterUsages usages) {
+    assert !usages.isTop();
     this.usages = usages;
   }
 
   @Override
   public ClassInlinerMethodConstraint fixupAfterRemovingThisParameter() {
-    // TODO(b/181746071): Introduce a 'TOP' variant to reduce memory usage and add check here.
     if (usages.isBottom()) {
       return this;
     }
     Int2ObjectMap<ParameterUsagePerContext> backing = new Int2ObjectOpenHashMap<>();
-    usages.forEach(
-        (parameter, usagePerContext) -> {
-          if (parameter > 0) {
-            backing.put(parameter - 1, usagePerContext);
-          }
-        });
-    return new ConditionalClassInlinerMethodConstraint(AnalysisState.create(backing));
+    usages
+        .asNonEmpty()
+        .forEach(
+            (parameter, usagePerContext) -> {
+              if (parameter > 0) {
+                backing.put(parameter - 1, usagePerContext);
+              }
+            });
+    return new ConditionalClassInlinerMethodConstraint(NonEmptyParameterUsages.create(backing));
   }
 
   @Override

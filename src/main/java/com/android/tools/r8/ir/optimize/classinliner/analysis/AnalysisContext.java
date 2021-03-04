@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
 /**
- * The context used for the {@link AnalysisState} lattice.
+ * The context used for the {@link ParameterUsages} lattice.
  *
  * <p>By only using {@link DefaultAnalysisContext} a context-insensitive result is achieved.
  * Context-sensitive results can be achieved by forking different analysis contexts during the class

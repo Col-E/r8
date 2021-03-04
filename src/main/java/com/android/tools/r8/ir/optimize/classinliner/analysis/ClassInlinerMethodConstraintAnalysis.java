@@ -17,20 +17,30 @@ public class ClassInlinerMethodConstraintAnalysis {
 
   public static ClassInlinerMethodConstraint analyze(
       AppView<AppInfoWithLiveness> appView, ProgramMethod method, IRCode code) {
-    if (method.getDefinition().isClassInitializer()) {
+    if (method.getDefinition().isClassInitializer()
+        || method.getDefinition().getNumberOfArguments() == 0) {
       return ClassInlinerMethodConstraint.alwaysFalse();
     }
 
     // Analyze code.
-    IntraproceduralDataflowAnalysis<AnalysisState> analysis =
+    IntraproceduralDataflowAnalysis<ParameterUsages> analysis =
         new IntraproceduralDataflowAnalysis<>(
-            AnalysisState.bottom(), new TransferFunction(appView, method));
-    SuccessfulDataflowAnalysisResult<AnalysisState> result =
+            ParameterUsages.bottom(), new TransferFunction(appView, method));
+    SuccessfulDataflowAnalysisResult<ParameterUsages> result =
         analysis.run(code.entryBlock()).asSuccessfulAnalysisResult();
     if (result == null) {
       return ClassInlinerMethodConstraint.alwaysFalse();
     }
 
-    return new ConditionalClassInlinerMethodConstraint(result.join().externalize());
+    // TODO(b/181746071): This always returns a non-empty result, that should be transformed into
+    //  bottom or top.
+    ParameterUsages usages = result.join();
+    if (usages.isBottom()) {
+      return ClassInlinerMethodConstraint.alwaysTrue();
+    }
+    if (usages.isTop()) {
+      return ClassInlinerMethodConstraint.alwaysFalse();
+    }
+    return new ConditionalClassInlinerMethodConstraint(usages.externalize());
   }
 }

@@ -80,7 +80,7 @@ public abstract class ParameterUsage {
 
   abstract ParameterUsage setParameterUsedAsLock();
 
-  static BottomParameterUsage bottom() {
+  public static BottomParameterUsage bottom() {
     return BottomParameterUsage.getInstance();
   }
 

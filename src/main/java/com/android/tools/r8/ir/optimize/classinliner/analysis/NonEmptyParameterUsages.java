@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
-import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractState;
 import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.ArrayUtils;
@@ -12,7 +11,6 @@ import com.android.tools.r8.utils.Int2ObjectMapUtils;
 import com.android.tools.r8.utils.IntObjConsumer;
 import com.android.tools.r8.utils.IntObjToObjFunction;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -63,43 +61,34 @@ import java.util.function.Predicate;
  * <p>Finally, to provide the information for each method parameter, this class provides a mapping
  * from parameters to {@link ParameterUsagePerContext}.
  */
-public class AnalysisState extends AbstractState<AnalysisState> {
+public class NonEmptyParameterUsages extends ParameterUsages {
 
-  private static final AnalysisState BOTTOM = new AnalysisState();
   private static final AssumeAndCheckCastAliasedValueConfiguration aliasedValueConfiguration =
       AssumeAndCheckCastAliasedValueConfiguration.getInstance();
 
   private final Int2ObjectMap<ParameterUsagePerContext> backing;
 
-  private AnalysisState() {
-    this.backing = Int2ObjectMaps.emptyMap();
-  }
-
-  private AnalysisState(Int2ObjectMap<ParameterUsagePerContext> backing) {
+  private NonEmptyParameterUsages(Int2ObjectMap<ParameterUsagePerContext> backing) {
     assert !backing.isEmpty() : "Should use bottom() instead";
     this.backing = backing;
   }
 
-  static AnalysisState bottom() {
-    return BOTTOM;
+  public static ParameterUsages create(Int2ObjectMap<ParameterUsagePerContext> backing) {
+    return backing.isEmpty() ? bottom() : new NonEmptyParameterUsages(backing);
   }
 
-  public static AnalysisState create(Int2ObjectMap<ParameterUsagePerContext> backing) {
-    return backing.isEmpty() ? bottom() : new AnalysisState(backing);
+  @Override
+  public NonEmptyParameterUsages asNonEmpty() {
+    return this;
   }
 
-  /**
-   * Converts instances of {@link InternalNonEmptyParameterUsage} to {@link NonEmptyParameterUsage}.
-   *
-   * <p>This is needed because {@link InternalNonEmptyParameterUsage} is not suitable for being
-   * stored in {@link com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo}, since it
-   * contains references to IR instructions.
-   */
-  AnalysisState externalize() {
+  @Override
+  NonEmptyParameterUsages externalize() {
     return rebuildParameters((parameter, usagePerContext) -> usagePerContext.externalize());
   }
 
-  AnalysisState put(int parameter, ParameterUsagePerContext parameterUsagePerContext) {
+  @Override
+  ParameterUsages put(int parameter, ParameterUsagePerContext parameterUsagePerContext) {
     Int2ObjectOpenHashMap<ParameterUsagePerContext> newBacking =
         new Int2ObjectOpenHashMap<>(backing);
     newBacking.put(parameter, parameterUsagePerContext);
@@ -110,22 +99,18 @@ public class AnalysisState extends AbstractState<AnalysisState> {
     Int2ObjectMapUtils.forEach(backing, consumer);
   }
 
+  @Override
   public ParameterUsagePerContext get(int parameter) {
     assert backing.containsKey(parameter);
     ParameterUsagePerContext value = backing.get(parameter);
     return value != null ? value : ParameterUsagePerContext.bottom();
   }
 
-  public boolean isBottom() {
-    assert !backing.isEmpty() || this == bottom();
-    return backing.isEmpty();
-  }
-
-  AnalysisState abandonClassInliningInCurrentContexts(Value value) {
+  NonEmptyParameterUsages abandonClassInliningInCurrentContexts(Value value) {
     return rebuildParameter(value, (context, usage) -> ParameterUsage.top());
   }
 
-  AnalysisState abandonClassInliningInCurrentContexts(Collection<Value> values) {
+  NonEmptyParameterUsages abandonClassInliningInCurrentContexts(Collection<Value> values) {
     if (values.isEmpty()) {
       return this;
     }
@@ -141,7 +126,7 @@ public class AnalysisState extends AbstractState<AnalysisState> {
                 : usagePerContext);
   }
 
-  AnalysisState abandonClassInliningInCurrentContexts(
+  NonEmptyParameterUsages abandonClassInliningInCurrentContexts(
       Iterable<Value> values, Predicate<Value> predicate) {
     List<Value> filtered = new ArrayList<>();
     for (Value value : values) {
@@ -153,7 +138,7 @@ public class AnalysisState extends AbstractState<AnalysisState> {
     return abandonClassInliningInCurrentContexts(filtered);
   }
 
-  AnalysisState rebuildParameter(
+  NonEmptyParameterUsages rebuildParameter(
       Value value, BiFunction<AnalysisContext, ParameterUsage, ParameterUsage> transformation) {
     Value valueRoot = value.getAliasedValue(aliasedValueConfiguration);
     assert valueRoot.isArgument();
@@ -165,7 +150,7 @@ public class AnalysisState extends AbstractState<AnalysisState> {
                 : usagePerContext);
   }
 
-  AnalysisState rebuildParameters(
+  NonEmptyParameterUsages rebuildParameters(
       IntObjToObjFunction<ParameterUsagePerContext, ParameterUsagePerContext> transformation) {
     Int2ObjectMap<ParameterUsagePerContext> rebuiltBacking = null;
     for (Int2ObjectMap.Entry<ParameterUsagePerContext> entry : backing.int2ObjectEntrySet()) {
@@ -190,16 +175,10 @@ public class AnalysisState extends AbstractState<AnalysisState> {
         rebuiltBacking.put(parameter, newUsagePerContext);
       }
     }
-    return rebuiltBacking != null ? create(rebuiltBacking) : this;
+    return rebuiltBacking != null ? new NonEmptyParameterUsages(rebuiltBacking) : this;
   }
 
-  @Override
-  public AnalysisState asAbstractState() {
-    return this;
-  }
-
-  @Override
-  public AnalysisState join(AnalysisState otherAnalysisState) {
+  public NonEmptyParameterUsages join(NonEmptyParameterUsages otherAnalysisState) {
     if (isBottom()) {
       return otherAnalysisState;
     }
@@ -214,7 +193,7 @@ public class AnalysisState extends AbstractState<AnalysisState> {
                 parameterUsagePerContext.join(
                     Int2ObjectMapUtils.getOrDefault(
                         newBacking, parameter, ParameterUsagePerContext.bottom()))));
-    return AnalysisState.create(newBacking);
+    return new NonEmptyParameterUsages(newBacking);
   }
 
   @Override
@@ -222,7 +201,7 @@ public class AnalysisState extends AbstractState<AnalysisState> {
     if (other == null || getClass() != other.getClass()) {
       return false;
     }
-    AnalysisState analysisState = (AnalysisState) other;
+    NonEmptyParameterUsages analysisState = (NonEmptyParameterUsages) other;
     return backing.equals(analysisState.backing);
   }
 

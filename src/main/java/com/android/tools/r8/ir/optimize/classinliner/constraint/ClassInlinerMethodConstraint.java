@@ -20,4 +20,8 @@ public interface ClassInlinerMethodConstraint {
   static AlwaysFalseClassInlinerMethodConstraint alwaysFalse() {
     return AlwaysFalseClassInlinerMethodConstraint.getInstance();
   }
+
+  static AlwaysTrueClassInlinerMethodConstraint alwaysTrue() {
+    return AlwaysTrueClassInlinerMethodConstraint.getInstance();
+  }
 }

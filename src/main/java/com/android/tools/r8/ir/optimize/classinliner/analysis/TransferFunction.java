@@ -22,7 +22,6 @@ import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractTransferFunction;
-import com.android.tools.r8.ir.analysis.framework.intraprocedural.TransferFunctionResult;
 import com.android.tools.r8.ir.code.AliasedValueConfiguration;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.Assume;
@@ -45,7 +44,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
-class TransferFunction implements AbstractTransferFunction<AnalysisState> {
+class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
 
   private static final AliasedValueConfiguration aliasedValueConfiguration =
       AssumeAndCheckCastAliasedValueConfiguration.getInstance();
@@ -73,7 +72,7 @@ class TransferFunction implements AbstractTransferFunction<AnalysisState> {
   }
 
   @Override
-  public TransferFunctionResult<AnalysisState> apply(Instruction instruction, AnalysisState state) {
+  public ParameterUsages apply(Instruction instruction, ParameterUsages state) {
     if (instruction.isArgument()) {
       return analyzeArgument(instruction.asArgument(), state);
     }
@@ -82,6 +81,12 @@ class TransferFunction implements AbstractTransferFunction<AnalysisState> {
       // purpose of class inlining we can ignore this instruction.
       return state;
     }
+    assert !state.isBottom();
+    assert !state.isTop();
+    return apply(instruction, state.asNonEmpty());
+  }
+
+  private ParameterUsages apply(Instruction instruction, NonEmptyParameterUsages state) {
     switch (instruction.opcode()) {
       case ASSUME:
         return analyzeAssume(instruction.asAssume(), state);
@@ -111,8 +116,8 @@ class TransferFunction implements AbstractTransferFunction<AnalysisState> {
   }
 
   @Override
-  public AnalysisState computeBlockEntryState(
-      BasicBlock block, BasicBlock predecessor, AnalysisState predecessorExitState) {
+  public ParameterUsages computeBlockEntryState(
+      BasicBlock block, BasicBlock predecessor, ParameterUsages predecessorExitState) {
     // TODO(b/173337498): Fork a new `FIELD=x` analysis context for the successor block if the
     //  predecessor ends with an if or switch instruction, and the successor block is the
     //  `FIELD=x` target of the predecessor. To avoid an excessive number of contexts being
@@ -121,8 +126,7 @@ class TransferFunction implements AbstractTransferFunction<AnalysisState> {
     return predecessorExitState;
   }
 
-  private TransferFunctionResult<AnalysisState> analyzeArgument(
-      Argument argument, AnalysisState state) {
+  private ParameterUsages analyzeArgument(Argument argument, ParameterUsages state) {
     // Only consider arguments that could store an instance eligible for class inlining. Note that
     // we can't ignore parameters with a library type, since instances of program classes could
     // still flow into such parameters.
@@ -138,18 +142,17 @@ class TransferFunction implements AbstractTransferFunction<AnalysisState> {
     return state.put(argument.getIndex(), NonEmptyParameterUsagePerContext.createInitial());
   }
 
-  private TransferFunctionResult<AnalysisState> analyzeAssume(Assume assume, AnalysisState state) {
+  private ParameterUsages analyzeAssume(Assume assume, NonEmptyParameterUsages state) {
     // Mark the value as ineligible for class inlining if it has phi users.
     return assume.outValue().hasPhiUsers() ? fail(assume, state) : state;
   }
 
-  private TransferFunctionResult<AnalysisState> analyzeCheckCast(
-      CheckCast checkCast, AnalysisState state) {
+  private ParameterUsages analyzeCheckCast(CheckCast checkCast, NonEmptyParameterUsages state) {
     // Mark the value as ineligible for class inlining if it has phi users.
     return checkCast.outValue().hasPhiUsers() ? fail(checkCast, state) : state;
   }
 
-  private TransferFunctionResult<AnalysisState> analyzeIf(If theIf, AnalysisState state) {
+  private ParameterUsages analyzeIf(If theIf, NonEmptyParameterUsages state) {
     // Null/not-null tests are ok.
     if (theIf.isZeroTest()) {
       assert argumentsOfInterest.contains(theIf.lhs().getAliasedValue(aliasedValueConfiguration));
@@ -160,8 +163,8 @@ class TransferFunction implements AbstractTransferFunction<AnalysisState> {
     return fail(theIf, state);
   }
 
-  private TransferFunctionResult<AnalysisState> analyzeInstanceGet(
-      InstanceGet instanceGet, AnalysisState state) {
+  private ParameterUsages analyzeInstanceGet(
+      InstanceGet instanceGet, NonEmptyParameterUsages state) {
     // Instance field reads are OK, as long as the field resolves, since the class inliner will
     // just replace the field read by the value of the field.
     FieldResolutionResult resolutionResult = appView.appInfo().resolveField(instanceGet.getField());
@@ -176,8 +179,8 @@ class TransferFunction implements AbstractTransferFunction<AnalysisState> {
     return fail(instanceGet, state);
   }
 
-  private TransferFunctionResult<AnalysisState> analyzeInstancePut(
-      InstancePut instancePut, AnalysisState state) {
+  private ParameterUsages analyzeInstancePut(
+      InstancePut instancePut, NonEmptyParameterUsages state) {
     // Instance field writes are OK, as long as the field resolves and the receiver is not being
     // assigned (in that case the receiver escapes, and thus it is not eligible for class
     // inlining).
@@ -199,8 +202,7 @@ class TransferFunction implements AbstractTransferFunction<AnalysisState> {
     }
   }
 
-  private TransferFunctionResult<AnalysisState> analyzeInvokeDirect(
-      InvokeDirect invoke, AnalysisState state) {
+  private ParameterUsages analyzeInvokeDirect(InvokeDirect invoke, NonEmptyParameterUsages state) {
     // We generally don't class inline instances that escape through invoke-direct calls, but we
     // make an exception for forwarding/parent constructor calls that does not leak the receiver.
     state =
@@ -242,8 +244,8 @@ class TransferFunction implements AbstractTransferFunction<AnalysisState> {
     return state;
   }
 
-  private TransferFunctionResult<AnalysisState> analyzeInvokeInterface(
-      InvokeInterface invoke, AnalysisState state) {
+  private ParameterUsages analyzeInvokeInterface(
+      InvokeInterface invoke, NonEmptyParameterUsages state) {
     // We only allow invoke-interface instructions where the parameter is in the receiver position.
     state =
         state.abandonClassInliningInCurrentContexts(
@@ -264,8 +266,7 @@ class TransferFunction implements AbstractTransferFunction<AnalysisState> {
         receiverRoot, (context, usage) -> usage.addMethodCallWithParameterAsReceiver(invoke));
   }
 
-  private TransferFunctionResult<AnalysisState> analyzeInvokeStatic(
-      InvokeStatic invoke, AnalysisState state) {
+  private ParameterUsages analyzeInvokeStatic(InvokeStatic invoke, NonEmptyParameterUsages state) {
     // We generally don't class inline instances that escape through invoke-static calls, but we
     // make an exception for calls to Objects.requireNonNull().
     SingleResolutionResult resolutionResult =
@@ -282,8 +283,8 @@ class TransferFunction implements AbstractTransferFunction<AnalysisState> {
     return fail(invoke, state);
   }
 
-  private TransferFunctionResult<AnalysisState> analyzeInvokeVirtual(
-      InvokeVirtual invoke, AnalysisState state) {
+  private ParameterUsages analyzeInvokeVirtual(
+      InvokeVirtual invoke, NonEmptyParameterUsages state) {
     // We only allow invoke-virtual instructions where the parameter is in the receiver position.
     state =
         state.abandonClassInliningInCurrentContexts(
@@ -304,21 +305,19 @@ class TransferFunction implements AbstractTransferFunction<AnalysisState> {
         receiverRoot, (context, usage) -> usage.addMethodCallWithParameterAsReceiver(invoke));
   }
 
-  private TransferFunctionResult<AnalysisState> analyzeMonitor(
-      Monitor monitor, AnalysisState state) {
+  private ParameterUsages analyzeMonitor(Monitor monitor, NonEmptyParameterUsages state) {
     // Record that the receiver is used as a lock in each context that may reach this monitor
     // instruction.
     return state.rebuildParameter(
         monitor.object(), (context, usage) -> usage.setParameterUsedAsLock());
   }
 
-  private TransferFunctionResult<AnalysisState> analyzeReturn(
-      Return theReturn, AnalysisState state) {
+  private ParameterUsages analyzeReturn(Return theReturn, NonEmptyParameterUsages state) {
     return state.rebuildParameter(
         theReturn.returnValue(), (context, usage) -> usage.setParameterReturned());
   }
 
-  private TransferFunctionResult<AnalysisState> fail(Instruction instruction, AnalysisState state) {
+  private ParameterUsages fail(Instruction instruction, NonEmptyParameterUsages state) {
     return state.abandonClassInliningInCurrentContexts(
         instruction.inValues(), this::isArgumentOfInterest);
   }
