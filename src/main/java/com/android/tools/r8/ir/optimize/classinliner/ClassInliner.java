@@ -224,6 +224,8 @@ public final class ClassInliner {
           anyInlinedMethods = true;
         }
 
+        assert inliningIRProvider.verifyIRCacheIsEmpty();
+
         // Restore normality.
         code.removeAllDeadAndTrivialPhis(affectedValues);
         if (!affectedValues.isEmpty()) {
