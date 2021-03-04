@@ -53,6 +53,10 @@ public abstract class AbstractValue {
     return false;
   }
 
+  public SingleConstValue asSingleConstValue() {
+    return null;
+  }
+
   public boolean isSingleConstClassValue() {
     return false;
   }

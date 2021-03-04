@@ -10,4 +10,9 @@ public abstract class SingleConstValue extends SingleValue {
   public boolean isSingleConstValue() {
     return true;
   }
+
+  @Override
+  public SingleConstValue asSingleConstValue() {
+    return this;
+  }
 }

@@ -10,6 +10,7 @@ import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -25,16 +26,19 @@ import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.ObjectState;
+import com.android.tools.r8.ir.analysis.value.SingleConstValue;
 import com.android.tools.r8.ir.code.AliasedValueConfiguration;
 import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
-import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -59,14 +63,11 @@ import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.OptionalBool;
-import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -93,6 +94,7 @@ final class InlineCandidateProcessor {
 
   private Value eligibleInstance;
   private DexProgramClass eligibleClass;
+  private ObjectState objectState;
 
   private final Map<InvokeMethodWithReceiver, InliningInfo> methodCallsOnInstance =
       new IdentityHashMap<>();
@@ -100,8 +102,6 @@ final class InlineCandidateProcessor {
   private final ProgramMethodSet indirectMethodCallsOnInstance = ProgramMethodSet.create();
   private final Map<InvokeMethod, InliningInfo> extraMethodCalls
       = new IdentityHashMap<>();
-  private final List<Pair<InvokeMethod, Integer>> unusedArguments
-      = new ArrayList<>();
 
   private final Map<InvokeMethod, ProgramMethod> directInlinees = new IdentityHashMap<>();
   private final List<ProgramMethod> indirectInlinees = new ArrayList<>();
@@ -191,6 +191,11 @@ final class InlineCandidateProcessor {
     if (eligibleClass == null) {
       return EligibilityStatus.NOT_ELIGIBLE;
     }
+    AbstractValue abstractValue = optimizationInfo.getAbstractValue();
+    objectState =
+        abstractValue.isSingleFieldValue()
+            ? abstractValue.asSingleFieldValue().getState()
+            : ObjectState.empty();
     return EligibilityStatus.ELIGIBLE;
   }
 
@@ -382,7 +387,6 @@ final class InlineCandidateProcessor {
   // Process inlining, includes the following steps:
   //
   //  * remove linked assume instructions if any so that users of the eligible field are up-to-date.
-  //  * replace unused instance usages as arguments which are never used
   //  * inline extra methods if any, collect new direct method calls
   //  * inline direct methods if any
   //  * remove superclass initializer call and field reads
@@ -398,7 +402,6 @@ final class InlineCandidateProcessor {
       throws IllegalClassInlinerStateException {
     // Verify that `eligibleInstance` is not aliased.
     assert eligibleInstance == eligibleInstance.getAliasedValue();
-    replaceUsagesAsUnusedArgument(code);
 
     boolean anyInlinedMethods = forceInlineExtraMethodInvocations(code, inliningIRProvider);
     if (anyInlinedMethods) {
@@ -412,8 +415,6 @@ final class InlineCandidateProcessor {
       }
       assert extraMethodCalls.isEmpty()
           : "Remaining extra method calls: " + StringUtils.join(extraMethodCalls.entrySet(), ", ");
-      assert unusedArguments.isEmpty()
-          : "Remaining unused arg: " + StringUtils.join(unusedArguments, ", ");
     }
 
     anyInlinedMethods |= forceInlineDirectMethodInvocations(code, inliningIRProvider);
@@ -431,24 +432,7 @@ final class InlineCandidateProcessor {
     methodCallsOnInstance.clear();
     indirectMethodCallsOnInstance.clear();
     extraMethodCalls.clear();
-    unusedArguments.clear();
     receivers.reset();
-  }
-
-  private void replaceUsagesAsUnusedArgument(IRCode code) {
-    for (Pair<InvokeMethod, Integer> unusedArgument : unusedArguments) {
-      InvokeMethod invoke = unusedArgument.getFirst();
-      BasicBlock block = invoke.getBlock();
-
-      ConstNumber nullValue = code.createConstNull();
-      nullValue.setPosition(invoke.getPosition());
-      block.listIterator(code, invoke).add(nullValue);
-      assert nullValue.getBlock() == block;
-
-      int argIndex = unusedArgument.getSecond();
-      invoke.replaceValue(argIndex, nullValue.outValue());
-    }
-    unusedArguments.clear();
   }
 
   private boolean forceInlineExtraMethodInvocations(
@@ -733,11 +717,24 @@ final class InlineCandidateProcessor {
 
   // Replace field reads with appropriate values, insert phis when needed.
   private void removeFieldReads(IRCode code) {
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    if (root.isNewInstance()) {
+      removeFieldReadsFromNewInstance(code, affectedValues);
+    } else {
+      assert root.isStaticGet();
+      removeFieldReadsFromStaticGet(code, affectedValues);
+    }
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
+  }
+
+  private void removeFieldReadsFromNewInstance(IRCode code, Set<Value> affectedValues) {
     TreeSet<InstanceGet> uniqueInstanceGetUsersWithDeterministicOrder =
         new TreeSet<>(Comparator.comparingInt(x -> x.outValue().getNumber()));
     for (Instruction user : eligibleInstance.uniqueUsers()) {
       if (user.isInstanceGet()) {
-        if (user.outValue().hasAnyUsers()) {
+        if (user.hasUsedOutValue()) {
           uniqueInstanceGetUsersWithDeterministicOrder.add(user.asInstanceGet());
         } else {
           removeInstruction(user);
@@ -748,6 +745,7 @@ final class InlineCandidateProcessor {
       if (user.isInstancePut()) {
         // Skip in this iteration since these instructions are needed to properly calculate what
         // value should field reads be replaced with.
+        assert root.isNewInstance();
         continue;
       }
 
@@ -761,12 +759,15 @@ final class InlineCandidateProcessor {
     Map<DexField, FieldValueHelper> fieldHelpers = new IdentityHashMap<>();
     for (InstanceGet user : uniqueInstanceGetUsersWithDeterministicOrder) {
       // Replace a field read with appropriate value.
-      replaceFieldRead(code, user, fieldHelpers);
+      removeFieldReadFromNewInstance(code, user, affectedValues, fieldHelpers);
     }
   }
 
-  private void replaceFieldRead(
-      IRCode code, InstanceGet fieldRead, Map<DexField, FieldValueHelper> fieldHelpers) {
+  private void removeFieldReadFromNewInstance(
+      IRCode code,
+      InstanceGet fieldRead,
+      Set<Value> affectedValues,
+      Map<DexField, FieldValueHelper> fieldHelpers) {
     Value value = fieldRead.outValue();
     if (value != null) {
       FieldValueHelper helper =
@@ -781,10 +782,87 @@ final class InlineCandidateProcessor {
       // `newValue` could be a phi introduced by FieldValueHelper. Its initial type is set as the
       // type of read field, but it could be more precise than that due to (multiple) inlining.
       // In addition to values affected by `newValue`, it's necessary to revisit `newValue` itself.
-      new TypeAnalysis(appView).narrowing(
-          Iterables.concat(ImmutableSet.of(newValue), newValue.affectedValues()));
+      affectedValues.add(newValue);
+      affectedValues.addAll(newValue.affectedValues());
     }
     removeInstruction(fieldRead);
+  }
+
+  private void removeFieldReadsFromStaticGet(IRCode code, Set<Value> affectedValues) {
+    Set<BasicBlock> seen = Sets.newIdentityHashSet();
+    Set<Instruction> users = eligibleInstance.uniqueUsers();
+    for (Instruction user : users) {
+      BasicBlock block = user.getBlock();
+      if (!seen.add(block)) {
+        continue;
+      }
+
+      InstructionListIterator instructionIterator = block.listIterator(code);
+      while (instructionIterator.hasNext()) {
+        Instruction instruction = instructionIterator.next();
+        if (!users.contains(instruction)) {
+          continue;
+        }
+
+        if (user.isInstanceGet()) {
+          if (user.hasUsedOutValue()) {
+            replaceFieldReadFromStaticGet(
+                code, instructionIterator, user.asInstanceGet(), affectedValues);
+          } else {
+            instructionIterator.removeOrReplaceByDebugLocalRead();
+          }
+          continue;
+        }
+
+        if (user.isInstancePut()) {
+          instructionIterator.removeOrReplaceByDebugLocalRead();
+          continue;
+        }
+
+        throw new Unreachable(
+            "Unexpected usage left in method `"
+                + method.toSourceString()
+                + "` after inlining: "
+                + user);
+      }
+    }
+  }
+
+  private void replaceFieldReadFromStaticGet(
+      IRCode code,
+      InstructionListIterator instructionIterator,
+      InstanceGet fieldRead,
+      Set<Value> affectedValues) {
+    DexField fieldReference = fieldRead.getField();
+    DexClass holder = appView.definitionFor(fieldReference.getHolderType(), method);
+    DexEncodedField field = fieldReference.lookupOnClass(holder);
+    if (field == null) {
+      throw reportUnknownFieldReadFromSingleton(fieldRead);
+    }
+
+    AbstractValue abstractValue = objectState.getAbstractFieldValue(field);
+    if (!abstractValue.isSingleConstValue()) {
+      throw reportUnknownFieldReadFromSingleton(fieldRead);
+    }
+
+    SingleConstValue singleConstValue = abstractValue.asSingleConstValue();
+    if (!singleConstValue.isMaterializableInContext(appView, method)) {
+      throw reportUnknownFieldReadFromSingleton(fieldRead);
+    }
+
+    Instruction replacement =
+        singleConstValue.createMaterializingInstruction(appView, code, fieldRead);
+    instructionIterator.replaceCurrentInstruction(replacement, affectedValues);
+  }
+
+  private RuntimeException reportUnknownFieldReadFromSingleton(InstanceGet fieldRead) {
+    throw appView
+        .reporter()
+        .fatalError(
+            "Unexpected usage left in method `"
+                + method.toSourceString()
+                + "` after inlining: "
+                + fieldRead.toString());
   }
 
   private void removeFieldWrites() {
@@ -796,6 +874,9 @@ final class InlineCandidateProcessor {
                 + "` after field reads removed: "
                 + user);
       }
+
+      assert root.isNewInstance();
+
       InstancePut instancePut = user.asInstancePut();
       DexEncodedField field =
           appView
@@ -1111,7 +1192,7 @@ final class InlineCandidateProcessor {
 
     assert root.isStaticGet();
     return classInlinerMethodConstraint.isEligibleForStaticGetClassInlining(
-        singleTarget, parameter);
+        appView, parameter, objectState, method);
   }
 
   private boolean isExtraMethodCall(InvokeMethod invoke) {
@@ -1135,10 +1216,6 @@ final class InlineCandidateProcessor {
 
   // Analyzes if a method invoke the eligible instance is passed to is eligible. In short,
   // it can be eligible if:
-  //
-  //   -- eligible instance is passed as argument #N which is not used in the method,
-  //      such cases are collected in 'unusedArguments' parameter and later replaced
-  //      with 'null' value
   //
   //   -- eligible instance is passed as argument #N which is only used in the method to
   //      call a method on this object (we call it indirect method call), and method is

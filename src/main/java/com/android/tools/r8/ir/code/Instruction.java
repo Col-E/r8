@@ -309,7 +309,11 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
   }
 
   public void replace(Instruction newInstruction, IRCode code) {
-    getBlock().listIterator(code, this).replaceCurrentInstruction(newInstruction);
+    replace(newInstruction, code, null);
+  }
+
+  public void replace(Instruction newInstruction, IRCode code, Set<Value> affectedValues) {
+    getBlock().listIterator(code, this).replaceCurrentInstruction(newInstruction, affectedValues);
   }
 
   /**
