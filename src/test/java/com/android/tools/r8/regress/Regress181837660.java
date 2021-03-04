@@ -5,6 +5,7 @@
 package com.android.tools.r8.regress;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
@@ -56,8 +57,29 @@ public class Regress181837660 extends SplitterTestBase {
     assertTrue(processResult.stderr.contains("NoClassDefFoundError"));
   }
 
+  @Test
+  public void testRegress181571571() throws Exception {
+    ProcessResult processResult =
+        testR8Splitter(
+            parameters,
+            ImmutableSet.of(BaseClass.class),
+            ImmutableSet.of(FeatureClass.class),
+            FeatureClass.class,
+            b -> {},
+            this::configureNoInlineAnnotations);
+    // TODO(b/181571571): This should not succeed as illustrated by non inlining case
+    assertEquals(0, processResult.exitCode);
+    // We can't actually read the field since it is in the feature.
+    assertFalse(processResult.stderr.contains("NoClassDefFoundError"));
+  }
+
   private void configure(R8FullTestBuilder testBuilder) throws NoSuchMethodException {
     testBuilder.enableInliningAnnotations().noMinification().setMinApi(parameters.getApiLevel());
+  }
+
+  private void configureNoInlineAnnotations(R8FullTestBuilder testBuilder)
+      throws NoSuchMethodException {
+    testBuilder.noMinification().setMinApi(parameters.getApiLevel());
   }
 
   public static class BaseClass {
