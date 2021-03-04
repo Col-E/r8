@@ -1017,13 +1017,13 @@ def print_golem_config(options):
       indentation = 2;
       print_indented('{', indentation)
       indentation = 4
-      print_indented('var name = "%s";' % app.name, indentation)
-      print_indented('var benchmark =', indentation)
+      print_indented('final name = "%s";' % app.name, indentation)
+      print_indented('final benchmark =', indentation)
       print_indented(
           'new StandardBenchmark(name, [Metric.RunTimeRaw, Metric.CodeSize]);',
           indentation + 4)
       print_indented(
-          'var options = benchmark.addTargets(noImplementation, ["R8"]);',
+          'final options = benchmark.addTargets(noImplementation, ["R8"]);',
           indentation)
       print_indented('options.cpus = cpus;', indentation)
       print_indented('options.isScript = true;', indentation)
@@ -1036,7 +1036,7 @@ def print_golem_config(options):
       download_app(app_sha, app.internal, quiet=True)
       sha256 = get_sha256(app_gz)
       sha = get_sha_from_file(app_sha)
-      print_indented('var resource = BenchmarkResource("",', indentation)
+      print_indented('final resource = BenchmarkResource("",', indentation)
       print_indented('type: BenchmarkResourceType.Storage,', indentation + 4)
       print_indented('uri: "gs://r8-deps/%s",' % sha, indentation + 4)
       print_indented('hash:', indentation + 4)
