@@ -598,6 +598,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     return isFinal();
   }
 
+  @Override
   public boolean isInterface() {
     return accessFlags.isInterface();
   }

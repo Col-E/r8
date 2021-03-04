@@ -1096,6 +1096,14 @@ public class IRCode implements ValueFactory {
     return arguments;
   }
 
+  public Argument getLastArgument() {
+    InstructionIterator instructionIterator = entryBlock().iterator(getNumberOfArguments() - 1);
+    Argument lastArgument = instructionIterator.next().asArgument();
+    assert lastArgument != null;
+    assert !instructionIterator.peekNext().isArgument();
+    return lastArgument;
+  }
+
   public Value getThis() {
     if (method().accessFlags.isStatic()) {
       return null;

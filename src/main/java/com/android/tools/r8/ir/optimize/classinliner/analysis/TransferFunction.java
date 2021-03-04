@@ -17,17 +17,25 @@ import static com.android.tools.r8.ir.code.Opcodes.MONITOR;
 import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClasspathOrLibraryClass;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractTransferFunction;
+import com.android.tools.r8.ir.analysis.framework.intraprocedural.FailedTransferFunctionResult;
+import com.android.tools.r8.ir.analysis.framework.intraprocedural.TransferFunctionResult;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.AliasedValueConfiguration;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
+import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -53,6 +61,9 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
   private final DexItemFactory dexItemFactory;
   private final ProgramMethod method;
 
+  // The last argument instruction.
+  private final Argument lastArgument;
+
   // Caches the parent or forwarding constructor call (only used in constructors).
   private InvokeDirect constructorInvoke;
 
@@ -65,16 +76,26 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
   // skipped.
   private Set<Instruction> instructionsOfInterest = Sets.newIdentityHashSet();
 
-  TransferFunction(AppView<AppInfoWithLiveness> appView, ProgramMethod method) {
+  TransferFunction(AppView<AppInfoWithLiveness> appView, ProgramMethod method, IRCode code) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.method = method;
+    this.lastArgument = code.getLastArgument();
   }
 
   @Override
-  public ParameterUsages apply(Instruction instruction, ParameterUsages state) {
+  public TransferFunctionResult<ParameterUsages> apply(
+      Instruction instruction, ParameterUsages state) {
     if (instruction.isArgument()) {
-      return analyzeArgument(instruction.asArgument(), state);
+      Argument argument = instruction.asArgument();
+      ParameterUsages result = analyzeArgument(argument, state);
+      // After analyzing the last argument instruction, only proceed if there is at least one
+      // argument that may be eligible for class inlining.
+      if (argument == lastArgument
+          && result.asNonEmpty().allMatch((context, usagePerContext) -> usagePerContext.isTop())) {
+        return new FailedTransferFunctionResult<>();
+      }
+      return result;
     }
     if (!instructionsOfInterest.contains(instruction)) {
       // The instruction does not use any of the argument values that we are analyzing, so for the
@@ -131,7 +152,7 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
     // we can't ignore parameters with a library type, since instances of program classes could
     // still flow into such parameters.
     Value value = argument.outValue();
-    if (!value.getType().isClassType() || value.hasPhiUsers()) {
+    if (!isMaybeEligibleForClassInlining(value.getType()) || value.hasPhiUsers()) {
       return state.put(argument.getIndex(), ParameterUsagePerContext.top());
     }
 
@@ -325,5 +346,41 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
   private boolean isArgumentOfInterest(Value value) {
     assert value.getAliasedValue(aliasedValueConfiguration) == value;
     return value.isArgument() && argumentsOfInterest.contains(value);
+  }
+
+  private boolean isMaybeEligibleForClassInlining(TypeElement type) {
+    if (!type.isClassType()) {
+      // Primitives and arrays will never be class inlined.
+      return false;
+    }
+    DexClass clazz = appView.definitionFor(type.asClassType().getClassType());
+    if (clazz == null) {
+      // We cannot class inline in presence of missing classes.
+      return false;
+    }
+    return clazz.isProgramClass()
+        ? isMaybeEligibleForClassInlining(clazz.asProgramClass())
+        : isMaybeEligibleForClassInlining(clazz.asClasspathOrLibraryClass());
+  }
+
+  private boolean isMaybeEligibleForClassInlining(DexProgramClass clazz) {
+    // We can only class inline parameters that does not inherit from other classpath or library
+    // classes than java.lang.Object.
+    DexType superType = clazz.getSuperType();
+    do {
+      DexClass superClass = appView.definitionFor(superType);
+      if (superClass == null) {
+        return false;
+      }
+      if (!superClass.isProgramClass()) {
+        return superClass.getType() == dexItemFactory.objectType;
+      }
+      superType = superClass.getSuperType();
+    } while (true);
+  }
+
+  private boolean isMaybeEligibleForClassInlining(ClasspathOrLibraryClass clazz) {
+    // We can only class inline a parameter that is either java.lang.Object or an interface type.
+    return clazz.getType() == dexItemFactory.objectType || clazz.isInterface();
   }
 }

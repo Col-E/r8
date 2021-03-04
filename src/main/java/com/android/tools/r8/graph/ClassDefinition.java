@@ -21,6 +21,8 @@ public interface ClassDefinition extends Definition {
 
   DexType getType();
 
+  boolean isInterface();
+
   @Override
   default boolean isClass() {
     return true;

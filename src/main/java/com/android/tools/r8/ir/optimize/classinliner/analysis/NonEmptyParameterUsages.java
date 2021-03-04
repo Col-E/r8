@@ -9,6 +9,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Int2ObjectMapUtils;
 import com.android.tools.r8.utils.IntObjConsumer;
+import com.android.tools.r8.utils.IntObjPredicate;
 import com.android.tools.r8.utils.IntObjToObjFunction;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -75,6 +76,15 @@ public class NonEmptyParameterUsages extends ParameterUsages {
 
   public static ParameterUsages create(Int2ObjectMap<ParameterUsagePerContext> backing) {
     return backing.isEmpty() ? bottom() : new NonEmptyParameterUsages(backing);
+  }
+
+  public boolean allMatch(IntObjPredicate<ParameterUsagePerContext> predicate) {
+    for (Int2ObjectMap.Entry<ParameterUsagePerContext> entry : backing.int2ObjectEntrySet()) {
+      if (!predicate.test(entry.getIntKey(), entry.getValue())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
