@@ -295,6 +295,13 @@ public class TrivialFieldAccessReprocessor {
       DexClassAndField field = resolutionResult.getResolutionPair();
       DexEncodedField definition = field.getDefinition();
 
+      if (definition.isStatic() != isStatic
+          || appView.isCfByteCodePassThrough(method.getDefinition())
+          || resolutionResult.isAccessibleFrom(method, appView).isPossiblyFalse()) {
+        recordAccessThatCannotBeOptimized(field, definition);
+        return;
+      }
+
       // Record access.
       if (field.isProgramField() && appView.appInfo().mayPropagateValueFor(field)) {
         if (field.getAccessFlags().isStatic() == isStatic) {
@@ -308,20 +315,17 @@ public class TrivialFieldAccessReprocessor {
         }
       }
 
-      // We cannot remove references from pass through functions.
-      if (appView.isCfByteCodePassThrough(method.getDefinition())) {
-        constantFields.remove(definition);
-        return;
+      if (constantFields.contains(definition)
+          || (!isWrite && nonConstantFields.contains(definition))) {
+        methodsToReprocess.add(method);
       }
+    }
 
-      if (definition.isStatic() == isStatic) {
-        if (constantFields.contains(definition)
-            || (!isWrite && nonConstantFields.contains(definition))) {
-          methodsToReprocess.add(method);
-        }
-      } else {
-        // Should generally not happen.
-        constantFields.remove(definition);
+    private void recordAccessThatCannotBeOptimized(
+        DexClassAndField field, DexEncodedField definition) {
+      constantFields.remove(definition);
+      if (field.isProgramField() && appView.appInfo().mayPropagateValueFor(field)) {
+        destroyFieldAccessContexts(definition);
       }
     }
 
