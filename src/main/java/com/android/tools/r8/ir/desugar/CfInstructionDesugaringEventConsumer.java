@@ -39,6 +39,7 @@ public abstract class CfInstructionDesugaringEventConsumer
         InvokeSpecialToSelfDesugaringEventConsumer,
         LambdaDesugaringEventConsumer,
         NestBasedAccessDesugaringEventConsumer,
+        RecordDesugaringEventConsumer,
         TwrCloseResourceDesugaringEventConsumer {
 
   public static D8CfInstructionDesugaringEventConsumer createForD8(
@@ -56,6 +57,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
   public static CfInstructionDesugaringEventConsumer createForDesugaredCode() {
     return new CfInstructionDesugaringEventConsumer() {
+
+      @Override
+      public void acceptRecordClass(DexProgramClass recordClass) {
+        assert false;
+      }
 
       @Override
       public void acceptBackportedMethod(ProgramMethod backportedMethod, ProgramMethod context) {
@@ -118,6 +124,11 @@ public abstract class CfInstructionDesugaringEventConsumer
         assert !pendingInvokeSpecialBridges.containsKey(info.getNewDirectMethod().getReference());
         pendingInvokeSpecialBridges.put(info.getNewDirectMethod().getReference(), info);
       }
+    }
+
+    @Override
+    public void acceptRecordClass(DexProgramClass recordClass) {
+      methodProcessor.scheduleDesugaredMethodsForProcessing(recordClass.programMethods());
     }
 
     @Override
@@ -222,6 +233,12 @@ public abstract class CfInstructionDesugaringEventConsumer
       this.appView = appView;
       this.lambdaClassConsumer = lambdaClassConsumer;
       this.twrCloseResourceMethodConsumer = twrCloseResourceMethodConsumer;
+    }
+
+    @Override
+    public void acceptRecordClass(DexProgramClass recordClass) {
+      // This is called each time an instruction or a class is found to require the record class.
+      assert false : "TODO(b/179146128): To be implemented";
     }
 
     @Override

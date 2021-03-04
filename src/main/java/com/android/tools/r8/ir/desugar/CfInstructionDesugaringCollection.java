@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import java.util.function.Consumer;
 
 /**
  * Abstracts a collection of low-level desugarings (i.e., mappings from class-file instructions to
@@ -34,6 +35,9 @@ public abstract class CfInstructionDesugaringCollection {
     return EmptyCfInstructionDesugaringCollection.getInstance();
   }
 
+  public abstract void scan(
+      ProgramMethod method, CfInstructionDesugaringEventConsumer eventConsumer);
+
   /** Desugars the instructions in the given method. */
   public abstract void desugar(
       ProgramMethod method,
@@ -44,9 +48,13 @@ public abstract class CfInstructionDesugaringCollection {
     return false;
   }
 
+  public abstract CfClassDesugaringCollection createClassDesugaringCollection();
+
   /** Returns true if the given method needs desugaring. */
   public abstract boolean needsDesugaring(ProgramMethod method);
 
   public abstract <T extends Throwable> void withD8NestBasedAccessDesugaring(
       ThrowingConsumer<D8NestBasedAccessDesugaring, T> consumer) throws T;
+
+  public abstract void withRecordRewriter(Consumer<RecordRewriter> consumer);
 }

@@ -34,6 +34,7 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
   private final DexType type;
   private final Origin origin;
 
+  private boolean isAbstract = false;
   private Kind originKind;
   private DexType superType;
   private DexTypeList interfaces = DexTypeList.empty();
@@ -67,6 +68,11 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
         interfaces.isEmpty()
             ? DexTypeList.empty()
             : new DexTypeList(interfaces.toArray(DexType.EMPTY_ARRAY));
+    return self();
+  }
+
+  public B setAbstract() {
+    isAbstract = true;
     return self();
   }
 
@@ -107,9 +113,10 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
   }
 
   public C build() {
+    int flag = isAbstract ? Constants.ACC_ABSTRACT : Constants.ACC_FINAL;
     ClassAccessFlags accessFlags =
         ClassAccessFlags.fromSharedAccessFlags(
-            Constants.ACC_FINAL | Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
+            flag | Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
     DexString sourceFile = null;
     NestHostClassAttribute nestHost = null;
     List<NestMemberClassAttribute> nestMembers = Collections.emptyList();

@@ -23,6 +23,7 @@ public class SyntheticNaming {
    */
   public enum SyntheticKind {
     // Class synthetics.
+    RECORD_TAG("", false, true, true),
     COMPANION_CLASS("CompanionClass", false),
     LAMBDA("Lambda", false),
     INIT_TYPE_ARGUMENT("-IA", false, true),
@@ -41,6 +42,7 @@ public class SyntheticNaming {
     public final String descriptor;
     public final boolean isSingleSyntheticMethod;
     public final boolean isFixedSuffixSynthetic;
+    public final boolean mayOverridesNonProgramType;
 
     SyntheticKind(String descriptor, boolean isSingleSyntheticMethod) {
       this(descriptor, isSingleSyntheticMethod, false);
@@ -48,9 +50,22 @@ public class SyntheticNaming {
 
     SyntheticKind(
         String descriptor, boolean isSingleSyntheticMethod, boolean isFixedSuffixSynthetic) {
+      this(descriptor, isSingleSyntheticMethod, isFixedSuffixSynthetic, false);
+    }
+
+    SyntheticKind(
+        String descriptor,
+        boolean isSingleSyntheticMethod,
+        boolean isFixedSuffixSynthetic,
+        boolean mayOverridesNonProgramType) {
       this.descriptor = descriptor;
       this.isSingleSyntheticMethod = isSingleSyntheticMethod;
       this.isFixedSuffixSynthetic = isFixedSuffixSynthetic;
+      this.mayOverridesNonProgramType = mayOverridesNonProgramType;
+    }
+
+    public boolean allowSyntheticContext() {
+      return this == RECORD_TAG;
     }
 
     public static SyntheticKind fromDescriptor(String descriptor) {

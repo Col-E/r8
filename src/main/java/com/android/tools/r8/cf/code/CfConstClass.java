@@ -26,7 +26,7 @@ import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-public class CfConstClass extends CfInstruction {
+public class CfConstClass extends CfInstruction implements CfTypeInstruction {
 
   private final DexType type;
 
@@ -45,8 +45,24 @@ public class CfConstClass extends CfInstruction {
     return type.acceptCompareTo(((CfConstClass) other).type, visitor);
   }
 
+  @Override
+  public CfTypeInstruction asTypeInstruction() {
+    return this;
+  }
+
+  @Override
+  public boolean isTypeInstruction() {
+    return true;
+  }
+
+  @Override
   public DexType getType() {
     return type;
+  }
+
+  @Override
+  public CfInstruction withType(DexType newType) {
+    return new CfConstClass(newType);
   }
 
   @Override

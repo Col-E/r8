@@ -12,6 +12,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection.EmptyCfClassDesugaringCollection;
+import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection.NonEmptyCfClassDesugaringCollection;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaring;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
@@ -28,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesugaringCollection {
 
@@ -35,6 +38,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
   private final List<CfInstructionDesugaring> desugarings = new ArrayList<>();
 
   private final NestBasedAccessDesugaring nestBasedAccessDesugaring;
+  private final RecordRewriter recordRewriter;
 
   NonEmptyCfInstructionDesugaringCollection(AppView<?> appView) {
     this.appView = appView;
@@ -54,6 +58,11 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     if (nestBasedAccessDesugaring != null) {
       desugarings.add(nestBasedAccessDesugaring);
     }
+    this.recordRewriter = RecordRewriter.create(appView);
+    if (recordRewriter != null) {
+      assert !appView.enableWholeProgramOptimizations() : "To be implemented";
+      desugarings.add(recordRewriter);
+    }
   }
 
   // TODO(b/145775365): special constructor for cf-to-cf compilations with desugaring disabled.
@@ -62,6 +71,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       AppView<?> appView, InvokeSpecialToSelfDesugaring invokeSpecialToSelfDesugaring) {
     this.appView = appView;
     this.nestBasedAccessDesugaring = null;
+    this.recordRewriter = null;
     desugarings.add(invokeSpecialToSelfDesugaring);
   }
 
@@ -72,13 +82,8 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
         appView, new InvokeSpecialToSelfDesugaring(appView));
   }
 
-  @Override
-  public void desugar(
-      ProgramMethod method,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringEventConsumer eventConsumer) {
-    Code code = method.getDefinition().getCode();
-    if (!code.isCfCode()) {
+  private void ensureCfCode(ProgramMethod method) {
+    if (!method.getDefinition().getCode().isCfCode()) {
       appView
           .options()
           .reporter
@@ -87,10 +92,24 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
                   "Unsupported attempt to desugar non-CF code",
                   method.getOrigin(),
                   method.getPosition()));
-      return;
     }
+  }
 
-    CfCode cfCode = code.asCfCode();
+  @Override
+  public void scan(ProgramMethod method, CfInstructionDesugaringEventConsumer eventConsumer) {
+    ensureCfCode(method);
+    if (recordRewriter != null) {
+      recordRewriter.scan(method, eventConsumer);
+    }
+  }
+
+  @Override
+  public void desugar(
+      ProgramMethod method,
+      MethodProcessingContext methodProcessingContext,
+      CfInstructionDesugaringEventConsumer eventConsumer) {
+    ensureCfCode(method);
+    CfCode cfCode = method.getDefinition().getCode().asCfCode();
 
     // Tracking of temporary locals used for instruction desugaring. The desugaring of each
     // instruction is assumed to use locals only for the duration of the instruction, such that any
@@ -133,6 +152,14 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     } else {
       assert false : "Expected code to be desugared";
     }
+  }
+
+  @Override
+  public CfClassDesugaringCollection createClassDesugaringCollection() {
+    if (recordRewriter == null) {
+      return new EmptyCfClassDesugaringCollection();
+    }
+    return new NonEmptyCfClassDesugaringCollection(recordRewriter);
   }
 
   private Collection<CfInstruction> desugarInstruction(
@@ -218,6 +245,13 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     if (nestBasedAccessDesugaring != null) {
       assert nestBasedAccessDesugaring instanceof D8NestBasedAccessDesugaring;
       consumer.accept((D8NestBasedAccessDesugaring) nestBasedAccessDesugaring);
+    }
+  }
+
+  @Override
+  public void withRecordRewriter(Consumer<RecordRewriter> consumer) {
+    if (recordRewriter != null) {
+      consumer.accept(recordRewriter);
     }
   }
 }

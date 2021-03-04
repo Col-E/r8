@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.JarClassFileReader;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -68,6 +69,10 @@ public abstract class ClassProvider<T extends DexClass> {
       builder.put(clazz.type, clazz);
     }
     return new PreloadedClassProvider<>(classKind, builder.build());
+  }
+
+  public FilteringClassProvider<T> without(Set<DexType> filteredTypes) {
+    return new FilteringClassProvider(classKind, this, filteredTypes);
   }
 
   /** Create class provider for preloaded classes. */
@@ -142,6 +147,47 @@ public abstract class ClassProvider<T extends DexClass> {
     @Override
     public String toString() {
       return "preloaded(" + classes.size() + ")";
+    }
+  }
+
+  /** Class provider which ignores a list of filtered classes */
+  private static class FilteringClassProvider<T extends DexClass> extends ClassProvider<T> {
+    private final ClassProvider<T> provider;
+    private final Set<DexType> filteredOut;
+
+    FilteringClassProvider(
+        ClassKind<T> classKind, ClassProvider<T> provider, Set<DexType> filteredOut) {
+      super(classKind);
+      assert !(provider instanceof FilteringClassProvider) : "Nested Filtering class providers";
+      this.provider = provider;
+      this.filteredOut = filteredOut;
+    }
+
+    @Override
+    public FilteringClassProvider<T> without(Set<DexType> filteredTypes) {
+      ImmutableSet<DexType> newSet =
+          ImmutableSet.<DexType>builder().addAll(filteredOut).addAll(filteredTypes).build();
+      return new FilteringClassProvider(getClassKind(), provider, newSet);
+    }
+
+    @Override
+    public void collectClass(DexType type, Consumer<T> classConsumer) {
+      if (filteredOut.contains(type)) {
+        return;
+      }
+      provider.collectClass(type, classConsumer);
+    }
+
+    @Override
+    public Collection<DexType> collectTypes() {
+      Collection<DexType> dexTypes = provider.collectTypes();
+      dexTypes.removeAll(filteredOut);
+      return dexTypes;
+    }
+
+    @Override
+    public String toString() {
+      return provider + " without " + filteredOut;
     }
   }
 

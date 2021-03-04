@@ -95,7 +95,7 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
   public int getAsDexAccessFlags() {
     // We unset the super flag here, as it is meaningless in DEX. Furthermore, we add missing
     // abstract to interfaces to work around a javac bug when generating package-info classes.
-    int flags = materialize() & ~Constants.ACC_SUPER;
+    int flags = materialize() & ~Constants.ACC_SUPER & ~Constants.ACC_RECORD;
     if (isInterface()) {
       return flags | Constants.ACC_ABSTRACT;
     }
@@ -184,6 +184,10 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
 
   public void setRecord() {
     set(Constants.ACC_RECORD);
+  }
+
+  public void unsetRecord() {
+    unset(Constants.ACC_RECORD);
   }
 
   public boolean isSuper() {

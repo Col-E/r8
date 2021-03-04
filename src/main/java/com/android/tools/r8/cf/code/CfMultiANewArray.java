@@ -27,7 +27,7 @@ import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class CfMultiANewArray extends CfInstruction {
+public class CfMultiANewArray extends CfInstruction implements CfTypeInstruction {
 
   private final DexType type;
   private final int dimensions;
@@ -41,8 +41,24 @@ public class CfMultiANewArray extends CfInstruction {
     this.dimensions = dimensions;
   }
 
+  @Override
+  public CfTypeInstruction asTypeInstruction() {
+    return this;
+  }
+
+  @Override
+  public boolean isTypeInstruction() {
+    return true;
+  }
+
+  @Override
   public DexType getType() {
     return type;
+  }
+
+  @Override
+  public CfInstruction withType(DexType newType) {
+    return new CfMultiANewArray(newType, dimensions);
   }
 
   public int getDimensions() {

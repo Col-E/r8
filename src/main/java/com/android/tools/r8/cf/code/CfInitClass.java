@@ -55,6 +55,11 @@ public class CfInitClass extends CfInstruction {
   }
 
   @Override
+  public boolean isInitClass() {
+    return true;
+  }
+
+  @Override
   public void write(
       AppView<?> appView,
       ProgramMethod context,

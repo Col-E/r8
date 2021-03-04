@@ -199,6 +199,8 @@ public abstract class DexApplication {
       return self();
     }
 
+    public abstract void addProgramClassPotentiallyOverridingNonProgramClass(DexProgramClass clazz);
+
     public synchronized T addProgramClasses(Collection<DexProgramClass> classes) {
       programClasses.addAll(classes);
       return self();

@@ -44,6 +44,10 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
         context.getContextType(), context.getContextType(), context.getOrigin());
   }
 
+  static SynthesizingContext fromType(DexType type) {
+    return new SynthesizingContext(type, type, Origin.unknown());
+  }
+
   static SynthesizingContext fromNonSyntheticInputContext(ProgramDefinition context) {
     // A context that is itself non-synthetic is the single context, thus both the input context
     // and synthesizing context coincide.

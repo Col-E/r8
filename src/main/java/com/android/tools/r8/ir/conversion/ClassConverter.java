@@ -9,6 +9,8 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.CfClassDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.CfClassDesugaringEventConsumer.D8CfClassDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -50,6 +52,11 @@ public abstract class ClassConverter {
       ClassConverterResult.Builder resultBuilder, ExecutorService executorService)
       throws ExecutionException {
     List<DexProgramClass> classes = appView.appInfo().classes();
+
+    D8CfClassDesugaringEventConsumer classDesugaringEventConsumer =
+        CfClassDesugaringEventConsumer.createForD8(methodProcessor);
+    converter.desugarClassesForD8(classes, classDesugaringEventConsumer, executorService);
+
     while (!classes.isEmpty()) {
       Set<DexType> seenNestHosts = Sets.newIdentityHashSet();
       List<DexProgramClass> deferred = new ArrayList<>(classes.size() / 2);
@@ -65,18 +72,19 @@ public abstract class ClassConverter {
         }
       }
 
-      // Process the wave and wait for all IR processing to complete.
-      D8CfInstructionDesugaringEventConsumer desugaringEventConsumer =
+      D8CfInstructionDesugaringEventConsumer instructionDesugaringEventConsumer =
           CfInstructionDesugaringEventConsumer.createForD8(methodProcessor);
+
+      // Process the wave and wait for all IR processing to complete.
       methodProcessor.newWave();
       ThreadUtils.processItems(
-          wave, clazz -> convertClass(clazz, desugaringEventConsumer), executorService);
+          wave, clazz -> convertClass(clazz, instructionDesugaringEventConsumer), executorService);
       methodProcessor.awaitMethodProcessing();
 
       // Finalize the desugaring of the processed classes. This may require processing (and
       // reprocessing) of some methods.
       List<ProgramMethod> needsProcessing =
-          desugaringEventConsumer.finalizeDesugaring(appView, resultBuilder);
+          instructionDesugaringEventConsumer.finalizeDesugaring(appView, resultBuilder);
       if (!needsProcessing.isEmpty()) {
         // Create a new processor context to ensure unique method processing contexts.
         methodProcessor.newWave();
@@ -90,13 +98,13 @@ public abstract class ClassConverter {
               if (definition.isProcessed()) {
                 definition.markNotProcessed();
               }
-              methodProcessor.processMethod(method, desugaringEventConsumer);
+              methodProcessor.processMethod(method, instructionDesugaringEventConsumer);
             },
             executorService);
 
         // Verify there is nothing to finalize once method processing finishes.
         methodProcessor.awaitMethodProcessing();
-        assert desugaringEventConsumer.verifyNothingToFinalize();
+        assert instructionDesugaringEventConsumer.verifyNothingToFinalize();
       }
 
       classes = deferred;

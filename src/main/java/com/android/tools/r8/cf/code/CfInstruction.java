@@ -221,6 +221,18 @@ public abstract class CfInstruction implements CfOrDexInstruction {
     return false;
   }
 
+  public CfTypeInstruction asTypeInstruction() {
+    return null;
+  }
+
+  public boolean isTypeInstruction() {
+    return false;
+  }
+
+  public boolean isInitClass() {
+    return false;
+  }
+
   public CfDexItemBasedConstString asDexItemBasedConstString() {
     return null;
   }

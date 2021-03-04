@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -112,6 +113,21 @@ public abstract class ClassMap<T extends DexClass> {
     }
 
     return supplier == null ? null : supplier.get();
+  }
+
+  /**
+   * Clears the type so if a class with the given type was present, it cannot be found anymore. This
+   * has to be run at a join point, concurrent accesses may be confused.
+   */
+  public void clearType(DexType type) {
+    if (classes.containsKey(type)) {
+      classes.remove(type);
+    }
+    ClassProvider<T> provider = classProvider.get();
+    if (provider == null) {
+      return;
+    }
+    classProvider.set(provider.without(ImmutableSet.of(type)));
   }
 
   /**

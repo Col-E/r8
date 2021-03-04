@@ -226,6 +226,13 @@ public class LazyLoadedDexApplication extends DexApplication {
     }
 
     @Override
+    public void addProgramClassPotentiallyOverridingNonProgramClass(DexProgramClass clazz) {
+      addProgramClass(clazz);
+      classpathClasses.clearType(clazz.type);
+      libraryClasses.clearType(clazz.type);
+    }
+
+    @Override
     public LazyLoadedDexApplication build() {
       return new LazyLoadedDexApplication(
           proguardMap,

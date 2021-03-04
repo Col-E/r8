@@ -26,7 +26,7 @@ import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class CfNew extends CfInstruction {
+public class CfNew extends CfInstruction implements CfTypeInstruction {
 
   private final DexType type;
 
@@ -34,8 +34,24 @@ public class CfNew extends CfInstruction {
     this.type = type;
   }
 
+  @Override
+  public CfTypeInstruction asTypeInstruction() {
+    return this;
+  }
+
+  @Override
+  public boolean isTypeInstruction() {
+    return true;
+  }
+
+  @Override
   public DexType getType() {
     return type;
+  }
+
+  @Override
+  public CfInstruction withType(DexType newType) {
+    return new CfNew(newType);
   }
 
   @Override

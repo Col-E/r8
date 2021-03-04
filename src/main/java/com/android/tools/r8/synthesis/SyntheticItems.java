@@ -150,6 +150,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   @Override
   public DexClass definitionFor(DexType type, Function<DexType, DexClass> baseDefinitionFor) {
     DexClass clazz = null;
+    SyntheticKind kind = null;
     LegacySyntheticDefinition legacyItem = pending.legacyClasses.get(type);
     if (legacyItem != null) {
       clazz = legacyItem.getDefinition();
@@ -157,12 +158,15 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       SyntheticDefinition<?, ?, ?> item = pending.nonLegacyDefinitions.get(type);
       if (item != null) {
         clazz = item.getHolder();
+        kind = item.getKind();
         assert clazz.isProgramClass() == item.isProgramDefinition();
         assert clazz.isClasspathClass() == item.isClasspathDefinition();
       }
     }
     if (clazz != null) {
+      assert legacyItem != null || kind != null;
       assert baseDefinitionFor.apply(type) == null
+              || (kind != null && kind.mayOverridesNonProgramType)
           : "Pending synthetic definition also present in the active program: " + type;
       return clazz;
     }
@@ -386,6 +390,23 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return clazz;
   }
 
+  public DexProgramClass createFixedClassFromType(
+      SyntheticKind kind,
+      DexType contextType,
+      DexItemFactory factory,
+      Consumer<SyntheticProgramClassBuilder> fn) {
+    // Obtain the outer synthesizing context in the case the context itself is synthetic.
+    // This is to ensure a flat input-type -> synthetic-item mapping.
+    SynthesizingContext outerContext = SynthesizingContext.fromType(contextType);
+    DexType type = SyntheticNaming.createFixedType(kind, outerContext, factory);
+    SyntheticProgramClassBuilder classBuilder =
+        new SyntheticProgramClassBuilder(type, outerContext, factory);
+    fn.accept(classBuilder);
+    DexProgramClass clazz = classBuilder.build();
+    addPendingDefinition(new SyntheticProgramClassDefinition(kind, outerContext, clazz));
+    return clazz;
+  }
+
   public DexClasspathClass createFixedClasspathClass(
       SyntheticKind kind, DexClasspathClass context, DexItemFactory factory) {
     // Obtain the outer synthesizing context in the case the context itself is synthetic.
@@ -476,7 +497,12 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         if (!removedClasses.contains(definition.getHolder().getType())) {
           if (definition.isProgramDefinition()) {
             committedProgramTypesBuilder.add(definition.getHolder().getType());
-            appBuilder.addProgramClass(definition.asProgramDefinition().getHolder());
+            if (definition.getKind().mayOverridesNonProgramType) {
+              appBuilder.addProgramClassPotentiallyOverridingNonProgramClass(
+                  definition.asProgramDefinition().getHolder());
+            } else {
+              appBuilder.addProgramClass(definition.asProgramDefinition().getHolder());
+            }
           } else if (appBuilder.isDirect()) {
             assert definition.isClasspathDefinition();
             appBuilder.asDirect().addClasspathClass(definition.asClasspathDefinition().getHolder());

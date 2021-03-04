@@ -213,6 +213,37 @@ public class DirectMappedDexApplication extends DexApplication {
     }
 
     @Override
+    public void addProgramClassPotentiallyOverridingNonProgramClass(DexProgramClass clazz) {
+      addProgramClass(clazz);
+      if (containsType(clazz.type, libraryClasses)) {
+        replaceLibraryClasses(withoutType(clazz.type, libraryClasses));
+        return;
+      }
+      if (containsType(clazz.type, classpathClasses)) {
+        replaceClasspathClasses(withoutType(clazz.type, classpathClasses));
+      }
+    }
+
+    private boolean containsType(DexType type, List<? extends DexClass> classes) {
+      for (DexClass clazz : classes) {
+        if (clazz.type == type) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    private <T extends DexClass> ImmutableList<T> withoutType(DexType type, List<T> classes) {
+      ImmutableList.Builder<T> builder = ImmutableList.builder();
+      for (T clazz : classes) {
+        if (clazz.type != type) {
+          builder.add(clazz);
+        }
+      }
+      return builder.build();
+    }
+
+    @Override
     Builder self() {
       return this;
     }

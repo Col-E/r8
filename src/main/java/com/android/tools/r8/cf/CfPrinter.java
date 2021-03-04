@@ -59,6 +59,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Monitor;
@@ -396,10 +397,14 @@ public class CfPrinter {
     builder.append(callSite.methodName);
     builder.append(callSite.methodProto.toDescriptorString());
     if (callSite.bootstrapArgs.size() > 1) {
-      DexMethodHandle handle = callSite.bootstrapArgs.get(1).asDexValueMethodHandle().getValue();
-      builder.append(", handle:");
-      builder.append(handle.toSourceString());
-      builder.append(", itf: ").append(handle.isInterface);
+      DexValue.DexValueMethodHandle dexValueMethodHandle =
+          callSite.bootstrapArgs.get(1).asDexValueMethodHandle();
+      if (dexValueMethodHandle != null) {
+        DexMethodHandle handle = dexValueMethodHandle.getValue();
+        builder.append(", handle:");
+        builder.append(handle.toSourceString());
+        builder.append(", itf: ").append(handle.isInterface);
+      }
     }
     builder.append(", bsm:");
     appendMethod(bootstrapMethod.asMethod());

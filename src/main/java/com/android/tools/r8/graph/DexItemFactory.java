@@ -216,6 +216,7 @@ public class DexItemFactory {
   public final DexString stringArrayDescriptor = createString("[Ljava/lang/String;");
   public final DexString objectDescriptor = createString("Ljava/lang/Object;");
   public final DexString recordDescriptor = createString("Ljava/lang/Record;");
+  public final DexString r8RecordDescriptor = createString("Lcom/android/tools/r8/RecordTag;");
   public final DexString objectArrayDescriptor = createString("[Ljava/lang/Object;");
   public final DexString classDescriptor = createString("Ljava/lang/Class;");
   public final DexString classLoaderDescriptor = createString("Ljava/lang/ClassLoader;");
@@ -347,6 +348,7 @@ public class DexItemFactory {
   public final DexType stringArrayType = createStaticallyKnownType(stringArrayDescriptor);
   public final DexType objectType = createStaticallyKnownType(objectDescriptor);
   public final DexType recordType = createStaticallyKnownType(recordDescriptor);
+  public final DexType r8RecordType = createStaticallyKnownType(r8RecordDescriptor);
   public final DexType objectArrayType = createStaticallyKnownType(objectArrayDescriptor);
   public final DexType classArrayType = createStaticallyKnownType(classArrayDescriptor);
   public final DexType enumType = createStaticallyKnownType(enumDescriptor);
@@ -510,6 +512,7 @@ public class DexItemFactory {
   public final LongMembers longMembers = new LongMembers();
   public final ObjectsMethods objectsMethods = new ObjectsMethods();
   public final ObjectMembers objectMembers = new ObjectMembers();
+  public final RecordMembers recordMembers = new RecordMembers();
   public final ShortMembers shortMembers = new ShortMembers();
   public final StringMembers stringMembers = new StringMembers();
   public final DoubleMembers doubleMembers = new DoubleMembers();
@@ -1202,6 +1205,14 @@ public class DexItemFactory {
           createMethod(assertionErrorDescriptor, constructorMethodName, voidDescriptor,
               new DexString[] { stringDescriptor, throwableDescriptor });
     }
+  }
+
+  public class RecordMembers {
+    public final DexMethod init = createMethod(recordType, createProto(voidType), "<init>");
+    public final DexMethod equals =
+        createMethod(recordType, createProto(booleanType, objectType), "equals");
+    public final DexMethod hashCode = createMethod(recordType, createProto(intType), "hashCode");
+    public final DexMethod toString = createMethod(recordType, createProto(stringType), "toString");
   }
 
   public class ObjectMembers {

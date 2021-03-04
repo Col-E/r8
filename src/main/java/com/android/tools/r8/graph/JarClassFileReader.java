@@ -500,7 +500,7 @@ public class JarClassFileReader<T extends DexClass> {
         return;
       }
       // TODO(b/169645628): Support records in all compilation.
-      if (!application.options.canUseRecords()) {
+      if (!application.options.enableExperimentalRecordDesugaring()) {
         throw new CompilationError("Records are not supported", origin);
       }
       // TODO(b/169645628): Change this logic if we start stripping the record components.

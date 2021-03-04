@@ -338,7 +338,8 @@ public class SyntheticFinalization {
     // Check that a context is never itself synthetic class.
     committed.forEachNonLegacyItem(
         item -> {
-          assert isNotSyntheticType(item.getContext().getSynthesizingContextType());
+          assert isNotSyntheticType(item.getContext().getSynthesizingContextType())
+              || item.getKind().allowSyntheticContext();
         });
     return true;
   }
