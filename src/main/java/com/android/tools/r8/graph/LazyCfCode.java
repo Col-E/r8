@@ -336,6 +336,7 @@ public class LazyCfCode extends Code {
     private final DebugParsingOptions debugParsingOptions;
     private int maxStack;
     private int maxLocals;
+    private boolean desugaredVisitMultiANewArrayInstruction;
     private List<CfInstruction> instructions;
     private List<CfTryCatch> tryCatchRanges;
     private List<LocalVariableInfo> localVariables;
@@ -386,7 +387,12 @@ public class LazyCfCode extends Code {
       }
       code.setCode(
           new CfCode(
-              method.holder, maxStack, maxLocals, instructions, tryCatchRanges, localVariables));
+              method.holder,
+              desugaredVisitMultiANewArrayInstruction ? Integer.MAX_VALUE : maxStack,
+              maxLocals,
+              instructions,
+              tryCatchRanges,
+              localVariables));
     }
 
     @Override
@@ -948,6 +954,7 @@ public class LazyCfCode extends Code {
       // ..., ref
       visitTypeInsn(Opcodes.CHECKCAST, desc);
       // ..., arrayref(of type : desc)
+      desugaredVisitMultiANewArrayInstruction = true;
     }
 
     @Override
