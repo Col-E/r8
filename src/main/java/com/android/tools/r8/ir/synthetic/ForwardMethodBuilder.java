@@ -182,6 +182,13 @@ public class ForwardMethodBuilder {
       maybeInsertArgumentCast(i, parameter, instructions);
     }
     instructions.add(new CfInvoke(getInvokeOpcode(), targetMethod, isInterface));
+    if (!targetMethod.getReturnType().isVoidType()) {
+      // If the return type is not void, it will push a value on the stack. We subtract the
+      // arguments pushed by the invoke to see if bumping the stack height is necessary.
+      maxStack =
+          Math.max(
+              maxStack, ValueType.fromDexType(targetMethod.getReturnType()).requiredRegisters());
+    }
     if (isSourceReturnVoid()) {
       assert !isConstructorDelegate;
       instructions.add(new CfReturnVoid());

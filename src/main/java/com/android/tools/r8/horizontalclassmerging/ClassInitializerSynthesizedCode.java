@@ -59,11 +59,14 @@ public class ClassInitializerSynthesizedCode {
   }
 
   public CfCode synthesizeCode(DexType originalHolder) {
+    // Building the instructions will adjust maxStack and maxLocals. Build it here before invoking
+    // the CfCode constructor to ensure that the value passed in is the updated values.
+    List<CfInstruction> instructions = buildInstructions();
     return new CfCode(
         originalHolder,
         maxStack,
         maxLocals,
-        buildInstructions(),
+        instructions,
         Collections.emptyList(),
         Collections.emptyList());
   }

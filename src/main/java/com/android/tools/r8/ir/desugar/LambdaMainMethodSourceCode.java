@@ -361,9 +361,18 @@ final class LambdaMainMethodSourceCode {
       Builder<CfInstruction> instructions,
       DexItemFactory factory) {
     internalAdjustType(fromType, toType, returnType, instructions, factory);
+    if (fromType == toType) {
+      return ValueType.fromDexType(fromType).requiredRegisters();
+    }
+    // Account for the potential unboxing of a wide type.
+    DexType fromTypeAsPrimitive = factory.getPrimitiveFromBoxed(fromType);
     return Math.max(
         ValueType.fromDexType(fromType).requiredRegisters(),
-        ValueType.fromDexType(toType).requiredRegisters());
+        Math.max(
+            fromTypeAsPrimitive == null
+                ? 0
+                : ValueType.fromDexType(fromTypeAsPrimitive).requiredRegisters(),
+            ValueType.fromDexType(toType).requiredRegisters()));
   }
 
   private static void internalAdjustType(

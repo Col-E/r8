@@ -1039,7 +1039,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
     // Currently the filter is simple string equality on the qualified name.
     String qualifiedName = method.qualifiedName();
-    return methodsFilter.indexOf(qualifiedName) >= 0;
+    return methodsFilter.contains(qualifiedName);
   }
 
   public boolean methodMatchesLogArgumentsFilter(DexEncodedMethod method) {
@@ -1049,7 +1049,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
     // Currently the filter is simple string equality on the qualified name.
     String qualifiedName = method.qualifiedName();
-    return logArgumentsFilter.indexOf(qualifiedName) >= 0;
+    return logArgumentsFilter.contains(qualifiedName);
   }
 
   public enum PackageObfuscationMode {

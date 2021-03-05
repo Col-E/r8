@@ -89,6 +89,7 @@ public class FieldAccessorBuilder {
       // Load the argument.
       ValueType fieldType = ValueType.fromDexType(field.getType());
       instructions.add(new CfLoad(fieldType, maxLocals));
+      maxStack += fieldType.requiredRegisters();
       maxLocals += fieldType.requiredRegisters();
     }
 
@@ -102,6 +103,7 @@ public class FieldAccessorBuilder {
       instructions.add(new CfReturnVoid());
     } else {
       ValueType fieldType = ValueType.fromDexType(field.getType());
+      maxStack = Math.max(fieldType.requiredRegisters(), maxStack);
       instructions.add(new CfReturn(fieldType));
     }
 

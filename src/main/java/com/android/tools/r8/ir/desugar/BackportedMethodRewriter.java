@@ -78,7 +78,8 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     CfInvoke invoke = instruction.asInvoke();
     MethodProvider methodProvider = getMethodProviderOrNull(invoke.getMethod());
     return methodProvider != null
-        ? methodProvider.rewriteInvoke(invoke, appView, eventConsumer, methodProcessingContext)
+        ? methodProvider.rewriteInvoke(
+            invoke, appView, eventConsumer, methodProcessingContext, localStackAllocator)
         : null;
   }
 
@@ -1364,7 +1365,8 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
         CfInvoke invoke,
         AppView<?> appView,
         BackportedMethodDesugaringEventConsumer eventConsumer,
-        MethodProcessingContext methodProcessingContext);
+        MethodProcessingContext methodProcessingContext,
+        LocalStackAllocator localStackAllocator);
   }
 
   private static final class InvokeRewriter extends MethodProvider {
@@ -1381,8 +1383,9 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
         CfInvoke invoke,
         AppView<?> appView,
         BackportedMethodDesugaringEventConsumer eventConsumer,
-        MethodProcessingContext methodProcessingContext) {
-      return rewriter.rewrite(invoke, appView.dexItemFactory());
+        MethodProcessingContext methodProcessingContext,
+        LocalStackAllocator localStackAllocator) {
+      return rewriter.rewrite(invoke, appView.dexItemFactory(), localStackAllocator);
     }
   }
 
@@ -1406,7 +1409,8 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
         CfInvoke invoke,
         AppView<?> appView,
         BackportedMethodDesugaringEventConsumer eventConsumer,
-        MethodProcessingContext methodProcessingContext) {
+        MethodProcessingContext methodProcessingContext,
+        LocalStackAllocator localStackAllocator) {
       ProgramMethod method = getSyntheticMethod(appView, methodProcessingContext);
       eventConsumer.acceptBackportedMethod(method, methodProcessingContext.getMethodContext());
       return ImmutableList.of(new CfInvoke(Opcodes.INVOKESTATIC, method.getReference(), false));
@@ -1465,7 +1469,8 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     CfInstruction rewriteSingle(CfInvoke invoke, DexItemFactory factory);
 
     // Convenience wrapper since most rewrites are to a single instruction.
-    default Collection<CfInstruction> rewrite(CfInvoke invoke, DexItemFactory factory) {
+    default Collection<CfInstruction> rewrite(
+        CfInvoke invoke, DexItemFactory factory, LocalStackAllocator localStackAllocator) {
       return ImmutableList.of(rewriteSingle(invoke, factory));
     }
   }
@@ -1478,6 +1483,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
 
     @Override
-    public abstract Collection<CfInstruction> rewrite(CfInvoke invoke, DexItemFactory factory);
+    public abstract Collection<CfInstruction> rewrite(
+        CfInvoke invoke, DexItemFactory factory, LocalStackAllocator localStackAllocator);
   }
 }

@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.FullMethodInvokeRewriter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.MethodInvokeRewriter;
+import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.objectweb.asm.Opcodes;
@@ -32,8 +33,10 @@ public final class ObjectsMethodRewrites {
     return new FullMethodInvokeRewriter() {
 
       @Override
-      public Collection<CfInstruction> rewrite(CfInvoke invoke, DexItemFactory factory) {
+      public Collection<CfInstruction> rewrite(
+          CfInvoke invoke, DexItemFactory factory, LocalStackAllocator localStackAllocator) {
         // requireNonNull returns the operand, so dup top-of-stack, do getClass and pop the class.
+        localStackAllocator.allocateLocalStack(1);
         return ImmutableList.of(
             new CfStackInstruction(Opcode.Dup),
             new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.objectMembers.getClass, false),

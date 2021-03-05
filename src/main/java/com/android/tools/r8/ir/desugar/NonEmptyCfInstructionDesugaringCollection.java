@@ -133,12 +133,14 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
                       method,
                       methodProcessingContext);
               if (replacement != null) {
-                // Record if we increased the max number of locals for the method, and reset the
-                // next temporary locals register.
+                // Record if we increased the max number of locals and stack height for the method,
+                // and reset the next temporary locals register.
                 maxLocalsForCode.setMax(maxLocalsForInstruction.getAndSet(cfCode.getMaxLocals()));
+                maxStackForCode.setMax(maxStackForInstruction.getAndSet(cfCode.getMaxStack()));
               } else {
                 // The next temporary locals register should be unchanged.
                 assert maxLocalsForInstruction.get() == cfCode.getMaxLocals();
+                assert maxStackForInstruction.get() == cfCode.getMaxStack();
               }
               return replacement;
             },

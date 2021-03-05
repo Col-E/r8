@@ -7,7 +7,8 @@ package com.android.tools.r8.shaking;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -16,33 +17,34 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class InstantiatedLambdaReceiverTest extends TestBase {
 
-  private Backend backend;
-
   private static final String expectedOutput = "In C.m()";
+  private final TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
-  public InstantiatedLambdaReceiverTest(Backend backend) {
-    this.backend = backend;
+  public InstantiatedLambdaReceiverTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
   public void jvmTest() throws Exception {
-    assumeTrue(
-        "JVM test independent of Art version - only run when testing on latest",
-        ToolHelper.getDexVm().getVersion().isLatest());
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
+    assumeTrue(parameters.isCfRuntime());
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(expectedOutput);
   }
 
   @Test
-  public void dexTest() throws Exception {
-    testForR8(backend)
+  public void r8Test() throws Exception {
+    testForR8(parameters.getBackend())
         .addInnerClasses(InstantiatedLambdaReceiverTest.class)
         .addKeepMainRule(TestClass.class)
-        .run(TestClass.class)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
 
