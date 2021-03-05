@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.MainDexInfo;
 import java.util.Comparator;
 
 /**
@@ -128,5 +129,10 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
   @Override
   public String toString() {
     return "SynthesizingContext{" + getSynthesizingContextType() + "}";
+  }
+
+  // TODO(b/181858113): Remove once deprecated main-dex-list is removed.
+  boolean isDerivedFromMainDexList(MainDexInfo mainDexInfo) {
+    return mainDexInfo.isSyntheticContextOnMainDexList(inputContextType);
   }
 }

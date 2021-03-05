@@ -76,6 +76,11 @@ public class MainDexInfo {
     assert tracedDependencies.stream().noneMatch(tracedRoots::contains);
   }
 
+  // TODO(b/181858113): Remove once deprecated main-dex-list is removed.
+  public boolean isSyntheticContextOnMainDexList(DexType syntheticContextType) {
+    return classList.contains(syntheticContextType);
+  }
+
   public boolean isNone() {
     assert none() == NONE;
     return this == NONE;
@@ -389,5 +394,18 @@ public class MainDexInfo {
     public MainDexInfo build(MainDexInfo previous) {
       return build(previous.classList);
     }
+
+    public MainDexInfo build() {
+      return new MainDexInfo(list, roots, methodRoots, dependencies, tracedMethodRootsCleared);
+    }
+  }
+
+  public Builder builderFromCopy() {
+    Builder builder = new Builder(tracedMethodRootsCleared);
+    builder.list.addAll(classList);
+    builder.roots.addAll(tracedRoots);
+    builder.methodRoots.addAll(tracedMethodRoots);
+    builder.dependencies.addAll(tracedDependencies);
+    return builder;
   }
 }

@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
@@ -52,12 +53,17 @@ public class SyntheticFinalization {
     public final CommittedItems commit;
     public final NonIdentityGraphLens lens;
     public final PrunedItems prunedItems;
+    public final MainDexInfo mainDexInfo;
 
     public Result(
-        CommittedItems commit, SyntheticFinalizationGraphLens lens, PrunedItems prunedItems) {
+        CommittedItems commit,
+        SyntheticFinalizationGraphLens lens,
+        PrunedItems prunedItems,
+        MainDexInfo mainDexInfo) {
       this.commit = commit;
       this.lens = lens;
       this.prunedItems = prunedItems;
+      this.mainDexInfo = mainDexInfo;
     }
   }
 
@@ -229,7 +235,7 @@ public class SyntheticFinalization {
     assert !appView.appInfo().hasClassHierarchy();
     assert !appView.appInfo().hasLiveness();
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
-    appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexInfo()));
+    appView.setAppInfo(new AppInfo(result.commit, result.mainDexInfo));
     if (result.lens != null) {
       appView.setAppInfo(
           appView
@@ -245,6 +251,7 @@ public class SyntheticFinalization {
     assert !appView.appInfo().hasLiveness();
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
     appView.setAppInfo(appView.appInfo().rebuildWithClassHierarchy(result.commit));
+    appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(result.mainDexInfo));
     if (result.lens != null) {
       appView.setGraphLens(result.lens);
       appView.setAppInfo(
@@ -259,6 +266,7 @@ public class SyntheticFinalization {
   public static void finalizeWithLiveness(AppView<AppInfoWithLiveness> appView) {
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
     appView.setAppInfo(appView.appInfo().rebuildWithLiveness(result.commit));
+    appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(result.mainDexInfo));
     appView.rewriteWithLens(result.lens);
     appView.pruneItems(result.prunedItems);
   }
@@ -272,6 +280,7 @@ public class SyntheticFinalization {
     ImmutableMap.Builder<DexType, SyntheticProgramClassReference> finalClassesBuilder =
         ImmutableMap.builder();
     List<DexProgramClass> finalSyntheticProgramDefinitions = new ArrayList<>();
+    Set<DexType> derivedMainDexTypes = Sets.newIdentityHashSet();
     {
       Map<String, NumberGenerator> generators = new HashMap<>();
       application =
@@ -287,7 +296,8 @@ public class SyntheticFinalization {
               (clazz, reference) -> {
                 finalSyntheticProgramDefinitions.add(clazz);
                 finalMethodsBuilder.put(clazz.getType(), reference);
-              });
+              },
+              derivedMainDexTypes);
     }
     ImmutableMap<DexType, SyntheticMethodReference> finalMethods = finalMethodsBuilder.build();
     ImmutableMap<DexType, SyntheticProgramClassReference> finalClasses =
@@ -302,6 +312,10 @@ public class SyntheticFinalization {
           }
         });
 
+    // TODO(b/181858113): Remove once deprecated main-dex-list is removed.
+    MainDexInfo.Builder mainDexInfoBuilder = appView.appInfo().getMainDexInfo().builderFromCopy();
+    derivedMainDexTypes.forEach(mainDexInfoBuilder::addList);
+
     return new Result(
         new CommittedItems(
             SyntheticItems.INVALID_ID_AFTER_SYNTHETIC_FINALIZATION,
@@ -310,10 +324,8 @@ public class SyntheticFinalization {
                 committed.getLegacyTypes(), finalMethods, finalClasses),
             ImmutableList.of()),
         lensBuilder.build(appView.graphLens(), appView.dexItemFactory()),
-        PrunedItems.builder()
-            .setPrunedApp(application)
-            .addRemovedClasses(prunedSynthetics)
-            .build());
+        PrunedItems.builder().setPrunedApp(application).addRemovedClasses(prunedSynthetics).build(),
+        mainDexInfoBuilder.build());
   }
 
   private <R extends SyntheticReference<R, D, ?>, D extends SyntheticDefinition<R, D, ?>>
@@ -359,9 +371,11 @@ public class SyntheticFinalization {
       Map<DexType, EquivalenceGroup<SyntheticProgramClassDefinition>> syntheticClassGroups,
       Builder lensBuilder,
       BiConsumer<DexProgramClass, SyntheticProgramClassReference> addFinalSyntheticClass,
-      BiConsumer<DexProgramClass, SyntheticMethodReference> addFinalSyntheticMethod) {
+      BiConsumer<DexProgramClass, SyntheticMethodReference> addFinalSyntheticMethod,
+      Set<DexType> derivedMainDexSynthetics) {
     DexApplication application = appView.appInfo().app();
     DexItemFactory factory = appView.dexItemFactory();
+    MainDexInfo mainDexInfo = appView.appInfo().getMainDexInfo();
     List<DexProgramClass> newProgramClasses = new ArrayList<>();
     Set<DexType> pruned = Sets.newIdentityHashSet();
 
@@ -382,6 +396,9 @@ public class SyntheticFinalization {
             pruned.add(member.getHolder().getType());
             if (memberReference != externalSyntheticMethod.method) {
               lensBuilder.moveSyntheticMethod(memberReference, externalSyntheticMethod.method);
+            }
+            if (member.getContext().isDerivedFromMainDexList(mainDexInfo)) {
+              derivedMainDexSynthetics.add(syntheticType);
             }
           }
         });
@@ -405,6 +422,9 @@ public class SyntheticFinalization {
             // The aliasing of the non-representative members needs to be recorded manually.
             if (member != representative) {
               deduplicatedClasses.add(memberClass);
+            }
+            if (member.getContext().isDerivedFromMainDexList(mainDexInfo)) {
+              derivedMainDexSynthetics.add(syntheticType);
             }
           }
         });

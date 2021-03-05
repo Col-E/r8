@@ -8,11 +8,14 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Files;
@@ -54,7 +57,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
           testForD8()
               .addInnerClasses(MainDexWithSynthesizedClassesTest.class)
               .addMainDexKeepClassAndMemberRules(TestClass.class)
-              .setMinApiThreshold(parameters.getApiLevel())
+              .setMinApi(parameters.getApiLevel())
               .compile();
       checkCompilationResult(compileResult);
     }
@@ -66,19 +69,67 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
     D8TestCompileResult intermediateResult =
         testForD8()
             .addInnerClasses(MainDexWithSynthesizedClassesTest.class)
-            .setMinApiThreshold(parameters.getApiLevel())
+            .setMinApi(parameters.getApiLevel())
             .setIntermediate(true)
             .compile();
     D8TestCompileResult compileResult =
         testForD8()
             .addProgramFiles(intermediateResult.writeToZip())
-            .addMainDexKeepClassRules(TestClass.class, A.class)
-            .setMinApiThreshold(parameters.getApiLevel())
+            .addMainDexKeepClassAndMemberRules(TestClass.class)
+            .setMinApi(parameters.getApiLevel())
             .compile();
     checkCompilationResult(compileResult);
   }
 
+  /**
+   * This test checks for maintained support of including synthetics from main-dex-list entries in
+   * the main-dex file. This test simulates that the tracing done at the class-file level has
+   * determined that TestClass and A are both traced. Thus the synthetic lambda from A will be
+   * included in the main-dex file.
+   *
+   * <p>TODO(b/181858113): Remove once deprecated main-dex-list is removed.
+   */
+  @Test
+  public void testDeprecatedSyntheticsFromMainDexListD8() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    D8TestCompileResult compileResult =
+        testForD8()
+            .addInnerClasses(MainDexWithSynthesizedClassesTest.class)
+            .addMainDexListClasses(TestClass.class, A.class)
+            .setMinApi(parameters.getApiLevel())
+            .compile();
+    checkCompilationResult(compileResult);
+  }
+
+  /**
+   * This test checks for maintained support of including synthetics from main-dex-list entries in
+   * the main-dex file. This test simulates that the tracing done at the class-file level has
+   * determined that TestClass and A are both traced. Thus the synthetic lambda from A will be
+   * included in the main-dex file.
+   *
+   * <p>TODO(b/181858113): Remove once deprecated main-dex-list is removed.
+   */
+  @Test
+  public void testDeprecatedSyntheticsFromMainDexListR8() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addInnerClasses(MainDexWithSynthesizedClassesTest.class)
+            .setMinApi(parameters.getApiLevel())
+            .addOptionsModification(o -> o.minimalMainDex = true)
+            .addMainDexListClasses(TestClass.class, A.class)
+            .noMinification()
+            .noTreeShaking()
+            .compile();
+    checkCompilationResult(compileResult, compileResult.app);
+  }
+
   private void checkCompilationResult(D8TestCompileResult compileResult) throws Exception {
+    checkCompilationResult(compileResult, compileResult.app);
+  }
+
+  private void checkCompilationResult(TestCompileResult compileResult, AndroidApp app)
+      throws Exception {
     if (parameters.getRuntime().asDex().getMinApiLevel().getLevel()
         < nativeMultiDexLevel.getLevel()) {
       compileResult.runDex2Oat(parameters.getRuntime()).assertNoVerificationErrors();
@@ -86,7 +137,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
       compileResult.run(parameters.getRuntime(), TestClass.class).assertSuccessWithOutput(EXPECTED);
     }
     Path out = temp.newFolder().toPath();
-    compileResult.apply(b -> b.app.writeToDirectory(out, OutputMode.DexIndexed));
+    app.writeToDirectory(out, OutputMode.DexIndexed);
     Path classes = out.resolve("classes.dex");
     Path classes2 = out.resolve("classes2.dex");
     assertTrue(Files.exists(classes));
