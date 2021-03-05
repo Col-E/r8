@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -239,6 +240,16 @@ public class ClassMerger {
     }
   }
 
+  private void mergeAnnotations() {
+    assert group.getClasses().stream().filter(DexDefinition::hasAnnotations).count() <= 1;
+    for (DexProgramClass clazz : group.getSources()) {
+      if (clazz.hasAnnotations()) {
+        group.getTarget().setAnnotations(clazz.annotations());
+        break;
+      }
+    }
+  }
+
   private void mergeInterfaces() {
     DexTypeList previousInterfaces = group.getTarget().getInterfaces();
     Set<DexType> interfaces = Sets.newLinkedHashSet(previousInterfaces);
@@ -261,6 +272,7 @@ public class ClassMerger {
     fixAccessFlags();
     appendClassIdField();
 
+    mergeAnnotations();
     mergeInterfaces();
 
     mergeVirtualMethods();

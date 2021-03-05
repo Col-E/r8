@@ -69,11 +69,6 @@ public class TestRunner extends KotlinTestBase {
             options -> {
               options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
               options.enableClassInlining = false;
-
-              // TODO(b/179019716): Add support for merging in presence of annotations.
-              options.horizontalClassMergerOptions()
-                      .skipNoClassesOrMembersWithAnnotationsPolicyForTesting =
-                  true;
             })
         .addHorizontallyMergedClassesInspector(
             inspector ->

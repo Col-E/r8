@@ -5,6 +5,7 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -33,6 +34,9 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
         .addOptionsModification(
             options ->
                 options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
+        .addHorizontallyMergedClassesInspectorIf(
+            enableHorizontalClassMerging,
+            inspector -> inspector.assertIsCompleteMergeGroup(A.class, C.class))
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -45,7 +49,8 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
               assertThat(codeInspector.clazz(MethodAnnotation.class), isPresent());
               assertThat(codeInspector.clazz(A.class), isPresent());
               assertThat(codeInspector.clazz(B.class), isPresent());
-              assertThat(codeInspector.clazz(C.class), isPresent());
+              assertThat(
+                  codeInspector.clazz(C.class), notIf(isPresent(), enableHorizontalClassMerging));
             });
   }
 
@@ -57,6 +62,7 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
   @Target({ElementType.METHOD})
   public @interface MethodAnnotation {}
 
+  @TypeAnnotation
   @NeverClassInline
   public static class A {
     public A() {

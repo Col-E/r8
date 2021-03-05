@@ -13,13 +13,14 @@ import com.android.tools.r8.horizontalclassmerging.policies.DontInlinePolicy;
 import com.android.tools.r8.horizontalclassmerging.policies.DontMergeSynchronizedClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.LimitGroups;
 import com.android.tools.r8.horizontalclassmerging.policies.MinimizeFieldCasts;
-import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotations;
+import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotationClasses;
+import com.android.tools.r8.horizontalclassmerging.policies.NoClassAnnotationCollisions;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassInitializerWithObservableSideEffects;
-import com.android.tools.r8.horizontalclassmerging.policies.NoClassesOrMembersWithAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoDirectRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoEnums;
 import com.android.tools.r8.horizontalclassmerging.policies.NoIndirectRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInnerClasses;
+import com.android.tools.r8.horizontalclassmerging.policies.NoInstanceFieldAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKeepRules;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKotlinMetadata;
@@ -119,36 +120,44 @@ public class HorizontalClassMerger {
   }
 
   private List<Policy> getPolicies(RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
-    return ImmutableList.of(
-        new NotMatchedByNoHorizontalClassMerging(appView),
-        new SameInstanceFields(appView),
-        new NoInterfaces(),
-        new NoAnnotations(),
-        new NoEnums(appView),
-        new CheckAbstractClasses(appView),
-        new SyntheticItemsPolicy(appView),
-        new NoClassesOrMembersWithAnnotations(appView),
-        new NoInnerClasses(),
-        new NoClassInitializerWithObservableSideEffects(),
-        new NoNativeMethods(),
-        new NoKeepRules(appView),
-        new NoKotlinMetadata(),
-        new NoServiceLoaders(appView),
-        new NotVerticallyMergedIntoSubtype(appView),
-        new NoDirectRuntimeTypeChecks(runtimeTypeCheckInfo),
-        new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
-        new PreventMethodImplementation(appView),
-        new DontInlinePolicy(appView),
-        new PreventMergeIntoDifferentMainDexGroups(appView),
-        new AllInstantiatedOrUninstantiated(appView),
-        new SameParentClass(),
-        new SameNestHost(appView),
-        new PreserveMethodCharacteristics(appView),
-        new SameFeatureSplit(appView),
-        new RespectPackageBoundaries(appView),
-        new DontMergeSynchronizedClasses(appView),
-        new MinimizeFieldCasts(),
-        new LimitGroups(appView));
+    List<SingleClassPolicy> singleClassPolicies =
+        ImmutableList.of(
+            new NotMatchedByNoHorizontalClassMerging(appView),
+            new NoAnnotationClasses(),
+            new NoEnums(appView),
+            new NoInnerClasses(),
+            new NoInstanceFieldAnnotations(),
+            new NoInterfaces(),
+            new NoClassInitializerWithObservableSideEffects(),
+            new NoNativeMethods(),
+            new NoKeepRules(appView),
+            new NoKotlinMetadata(),
+            new NoServiceLoaders(appView),
+            new NotVerticallyMergedIntoSubtype(appView),
+            new NoDirectRuntimeTypeChecks(runtimeTypeCheckInfo),
+            new DontInlinePolicy(appView));
+    List<MultiClassPolicy> multiClassPolicies =
+        ImmutableList.of(
+            new SameInstanceFields(appView),
+            new NoClassAnnotationCollisions(),
+            new CheckAbstractClasses(appView),
+            new SyntheticItemsPolicy(appView),
+            new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
+            new PreventMethodImplementation(appView),
+            new PreventMergeIntoDifferentMainDexGroups(appView),
+            new AllInstantiatedOrUninstantiated(appView),
+            new SameParentClass(),
+            new SameNestHost(appView),
+            new PreserveMethodCharacteristics(appView),
+            new SameFeatureSplit(appView),
+            new RespectPackageBoundaries(appView),
+            new DontMergeSynchronizedClasses(appView),
+            new MinimizeFieldCasts(),
+            new LimitGroups(appView));
+    return ImmutableList.<Policy>builder()
+        .addAll(singleClassPolicies)
+        .addAll(multiClassPolicies)
+        .build();
   }
 
   /**

@@ -543,7 +543,7 @@ public class DexProgramClass extends DexClass
 
   private boolean hasAnnotations(DexEncodedField[] fields) {
     synchronized (fields) {
-      return Arrays.stream(fields).anyMatch(DexEncodedField::hasAnnotation);
+      return Arrays.stream(fields).anyMatch(DexEncodedField::hasAnnotations);
     }
   }
 

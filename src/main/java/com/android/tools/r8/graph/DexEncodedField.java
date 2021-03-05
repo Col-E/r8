@@ -246,10 +246,6 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return accessFlags.isVolatile();
   }
 
-  public boolean hasAnnotation() {
-    return !annotations().isEmpty();
-  }
-
   public boolean hasExplicitStaticValue() {
     assert accessFlags.isStatic();
     return staticValue != null;

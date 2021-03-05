@@ -21,6 +21,10 @@ public abstract class DexDefinition extends DexItem {
     this.annotations = annotations;
   }
 
+  public boolean hasAnnotations() {
+    return !annotations().isEmpty();
+  }
+
   public DexAnnotationSet annotations() {
     return annotations;
   }

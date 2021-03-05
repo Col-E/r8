@@ -1163,9 +1163,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public int syntheticArgumentCount = 3;
     public int maxGroupSize = 30;
 
-    // TODO(b/179019716): Add support for merging in presence of annotations.
-    public boolean skipNoClassesOrMembersWithAnnotationsPolicyForTesting = false;
-
     public void disable() {
       enable = false;
     }

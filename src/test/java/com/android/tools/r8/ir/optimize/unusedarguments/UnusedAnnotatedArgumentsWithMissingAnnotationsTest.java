@@ -32,7 +32,7 @@ public class UnusedAnnotatedArgumentsWithMissingAnnotationsTest extends TestBase
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public UnusedAnnotatedArgumentsWithMissingAnnotationsTest(TestParameters parameters) {
@@ -72,17 +72,20 @@ public class UnusedAnnotatedArgumentsWithMissingAnnotationsTest extends TestBase
             dumpAnnotation2(),
             dumpAnnotation3())
         .addKeepMainRule("Test")
-        .addKeepRules("-keep @interface Annotation?")
-        .addKeepAttributes("RuntimeVisibleParameterAnnotations")
+        .addKeepRules(
+            "-keep @interface Annotation?",
+            "-neverclassinline class *",
+            "-nohorizontalclassmerging class Test$Inner?")
+        .addKeepRuntimeVisibleParameterAnnotations()
         .enableProguardTestOptions()
-        .addKeepRules("-neverclassinline class *")
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspect(inspector -> {
-          checkClass(inspector.clazz("Test$Inner1"), "Annotation1");
-          checkClass(inspector.clazz("Test$Inner2"), "Annotation2");
-          checkClass(inspector.clazz("Test$Inner2"), "Annotation2");
-        })
+        .inspect(
+            inspector -> {
+              checkClass(inspector.clazz("Test$Inner1"), "Annotation1");
+              checkClass(inspector.clazz("Test$Inner2"), "Annotation2");
+              checkClass(inspector.clazz("Test$Inner2"), "Annotation2");
+            })
         .run(parameters.getRuntime(), "Test")
         .assertSuccessWithOutput(expectedOutput);
   }

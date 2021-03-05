@@ -240,7 +240,7 @@ final public class ResourceShrinker {
       Stream<DexAnnotation> classAnnotations = classDef.annotations().stream();
       Stream<DexAnnotation> fieldAnnotations =
           Streams.stream(classDef.fields())
-              .filter(DexEncodedField::hasAnnotation)
+              .filter(DexEncodedField::hasAnnotations)
               .flatMap(f -> f.annotations().stream());
       Stream<DexAnnotation> methodAnnotations =
           Streams.stream(classDef.methods())

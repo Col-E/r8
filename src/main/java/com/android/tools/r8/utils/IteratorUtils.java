@@ -9,12 +9,34 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.google.common.collect.Iterables;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
 public class IteratorUtils {
+
+  public static <T> Iterator<T> createCircularIterator(Iterable<T> iterable) {
+    assert !Iterables.isEmpty(iterable);
+    return new Iterator<T>() {
+
+      private Iterator<T> iterator = iterable.iterator();
+
+      @Override
+      public boolean hasNext() {
+        return true;
+      }
+
+      @Override
+      public T next() {
+        if (!iterator.hasNext()) {
+          iterator = iterable.iterator();
+        }
+        return iterator.next();
+      }
+    };
+  }
 
   public static <T> int countRemaining(Iterator<T> iterator) {
     IntBox counter = new IntBox();

@@ -30,6 +30,11 @@ public class MergeGroup implements Iterable<DexProgramClass> {
     this.classes = new LinkedList<>();
   }
 
+  public MergeGroup(DexProgramClass clazz) {
+    this();
+    add(clazz);
+  }
+
   public MergeGroup(Collection<DexProgramClass> classes) {
     this();
     addAll(classes);
