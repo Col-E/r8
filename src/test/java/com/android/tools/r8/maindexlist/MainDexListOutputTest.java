@@ -120,7 +120,7 @@ public class MainDexListOutputTest extends TestBase {
     testForD8()
         .setMinApi(AndroidApiLevel.K)
         .addProgramClasses(ImmutableList.of(TestClass.class, MyConsumer.class))
-        .addMainDexListClasses(TestClass.class)
+        .addMainDexKeepClassAndMemberRules(TestClass.class)
         .setMainDexListConsumer(consumer)
         .compile();
     assertTrue(consumer.called);

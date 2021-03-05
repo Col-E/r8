@@ -131,7 +131,6 @@ public class AppInfo implements DexDefinitionSupplier {
     assert checkIfObsolete();
     assert context != null;
     syntheticItems.addLegacySyntheticClass(clazz, context);
-    mainDexInfo.addLegacySyntheticClass(clazz, context);
   }
 
   public void addSynthesizedClass(DexProgramClass clazz, Iterable<DexProgramClass> contexts) {

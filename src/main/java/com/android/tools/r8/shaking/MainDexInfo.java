@@ -18,19 +18,15 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.utils.ConsumerUtils;
-import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class MainDexInfo {
 
   private static final MainDexInfo NONE =
       new MainDexInfo(
-          Collections.emptySet(),
           Collections.emptySet(),
           Collections.emptySet(),
           Collections.emptySet(),
@@ -46,7 +42,6 @@ public class MainDexInfo {
 
   // Specific set of classes specified to be in main-dex
   private final Set<DexType> classList;
-  private final Map<DexType, DexType> synthesizedClassesMap;
   // Traced roots are traced main dex references.
   private final Set<DexType> tracedRoots;
   // Traced method roots are the methods visited from an initial main dex root set. The set is
@@ -64,7 +59,6 @@ public class MainDexInfo {
         Collections.emptySet(),
         Collections.emptySet(),
         Collections.emptySet(),
-        /* synthesized classes - cannot be emptyset */ Sets.newIdentityHashSet(),
         false);
   }
 
@@ -73,31 +67,18 @@ public class MainDexInfo {
       Set<DexType> tracedRoots,
       Set<DexMethod> tracedMethodRoots,
       Set<DexType> tracedDependencies,
-      Set<DexType> synthesizedClasses,
       boolean tracedMethodRootsCleared) {
     this.classList = classList;
     this.tracedRoots = tracedRoots;
     this.tracedMethodRoots = tracedMethodRoots;
     this.tracedDependencies = tracedDependencies;
-    this.synthesizedClassesMap = new ConcurrentHashMap<>();
     this.tracedMethodRootsCleared = tracedMethodRootsCleared;
-    synthesizedClasses.forEach(type -> synthesizedClassesMap.put(type, type));
     assert tracedDependencies.stream().noneMatch(tracedRoots::contains);
-    assert tracedRoots.containsAll(synthesizedClasses);
   }
 
   public boolean isNone() {
     assert none() == NONE;
     return this == NONE;
-  }
-
-  public boolean isMainDexTypeThatShouldIncludeDependencies(DexType type) {
-    // Dependencies of 'type' are only needed if 'type' is a direct/executed main-dex type.
-    return classList.contains(type) || tracedRoots.contains(type);
-  }
-
-  public boolean isMainDex(ProgramDefinition definition) {
-    return isFromList(definition) || isTracedRoot(definition) || isDependency(definition);
   }
 
   public boolean isFromList(ProgramDefinition definition) {
@@ -225,35 +206,6 @@ public class MainDexInfo {
     return NONE;
   }
 
-  // TODO(b/178127572): This mutates the MainDexClasses which otherwise should be immutable.
-  public void addSyntheticClass(DexProgramClass clazz) {
-    // TODO(b/178127572): This will add a synthesized type as long as the initial set is not empty.
-    //  A better approach would be to use the context for the synthetic with a containment check.
-    assert !isNone();
-    if (!classList.isEmpty()) {
-      synthesizedClassesMap.computeIfAbsent(
-          clazz.type,
-          type -> {
-            classList.add(type);
-            return type;
-          });
-    }
-    if (!tracedRoots.isEmpty()) {
-      synthesizedClassesMap.computeIfAbsent(
-          clazz.type,
-          type -> {
-            tracedRoots.add(type);
-            return type;
-          });
-    }
-  }
-
-  public void addLegacySyntheticClass(DexProgramClass clazz, ProgramDefinition context) {
-    if (isTracedRoot(context) || isFromList(context) || isDependency(context)) {
-      addSyntheticClass(clazz);
-    }
-  }
-
   public int size() {
     return classList.size() + tracedRoots.size() + tracedDependencies.size();
   }
@@ -279,11 +231,7 @@ public class MainDexInfo {
     }
     Set<DexType> removedClasses = prunedItems.getRemovedClasses();
     Set<DexType> modifiedClassList = Sets.newIdentityHashSet();
-    Set<DexType> modifiedSynthesized = Sets.newIdentityHashSet();
     classList.forEach(type -> ifNotRemoved(type, removedClasses, modifiedClassList::add));
-    synthesizedClassesMap
-        .keySet()
-        .forEach(type -> ifNotRemoved(type, removedClasses, modifiedSynthesized::add));
     MainDexInfo.Builder builder = builder();
     tracedRoots.forEach(type -> ifNotRemoved(type, removedClasses, builder::addRoot));
     // TODO(b/169927809): Methods could be pruned without the holder being pruned, however, one has
@@ -293,7 +241,7 @@ public class MainDexInfo {
             ifNotRemoved(
                 method.getHolderType(), removedClasses, ignored -> builder.addRoot(method)));
     tracedDependencies.forEach(type -> ifNotRemoved(type, removedClasses, builder::addDependency));
-    return builder.build(modifiedClassList, modifiedSynthesized);
+    return builder.build(modifiedClassList);
   }
 
   private void ifNotRemoved(
@@ -305,10 +253,8 @@ public class MainDexInfo {
 
   public MainDexInfo rewrittenWithLens(GraphLens lens) {
     Set<DexType> modifiedClassList = Sets.newIdentityHashSet();
-    Set<DexType> modifiedSynthesized = Sets.newIdentityHashSet();
     classList.forEach(
         type -> rewriteAndApplyIfNotPrimitiveType(lens, type, modifiedClassList::add));
-    synthesizedClassesMap.keySet().forEach(type -> modifiedSynthesized.add(lens.lookupType(type)));
     MainDexInfo.Builder builder = builder();
     tracedRoots.forEach(type -> rewriteAndApplyIfNotPrimitiveType(lens, type, builder::addRoot));
     tracedMethodRoots.forEach(method -> builder.addRoot(lens.getRenamedMethodSignature(method)));
@@ -322,7 +268,7 @@ public class MainDexInfo {
             rewriteAndApplyIfNotPrimitiveType(lens, type, builder::addDependency);
           }
         });
-    return builder.build(modifiedClassList, modifiedSynthesized);
+    return builder.build(modifiedClassList);
   }
 
   public Builder builder() {
@@ -414,20 +360,14 @@ public class MainDexInfo {
       return new MainDexInfo(list);
     }
 
-    public MainDexInfo build(Set<DexType> classList, Set<DexType> synthesizedClasses) {
+    public MainDexInfo build(Set<DexType> classList) {
       // Class can contain dependencies which we should not regard as roots.
       assert list.isEmpty();
-      return new MainDexInfo(
-          classList,
-          SetUtils.unionIdentityHashSet(roots, synthesizedClasses),
-          methodRoots,
-          Sets.difference(dependencies, synthesizedClasses),
-          synthesizedClasses,
-          tracedMethodRootsCleared);
+      return new MainDexInfo(classList, roots, methodRoots, dependencies, tracedMethodRootsCleared);
     }
 
     public MainDexInfo build(MainDexInfo previous) {
-      return build(previous.classList, previous.synthesizedClassesMap.keySet());
+      return build(previous.classList);
     }
   }
 }

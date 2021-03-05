@@ -22,7 +22,6 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
@@ -231,20 +230,30 @@ public class SyntheticFinalization {
     assert !appView.appInfo().hasLiveness();
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
     appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexInfo()));
-    appView.pruneItems(result.prunedItems);
     if (result.lens != null) {
+      appView.setAppInfo(
+          appView
+              .appInfo()
+              .rebuildWithMainDexInfo(
+                  appView.appInfo().getMainDexInfo().rewrittenWithLens(result.lens)));
       appView.setGraphLens(result.lens);
     }
+    appView.pruneItems(result.prunedItems);
   }
 
   public static void finalizeWithClassHierarchy(AppView<AppInfoWithClassHierarchy> appView) {
     assert !appView.appInfo().hasLiveness();
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
     appView.setAppInfo(appView.appInfo().rebuildWithClassHierarchy(result.commit));
-    appView.pruneItems(result.prunedItems);
     if (result.lens != null) {
       appView.setGraphLens(result.lens);
+      appView.setAppInfo(
+          appView
+              .appInfo()
+              .rebuildWithMainDexInfo(
+                  appView.appInfo().getMainDexInfo().rewrittenWithLens(result.lens)));
     }
+    appView.pruneItems(result.prunedItems);
   }
 
   public static void finalizeWithLiveness(AppView<AppInfoWithLiveness> appView) {
@@ -452,10 +461,6 @@ public class SyntheticFinalization {
                   representative.getKind(),
                   representative.getContext(),
                   externalSyntheticClass.type));
-          for (SyntheticProgramClassDefinition member : syntheticGroup.getMembers()) {
-            addMainDexAndSynthesizedFromForMember(
-                member, externalSyntheticClass, appView.appInfo().getMainDexInfo());
-          }
         });
     syntheticMethodGroups.forEach(
         (syntheticType, syntheticGroup) -> {
@@ -470,10 +475,6 @@ public class SyntheticFinalization {
                       .getMethod()
                       .getReference()
                       .withHolder(externalSyntheticClass.type, factory)));
-          for (SyntheticMethodDefinition member : syntheticGroup.getMembers()) {
-            addMainDexAndSynthesizedFromForMember(
-                member, externalSyntheticClass, appView.appInfo().getMainDexInfo());
-          }
         });
 
     for (DexType key : syntheticMethodGroups.keySet()) {
@@ -515,13 +516,6 @@ public class SyntheticFinalization {
               .setCode(m -> definition.getCode());
         });
     return builder.build();
-  }
-
-  private static void addMainDexAndSynthesizedFromForMember(
-      SyntheticDefinition<?, ?, ?> member,
-      DexProgramClass externalSyntheticClass,
-      MainDexInfo mainDexInfo) {
-    member.getContext().addIfDerivedFromMainDexClass(externalSyntheticClass, mainDexInfo);
   }
 
   private static boolean shouldAnnotateSynthetics(InternalOptions options) {

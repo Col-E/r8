@@ -26,7 +26,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
 
   static final AndroidApiLevel nativeMultiDexLevel = AndroidApiLevel.L;
 
-  static final String EXPECTED = StringUtils.lines("AB");
+  static final String EXPECTED = StringUtils.lines("A");
 
   private final TestParameters parameters;
 
@@ -53,7 +53,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
       D8TestCompileResult compileResult =
           testForD8()
               .addInnerClasses(MainDexWithSynthesizedClassesTest.class)
-              .addMainDexListClasses(TestClass.class, A.class)
+              .addMainDexKeepClassAndMemberRules(TestClass.class)
               .setMinApiThreshold(parameters.getApiLevel())
               .compile();
       checkCompilationResult(compileResult);
@@ -119,7 +119,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
 
   static class A {
     Getter foo() {
-      return () -> "A" + new B().foo().get();
+      return () -> "A";
     }
   }
 

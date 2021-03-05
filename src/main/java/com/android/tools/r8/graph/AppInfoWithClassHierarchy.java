@@ -100,14 +100,6 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         commit, getClassToFeatureSplitMap(), getMainDexInfo(), getMissingClasses());
   }
 
-  public final AppInfoWithClassHierarchy rebuildWithClassHierarchy(MissingClasses missingClasses) {
-    return new AppInfoWithClassHierarchy(
-        getSyntheticItems().commit(app()),
-        getClassToFeatureSplitMap(),
-        getMainDexInfo(),
-        missingClasses);
-  }
-
   public AppInfoWithClassHierarchy rebuildWithClassHierarchy(
       Function<DexApplication, DexApplication> fn) {
     assert checkIfObsolete();
@@ -123,7 +115,10 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     assert getClass() == AppInfoWithClassHierarchy.class;
     assert checkIfObsolete();
     return new AppInfoWithClassHierarchy(
-        getSyntheticItems().commit(app()), classToFeatureSplitMap, mainDexInfo, missingClasses);
+        getSyntheticItems().commit(app()),
+        getClassToFeatureSplitMap(),
+        mainDexInfo,
+        getMissingClasses());
   }
 
   @Override

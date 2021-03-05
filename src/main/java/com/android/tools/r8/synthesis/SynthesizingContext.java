@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.MainDexInfo;
 import java.util.Comparator;
 
 /**
@@ -124,19 +123,6 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
             .dexItemFactory()
             .createType(getDescriptorFromClassBinaryName(rewrittenPrefix + suffix));
     appView.rewritePrefix.rewriteType(hygienicType, rewrittenType);
-  }
-
-  // TODO(b/181010111): Remove this once main-dex is a computed property on synthetics.
-  void addIfDerivedFromMainDexClass(
-      DexProgramClass externalSyntheticClass, MainDexInfo mainDexInfo) {
-    if (mainDexInfo.isMainDex(externalSyntheticClass)) {
-      return;
-    }
-    // The input context type (not the annotated context) determines if the derived class is to be
-    // in main dex, as it is the input context type that is traced as part of main-dex tracing.
-    if (mainDexInfo.isMainDexTypeThatShouldIncludeDependencies(inputContextType)) {
-      mainDexInfo.addSyntheticClass(externalSyntheticClass);
-    }
   }
 
   @Override
