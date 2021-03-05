@@ -92,7 +92,8 @@ public class ReflectionOptimizer {
             && !appView
                 .appInfo()
                 .getMainDexInfo()
-                .canRebindReference(code.context(), baseClass.getType())) {
+                .canRebindReference(
+                    code.context(), baseClass.getType(), appView.getSyntheticItems())) {
           return;
         }
 

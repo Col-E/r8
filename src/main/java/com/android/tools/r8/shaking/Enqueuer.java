@@ -1695,7 +1695,7 @@ public class Enqueuer {
 
     assert !mode.isFinalMainDexTracing()
             || !options.testing.checkForNotExpandingMainDexTracingResult
-            || appView.appInfo().getMainDexInfo().isTracedRoot(clazz)
+            || appView.appInfo().getMainDexInfo().isTracedRoot(clazz, appView.getSyntheticItems())
             || clazz.toSourceString().contains(ENUM_UNBOXING_UTILITY_CLASS_SUFFIX)
         : "Class " + clazz.toSourceString() + " was not a main dex root in the first round";
 

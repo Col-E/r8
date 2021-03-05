@@ -826,7 +826,7 @@ public class VerticalClassMerger {
     }
 
     // Check with main dex classes to see if we are allowed to merge.
-    if (!mainDexInfo.canMerge(clazz, targetClass)) {
+    if (!mainDexInfo.canMerge(clazz, targetClass, appView.getSyntheticItems())) {
       return;
     }
 
@@ -1657,7 +1657,8 @@ public class VerticalClassMerger {
         }
         // Constructors can have references beyond the root main dex classes. This can increase the
         // size of the main dex dependent classes and we should bail out.
-        if (mainDexInfo.disallowInliningIntoContext(appView.appInfo(), context, method)) {
+        if (mainDexInfo.disallowInliningIntoContext(
+            appView.appInfo(), context, method, appView.getSyntheticItems())) {
           return AbortReason.MAIN_DEX_ROOT_OUTSIDE_REFERENCE;
         }
         return null;

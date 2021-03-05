@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.shaking.MainDexInfo.MainDexGroup.MAIN_DEX_ROOT;
 import static com.android.tools.r8.utils.LensUtils.rewriteAndApplyIfNotPrimitiveType;
-import static com.android.tools.r8.utils.PredicateUtils.not;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexMethod;
@@ -17,6 +16,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.google.common.collect.Sets;
 import java.util.Collections;
@@ -81,16 +81,16 @@ public class MainDexInfo {
     return this == NONE;
   }
 
-  public boolean isFromList(ProgramDefinition definition) {
-    return isFromList(definition.getContextType());
+  public boolean isFromList(ProgramDefinition definition, SyntheticItems synthetics) {
+    return isFromList(definition.getContextType(), synthetics);
   }
 
-  private boolean isFromList(DexReference reference) {
-    return classList.contains(reference.getContextType());
+  private boolean isFromList(DexReference reference, SyntheticItems synthetics) {
+    return isContainedOrHasContainedContext(reference, classList, synthetics);
   }
 
-  public boolean isTracedRoot(ProgramDefinition definition) {
-    return isTracedRoot(definition.getContextType());
+  public boolean isTracedRoot(ProgramDefinition definition, SyntheticItems synthetics) {
+    return isTracedRoot(definition.getContextType(), synthetics);
   }
 
   public boolean isTracedMethodRoot(DexMethod method) {
@@ -98,8 +98,22 @@ public class MainDexInfo {
     return tracedMethodRoots.contains(method);
   }
 
-  private boolean isTracedRoot(DexReference reference) {
-    return tracedRoots.contains(reference.getContextType());
+  private boolean isTracedRoot(DexReference reference, SyntheticItems synthetics) {
+    return isContainedOrHasContainedContext(reference, tracedRoots, synthetics);
+  }
+
+  private boolean isContainedOrHasContainedContext(
+      DexReference reference, Set<DexType> items, SyntheticItems synthetics) {
+    if (items.isEmpty()) {
+      return false;
+    }
+    DexType type = reference.getContextType();
+    for (DexType context : synthetics.getSynthesizingContexts(type)) {
+      if (items.contains(context)) {
+        return true;
+      }
+    }
+    return items.contains(type);
   }
 
   private boolean isDependency(ProgramDefinition definition) {
@@ -119,8 +133,9 @@ public class MainDexInfo {
     this.tracedMethodRoots = Sets.newIdentityHashSet();
   }
 
-  public boolean canRebindReference(ProgramMethod context, DexReference referenceToTarget) {
-    MainDexGroup holderGroup = getMainDexGroupInternal(context);
+  public boolean canRebindReference(
+      ProgramMethod context, DexReference referenceToTarget, SyntheticItems synthetics) {
+    MainDexGroup holderGroup = getMainDexGroupInternal(context, synthetics);
     if (holderGroup == MainDexGroup.NOT_IN_MAIN_DEX
         || holderGroup == MainDexGroup.MAIN_DEX_DEPENDENCY) {
       // We are always free to rebind/inline into something not in main-dex or traced dependencies.
@@ -133,20 +148,21 @@ public class MainDexInfo {
     }
     assert holderGroup == MAIN_DEX_ROOT;
     // Otherwise we allow if either is both root.
-    return getMainDexGroupInternal(referenceToTarget) == MAIN_DEX_ROOT;
+    return getMainDexGroupInternal(referenceToTarget, synthetics) == MAIN_DEX_ROOT;
   }
 
-  public boolean canMerge(ProgramDefinition candidate) {
-    return !isFromList(candidate);
+  public boolean canMerge(ProgramDefinition candidate, SyntheticItems synthetics) {
+    return !isFromList(candidate, synthetics);
   }
 
-  public boolean canMerge(ProgramDefinition source, ProgramDefinition target) {
-    return canMerge(source.getContextType(), target.getContextType());
+  public boolean canMerge(
+      ProgramDefinition source, ProgramDefinition target, SyntheticItems synthetics) {
+    return canMerge(source.getContextType(), target.getContextType(), synthetics);
   }
 
-  private boolean canMerge(DexReference source, DexReference target) {
-    MainDexGroup sourceGroup = getMainDexGroupInternal(source);
-    MainDexGroup targetGroup = getMainDexGroupInternal(target);
+  private boolean canMerge(DexReference source, DexReference target, SyntheticItems synthetics) {
+    MainDexGroup sourceGroup = getMainDexGroupInternal(source, synthetics);
+    MainDexGroup targetGroup = getMainDexGroupInternal(target, synthetics);
     if (sourceGroup != targetGroup) {
       return false;
     }
@@ -155,21 +171,22 @@ public class MainDexInfo {
     return sourceGroup != MainDexGroup.MAIN_DEX_LIST;
   }
 
-  public MainDexGroup getMergeKey(ProgramDefinition mergeCandidate) {
-    assert canMerge(mergeCandidate);
-    MainDexGroup mainDexGroupInternal = getMainDexGroupInternal(mergeCandidate);
+  public MainDexGroup getMergeKey(ProgramDefinition mergeCandidate, SyntheticItems synthetics) {
+    assert canMerge(mergeCandidate, synthetics);
+    MainDexGroup mainDexGroupInternal = getMainDexGroupInternal(mergeCandidate, synthetics);
     return mainDexGroupInternal == MainDexGroup.MAIN_DEX_LIST ? null : mainDexGroupInternal;
   }
 
-  private MainDexGroup getMainDexGroupInternal(ProgramDefinition definition) {
-    return getMainDexGroupInternal(definition.getReference());
+  private MainDexGroup getMainDexGroupInternal(
+      ProgramDefinition definition, SyntheticItems synthetics) {
+    return getMainDexGroupInternal(definition.getReference(), synthetics);
   }
 
-  private MainDexGroup getMainDexGroupInternal(DexReference reference) {
-    if (isFromList(reference)) {
+  private MainDexGroup getMainDexGroupInternal(DexReference reference, SyntheticItems synthetics) {
+    if (isFromList(reference, synthetics)) {
       return MainDexGroup.MAIN_DEX_LIST;
     }
-    if (isTracedRoot(reference)) {
+    if (isTracedRoot(reference, synthetics)) {
       return MAIN_DEX_ROOT;
     }
     if (isDependency(reference)) {
@@ -179,22 +196,25 @@ public class MainDexInfo {
   }
 
   public boolean disallowInliningIntoContext(
-      AppInfoWithClassHierarchy appInfo, ProgramDefinition context, ProgramMethod method) {
+      AppInfoWithClassHierarchy appInfo,
+      ProgramDefinition context,
+      ProgramMethod method,
+      SyntheticItems synthetics) {
     if (context.getContextType() == method.getContextType()) {
       return false;
     }
-    MainDexGroup mainDexGroupInternal = getMainDexGroupInternal(context);
+    MainDexGroup mainDexGroupInternal = getMainDexGroupInternal(context, synthetics);
     if (mainDexGroupInternal == MainDexGroup.NOT_IN_MAIN_DEX
         || mainDexGroupInternal == MainDexGroup.MAIN_DEX_DEPENDENCY) {
       return false;
     }
     if (mainDexGroupInternal == MainDexGroup.MAIN_DEX_LIST) {
       return MainDexDirectReferenceTracer.hasReferencesOutsideMainDexClasses(
-          appInfo, method, not(this::isFromList));
+          appInfo, method, t -> !isFromList(t, synthetics));
     }
     assert mainDexGroupInternal == MAIN_DEX_ROOT;
     return MainDexDirectReferenceTracer.hasReferencesOutsideMainDexClasses(
-        appInfo, method, not(this::isTracedRoot));
+        appInfo, method, t -> !isTracedRoot(t, synthetics));
   }
 
   public boolean isEmpty() {

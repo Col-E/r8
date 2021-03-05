@@ -391,6 +391,9 @@ public class Devirtualizer {
   }
 
   private boolean isRebindingNewClassIntoMainDex(ProgramMethod context, DexMethod reboundMethod) {
-    return !appView.appInfo().getMainDexInfo().canRebindReference(context, reboundMethod);
+    return !appView
+        .appInfo()
+        .getMainDexInfo()
+        .canRebindReference(context, reboundMethod, appView.getSyntheticItems());
   }
 }
