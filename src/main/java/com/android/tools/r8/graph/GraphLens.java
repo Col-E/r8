@@ -363,8 +363,6 @@ public abstract class GraphLens {
     return false;
   }
 
-  public abstract String lookupPackageName(String pkg);
-
   public abstract DexType lookupClassType(DexType type);
 
   public abstract DexType lookupType(DexType type);
@@ -699,11 +697,6 @@ public abstract class GraphLens {
     }
 
     @Override
-    public String lookupPackageName(String pkg) {
-      return pkg;
-    }
-
-    @Override
     public final DexType lookupType(DexType type) {
       if (type.isPrimitiveType() || type.isVoidType() || type.isNullValueType()) {
         return type;
@@ -817,11 +810,6 @@ public abstract class GraphLens {
     @Override
     public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
       return originalMethod;
-    }
-
-    @Override
-    public String lookupPackageName(String pkg) {
-      return pkg;
     }
 
     @Override

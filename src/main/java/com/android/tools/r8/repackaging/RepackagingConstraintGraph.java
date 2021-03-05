@@ -18,7 +18,6 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -173,7 +172,7 @@ public class RepackagingConstraintGraph {
     }
   }
 
-  public Collection<DexProgramClass> computeClassesToRepackage() {
+  public Iterable<DexProgramClass> computeClassesToRepackage() {
     WorkList<Node> worklist = WorkList.newIdentityWorkList(pinnedNodes);
     while (worklist.hasNext()) {
       Node pinnedNode = worklist.next();

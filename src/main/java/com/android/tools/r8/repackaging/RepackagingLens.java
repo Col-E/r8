@@ -18,19 +18,16 @@ import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import java.util.Map;
 
 public class RepackagingLens extends NestedGraphLens {
 
   private final BiMap<DexType, DexType> originalTypes;
-  private final Map<String, String> packageRenaming;
 
   private RepackagingLens(
       AppView<AppInfoWithLiveness> appView,
       BidirectionalOneToOneMap<DexField, DexField> newFieldSignatures,
       BidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures,
-      BiMap<DexType, DexType> originalTypes,
-      Map<String, String> packageRenaming) {
+      BiMap<DexType, DexType> originalTypes) {
     super(
         originalTypes.inverse(),
         originalMethodSignatures.getInverseOneToOneMap().getForwardMap(),
@@ -39,12 +36,6 @@ public class RepackagingLens extends NestedGraphLens {
         appView.graphLens(),
         appView.dexItemFactory());
     this.originalTypes = originalTypes;
-    this.packageRenaming = packageRenaming;
-  }
-
-  @Override
-  public String lookupPackageName(String pkg) {
-    return packageRenaming.getOrDefault(getPrevious().lookupPackageName(pkg), pkg);
   }
 
   @Override
@@ -106,11 +97,10 @@ public class RepackagingLens extends NestedGraphLens {
       originalTypes.put(to, from);
     }
 
-    public RepackagingLens build(
-        AppView<AppInfoWithLiveness> appView, BiMap<String, String> packageRenamings) {
+    public RepackagingLens build(AppView<AppInfoWithLiveness> appView) {
       assert !originalTypes.isEmpty();
       return new RepackagingLens(
-          appView, newFieldSignatures, originalMethodSignatures, originalTypes, packageRenamings);
+          appView, newFieldSignatures, originalMethodSignatures, originalTypes);
     }
   }
 }
