@@ -1057,7 +1057,6 @@ def main(argv):
     print(options.shrinker)
 
   if options.golem:
-    golem.link_third_party()
     options.disable_assertions = True
     options.no_build = True
     options.r8_compilation_steps = 1
