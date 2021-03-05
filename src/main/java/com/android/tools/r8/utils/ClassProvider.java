@@ -72,7 +72,7 @@ public abstract class ClassProvider<T extends DexClass> {
   }
 
   public FilteringClassProvider<T> without(Set<DexType> filteredTypes) {
-    return new FilteringClassProvider(classKind, this, filteredTypes);
+    return new FilteringClassProvider<>(classKind, this, filteredTypes);
   }
 
   /** Create class provider for preloaded classes. */
@@ -167,7 +167,7 @@ public abstract class ClassProvider<T extends DexClass> {
     public FilteringClassProvider<T> without(Set<DexType> filteredTypes) {
       ImmutableSet<DexType> newSet =
           ImmutableSet.<DexType>builder().addAll(filteredOut).addAll(filteredTypes).build();
-      return new FilteringClassProvider(getClassKind(), provider, newSet);
+      return new FilteringClassProvider<>(getClassKind(), provider, newSet);
     }
 
     @Override

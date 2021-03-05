@@ -120,9 +120,7 @@ public abstract class ClassMap<T extends DexClass> {
    * has to be run at a join point, concurrent accesses may be confused.
    */
   public void clearType(DexType type) {
-    if (classes.containsKey(type)) {
-      classes.remove(type);
-    }
+    classes.remove(type);
     ClassProvider<T> provider = classProvider.get();
     if (provider == null) {
       return;
