@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerUtils;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.BottomValue;
+import com.android.tools.r8.ir.analysis.value.NonConstantNumberValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.FieldInstruction;
@@ -177,7 +178,7 @@ public class FieldAssignmentTracker {
         AbstractValue abstractValue = entry.getValue();
 
         // The power set lattice is an expensive abstraction, so use it with caution.
-        boolean allowNonConstantNumbers = HorizontalClassMergerUtils.isClassIdField(appView, field);
+        boolean isClassIdField = HorizontalClassMergerUtils.isClassIdField(appView, field);
 
         InstanceFieldInitializationInfo initializationInfo =
             initializationInfoCollection.get(field);
@@ -191,7 +192,7 @@ public class FieldAssignmentTracker {
                   argumentAbstractValue,
                   appView.abstractValueFactory(),
                   field.getType(),
-                  allowNonConstantNumbers);
+                  isClassIdField);
           assert !abstractValue.isBottom();
         } else if (initializationInfo.isSingleValue()) {
           SingleValue singleValueInitializationInfo = initializationInfo.asSingleValue();
@@ -200,7 +201,7 @@ public class FieldAssignmentTracker {
                   singleValueInitializationInfo,
                   appView.abstractValueFactory(),
                   field.getType(),
-                  allowNonConstantNumbers);
+                  isClassIdField);
         } else if (initializationInfo.isTypeInitializationInfo()) {
           // TODO(b/149732532): Not handled, for now.
           abstractValue = UnknownValue.getInstance();
@@ -214,16 +215,19 @@ public class FieldAssignmentTracker {
         // When approximating the possible values for the $r8$classId fields from horizontal class
         // merging, give up if the set of possible values equals the size of the merge group. In
         // this case, the information is useless.
-        if (allowNonConstantNumbers
-            && abstractValue.isNonConstantNumberValue()
-            && field.getOptimizationInfo().getAbstractValue().isNonConstantNumberValue()) {
-          if (abstractValue.asNonConstantNumberValue().getAbstractionSize()
-              >= field
-                  .getOptimizationInfo()
-                  .getAbstractValue()
-                  .asNonConstantNumberValue()
-                  .getAbstractionSize()) {
-            abstractValue = UnknownValue.getInstance();
+        if (isClassIdField && abstractValue.isNonConstantNumberValue()) {
+          NonConstantNumberValue initialAbstractValue =
+              field.getOptimizationInfo().getAbstractValue().asNonConstantNumberValue();
+          if (initialAbstractValue != null) {
+            if (abstractValue.asNonConstantNumberValue().getAbstractionSize()
+                >= initialAbstractValue.getAbstractionSize()) {
+              abstractValue = UnknownValue.getInstance();
+            }
+          } else {
+            assert false
+                : "Expected abstract value of "
+                    + field.toSourceString()
+                    + " to be instance of NonConstantNumberValue";
           }
         }
 
