@@ -90,6 +90,15 @@ public class SyntheticItemsTestUtils {
     return SyntheticNaming.isSynthetic(reference, null, SyntheticKind.INIT_TYPE_ARGUMENT);
   }
 
+  public static boolean isHorizontalInitializerTypeArgument(ClassReference reference) {
+    return SyntheticNaming.isSynthetic(
+            reference, null, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_1)
+        || SyntheticNaming.isSynthetic(
+            reference, null, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_2)
+        || SyntheticNaming.isSynthetic(
+            reference, null, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_3);
+  }
+
   public static Matcher<String> containsInternalSyntheticReference() {
     return containsString(SyntheticNaming.getPhaseSeparator(Phase.INTERNAL));
   }

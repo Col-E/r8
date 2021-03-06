@@ -6,7 +6,7 @@ package com.android.tools.r8.classmerging.horizontal;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.horizontalclassmerging.SyntheticArgumentClass;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -35,10 +35,8 @@ public abstract class HorizontalClassMergingTestBase extends TestBase {
     return codeInspector.allClasses().stream()
         .filter(
             clazz ->
-                clazz.isSynthetic()
-                    && clazz
-                        .getOriginalName()
-                        .endsWith(SyntheticArgumentClass.SYNTHETIC_CLASS_SUFFIX))
+                SyntheticItemsTestUtils.isHorizontalInitializerTypeArgument(
+                    clazz.getOriginalReference()))
         .findFirst()
         .get();
   }

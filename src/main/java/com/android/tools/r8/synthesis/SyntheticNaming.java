@@ -27,6 +27,9 @@ public class SyntheticNaming {
     COMPANION_CLASS("CompanionClass", false),
     LAMBDA("Lambda", false),
     INIT_TYPE_ARGUMENT("-IA", false, true),
+    HORIZONTAL_INIT_TYPE_ARGUMENT_1("$IA$1", false, true),
+    HORIZONTAL_INIT_TYPE_ARGUMENT_2("$IA$2", false, true),
+    HORIZONTAL_INIT_TYPE_ARGUMENT_3("$IA$3", false, true),
     // Method synthetics.
     BACKPORT("Backport", true),
     STATIC_INTERFACE_CALL("StaticInterfaceCall", true),

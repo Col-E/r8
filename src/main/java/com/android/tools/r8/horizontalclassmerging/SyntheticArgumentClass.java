@@ -4,21 +4,12 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ClassAccessFlags;
-import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
-import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -53,61 +44,28 @@ public class SyntheticArgumentClass {
 
   public static class Builder {
 
-    private final DirectMappedDexApplication.Builder appBuilder;
     private final AppView<AppInfoWithLiveness> appView;
 
-    Builder(DirectMappedDexApplication.Builder appBuilder, AppView<AppInfoWithLiveness> appView) {
-      this.appBuilder = appBuilder;
+    Builder(AppView<AppInfoWithLiveness> appView) {
       this.appView = appView;
     }
 
-    private DexType synthesizeClass(
-        DexProgramClass context, Iterable<DexProgramClass> mergeClasses, int index) {
-      DexType syntheticClassType =
-          appView
-              .dexItemFactory()
-              .createFreshTypeName(
-                  context.type.addSuffix(SYNTHETIC_CLASS_SUFFIX, appView.dexItemFactory()),
-                  type -> appView.appInfo().definitionForWithoutExistenceAssert(type) == null,
-                  index);
-
-      DexProgramClass clazz =
-          new DexProgramClass(
-              syntheticClassType,
-              null,
-              new SynthesizedOrigin("horizontal class merging", HorizontalClassMerger.class),
-              ClassAccessFlags.fromCfAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC),
-              appView.dexItemFactory().objectType,
-              DexTypeList.empty(),
-              null,
-              null,
-              Collections.emptyList(),
-              null,
-              Collections.emptyList(),
-              ClassSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              DexEncodedField.EMPTY_ARRAY,
-              DexEncodedField.EMPTY_ARRAY,
-              DexEncodedMethod.EMPTY_ARRAY,
-              DexEncodedMethod.EMPTY_ARRAY,
-              appView.dexItemFactory().getSkipNameValidationForTesting(),
-              DexProgramClass::checksumFromType);
-
-      appBuilder.addSynthesizedClass(clazz);
-      appView.appInfo().addSynthesizedClass(clazz, mergeClasses);
-      return clazz.type;
+    private DexProgramClass synthesizeClass(DexProgramClass context, SyntheticKind syntheticKind) {
+      return appView
+          .getSyntheticItems()
+          .createFixedClass(syntheticKind, context, appView.dexItemFactory(), builder -> {});
     }
 
     public SyntheticArgumentClass build(Iterable<DexProgramClass> mergeClasses) {
       // Find a fresh name in an existing package.
       DexProgramClass context = mergeClasses.iterator().next();
       List<DexType> syntheticArgumentTypes = new ArrayList<>();
-      for (int i = 0;
-          i < appView.options().horizontalClassMergerOptions().getSyntheticArgumentCount();
-          i++) {
-        syntheticArgumentTypes.add(synthesizeClass(context, mergeClasses, i));
-      }
-
+      syntheticArgumentTypes.add(
+          synthesizeClass(context, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_1).getType());
+      syntheticArgumentTypes.add(
+          synthesizeClass(context, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_2).getType());
+      syntheticArgumentTypes.add(
+          synthesizeClass(context, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_3).getType());
       return new SyntheticArgumentClass(syntheticArgumentTypes);
     }
   }

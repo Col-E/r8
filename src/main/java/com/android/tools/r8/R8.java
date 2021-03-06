@@ -495,16 +495,13 @@ public class R8 {
             && options.isShrinking()) {
           timing.begin("HorizontalClassMerger");
           HorizontalClassMerger merger = new HorizontalClassMerger(appViewWithLiveness);
-          DirectMappedDexApplication.Builder appBuilder =
-              appView.appInfo().app().asDirect().builder();
           HorizontalClassMergerResult horizontalClassMergerResult =
-              merger.run(appBuilder, runtimeTypeCheckInfo);
+              merger.run(runtimeTypeCheckInfo);
           if (horizontalClassMergerResult != null) {
             // Must rewrite AppInfoWithLiveness before pruning the merged classes, to ensure that
             // allocations sites, fields accesses, etc. are correctly transferred to the target
             // classes.
-            appView.rewriteWithLensAndApplication(
-                horizontalClassMergerResult.getGraphLens(), appBuilder.build());
+            appView.rewriteWithLens(horizontalClassMergerResult.getGraphLens());
             horizontalClassMergerResult
                 .getFieldAccessInfoCollectionModifier()
                 .modify(appViewWithLiveness);

@@ -1160,7 +1160,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enableConstructorMerging = true;
     public boolean enableJavaLambdaMerging = false;
 
-    public int syntheticArgumentCount = 3;
     public int maxGroupSize = 30;
 
     public void disable() {
@@ -1181,10 +1180,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public int getMaxGroupSize() {
       return maxGroupSize;
-    }
-
-    public int getSyntheticArgumentCount() {
-      return syntheticArgumentCount;
     }
 
     public boolean isConstructorMergingEnabled() {

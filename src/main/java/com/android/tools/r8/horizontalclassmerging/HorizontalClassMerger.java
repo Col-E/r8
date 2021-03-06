@@ -6,7 +6,6 @@ package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.horizontalclassmerging.policies.AllInstantiatedOrUninstantiated;
 import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.DontInlinePolicy;
@@ -58,7 +57,6 @@ public class HorizontalClassMerger {
   }
 
   public HorizontalClassMergerResult run(
-      DirectMappedDexApplication.Builder appBuilder,
       RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
     MergeGroup initialGroup = new MergeGroup(appView.appInfo().classesWithDeterministicOrder());
 
@@ -87,7 +85,7 @@ public class HorizontalClassMerger {
 
     // Merge the classes.
     SyntheticArgumentClass syntheticArgumentClass =
-        new SyntheticArgumentClass.Builder(appBuilder, appView).build(allMergeClasses);
+        new SyntheticArgumentClass.Builder(appView).build(allMergeClasses);
     applyClassMergers(classMergers, syntheticArgumentClass);
 
     // Generate the graph lens.
