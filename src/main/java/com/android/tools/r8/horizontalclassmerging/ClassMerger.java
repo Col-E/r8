@@ -137,8 +137,6 @@ public class ClassMerger {
       CfVersion cfVersion = classInitializerSynthesizedCode.getCfVersion();
       if (cfVersion != null) {
         clinit.upgradeClassFileVersion(cfVersion);
-      } else {
-        assert appView.options().isGeneratingDex();
       }
       classMethodsBuilder.addDirectMethod(clinit);
     }
