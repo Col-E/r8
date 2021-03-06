@@ -10,4 +10,6 @@ public interface MutableBidirectionalOneToOneMap<K, V> extends BidirectionalOneT
   V put(K key, V value);
 
   void putAll(BidirectionalManyToManyMap<K, V> map);
+
+  V remove(Object key);
 }

@@ -15,6 +15,8 @@ import com.google.common.collect.BiMap;
 public interface BidirectionalOneToOneMap<K, V>
     extends BidirectionalManyToOneRepresentativeMap<K, V> {
 
+  K getKey(V value);
+
   @Override
   BiMap<K, V> getForwardMap();
 

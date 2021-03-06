@@ -11,7 +11,7 @@ public interface MutableBidirectionalManyToOneMap<K, V> extends BidirectionalMan
 
   void clear();
 
-  void put(K key, V value);
+  V put(K key, V value);
 
   void put(Iterable<K> key, V value);
 

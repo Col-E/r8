@@ -1033,7 +1033,7 @@ public abstract class GraphLens {
     @Override
     public DexField getRenamedFieldSignature(DexField originalField) {
       DexField renamedField = getPrevious().getRenamedFieldSignature(originalField);
-      return fieldMap.getOrDefault(renamedField, renamedField);
+      return internalGetNextFieldSignature(renamedField);
     }
 
     @Override
@@ -1131,6 +1131,10 @@ public abstract class GraphLens {
     protected RewrittenPrototypeDescription internalDescribePrototypeChanges(
         RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
       return prototypeChanges;
+    }
+
+    protected DexField internalGetNextFieldSignature(DexField field) {
+      return fieldMap.getOrDefault(field, field);
     }
 
     @Override

@@ -77,6 +77,11 @@ public class BidirectionalOneToOneHashMap<K, V>
   }
 
   @Override
+  public K getKey(V value) {
+    return backing.inverse().get(value);
+  }
+
+  @Override
   public BiMap<K, V> getForwardMap() {
     return backing;
   }
@@ -88,12 +93,12 @@ public class BidirectionalOneToOneHashMap<K, V>
 
   @Override
   public K getRepresentativeKey(V value) {
-    return backing.inverse().get(value);
+    return getKey(value);
   }
 
   @Override
   public V getRepresentativeValue(K key) {
-    return backing.get(key);
+    return get(key);
   }
 
   @Override

@@ -130,10 +130,11 @@ public class BidirectionalManyToOneHashMap<K, V> implements MutableBidirectional
   }
 
   @Override
-  public void put(K key, V value) {
-    remove(key);
+  public V put(K key, V value) {
+    V old = remove(key);
     backing.put(key, value);
     inverse.computeIfAbsent(value, ignore -> new LinkedHashSet<>()).add(key);
+    return old;
   }
 
   @Override

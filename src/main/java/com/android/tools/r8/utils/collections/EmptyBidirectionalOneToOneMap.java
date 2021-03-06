@@ -57,6 +57,11 @@ public class EmptyBidirectionalOneToOneMap<K, V>
   }
 
   @Override
+  public K getKey(V value) {
+    return null;
+  }
+
+  @Override
   public BiMap<K, V> getForwardMap() {
     return HashBiMap.create();
   }
