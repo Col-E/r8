@@ -8,10 +8,12 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 public abstract class ObjectState {
 
@@ -24,6 +26,22 @@ public abstract class ObjectState {
   }
 
   public abstract void forEachAbstractFieldValue(BiConsumer<DexField, AbstractValue> consumer);
+
+  public final boolean hasMaterializableFieldValueThatMatches(
+      AppView<AppInfoWithLiveness> appView,
+      DexEncodedField field,
+      ProgramMethod context,
+      Predicate<SingleValue> predicate) {
+    AbstractValue abstractValue = getAbstractFieldValue(field);
+    if (!abstractValue.isSingleValue()) {
+      return false;
+    }
+    SingleValue singleValue = abstractValue.asSingleValue();
+    if (!singleValue.isMaterializableInContext(appView, context)) {
+      return false;
+    }
+    return predicate.test(singleValue);
+  }
 
   public abstract AbstractValue getAbstractFieldValue(DexEncodedField field);
 

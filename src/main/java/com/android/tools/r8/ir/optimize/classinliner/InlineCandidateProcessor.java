@@ -256,16 +256,17 @@ final class InlineCandidateProcessor {
         }
 
         if (user.isInstanceGet()) {
-          if (root.isStaticGet()) {
-            // We don't have a replacement for this field read.
-            return user; // Not eligible.
-          }
           DexEncodedField field =
               appView
                   .appInfo()
                   .resolveField(user.asFieldInstruction().getField())
                   .getResolvedField();
           if (field == null || field.isStatic()) {
+            return user; // Not eligible.
+          }
+          if (root.isStaticGet()
+              && !objectState.hasMaterializableFieldValueThatMatches(
+                  appView, field, method, AbstractValue::isSingleConstValue)) {
             return user; // Not eligible.
           }
           continue;
@@ -324,23 +325,20 @@ final class InlineCandidateProcessor {
           }
 
           // Eligible constructor call (for new instance roots only).
-          if (user.isInvokeDirect()) {
+          if (user.isInvokeConstructor(dexItemFactory)) {
             InvokeDirect invoke = user.asInvokeDirect();
-            if (dexItemFactory.isConstructor(invoke.getInvokedMethod())) {
-              boolean isCorrespondingConstructorCall =
-                  root.isNewInstance()
-                      && !invoke.inValues().isEmpty()
-                      && root.outValue() == invoke.getReceiver();
-              if (isCorrespondingConstructorCall) {
-                InliningInfo inliningInfo = isEligibleConstructorCall(invoke, singleProgramTarget);
-                if (inliningInfo != null) {
-                  methodCallsOnInstance.put(invoke, inliningInfo);
-                  continue;
-                }
+            boolean isCorrespondingConstructorCall =
+                root.isNewInstance()
+                    && !invoke.inValues().isEmpty()
+                    && root.outValue() == invoke.getReceiver();
+            if (isCorrespondingConstructorCall) {
+              InliningInfo inliningInfo = isEligibleConstructorCall(invoke, singleProgramTarget);
+              if (inliningInfo != null) {
+                methodCallsOnInstance.put(invoke, inliningInfo);
+                continue;
               }
-              assert !isExtraMethodCall(invoke);
-              return user; // Not eligible.
             }
+            return user; // Not eligible.
           }
 
           // Eligible virtual method call on the instance as a receiver.
@@ -483,7 +481,7 @@ final class InlineCandidateProcessor {
             }
 
             DexProgramClass holder =
-                asProgramClassOrNull(appView.definitionForHolder(invokedMethod));
+                asProgramClassOrNull(appView.definitionForHolder(invokedMethod, method));
             if (holder == null) {
               throw new IllegalClassInlinerStateException();
             }
@@ -932,7 +930,8 @@ final class InlineCandidateProcessor {
       if (parent == null) {
         return null;
       }
-      DexProgramClass parentClass = asProgramClassOrNull(appView.definitionForHolder(parent));
+      DexProgramClass parentClass =
+          asProgramClassOrNull(appView.definitionForHolder(parent, method));
       if (parentClass == null) {
         return null;
       }
