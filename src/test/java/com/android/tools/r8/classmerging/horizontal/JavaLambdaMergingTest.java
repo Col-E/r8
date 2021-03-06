@@ -5,7 +5,6 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -29,11 +28,8 @@ public class JavaLambdaMergingTest extends HorizontalClassMergingTestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> {
-              options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging);
-              assertFalse(options.horizontalClassMergerOptions().isJavaLambdaMergingEnabled());
-              options.horizontalClassMergerOptions().enableJavaLambdaMerging();
-            })
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .addHorizontallyMergedClassesInspectorIf(
             enableHorizontalClassMerging && parameters.isDexRuntime(),
             inspector -> {

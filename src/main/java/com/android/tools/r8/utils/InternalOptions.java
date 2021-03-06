@@ -1158,7 +1158,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean enable = true;
     public boolean enableConstructorMerging = true;
-    public boolean enableJavaLambdaMerging = false;
+    public boolean enableJavaLambdaMerging = true;
 
     public int maxGroupSize = 30;
 

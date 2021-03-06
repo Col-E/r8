@@ -67,8 +67,8 @@ public class LambdaEqualityTest extends TestBase {
           "false",
           "Empty lambda",
           "true", // R8 will eliminate the call to the impl method thus making lambdas equal.
-          "true",
-          "true");
+          "false",
+          "false");
 
   private final TestParameters parameters;
 

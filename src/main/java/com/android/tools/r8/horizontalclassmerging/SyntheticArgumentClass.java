@@ -30,7 +30,6 @@ import java.util.List;
  * <p>This class generates a synthetic class in the package of the first class to be merged.
  */
 public class SyntheticArgumentClass {
-  public static final String SYNTHETIC_CLASS_SUFFIX = "$r8$HorizontalClassMergingArgument";
 
   private final List<DexType> syntheticClassTypes;
 

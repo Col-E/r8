@@ -471,15 +471,6 @@ public class LambdaDesugaring {
     static final InstanceAndClassChecks INSTANCE = new InstanceAndClassChecks();
 
     static void test() {
-      assertSameInstance(
-          InstanceAndClassChecks::staticProvider,
-          InstanceAndClassChecks::staticProvider,
-          "Instances must be same");
-      assertSameInstance(
-          InstanceAndClassChecks::staticProvider,
-          statelessLambda(),
-          "Instances must be same");
-
       assertDifferentInstance(
           INSTANCE::instanceProvider,
           INSTANCE::instanceProvider,
