@@ -24,8 +24,8 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -200,10 +200,8 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(mainClassName);
-
-              // TODO(b/141719453): Data class should maybe be class inlined.
               assertEquals(
-                  Sets.newHashSet("class_inliner_data_class.Alpha"),
+                  Collections.emptySet(),
                   collectAccessedTypes(
                       type -> !type.toSourceString().startsWith("java."),
                       clazz,

@@ -73,7 +73,7 @@ public class ClassInlinerPhiDirectUserAfterInlineTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> {
-              options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+              options.testing.validInliningReasons = ImmutableSet.of(Reason.ALWAYS);
               options.testing.inlineeIrModifier = this::modifyIr;
             })
         .run(parameters.getRuntime(), Main.class)

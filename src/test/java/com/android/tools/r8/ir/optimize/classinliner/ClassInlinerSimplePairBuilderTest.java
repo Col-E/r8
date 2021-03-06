@@ -77,24 +77,12 @@ public class ClassInlinerSimplePairBuilderTest extends ClassInlinerTestBase {
 
   private void inspect(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(TestClass.class);
-    if (parameters.isCfRuntime()) {
-      assertThat(inspector.clazz(PairBuilder.class), isPresent());
+    assertThat(inspector.clazz(PairBuilder.class), not(isPresent()));
 
-      // const-string canonicalization is disabled in CF, which helps ClassInliner identify
-      // PairBuilder as candidate.
-      Set<String> expected =
-          ImmutableSet.of(StringBuilder.class.getTypeName(), PairBuilder.class.getTypeName());
-      assertEquals(expected, collectTypes(clazz.uniqueMethodWithName("testSimpleBuilder1")));
-      assertEquals(expected, collectTypes(clazz.uniqueMethodWithName("testSimpleBuilder2")));
-      assertEquals(expected, collectTypes(clazz.uniqueMethodWithName("testSimpleBuilder3")));
-    } else {
-      assertThat(inspector.clazz(PairBuilder.class), not(isPresent()));
-
-      Set<String> expected = ImmutableSet.of(StringBuilder.class.getTypeName());
-      assertEquals(expected, collectTypes(clazz.uniqueMethodWithName("testSimpleBuilder1")));
-      assertEquals(expected, collectTypes(clazz.uniqueMethodWithName("testSimpleBuilder2")));
-      assertEquals(expected, collectTypes(clazz.uniqueMethodWithName("testSimpleBuilder3")));
-    }
+    Set<String> expected = ImmutableSet.of(StringBuilder.class.getTypeName());
+    assertEquals(expected, collectTypes(clazz.uniqueMethodWithName("testSimpleBuilder1")));
+    assertEquals(expected, collectTypes(clazz.uniqueMethodWithName("testSimpleBuilder2")));
+    assertEquals(expected, collectTypes(clazz.uniqueMethodWithName("testSimpleBuilder3")));
   }
 
   static class TestClass {

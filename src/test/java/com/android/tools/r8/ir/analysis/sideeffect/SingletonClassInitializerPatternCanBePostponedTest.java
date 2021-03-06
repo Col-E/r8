@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.sideeffect;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -48,7 +49,7 @@ public class SingletonClassInitializerPatternCanBePostponedTest extends TestBase
 
   private void inspect(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(A.class);
-    assertThat(classSubject, isPresent());
+    assertThat(classSubject, isAbsent());
 
     // A.inlineable() should be inlined because we should be able to determine that A.<clinit>() can
     // safely be postponed.
