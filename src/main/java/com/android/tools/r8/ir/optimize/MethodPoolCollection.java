@@ -54,7 +54,7 @@ public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
   Runnable computeMemberPoolForClass(DexClass clazz) {
     return () -> {
       MemberPool<DexMethod> methodPool =
-          memberPools.computeIfAbsent(clazz, k -> new MemberPool<>(equivalence));
+          memberPools.computeIfAbsent(clazz, k -> new MemberPool<>(equivalence, k));
       clazz.forEachMethod(
           encodedMethod -> {
             if (methodTester.test(encodedMethod)) {
@@ -65,7 +65,8 @@ public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
         DexClass superClazz = appView.definitionFor(clazz.superType);
         if (superClazz != null) {
           MemberPool<DexMethod> superPool =
-              memberPools.computeIfAbsent(superClazz, k -> new MemberPool<>(equivalence));
+              memberPools.computeIfAbsent(
+                  superClazz, k -> new MemberPool<>(equivalence, superClazz));
           superPool.linkSubtype(methodPool);
           methodPool.linkSupertype(superPool);
         }
@@ -75,7 +76,7 @@ public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
           DexClass subClazz = appView.definitionFor(subtype);
           if (subClazz != null) {
             MemberPool<DexMethod> childPool =
-                memberPools.computeIfAbsent(subClazz, k -> new MemberPool<>(equivalence));
+                memberPools.computeIfAbsent(subClazz, k -> new MemberPool<>(equivalence, subClazz));
             methodPool.linkSubtype(childPool);
             childPool.linkInterface(methodPool);
           }

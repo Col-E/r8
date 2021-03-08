@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.WorkList;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import java.util.ArrayDeque;
@@ -26,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 // Per-class collection of member signatures.
@@ -158,14 +160,16 @@ public abstract class MemberPoolCollection<R extends DexMember<?, R>> {
 
   public static class MemberPool<T> {
 
-    private Equivalence<T> equivalence;
+    private final DexClass clazz;
+    private final Equivalence<T> equivalence;
     private MemberPool<T> superType;
     private final Set<MemberPool<T>> interfaces = new HashSet<>();
     private final Set<MemberPool<T>> subTypes = new HashSet<>();
     private final Set<Wrapper<T>> memberPool = new HashSet<>();
 
-    MemberPool(Equivalence<T> equivalence) {
+    MemberPool(Equivalence<T> equivalence, DexClass clazz) {
       this.equivalence = equivalence;
+      this.clazz = clazz;
     }
 
     synchronized void linkSupertype(MemberPool<T> superType) {
@@ -193,36 +197,74 @@ public abstract class MemberPoolCollection<R extends DexMember<?, R>> {
     }
 
     public boolean hasSeen(Wrapper<T> member) {
-      return hasSeenAbove(member, true) || hasSeenStrictlyBelow(member);
+      return fold(member, false, true, (t, ignored) -> true);
     }
 
     public boolean hasSeenDirectly(Wrapper<T> member) {
-      return memberPool.contains(member);
+      return here(member, false, (t, ignored) -> true);
     }
 
     public boolean hasSeenStrictlyAbove(Wrapper<T> member) {
-      return hasSeenAbove(member, false);
-    }
-
-    private boolean hasSeenAbove(Wrapper<T> member, boolean inclusive) {
-      if (inclusive && hasSeenDirectly(member)) {
-        return true;
-      }
-      return (superType != null && superType.hasSeenAbove(member, true))
-          || interfaces.stream().anyMatch(itf -> itf.hasSeenAbove(member, true));
+      return above(member, false, false, true, (t, ignored) -> true);
     }
 
     public boolean hasSeenStrictlyBelow(Wrapper<T> member) {
-      return hasSeenBelow(member, false);
+      return below(member, false, true, (t, ignored) -> true);
     }
 
-    private boolean hasSeenBelow(Wrapper<T> member, boolean inclusive) {
-      if (inclusive
-          && (hasSeenDirectly(member)
-              || interfaces.stream().anyMatch(itf -> itf.hasSeenAbove(member, true)))) {
-        return true;
+    private <S> S above(
+        Wrapper<T> member,
+        boolean inclusive,
+        S value,
+        S terminator,
+        BiFunction<DexClass, S, S> accumulator) {
+      WorkList<MemberPool<T>> workList = WorkList.newIdentityWorkList(this);
+      while (workList.hasNext()) {
+        MemberPool<T> next = workList.next();
+        if (inclusive) {
+          value = next.here(member, value, accumulator);
+          if (value == terminator) {
+            return value;
+          }
+        }
+        inclusive = true;
+        if (next.superType != null) {
+          workList.addIfNotSeen(next.superType);
+        }
+        workList.addIfNotSeen(next.interfaces);
       }
-      return subTypes.stream().anyMatch(subType -> subType.hasSeenBelow(member, true));
+      return value;
+    }
+
+    private <S> S here(Wrapper<T> member, S value, BiFunction<DexClass, S, S> accumulator) {
+      if (memberPool.contains(member)) {
+        return accumulator.apply(clazz, value);
+      }
+      return value;
+    }
+
+    public <S> S below(
+        Wrapper<T> member, S value, S terminator, BiFunction<DexClass, S, S> accumulator) {
+      WorkList<MemberPool<T>> workList = WorkList.newIdentityWorkList(this.subTypes);
+      while (workList.hasNext()) {
+        MemberPool<T> next = workList.next();
+        value = next.here(member, value, accumulator);
+        if (value == terminator) {
+          return value;
+        }
+        workList.addIfNotSeen(next.interfaces);
+        workList.addIfNotSeen(next.subTypes);
+      }
+      return value;
+    }
+
+    public <S> S fold(
+        Wrapper<T> member, S initialValue, S terminator, BiFunction<DexClass, S, S> accumulator) {
+      S value = above(member, true, initialValue, terminator, accumulator);
+      if (value == terminator) {
+        return value;
+      }
+      return below(member, initialValue, terminator, accumulator);
     }
   }
 

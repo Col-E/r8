@@ -167,14 +167,16 @@ public final class ClassAndMemberPublicizer {
 
     if (accessFlags.isPackagePrivate()) {
       // If we publicize a package private method we have to ensure there is no overrides of it. We
-      // could potentially publicize a method if it only has package-private overrides, but for know
-      // we just check if it is seen below.
-      // Note that we will not publize private methods if there exists a package-private override,
-      // and there is therefore no need to check the hierarchy above.
+      // could potentially publicize a method if it only has package-private overrides.
+      // TODO(b/182136236): See if we can break the hierarchy for clusters.
       MemberPool<DexMethod> memberPool = methodPoolCollection.get(method.getHolder());
       Wrapper<DexMethod> methodKey = MethodSignatureEquivalence.get().wrap(method.getReference());
-      if (memberPool.hasSeenStrictlyBelow(methodKey)
-          && appView.options().enablePackagePrivateAwarePublicization) {
+      if (memberPool.below(
+          methodKey,
+          false,
+          true,
+          (clazz, ignored) ->
+              !method.getContextType().getPackageName().equals(clazz.getType().getPackageName()))) {
         return false;
       }
       doPublicize(method);

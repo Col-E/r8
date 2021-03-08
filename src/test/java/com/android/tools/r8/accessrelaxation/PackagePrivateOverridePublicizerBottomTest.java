@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.accessrelaxation;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
@@ -12,6 +16,8 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -58,8 +64,17 @@ public class PackagePrivateOverridePublicizerBottomTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .allowAccessModification()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/181328496): This should be EXPECTED.
-        .assertSuccessWithOutputLines(EXPECTED_ART_4);
+        // TODO(b/182185057): This is an error in the devirtualizer
+        .assertSuccessWithOutputLines(EXPECTED_ART_4)
+        .inspect(
+            inspector -> {
+              ClassSubject subViewModelSubject =
+                  inspector.clazz(DescriptorUtils.descriptorToJavaType(NEW_DESCRIPTOR));
+              assertThat(subViewModelSubject, isPresent());
+              MethodSubject clearSubject = subViewModelSubject.uniqueMethodWithName("clear");
+              assertThat(clearSubject, isPresent());
+              assertTrue(clearSubject.isPublic());
+            });
   }
 
   private byte[] getSubViewModelInAnotherPackage() throws Exception {
