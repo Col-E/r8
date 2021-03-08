@@ -22,10 +22,10 @@ public final class IntegerBackportJava9Main {
   };
 
   public static void main(String[] args) {
-    testParseIntegerSubsequenceWithRadix(args.length == 0 || !args[0].startsWith("4."));
+    testParseIntegerSubsequenceWithRadix();
   }
 
-  private static void testParseIntegerSubsequenceWithRadix(boolean supportsPlusPrefix) {
+  private static void testParseIntegerSubsequenceWithRadix() {
     for (int value : interestingValues) {
       for (int radix = Character.MIN_RADIX; radix <= Character.MAX_RADIX; radix++) {
         for (String prefix : new String[] {"", "x", "xxx"}) {
@@ -34,7 +34,7 @@ public final class IntegerBackportJava9Main {
             int start = prefix.length();
             int end = valueString.length() - postfix.length();
             assertEquals(valueString, value, Integer.parseInt(valueString, start, end, radix));
-            if (value > 0 && supportsPlusPrefix) {
+            if (value > 0) {
               valueString = prefix + '+' + Long.toString(value, radix) + postfix;
               end++;
               assertEquals(valueString, value, Integer.parseInt(valueString, start, end, radix));
@@ -45,24 +45,29 @@ public final class IntegerBackportJava9Main {
     }
 
     try {
-      throw new AssertionError(Long.parseUnsignedLong("0", 0, 1, Character.MIN_RADIX - 1));
+      throw new AssertionError(Integer.parseInt("0", 0, 1, Character.MIN_RADIX - 1));
     } catch (IllegalArgumentException expected) {
     }
     try {
-      throw new AssertionError(Long.parseUnsignedLong("0", 0, 1, Character.MAX_RADIX + 1));
+      throw new AssertionError(Integer.parseInt("0", 0, 1, Character.MAX_RADIX + 1));
     } catch (IllegalArgumentException expected) {
     }
 
     try {
-      throw new AssertionError(Long.parseUnsignedLong("", 0, 0, 16));
+      throw new AssertionError(Integer.parseInt("", 0, 0, 16));
     } catch (NumberFormatException expected) {
     }
     try {
-      throw new AssertionError(Long.parseUnsignedLong("-", 0, 1, 16));
+      throw new AssertionError(Integer.parseInt("-", 0, 1, 16));
     } catch (NumberFormatException expected) {
     }
     try {
-      throw new AssertionError(Long.parseUnsignedLong("+", 0, 1, 16));
+      throw new AssertionError(Integer.parseInt("+", 0, 1, 16));
+    } catch (NumberFormatException expected) {
+    }
+
+    try {
+      throw new AssertionError(Integer.parseInt("+a", 0, 1, 10));
     } catch (NumberFormatException expected) {
     }
 

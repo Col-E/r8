@@ -102,10 +102,7 @@ abstract class AbstractBackportTest extends TestBase {
           .apply(this::configureProgram)
           .setIncludeClassesChecksum(true)
           .compile()
-          .run(
-              parameters.getRuntime(),
-              testClassName,
-              parameters.getRuntime().asDex().getVm().getVersion().toString())
+          .run(parameters.getRuntime(), testClassName)
           .assertSuccess()
           .inspect(this::assertDesugaring);
     }

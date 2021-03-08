@@ -1059,10 +1059,15 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
               factory.intType);
       DexMethod method = factory.createMethod(type, proto, name);
       addProvider(
-          new MethodGenerator(
-              method,
-              BackportedMethods::IntegerMethods_parseIntSubsequenceWithRadix,
-              "parseIntSubsequenceWithRadix"));
+          appView.options().canParseNumbersWithPlusPrefix()
+              ? new MethodGenerator(
+                  method,
+                  BackportedMethods::IntegerMethods_parseIntSubsequenceWithRadix,
+                  "parseIntSubsequenceWithRadix")
+              : new MethodGenerator(
+                  method,
+                  BackportedMethods::IntegerMethods_parseIntSubsequenceWithRadixDalvik,
+                  "parseIntSubsequenceWithRadix"));
 
       // Long
       type = factory.boxedLongType;
@@ -1077,10 +1082,15 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
               factory.intType);
       method = factory.createMethod(type, proto, name);
       addProvider(
-          new MethodGenerator(
-              method,
-              BackportedMethods::LongMethods_parseLongSubsequenceWithRadix,
-              "parseLongSubsequenceWithRadix"));
+          appView.options().canParseNumbersWithPlusPrefix()
+              ? new MethodGenerator(
+                  method,
+                  BackportedMethods::LongMethods_parseLongSubsequenceWithRadix,
+                  "parseLongSubsequenceWithRadix")
+              : new MethodGenerator(
+                  method,
+                  BackportedMethods::LongMethods_parseLongSubsequenceWithRadixDalvik,
+                  "parseLongSubsequenceWithRadix"));
 
       // long Long.parseUnsignedLong(CharSequence s, int beginIndex, int endIndex, int radix)
       name = factory.createString("parseUnsignedLong");

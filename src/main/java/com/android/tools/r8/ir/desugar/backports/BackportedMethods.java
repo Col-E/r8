@@ -2162,6 +2162,113 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode IntegerMethods_parseIntSubsequenceWithRadixDalvik(
+      InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.INT, 2),
+            new CfLoad(ValueType.INT, 1),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
+            new CfConstNumber(2, ValueType.INT),
+            new CfIfCmp(If.Type.LT, ValueType.INT, label4),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            label1,
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.charType, options.itemFactory.intType),
+                    options.itemFactory.createString("charAt")),
+                true),
+            new CfConstNumber(43, ValueType.INT),
+            new CfIfCmp(If.Type.NE, ValueType.INT, label4),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfConstNumber(1, ValueType.INT),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
+            label2,
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.charType, options.itemFactory.intType),
+                    options.itemFactory.createString("charAt")),
+                true),
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.boxedCharType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.intType,
+                        options.itemFactory.charType,
+                        options.itemFactory.intType),
+                    options.itemFactory.createString("digit")),
+                false),
+            new CfIf(If.Type.LT, ValueType.INT, label4),
+            label3,
+            new CfIinc(1, 1),
+            label4,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1, 2, 3},
+                    new FrameType[] {
+                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType)
+                    }),
+                new ArrayDeque<>(Arrays.asList())),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 2),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.charSequenceType,
+                        options.itemFactory.intType,
+                        options.itemFactory.intType),
+                    options.itemFactory.createString("subSequence")),
+                true),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(options.itemFactory.stringType),
+                    options.itemFactory.createString("toString")),
+                true),
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Integer;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.intType,
+                        options.itemFactory.stringType,
+                        options.itemFactory.intType),
+                    options.itemFactory.createString("parseInt")),
+                false),
+            new CfReturn(ValueType.INT),
+            label5),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode IntegerMethods_parseUnsignedInt(InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
@@ -2733,6 +2840,113 @@ public final class BackportedMethods {
                 false),
             new CfReturn(ValueType.LONG),
             label1),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode LongMethods_parseLongSubsequenceWithRadixDalvik(
+      InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.INT, 2),
+            new CfLoad(ValueType.INT, 1),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
+            new CfConstNumber(2, ValueType.INT),
+            new CfIfCmp(If.Type.LT, ValueType.INT, label4),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            label1,
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.charType, options.itemFactory.intType),
+                    options.itemFactory.createString("charAt")),
+                true),
+            new CfConstNumber(43, ValueType.INT),
+            new CfIfCmp(If.Type.NE, ValueType.INT, label4),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfConstNumber(1, ValueType.INT),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
+            label2,
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.charType, options.itemFactory.intType),
+                    options.itemFactory.createString("charAt")),
+                true),
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.boxedCharType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.intType,
+                        options.itemFactory.charType,
+                        options.itemFactory.intType),
+                    options.itemFactory.createString("digit")),
+                false),
+            new CfIf(If.Type.LT, ValueType.INT, label4),
+            label3,
+            new CfIinc(1, 1),
+            label4,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1, 2, 3},
+                    new FrameType[] {
+                      FrameType.initialized(options.itemFactory.charSequenceType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType)
+                    }),
+                new ArrayDeque<>(Arrays.asList())),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 2),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.charSequenceType,
+                        options.itemFactory.intType,
+                        options.itemFactory.intType),
+                    options.itemFactory.createString("subSequence")),
+                true),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(options.itemFactory.stringType),
+                    options.itemFactory.createString("toString")),
+                true),
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Long;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.longType,
+                        options.itemFactory.stringType,
+                        options.itemFactory.intType),
+                    options.itemFactory.createString("parseLong")),
+                false),
+            new CfReturn(ValueType.LONG),
+            label5),
         ImmutableList.of(),
         ImmutableList.of());
   }

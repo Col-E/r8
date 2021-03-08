@@ -24,11 +24,11 @@ public final class LongBackportJava9Main {
   };
 
   public static void main(String[] args) {
-    testParseLongSubsequenceWithRadix(args.length == 0 || !args[0].startsWith("4."));
+    testParseLongSubsequenceWithRadix();
     testParseUnsignedLongSubsequenceWithRadix();
   }
 
-  private static void testParseLongSubsequenceWithRadix(boolean supportsPlusPrefix) {
+  private static void testParseLongSubsequenceWithRadix() {
     for (long value : interestingValues) {
       for (int radix = Character.MIN_RADIX; radix <= Character.MAX_RADIX; radix++) {
         for (String prefix : new String[] {"", "x", "xxx"}) {
@@ -37,7 +37,7 @@ public final class LongBackportJava9Main {
             int start = prefix.length();
             int end = valueString.length() - postfix.length();
             assertEquals(valueString, value, Long.parseLong(valueString, start, end, radix));
-            if (value > 0 && supportsPlusPrefix) {
+            if (value > 0) {
               valueString = prefix + "+" + Long.toString(value, radix) + postfix;
               end++;
               assertEquals(valueString, value, Long.parseLong(valueString, start, end, radix));
@@ -48,24 +48,29 @@ public final class LongBackportJava9Main {
     }
 
     try {
-      throw new AssertionError(Long.parseUnsignedLong("0", 0, 1, Character.MIN_RADIX - 1));
+      throw new AssertionError(Long.parseLong("0", 0, 1, Character.MIN_RADIX - 1));
     } catch (IllegalArgumentException expected) {
     }
     try {
-      throw new AssertionError(Long.parseUnsignedLong("0", 0, 1, Character.MAX_RADIX + 1));
+      throw new AssertionError(Long.parseLong("0", 0, 1, Character.MAX_RADIX + 1));
     } catch (IllegalArgumentException expected) {
     }
 
     try {
-      throw new AssertionError(Long.parseUnsignedLong("", 0, 0, 16));
+      throw new AssertionError(Long.parseLong("", 0, 0, 16));
     } catch (NumberFormatException expected) {
     }
     try {
-      throw new AssertionError(Long.parseUnsignedLong("-", 0, 1, 16));
+      throw new AssertionError(Long.parseLong("-", 0, 1, 16));
     } catch (NumberFormatException expected) {
     }
     try {
-      throw new AssertionError(Long.parseUnsignedLong("+", 0, 1, 16));
+      throw new AssertionError(Long.parseLong("+", 0, 1, 16));
+    } catch (NumberFormatException expected) {
+    }
+
+    try {
+      throw new AssertionError(Long.parseLong("+a", 0, 1, 10));
     } catch (NumberFormatException expected) {
     }
 
@@ -119,6 +124,11 @@ public final class LongBackportJava9Main {
     }
     try {
       throw new AssertionError(Long.parseUnsignedLong("+", 0, 1, 16));
+    } catch (NumberFormatException expected) {
+    }
+
+    try {
+      throw new AssertionError(Long.parseUnsignedLong("+a", 0, 1, 10));
     } catch (NumberFormatException expected) {
     }
 

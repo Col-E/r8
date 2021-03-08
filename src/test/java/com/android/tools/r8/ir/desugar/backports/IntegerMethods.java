@@ -62,4 +62,15 @@ public final class IntegerMethods {
       CharSequence s, int beginIndex, int endIndex, int radix) throws NumberFormatException {
     return Integer.parseInt(s.subSequence(beginIndex, endIndex).toString(), radix);
   }
+
+  public static int parseIntSubsequenceWithRadixDalvik(
+      CharSequence s, int beginIndex, int endIndex, int radix) throws NumberFormatException {
+    // Dalvik (API level 19 and below) does not support a '+' prefix.
+    if (endIndex - beginIndex >= 2
+        && s.charAt(beginIndex) == '+'
+        && Character.digit(s.charAt(beginIndex + 1), radix) >= 0) {
+      beginIndex++;
+    }
+    return Integer.parseInt(s.subSequence(beginIndex, endIndex).toString(), radix);
+  }
 }
