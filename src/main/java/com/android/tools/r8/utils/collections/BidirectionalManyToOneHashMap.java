@@ -17,11 +17,11 @@ public class BidirectionalManyToOneHashMap<K, V> implements MutableBidirectional
   private final Map<K, V> backing;
   private final Map<V, Set<K>> inverse;
 
-  public BidirectionalManyToOneHashMap() {
-    this(new IdentityHashMap<>(), new IdentityHashMap<>());
+  public static <K, V> BidirectionalManyToOneHashMap<K, V> newIdentityHashMap() {
+    return new BidirectionalManyToOneHashMap<>(new IdentityHashMap<>(), new IdentityHashMap<>());
   }
 
-  private BidirectionalManyToOneHashMap(Map<K, V> backing, Map<V, Set<K>> inverse) {
+  protected BidirectionalManyToOneHashMap(Map<K, V> backing, Map<V, Set<K>> inverse) {
     this.backing = backing;
     this.inverse = inverse;
   }

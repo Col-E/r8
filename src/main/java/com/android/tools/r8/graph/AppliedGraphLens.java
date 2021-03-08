@@ -27,7 +27,7 @@ import java.util.Set;
 public final class AppliedGraphLens extends NonIdentityGraphLens {
 
   private final MutableBidirectionalManyToOneRepresentativeMap<DexType, DexType> renamedTypeNames =
-      new BidirectionalManyToOneRepresentativeHashMap<>();
+      BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
   private final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
   private final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
 

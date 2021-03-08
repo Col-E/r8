@@ -91,7 +91,7 @@ public class SyntheticFinalization {
 
     Map<DexType, DexType> typeMap = new IdentityHashMap<>();
     BidirectionalManyToOneRepresentativeHashMap<DexField, DexField> fieldMap =
-        new BidirectionalManyToOneRepresentativeHashMap<>();
+        BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
     Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
 
     protected final MutableBidirectionalOneToManyRepresentativeMap<DexMethod, DexMethod>

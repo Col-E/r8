@@ -208,7 +208,7 @@ public class VerticalClassMerger {
 
   // Map from source class to target class.
   private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedClasses =
-      new BidirectionalManyToOneHashMap<>();
+      BidirectionalManyToOneHashMap.newIdentityHashMap();
 
   // Set of types that must not be merged into their subtype.
   private final Set<DexType> pinnedTypes = Sets.newIdentityHashSet();

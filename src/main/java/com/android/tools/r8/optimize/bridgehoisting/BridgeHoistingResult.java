@@ -23,7 +23,7 @@ class BridgeHoistingResult {
 
   // Mapping from non-hoisted bridge methods to hoisted bridge methods.
   private final MutableBidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod>
-      bridgeToHoistedBridgeMap = new BidirectionalManyToOneRepresentativeHashMap<>();
+      bridgeToHoistedBridgeMap = BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
 
   BridgeHoistingResult(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;

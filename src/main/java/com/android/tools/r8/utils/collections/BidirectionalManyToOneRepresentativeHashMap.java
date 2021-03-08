@@ -13,7 +13,18 @@ public class BidirectionalManyToOneRepresentativeHashMap<K, V>
     extends BidirectionalManyToOneHashMap<K, V>
     implements MutableBidirectionalManyToOneRepresentativeMap<K, V> {
 
-  private final Map<V, K> representatives = new IdentityHashMap<>();
+  private final Map<V, K> representatives;
+
+  public static <K, V> BidirectionalManyToOneRepresentativeHashMap<K, V> newIdentityHashMap() {
+    return new BidirectionalManyToOneRepresentativeHashMap<>(
+        new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>());
+  }
+
+  private BidirectionalManyToOneRepresentativeHashMap(
+      Map<K, V> backing, Map<V, Set<K>> inverse, Map<V, K> representatives) {
+    super(backing, inverse);
+    this.representatives = representatives;
+  }
 
   @Override
   public void clear() {

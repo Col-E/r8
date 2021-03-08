@@ -240,7 +240,7 @@ public abstract class GraphLens {
     protected final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
     protected final Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
     protected final MutableBidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap =
-        new BidirectionalManyToOneRepresentativeHashMap<>();
+        BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
 
     protected final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures =
         new BidirectionalOneToOneHashMap<>();

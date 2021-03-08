@@ -85,7 +85,7 @@ public class HorizontallyMergedClasses implements MergedClasses {
   public static class Builder {
 
     private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedClasses =
-        new BidirectionalManyToOneHashMap<>();
+        BidirectionalManyToOneHashMap.newIdentityHashMap();
 
     void addMergeGroup(MergeGroup group) {
       group.forEachSource(clazz -> mergedClasses.put(clazz.getType(), group.getTarget().getType()));

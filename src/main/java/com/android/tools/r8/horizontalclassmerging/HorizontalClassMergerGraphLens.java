@@ -91,16 +91,16 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   public static class Builder {
 
     private final MutableBidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap =
-        new BidirectionalManyToOneRepresentativeHashMap<>();
+        BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
     private final BidirectionalManyToOneHashMap<DexMethod, DexMethod> methodMap =
-        new BidirectionalManyToOneHashMap<>();
+        BidirectionalManyToOneHashMap.newIdentityHashMap();
     private final BidirectionalOneToManyRepresentativeHashMap<DexMethod, DexMethod>
         originalMethodSignatures = new BidirectionalOneToManyRepresentativeHashMap<>();
     private final Map<DexMethod, List<ExtraParameter>> methodExtraParameters =
         new IdentityHashMap<>();
 
     private final BidirectionalManyToOneHashMap<DexMethod, DexMethod> pendingMethodMapUpdates =
-        new BidirectionalManyToOneHashMap<>();
+        BidirectionalManyToOneHashMap.newIdentityHashMap();
     private final BidirectionalOneToManyRepresentativeHashMap<DexMethod, DexMethod>
         pendingOriginalMethodSignatureUpdates = new BidirectionalOneToManyRepresentativeHashMap<>();
 
