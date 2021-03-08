@@ -41,7 +41,6 @@ import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -71,25 +70,18 @@ public class HorizontalClassMerger {
       return null;
     }
 
-    HorizontallyMergedClasses.Builder mergedClassesBuilder =
-        new HorizontallyMergedClasses.Builder();
     HorizontalClassMergerGraphLens.Builder lensBuilder =
         new HorizontalClassMergerGraphLens.Builder();
 
-    // Set up a class merger for each group.
-    List<ClassMerger> classMergers =
-        initializeClassMergers(mergedClassesBuilder, lensBuilder, groups);
-    Iterable<DexProgramClass> allMergeClasses =
-        Iterables.concat(
-            Iterables.transform(classMergers, classMerger -> classMerger.getGroup().getClasses()));
-
     // Merge the classes.
     SyntheticArgumentClass syntheticArgumentClass =
-        new SyntheticArgumentClass.Builder(appView).build(allMergeClasses);
+        new SyntheticArgumentClass.Builder(appView).build(groups);
+    List<ClassMerger> classMergers = initializeClassMergers(lensBuilder, groups);
     applyClassMergers(classMergers, syntheticArgumentClass);
 
     // Generate the graph lens.
-    HorizontallyMergedClasses mergedClasses = mergedClassesBuilder.build();
+    HorizontallyMergedClasses mergedClasses =
+        HorizontallyMergedClasses.builder().addMergeGroups(groups).build();
     appView.setHorizontallyMergedClasses(mergedClasses);
     HorizontalClassMergerGraphLens lens =
         createLens(mergedClasses, lensBuilder, syntheticArgumentClass);
@@ -163,7 +155,6 @@ public class HorizontalClassMerger {
    * be merged and how the merging should be performed.
    */
   private List<ClassMerger> initializeClassMergers(
-      HorizontallyMergedClasses.Builder mergedClassesBuilder,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       Collection<MergeGroup> groups) {
     List<ClassMerger> classMergers = new ArrayList<>();
@@ -171,8 +162,7 @@ public class HorizontalClassMerger {
     // TODO(b/166577694): Replace Collection<DexProgramClass> with MergeGroup
     for (MergeGroup group : groups) {
       assert !group.isEmpty();
-      ClassMerger merger =
-          new ClassMerger.Builder(appView, group).build(mergedClassesBuilder, lensBuilder);
+      ClassMerger merger = new ClassMerger.Builder(appView, group).build(lensBuilder);
       classMergers.add(merger);
     }
 

@@ -24,6 +24,10 @@ public class HorizontallyMergedClasses implements MergedClasses {
     this.mergedClasses = mergedClasses;
   }
 
+  static Builder builder() {
+    return new Builder();
+  }
+
   public static HorizontallyMergedClasses empty() {
     return new HorizontallyMergedClasses(new EmptyBidirectionalOneToOneMap<>());
   }
@@ -79,15 +83,21 @@ public class HorizontallyMergedClasses implements MergedClasses {
   }
 
   public static class Builder {
+
     private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedClasses =
         new BidirectionalManyToOneHashMap<>();
 
-    public HorizontallyMergedClasses build() {
-      return new HorizontallyMergedClasses(mergedClasses);
+    void addMergeGroup(MergeGroup group) {
+      group.forEachSource(clazz -> mergedClasses.put(clazz.getType(), group.getTarget().getType()));
     }
 
-    public void addMergeGroup(MergeGroup group) {
-      group.forEachSource(clazz -> mergedClasses.put(clazz.getType(), group.getTarget().getType()));
+    Builder addMergeGroups(Iterable<MergeGroup> groups) {
+      groups.forEach(this::addMergeGroup);
+      return this;
+    }
+
+    HorizontallyMergedClasses build() {
+      return new HorizontallyMergedClasses(mergedClasses);
     }
   }
 }

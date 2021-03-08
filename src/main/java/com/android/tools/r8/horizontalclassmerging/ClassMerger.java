@@ -63,7 +63,6 @@ public class ClassMerger {
   private final DexItemFactory dexItemFactory;
   private final ClassInitializerSynthesizedCode classInitializerSynthesizedCode;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
-  private final HorizontallyMergedClasses.Builder mergedClassesBuilder;
 
   private final ClassMethodsBuilder classMethodsBuilder = new ClassMethodsBuilder();
   private final Reference2IntMap<DexType> classIdentifiers = new Reference2IntOpenHashMap<>();
@@ -75,14 +74,12 @@ public class ClassMerger {
   private ClassMerger(
       AppView<AppInfoWithLiveness> appView,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
-      HorizontallyMergedClasses.Builder mergedClassesBuilder,
       MergeGroup group,
       Collection<VirtualMethodMerger> virtualMethodMergers,
       Collection<ConstructorMerger> constructorMergers,
       ClassInitializerSynthesizedCode classInitializerSynthesizedCode) {
     this.appView = appView;
     this.lensBuilder = lensBuilder;
-    this.mergedClassesBuilder = mergedClassesBuilder;
     this.group = group;
     this.virtualMethodMergers = virtualMethodMergers;
     this.constructorMergers = constructorMergers;
@@ -93,10 +90,6 @@ public class ClassMerger {
     this.classInstanceFieldsMerger = new ClassInstanceFieldsMerger(appView, lensBuilder, group);
 
     buildClassIdentifierMap();
-  }
-
-  MergeGroup getGroup() {
-    return group;
   }
 
   void buildClassIdentifierMap() {
@@ -279,8 +272,6 @@ public class ClassMerger {
 
     mergeStaticFields();
     mergeInstanceFields();
-
-    mergedClassesBuilder.addMergeGroup(group);
   }
 
   public static class Builder {
@@ -351,7 +342,6 @@ public class ClassMerger {
     }
 
     public ClassMerger build(
-        HorizontallyMergedClasses.Builder mergedClassesBuilder,
         HorizontalClassMergerGraphLens.Builder lensBuilder) {
       setup();
       List<VirtualMethodMerger> virtualMethodMergers =
@@ -377,7 +367,6 @@ public class ClassMerger {
       return new ClassMerger(
           appView,
           lensBuilder,
-          mergedClassesBuilder,
           group,
           virtualMethodMergers,
           constructorMergers,

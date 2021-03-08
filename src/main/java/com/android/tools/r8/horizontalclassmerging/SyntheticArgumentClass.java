@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -55,9 +56,8 @@ public class SyntheticArgumentClass {
           .createFixedClass(syntheticKind, context, appView.dexItemFactory(), builder -> {});
     }
 
-    public SyntheticArgumentClass build(Iterable<DexProgramClass> mergeClasses) {
-      // Find a fresh name in an existing package.
-      DexProgramClass context = mergeClasses.iterator().next();
+    public SyntheticArgumentClass build(Collection<MergeGroup> mergeGroups) {
+      DexProgramClass context = getDeterministicContext(mergeGroups);
       List<DexType> syntheticArgumentTypes = new ArrayList<>();
       syntheticArgumentTypes.add(
           synthesizeClass(context, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_1).getType());
@@ -66,6 +66,13 @@ public class SyntheticArgumentClass {
       syntheticArgumentTypes.add(
           synthesizeClass(context, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_3).getType());
       return new SyntheticArgumentClass(syntheticArgumentTypes);
+    }
+
+    private static DexProgramClass getDeterministicContext(Collection<MergeGroup> mergeGroups) {
+      // Relies on the determinism of the merge groups.
+      MergeGroup mergeGroup = mergeGroups.iterator().next();
+      assert mergeGroup.hasTarget();
+      return mergeGroup.getTarget();
     }
   }
 }
