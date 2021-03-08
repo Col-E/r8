@@ -342,8 +342,6 @@ APPS = [
     'url': 'https://github.com/android/compose-samples',
     'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
     'folder': 'android/compose-samples/crane',
-    # TODO(b/173176042): Fix recompilation
-    'skip_recompilation': True,
   }),
   # TODO(b/173167253): Check if monkey testing works.
   App({
@@ -355,8 +353,6 @@ APPS = [
     'url': 'https://github.com/android/compose-samples',
     'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
     'folder': 'android/compose-samples/jetcaster',
-    # TODO(b/173176042): Fix recompilation
-    'skip_recompilation': True,
   }),
   # TODO(b/173167253): Check if monkey testing works.
   App({
@@ -368,8 +364,6 @@ APPS = [
     'url': 'https://github.com/android/compose-samples',
     'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
     'folder': 'android/compose-samples/jetchat',
-    # TODO(b/173176042): Fix recompilation
-    'skip_recompilation': True,
   }),
   # TODO(b/173167253): Check if monkey testing works.
   App({
@@ -381,8 +375,6 @@ APPS = [
     'url': 'https://github.com/android/compose-samples',
     'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
     'folder': 'android/compose-samples/jetnews',
-    # TODO(b/173176042): Fix recompilation
-    'skip_recompilation': True,
   }),
   # TODO(b/173167253): Check if monkey testing works.
   App({
@@ -394,8 +386,6 @@ APPS = [
     'url': 'https://github.com/android/compose-samples',
     'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
     'folder': 'android/compose-samples/jetsnack',
-    # TODO(b/173176042): Fix recompilation
-    'skip_recompilation': True,
   }),
   # TODO(b/173167253): Check if monkey testing works.
   App({
@@ -407,8 +397,6 @@ APPS = [
     'url': 'https://github.com/android/compose-samples',
     'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
     'folder': 'android/compose-samples/jetsurvey',
-    # TODO(b/173176042): Fix recompilation
-    'skip_recompilation': True,
   }),
   # TODO(b/173167253): Check if monkey testing works.
   App({
@@ -420,8 +408,6 @@ APPS = [
     'url': 'https://github.com/android/compose-samples',
     'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
     'folder': 'android/compose-samples/owl',
-    # TODO(b/173176042): Fix recompilation
-    'skip_recompilation': True,
   }),
   # TODO(b/173167253): Check if monkey testing works.
   App({
@@ -433,8 +419,6 @@ APPS = [
     'url': 'https://github.com/android/compose-samples',
     'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
     'folder': 'android/compose-samples/rally',
-    # TODO(b/173176042): Fix recompilation
-    'skip_recompilation': True,
   }),
   App({
     'id': 'youtube_15_33',

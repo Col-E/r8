@@ -3439,6 +3439,7 @@ public class CodeRewriter {
       Instruction arrayDefinition = array.getDefinition();
       assert arrayDefinition != null;
 
+      Set<Phi> phiUsers = arrayLength.outValue().uniquePhiUsers();
       if (arrayDefinition.isNewArrayEmpty()) {
         Value size = arrayDefinition.asNewArrayEmpty().size();
         arrayLength.outValue().replaceUsers(size);
@@ -3447,7 +3448,11 @@ public class CodeRewriter {
         int size = (int) arrayDefinition.asNewArrayFilledData().size;
         ConstNumber constSize = code.createIntConstant(size);
         iterator.replaceCurrentInstruction(constSize);
+      } else {
+        continue;
       }
+
+      phiUsers.forEach(Phi::removeTrivialPhi);
       // TODO(139489070): static-get of constant array
     }
     assert code.isConsistentSSA();
