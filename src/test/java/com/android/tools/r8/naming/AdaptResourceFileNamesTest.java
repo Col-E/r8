@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -11,50 +12,51 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
-import com.android.tools.r8.R8Command;
-import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.DataResourceConsumerForTesting;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.KeepingDiagnosticHandler;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
 
-  private Backend backend;
+  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public AdaptResourceFileNamesTest(Backend backend) {
-    this.backend = backend;
+  public AdaptResourceFileNamesTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   private static final Path CF_DIR =
@@ -62,15 +64,6 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
   private static final Path TEST_JAR =
       Paths.get(ToolHelper.EXAMPLES_BUILD_DIR)
           .resolve("adaptresourcefilenames" + FileUtils.JAR_EXTENSION);
-
-  private KeepingDiagnosticHandler diagnosticsHandler;
-  private ClassNameMapper mapper = null;
-
-  @Before
-  public void reset() {
-    diagnosticsHandler = new KeepingDiagnosticHandler();
-    mapper = null;
-  }
 
   private static String getProguardConfig(
       boolean enableAdaptResourceFileNames, String adaptResourceFileNamesPathFilter) {
@@ -86,7 +79,6 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
     return String.join(
         System.lineSeparator(),
         adaptResourceFilenamesRule,
-        "-keeppackagenames adaptresourcefilenames**",
         "-keep class adaptresourcefilenames.TestClass {",
         "  public static void main(...);",
         "}");
@@ -114,30 +106,38 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
   }
 
   @Test
-  public void testEnabled() throws Exception {
+  public void testEnabled() throws Throwable {
     DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
     compileWithR8(
         getProguardConfigWithNeverInline(true, null),
         dataResourceConsumer,
-        ToolHelper.consumeString(this::checkR8Renamings));
-    // Check that the generated resources have the expected names.
-    for (DataEntryResource dataResource : getOriginalDataResources()) {
-      assertNotNull(
-          "Resource not renamed as expected: " + dataResource.getName(),
-          dataResourceConsumer.get(getExpectedRenamingFor(dataResource.getName(), mapper)));
-    }
+        R8TestBuilder::enableProguardTestOptions,
+        mapper -> {
+          checkR8Renamings(mapper);
+          // Check that the generated resources have the expected names.
+          for (DataEntryResource dataResource : getOriginalDataResources()) {
+            ImmutableList<String> object =
+                dataResourceConsumer.get(getExpectedRenamingFor(dataResource.getName(), mapper));
+            if (object == null) {
+              object =
+                  dataResourceConsumer.get(getExpectedRenamingFor(dataResource.getName(), mapper));
+            }
+            assertNotNull("Resource not renamed as expected: " + dataResource.getName(), object);
+          }
+        });
   }
 
   @Test
-  public void testEnabledWithFilter() throws Exception {
+  public void testEnabledWithFilter() throws Throwable {
     DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
     compileWithR8(
         getProguardConfigWithNeverInline(true, "**.md"),
         dataResourceConsumer,
-        ToolHelper.consumeString(this::checkR8Renamings));
+        R8TestBuilder::enableProguardTestOptions,
+        this::checkR8Renamings);
     // Check that the generated resources have the expected names.
     Map<String, String> expectedRenamings =
-        ImmutableMap.of("adaptresourcefilenames/B.md", "adaptresourcefilenames/b.md");
+        ImmutableMap.of("adaptresourcefilenames/B.md", "a/b.md");
     for (DataEntryResource dataResource : getOriginalDataResources()) {
       assertNotNull(
           "Resource not renamed as expected: " + dataResource.getName(),
@@ -147,9 +147,12 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
   }
 
   @Test
-  public void testDisabled() throws Exception {
+  public void testDisabled() throws Throwable {
     DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
-    compileWithR8(getProguardConfigWithNeverInline(false, null), dataResourceConsumer);
+    compileWithR8(
+        getProguardConfigWithNeverInline(false, null),
+        dataResourceConsumer,
+        R8TestBuilder::enableProguardTestOptions);
     // Check that none of the resources were renamed.
     for (DataEntryResource dataResource : getOriginalDataResources()) {
       assertNotNull(
@@ -159,22 +162,25 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
   }
 
   @Test
-  public void testCollisionBehavior() throws Exception {
+  public void testCollisionBehavior() throws Throwable {
     DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
-    compileWithR8(
-        getProguardConfigWithNeverInline(true, null),
-        dataResourceConsumer,
-        ToolHelper.consumeString(this::checkR8Renamings),
-        ImmutableList.<DataEntryResource>builder()
-            .addAll(getOriginalDataResources())
-            .add(
-                DataEntryResource.fromBytes(
-                    new byte[0], "adaptresourcefilenames/b.txt", Origin.unknown()))
-            .build());
-    assertEquals(1, diagnosticsHandler.warnings.size());
-    assertThat(
-        diagnosticsHandler.warnings.get(0).getDiagnosticMessage(),
-        containsString("Resource 'adaptresourcefilenames/b.txt' already exists."));
+    R8TestCompileResult compileResult =
+        compileWithR8(
+            getProguardConfigWithNeverInline(true, null),
+            dataResourceConsumer,
+            builder -> {
+              builder.enableProguardTestOptions();
+              builder.allowDiagnosticWarningMessages();
+            },
+            this::checkR8Renamings,
+            ImmutableList.<DataEntryResource>builder()
+                .addAll(getOriginalDataResources())
+                .add(DataEntryResource.fromBytes(new byte[0], "a/b.txt", Origin.unknown()))
+                .build());
+    compileResult.inspectDiagnosticMessages(
+        diagnosticMessages ->
+            diagnosticMessages.assertWarningsMatch(
+                diagnosticMessage(containsString("Resource 'a/b.txt' already exists."))));
     assertEquals(getOriginalDataResources().size(), dataResourceConsumer.size());
   }
 
@@ -243,64 +249,59 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
             .count());
   }
 
-  private AndroidApp compileWithR8(String proguardConfig, DataResourceConsumer dataResourceConsumer)
-      throws CompilationFailedException, IOException {
-    return compileWithR8(proguardConfig, dataResourceConsumer, null);
-  }
-
-  private AndroidApp compileWithR8(
+  private void compileWithR8(
       String proguardConfig,
       DataResourceConsumer dataResourceConsumer,
-      StringConsumer proguardMapConsumer)
-      throws CompilationFailedException, IOException {
-    return compileWithR8(
-        proguardConfig, dataResourceConsumer, proguardMapConsumer, getOriginalDataResources());
+      ThrowableConsumer<R8FullTestBuilder> builderConsumer)
+      throws Throwable {
+    compileWithR8(proguardConfig, dataResourceConsumer, builderConsumer, null);
   }
 
-  private AndroidApp compileWithR8(
+  private void compileWithR8(
       String proguardConfig,
       DataResourceConsumer dataResourceConsumer,
-      StringConsumer proguardMapConsumer,
+      ThrowableConsumer<R8FullTestBuilder> builderConsumer,
+      Consumer<ClassNameMapper> proguardMapConsumer)
+      throws Throwable {
+    compileWithR8(
+        proguardConfig,
+        dataResourceConsumer,
+        builderConsumer,
+        proguardMapConsumer,
+        getOriginalDataResources());
+  }
+
+  private R8TestCompileResult compileWithR8(
+      String proguardConfig,
+      DataResourceConsumer dataResourceConsumer,
+      ThrowableConsumer<R8FullTestBuilder> builderConsumer,
+      Consumer<ClassNameMapper> proguardMapConsumer,
       List<DataEntryResource> dataResources)
-      throws CompilationFailedException, IOException {
-    R8Command command =
-        ToolHelper.allowTestProguardOptions(
-                ToolHelper.prepareR8CommandBuilder(
-                        getAndroidApp(dataResources), emptyConsumer(backend), diagnosticsHandler)
-                    .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown()))
-            .addLibraryFiles(runtimeJar(backend))
-            .build();
-    return ToolHelper.runR8(
-        command,
-        options -> {
-          options.dataResourceConsumer = dataResourceConsumer;
-          options.proguardMapConsumer = proguardMapConsumer;
-        });
-  }
-
-  private void checkR8Renamings(String proguardMap) {
-    try {
-      // Check that the renamings are as expected. These exact renamings are not important as
-      // such, but the test expectations rely on them.
-      mapper = ClassNameMapper.mapperFromString(proguardMap);
-      assertEquals(
-          "adaptresourcefilenames.TestClass",
-          mapper.deobfuscateClassName("adaptresourcefilenames.TestClass"));
-      assertEquals(
-          "adaptresourcefilenames.B", mapper.deobfuscateClassName("adaptresourcefilenames.b"));
-      assertEquals(
-          "adaptresourcefilenames.B$Inner",
-          mapper.deobfuscateClassName("adaptresourcefilenames.a"));
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+      throws Throwable {
+    R8TestCompileResult compile =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(ToolHelper.getClassFilesForTestDirectory(CF_DIR))
+            .addDataResources(dataResources)
+            .addKeepRules(proguardConfig)
+            .apply(builderConsumer)
+            .setMinApi(parameters.getApiLevel())
+            .addOptionsModification(options -> options.dataResourceConsumer = dataResourceConsumer)
+            .compile();
+    if (proguardMapConsumer != null) {
+      compile.inspectProguardMap(
+          map -> proguardMapConsumer.accept(ClassNameMapper.mapperFromString(map)));
     }
+    return compile;
   }
 
-  private AndroidApp getAndroidApp(List<DataEntryResource> dataResources) throws IOException {
-    AndroidApp.Builder builder = AndroidApp.builder();
-    builder.addProgramFiles(ToolHelper.getClassFilesForTestDirectory(CF_DIR));
-    dataResources.forEach(builder::addDataResource);
-    return builder.build();
+  private void checkR8Renamings(ClassNameMapper mapper) {
+    // Check that the renamings are as expected. These exact renamings are not important as
+    // such, but the test expectations rely on them.
+    assertEquals(
+        "adaptresourcefilenames.TestClass",
+        mapper.deobfuscateClassName("adaptresourcefilenames.TestClass"));
+    assertEquals("adaptresourcefilenames.B", mapper.deobfuscateClassName("a.b"));
+    assertEquals("adaptresourcefilenames.B$Inner", mapper.deobfuscateClassName("a.a"));
   }
 
   private static List<DataEntryResource> getOriginalDataResources() {

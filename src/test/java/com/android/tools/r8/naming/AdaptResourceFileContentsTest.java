@@ -338,6 +338,7 @@ class AdaptResourceFileContentsTestClass {
 
   static class B extends A {
 
+    @Override
     public void method() {
       System.out.println("In B.method()");
       super.method();

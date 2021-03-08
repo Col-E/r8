@@ -304,7 +304,8 @@ public class ResourceAdapter {
       if (getClassNameSeparator() != '/') {
         javaPackage = javaPackage.replace(getClassNameSeparator(), '/');
       }
-      String minifiedJavaPackage = namingLens.lookupPackageName(javaPackage);
+      String packageName = appView.graphLens().lookupPackageName(javaPackage);
+      String minifiedJavaPackage = namingLens.lookupPackageName(packageName);
       if (!javaPackage.equals(minifiedJavaPackage)) {
         outputRangeFromInput(outputFrom, from);
         outputJavaType(

@@ -33,9 +33,11 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -130,11 +132,13 @@ public class Repackaging {
     }
 
     BiMap<DexType, DexType> mappings = HashBiMap.create();
+    Map<String, String> packageMappings = new HashMap<>();
     Set<String> seenPackageDescriptors = new HashSet<>();
     ProgramPackageCollection packages =
         SortedProgramPackageCollection.createWithAllProgramClasses(appView);
-    processPackagesInDesiredLocation(packages, mappings, seenPackageDescriptors);
-    processRemainingPackages(packages, mappings, seenPackageDescriptors, executorService);
+    processPackagesInDesiredLocation(packages, mappings, packageMappings, seenPackageDescriptors);
+    processRemainingPackages(
+        packages, mappings, packageMappings, seenPackageDescriptors, executorService);
     mappings.entrySet().removeIf(entry -> entry.getKey() == entry.getValue());
     if (mappings.isEmpty()) {
       return null;
@@ -146,7 +150,7 @@ public class Repackaging {
         new ArrayList<>(
             repackagingTreeFixer.fixupClasses(appView.appInfo().classesWithDeterministicOrder()));
     appBuilder.replaceProgramClasses(newProgramClasses);
-    RepackagingLens lens = lensBuilder.build(appView);
+    RepackagingLens lens = lensBuilder.build(appView, packageMappings);
     new AnnotationFixer(lens).run(appBuilder.getProgramClasses());
     return lens;
   }
@@ -191,6 +195,7 @@ public class Repackaging {
   private void processPackagesInDesiredLocation(
       ProgramPackageCollection packages,
       BiMap<DexType, DexType> mappings,
+      Map<String, String> packageMappings,
       Set<String> seenPackageDescriptors) {
     // For each package that is already in the desired location, record all the classes from the
     // package in the mapping for collision detection.
@@ -208,6 +213,7 @@ public class Repackaging {
         for (DexProgramClass alreadyRepackagedClass : pkg) {
           processClass(alreadyRepackagedClass, pkg, newPackageDescriptor, mappings);
         }
+        packageMappings.put(pkg.getPackageDescriptor(), newPackageDescriptor);
         seenPackageDescriptors.add(newPackageDescriptor);
         iterator.remove();
       }
@@ -217,6 +223,7 @@ public class Repackaging {
   private void processRemainingPackages(
       ProgramPackageCollection packages,
       BiMap<DexType, DexType> mappings,
+      Map<String, String> packageMappings,
       Set<String> seenPackageDescriptors,
       ExecutorService executorService)
       throws ExecutionException {
@@ -228,13 +235,20 @@ public class Repackaging {
           repackagingConfiguration.getNewPackageDescriptor(pkg, seenPackageDescriptors);
       assert !pkg.getPackageDescriptor().equals(newPackageDescriptor);
 
-      Iterable<DexProgramClass> classesToRepackage =
+      Collection<DexProgramClass> classesToRepackage =
           computeClassesToRepackage(pkg, executorService);
       for (DexProgramClass classToRepackage : classesToRepackage) {
         processClass(classToRepackage, pkg, newPackageDescriptor, mappings);
       }
-
       seenPackageDescriptors.add(newPackageDescriptor);
+      // Package remapping is used for adapting resources. If we cannot repackage all classes in
+      // a package then we put in the original descriptor to ensure that resources are not
+      // rewritten.
+      packageMappings.put(
+          pkg.getPackageDescriptor(),
+          classesToRepackage.size() == pkg.classesInPackage().size()
+              ? newPackageDescriptor
+              : pkg.getPackageDescriptor());
       // TODO(b/165783399): Investigate if repackaging can lead to different dynamic dispatch. See,
       //  for example, CrossPackageInvokeSuperToPackagePrivateMethodTest.
     }
@@ -269,12 +283,12 @@ public class Repackaging {
             classToRepackage, outerClass, newPackageDescriptor, mappings));
   }
 
-  private Iterable<DexProgramClass> computeClassesToRepackage(
+  private Collection<DexProgramClass> computeClassesToRepackage(
       ProgramPackage pkg, ExecutorService executorService) throws ExecutionException {
     RepackagingConstraintGraph constraintGraph = new RepackagingConstraintGraph(appView, pkg);
     boolean canRepackageAllClasses = constraintGraph.initializeGraph();
     if (canRepackageAllClasses) {
-      return pkg;
+      return pkg.classesInPackage();
     }
     constraintGraph.populateConstraints(executorService);
     return constraintGraph.computeClassesToRepackage();
