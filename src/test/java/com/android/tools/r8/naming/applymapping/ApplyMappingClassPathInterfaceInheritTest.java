@@ -61,10 +61,9 @@ public class ApplyMappingClassPathInterfaceInheritTest extends TestBase {
         .addRunClasspathClasses(LibI.class)
         .addRunClasspathFiles(libraryJar)
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/181887416): Should not throw an error when minifyLibrary == true.
         .applyIf(
             minifyLibrary,
-            r -> r.assertFailureWithErrorThatThrows(ClassNotFoundException.class),
+            r -> r.assertSuccessWithOutputLines("a.a"),
             r -> r.assertSuccessWithOutputLines(ClassPathI.class.getTypeName()));
   }
 

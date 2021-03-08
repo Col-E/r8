@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -150,5 +151,11 @@ public class IterableUtils {
       }
     }
     return !iterator.hasNext();
+  }
+
+  public static <T, R> Iterable<R> fromMethod(Consumer<Consumer<T>> method, Function<T, R> mapper) {
+    List<R> ts = new ArrayList<>();
+    method.accept(t -> ts.add(mapper.apply(t)));
+    return ts;
   }
 }

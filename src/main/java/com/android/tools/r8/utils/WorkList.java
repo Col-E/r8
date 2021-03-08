@@ -27,7 +27,7 @@ public class WorkList<T> {
   }
 
   public static <T> WorkList<T> newIdentityWorkList() {
-    return new WorkList<T>(EqualityTest.IDENTITY);
+    return new WorkList<>(EqualityTest.IDENTITY);
   }
 
   public static <T> WorkList<T> newIdentityWorkList(T item) {
@@ -60,7 +60,7 @@ public class WorkList<T> {
     items.forEach(workingList::addLast);
   }
 
-  public void addIfNotSeen(Iterable<T> items) {
+  public void addIfNotSeen(Iterable<? extends T> items) {
     items.forEach(this::addIfNotSeen);
   }
 

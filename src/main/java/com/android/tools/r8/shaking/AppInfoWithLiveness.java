@@ -59,6 +59,7 @@ import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
@@ -662,7 +663,13 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   public void forEachReachableInterface(Consumer<DexClass> consumer) {
+    forEachReachableInterface(consumer, ImmutableList.of());
+  }
+
+  public void forEachReachableInterface(
+      Consumer<DexClass> consumer, Iterable<DexType> additionalPaths) {
     WorkList<DexType> worklist = WorkList.newIdentityWorkList();
+    worklist.addIfNotSeen(additionalPaths);
     worklist.addIfNotSeen(objectAllocationInfoCollection.getInstantiatedLambdaInterfaces());
     for (DexProgramClass clazz : classes()) {
       worklist.addIfNotSeen(clazz.type);
@@ -676,10 +683,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       if (definition.isInterface()) {
         consumer.accept(definition);
       }
-      if (definition.superType != null) {
-        worklist.addIfNotSeen(definition.superType);
-      }
-      worklist.addIfNotSeen(definition.interfaces.values);
+      definition.forEachImmediateSupertype(worklist::addIfNotSeen);
     }
   }
 
