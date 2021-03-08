@@ -74,9 +74,9 @@ public class HorizontalClassMerger {
         new HorizontalClassMergerGraphLens.Builder();
 
     // Merge the classes.
+    List<ClassMerger> classMergers = initializeClassMergers(lensBuilder, groups);
     SyntheticArgumentClass syntheticArgumentClass =
         new SyntheticArgumentClass.Builder(appView).build(groups);
-    List<ClassMerger> classMergers = initializeClassMergers(lensBuilder, groups);
     applyClassMergers(classMergers, syntheticArgumentClass);
 
     // Generate the graph lens.
