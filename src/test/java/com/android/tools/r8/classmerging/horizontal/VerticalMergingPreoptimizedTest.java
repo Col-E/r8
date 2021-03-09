@@ -5,7 +5,6 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
 
@@ -17,9 +16,8 @@ import org.junit.Test;
 
 public class VerticalMergingPreoptimizedTest extends HorizontalClassMergingTestBase {
 
-  public VerticalMergingPreoptimizedTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public VerticalMergingPreoptimizedTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -27,9 +25,6 @@ public class VerticalMergingPreoptimizedTest extends HorizontalClassMergingTestB
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -42,8 +37,7 @@ public class VerticalMergingPreoptimizedTest extends HorizontalClassMergingTestB
               assertThat(codeInspector.clazz(Parent.class), not(isPresent()));
               assertThat(codeInspector.clazz(Changed.class), isPresent());
               assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(
-                  codeInspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(B.class), not(isPresent()));
             });
   }
 

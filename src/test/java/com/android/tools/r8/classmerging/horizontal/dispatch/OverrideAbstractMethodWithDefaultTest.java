@@ -17,9 +17,8 @@ import org.junit.Test;
 
 public class OverrideAbstractMethodWithDefaultTest extends HorizontalClassMergingTestBase {
 
-  public OverrideAbstractMethodWithDefaultTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public OverrideAbstractMethodWithDefaultTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -27,15 +26,12 @@ public class OverrideAbstractMethodWithDefaultTest extends HorizontalClassMergin
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, HorizontallyMergedClassesInspector::assertNoClassesMerged)
+        .addHorizontallyMergedClassesInspector(
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("J", "B2")
         .inspect(

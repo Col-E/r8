@@ -5,30 +5,26 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
 
 public class ClassesWithFeatureSplitTest extends HorizontalClassMergingTestBase {
-  public ClassesWithFeatureSplitTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ClassesWithFeatureSplitTest(TestParameters parameters) {
+    super(parameters);
   }
 
-  @Parameterized.Parameters(name = "{0}, horizontalClassMerging:{1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withDexRuntimes().withAllApiLevels().build(), BooleanUtils.values());
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   @Test
@@ -41,9 +37,6 @@ public class ClassesWithFeatureSplitTest extends HorizontalClassMergingTestBase 
             .addFeatureSplit(Feature2Class.class, Feature2Main.class)
             .addKeepFeatureMainRule(Feature1Main.class)
             .addKeepFeatureMainRule(Feature2Main.class)
-            .addOptionsModification(
-                options ->
-                    options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
             .enableNeverClassInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile()
@@ -68,8 +61,7 @@ public class ClassesWithFeatureSplitTest extends HorizontalClassMergingTestBase 
   private void inspectFeature1(CodeInspector inspector) {
     assertThat(inspector.clazz(Feature1Main.class), isPresent());
     assertThat(inspector.clazz(Feature1Class1.class), isPresent());
-    assertThat(
-        inspector.clazz(Feature1Class2.class), notIf(isPresent(), enableHorizontalClassMerging));
+    assertThat(inspector.clazz(Feature1Class2.class), not(isPresent()));
     assertThat(inspector.clazz(Feature2Main.class), not(isPresent()));
     assertThat(inspector.clazz(Feature2Class.class), not(isPresent()));
   }

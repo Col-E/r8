@@ -12,8 +12,8 @@ import org.junit.Test;
 
 public class MinimizeFieldCastsTest extends HorizontalClassMergingTestBase {
 
-  public MinimizeFieldCastsTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public MinimizeFieldCastsTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -21,15 +21,11 @@ public class MinimizeFieldCastsTest extends HorizontalClassMergingTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging,
+        .addHorizontallyMergedClassesInspector(
             inspector ->
                 // Two merge groups are expected since we attempt to merge classes in a way that
                 // avoids merging fields with different types unless strictly required for merging.

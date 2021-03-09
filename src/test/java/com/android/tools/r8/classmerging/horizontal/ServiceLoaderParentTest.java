@@ -18,8 +18,8 @@ import java.util.ServiceLoader;
 import org.junit.Test;
 
 public class ServiceLoaderParentTest extends HorizontalClassMergingTestBase {
-  public ServiceLoaderParentTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ServiceLoaderParentTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -37,9 +37,6 @@ public class ServiceLoaderParentTest extends HorizontalClassMergingTestBase {
                 "META-INF/services/" + A.class.getTypeName(),
                 Origin.unknown()))
         .enableNoVerticalClassMergingAnnotations()
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccess()

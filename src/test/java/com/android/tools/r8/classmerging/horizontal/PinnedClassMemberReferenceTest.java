@@ -18,18 +18,14 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import org.junit.Test;
 
 public class PinnedClassMemberReferenceTest extends HorizontalClassMergingTestBase {
-  public PinnedClassMemberReferenceTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public PinnedClassMemberReferenceTest(TestParameters parameters) {
+    super(parameters);
   }
 
   private R8FullTestBuilder testCommon() throws Exception {
     return testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .noMinification()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
@@ -46,7 +42,6 @@ public class PinnedClassMemberReferenceTest extends HorizontalClassMergingTestBa
   @Test
   public void testWithoutKeepRules() throws Exception {
     // This is just a small check ensure that without the keep rules the classes are merged.
-    assumeTrue(enableHorizontalClassMerging);
     assumeTrue(parameters.isCfRuntime());
 
     runAndAssertOutput(testCommon())

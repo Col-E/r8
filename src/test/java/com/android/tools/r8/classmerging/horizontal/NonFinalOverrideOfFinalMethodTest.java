@@ -12,24 +12,21 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
 
 public class NonFinalOverrideOfFinalMethodTest extends HorizontalClassMergingTestBase {
 
-  @Parameterized.Parameters(name = "{0}, horizontalClassMerging:{1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.trueValues());
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public NonFinalOverrideOfFinalMethodTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public NonFinalOverrideOfFinalMethodTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -37,15 +34,12 @@ public class NonFinalOverrideOfFinalMethodTest extends HorizontalClassMergingTes
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertMergedInto(B.class, A.class))
         .compile()
         .inspect(
             inspector -> {

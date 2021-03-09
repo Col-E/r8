@@ -5,7 +5,7 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isFinal;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -14,9 +14,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class MergeNonFinalAndFinalClassTest extends HorizontalClassMergingTestBase {
-  public MergeNonFinalAndFinalClassTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public MergeNonFinalAndFinalClassTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -24,19 +23,13 @@ public class MergeNonFinalAndFinalClassTest extends HorizontalClassMergingTestBa
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertMergedInto(B.class, A.class))
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspect(
-            inspector ->
-                assertThat(
-                    inspector.clazz(A.class), notIf(isFinal(), enableHorizontalClassMerging)))
+        .inspect(inspector -> assertThat(inspector.clazz(A.class), not(isFinal())))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("a", "b", "b", "c");
   }

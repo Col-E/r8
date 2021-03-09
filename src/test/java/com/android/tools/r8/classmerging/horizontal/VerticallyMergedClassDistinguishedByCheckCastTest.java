@@ -12,9 +12,8 @@ import org.junit.Test;
 public class VerticallyMergedClassDistinguishedByCheckCastTest
     extends HorizontalClassMergingTestBase {
 
-  public VerticallyMergedClassDistinguishedByCheckCastTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public VerticallyMergedClassDistinguishedByCheckCastTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -22,9 +21,6 @@ public class VerticallyMergedClassDistinguishedByCheckCastTest
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

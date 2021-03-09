@@ -14,9 +14,8 @@ import org.junit.Test;
 
 public class StaticAndInterfaceMethodCollisionTest extends HorizontalClassMergingTestBase {
 
-  public StaticAndInterfaceMethodCollisionTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public StaticAndInterfaceMethodCollisionTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -24,9 +23,6 @@ public class StaticAndInterfaceMethodCollisionTest extends HorizontalClassMergin
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()

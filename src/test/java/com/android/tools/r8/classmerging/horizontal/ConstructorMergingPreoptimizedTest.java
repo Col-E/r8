@@ -22,9 +22,8 @@ import org.junit.Test;
 
 public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTestBase {
 
-  public ConstructorMergingPreoptimizedTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ConstructorMergingPreoptimizedTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -32,11 +31,8 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertMergedInto(B.class, A.class))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -46,38 +42,29 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
             "changed", "13", "42", "foo", "7", "foo", "print a", "print b")
         .inspect(
             codeInspector -> {
-              if (enableHorizontalClassMerging) {
-                ClassSubject changedClassSubject = codeInspector.clazz(Changed.class);
-                assertThat(changedClassSubject, isPresent());
+              ClassSubject changedClassSubject = codeInspector.clazz(Changed.class);
+              assertThat(changedClassSubject, isPresent());
 
-                ClassSubject aClassSubject = codeInspector.clazz(A.class);
-                assertThat(aClassSubject, isPresent());
-                FieldSubject classIdFieldSubject =
-                    aClassSubject.uniqueFieldWithName(ClassMerger.CLASS_ID_FIELD_NAME);
-                assertThat(classIdFieldSubject, isPresent());
+              ClassSubject aClassSubject = codeInspector.clazz(A.class);
+              assertThat(aClassSubject, isPresent());
+              FieldSubject classIdFieldSubject =
+                  aClassSubject.uniqueFieldWithName(ClassMerger.CLASS_ID_FIELD_NAME);
+              assertThat(classIdFieldSubject, isPresent());
 
-                MethodSubject firstInitSubject = aClassSubject.init("int");
-                assertThat(firstInitSubject, isPresent());
-                assertThat(
-                    firstInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
+              MethodSubject firstInitSubject = aClassSubject.init("int");
+              assertThat(firstInitSubject, isPresent());
+              assertThat(firstInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
 
-                MethodSubject otherInitSubject =
-                    aClassSubject.init(changedClassSubject.getFinalName(), "int");
-                assertThat(otherInitSubject, isPresent());
-                assertThat(
-                    otherInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
+              MethodSubject otherInitSubject =
+                  aClassSubject.init(changedClassSubject.getFinalName(), "int");
+              assertThat(otherInitSubject, isPresent());
+              assertThat(otherInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
 
-                MethodSubject printSubject = aClassSubject.method("void", "print$bridge");
-                assertThat(printSubject, isPresent());
-                assertThat(printSubject, readsInstanceField(classIdFieldSubject.getDexField()));
+              MethodSubject printSubject = aClassSubject.method("void", "print$bridge");
+              assertThat(printSubject, isPresent());
+              assertThat(printSubject, readsInstanceField(classIdFieldSubject.getDexField()));
 
-                assertThat(codeInspector.clazz(B.class), not(isPresent()));
-
-                // TODO(b/165517236): Explicitly check classes have been merged.
-              } else {
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), isPresent());
-              }
+              assertThat(codeInspector.clazz(B.class), not(isPresent()));
             });
   }
 

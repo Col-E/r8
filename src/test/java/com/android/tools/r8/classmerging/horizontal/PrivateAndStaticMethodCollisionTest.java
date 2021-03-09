@@ -11,9 +11,8 @@ import org.junit.Test;
 
 public class PrivateAndStaticMethodCollisionTest extends HorizontalClassMergingTestBase {
 
-  public PrivateAndStaticMethodCollisionTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public PrivateAndStaticMethodCollisionTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -21,11 +20,8 @@ public class PrivateAndStaticMethodCollisionTest extends HorizontalClassMergingT
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertMergedInto(B.class, A.class))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

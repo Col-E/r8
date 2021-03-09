@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -23,9 +23,8 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
 public class AdaptResourceFileContentsTest extends HorizontalClassMergingTestBase {
-  public AdaptResourceFileContentsTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public AdaptResourceFileContentsTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -35,9 +34,6 @@ public class AdaptResourceFileContentsTest extends HorizontalClassMergingTestBas
         testForR8(parameters.getBackend())
             .addInnerClasses(getClass())
             .addKeepMainRule(Main.class)
-            .addOptionsModification(
-                options ->
-                    options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
             .addOptionsModification(options -> options.dataResourceConsumer = dataResourceConsumer)
             .enableNeverClassInliningAnnotations()
             .addDataEntryResources(
@@ -45,8 +41,7 @@ public class AdaptResourceFileContentsTest extends HorizontalClassMergingTestBas
                     "foo.txt", Origin.unknown(), A.class.getTypeName(), B.class.getTypeName()))
             .addKeepRules("-adaptresourcefilecontents foo.txt")
             .setMinApi(parameters.getApiLevel())
-            .addHorizontallyMergedClassesInspectorIf(
-                enableHorizontalClassMerging,
+            .addHorizontallyMergedClassesInspector(
                 inspector -> inspector.assertMergedInto(B.class, A.class))
             .compile()
             .run(parameters.getRuntime(), Main.class)
@@ -57,11 +52,10 @@ public class AdaptResourceFileContentsTest extends HorizontalClassMergingTestBas
     assertThat(aClassSubject, isPresent());
 
     ClassSubject bClassSubject = codeInspector.clazz(B.class);
-    assertThat(bClassSubject, notIf(isPresent(), enableHorizontalClassMerging));
+    assertThat(bClassSubject, isAbsent());
 
     // Check that the class name has been rewritten.
-    String newClassBName =
-        (enableHorizontalClassMerging ? aClassSubject : bClassSubject).getFinalName();
+    String newClassBName = aClassSubject.getFinalName();
     assertEquals(
         dataResourceConsumer.get("foo.txt"),
         ImmutableList.of(aClassSubject.getFinalName(), newClassBName));

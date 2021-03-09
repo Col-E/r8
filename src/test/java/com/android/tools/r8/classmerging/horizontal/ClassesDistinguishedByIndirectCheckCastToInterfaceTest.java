@@ -15,9 +15,8 @@ import org.junit.Test;
 
 public class ClassesDistinguishedByIndirectCheckCastToInterfaceTest
     extends HorizontalClassMergingTestBase {
-  public ClassesDistinguishedByIndirectCheckCastToInterfaceTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ClassesDistinguishedByIndirectCheckCastToInterfaceTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -25,9 +24,6 @@ public class ClassesDistinguishedByIndirectCheckCastToInterfaceTest
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNoVerticalClassMergingAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

@@ -5,8 +5,8 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -19,9 +19,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class MergedVirtualMethodStackTraceTest extends HorizontalClassMergingTestBase {
-  public MergedVirtualMethodStackTraceTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public MergedVirtualMethodStackTraceTest(TestParameters parameters) {
+    super(parameters);
   }
 
   public StackTrace expectedStackTrace;
@@ -45,38 +44,30 @@ public class MergedVirtualMethodStackTraceTest extends HorizontalClassMergingTes
         .addKeepAttributeLineNumberTable()
         .addKeepAttributeSourceFile()
         .addDontWarn(C.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging,
+        .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(Program.B.class, Program.A.class))
         .run(parameters.getRuntime(), Program.Main.class)
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
               assertThat(codeInspector.clazz(Program.A.class), isPresent());
-              assertThat(
-                  codeInspector.clazz(Program.B.class),
-                  notIf(isPresent(), enableHorizontalClassMerging));
-              if (enableHorizontalClassMerging) {
-                StackTrace expectedStackTraceWithMergedMethod =
-                    StackTrace.builder()
-                        .add(expectedStackTrace)
-                        .add(
-                            1,
-                            StackTraceLine.builder()
-                                .setClassName(Program.A.class.getTypeName())
-                                .setMethodName("foo$bridge")
-                                .setFileName("Program.java")
-                                .setFileName(getClass().getSimpleName() + ".java")
-                                .setLineNumber(stackTrace.get(1).lineNumber)
-                                .build())
-                        .build();
-                assertThat(stackTrace, isSame(expectedStackTraceWithMergedMethod));
-              }
+              assertThat(codeInspector.clazz(Program.B.class), isAbsent());
+              StackTrace expectedStackTraceWithMergedMethod =
+                  StackTrace.builder()
+                      .add(expectedStackTrace)
+                      .add(
+                          1,
+                          StackTraceLine.builder()
+                              .setClassName(Program.A.class.getTypeName())
+                              .setMethodName("foo$bridge")
+                              .setFileName("Program.java")
+                              .setFileName(getClass().getSimpleName() + ".java")
+                              .setLineNumber(stackTrace.get(1).lineNumber)
+                              .build())
+                      .build();
+              assertThat(stackTrace, isSame(expectedStackTraceWithMergedMethod));
             });
   }
 

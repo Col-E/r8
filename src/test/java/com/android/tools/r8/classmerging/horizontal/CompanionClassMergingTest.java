@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -16,9 +16,8 @@ import com.android.tools.r8.classmerging.horizontal.EmptyClassTest.Main;
 import org.junit.Test;
 
 public class CompanionClassMergingTest extends HorizontalClassMergingTestBase {
-  public CompanionClassMergingTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public CompanionClassMergingTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -26,14 +25,10 @@ public class CompanionClassMergingTest extends HorizontalClassMergingTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .addOptionsModification(options -> options.enableClassInlining = false)
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging,
+        .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(B.Companion.class, A.Companion.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("foo a 0", "foo b 1")
@@ -43,9 +38,7 @@ public class CompanionClassMergingTest extends HorizontalClassMergingTestBase {
               assertThat(codeInspector.clazz(B.class), isPresent());
 
               assertThat(codeInspector.clazz(A.Companion.class), isPresent());
-              assertThat(
-                  codeInspector.clazz(B.Companion.class),
-                  notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(B.Companion.class), isAbsent());
             });
   }
 

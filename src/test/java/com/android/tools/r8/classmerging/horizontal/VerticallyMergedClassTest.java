@@ -15,9 +15,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class VerticallyMergedClassTest extends HorizontalClassMergingTestBase {
-  public VerticallyMergedClassTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public VerticallyMergedClassTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -25,9 +24,6 @@ public class VerticallyMergedClassTest extends HorizontalClassMergingTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNoHorizontalClassMergingAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

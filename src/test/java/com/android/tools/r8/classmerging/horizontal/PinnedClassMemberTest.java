@@ -12,8 +12,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class PinnedClassMemberTest extends HorizontalClassMergingTestBase {
-  public PinnedClassMemberTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public PinnedClassMemberTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -22,9 +22,6 @@ public class PinnedClassMemberTest extends HorizontalClassMergingTestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepRules("-keepclassmembers class " + B.class.getTypeName() + " { void foo(); }")
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)

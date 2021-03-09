@@ -14,9 +14,8 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class VirtualMethodMergingOfPublicizedMethodsTest extends HorizontalClassMergingTestBase {
 
-  public VirtualMethodMergingOfPublicizedMethodsTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public VirtualMethodMergingOfPublicizedMethodsTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -24,9 +23,6 @@ public class VirtualMethodMergingOfPublicizedMethodsTest extends HorizontalClass
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .allowAccessModification()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

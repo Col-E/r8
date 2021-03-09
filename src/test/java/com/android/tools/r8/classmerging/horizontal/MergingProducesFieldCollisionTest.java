@@ -4,22 +4,20 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import org.junit.Test;
 
 public class MergingProducesFieldCollisionTest extends HorizontalClassMergingTestBase {
-  public MergingProducesFieldCollisionTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public MergingProducesFieldCollisionTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -30,9 +28,6 @@ public class MergingProducesFieldCollisionTest extends HorizontalClassMergingTes
         .addKeepMainRule(Main.class)
         .addProgramClassFileData(transformedC)
         .addProgramClasses(Parent.class, A.class, B.class, Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -46,16 +41,13 @@ public class MergingProducesFieldCollisionTest extends HorizontalClassMergingTes
               assertThat(aClassSubject, isPresent());
 
               ClassSubject bClassSubject = codeInspector.clazz(B.class);
-              assertThat(bClassSubject, notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(bClassSubject, isAbsent());
 
               ClassSubject cClassSubject = codeInspector.clazz(C.class);
               assertThat(cClassSubject, isPresent());
 
-              if (enableHorizontalClassMerging) {
-                assertEquals(
-                    cClassSubject.allFields().get(0).type(),
-                    cClassSubject.allFields().get(1).type());
-              }
+              assertEquals(
+                  cClassSubject.allFields().get(0).type(), cClassSubject.allFields().get(1).type());
             });
   }
 

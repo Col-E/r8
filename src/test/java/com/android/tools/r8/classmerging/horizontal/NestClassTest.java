@@ -4,24 +4,23 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPrivate;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.Jdk9TestUtils;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.classmerging.horizontal.NestClassTest.R.horizontalclassmerging.BasicNestHostHorizontalClassMerging;
 import com.android.tools.r8.classmerging.horizontal.NestClassTest.R.horizontalclassmerging.BasicNestHostHorizontalClassMerging2;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ReflectiveBuildPathUtils.ExamplesClass;
 import com.android.tools.r8.utils.ReflectiveBuildPathUtils.ExamplesJava11RootPackage;
 import com.android.tools.r8.utils.ReflectiveBuildPathUtils.ExamplesPackage;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
 
@@ -42,15 +41,13 @@ public class NestClassTest extends HorizontalClassMergingTestBase {
     }
   }
 
-  public NestClassTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public NestClassTest(TestParameters parameters) {
+    super(parameters);
   }
 
-  @Parameterized.Parameters(name = "{0}, horizontalClassMerging:{1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withCfRuntimesStartingFromIncluding(CfVm.JDK11).build(),
-        BooleanUtils.values());
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withCfRuntimesStartingFromIncluding(CfVm.JDK11).build();
   }
 
   @Test
@@ -59,9 +56,6 @@ public class NestClassTest extends HorizontalClassMergingTestBase {
         .addKeepMainRule(examplesTypeName(BasicNestHostHorizontalClassMerging.class))
         .addExamplesProgramFiles(R.class)
         .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .compile()
@@ -98,11 +92,11 @@ public class NestClassTest extends HorizontalClassMergingTestBase {
               assertThat(
                   codeInspector.clazz(
                       examplesTypeName(BasicNestHostHorizontalClassMerging.B.class)),
-                  notIf(isPresent(), enableHorizontalClassMerging));
+                  isAbsent());
               assertThat(
                   codeInspector.clazz(
                       examplesTypeName(BasicNestHostHorizontalClassMerging2.B.class)),
-                  notIf(isPresent(), enableHorizontalClassMerging));
+                  isAbsent());
 
               // TODO(b/165517236): Explicitly check 1.B is merged into 1.A, and 2.B into 2.A.
             });

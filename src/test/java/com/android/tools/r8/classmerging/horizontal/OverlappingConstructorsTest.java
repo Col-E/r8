@@ -14,9 +14,8 @@ import org.junit.Test;
 
 public class OverlappingConstructorsTest extends HorizontalClassMergingTestBase {
 
-  public OverlappingConstructorsTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public OverlappingConstructorsTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -24,24 +23,14 @@ public class OverlappingConstructorsTest extends HorizontalClassMergingTestBase 
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .inspect(
             codeInspector -> {
-              if (enableHorizontalClassMerging) {
                 assertThat(codeInspector.clazz(A.class), isPresent());
                 assertThat(codeInspector.clazz(B.class), not(isPresent()));
                 assertThat(codeInspector.clazz(C.class), not(isPresent()));
-                // TODO(b/165517236): Explicitly check classes have been merged.
-              } else {
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), isPresent());
-                assertThat(codeInspector.clazz(C.class), isPresent());
-              }
             });
   }
 

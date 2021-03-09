@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -15,9 +15,8 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import org.junit.Test;
 
 public class LargeConstructorsMergingTest extends HorizontalClassMergingTestBase {
-  public LargeConstructorsMergingTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public LargeConstructorsMergingTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -25,14 +24,10 @@ public class LargeConstructorsMergingTest extends HorizontalClassMergingTestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .addOptionsModification(options -> options.testing.verificationSizeLimitInBytesOverride = 4)
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging,
+        .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector.assertMergedInto(B.class, A.class).assertMergedInto(C.class, A.class))
         .run(parameters.getRuntime(), Main.class)
@@ -41,15 +36,11 @@ public class LargeConstructorsMergingTest extends HorizontalClassMergingTestBase
             codeInspector -> {
               ClassSubject aClassSubject = codeInspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              assertThat(
-                  codeInspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
-              assertThat(
-                  codeInspector.clazz(C.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(B.class), isAbsent());
+              assertThat(codeInspector.clazz(C.class), isAbsent());
 
-              if (enableHorizontalClassMerging) {
-                // There should be three constructors on class A after merging.
-                assertEquals(3, aClassSubject.allMethods().size());
-              }
+              // There should be three constructors on class A after merging.
+              assertEquals(3, aClassSubject.allMethods().size());
             });
   }
 

@@ -13,9 +13,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class NoHorizontalClassMergingTest extends HorizontalClassMergingTestBase {
-  public NoHorizontalClassMergingTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public NoHorizontalClassMergingTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -23,9 +22,6 @@ public class NoHorizontalClassMergingTest extends HorizontalClassMergingTestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNoHorizontalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -33,13 +29,8 @@ public class NoHorizontalClassMergingTest extends HorizontalClassMergingTestBase
         .assertSuccessWithOutputLines("a", "b")
         .inspect(
             codeInspector -> {
-              if (enableHorizontalClassMerging) {
                 assertThat(codeInspector.clazz(A.class), isPresent());
                 assertThat(codeInspector.clazz(B.class), isPresent());
-              } else {
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), isPresent());
-              }
             });
   }
 

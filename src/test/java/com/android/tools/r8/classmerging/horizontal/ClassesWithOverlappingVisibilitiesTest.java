@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPackagePrivate;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -18,9 +18,8 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 
 public class ClassesWithOverlappingVisibilitiesTest extends HorizontalClassMergingTestBase {
-  public ClassesWithOverlappingVisibilitiesTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ClassesWithOverlappingVisibilitiesTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -28,9 +27,6 @@ public class ClassesWithOverlappingVisibilitiesTest extends HorizontalClassMergi
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -45,23 +41,18 @@ public class ClassesWithOverlappingVisibilitiesTest extends HorizontalClassMergi
 
               ClassSubject bClassSubject = codeInspector.clazz(B.class);
               assertThat(bClassSubject, isPresent());
-              if (enableHorizontalClassMerging) {
-                methodSubject = bClassSubject.method("void", "foo$bridge");
-                assertThat(methodSubject, isPackagePrivate());
-              }
+              methodSubject = bClassSubject.method("void", "foo$bridge");
+              assertThat(methodSubject, isPackagePrivate());
 
-              assertThat(
-                  codeInspector.clazz(C.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(C.class), isAbsent());
 
               ClassSubject dClassSubject = codeInspector.clazz(D.class);
               assertThat(dClassSubject, isPresent());
-              if (enableHorizontalClassMerging) {
-                methodSubject = dClassSubject.method("void", "foo$bridge");
-                assertThat(methodSubject, isPublic());
-              }
+              methodSubject = dClassSubject.method("void", "foo$bridge");
+              assertThat(methodSubject, isPublic());
 
               ClassSubject eClassSubject = codeInspector.clazz(E.class);
-              assertThat(eClassSubject, notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(eClassSubject, isAbsent());
             });
   }
 

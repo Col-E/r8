@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static com.android.tools.r8.utils.codeinspector.Matchers.readsInstanceField;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -21,9 +21,8 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 
 public class ClassesWithDifferentVisibilityFieldsTest extends HorizontalClassMergingTestBase {
-  public ClassesWithDifferentVisibilityFieldsTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ClassesWithDifferentVisibilityFieldsTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -31,14 +30,11 @@ public class ClassesWithDifferentVisibilityFieldsTest extends HorizontalClassMer
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertMergedInto(B.class, A.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(
             "a. v1: 10, v2: 20", "b. v1: 60, v2: 100", "c. v1: 210, v2: 330")
@@ -46,31 +42,28 @@ public class ClassesWithDifferentVisibilityFieldsTest extends HorizontalClassMer
             codeInspector -> {
               ClassSubject aClassSubject = codeInspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              assertThat(
-                  codeInspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(B.class), isAbsent());
               assertThat(codeInspector.clazz(C.class), isPresent());
 
-              if (enableHorizontalClassMerging) {
-                FieldSubject v1Subject = aClassSubject.uniqueFieldWithName("v1");
-                FieldSubject v2Subject = aClassSubject.uniqueFieldWithName("v2");
+              FieldSubject v1Subject = aClassSubject.uniqueFieldWithName("v1");
+              FieldSubject v2Subject = aClassSubject.uniqueFieldWithName("v2");
 
-                MethodSubject methodSubject = aClassSubject.uniqueMethodWithName("getAV1");
-                assertThat(methodSubject, isPresent());
-                assertThat(methodSubject, readsInstanceField(v1Subject.getDexField()));
+              MethodSubject methodSubject = aClassSubject.uniqueMethodWithName("getAV1");
+              assertThat(methodSubject, isPresent());
+              assertThat(methodSubject, readsInstanceField(v1Subject.getDexField()));
 
-                methodSubject = aClassSubject.uniqueMethodWithName("getAV2");
-                assertThat(methodSubject, isPresent());
-                assertThat(methodSubject, readsInstanceField(v2Subject.getDexField()));
+              methodSubject = aClassSubject.uniqueMethodWithName("getAV2");
+              assertThat(methodSubject, isPresent());
+              assertThat(methodSubject, readsInstanceField(v2Subject.getDexField()));
 
-                // The fields v1 and v2 are swapped, because their access modifiers are swapped.
-                methodSubject = aClassSubject.uniqueMethodWithName("getBV1");
-                assertThat(methodSubject, isPresent());
-                assertThat(methodSubject, readsInstanceField(v2Subject.getDexField()));
+              // The fields v1 and v2 are swapped, because their access modifiers are swapped.
+              methodSubject = aClassSubject.uniqueMethodWithName("getBV1");
+              assertThat(methodSubject, isPresent());
+              assertThat(methodSubject, readsInstanceField(v2Subject.getDexField()));
 
-                methodSubject = aClassSubject.uniqueMethodWithName("getBV2");
-                assertThat(methodSubject, isPresent());
-                assertThat(methodSubject, readsInstanceField(v1Subject.getDexField()));
-              }
+              methodSubject = aClassSubject.uniqueMethodWithName("getBV2");
+              assertThat(methodSubject, isPresent());
+              assertThat(methodSubject, readsInstanceField(v1Subject.getDexField()));
             });
   }
 

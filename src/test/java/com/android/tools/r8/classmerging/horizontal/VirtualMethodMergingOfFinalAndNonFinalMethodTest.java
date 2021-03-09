@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -17,9 +17,8 @@ import org.junit.Test;
 public class VirtualMethodMergingOfFinalAndNonFinalMethodTest
     extends HorizontalClassMergingTestBase {
 
-  public VirtualMethodMergingOfFinalAndNonFinalMethodTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public VirtualMethodMergingOfFinalAndNonFinalMethodTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -27,9 +26,6 @@ public class VirtualMethodMergingOfFinalAndNonFinalMethodTest
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
@@ -38,8 +34,7 @@ public class VirtualMethodMergingOfFinalAndNonFinalMethodTest
         .inspect(
             inspector -> {
               assertThat(inspector.clazz(A.class), isPresent());
-              assertThat(
-                  inspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(inspector.clazz(B.class), isAbsent());
               assertThat(inspector.clazz(C.class), isPresent());
             })
         .run(parameters.getRuntime(), TestClass.class)

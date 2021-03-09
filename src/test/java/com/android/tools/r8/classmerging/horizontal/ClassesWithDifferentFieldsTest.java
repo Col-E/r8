@@ -6,8 +6,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -16,9 +16,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class ClassesWithDifferentFieldsTest extends HorizontalClassMergingTestBase {
-  public ClassesWithDifferentFieldsTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ClassesWithDifferentFieldsTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -26,22 +25,18 @@ public class ClassesWithDifferentFieldsTest extends HorizontalClassMergingTestBa
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertMergedInto(B.class, A.class))
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A. v: a", "B. i: 2")
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(
-                  codeInspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(B.class), isAbsent());
             });
   }
 

@@ -16,9 +16,8 @@ import org.junit.Test;
 
 public class InstantiatedAndUninstantiatedClassMergingTest extends HorizontalClassMergingTestBase {
 
-  public InstantiatedAndUninstantiatedClassMergingTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public InstantiatedAndUninstantiatedClassMergingTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -35,9 +34,6 @@ public class InstantiatedAndUninstantiatedClassMergingTest extends HorizontalCla
     testBuilder
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .addHorizontallyMergedClassesInspector(

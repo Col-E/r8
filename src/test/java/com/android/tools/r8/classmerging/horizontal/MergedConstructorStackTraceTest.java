@@ -22,9 +22,8 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
 
   public StackTrace expectedStackTrace;
 
-  public MergedConstructorStackTraceTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public MergedConstructorStackTraceTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Before
@@ -45,9 +44,6 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
         .addKeepMainRule(Main.class)
         .addKeepAttributeLineNumberTable()
         .addKeepAttributeSourceFile()
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -56,7 +52,6 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
-              if (enableHorizontalClassMerging) {
                 StackTrace expectedStackTraceWithMergedConstructor =
                     StackTrace.builder()
                         .add(expectedStackTrace)
@@ -73,10 +68,6 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
                         .build();
                 assertThat(stackTrace, isSame(expectedStackTraceWithMergedConstructor));
                 assertThat(codeInspector.clazz(B.class), not(isPresent()));
-              } else {
-                assertThat(stackTrace, isSame(expectedStackTrace));
-                assertThat(codeInspector.clazz(B.class), isPresent());
-              }
             });
   }
 

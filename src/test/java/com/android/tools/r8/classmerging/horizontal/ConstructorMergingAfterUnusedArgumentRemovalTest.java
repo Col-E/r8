@@ -11,9 +11,8 @@ import org.junit.Test;
 public class ConstructorMergingAfterUnusedArgumentRemovalTest
     extends HorizontalClassMergingTestBase {
 
-  public ConstructorMergingAfterUnusedArgumentRemovalTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ConstructorMergingAfterUnusedArgumentRemovalTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -21,13 +20,9 @@ public class ConstructorMergingAfterUnusedArgumentRemovalTest
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging,
+        .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector
                     .assertMergedInto(B.class, A.class)

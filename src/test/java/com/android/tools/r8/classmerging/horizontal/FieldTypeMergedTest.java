@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isFieldOfArrayType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isFieldOfType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -19,8 +19,8 @@ import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import org.junit.Test;
 
 public class FieldTypeMergedTest extends HorizontalClassMergingTestBase {
-  public FieldTypeMergedTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public FieldTypeMergedTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -28,9 +28,6 @@ public class FieldTypeMergedTest extends HorizontalClassMergingTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -40,28 +37,21 @@ public class FieldTypeMergedTest extends HorizontalClassMergingTestBase {
             codeInspector -> {
               ClassSubject aClassSubject = codeInspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              assertThat(
-                  codeInspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(B.class), isAbsent());
 
               ClassSubject cClassSubject = codeInspector.clazz(C.class);
               assertThat(codeInspector.clazz(C.class), isPresent());
 
               FieldSubject fieldSubject = cClassSubject.uniqueFieldWithName("fieldB");
               assertThat(fieldSubject, isPresent());
-              if (enableHorizontalClassMerging) {
-                assertThat(
-                    fieldSubject, isFieldOfType(aClassSubject.getDexProgramClass().getType()));
-              }
+              assertThat(fieldSubject, isFieldOfType(aClassSubject.getDexProgramClass().getType()));
 
               fieldSubject = cClassSubject.uniqueFieldWithName("fieldArrayB");
               assertThat(fieldSubject, isPresent());
               assertTrue(fieldSubject.getDexField().type.isArrayType());
-              if (enableHorizontalClassMerging) {
-                assertThat(
-                    fieldSubject,
-                    isFieldOfArrayType(
-                        codeInspector, aClassSubject.getDexProgramClass().getType()));
-              }
+              assertThat(
+                  fieldSubject,
+                  isFieldOfArrayType(codeInspector, aClassSubject.getDexProgramClass().getType()));
             });
   }
 

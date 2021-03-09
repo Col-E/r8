@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -26,9 +26,8 @@ import org.junit.Test;
 
 public class ReferencedInAnnotationTest extends HorizontalClassMergingTestBase {
 
-  public ReferencedInAnnotationTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ReferencedInAnnotationTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -37,9 +36,6 @@ public class ReferencedInAnnotationTest extends HorizontalClassMergingTestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(Annotation.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .addKeepRuntimeVisibleAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -58,7 +54,7 @@ public class ReferencedInAnnotationTest extends HorizontalClassMergingTestBase {
 
     // B should have been merged into A if horizontal class merging is enabled.
     ClassSubject bClassSubject = inspector.clazz(B.class);
-    assertThat(bClassSubject, notIf(isPresent(), enableHorizontalClassMerging));
+    assertThat(bClassSubject, isAbsent());
 
     // The annotation on TestClass should now refer to A instead of B.
     AnnotationSubject annotationSubject =
@@ -72,11 +68,7 @@ public class ReferencedInAnnotationTest extends HorizontalClassMergingTestBase {
     assertTrue(annotationElementValue.isDexValueType());
 
     DexType annotationElementValueType = annotationElementValue.asDexValueType().getValue();
-    assertEquals(
-        (enableHorizontalClassMerging ? aClassSubject : bClassSubject)
-            .getDexProgramClass()
-            .getType(),
-        annotationElementValueType);
+    assertEquals(aClassSubject.getDexProgramClass().getType(), annotationElementValueType);
   }
 
   @Annotation(B.class)

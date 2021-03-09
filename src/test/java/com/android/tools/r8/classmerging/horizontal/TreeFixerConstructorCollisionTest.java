@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -15,9 +15,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class TreeFixerConstructorCollisionTest extends HorizontalClassMergingTestBase {
-  public TreeFixerConstructorCollisionTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public TreeFixerConstructorCollisionTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -25,9 +24,6 @@ public class TreeFixerConstructorCollisionTest extends HorizontalClassMergingTes
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -43,8 +39,7 @@ public class TreeFixerConstructorCollisionTest extends HorizontalClassMergingTes
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(
-                  codeInspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(B.class), isAbsent());
               assertThat(codeInspector.clazz(C.class), isPresent());
             });
   }

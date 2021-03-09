@@ -6,29 +6,25 @@ package com.android.tools.r8.classmerging.horizontal;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.util.List;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public abstract class HorizontalClassMergingTestBase extends TestBase {
-  protected final TestParameters parameters;
-  protected final boolean enableHorizontalClassMerging;
 
-  protected HorizontalClassMergingTestBase(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
+  protected final TestParameters parameters;
+
+  protected HorizontalClassMergingTestBase(TestParameters parameters) {
     this.parameters = parameters;
-    this.enableHorizontalClassMerging = enableHorizontalClassMerging;
   }
 
-  @Parameterized.Parameters(name = "{0}, horizontalClassMerging:{1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   protected ClassSubject getSynthesizedArgumentClassSubject(CodeInspector codeInspector) {

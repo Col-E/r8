@@ -9,8 +9,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class GenericStaticFieldTest extends HorizontalClassMergingTestBase {
-  public GenericStaticFieldTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public GenericStaticFieldTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -19,9 +19,6 @@ public class GenericStaticFieldTest extends HorizontalClassMergingTestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepRules("-keepattributes Signatures")
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         // .addHorizontallyMergedClassesInspectorIf(

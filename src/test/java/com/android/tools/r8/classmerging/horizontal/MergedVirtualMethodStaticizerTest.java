@@ -10,9 +10,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class MergedVirtualMethodStaticizerTest extends HorizontalClassMergingTestBase {
-  public MergedVirtualMethodStaticizerTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public MergedVirtualMethodStaticizerTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -20,14 +19,10 @@ public class MergedVirtualMethodStaticizerTest extends HorizontalClassMergingTes
     testForR8(parameters.getBackend())
         .addInnerClasses(Program.class)
         .addKeepClassAndMembersRules(Program.Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging,
+        .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(Program.B.class, Program.A.class))
         .run(parameters.getRuntime(), Program.Main.class)
         .assertSuccessWithOutputLines("A::foo", "Staticized::foo", "B::foo");

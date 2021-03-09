@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -14,9 +14,8 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import org.junit.Test;
 
 public class CompatKeepConstructorLiveTest extends HorizontalClassMergingTestBase {
-  public CompatKeepConstructorLiveTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public CompatKeepConstructorLiveTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -24,9 +23,6 @@ public class CompatKeepConstructorLiveTest extends HorizontalClassMergingTestBas
     testForR8Compat(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
@@ -39,8 +35,7 @@ public class CompatKeepConstructorLiveTest extends HorizontalClassMergingTestBas
               assertThat(aClassSubject.init(), isPresent());
 
               assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(
-                  codeInspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(B.class), isAbsent());
             });
   }
 

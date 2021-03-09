@@ -14,9 +14,8 @@ import org.junit.Test;
 
 public class FieldsWithDifferentAccessFlagsTest extends HorizontalClassMergingTestBase {
 
-  public FieldsWithDifferentAccessFlagsTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public FieldsWithDifferentAccessFlagsTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -24,11 +23,8 @@ public class FieldsWithDifferentAccessFlagsTest extends HorizontalClassMergingTe
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, HorizontallyMergedClassesInspector::assertNoClassesMerged)
+        .addHorizontallyMergedClassesInspector(
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

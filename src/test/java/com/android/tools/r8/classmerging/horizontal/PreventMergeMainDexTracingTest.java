@@ -13,29 +13,25 @@ import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class PreventMergeMainDexTracingTest extends HorizontalClassMergingTestBase {
-  public PreventMergeMainDexTracingTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public PreventMergeMainDexTracingTest(TestParameters parameters) {
+    super(parameters);
   }
 
-  @Parameterized.Parameters(name = "{0}, horizontalClassMerging:{1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters()
-            .withDexRuntimes()
-            .withApiLevelsEndingAtExcluding(apiLevelWithNativeMultiDexSupport())
-            .build(),
-        BooleanUtils.values());
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withDexRuntimes()
+        .withApiLevelsEndingAtExcluding(apiLevelWithNativeMultiDexSupport())
+        .build();
   }
 
   @Test
@@ -45,11 +41,7 @@ public class PreventMergeMainDexTracingTest extends HorizontalClassMergingTestBa
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(Other.class)
         .addMainDexClassRules(Main.class)
-        .addOptionsModification(
-            options -> {
-              options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging);
-              options.minimalMainDex = true;
-            })
+        .addOptionsModification(options -> options.minimalMainDex = true)
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())

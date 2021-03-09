@@ -16,9 +16,8 @@ import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspect
 import org.junit.Test;
 
 public class ClassesWithNativeMethodsTest extends HorizontalClassMergingTestBase {
-  public ClassesWithNativeMethodsTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ClassesWithNativeMethodsTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -26,9 +25,6 @@ public class ClassesWithNativeMethodsTest extends HorizontalClassMergingTestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

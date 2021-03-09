@@ -11,9 +11,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class DistinguishExceptionClassesTest extends HorizontalClassMergingTestBase {
-  public DistinguishExceptionClassesTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public DistinguishExceptionClassesTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -21,9 +20,6 @@ public class DistinguishExceptionClassesTest extends HorizontalClassMergingTestB
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("test success")

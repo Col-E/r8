@@ -16,9 +16,8 @@ import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspect
 import org.junit.Test;
 
 public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
-  public OverrideDefaultMethodTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public OverrideDefaultMethodTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -26,15 +25,12 @@ public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, HorizontallyMergedClassesInspector::assertNoClassesMerged)
+        .addHorizontallyMergedClassesInspector(
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("I", "B", "J")
         .inspect(

@@ -15,8 +15,8 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import org.junit.Test;
 
 public class SynchronizedClassesTest extends HorizontalClassMergingTestBase {
-  public SynchronizedClassesTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public SynchronizedClassesTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -24,10 +24,6 @@ public class SynchronizedClassesTest extends HorizontalClassMergingTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options -> {
-              options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging);
-            })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -38,7 +34,6 @@ public class SynchronizedClassesTest extends HorizontalClassMergingTestBase {
             codeInspector -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
               assertThat(codeInspector.clazz(B.class), isPresent());
-              if (enableHorizontalClassMerging) {
                 // C has been merged into A.
                 assertThat(codeInspector.clazz(C.class), not(isPresent()));
                 assertThat(codeInspector.clazz(A.class).init("long"), isPresent());
@@ -47,10 +42,6 @@ public class SynchronizedClassesTest extends HorizontalClassMergingTestBase {
                 assertThat(codeInspector.clazz(D.class), not(isPresent()));
                 ClassSubject bClassSubject = codeInspector.clazz(B.class);
                 assertThat(bClassSubject.init("boolean"), isPresent());
-              } else {
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), isPresent());
-              }
             });
   }
 

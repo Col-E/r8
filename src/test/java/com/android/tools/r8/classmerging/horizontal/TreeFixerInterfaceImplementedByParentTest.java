@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -22,9 +22,8 @@ import org.junit.Test;
  * changed.
  */
 public class TreeFixerInterfaceImplementedByParentTest extends HorizontalClassMergingTestBase {
-  public TreeFixerInterfaceImplementedByParentTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public TreeFixerInterfaceImplementedByParentTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -33,9 +32,6 @@ public class TreeFixerInterfaceImplementedByParentTest extends HorizontalClassMe
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .noMinification()
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
@@ -46,17 +42,14 @@ public class TreeFixerInterfaceImplementedByParentTest extends HorizontalClassMe
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(
-                  codeInspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(B.class), isAbsent());
 
               ClassSubject parentClassSubject = codeInspector.clazz(Parent.class);
               assertThat(parentClassSubject, isPresent());
               // Parent #foo(A) is kept as is.
-              if (enableHorizontalClassMerging) {
-                // Parent#foo(B) is renamed to Parent#foo1 to prevent collision.
-                assertThat(parentClassSubject.uniqueMethodWithFinalName("foo"), isPresent());
-                assertThat(parentClassSubject.uniqueMethodWithFinalName("foo$1"), isPresent());
-              }
+              // Parent#foo(B) is renamed to Parent#foo1 to prevent collision.
+              assertThat(parentClassSubject.uniqueMethodWithFinalName("foo"), isPresent());
+              assertThat(parentClassSubject.uniqueMethodWithFinalName("foo$1"), isPresent());
 
               assertThat(codeInspector.clazz(C.class), isPresent());
 

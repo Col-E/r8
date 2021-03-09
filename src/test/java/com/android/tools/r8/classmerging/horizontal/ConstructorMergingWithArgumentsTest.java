@@ -15,9 +15,8 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 
 public class ConstructorMergingWithArgumentsTest extends HorizontalClassMergingTestBase {
-  public ConstructorMergingWithArgumentsTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ConstructorMergingWithArgumentsTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -25,16 +24,12 @@ public class ConstructorMergingWithArgumentsTest extends HorizontalClassMergingT
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("foo hello", "bar world")
         .inspect(
             codeInspector -> {
-              if (enableHorizontalClassMerging) {
                 ClassSubject aClassSubject = codeInspector.clazz(A.class);
 
                 assertThat(aClassSubject, isPresent());
@@ -42,11 +37,6 @@ public class ConstructorMergingWithArgumentsTest extends HorizontalClassMergingT
 
                 MethodSubject initSubject = aClassSubject.init(String.class.getName(), "int");
                 assertThat(initSubject, isPresent());
-                // TODO(b/165517236): Explicitly check classes have been merged.
-              } else {
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), isPresent());
-              }
             });
   }
 

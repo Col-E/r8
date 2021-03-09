@@ -21,9 +21,8 @@ import org.junit.Test;
 
 public class ConstructorMergingOverlapTest extends HorizontalClassMergingTestBase {
 
-  public ConstructorMergingOverlapTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ConstructorMergingOverlapTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -31,9 +30,6 @@ public class ConstructorMergingOverlapTest extends HorizontalClassMergingTestBas
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -41,7 +37,6 @@ public class ConstructorMergingOverlapTest extends HorizontalClassMergingTestBas
         .assertSuccessWithOutputLines("42", "13", "7", "print a", "print b")
         .inspect(
             codeInspector -> {
-              if (enableHorizontalClassMerging) {
                 ClassSubject aClassSubject = codeInspector.clazz(A.class);
                 assertThat(aClassSubject, isPresent());
                 FieldSubject classIdFieldSubject =
@@ -66,12 +61,6 @@ public class ConstructorMergingOverlapTest extends HorizontalClassMergingTestBas
                 assertThat(printSubject, readsInstanceField(classIdFieldSubject.getDexField()));
 
                 assertThat(codeInspector.clazz(B.class), not(isPresent()));
-
-                // TODO(b/165517236): Explicitly check classes have been merged.
-              } else {
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), isPresent());
-              }
             });
   }
 

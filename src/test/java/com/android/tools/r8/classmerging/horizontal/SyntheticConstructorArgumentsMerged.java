@@ -14,9 +14,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class SyntheticConstructorArgumentsMerged extends HorizontalClassMergingTestBase {
-  public SyntheticConstructorArgumentsMerged(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public SyntheticConstructorArgumentsMerged(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -24,10 +23,6 @@ public class SyntheticConstructorArgumentsMerged extends HorizontalClassMergingT
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options -> {
-              options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging);
-            })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -36,14 +31,8 @@ public class SyntheticConstructorArgumentsMerged extends HorizontalClassMergingT
         .assertSuccessWithOutputLines("5", "42")
         .inspect(
             codeInspector -> {
-              if (enableHorizontalClassMerging) {
                 assertThat(codeInspector.clazz(A.class), isPresent());
                 assertThat(codeInspector.clazz(B.class), not(isPresent()));
-                // TODO(b/165517236): Explicitly check classes have been merged.
-              } else {
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), isPresent());
-              }
             });
   }
 

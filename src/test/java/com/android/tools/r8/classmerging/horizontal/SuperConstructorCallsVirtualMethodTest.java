@@ -14,9 +14,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class SuperConstructorCallsVirtualMethodTest extends HorizontalClassMergingTestBase {
-  public SuperConstructorCallsVirtualMethodTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public SuperConstructorCallsVirtualMethodTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -24,9 +23,6 @@ public class SuperConstructorCallsVirtualMethodTest extends HorizontalClassMergi
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -34,16 +30,9 @@ public class SuperConstructorCallsVirtualMethodTest extends HorizontalClassMergi
         .assertSuccessWithOutputLines("5", "foo hello", "B", "bar world", "5", "B")
         .inspect(
             codeInspector -> {
-              if (enableHorizontalClassMerging) {
                 assertThat(codeInspector.clazz(Parent.class), isPresent());
                 assertThat(codeInspector.clazz(A.class), isPresent());
                 assertThat(codeInspector.clazz(B.class), not(isPresent()));
-                // TODO(b/165517236): Explicitly check classes have been merged.
-              } else {
-                assertThat(codeInspector.clazz(Parent.class), isPresent());
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), isPresent());
-              }
             });
   }
 

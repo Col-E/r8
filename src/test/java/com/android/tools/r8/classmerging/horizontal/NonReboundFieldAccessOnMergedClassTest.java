@@ -14,9 +14,8 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class NonReboundFieldAccessOnMergedClassTest extends HorizontalClassMergingTestBase {
 
-  public NonReboundFieldAccessOnMergedClassTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public NonReboundFieldAccessOnMergedClassTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -25,11 +24,8 @@ public class NonReboundFieldAccessOnMergedClassTest extends HorizontalClassMergi
         .addInnerClasses(getClass())
         .addInnerClasses(NonReboundFieldAccessOnMergedClassTestClasses.class)
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(D.class, C.class))
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertMergedInto(D.class, C.class))
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())

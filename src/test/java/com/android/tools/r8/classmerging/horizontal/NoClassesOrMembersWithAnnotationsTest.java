@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -20,9 +20,9 @@ import java.lang.annotation.Target;
 import org.junit.Test;
 
 public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergingTestBase {
-  public NoClassesOrMembersWithAnnotationsTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+
+  public NoClassesOrMembersWithAnnotationsTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -31,11 +31,7 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging,
+        .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertIsCompleteMergeGroup(A.class, C.class))
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
@@ -49,8 +45,7 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
               assertThat(codeInspector.clazz(MethodAnnotation.class), isPresent());
               assertThat(codeInspector.clazz(A.class), isPresent());
               assertThat(codeInspector.clazz(B.class), isPresent());
-              assertThat(
-                  codeInspector.clazz(C.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(C.class), isAbsent());
             });
   }
 

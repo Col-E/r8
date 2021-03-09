@@ -18,8 +18,8 @@ import org.junit.Test;
 
 public class JavaLambdaMergingTest extends HorizontalClassMergingTestBase {
 
-  public JavaLambdaMergingTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public JavaLambdaMergingTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -27,11 +27,8 @@ public class JavaLambdaMergingTest extends HorizontalClassMergingTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging && parameters.isDexRuntime(),
+            parameters.isDexRuntime(),
             inspector -> {
               Set<DexType> lambdaSources =
                   inspector.getSources().stream()

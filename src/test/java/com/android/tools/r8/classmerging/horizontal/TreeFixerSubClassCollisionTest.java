@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -17,9 +17,8 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import org.junit.Test;
 
 public class TreeFixerSubClassCollisionTest extends HorizontalClassMergingTestBase {
-  public TreeFixerSubClassCollisionTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public TreeFixerSubClassCollisionTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -28,9 +27,6 @@ public class TreeFixerSubClassCollisionTest extends HorizontalClassMergingTestBa
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .noMinification()
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
@@ -42,24 +38,18 @@ public class TreeFixerSubClassCollisionTest extends HorizontalClassMergingTestBa
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(
-                  codeInspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(B.class), isAbsent());
 
               ClassSubject cClassSubject = codeInspector.clazz(C.class);
               assertThat(cClassSubject, isPresent());
               // C#foo(B) is renamed to C#foo$1(A).
-              if (enableHorizontalClassMerging) {
-                assertThat(cClassSubject.uniqueMethodWithFinalName("foo"), isPresent());
-                assertThat(cClassSubject.uniqueMethodWithFinalName("foo$1"), isPresent());
-              }
+              assertThat(cClassSubject.uniqueMethodWithFinalName("foo"), isPresent());
+              assertThat(cClassSubject.uniqueMethodWithFinalName("foo$1"), isPresent());
 
               ClassSubject dClassSubject = codeInspector.clazz(D.class);
               assertThat(dClassSubject, isPresent());
               // D#foo$1(B) is renamed to D#foo$2(A).
-              assertThat(
-                  dClassSubject.uniqueMethodWithFinalName(
-                      enableHorizontalClassMerging ? "foo$1$1" : "foo$1"),
-                  isPresent());
+              assertThat(dClassSubject.uniqueMethodWithFinalName("foo$1$1"), isPresent());
             });
   }
 

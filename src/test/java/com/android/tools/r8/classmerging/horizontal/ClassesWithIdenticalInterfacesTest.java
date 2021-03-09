@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -14,9 +14,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class ClassesWithIdenticalInterfacesTest extends HorizontalClassMergingTestBase {
-  public ClassesWithIdenticalInterfacesTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ClassesWithIdenticalInterfacesTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -24,14 +23,10 @@ public class ClassesWithIdenticalInterfacesTest extends HorizontalClassMergingTe
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging,
+        .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector.assertMergedInto(Y.class, X.class).assertMergedInto(Z.class, X.class))
         .run(parameters.getRuntime(), Main.class)
@@ -40,10 +35,8 @@ public class ClassesWithIdenticalInterfacesTest extends HorizontalClassMergingTe
             codeInspector -> {
               assertThat(codeInspector.clazz(I.class), isPresent());
               assertThat(codeInspector.clazz(X.class), isPresent());
-              assertThat(
-                  codeInspector.clazz(Y.class), notIf(isPresent(), enableHorizontalClassMerging));
-              assertThat(
-                  codeInspector.clazz(Z.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(Y.class), isAbsent());
+              assertThat(codeInspector.clazz(Z.class), isAbsent());
             });
   }
 

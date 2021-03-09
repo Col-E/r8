@@ -13,9 +13,8 @@ import com.android.tools.r8.classmerging.horizontal.EmptyClassTest.Main;
 import org.junit.Test;
 
 public class InheritOverrideInterfaceTest extends HorizontalClassMergingTestBase {
-  public InheritOverrideInterfaceTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public InheritOverrideInterfaceTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -23,14 +22,11 @@ public class InheritOverrideInterfaceTest extends HorizontalClassMergingTestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertMergedInto(B.class, A.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A", "B", "A")
         .inspect(codeInspector -> {});

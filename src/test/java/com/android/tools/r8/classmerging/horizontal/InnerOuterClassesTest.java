@@ -12,8 +12,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class InnerOuterClassesTest extends HorizontalClassMergingTestBase {
-  public InnerOuterClassesTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public InnerOuterClassesTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -21,9 +21,6 @@ public class InnerOuterClassesTest extends HorizontalClassMergingTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNeverClassInliningAnnotations()
         .addKeepAttributes("InnerClasses", "EnclosingMethod")
         .setMinApi(parameters.getApiLevel())

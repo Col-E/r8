@@ -12,9 +12,8 @@ import org.junit.Test;
 
 public class AbstractMethodMergingNonTrivialTest extends HorizontalClassMergingTestBase {
 
-  public AbstractMethodMergingNonTrivialTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public AbstractMethodMergingNonTrivialTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -22,11 +21,8 @@ public class AbstractMethodMergingNonTrivialTest extends HorizontalClassMergingT
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertMergedInto(B.class, A.class))
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()

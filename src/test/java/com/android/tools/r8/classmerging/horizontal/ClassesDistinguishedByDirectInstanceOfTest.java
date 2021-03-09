@@ -13,9 +13,8 @@ import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
 public class ClassesDistinguishedByDirectInstanceOfTest extends HorizontalClassMergingTestBase {
-  public ClassesDistinguishedByDirectInstanceOfTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public ClassesDistinguishedByDirectInstanceOfTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -23,9 +22,6 @@ public class ClassesDistinguishedByDirectInstanceOfTest extends HorizontalClassM
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

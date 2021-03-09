@@ -14,9 +14,8 @@ import com.android.tools.r8.classmerging.horizontal.testclasses.D;
 import org.junit.Test;
 
 public class PackagePrivateMembersAccessedTest extends HorizontalClassMergingTestBase {
-  public PackagePrivateMembersAccessedTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
-    super(parameters, enableHorizontalClassMerging);
+  public PackagePrivateMembersAccessedTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -26,9 +25,6 @@ public class PackagePrivateMembersAccessedTest extends HorizontalClassMergingTes
         .addProgramClasses(C.class)
         .addProgramClasses(D.class)
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .allowAccessModification(false)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
