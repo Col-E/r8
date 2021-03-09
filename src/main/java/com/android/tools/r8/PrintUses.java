@@ -584,7 +584,7 @@ public class PrintUses {
 
     @Override
     void printPackageNames(List<String> packageNames) {
-      append("-keeppackagenames " + StringUtils.join(packageNames, ",") + "\n");
+      append("-keeppackagenames " + StringUtils.join(",", packageNames) + "\n");
     }
 
     @Override

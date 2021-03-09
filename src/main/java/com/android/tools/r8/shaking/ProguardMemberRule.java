@@ -415,7 +415,7 @@ public class ProguardMemberRule {
       case INIT: {
         result.append(getName());
         result.append('(');
-        result.append(StringUtils.join(getArguments(), ","));
+          result.append(StringUtils.join(",", getArguments()));
         result.append(')');
         break;
       }

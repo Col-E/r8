@@ -64,6 +64,6 @@ public class DuplicateTypesDiagnostic implements Diagnostic {
   @Override
   public String getDiagnosticMessage() {
     String typeName = DescriptorUtils.descriptorToJavaType(type.getDescriptor());
-    return "Type " + typeName + " is defined multiple times: " + StringUtils.join(origins, ", ");
+    return "Type " + typeName + " is defined multiple times: " + StringUtils.join(", ", origins);
   }
 }

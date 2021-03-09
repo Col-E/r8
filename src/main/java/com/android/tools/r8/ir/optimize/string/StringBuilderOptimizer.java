@@ -540,7 +540,7 @@ public class StringBuilderOptimizer {
       if (contents == null || contents.isEmpty()) {
         return;
       }
-      String result = StringUtils.join(contents, "");
+      String result = StringUtils.join("", contents);
       Integer size = Integer.valueOf(contents.size());
       Integer length = Integer.valueOf(result.length());
       if (isPartial) {
@@ -712,7 +712,7 @@ public class StringBuilderOptimizer {
           builder, optimizationConfiguration)) {
         return null;
       }
-      String result = StringUtils.join(contents, "");
+      String result = StringUtils.join("", contents);
       int estimate = estimateSizeReduction(contents);
       return estimate > result.length() ? result : null;
     }

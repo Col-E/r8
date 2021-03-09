@@ -40,12 +40,12 @@ public class StackTraceTest extends TestBase {
   public void testJvmStackTrace() throws Exception {
     String stderr =
         StringUtils.join(
+            "\n",
             ImmutableList.of(
                 "Exception in thread \"main\" java.lang.RuntimeException",
                 "\tat com.example.A.method2(Test.java:30)",
                 "\tat com.example.A.method1(Test.java:20)",
-                "\tat com.example.Main.main(Test.java:10)"),
-            "\n");
+                "\tat com.example.Main.main(Test.java:10)"));
     checkStackTrace(StackTrace.extractFromJvm(stderr));
   }
 
@@ -95,8 +95,7 @@ public class StackTraceTest extends TestBase {
             "\tat com.example.Main.main(Test.java:10)",
             "dex2oat I 10-30 11:41:40 232588 232588 dex2oat.cc:2808] dex2oat took 94.860ms"
                 + " (71.941ms cpu) (threads: 72) arena alloc=3KB (3312B) java alloc=32KB (32800B)"
-                + " native alloc=440KB (450720B) free=9MB (9539424B)"
-            );
+                + " native alloc=440KB (450720B) free=9MB (9539424B)");
     checkStackTrace(StackTrace.extractFromArt(stderr, DexVm.ART_5_1_1_HOST));
   }
 

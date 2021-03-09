@@ -213,9 +213,14 @@ public class JasminBuilder {
         String returnType,
         String... lines) {
       StringBuilder builder = new StringBuilder();
-      builder.append(".method ").append(access).append(" ").append(name)
-          .append(StringUtils.join(argumentTypes, "", BraceType.PARENS))
-          .append(returnType).append("\n");
+      builder
+          .append(".method ")
+          .append(access)
+          .append(" ")
+          .append(name)
+          .append(StringUtils.join("", argumentTypes, BraceType.PARENS))
+          .append(returnType)
+          .append("\n");
       for (String line : lines) {
         builder.append(line).append("\n");
       }
@@ -382,7 +387,7 @@ public class JasminBuilder {
       }
       builder
           .append(name)
-          .append(StringUtils.join(argumentTypes, "", BraceType.PARENS))
+          .append(StringUtils.join("", argumentTypes, BraceType.PARENS))
           .append(returnType)
           .append(System.lineSeparator());
       builder.append(".limit locals ").append(localsLimit).append(System.lineSeparator());

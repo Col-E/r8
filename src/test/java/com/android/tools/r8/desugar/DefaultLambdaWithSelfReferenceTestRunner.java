@@ -178,8 +178,8 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
         DisassembleCommand.builder().addProgramFiles(out1).setOutputPath(dissasemble1).build());
     Disassemble.disassemble(
         DisassembleCommand.builder().addProgramFiles(out2).setOutputPath(dissasemble2).build());
-    String content1 = StringUtils.join(Files.readAllLines(dissasemble1), "\n");
-    String content2 = StringUtils.join(Files.readAllLines(dissasemble2), "\n");
+    String content1 = StringUtils.join("\n", Files.readAllLines(dissasemble1));
+    String content2 = StringUtils.join("\n", Files.readAllLines(dissasemble2));
     assertEquals(content1, content2);
   }
 }

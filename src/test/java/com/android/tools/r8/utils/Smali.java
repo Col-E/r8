@@ -79,7 +79,7 @@ public class Smali {
 
       if (parser.getNumberOfSyntaxErrors() > 0 || lexer.getNumberOfSyntaxErrors() > 0) {
         throw new RuntimeException(
-            "Error occured while compiling text:\n" + StringUtils.join(smaliTexts, "\n"));
+            "Error occured while compiling text:\n" + StringUtils.join("\n", smaliTexts));
       }
 
       CommonTree t = result.getTree();

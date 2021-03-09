@@ -973,7 +973,7 @@ public class IRCode implements ValueFactory {
                   || !v.hasDebugUsers()
                   || v.debugUsers().stream().anyMatch(i -> !i.isAssume())
                   || v.numberOfPhiUsers() > 0
-              : StringUtils.join(v.uniqueUsers(), System.lineSeparator());
+              : StringUtils.join(System.lineSeparator(), v.uniqueUsers());
           return true;
         };
     return verifySSATypeLattice(wrapSSAVerifierWithStackValueHandling(verifyValue));

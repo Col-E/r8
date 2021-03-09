@@ -42,8 +42,14 @@ public class SmaliBuilder {
 
     @Override
     public String toString() {
-      return returnType + " " + clazz + "." + name
-          + "(" + StringUtils.join(parameterTypes, ",") + ")";
+      return returnType
+          + " "
+          + clazz
+          + "."
+          + name
+          + "("
+          + StringUtils.join(",", parameterTypes)
+          + ")";
     }
   }
 

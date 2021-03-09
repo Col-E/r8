@@ -211,8 +211,8 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
           + '.'
           + method.getMethodName()
           + StringUtils.join(
-              ListUtils.map(method.getFormalTypes(), TypeReference::getTypeName),
               ",",
+              ListUtils.map(method.getFormalTypes(), TypeReference::getTypeName),
               BraceType.PARENS);
     }
     if (node instanceof FieldGraphNode) {

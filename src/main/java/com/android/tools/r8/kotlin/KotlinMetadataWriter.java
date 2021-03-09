@@ -110,7 +110,7 @@ public class KotlinMetadataWriter {
       KotlinClassMetadata.MultiFileClassFacade kMetadata, String indent) {
     return indent
         + "MetaData.MultiFileClassFacade("
-        + StringUtils.join(kMetadata.getPartClassNames(), ", ")
+        + StringUtils.join(", ", kMetadata.getPartClassNames())
         + ")";
   }
 
@@ -327,16 +327,16 @@ public class KotlinMetadataWriter {
         });
     String companionObject = kmClass.getCompanionObject();
     appendKeyValue(
-        indent, "enumEntries", sb, "[" + StringUtils.join(kmClass.getEnumEntries(), ",") + "]");
+        indent, "enumEntries", sb, "[" + StringUtils.join(",", kmClass.getEnumEntries()) + "]");
     appendKeyValue(
         indent, "companionObject", sb, companionObject == null ? "null" : companionObject);
     appendKeyValue(
         indent,
         "sealedSubclasses",
         sb,
-        "[" + StringUtils.join(kmClass.getSealedSubclasses(), ",") + "]");
+        "[" + StringUtils.join(",", kmClass.getSealedSubclasses()) + "]");
     appendKeyValue(
-        indent, "nestedClasses", sb, "[" + StringUtils.join(kmClass.getNestedClasses(), ",") + "]");
+        indent, "nestedClasses", sb, "[" + StringUtils.join(",", kmClass.getNestedClasses()) + "]");
     appendKeyValue(
         indent,
         "anonymousObjectOriginName",

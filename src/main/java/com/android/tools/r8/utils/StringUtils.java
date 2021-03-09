@@ -124,20 +124,20 @@ public class StringUtils {
     return builder;
   }
 
-  public static <T> String join(Collection<T> collection, String separator) {
-    return join(collection, separator, BraceType.NONE);
+  public static String join(String separator, String... strings) {
+    return join(separator, Arrays.asList(strings));
+  }
+
+  public static <T> String join(String separator, Iterable<T> iterable) {
+    return join(separator, iterable, BraceType.NONE);
   }
 
   public static <T> String join(String separator, Iterable<T> iterable, Function<T, String> fn) {
     return join(separator, iterable, fn, BraceType.NONE);
   }
 
-  public static String join(String separator, String... strings) {
-    return join(Arrays.asList(strings), separator, BraceType.NONE);
-  }
-
-  public static <T> String join(Collection<T> collection, String separator, BraceType brace) {
-    return join(separator, collection, Object::toString, brace);
+  public static <T> String join(String separator, Iterable<T> iterable, BraceType brace) {
+    return join(separator, iterable, Object::toString, brace);
   }
 
   public static <T> String join(
@@ -174,7 +174,7 @@ public class StringUtils {
   }
 
   public static <T> String joinLines(Collection<T> collection) {
-    return join(collection, LINE_SEPARATOR, BraceType.NONE);
+    return join(LINE_SEPARATOR, collection, BraceType.NONE);
   }
 
   public static List<String> splitLines(String content) {

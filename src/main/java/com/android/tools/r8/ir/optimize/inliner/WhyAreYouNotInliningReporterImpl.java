@@ -147,7 +147,7 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
         "not a valid inlining reason (was: "
             + reason
             + ", allowed: one of "
-            + StringUtils.join(validInliningReasons, ", ")
+            + StringUtils.join(", ", validInliningReasons)
             + ").");
   }
 

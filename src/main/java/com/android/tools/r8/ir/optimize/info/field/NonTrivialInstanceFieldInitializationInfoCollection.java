@@ -85,7 +85,7 @@ public class NonTrivialInstanceFieldInitializationInfoCollection
     List<String> strings = new ArrayList<>();
     infos.forEach((field, info) -> strings.add(field.toSourceString() + " -> " + info));
     return "NonTrivialInstanceFieldInitializationInfoCollection("
-        + StringUtils.join(strings, "; ")
+        + StringUtils.join("; ", strings)
         + ")";
   }
 }

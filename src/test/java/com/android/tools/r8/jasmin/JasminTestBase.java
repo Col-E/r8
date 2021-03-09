@@ -219,7 +219,7 @@ public class JasminTestBase extends TestBase {
     List<String> args = new ArrayList<>();
     args.add("--output=" + dex.toString());
     args.add(classes.toString());
-    System.out.println("running: dx " + StringUtils.join(args, " "));
+    System.out.println("running: dx " + StringUtils.join(" ", args));
     return ToolHelper.runDX(args.toArray(new String[args.size()]));
   }
 

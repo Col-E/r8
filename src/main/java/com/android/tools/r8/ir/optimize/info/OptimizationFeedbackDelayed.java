@@ -108,11 +108,10 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   public boolean noUpdatesLeft() {
     assert appInfoWithLivenessModifier.isEmpty();
     assert fieldOptimizationInfos.isEmpty()
-        : StringUtils.join(fieldOptimizationInfos.keySet(), ", ");
+        : StringUtils.join(", ", fieldOptimizationInfos.keySet());
     assert methodOptimizationInfos.isEmpty()
-        : StringUtils.join(methodOptimizationInfos.keySet(), ", ");
-    assert processed.isEmpty()
-        : StringUtils.join(processed.keySet(), ", ");
+        : StringUtils.join(", ", methodOptimizationInfos.keySet());
+    assert processed.isEmpty() : StringUtils.join(", ", processed.keySet());
     return true;
   }
 

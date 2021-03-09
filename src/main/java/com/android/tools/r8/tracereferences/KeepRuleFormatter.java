@@ -73,7 +73,7 @@ class KeepRuleFormatter extends Formatter {
   @Override
   protected void printPackageNames(List<String> packageNames) {
     if (!packageNames.isEmpty()) {
-      append("-keeppackagenames " + StringUtils.join(packageNames, ",") + System.lineSeparator());
+      append("-keeppackagenames " + StringUtils.join(",", packageNames) + System.lineSeparator());
     }
   }
 

@@ -77,7 +77,7 @@ public final class MethodReference {
 
   public String getMethodDescriptor() {
     return StringUtils.join(
-            ListUtils.map(getFormalTypes(), TypeReference::getDescriptor), "", BraceType.PARENS)
+            "", ListUtils.map(getFormalTypes(), TypeReference::getDescriptor), BraceType.PARENS)
         + (getReturnType() == null ? "V" : getReturnType().getDescriptor());
   }
 

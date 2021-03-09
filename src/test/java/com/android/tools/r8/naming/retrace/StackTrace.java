@@ -69,8 +69,8 @@ public class StackTrace {
       return new StackTrace(
           stackTraceLines,
           StringUtils.join(
-              stackTraceLines.stream().map(StackTraceLine::toString).collect(Collectors.toList()),
-              "\n"));
+              "\n",
+              stackTraceLines.stream().map(StackTraceLine::toString).collect(Collectors.toList())));
     }
   }
 

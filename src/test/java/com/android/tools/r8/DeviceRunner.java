@@ -167,7 +167,8 @@ public class DeviceRunner {
       throw new DeviceRunnerConfigurationException(
           "Running tests on more than one device is not yet supported. "
               + "Currently connected devices: ["
-              + StringUtils.join(Arrays.asList(connectedDevices), ",") + "]");
+              + StringUtils.join(",", Arrays.asList(connectedDevices))
+              + "]");
     }
 
     int exitStatus = -1;

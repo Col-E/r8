@@ -352,8 +352,10 @@ public class FoundMethodSubject extends MethodSubject {
     return dexMethod.method.name.toString()
         + "("
         + StringUtils.join(
+            "",
             Arrays.stream(dexMethod.method.proto.parameters.values)
-                .map(DexType::toDescriptorString).collect(Collectors.toList()), "")
+                .map(DexType::toDescriptorString)
+                .collect(Collectors.toList()))
         + ")"
         + dexMethod.method.proto.returnType.toDescriptorString();
   }

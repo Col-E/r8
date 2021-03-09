@@ -125,7 +125,7 @@ public abstract class RepackageTestBase extends TestBase {
         if (isFlattenPackageHierarchy()) {
           expectedPackageNames.add(packageName != null ? packageName : "a");
         }
-        return StringUtils.join(expectedPackageNames, ".");
+        return StringUtils.join(".", expectedPackageNames);
       }
     };
   }

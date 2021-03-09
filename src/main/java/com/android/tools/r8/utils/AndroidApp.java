@@ -510,7 +510,7 @@ public class AndroidApp {
         for (String mainDexClass : getMainDexClasses()) {
           mainDexList.add(mainDexClass.replace(".", "/") + CLASS_EXTENSION);
         }
-        String join = StringUtils.join(mainDexList, "\n");
+        String join = StringUtils.join("\n", mainDexList);
         writeToZipStream(out, dumpMainDexListResourceFileName, join.getBytes(), ZipEntry.DEFLATED);
       }
       if (options.hasMainDexKeepRules()) {
