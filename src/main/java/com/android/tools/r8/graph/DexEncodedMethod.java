@@ -381,12 +381,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return getReference().getProto();
   }
 
-  @Override
-  public DexMethod getReference() {
-    checkIfObsolete();
-    return super.getReference();
-  }
-
   public DexType getParameter(int index) {
     return getReference().getParameter(index);
   }
