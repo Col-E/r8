@@ -223,11 +223,6 @@ public class FieldAssignmentTracker {
                 >= initialAbstractValue.getAbstractionSize()) {
               abstractValue = UnknownValue.getInstance();
             }
-          } else {
-            assert false
-                : "Expected abstract value of "
-                    + field.toSourceString()
-                    + " to be instance of NonConstantNumberValue";
           }
         }
 
