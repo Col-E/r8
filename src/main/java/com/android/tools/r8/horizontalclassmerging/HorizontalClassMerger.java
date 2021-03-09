@@ -40,6 +40,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,14 +56,13 @@ public class HorizontalClassMerger {
     assert appView.options().enableInlining;
   }
 
-  public HorizontalClassMergerResult run(
-      RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
+  public HorizontalClassMergerResult run(RuntimeTypeCheckInfo runtimeTypeCheckInfo, Timing timing) {
     MergeGroup initialGroup = new MergeGroup(appView.appInfo().classesWithDeterministicOrder());
 
     // Run the policies on all program classes to produce a final grouping.
     List<Policy> policies = getPolicies(runtimeTypeCheckInfo);
     Collection<MergeGroup> groups =
-        new SimplePolicyExecutor().run(Collections.singletonList(initialGroup), policies);
+        new PolicyExecutor().run(Collections.singletonList(initialGroup), policies, timing);
 
     // If there are no groups, then end horizontal class merging.
     if (groups.isEmpty()) {

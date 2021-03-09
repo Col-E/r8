@@ -23,4 +23,9 @@ public class SameNestHost extends MultiClassSameReferencePolicy<DexType> {
   public DexType getMergeKey(DexProgramClass clazz) {
     return clazz.isInANest() ? clazz.getNestHost() : dexItemFactory.objectType;
   }
+
+  @Override
+  public String getName() {
+    return "SameNestHost";
+  }
 }

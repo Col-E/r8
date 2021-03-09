@@ -48,4 +48,9 @@ public class SyntheticItemsPolicy extends MultiClassSameReferencePolicy<ClassKin
     // Java lambda merging is disabled.
     return ineligibleForClassMerging();
   }
+
+  @Override
+  public String getName() {
+    return "SyntheticItemsPolicy";
+  }
 }

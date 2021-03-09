@@ -496,7 +496,7 @@ public class R8 {
           timing.begin("HorizontalClassMerger");
           HorizontalClassMerger merger = new HorizontalClassMerger(appViewWithLiveness);
           HorizontalClassMergerResult horizontalClassMergerResult =
-              merger.run(runtimeTypeCheckInfo);
+              merger.run(runtimeTypeCheckInfo, timing);
           if (horizontalClassMergerResult != null) {
             // Must rewrite AppInfoWithLiveness before pruning the merged classes, to ensure that
             // allocations sites, fields accesses, etc. are correctly transferred to the target

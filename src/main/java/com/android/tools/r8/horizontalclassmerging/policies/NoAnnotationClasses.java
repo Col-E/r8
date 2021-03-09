@@ -12,4 +12,9 @@ public class NoAnnotationClasses extends SingleClassPolicy {
   public boolean canMerge(DexProgramClass program) {
     return !program.isAnnotation();
   }
+
+  @Override
+  public String getName() {
+    return "NoAnnotationClasses";
+  }
 }

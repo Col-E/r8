@@ -29,4 +29,9 @@ public class PreventMergeIntoDifferentMainDexGroups
         ? mainDexInfo.getMergeKey(clazz, synthetics)
         : ineligibleForClassMerging();
   }
+
+  @Override
+  public String getName() {
+    return "PreventMergeIntoDifferentMainDexGroups";
+  }
 }

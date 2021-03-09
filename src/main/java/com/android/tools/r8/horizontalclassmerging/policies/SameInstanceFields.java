@@ -34,6 +34,11 @@ public class SameInstanceFields extends MultiClassSameReferencePolicy<Multiset<I
     return fields;
   }
 
+  @Override
+  public String getName() {
+    return "SameInstanceFields";
+  }
+
   public static class InstanceFieldInfo {
 
     private final FieldAccessFlags accessFlags;

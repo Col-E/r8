@@ -14,6 +14,8 @@ public abstract class Policy {
 
   public void clear() {}
 
+  public abstract String getName();
+
   public boolean shouldSkipPolicy() {
     return false;
   }

@@ -21,4 +21,9 @@ public class AllInstantiatedOrUninstantiated extends MultiClassSameReferencePoli
   public Boolean getMergeKey(DexProgramClass clazz) {
     return appView.appInfo().isInstantiatedDirectlyOrIndirectly(clazz);
   }
+
+  @Override
+  public String getName() {
+    return "AllInstantiatedOrUninstantiated";
+  }
 }

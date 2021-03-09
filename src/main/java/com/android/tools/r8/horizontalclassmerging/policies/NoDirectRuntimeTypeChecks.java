@@ -19,4 +19,9 @@ public class NoDirectRuntimeTypeChecks extends SingleClassPolicy {
   public boolean canMerge(DexProgramClass clazz) {
     return !runtimeTypeCheckInfo.isRuntimeCheckType(clazz);
   }
+
+  @Override
+  public String getName() {
+    return "NoDirectRuntimeTypeChecks";
+  }
 }

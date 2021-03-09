@@ -14,4 +14,9 @@ public class NoInnerClasses extends SingleClassPolicy {
     // TODO(b/179018501): allow merging classes with inner/outer classes.
     return program.getInnerClasses().isEmpty();
   }
+
+  @Override
+  public String getName() {
+    return "NoInnerClasses";
+  }
 }

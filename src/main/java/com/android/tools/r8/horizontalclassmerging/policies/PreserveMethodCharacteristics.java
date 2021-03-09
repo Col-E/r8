@@ -28,6 +28,11 @@ import java.util.Objects;
  */
 public class PreserveMethodCharacteristics extends MultiClassPolicy {
 
+  @Override
+  public String getName() {
+    return "PreserveMethodCharacteristics";
+  }
+
   static class MethodCharacteristics {
 
     private final MethodAccessFlags accessFlags;

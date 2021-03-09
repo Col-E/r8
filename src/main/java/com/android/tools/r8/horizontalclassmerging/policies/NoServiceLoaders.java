@@ -26,4 +26,9 @@ public class NoServiceLoaders extends SingleClassPolicy {
     return !appView.appServices().allServiceTypes().contains(program.getType())
         && !allServiceImplementations.contains(program.getType());
   }
+
+  @Override
+  public String getName() {
+    return "NoServiceLoaders";
+  }
 }

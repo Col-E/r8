@@ -49,4 +49,9 @@ public class NoKeepRules extends SingleClassPolicy {
   public boolean canMerge(DexProgramClass program) {
     return !dontMergeTypes.contains(program.getType());
   }
+
+  @Override
+  public String getName() {
+    return "NoKeepRules";
+  }
 }

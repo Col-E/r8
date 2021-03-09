@@ -14,4 +14,9 @@ public class NoNativeMethods extends SingleClassPolicy {
   public boolean canMerge(DexProgramClass program) {
     return !Iterables.any(program.methods(), DexEncodedMethod::isNative);
   }
+
+  @Override
+  public String getName() {
+    return "NoNativeMethods";
+  }
 }

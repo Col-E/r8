@@ -70,4 +70,9 @@ public class MinimizeFieldCasts extends MultiClassPolicy {
     }
     return fieldTypes;
   }
+
+  @Override
+  public String getName() {
+    return "MinimizeFieldCasts";
+  }
 }

@@ -25,6 +25,11 @@ public class CheckAbstractClasses extends MultiClassSameReferencePolicy<Abstract
   }
 
   @Override
+  public String getName() {
+    return "CheckAbstractClasses";
+  }
+
+  @Override
   public boolean shouldSkipPolicy() {
     // We can just make the target class non-abstract if one of the classes in the group
     // is non-abstract.

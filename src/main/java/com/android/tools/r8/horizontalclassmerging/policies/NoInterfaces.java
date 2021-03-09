@@ -13,4 +13,9 @@ public class NoInterfaces extends SingleClassPolicy {
   public boolean canMerge(DexProgramClass program) {
     return !program.isInterface();
   }
+
+  @Override
+  public String getName() {
+    return "NoInterfaces";
+  }
 }

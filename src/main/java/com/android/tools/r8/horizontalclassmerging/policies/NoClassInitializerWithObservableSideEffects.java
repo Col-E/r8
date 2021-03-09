@@ -28,4 +28,9 @@ public class NoClassInitializerWithObservableSideEffects extends SingleClassPoli
     return program.getKotlinInfo().isSyntheticClass()
         && program.getKotlinInfo().asSyntheticClass().isLambda();
   }
+
+  @Override
+  public String getName() {
+    return "NoClassInitializerWithObservableSideEffects";
+  }
 }

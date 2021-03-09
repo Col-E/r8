@@ -96,4 +96,9 @@ public class RespectPackageBoundaries extends MultiClassPolicy {
     groups.addAll(restrictedClasses.values());
     return groups;
   }
+
+  @Override
+  public String getName() {
+    return "RespectPackageBoundaries";
+  }
 }

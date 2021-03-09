@@ -41,4 +41,9 @@ public class NoClassAnnotationCollisions extends MultiClassPolicy {
     }
     return removeTrivialGroups(newGroups);
   }
+
+  @Override
+  public String getName() {
+    return "NoClassAnnotationCollisions";
+  }
 }

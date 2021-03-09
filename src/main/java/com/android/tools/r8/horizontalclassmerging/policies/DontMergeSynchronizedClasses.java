@@ -56,4 +56,9 @@ public class DontMergeSynchronizedClasses extends MultiClassPolicy {
 
     return synchronizedGroups;
   }
+
+  @Override
+  public String getName() {
+    return "DontMergeSynchronizedClasses";
+  }
 }

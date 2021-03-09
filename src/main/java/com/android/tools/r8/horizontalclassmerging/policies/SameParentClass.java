@@ -14,4 +14,9 @@ public class SameParentClass extends MultiClassSameReferencePolicy<DexType> {
   public DexType getMergeKey(DexProgramClass clazz) {
     return clazz.superType;
   }
+
+  @Override
+  public String getName() {
+    return "SameParentClass";
+  }
 }

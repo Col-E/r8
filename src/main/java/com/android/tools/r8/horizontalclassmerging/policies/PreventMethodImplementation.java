@@ -59,6 +59,11 @@ public class PreventMethodImplementation extends MultiClassPolicy {
   private final ReservedInterfaceSignaturesFor reservedInterfaceSignaturesFor =
       new ReservedInterfaceSignaturesFor();
 
+  @Override
+  public String getName() {
+    return "PreventMethodImplementation";
+  }
+
   private abstract static class SignaturesCache<C extends DexClass> {
     private final Map<DexClass, DexMethodSignatureSet> memoizedSignatures = new IdentityHashMap<>();
 

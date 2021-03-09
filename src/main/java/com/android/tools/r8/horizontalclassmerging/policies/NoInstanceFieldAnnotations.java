@@ -19,4 +19,9 @@ public class NoInstanceFieldAnnotations extends SingleClassPolicy {
     }
     return true;
   }
+
+  @Override
+  public String getName() {
+    return "NoInstanceFieldAnnotations";
+  }
 }

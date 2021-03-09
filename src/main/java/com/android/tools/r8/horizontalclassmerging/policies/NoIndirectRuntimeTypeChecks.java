@@ -65,4 +65,9 @@ public class NoIndirectRuntimeTypeChecks extends MultiClassSameReferencePolicy<D
     }
     return false;
   }
+
+  @Override
+  public String getName() {
+    return "NoIndirectRuntimeTypeChecks";
+  }
 }

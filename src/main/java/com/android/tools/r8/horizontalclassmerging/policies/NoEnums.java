@@ -27,6 +27,11 @@ public class NoEnums extends SingleClassPolicy {
   }
 
   @Override
+  public String getName() {
+    return "NoEnums";
+  }
+
+  @Override
   public boolean canMerge(DexProgramClass program) {
     if (program.isEnum()) {
       return false;

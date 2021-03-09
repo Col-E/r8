@@ -24,4 +24,9 @@ public class SameFeatureSplit extends MultiClassSameReferencePolicy<FeatureSplit
         .getClassToFeatureSplitMap()
         .getFeatureSplit(clazz, appView.getSyntheticItems());
   }
+
+  @Override
+  public String getName() {
+    return "SameFeatureSplit";
+  }
 }

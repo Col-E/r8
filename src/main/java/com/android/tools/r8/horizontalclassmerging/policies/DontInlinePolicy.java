@@ -12,16 +12,14 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.MainDexInfo;
 import com.google.common.collect.Iterables;
 
 public class DontInlinePolicy extends SingleClassPolicy {
+
   private final AppView<AppInfoWithLiveness> appView;
-  private final MainDexInfo mainDexInfo;
 
   public DontInlinePolicy(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.mainDexInfo = appView.appInfo().getMainDexInfo();
   }
 
   private boolean disallowInlining(ProgramMethod method) {
@@ -52,5 +50,10 @@ public class DontInlinePolicy extends SingleClassPolicy {
     return !Iterables.any(
         program.directProgramMethods(),
         method -> method.getDefinition().isInstanceInitializer() && disallowInlining(method));
+  }
+
+  @Override
+  public String getName() {
+    return "DontInlinePolicy";
   }
 }

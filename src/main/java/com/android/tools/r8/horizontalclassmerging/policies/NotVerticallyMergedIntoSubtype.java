@@ -23,4 +23,9 @@ public class NotVerticallyMergedIntoSubtype extends SingleClassPolicy {
     }
     return !appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(program.type);
   }
+
+  @Override
+  public String getName() {
+    return "NotVerticallyMergedIntoSubtype";
+  }
 }

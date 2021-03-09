@@ -29,4 +29,9 @@ public class NoKotlinMetadata extends SingleClassPolicy {
         .allMatch(member -> member.getKotlinMemberInfo().isNoKotlinInformation());
     return true;
   }
+
+  @Override
+  public String getName() {
+    return "NoKotlinMetadata";
+  }
 }

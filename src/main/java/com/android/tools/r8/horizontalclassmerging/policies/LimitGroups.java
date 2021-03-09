@@ -52,4 +52,9 @@ public class LimitGroups extends MultiClassPolicy {
     newGroups.add(newGroup);
     return newGroup;
   }
+
+  @Override
+  public String getName() {
+    return "LimitGroups";
+  }
 }

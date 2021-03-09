@@ -30,4 +30,9 @@ public class NotMatchedByNoHorizontalClassMerging extends SingleClassPolicy {
     return !deadEnumLiteMaps.contains(program.getType())
         && !appView.appInfo().isNoHorizontalClassMergingOfType(program.getType());
   }
+
+  @Override
+  public String getName() {
+    return "NotMatchedByNoHorizontalClassMerging";
+  }
 }
