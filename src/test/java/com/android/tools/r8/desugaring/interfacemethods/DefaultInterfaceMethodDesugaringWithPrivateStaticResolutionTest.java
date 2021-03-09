@@ -1,3 +1,6 @@
+// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugaring.interfacemethods;
 
 import static org.junit.Assume.assumeTrue;
@@ -11,7 +14,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class DefaultInterfaceMethodDesugaringWithStaticResolutionTest extends TestBase {
+public class DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionTest extends TestBase {
 
   private static final String EXPECTED = StringUtils.lines("I.m()");
 
@@ -22,7 +25,8 @@ public class DefaultInterfaceMethodDesugaringWithStaticResolutionTest extends Te
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public DefaultInterfaceMethodDesugaringWithStaticResolutionTest(TestParameters parameters) {
+  public DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionTest(
+      TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -39,7 +43,7 @@ public class DefaultInterfaceMethodDesugaringWithStaticResolutionTest extends Te
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
-        .addInnerClasses(DefaultInterfaceMethodDesugaringWithStaticResolutionTest.class)
+        .addInnerClasses(DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionTest.class)
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
@@ -49,7 +53,7 @@ public class DefaultInterfaceMethodDesugaringWithStaticResolutionTest extends Te
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(DefaultInterfaceMethodDesugaringWithStaticResolutionTest.class)
+        .addInnerClasses(DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionTest.class)
         .addKeepAllClassesRule()
         .setMinApi(parameters.getApiLevel())
         .compile()

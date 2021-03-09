@@ -22,7 +22,7 @@ import org.junit.runners.Parameterized;
 import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
-public class DefaultInterfaceMethodDesugaringWithStaticResolutionInvokeVirtualTest
+public class DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionInvokeVirtualTest
     extends TestBase {
 
   private static final String EXPECTED = StringUtils.lines("I.m()");
@@ -36,7 +36,7 @@ public class DefaultInterfaceMethodDesugaringWithStaticResolutionInvokeVirtualTe
         getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public DefaultInterfaceMethodDesugaringWithStaticResolutionInvokeVirtualTest(
+  public DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionInvokeVirtualTest(
       TestParameters parameters, boolean invalidInvoke) {
     this.parameters = parameters;
     this.invalidInvoke = invalidInvoke;
