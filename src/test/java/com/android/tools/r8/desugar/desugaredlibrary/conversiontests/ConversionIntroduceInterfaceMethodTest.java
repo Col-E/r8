@@ -121,7 +121,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
         IterableUtils.size(
             myCollection
                 .getDexProgramClass()
-                .virtualMethods(m -> m.method.name.toString().equals("forEach"))));
+                .virtualMethods(m -> m.getReference().name.toString().equals("forEach"))));
   }
 
   private void assertWrapperMethodsPresent(CodeInspector inspector) {

@@ -345,7 +345,7 @@ public class ClassStaticizerTest extends TestBase {
     assertThat(clazz, isPresent());
     return Streams.stream(clazz.getDexProgramClass().methods())
         .filter(method -> !method.isStatic())
-        .map(method -> method.method.toSourceString())
+        .map(method -> method.getReference().toSourceString())
         .sorted()
         .collect(Collectors.toList());
   }

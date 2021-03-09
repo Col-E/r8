@@ -252,7 +252,7 @@ public class RewrittenPrototypeDescription {
       // Currently not allowed to remove the receiver of an instance method. This would involve
       // changing invoke-direct/invoke-virtual into invoke-static.
       assert encodedMethod.isStatic() || !getArgumentInfo(0).isRemovedArgumentInfo();
-      DexType[] params = encodedMethod.method.proto.parameters.values;
+      DexType[] params = encodedMethod.getReference().proto.parameters.values;
       if (isEmpty()) {
         return params;
       }
@@ -433,12 +433,12 @@ public class RewrittenPrototypeDescription {
 
   public DexProto rewriteProto(DexEncodedMethod encodedMethod, DexItemFactory dexItemFactory) {
     if (isEmpty()) {
-      return encodedMethod.method.proto;
+      return encodedMethod.getReference().proto;
     }
     DexType newReturnType =
         rewrittenReturnInfo != null
             ? rewrittenReturnInfo.newType
-            : encodedMethod.method.proto.returnType;
+            : encodedMethod.getReference().proto.returnType;
     DexType[] newParameters = argumentInfoCollection.rewriteParameters(encodedMethod);
     return dexItemFactory.createProto(newReturnType, newParameters);
   }

@@ -65,10 +65,10 @@ public class CollisionWithLibraryMethodsTest extends TestBase {
 
     if (minification) {
       assertEquals("a", methodSubject.getFinalName());
-      assertEquals(0, methodSubject.getMethod().method.proto.parameters.size());
+      assertEquals(0, methodSubject.getMethod().getReference().proto.parameters.size());
     } else {
       assertEquals("toString1", methodSubject.getFinalName());
-      assertEquals(0, methodSubject.getMethod().method.proto.parameters.size());
+      assertEquals(0, methodSubject.getMethod().getReference().proto.parameters.size());
     }
   }
 

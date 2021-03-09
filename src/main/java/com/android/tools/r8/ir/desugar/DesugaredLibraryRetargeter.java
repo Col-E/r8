@@ -264,7 +264,7 @@ public class DesugaredLibraryRetargeter {
     if (!appView.options().encodeChecksums) {
       return DexProgramClass::invalidChecksumRequest;
     }
-    return c -> method.method.hashCode();
+    return c -> method.getReference().hashCode();
   }
 
   // Used by the ListOfBackportedMethods utility.
@@ -331,7 +331,7 @@ public class DesugaredLibraryRetargeter {
       }
       DexEncodedMethod singleTarget = resolutionResult.getSingleTarget();
       assert singleTarget != null;
-      retarget = getRetargetLibraryMember(singleTarget.method);
+      retarget = getRetargetLibraryMember(singleTarget.getReference());
     }
     return retarget;
   }
@@ -622,7 +622,8 @@ public class DesugaredLibraryRetargeter {
         // Dispatch holder.
         DexType holderType = dispatchHolderTypeFor(emulatedDispatchMethod);
         DexEncodedMethod dispatchMethod =
-            generateHolderDispatchMethod(emulatedDispatchMethod, holderType, itfMethod.method);
+            generateHolderDispatchMethod(
+                emulatedDispatchMethod, holderType, itfMethod.getReference());
         synthesizeClassWithUniqueMethod(
             builder,
             holderAccessFlags,

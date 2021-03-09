@@ -76,7 +76,7 @@ public class EnumUnboxingClassStaticizerTest extends EnumUnboxingTestBase {
     MethodSubject method =
         codeInspector.clazz(CompanionHost.class).uniqueMethodWithName(renamedMethodName);
     assertThat(method, isPresent());
-    assertEquals("int", method.getMethod().method.proto.parameters.toString());
+    assertEquals("int", method.getMethod().getReference().proto.parameters.toString());
   }
 
   static class TestClass {

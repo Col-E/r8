@@ -341,7 +341,7 @@ public class EnumUnboxer {
           eligibleEnums.add(type);
         }
       } else if (use.isReturn()) {
-        DexType returnType = code.method().method.proto.returnType;
+        DexType returnType = code.method().getReference().proto.returnType;
         if (enumUnboxingCandidatesInfo.isCandidate(returnType)) {
           eligibleEnums.add(returnType);
         }
@@ -500,7 +500,7 @@ public class EnumUnboxer {
     for (DexEncodedField staticField : enumClass.staticFields()) {
       if (factory.enumMembers.isEnumField(staticField, enumClass.type)) {
         ObjectState enumState =
-            enumStaticFieldValues.getObjectStateForPossiblyPinnedField(staticField.field);
+            enumStaticFieldValues.getObjectStateForPossiblyPinnedField(staticField.getReference());
         if (enumState == null) {
           if (staticField.getOptimizationInfo().isDead()) {
             // We don't care about unused field data.
@@ -514,11 +514,11 @@ public class EnumUnboxer {
           return null;
         }
         int ordinal = optionalOrdinal.getAsInt();
-        unboxedValues.put(staticField.field, ordinalToUnboxedInt(ordinal));
+        unboxedValues.put(staticField.getReference(), ordinalToUnboxedInt(ordinal));
         ordinalToObjectState.put(ordinal, enumState);
       } else if (factory.enumMembers.isValuesFieldCandidate(staticField, enumClass.type)) {
         ObjectState valuesState =
-            enumStaticFieldValues.getObjectStateForPossiblyPinnedField(staticField.field);
+            enumStaticFieldValues.getObjectStateForPossiblyPinnedField(staticField.getReference());
         if (valuesState == null) {
           if (staticField.getOptimizationInfo().isDead()) {
             // We don't care about unused field data.
@@ -533,7 +533,7 @@ public class EnumUnboxer {
         assert valuesContents == null
             || valuesContents.equals(valuesState.asEnumValuesObjectState());
         valuesContents = valuesState.asEnumValuesObjectState();
-        valuesField.add(staticField.field);
+        valuesField.add(staticField.getReference());
       }
     }
 
@@ -1012,7 +1012,7 @@ public class EnumUnboxer {
         return Reason.ELIGIBLE;
       }
       // The put value has to be of the field type.
-      if (field.field.type.toBaseType(factory) != enumClass.type) {
+      if (field.getReference().type.toBaseType(factory) != enumClass.type) {
         return Reason.TYPE_MISMATCH_FIELD_PUT;
       }
       return Reason.ELIGIBLE;
@@ -1095,7 +1095,7 @@ public class EnumUnboxer {
 
     // Return is used for valueOf methods.
     if (instruction.isReturn()) {
-      DexType returnType = code.method().method.proto.returnType;
+      DexType returnType = code.method().getReference().proto.returnType;
       if (returnType != enumClass.type && returnType.toBaseType(factory) != enumClass.type) {
         return Reason.IMPLICIT_UP_CAST_IN_RETURN;
       }

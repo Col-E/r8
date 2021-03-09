@@ -731,7 +731,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       }
       assert clazz.isInterface();
       for (DexEncodedMethod method : clazz.virtualMethods()) {
-        if (method.method.name == callSite.methodName && method.accessFlags.isAbstract()) {
+        if (method.getReference().name == callSite.methodName && method.accessFlags.isAbstract()) {
           result.add(method);
         }
       }
@@ -810,7 +810,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean isFieldRead(DexEncodedField encodedField) {
     assert checkIfObsolete();
-    DexField field = encodedField.field;
+    DexField field = encodedField.getReference();
     FieldAccessInfo info = getFieldAccessInfoCollection().get(field);
     if (info != null && info.isRead()) {
       return true;
@@ -824,12 +824,13 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean isFieldWritten(DexEncodedField encodedField) {
     assert checkIfObsolete();
-    return isFieldWrittenByFieldPutInstruction(encodedField) || isPinned(encodedField.field);
+    return isFieldWrittenByFieldPutInstruction(encodedField)
+        || isPinned(encodedField.getReference());
   }
 
   public boolean isFieldWrittenByFieldPutInstruction(DexEncodedField encodedField) {
     assert checkIfObsolete();
-    DexField field = encodedField.field;
+    DexField field = encodedField.getReference();
     FieldAccessInfo info = getFieldAccessInfoCollection().get(field);
     if (info != null && info.isWritten()) {
       // The field is written directly by the program itself.
@@ -842,7 +843,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public boolean isFieldOnlyWrittenInMethod(DexEncodedField field, DexEncodedMethod method) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
-    if (isPinned(field.field)) {
+    if (isPinned(field.getReference())) {
       return false;
     }
     return isFieldOnlyWrittenInMethodIgnoringPinning(field, method);
@@ -852,7 +853,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       DexEncodedField field, DexEncodedMethod method) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
-    FieldAccessInfo fieldAccessInfo = getFieldAccessInfoCollection().get(field.field);
+    FieldAccessInfo fieldAccessInfo = getFieldAccessInfoCollection().get(field.getReference());
     return fieldAccessInfo != null
         && fieldAccessInfo.isWritten()
         && !fieldAccessInfo.isWrittenOutside(method);
@@ -861,10 +862,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public boolean isInstanceFieldWrittenOnlyInInstanceInitializers(DexEncodedField field) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
-    if (isPinned(field.field)) {
+    if (isPinned(field.getReference())) {
       return false;
     }
-    FieldAccessInfo fieldAccessInfo = getFieldAccessInfoCollection().get(field.field);
+    FieldAccessInfo fieldAccessInfo = getFieldAccessInfoCollection().get(field.getReference());
     if (fieldAccessInfo == null || !fieldAccessInfo.isWritten()) {
       return false;
     }
@@ -999,7 +1000,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     DexProgramClass clazz = asProgramClassOrNull(definitionFor(type));
     if (clazz != null) {
       for (DexEncodedMethod method : clazz.directMethods()) {
-        if (method.isInstanceInitializer() && isPinned(method.method)) {
+        if (method.isInstanceInitializer() && isPinned(method.getReference())) {
           return true;
         }
       }
@@ -1271,7 +1272,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       if (refinedReceiverClass.isProgramClass()) {
         DexClassAndMethod clazzAndMethod =
             resolution.lookupVirtualDispatchTarget(refinedReceiverClass.asProgramClass(), this);
-        if (clazzAndMethod == null || isPinned(clazzAndMethod.getDefinition().method)) {
+        if (clazzAndMethod == null || isPinned(clazzAndMethod.getDefinition().getReference())) {
           // TODO(b/150640456): We should maybe only consider program methods.
           return DexEncodedMethod.SENTINEL;
         }
@@ -1283,7 +1284,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         // implementation, but we use this for library modelling.
         DexEncodedMethod resolvedMethod = resolution.getResolvedMethod();
         DexEncodedMethod targetOnReceiver =
-            refinedReceiverClass.lookupVirtualMethod(resolvedMethod.method);
+            refinedReceiverClass.lookupVirtualMethod(resolvedMethod.getReference());
         if (targetOnReceiver != null && isOverriding(resolvedMethod, targetOnReceiver)) {
           return targetOnReceiver;
         }

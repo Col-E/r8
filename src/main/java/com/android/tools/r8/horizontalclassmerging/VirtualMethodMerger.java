@@ -112,7 +112,7 @@ public class VirtualMethodMerger {
     flags.setPrivate();
     classMethodsBuilder.addDirectMethod(encodedMethod);
 
-    return encodedMethod.method;
+    return encodedMethod.getReference();
   }
 
   private MethodAccessFlags getAccessFlags() {

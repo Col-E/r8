@@ -43,7 +43,7 @@ public class FoundFieldSubject extends FieldSubject {
   }
 
   public TypeSubject type() {
-    return new TypeSubject(codeInspector, dexField.field.type);
+    return new TypeSubject(codeInspector, dexField.getReference().type);
   }
 
   @Override
@@ -79,7 +79,7 @@ public class FoundFieldSubject extends FieldSubject {
 
   @Override
   public FieldSignature getFinalSignature() {
-    return FieldSignature.fromDexField(dexField.field);
+    return FieldSignature.fromDexField(dexField.getReference());
   }
 
   @Override
@@ -123,7 +123,9 @@ public class FoundFieldSubject extends FieldSubject {
 
   @Override
   public String getJvmFieldSignatureAsString() {
-    return dexField.field.name.toString() + ":" + dexField.field.type.toDescriptorString();
+    return dexField.getReference().name.toString()
+        + ":"
+        + dexField.getReference().type.toDescriptorString();
   }
 
   @Override

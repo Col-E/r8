@@ -870,7 +870,7 @@ public class OutlineTest extends SmaliTestBase {
     List<DexType> r = new ArrayList<>();
     for (DexEncodedMethod directMethod : outlineMethods) {
       if (directMethod.getCode().asDexCode().instructions[0] instanceof InvokeVirtual) {
-        r.add(directMethod.method.proto.returnType);
+        r.add(directMethod.getReference().proto.returnType);
       }
     }
     assertEquals(2, r.size());

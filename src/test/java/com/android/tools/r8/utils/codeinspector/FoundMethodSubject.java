@@ -155,7 +155,7 @@ public class FoundMethodSubject extends MethodSubject {
 
   @Override
   public MethodSignature getFinalSignature() {
-    return MethodSignature.fromDexMethod(dexMethod.method);
+    return MethodSignature.fromDexMethod(dexMethod.getReference());
   }
 
   @Override
@@ -273,7 +273,7 @@ public class FoundMethodSubject extends MethodSubject {
     }
     Object2IntMap<InstructionSubject> lineNumberTable = new Object2IntOpenHashMap<>();
     DexDebugPositionState state =
-        new DexDebugPositionState(debugInfo.startLine, getMethod().method);
+        new DexDebugPositionState(debugInfo.startLine, getMethod().getReference());
     Iterator<DexDebugEvent> iterator = Arrays.asList(debugInfo.events).iterator();
     for (Instruction insn : code.instructions) {
       int offset = insn.getOffset();
@@ -337,7 +337,7 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   public MethodReference asMethodReference() {
-    DexMethod method = dexMethod.method;
+    DexMethod method = dexMethod.getReference();
     return Reference.method(
         Reference.classFromDescriptor(method.holder.toDescriptorString()),
         method.name.toString(),
@@ -349,15 +349,15 @@ public class FoundMethodSubject extends MethodSubject {
 
   @Override
   public String getJvmMethodSignatureAsString() {
-    return dexMethod.method.name.toString()
+    return dexMethod.getName().toString()
         + "("
         + StringUtils.join(
             "",
-            Arrays.stream(dexMethod.method.proto.parameters.values)
+            Arrays.stream(dexMethod.getParameters().values)
                 .map(DexType::toDescriptorString)
                 .collect(Collectors.toList()))
         + ")"
-        + dexMethod.method.proto.returnType.toDescriptorString();
+        + dexMethod.returnType().toDescriptorString();
   }
 
   @Override

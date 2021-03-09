@@ -195,7 +195,7 @@ abstract class CallGraphBuilderBase {
 
     private void processInvokeWithDynamicDispatch(
         Invoke.Type type, DexEncodedMethod encodedTarget, ProgramMethod context) {
-      DexMethod target = encodedTarget.method;
+      DexMethod target = encodedTarget.getReference();
       DexClass clazz = appView.definitionFor(target.holder);
       if (clazz == null) {
         assert false : "Unable to lookup holder of `" + target.toSourceString() + "`";
@@ -258,7 +258,7 @@ abstract class CallGraphBuilderBase {
       }
 
       DexEncodedField encodedField = appView.appInfo().resolveField(field).getResolvedField();
-      if (encodedField == null || appView.appInfo().isPinned(encodedField.field)) {
+      if (encodedField == null || appView.appInfo().isPinned(encodedField.getReference())) {
         return;
       }
 
@@ -273,7 +273,7 @@ abstract class CallGraphBuilderBase {
         addClassInitializerTarget(clazz);
       }
 
-      FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(encodedField.field);
+      FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(encodedField.getReference());
       if (fieldAccessInfo != null && fieldAccessInfo.hasKnownWriteContexts()) {
         if (fieldAccessInfo.getNumberOfWriteContexts() == 1) {
           fieldAccessInfo.forEachWriteContext(this::addFieldReadEdge);

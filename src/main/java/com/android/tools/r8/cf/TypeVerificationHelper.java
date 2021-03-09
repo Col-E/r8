@@ -242,7 +242,8 @@ public class TypeVerificationHelper {
                   : createInitializedType(code.method().getHolderType());
         } else {
           argumentType =
-              createInitializedType(code.method().method.proto.parameters.values[argumentIndex]);
+              createInitializedType(
+                  code.method().getReference().proto.parameters.values[argumentIndex]);
         }
         Value outValue = instruction.outValue();
         if (outValue.outType().isObject()) {

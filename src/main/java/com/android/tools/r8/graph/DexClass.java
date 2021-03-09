@@ -257,7 +257,9 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     if (options.canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug() && !isAbstract()) {
       for (DexEncodedMethod method : methods) {
         assert !method.isAbstract()
-            : "Non-abstract method on abstract class: `" + method.method.toSourceString() + "`";
+            : "Non-abstract method on abstract class: `"
+                + method.getReference().toSourceString()
+                + "`";
       }
     }
     return true;
@@ -363,7 +365,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
 
   public boolean definesStaticField(DexField field) {
     for (DexEncodedField encodedField : staticFields()) {
-      if (encodedField.field == field) {
+      if (encodedField.getReference() == field) {
         return true;
       }
     }
@@ -427,7 +429,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
   private boolean verifyCorrectnessOfFieldHolder(DexEncodedField field) {
     assert field.getHolderType() == type
         : "Expected field `"
-            + field.field.toSourceString()
+            + field.getReference().toSourceString()
             + "` to have holder `"
             + type.toSourceString()
             + "`";
@@ -444,8 +446,8 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
   private boolean verifyNoDuplicateFields() {
     Set<DexField> unique = Sets.newIdentityHashSet();
     for (DexEncodedField field : fields()) {
-      boolean changed = unique.add(field.field);
-      assert changed : "Duplicate field `" + field.field.toSourceString() + "`";
+      boolean changed = unique.add(field.getReference());
+      assert changed : "Duplicate field `" + field.getReference().toSourceString() + "`";
     }
     return true;
   }
@@ -463,11 +465,11 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
   public DexField lookupUniqueInstanceFieldWithName(DexString name) {
     DexField field = null;
     for (DexEncodedField encodedField : instanceFields()) {
-      if (encodedField.field.name == name) {
+      if (encodedField.getReference().name == name) {
         if (field != null) {
           return null;
         }
-        field = encodedField.field;
+        field = encodedField.getReference();
       }
     }
     return field;
@@ -544,7 +546,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     DexEncodedMethod matchingName = null;
     DexEncodedMethod signaturePolymorphicMethod = null;
     for (DexEncodedMethod method : virtualMethods()) {
-      if (method.method.name == methodName) {
+      if (method.getReference().name == methodName) {
         if (matchingName != null) {
           // The jvm spec, section 5.4.3.3 details that there must be exactly one method with the
           // given name only.
@@ -564,8 +566,8 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
         || method.getHolderType() == factory.varHandleType;
     return method.accessFlags.isVarargs()
         && method.accessFlags.isNative()
-        && method.method.proto.parameters.size() == 1
-        && method.method.proto.parameters.values[0] != factory.objectArrayType;
+        && method.getReference().proto.parameters.size() == 1
+        && method.getReference().proto.parameters.values[0] != factory.objectArrayType;
   }
 
   private <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> D lookupTarget(
@@ -704,7 +706,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
   public DexEncodedMethod getInitializer(DexType[] parameters) {
     for (DexEncodedMethod method : directMethods()) {
       if (method.isInstanceInitializer()
-          && Arrays.equals(method.method.proto.parameters.values, parameters)) {
+          && Arrays.equals(method.getReference().proto.parameters.values, parameters)) {
         return method;
       }
     }

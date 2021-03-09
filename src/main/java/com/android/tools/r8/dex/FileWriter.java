@@ -275,25 +275,25 @@ public class FileWriter {
   //     static methods, as well as public non-abstract (default)
   //     and private instance methods.
   private void checkInterfaceMethod(DexEncodedMethod method) {
-    if (application.dexItemFactory.isClassConstructor(method.method)) {
+    if (application.dexItemFactory.isClassConstructor(method.getReference())) {
       return; // Class constructor is always OK.
     }
     if (method.accessFlags.isStatic()) {
       if (!options.canUseDefaultAndStaticInterfaceMethods()
           && !options.testing.allowStaticInterfaceMethodsForPreNApiLevel) {
         throw options.reporter.fatalError(
-            new StaticInterfaceMethodDiagnostic(new MethodPosition(method.method)));
+            new StaticInterfaceMethodDiagnostic(new MethodPosition(method.getReference())));
       }
 
     } else {
       if (method.isInstanceInitializer()) {
         throw new CompilationError(
-            "Interface must not have constructors: " + method.method.toSourceString());
+            "Interface must not have constructors: " + method.getReference().toSourceString());
       }
       if (!method.accessFlags.isAbstract() && !method.accessFlags.isPrivate() &&
           !options.canUseDefaultAndStaticInterfaceMethods()) {
         throw options.reporter.fatalError(
-            new DefaultInterfaceMethodDiagnostic(new MethodPosition(method.method)));
+            new DefaultInterfaceMethodDiagnostic(new MethodPosition(method.getReference())));
       }
     }
 
@@ -302,12 +302,14 @@ public class FileWriter {
         return;
       }
       throw options.reporter.fatalError(
-          new PrivateInterfaceMethodDiagnostic(new MethodPosition(method.method)));
+          new PrivateInterfaceMethodDiagnostic(new MethodPosition(method.getReference())));
     }
 
     if (!method.accessFlags.isPublic()) {
-      throw new CompilationError("Interface methods must not be "
-          + "protected or package private: " + method.method.toSourceString());
+      throw new CompilationError(
+          "Interface methods must not be "
+              + "protected or package private: "
+              + method.getReference().toSourceString());
     }
   }
 
@@ -636,32 +638,36 @@ public class FileWriter {
 
   private void writeEncodedFields(List<DexEncodedField> unsortedFields) {
     List<DexEncodedField> fields = new ArrayList<>(unsortedFields);
-    fields.sort((a, b) -> a.field.acceptCompareTo(b.field, mapping.getCompareToVisitor()));
+    fields.sort(
+        (a, b) ->
+            a.getReference().acceptCompareTo(b.getReference(), mapping.getCompareToVisitor()));
     int currentOffset = 0;
     for (DexEncodedField field : fields) {
       assert field.validateDexValue(application.dexItemFactory);
-      int nextOffset = mapping.getOffsetFor(field.field);
+      int nextOffset = mapping.getOffsetFor(field.getReference());
       assert nextOffset - currentOffset >= 0;
       dest.putUleb128(nextOffset - currentOffset);
       currentOffset = nextOffset;
       dest.putUleb128(field.accessFlags.getAsDexAccessFlags());
-      desugaredLibraryCodeToKeep.recordField(field.field);
+      desugaredLibraryCodeToKeep.recordField(field.getReference());
     }
   }
 
   private void writeEncodedMethods(
       Iterable<DexEncodedMethod> unsortedMethods, boolean isSharedSynthetic) {
     List<DexEncodedMethod> methods = IterableUtils.toNewArrayList(unsortedMethods);
-    methods.sort((a, b) -> a.method.acceptCompareTo(b.method, mapping.getCompareToVisitor()));
+    methods.sort(
+        (a, b) ->
+            a.getReference().acceptCompareTo(b.getReference(), mapping.getCompareToVisitor()));
     int currentOffset = 0;
     for (DexEncodedMethod method : methods) {
-      int nextOffset = mapping.getOffsetFor(method.method);
+      int nextOffset = mapping.getOffsetFor(method.getReference());
       assert nextOffset - currentOffset >= 0;
       dest.putUleb128(nextOffset - currentOffset);
       currentOffset = nextOffset;
       dest.putUleb128(method.accessFlags.getAsDexAccessFlags());
       DexCode code = codeMapping.getCode(method);
-      desugaredLibraryCodeToKeep.recordMethod(method.method);
+      desugaredLibraryCodeToKeep.recordMethod(method.getReference());
       if (code == null) {
         assert method.shouldNotHaveCode();
         dest.putUleb128(0);

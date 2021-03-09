@@ -136,7 +136,7 @@ public class GraphReporter {
     }
     KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
     EdgeKind edgeKind = reportPrecondition(ruleNode);
-    return reportEdge(ruleNode, getMethodGraphNode(method.method), edgeKind);
+    return reportEdge(ruleNode, getMethodGraphNode(method.getReference()), edgeKind);
   }
 
   KeepReasonWitness reportKeepMethod(
@@ -157,7 +157,7 @@ public class GraphReporter {
     }
     KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
     EdgeKind edgeKind = reportPrecondition(ruleNode);
-    return reportEdge(ruleNode, getFieldGraphNode(field.field), edgeKind);
+    return reportEdge(ruleNode, getFieldGraphNode(field.getReference()), edgeKind);
   }
 
   KeepReasonWitness reportKeepField(
@@ -259,10 +259,11 @@ public class GraphReporter {
 
   public KeepReasonWitness reportReachableMethodAsLive(
       DexMethod overriddenMethod, ProgramMethod derivedMethod) {
-    if (keptGraphConsumer != null && overriddenMethod != derivedMethod.getDefinition().method) {
+    if (keptGraphConsumer != null
+        && overriddenMethod != derivedMethod.getDefinition().getReference()) {
       return reportEdge(
           getMethodGraphNode(overriddenMethod),
-          getMethodGraphNode(derivedMethod.getDefinition().method),
+          getMethodGraphNode(derivedMethod.getDefinition().getReference()),
           EdgeKind.OverridingMethod);
     }
     return KeepReasonWitness.INSTANCE;
@@ -276,7 +277,7 @@ public class GraphReporter {
     if (keptGraphConsumer != null && instantiation.isClass()) {
       return reportEdge(
           getClassGraphNode(instantiation.asClass().type),
-          getMethodGraphNode(derivedMethod.getDefinition().method),
+          getMethodGraphNode(derivedMethod.getDefinition().getReference()),
           EdgeKind.IsLibraryMethod);
     }
     return KeepReasonWitness.INSTANCE;
@@ -299,8 +300,8 @@ public class GraphReporter {
       return KeepReasonWitness.INSTANCE;
     }
     return reportEdge(
-        getMethodGraphNode(definition.method),
-        getMethodGraphNode(implementation.method),
+        getMethodGraphNode(definition.getReference()),
+        getMethodGraphNode(implementation.getReference()),
         EdgeKind.CompanionMethod);
   }
 
@@ -375,14 +376,14 @@ public class GraphReporter {
       // TODO(b/120959039): This should be dead code once no library classes are ever enqueued.
       return KeepReasonWitness.INSTANCE;
     }
-    return registerEdge(getMethodGraphNode(method.method), reason);
+    return registerEdge(getMethodGraphNode(method.getReference()), reason);
   }
 
   public KeepReasonWitness registerField(DexEncodedField field, KeepReason reason) {
     if (skipReporting(reason)) {
       return KeepReasonWitness.INSTANCE;
     }
-    return registerEdge(getFieldGraphNode(field.field), reason);
+    return registerEdge(getFieldGraphNode(field.getReference()), reason);
   }
 
   private KeepReasonWitness registerEdge(GraphNode target, KeepReason reason) {

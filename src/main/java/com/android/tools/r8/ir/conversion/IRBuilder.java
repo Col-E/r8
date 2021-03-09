@@ -542,7 +542,7 @@ public class IRBuilder {
     }
 
     int originalNumberOfArguments =
-        method.method.proto.parameters.values.length
+        method.getReference().proto.parameters.values.length
             + argumentsInfo.numberOfRemovedArguments()
             + (method.isStatic() ? 0 : 1)
             - prototypeChanges.numberOfExtraParameters();
@@ -562,14 +562,14 @@ public class IRBuilder {
         DexType argType;
         if (argumentInfo.isRewrittenTypeInfo()) {
           RewrittenTypeInfo argumentRewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
-          assert method.method.proto.getParameter(usedArgumentIndex)
+          assert method.getReference().proto.getParameter(usedArgumentIndex)
               == argumentRewrittenTypeInfo.getNewType();
           // The old type is used to prevent that a changed value from reference to primitive
           // type breaks IR building. Rewriting from the old to the new type will be done in the
           // IRConverter (typically through the lensCodeRewriter).
           argType = argumentRewrittenTypeInfo.getOldType();
         } else {
-          argType = method.method.proto.getParameter(usedArgumentIndex);
+          argType = method.getReference().proto.getParameter(usedArgumentIndex);
         }
         usedArgumentIndex++;
         writeCallback.accept(register, argType);
@@ -585,7 +585,7 @@ public class IRBuilder {
     }
 
     for (ExtraParameter extraParameter : prototypeChanges.getExtraParameters()) {
-      DexType argType = method.method.proto.getParameter(usedArgumentIndex);
+      DexType argType = method.getReference().proto.getParameter(usedArgumentIndex);
       TypeElement type = extraParameter.getTypeElement(appView, argType);
       register += type.requiredRegisters();
       usedArgumentIndex++;

@@ -13,10 +13,10 @@ public class ArgumentRemovalUtils {
   // Returns true if this method is pinned from the perspective of optimizations that attempt to
   // remove method arguments.
   public static boolean isPinned(DexEncodedMethod method, AppView<AppInfoWithLiveness> appView) {
-    return appView.appInfo().isPinned(method.method)
-        || appView.appInfo().isBootstrapMethod(method.method)
-        || appView.appInfo().isFailedResolutionTarget(method.method)
-        || appView.appInfo().isMethodTargetedByInvokeDynamic(method.method)
+    return appView.appInfo().isPinned(method.getReference())
+        || appView.appInfo().isBootstrapMethod(method.getReference())
+        || appView.appInfo().isFailedResolutionTarget(method.getReference())
+        || appView.appInfo().isMethodTargetedByInvokeDynamic(method.getReference())
         || method.accessFlags.isNative();
   }
 }

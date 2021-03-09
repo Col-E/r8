@@ -140,7 +140,7 @@ public class BridgeHoisting {
       for (DexEncodedMethod method : subclass.virtualMethods()) {
         BridgeInfo bridgeInfo = method.getOptimizationInfo().getBridgeInfo();
         if (bridgeInfo != null) {
-          candidates.add(equivalence.wrap(method.method));
+          candidates.add(equivalence.wrap(method.getReference()));
         }
       }
     }

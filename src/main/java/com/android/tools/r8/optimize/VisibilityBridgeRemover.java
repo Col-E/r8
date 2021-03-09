@@ -87,7 +87,10 @@ public class VisibilityBridgeRemover {
         if (targetMethod != null && targetMethod.accessFlags.isPublic()) {
           if (Log.ENABLED) {
             Log.info(
-                getClass(), "Removing visibility forwarding %s -> %s", method, targetMethod.method);
+                getClass(),
+                "Removing visibility forwarding %s -> %s",
+                method,
+                targetMethod.getReference());
           }
           return true;
         }

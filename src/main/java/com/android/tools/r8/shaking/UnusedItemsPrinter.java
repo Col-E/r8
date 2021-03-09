@@ -105,15 +105,15 @@ class UnusedItemsPrinter {
       append(accessFlags);
       append(" ");
     }
-    append(method.method.proto.returnType.toSourceString());
+    append(method.getReference().proto.returnType.toSourceString());
     append(" ");
-    append(method.method.name.toSourceString());
+    append(method.getReference().name.toSourceString());
     append("(");
-    for (int i = 0; i < method.method.proto.parameters.values.length; i++) {
+    for (int i = 0; i < method.getReference().proto.parameters.values.length; i++) {
       if (i != 0) {
         append(",");
       }
-      append(method.method.proto.parameters.values[i].toSourceString());
+      append(method.getReference().proto.parameters.values[i].toSourceString());
     }
     append(")");
     newline();
@@ -126,9 +126,9 @@ class UnusedItemsPrinter {
       append(accessFlags);
       append(" ");
     }
-    append(field.field.type.toSourceString());
+    append(field.getReference().type.toSourceString());
     append(" ");
-    append(field.field.name.toSourceString());
+    append(field.getReference().name.toSourceString());
     newline();
   }
 

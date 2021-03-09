@@ -95,7 +95,7 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
 
       // TODO(b/131735725): Should also remove arguments from the virtual methods.
       if (keepUninstantiatedArguments || methodSubject.getOriginalName().contains("Virtual")) {
-        assertEquals(3, methodSubject.getMethod().method.proto.parameters.size());
+        assertEquals(3, methodSubject.getMethod().getReference().proto.parameters.size());
         assertEquals(3, methodSubject.getMethod().parameterAnnotationsList.size());
 
         for (int i = 0; i < 3; ++i) {
@@ -115,7 +115,7 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
           }
         }
       } else {
-        assertEquals(2, methodSubject.getMethod().method.proto.parameters.size());
+        assertEquals(2, methodSubject.getMethod().getReference().proto.parameters.size());
         assertEquals(2, methodSubject.getMethod().parameterAnnotationsList.size());
 
         for (int i = 0; i < 2; ++i) {

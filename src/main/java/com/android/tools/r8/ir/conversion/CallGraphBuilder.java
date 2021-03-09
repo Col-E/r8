@@ -38,7 +38,7 @@ public class CallGraphBuilder extends CallGraphBuilderBase {
   boolean verifyAllMethodsWithCodeExists() {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       for (DexEncodedMethod method : clazz.methods()) {
-        assert method.hasCode() == (nodes.get(method.method) != null);
+        assert method.hasCode() == (nodes.get(method.getReference()) != null);
       }
     }
     return true;

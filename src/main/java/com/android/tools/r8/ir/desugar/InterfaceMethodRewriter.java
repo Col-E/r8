@@ -198,8 +198,10 @@ public final class InterfaceMethodRewriter {
       clazz.forEachMethod(
           m -> {
             if (m.isDefaultMethod()) {
-              appInfo.dexItemFactory().registerTypeNeededForDesugaring(m.method.proto.returnType);
-              for (DexType param : m.method.proto.parameters.values) {
+              appInfo
+                  .dexItemFactory()
+                  .registerTypeNeededForDesugaring(m.getReference().proto.returnType);
+              for (DexType param : m.getReference().proto.parameters.values) {
                 appInfo.dexItemFactory().registerTypeNeededForDesugaring(param);
               }
             }
@@ -216,7 +218,7 @@ public final class InterfaceMethodRewriter {
       if (emulatedInterfaceClass != null) {
         for (DexEncodedMethod encodedMethod :
             emulatedInterfaceClass.methods(DexEncodedMethod::isDefaultMethod)) {
-          emulatedMethods.add(encodedMethod.method.name);
+          emulatedMethods.add(encodedMethod.getReference().name);
         }
       }
     }
@@ -1476,7 +1478,7 @@ public final class InterfaceMethodRewriter {
 
     // Hide by virtual methods of this interface.
     for (DexEncodedMethod virtual : definedInterface.virtualMethods()) {
-      helper.hideMatches(virtual.method);
+      helper.hideMatches(virtual.getReference());
     }
 
     // Add all default methods of this interface.

@@ -239,7 +239,9 @@ public class DesugaredLibraryWrapperSynthesizer {
         DexAnnotationSet.empty(),
         DexEncodedField.EMPTY_ARRAY, // No static fields.
         new DexEncodedField[] {wrapperField},
-        new DexEncodedMethod[] {synthesizeConstructor(wrapperField.field), conversionMethod},
+        new DexEncodedMethod[] {
+          synthesizeConstructor(wrapperField.getReference()), conversionMethod
+        },
         virtualMethods,
         factory.getSkipNameValidationForTesting(),
         DexProgramClass::checksumFromType);
@@ -275,21 +277,17 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexMethod methodToInstall =
           factory.createMethod(
               wrapperField.getHolderType(),
-              dexEncodedMethod.method.proto,
-              dexEncodedMethod.method.name);
+              dexEncodedMethod.getReference().proto,
+              dexEncodedMethod.getReference().name);
       CfCode cfCode;
       if (dexEncodedMethod.isFinal()) {
         invalidWrappers.add(wrapperField.getHolderType());
-        finalMethods.add(dexEncodedMethod.method);
+        finalMethods.add(dexEncodedMethod.getReference());
         continue;
       } else {
         cfCode =
             new APIConverterVivifiedWrapperCfCodeProvider(
-                    appView,
-                    methodToInstall,
-                    wrapperField.field,
-                    converter,
-                isInterface)
+                    appView, methodToInstall, wrapperField.getReference(), converter, isInterface)
                 .generateCfCode();
       }
       DexEncodedMethod newDexEncodedMethod =
@@ -320,16 +318,20 @@ public class DesugaredLibraryWrapperSynthesizer {
       boolean isInterface = holderClass == null || holderClass.isInterface();
       DexMethod methodToInstall =
           DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(
-              dexEncodedMethod.method, wrapperField.getHolderType(), appView);
+              dexEncodedMethod.getReference(), wrapperField.getHolderType(), appView);
       CfCode cfCode;
       if (dexEncodedMethod.isFinal()) {
         invalidWrappers.add(wrapperField.getHolderType());
-        finalMethods.add(dexEncodedMethod.method);
+        finalMethods.add(dexEncodedMethod.getReference());
         continue;
       } else {
         cfCode =
             new APIConverterWrapperCfCodeProvider(
-                    appView, dexEncodedMethod.method, wrapperField.field, converter, isInterface)
+                    appView,
+                    dexEncodedMethod.getReference(),
+                    wrapperField.getReference(),
+                    converter,
+                    isInterface)
                 .generateCfCode();
       }
       DexEncodedMethod newDexEncodedMethod =
@@ -398,7 +400,7 @@ public class DesugaredLibraryWrapperSynthesizer {
           // This looks quadratic but given the size of the collections met in practice for
           // desugared libraries (Max ~15) it does not matter.
           for (DexEncodedMethod alreadyImplementedMethod : implementedMethods) {
-            if (alreadyImplementedMethod.method.match(virtualMethod.method)) {
+            if (alreadyImplementedMethod.getReference().match(virtualMethod.getReference())) {
               alreadyAdded = true;
               break;
             }

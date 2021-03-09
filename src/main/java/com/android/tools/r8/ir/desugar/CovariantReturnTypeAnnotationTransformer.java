@@ -267,7 +267,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
 
   private static boolean hasVirtualMethodWithSignature(DexClass clazz, DexEncodedMethod method) {
     for (DexEncodedMethod existingMethod : clazz.virtualMethods()) {
-      if (existingMethod.method.equals(method.method)) {
+      if (existingMethod.getReference().equals(method.getReference())) {
         return true;
       }
     }

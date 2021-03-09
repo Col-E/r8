@@ -44,7 +44,7 @@ final class DefaultMethodsHelper {
     DexMethod getSingleCandidate(DexMethod method) {
       DexMethod candidate = null;
       for (DexEncodedMethod encodedMethod : live) {
-        DexMethod current = encodedMethod.method;
+        DexMethod current = encodedMethod.getReference();
         if (current.proto == method.proto && current.name == method.name) {
           if (candidate != null) {
             return null;

@@ -111,7 +111,7 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
 
       boolean isDeadProtoExtensionField =
           appView.withGeneratedExtensionRegistryShrinker(
-              shrinker -> shrinker.isDeadProtoExtensionField(encodedField.field), false);
+              shrinker -> shrinker.isDeadProtoExtensionField(encodedField.getReference()), false);
       if (isDeadProtoExtensionField) {
         return false;
       }

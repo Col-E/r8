@@ -85,7 +85,7 @@ public class UnusedArgumentsCollisionTest extends TestBase {
     MethodSubject methodB1Subject =
         bClassSubject.allMethods().stream().filter(FoundMethodSubject::isStatic).findFirst().get();
     assertThat(methodB1Subject, isPresent());
-    assertEquals(0, methodB1Subject.getMethod().method.proto.parameters.size());
+    assertEquals(0, methodB1Subject.getMethod().getReference().proto.parameters.size());
 
     // TODO(b/129933280): Determine if we should use member pool collection for unused argument
     //  removal for private and static methods.
@@ -97,7 +97,7 @@ public class UnusedArgumentsCollisionTest extends TestBase {
     MethodSubject methodB2Subject =
         bClassSubject.allMethods().stream().filter(FoundMethodSubject::isVirtual).findFirst().get();
     assertThat(methodB2Subject, isPresent());
-    assertEquals(0, methodB2Subject.getMethod().method.proto.parameters.size());
+    assertEquals(0, methodB2Subject.getMethod().getReference().proto.parameters.size());
 
     // Verify that the virtual method B.method2() does not collide with a method in A.
     assertNotEquals(methodB2Subject.getFinalName(), methodA1Subject.getFinalName());

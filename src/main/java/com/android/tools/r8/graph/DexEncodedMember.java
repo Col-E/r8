@@ -16,8 +16,11 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
   // set.
   private final boolean d8R8Synthesized;
 
-  public DexEncodedMember(DexAnnotationSet annotations, boolean d8R8Synthesized) {
+  private final R reference;
+
+  public DexEncodedMember(R reference, DexAnnotationSet annotations, boolean d8R8Synthesized) {
     super(annotations);
+    this.reference = reference;
     this.d8R8Synthesized = d8R8Synthesized;
   }
 
@@ -32,7 +35,9 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
   }
 
   @Override
-  public abstract R getReference();
+  public R getReference() {
+    return reference;
+  }
 
   public boolean isD8R8Synthesized() {
     return d8R8Synthesized;

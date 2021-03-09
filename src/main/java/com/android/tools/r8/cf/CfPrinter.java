@@ -140,7 +140,7 @@ public class CfPrinter {
     }
     if (method != null) {
       builder.append(".method ");
-      appendMethod(method.method);
+      appendMethod(method.getReference());
       newline();
     }
     builder.append(".limit stack ").append(code.getMaxStack());

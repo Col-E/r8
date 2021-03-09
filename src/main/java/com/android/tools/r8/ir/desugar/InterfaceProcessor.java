@@ -256,7 +256,8 @@ public final class InterfaceProcessor {
         implMethod.copyMetadata(virtual);
         virtual.setDefaultInterfaceMethodImplementation(implMethod);
         companionMethods.add(implMethod);
-        graphLensBuilder.recordCodeMovedToCompanionClass(method.getReference(), implMethod.method);
+        graphLensBuilder.recordCodeMovedToCompanionClass(
+            method.getReference(), implMethod.getReference());
       }
 
       // Remove bridge methods.
@@ -397,7 +398,7 @@ public final class InterfaceProcessor {
   // also be kept (such a situation can happen if the vertical class merger merges two interfaces).
   private boolean interfaceMethodRemovalChangesApi(DexEncodedMethod method, DexClass iface) {
     if (appView.enableWholeProgramOptimizations()) {
-      if (appView.appInfo().withLiveness().isPinned(method.method)) {
+      if (appView.appInfo().withLiveness().isPinned(method.getReference())) {
         return true;
       }
     }
@@ -411,7 +412,7 @@ public final class InterfaceProcessor {
         if (clazz == null || !seenBefore.add(clazz.type)) {
           continue;
         }
-        if (clazz.lookupVirtualMethod(method.method) != null) {
+        if (clazz.lookupVirtualMethod(method.getReference()) != null) {
           return false;
         }
         addSuperTypes(clazz, worklist);
@@ -433,7 +434,8 @@ public final class InterfaceProcessor {
     if (method.accessFlags.isNative()) {
       throw new Unimplemented("Native interface methods are not yet supported.");
     }
-    return method.accessFlags.isStatic() && !rewriter.factory.isClassConstructor(method.method);
+    return method.accessFlags.isStatic()
+        && !rewriter.factory.isClassConstructor(method.getReference());
   }
 
   // Specific lens which remaps invocation types to static since all rewrites performed here

@@ -91,7 +91,7 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
       assertThat(methodSubject, isPresent());
 
       if (keepUnusedArguments) {
-        assertEquals(3, methodSubject.getMethod().method.proto.parameters.size());
+        assertEquals(3, methodSubject.getMethod().getReference().proto.parameters.size());
         assertEquals(3, methodSubject.getMethod().parameterAnnotationsList.size());
 
         for (int i = 0; i < 3; ++i) {
@@ -109,7 +109,7 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
           }
         }
       } else {
-        assertEquals(2, methodSubject.getMethod().method.proto.parameters.size());
+        assertEquals(2, methodSubject.getMethod().getReference().proto.parameters.size());
         assertEquals(2, methodSubject.getMethod().parameterAnnotationsList.size());
 
         for (int i = 0; i < 2; ++i) {

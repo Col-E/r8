@@ -58,8 +58,8 @@ public class UnusedAndUninstantiatedTypesTest extends TestBase {
     List<FoundMethodSubject> methods = i.clazz(Main.class).allMethods();
     assertEquals(9, methods.size());
     for (FoundMethodSubject method : methods) {
-      if (!method.getMethod().method.name.toString().equals("main")) {
-        assertEquals(0, method.getMethod().method.getArity());
+      if (!method.getMethod().getReference().name.toString().equals("main")) {
+        assertEquals(0, method.getMethod().getReference().getArity());
       }
     }
   }

@@ -50,7 +50,7 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
 
       // Record original field signatures.
       for (DexEncodedField encodedField : clazz.fields()) {
-        DexField field = encodedField.field;
+        DexField field = encodedField.getReference();
         DexField original = appView.graphLens().getOriginalFieldSignature(field);
         if (original != field) {
           DexField existing = originalFieldSignatures.forcePut(field, original);
@@ -60,7 +60,7 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
 
       // Record original method signatures.
       for (DexEncodedMethod encodedMethod : clazz.methods()) {
-        DexMethod method = encodedMethod.method;
+        DexMethod method = encodedMethod.getReference();
         DexMethod original = appView.graphLens().getOriginalMethodSignature(method);
         DexMethod existing = originalMethodSignatures.inverse().get(original);
         if (existing == null) {

@@ -184,7 +184,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
       }
       KotlinPropertyGroup kotlinPropertyGroup =
           properties.computeIfAbsent(kotlinPropertyInfo, ignored -> new KotlinPropertyGroup());
-      if (method.method.proto.returnType == appView.dexItemFactory().voidType) {
+      if (method.getReference().proto.returnType == appView.dexItemFactory().voidType) {
         // This is a setter.
         kotlinPropertyGroup.setSetter(method);
       } else {

@@ -341,10 +341,10 @@ public class DesugaredLibraryAPIConverter {
   private ProgramMethod generateCallbackMethod(
       DexEncodedMethod originalMethod, DexProgramClass clazz) {
     DexMethod methodToInstall =
-        methodWithVivifiedTypeInSignature(originalMethod.method, clazz.type, appView);
+        methodWithVivifiedTypeInSignature(originalMethod.getReference(), clazz.type, appView);
     CfCode cfCode =
         new APIConverterWrapperCfCodeProvider(
-                appView, originalMethod.method, null, this, clazz.isInterface())
+                appView, originalMethod.getReference(), null, this, clazz.isInterface())
             .generateCfCode();
     DexEncodedMethod newMethod =
         wrapperSynthesizor.newSynthesizedMethod(methodToInstall, originalMethod, cfCode);

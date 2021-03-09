@@ -300,7 +300,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
     }
     // If tree shaking, only keep annotations on kept methods.
     if (appView.appInfo().hasLiveness()
-        && !appView.appInfo().withLiveness().isPinned(method.method)) {
+        && !appView.appInfo().withLiveness().isPinned(method.getReference())) {
       return false;
     }
     return true;
@@ -575,7 +575,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
     // The enqueuer might build IR to trace reflective behaviour. At that point liveness is not
     // known, so be conservative with collection parameter name information.
     if (appView.appInfo().hasLiveness()
-        && !appView.appInfo().withLiveness().isPinned(encodedMethod.method)) {
+        && !appView.appInfo().withLiveness().isPinned(encodedMethod.getReference())) {
       return DexEncodedMethod.NO_PARAMETER_INFO;
     }
 
@@ -585,7 +585,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
     if (!encodedMethod.isStatic()) {
       localSlotsForParameters.set(nextLocalSlotsForParameters++);
     }
-    for (DexType type : encodedMethod.method.proto.parameters.values) {
+    for (DexType type : encodedMethod.getReference().proto.parameters.values) {
       localSlotsForParameters.set(nextLocalSlotsForParameters);
       nextLocalSlotsForParameters += type.isLongType() || type.isDoubleType() ? 2 : 1;
     }
@@ -607,7 +607,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
 
   @Override
   public void registerArgumentReferences(DexEncodedMethod method, ArgumentUse registry) {
-    DexProto proto = method.method.proto;
+    DexProto proto = method.getReference().proto;
     boolean isStatic = method.accessFlags.isStatic();
     int argumentCount = proto.parameters.values.length + (isStatic ? 0 : 1);
     Int2IntArrayMap indexToNumber = new Int2IntArrayMap(argumentCount);
@@ -728,7 +728,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
     if (!method.isInstanceInitializer()
         && appView
             .graphLens()
-            .getOriginalMethodSignature(method.method)
+            .getOriginalMethodSignature(method.getReference())
             .isInstanceInitializer(appView.dexItemFactory())) {
       // We cannot verify instance initializers if they are moved.
       return StackMapStatus.NOT_PRESENT;
@@ -746,7 +746,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
               return reportStackMapError(
                   CfCodeStackMapValidatingException.multipleFramesForLabel(
                       origin,
-                      appView.graphLens().getOriginalMethodSignature(method.method),
+                      appView.graphLens().getOriginalMethodSignature(method.getReference()),
                       appView),
                   appView);
             }
@@ -756,7 +756,9 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
           // From b/168212806, it is possible that the first instruction is a frame.
           return reportStackMapError(
               CfCodeStackMapValidatingException.unexpectedStackMapFrame(
-                  origin, appView.graphLens().getOriginalMethodSignature(method.method), appView),
+                  origin,
+                  appView.graphLens().getOriginalMethodSignature(method.getReference()),
+                  appView),
               appView);
         }
       }
@@ -777,15 +779,17 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
     if (requireStackMapFrame && stateMap.isEmpty()) {
       return reportStackMapError(
           CfCodeStackMapValidatingException.noFramesForMethodWithJumps(
-              origin, appView.graphLens().getOriginalMethodSignature(method.method), appView),
+              origin,
+              appView.graphLens().getOriginalMethodSignature(method.getReference()),
+              appView),
           appView);
     }
     DexType context = appView.graphLens().lookupType(method.getHolderType());
-    DexType returnType = appView.graphLens().lookupType(method.method.getReturnType());
+    DexType returnType = appView.graphLens().lookupType(method.getReference().getReturnType());
     RewrittenPrototypeDescription rewrittenDescription = RewrittenPrototypeDescription.none();
     if (applyProtoTypeChanges) {
       rewrittenDescription =
-          appView.graphLens().lookupPrototypeChangesForMethodDefinition(method.method);
+          appView.graphLens().lookupPrototypeChangesForMethodDefinition(method.getReference());
       if (!rewrittenDescription.isEmpty()
           && rewrittenDescription.getRewrittenReturnInfo() != null) {
         returnType = rewrittenDescription.getRewrittenReturnInfo().getOldType();
@@ -824,7 +828,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
         return reportStackMapError(
             CfCodeStackMapValidatingException.toDiagnostics(
                 origin,
-                appView.graphLens().getOriginalMethodSignature(method.method),
+                appView.graphLens().getOriginalMethodSignature(method.getReference()),
                 i,
                 instruction,
                 ex.getMessage(),
@@ -889,7 +893,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       initialLocals.put(index++, FrameType.initialized(context));
     }
     ArgumentInfoCollection argumentsInfo = protoTypeChanges.getArgumentInfoCollection();
-    DexType[] parameters = method.method.proto.parameters.values;
+    DexType[] parameters = method.getReference().proto.parameters.values;
     int originalNumberOfArguments =
         parameters.length
             + argumentsInfo.numberOfRemovedArguments()

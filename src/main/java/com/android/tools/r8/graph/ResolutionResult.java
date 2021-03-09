@@ -346,7 +346,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
         return null;
       }
       // 1-3. Search the initial class and its supers in order for a matching instance method.
-      DexMethod method = getResolvedMethod().method;
+      DexMethod method = getResolvedMethod().getReference();
       DexClassAndMethod target = null;
       DexClass current = initialType;
       while (current != null) {
@@ -446,7 +446,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
       return LookupResult.createResult(
           methodTargets,
           lambdaTargets,
-          incompleteness.computeCollectionState(resolvedMethod.method, appInfo));
+          incompleteness.computeCollectionState(resolvedMethod.getReference(), appInfo));
     }
 
     @Override
@@ -626,12 +626,12 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
 
     private DexClassAndMethod lookupMaximallySpecificDispatchTarget(
         DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
-      return appInfo.lookupMaximallySpecificMethod(dynamicInstance, resolvedMethod.method);
+      return appInfo.lookupMaximallySpecificMethod(dynamicInstance, resolvedMethod.getReference());
     }
 
     private DexClassAndMethod lookupMaximallySpecificDispatchTarget(
         LambdaDescriptor lambdaDescriptor, AppInfoWithClassHierarchy appInfo) {
-      return appInfo.lookupMaximallySpecificMethod(lambdaDescriptor, resolvedMethod.method);
+      return appInfo.lookupMaximallySpecificMethod(lambdaDescriptor, resolvedMethod.getReference());
     }
 
     /**
@@ -642,7 +642,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
      */
     private static DexEncodedMethod lookupOverrideCandidate(
         DexEncodedMethod method, DexClass clazz) {
-      DexEncodedMethod candidate = clazz.lookupVirtualMethod(method.method);
+      DexEncodedMethod candidate = clazz.lookupVirtualMethod(method.getReference());
       assert candidate == null || !candidate.isPrivateMethod();
       if (candidate != null) {
         return isOverriding(method, candidate) ? candidate : DexEncodedMethod.SENTINEL;
@@ -659,7 +659,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
         if (clazz == null) {
           return resolvedMethod;
         }
-        DexEncodedMethod otherOverride = clazz.lookupVirtualMethod(resolvedMethod.method);
+        DexEncodedMethod otherOverride = clazz.lookupVirtualMethod(resolvedMethod.getReference());
         if (otherOverride != null
             && isOverriding(resolvedMethod, otherOverride)
             && (otherOverride.accessFlags.isPublic() || otherOverride.accessFlags.isProtected())) {
@@ -680,7 +680,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
      */
     public static boolean isOverriding(
         DexEncodedMethod resolvedMethod, DexEncodedMethod candidate) {
-      assert resolvedMethod.method.match(candidate.method);
+      assert resolvedMethod.getReference().match(candidate.getReference());
       assert !candidate.isPrivateMethod();
       if (resolvedMethod.accessFlags.isPublic() || resolvedMethod.accessFlags.isProtected()) {
         return true;

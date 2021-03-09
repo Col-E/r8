@@ -307,13 +307,13 @@ public abstract class KeepInfoCollection {
     @Override
     public KeepMethodInfo getMethodInfo(DexEncodedMethod method, DexProgramClass holder) {
       assert method.getHolderType() == holder.type;
-      return keepMethodInfo.getOrDefault(method.method, KeepMethodInfo.bottom());
+      return keepMethodInfo.getOrDefault(method.getReference(), KeepMethodInfo.bottom());
     }
 
     @Override
     public KeepFieldInfo getFieldInfo(DexEncodedField field, DexProgramClass holder) {
       assert field.getHolderType() == holder.type;
-      return keepFieldInfo.getOrDefault(field.field, KeepFieldInfo.bottom());
+      return keepFieldInfo.getOrDefault(field.getReference(), KeepFieldInfo.bottom());
     }
 
     public void joinClass(DexProgramClass clazz, Consumer<KeepClassInfo.Joiner> fn) {

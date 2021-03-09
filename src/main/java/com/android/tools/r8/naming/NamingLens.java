@@ -166,14 +166,14 @@ public abstract class NamingLens {
       }
 
       for (DexEncodedField field : clazz.fields()) {
-        DexField newField = lookupField(field.field, dexItemFactory);
+        DexField newField = lookupField(field.getReference(), dexItemFactory);
         boolean referencesChanged = references.add(newField);
         assert referencesChanged
             : "Duplicate definition of field `" + newField.toSourceString() + "`";
       }
 
       for (DexEncodedMethod method : clazz.methods()) {
-        DexMethod newMethod = lookupMethod(method.method, dexItemFactory);
+        DexMethod newMethod = lookupMethod(method.getReference(), dexItemFactory);
         boolean referencesChanged = references.add(newMethod);
         assert referencesChanged
             : "Duplicate definition of method `" + newMethod.toSourceString() + "`";

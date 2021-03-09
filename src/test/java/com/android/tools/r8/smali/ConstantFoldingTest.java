@@ -55,10 +55,12 @@ public class ConstantFoldingTest extends SmaliTestBase {
       assertEquals(1, getNumberOfProgramClasses(processdApplication));
       CodeInspector inspector = new CodeInspector(processdApplication);
       ClassSubject clazz = inspector.clazz(DEFAULT_CLASS_NAME);
-      clazz.forAllMethods(method -> {
-        int index = Integer.parseInt(method.getMethod().method.name.toString().substring(1));
-        checkers.get(index).accept(method.getMethod(), values.get(index));
-      });
+      clazz.forAllMethods(
+          method -> {
+            int index =
+                Integer.parseInt(method.getMethod().getReference().name.toString().substring(1));
+            checkers.get(index).accept(method.getMethod(), values.get(index));
+          });
     }
   }
 

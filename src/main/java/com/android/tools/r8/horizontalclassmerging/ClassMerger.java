@@ -167,7 +167,7 @@ public class ClassMerger {
   DexMethod renameDirectMethod(ProgramMethod method) {
     assert method.getDefinition().belongsToDirectPool();
     return dexItemFactory.createFreshMethodName(
-        method.getDefinition().method.name.toSourceString(),
+        method.getDefinition().getReference().name.toSourceString(),
         method.getHolderType(),
         method.getDefinition().getProto(),
         group.getTarget().getType(),

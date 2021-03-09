@@ -363,14 +363,14 @@ public class RedundantFieldLoadElimination {
     fieldInitializationInfos.forEachWithDeterministicOrder(
         appView,
         (field, info) -> {
-          if (!appView.appInfo().withLiveness().mayPropagateValueFor(field.field)) {
+          if (!appView.appInfo().withLiveness().mayPropagateValueFor(field.getReference())) {
             return;
           }
           if (info.isArgumentInitializationInfo()) {
             Value value =
                 invoke.getArgument(info.asArgumentInitializationInfo().getArgumentIndex());
             Value object = invoke.getReceiver().getAliasedValue();
-            FieldAndObject fieldAndObject = new FieldAndObject(field.field, object);
+            FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
             if (field.isFinal()) {
               activeState.putFinalInstanceField(fieldAndObject, new ExistingValue(value));
             } else {
@@ -380,7 +380,7 @@ public class RedundantFieldLoadElimination {
             SingleValue value = info.asSingleValue();
             if (value.isMaterializableInContext(appView.withLiveness(), method)) {
               Value object = invoke.getReceiver().getAliasedValue();
-              FieldAndObject fieldAndObject = new FieldAndObject(field.field, object);
+              FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
               if (field.isFinal()) {
                 activeState.putFinalInstanceField(fieldAndObject, new MaterializableValue(value));
               } else {

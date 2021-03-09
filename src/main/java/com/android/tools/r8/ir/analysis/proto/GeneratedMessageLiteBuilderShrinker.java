@@ -440,9 +440,9 @@ public class GeneratedMessageLiteBuilderShrinker {
         if (clazz != null) {
           DexEncodedMethod newBuilderMethod =
               clazz.lookupDirectMethod(
-                  method -> method.method.name == references.newBuilderMethodName);
+                  method -> method.getReference().name == references.newBuilderMethodName);
           if (newBuilderMethod != null) {
-            bypassClinitforInlining.add(newBuilderMethod.method);
+            bypassClinitforInlining.add(newBuilderMethod.getReference());
           }
         }
       }

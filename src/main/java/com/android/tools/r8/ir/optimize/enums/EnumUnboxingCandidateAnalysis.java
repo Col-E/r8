@@ -85,18 +85,18 @@ class EnumUnboxingCandidateAnalysis {
   }
 
   static boolean isEnumField(DexEncodedField staticField, DexType enumType) {
-    return staticField.field.type == enumType
+    return staticField.getReference().type == enumType
         && staticField.accessFlags.isEnum()
         && staticField.accessFlags.isFinal();
   }
 
   static boolean matchesValuesField(
       DexEncodedField staticField, DexType enumType, DexItemFactory factory) {
-    return staticField.field.type.isArrayType()
-        && staticField.field.type.toArrayElementType(factory) == enumType
+    return staticField.getReference().type.isArrayType()
+        && staticField.getReference().type.toArrayElementType(factory) == enumType
         && staticField.accessFlags.isSynthetic()
         && staticField.accessFlags.isFinal()
-        && staticField.field.name == factory.enumValuesFieldName;
+        && staticField.getReference().name == factory.enumValuesFieldName;
   }
 
   private void removeEnumsInAnnotations() {

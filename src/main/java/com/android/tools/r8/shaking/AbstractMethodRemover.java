@@ -64,7 +64,7 @@ public class AbstractMethodRemover {
       DexEncodedMethod method = virtualMethods.get(i);
       if (scope.addMethodIfMoreVisible(method) != AddMethodIfMoreVisibleResult.NOT_ADDED
           || !method.accessFlags.isAbstract()
-          || appView.appInfo().isPinned(method.method)) {
+          || appView.appInfo().isPinned(method.getReference())) {
         if (methods != null) {
           methods.add(method);
         }
@@ -76,7 +76,7 @@ public class AbstractMethodRemover {
           }
         }
         if (Log.ENABLED) {
-          Log.debug(getClass(), "Removing abstract method %s.", method.method);
+          Log.debug(getClass(), "Removing abstract method %s.", method.getReference());
         }
       }
     }

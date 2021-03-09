@@ -58,7 +58,7 @@ public class LibraryMethodOverrideInInterfaceMarkingTest extends TestBase {
       AppInfoWithLiveness appInfo, DexType type) {
     DexProgramClass clazz = appInfo.definitionFor(type).asProgramClass();
     DexEncodedMethod method =
-        clazz.lookupVirtualMethod(m -> m.method.name.toString().equals("isEmpty"));
+        clazz.lookupVirtualMethod(m -> m.getReference().name.toString().equals("isEmpty"));
     assertTrue(method.isLibraryMethodOverride().isTrue());
   }
 

@@ -46,17 +46,18 @@ public class DexAnnotationDirectory extends DexItem {
   }
 
   public List<DexEncodedMethod> sortMethodAnnotations(CompareToVisitor visitor) {
-    methodAnnotations.sort((a, b) -> a.method.acceptCompareTo(b.method, visitor));
+    methodAnnotations.sort((a, b) -> a.getReference().acceptCompareTo(b.getReference(), visitor));
     return methodAnnotations;
   }
 
   public List<DexEncodedMethod> sortParameterAnnotations(CompareToVisitor visitor) {
-    parameterAnnotations.sort((a, b) -> a.method.acceptCompareTo(b.method, visitor));
+    parameterAnnotations.sort(
+        (a, b) -> a.getReference().acceptCompareTo(b.getReference(), visitor));
     return parameterAnnotations;
   }
 
   public List<DexEncodedField> sortFieldAnnotations(CompareToVisitor visitor) {
-    fieldAnnotations.sort((a, b) -> a.field.acceptCompareTo(b.field, visitor));
+    fieldAnnotations.sort((a, b) -> a.getReference().acceptCompareTo(b.getReference(), visitor));
     return fieldAnnotations;
   }
 

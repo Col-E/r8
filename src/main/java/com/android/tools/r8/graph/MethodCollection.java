@@ -137,7 +137,7 @@ public class MethodCollection {
   public List<DexEncodedMethod> allMethodsSorted() {
     List<DexEncodedMethod> sorted = new ArrayList<>(size());
     forEachMethod(sorted::add);
-    sorted.sort((a, b) -> a.method.compareTo(b.method));
+    sorted.sort((a, b) -> a.getReference().compareTo(b.getReference()));
     return sorted;
   }
 
@@ -344,7 +344,7 @@ public class MethodCollection {
   private boolean verifyCorrectnessOfMethodHolder(DexEncodedMethod method) {
     assert method.getHolderType() == holder.type
         : "Expected method `"
-            + method.method.toSourceString()
+            + method.getReference().toSourceString()
             + "` to have holder `"
             + holder.type.toSourceString()
             + "`";

@@ -74,7 +74,7 @@ public class IdentifierNameStringMarker {
 
   private void decoupleIdentifierNameStringInStaticField(DexEncodedField encodedField) {
     assert encodedField.accessFlags.isStatic();
-    if (!identifierNameStrings.containsKey(encodedField.field)) {
+    if (!identifierNameStrings.containsKey(encodedField.getReference())) {
       return;
     }
     DexValueString staticValue = encodedField.getStaticValue().asDexValueString();

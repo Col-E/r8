@@ -72,7 +72,8 @@ public class TypeChecker {
     }
     TypeElement valueType = instruction.returnValue().getType();
     TypeElement returnType =
-        TypeElement.fromDexType(method.method.proto.returnType, Nullability.maybeNull(), appView);
+        TypeElement.fromDexType(
+            method.getReference().proto.returnType, Nullability.maybeNull(), appView);
     if (verifyTypesHelper.isAssignable(valueType, returnType)) {
       return true;
     }
@@ -80,7 +81,7 @@ public class TypeChecker {
     if (returnType.isClassType() && valueType.isReferenceType()) {
       // Interface types are treated like Object according to the JVM spec.
       // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.10.1.2-100
-      DexClass clazz = appView.definitionFor(method.method.proto.returnType);
+      DexClass clazz = appView.definitionFor(method.getReference().proto.returnType);
       return clazz != null && clazz.isInterface();
     }
 

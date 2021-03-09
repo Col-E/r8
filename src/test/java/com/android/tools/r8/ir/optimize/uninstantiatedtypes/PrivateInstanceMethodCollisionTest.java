@@ -81,7 +81,7 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
       assertEquals(2, aClassSubject.allMethods(FoundMethodSubject::isVirtual).size());
       String name = null;
       for (FoundMethodSubject m : aClassSubject.allMethods(FoundMethodSubject::isVirtual)) {
-        assertEquals(1, m.getMethod().method.proto.parameters.size());
+        assertEquals(1, m.getMethod().getReference().proto.parameters.size());
         if (name == null) {
           name = m.getFinalName();
         } else {

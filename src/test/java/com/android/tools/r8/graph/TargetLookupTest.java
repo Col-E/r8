@@ -227,7 +227,7 @@ public class TargetLookupTest extends SmaliTestBase {
     DexField aFieldOnInterface = factory
         .createField(factory.createType("LInterface;"), factory.intType, "aField");
 
-    assertEquals(aFieldOnInterface, appInfo.lookupStaticTarget(aFieldOnSubClass).field);
+    assertEquals(aFieldOnInterface, appInfo.lookupStaticTarget(aFieldOnSubClass).getReference());
 
     assertEquals("42", runArt(application));
 

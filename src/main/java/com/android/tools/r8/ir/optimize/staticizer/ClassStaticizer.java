@@ -128,7 +128,7 @@ public final class ClassStaticizer {
               // field. The requirements for the initialization of this field will be
               // checked later.
               for (DexEncodedField field : cls.staticFields()) {
-                DexType type = field.field.type;
+                DexType type = field.getReference().type;
                 if (singletonFields.put(type, field) != null) {
                   // There is already candidate singleton field found.
                   markNotEligible(type, notEligible);
@@ -137,7 +137,7 @@ public final class ClassStaticizer {
 
               // Don't allow fields with this candidate types.
               for (DexEncodedField field : cls.instanceFields()) {
-                markNotEligible(field.field.type, notEligible);
+                markNotEligible(field.getReference().type, notEligible);
               }
 
               // Don't allow methods that take a value of this type.
@@ -192,11 +192,11 @@ public final class ClassStaticizer {
 
   private boolean isPinned(DexClass clazz, DexEncodedField singletonField) {
     AppInfoWithLiveness appInfo = appView.appInfo();
-    if (appInfo.isPinned(clazz.type) || appInfo.isPinned(singletonField.field)) {
+    if (appInfo.isPinned(clazz.type) || appInfo.isPinned(singletonField.getReference())) {
       return true;
     }
     for (DexEncodedMethod method : clazz.methods()) {
-      if (!method.isStatic() && appInfo.isPinned(method.method)) {
+      if (!method.isStatic() && appInfo.isPinned(method.getReference())) {
         return true;
       }
     }
@@ -589,7 +589,7 @@ public final class ClassStaticizer {
 
     if (invoke.hasOutValue()
         && candidateInfo.getter.get() != null
-        && candidateInfo.getter.get().method == invoke.getInvokedMethod()) {
+        && candidateInfo.getter.get().getReference() == invoke.getInvokedMethod()) {
       candidateInfo = analyzeAllValueUsers(candidateInfo, invoke.outValue(), false);
     }
     return candidateInfo;

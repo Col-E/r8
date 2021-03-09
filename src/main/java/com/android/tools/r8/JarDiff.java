@@ -145,23 +145,23 @@ public class JarDiff {
   private void compareMethods(DexProgramClass class1, DexProgramClass class2) {
     class1.forEachMethod(
         method1 -> {
-          DexEncodedMethod method2 = class2.lookupMethod(method1.method);
+          DexEncodedMethod method2 = class2.lookupMethod(method1.getReference());
           compareMethods(method1, method2);
         });
     class2.forEachMethod(
         method2 -> {
-          DexEncodedMethod method1 = class1.lookupMethod(method2.method);
+          DexEncodedMethod method1 = class1.lookupMethod(method2.getReference());
           compareMethods(method1, method2);
         });
   }
 
   private void compareMethods(DexEncodedMethod m1, DexEncodedMethod m2) {
     if (m1 == null) {
-      System.out.println("Only in " + path2 + ": " + m2.method.toSourceString());
+      System.out.println("Only in " + path2 + ": " + m2.getReference().toSourceString());
       return;
     }
     if (m2 == null) {
-      System.out.println("Only in " + path1 + ": " + m1.method.toSourceString());
+      System.out.println("Only in " + path1 + ": " + m1.getReference().toSourceString());
       return;
     }
     List<String> code1 = getInstructionStrings(m1);
@@ -176,12 +176,19 @@ public class JarDiff {
     int before = Math.min(i, this.before);
     int after = Math.min(j, this.after);
     int context = before + after;
-    System.out.println("--- " + path1 + "/" + m1.method.toSmaliString());
-    System.out.println("+++ " + path2 + "/" + m2.method.toSmaliString());
+    System.out.println("--- " + path1 + "/" + m1.getReference().toSmaliString());
+    System.out.println("+++ " + path2 + "/" + m2.getReference().toSmaliString());
     System.out.println(
-        "@@ -" + (i - before) + "," + (length1 + context)
-            + " +" + (i - before) + "," + (length2 + context) + " @@ "
-            + m1.method.toSourceString());
+        "@@ -"
+            + (i - before)
+            + ","
+            + (length1 + context)
+            + " +"
+            + (i - before)
+            + ","
+            + (length2 + context)
+            + " @@ "
+            + m1.getReference().toSourceString());
     for (int k = 0; k < before; k++) {
       System.out.println(" " + code1.get(i - before + k));
     }

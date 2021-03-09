@@ -73,7 +73,7 @@ public class EnumCanonicalizationTest extends TestBase {
             .streamInstructions()
             .filter(InstructionSubject::isStaticGet)
             .map(InstructionSubject::getField)
-            .filter(enumFieldSubject.getField().field::equals)
+            .filter(enumFieldSubject.getField().getReference()::equals)
             .count());
     assertEquals(
         1,
@@ -81,7 +81,9 @@ public class EnumCanonicalizationTest extends TestBase {
             .streamInstructions()
             .filter(InstructionSubject::isStaticGet)
             .map(InstructionSubject::getField)
-            .filter(enumWithClassInitializationSideEffectsFieldSubject.getField().field::equals)
+            .filter(
+                enumWithClassInitializationSideEffectsFieldSubject.getField().getReference()
+                    ::equals)
             .count());
   }
 

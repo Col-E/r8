@@ -43,7 +43,7 @@ public abstract class TreeFixerBase {
   }
 
   private DexEncodedField recordFieldChange(DexEncodedField from, DexEncodedField to) {
-    recordFieldChange(from.field, to.field);
+    recordFieldChange(from.getReference(), to.getReference());
     return to;
   }
 
@@ -77,7 +77,7 @@ public abstract class TreeFixerBase {
 
   /** Callback to allow custom handling when an encoded method changes. */
   public DexEncodedMethod recordMethodChange(DexEncodedMethod from, DexEncodedMethod to) {
-    recordMethodChange(from.method, to.method);
+    recordMethodChange(from.getReference(), to.getReference());
     return to;
   }
 

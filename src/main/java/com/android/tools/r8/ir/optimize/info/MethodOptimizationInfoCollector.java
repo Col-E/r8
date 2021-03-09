@@ -215,7 +215,7 @@ public class MethodOptimizationInfoCollector {
       IRCode code,
       OptimizationFeedback feedback,
       InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos) {
-    assert !appView.appInfo().isPinned(method.method);
+    assert !appView.appInfo().isPinned(method.getReference());
 
     if (!method.isInstanceInitializer()) {
       return;
@@ -227,7 +227,7 @@ public class MethodOptimizationInfoCollector {
       return;
     }
 
-    if (appView.appInfo().mayHaveSideEffects.containsKey(method.method)) {
+    if (appView.appInfo().mayHaveSideEffects.containsKey(method.getReference())) {
       return;
     }
 
@@ -813,7 +813,7 @@ public class MethodOptimizationInfoCollector {
       DexEncodedMethod method,
       IRCode code) {
     if (dynamicTypeOptimization != null) {
-      DexType staticReturnTypeRaw = method.method.proto.returnType;
+      DexType staticReturnTypeRaw = method.getReference().proto.returnType;
       if (!staticReturnTypeRaw.isReferenceType()) {
         return;
       }
@@ -887,7 +887,7 @@ public class MethodOptimizationInfoCollector {
     if (!options.enableSideEffectAnalysis) {
       return;
     }
-    if (appView.appInfo().mayHaveSideEffects.containsKey(method.method)) {
+    if (appView.appInfo().mayHaveSideEffects.containsKey(method.getReference())) {
       return;
     }
     ProgramMethod context = code.context();
@@ -954,8 +954,8 @@ public class MethodOptimizationInfoCollector {
             .resolveMethodOnClass(appView.dexItemFactory().objectMembers.finalize, clazz);
     DexEncodedMethod target = resolutionResult.getSingleTarget();
     return target != null
-        && target.method != dexItemFactory.enumMembers.finalize
-        && target.method != dexItemFactory.objectMembers.finalize;
+        && target.getReference() != dexItemFactory.enumMembers.finalize
+        && target.getReference() != dexItemFactory.objectMembers.finalize;
   }
 
   private void computeReturnValueOnlyDependsOnArguments(

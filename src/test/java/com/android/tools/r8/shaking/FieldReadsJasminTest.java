@@ -254,7 +254,9 @@ public class FieldReadsJasminTest extends JasminTestBase {
                   .filter(InstructionSubject::isStaticGet)
                   .anyMatch(
                       instruction ->
-                          instruction.getField().equals(clinitFieldSubject.getField().field)));
+                          instruction
+                              .getField()
+                              .equals(clinitFieldSubject.getField().getReference())));
         });
   }
 

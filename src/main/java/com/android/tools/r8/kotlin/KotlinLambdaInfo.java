@@ -40,7 +40,7 @@ public class KotlinLambdaInfo implements EnqueuerMetadataTraceable {
     JvmMethodSignature signature = JvmExtensionsKt.getSignature(lambda.function);
     if (signature != null) {
       for (DexEncodedMethod method : clazz.methods()) {
-        if (toJvmMethodSignature(method.method).asString().equals(signature.asString())) {
+        if (toJvmMethodSignature(method.getReference()).asString().equals(signature.asString())) {
           method.setKotlinMemberInfo(kotlinFunctionInfo);
           return new KotlinLambdaInfo(kotlinFunctionInfo, true);
         }

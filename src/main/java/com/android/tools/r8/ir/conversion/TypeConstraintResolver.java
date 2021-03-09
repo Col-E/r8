@@ -152,7 +152,7 @@ public class TypeConstraintResolver {
                       + ", its imprecise type is: "
                       + stillImprecise.get(0).getType(),
                   code.origin,
-                  new MethodPosition(code.method().method.asMethodReference())));
+                  new MethodPosition(code.method().getReference().asMethodReference())));
     }
   }
 

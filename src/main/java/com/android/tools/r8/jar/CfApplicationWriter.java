@@ -218,9 +218,9 @@ public class CfApplicationWriter {
     if (clazz.isRecord()) {
       // TODO(b/169645628): Strip record components if not kept.
       for (DexEncodedField instanceField : clazz.instanceFields()) {
-        String componentName = namingLens.lookupName(instanceField.field).toString();
+        String componentName = namingLens.lookupName(instanceField.getReference()).toString();
         String componentDescriptor =
-            namingLens.lookupDescriptor(instanceField.field.type).toString();
+            namingLens.lookupDescriptor(instanceField.getReference().type).toString();
         String componentSignature =
             instanceField.getGenericSignature().toRenamedString(namingLens, isTypeMissing);
         writer.visitRecordComponent(componentName, componentDescriptor, componentSignature);
@@ -239,7 +239,9 @@ public class CfApplicationWriter {
     }
     if (options.desugarSpecificOptions().sortMethodsOnCfOutput) {
       SortedSet<ProgramMethod> programMethodSortedSet =
-          Sets.newTreeSet((a, b) -> a.getDefinition().method.compareTo(b.getDefinition().method));
+          Sets.newTreeSet(
+              (a, b) ->
+                  a.getDefinition().getReference().compareTo(b.getDefinition().getReference()));
       clazz.forEachProgramMethod(programMethodSortedSet::add);
       programMethodSortedSet.forEach(
           method -> writeMethod(method, version, rewriter, writer, defaults));
@@ -268,7 +270,7 @@ public class CfApplicationWriter {
       // In this case bridges have been introduced for the Cf back-end,
       // which do not have class file version.
       assert options.isDesugaredLibraryCompilation() || options.cfToCfDesugar
-          : "Expected class file version for " + method.method.toSourceString();
+          : "Expected class file version for " + method.getReference().toSourceString();
       assert MIN_VERSION_FOR_COMPILER_GENERATED_CODE.isLessThan(
           options.classFileVersionAfterDesugaring(InternalOptions.SUPPORTED_CF_VERSION));
       // Any desugaring rewrites which cannot meet the default class file version after
@@ -355,8 +357,8 @@ public class CfApplicationWriter {
     if (field.isDeprecated()) {
       access = AsmUtils.withDeprecated(access);
     }
-    String name = namingLens.lookupName(field.field).toString();
-    String desc = namingLens.lookupDescriptor(field.field.type).toString();
+    String name = namingLens.lookupName(field.getReference()).toString();
+    String desc = namingLens.lookupDescriptor(field.getReference().type).toString();
     String signature = field.getGenericSignature().toRenamedString(namingLens, isTypeMissing);
     Object value = getStaticValue(field);
     FieldVisitor visitor = writer.visitField(access, name, desc, signature, value);

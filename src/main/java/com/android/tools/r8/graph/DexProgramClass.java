@@ -559,7 +559,8 @@ public class DexProgramClass extends DexClass
       return null;
     }
     DexEncodedField[] fields = staticFields;
-    Arrays.sort(fields, (a, b) -> a.field.compareToWithNamingLens(b.field, namingLens));
+    Arrays.sort(
+        fields, (a, b) -> a.getReference().compareToWithNamingLens(b.getReference(), namingLens));
     int length = 0;
     List<DexValue> values = new ArrayList<>(fields.length);
     for (int i = 0; i < fields.length; i++) {
@@ -567,7 +568,7 @@ public class DexProgramClass extends DexClass
       DexValue staticValue = field.getStaticValue();
       assert staticValue != null;
       values.add(staticValue);
-      if (!staticValue.isDefault(field.field.type)) {
+      if (!staticValue.isDefault(field.getReference().type)) {
         length = i + 1;
       }
     }
@@ -579,7 +580,7 @@ public class DexProgramClass extends DexClass
   private boolean hasNonDefaultStaticFieldValues() {
     for (DexEncodedField field : staticFields) {
       DexValue value = field.getStaticValue();
-      if (value != null && !value.isDefault(field.field.type)) {
+      if (value != null && !value.isDefault(field.getReference().type)) {
         return true;
       }
     }

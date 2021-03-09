@@ -121,7 +121,7 @@ public class FoundClassSubject extends ClassSubject {
 
   private DexEncodedMethod findMethod(Iterable<DexEncodedMethod> methods, DexMethod dexMethod) {
     for (DexEncodedMethod method : methods) {
-      if (method.method.equals(dexMethod)) {
+      if (method.getReference().equals(dexMethod)) {
         return method;
       }
     }
@@ -320,7 +320,7 @@ public class FoundClassSubject extends ClassSubject {
 
   private DexEncodedField findField(List<DexEncodedField> fields, DexField dexField) {
     for (DexEncodedField field : fields) {
-      if (field.field.equals(dexField)) {
+      if (field.getReference().equals(dexField)) {
         return field;
       }
     }

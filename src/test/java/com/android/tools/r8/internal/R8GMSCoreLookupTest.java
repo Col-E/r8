@@ -70,12 +70,13 @@ public class R8GMSCoreLookupTest extends TestBase {
 
   private void testVirtualLookup(DexProgramClass clazz, DexEncodedMethod method) {
     // Check lookup will produce the same result.
-    DexMethod id = method.method;
+    DexMethod id = method.getReference();
     assertEquals(
-        appInfo().resolveMethodOnClass(method.method, id.holder).getSingleTarget(), method);
+        appInfo().resolveMethodOnClass(method.getReference(), id.holder).getSingleTarget(), method);
 
     // Check lookup targets with include method.
-    ResolutionResult resolutionResult = appInfo().resolveMethodOnClass(method.method, clazz);
+    ResolutionResult resolutionResult =
+        appInfo().resolveMethodOnClass(method.getReference(), clazz);
     AppInfoWithLiveness appInfo = null; // TODO(b/154881041): Remove or compute liveness.
     LookupResult lookupResult =
         resolutionResult.lookupVirtualDispatchTargets(
@@ -96,7 +97,7 @@ public class R8GMSCoreLookupTest extends TestBase {
     AppInfoWithLiveness appInfo = null; // TODO(b/154881041): Remove or compute liveness.
     LookupResultSuccess lookupResult =
         appInfo()
-            .resolveMethodOnInterface(clazz, method.method)
+            .resolveMethodOnInterface(clazz, method.getReference())
             .lookupVirtualDispatchTargets(clazz, appInfo(), appInfo, dexReference -> false)
             .asLookupResultSuccess();
     assertNotNull(lookupResult);

@@ -387,7 +387,7 @@ public class Devirtualizer {
     }
 
     // Change the invoke-virtual instruction to target the refined resolution result instead.
-    return newResolutionResult.getResolvedMethod().method;
+    return newResolutionResult.getResolvedMethod().getReference();
   }
 
   private boolean isRebindingNewClassIntoMainDex(ProgramMethod context, DexMethod reboundMethod) {

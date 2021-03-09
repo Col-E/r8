@@ -47,7 +47,7 @@ public abstract class InstanceFieldInitializationInfoCollection {
 
     public void recordInitializationInfo(
         DexEncodedField field, InstanceFieldInitializationInfo info) {
-      recordInitializationInfo(field.field, info);
+      recordInitializationInfo(field.getReference(), info);
     }
 
     public Builder recordInitializationInfo(DexField field, InstanceFieldInitializationInfo info) {

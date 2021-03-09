@@ -91,13 +91,13 @@ public class OverloadAggressivelyTest extends TestBase {
     assertNotNull(f2);
     // TODO(b/72858955): due to the potential reflective access, they should have different names
     //   by R8's improved reflective access detection or via keep rules.
-    assertEquals(overloadaggressively, f1.field.name == f2.field.name);
+    assertEquals(overloadaggressively, f1.getReference().name == f2.getReference().name);
     DexEncodedField f3 = a.field(B.class.getCanonicalName(), "f3").getField();
     assertNotNull(f3);
     // TODO(b/72858955): ditto
-    assertEquals(overloadaggressively, f1.field.name == f3.field.name);
+    assertEquals(overloadaggressively, f1.getReference().name == f3.getReference().name);
     // TODO(b/72858955): ditto
-    assertEquals(overloadaggressively, f2.field.name == f3.field.name);
+    assertEquals(overloadaggressively, f2.getReference().name == f3.getReference().name);
 
     String main = FieldUpdater.class.getCanonicalName();
     ProcessResult javaOutput = runOnJavaRaw(main, classes);
@@ -143,7 +143,7 @@ public class OverloadAggressivelyTest extends TestBase {
     assertNotNull(f3);
     // TODO(b/72858955): due to the potential reflective access, they should have different names
     //   by R8's improved reflective access detection or via keep rules.
-    assertEquals(overloadaggressively, f1.field.name == f3.field.name);
+    assertEquals(overloadaggressively, f1.getReference().name == f3.getReference().name);
 
     String main = FieldResolution.class.getCanonicalName();
     ProcessResult javaOutput = runOnJavaRaw(main, classes);
@@ -188,14 +188,14 @@ public class OverloadAggressivelyTest extends TestBase {
     DexEncodedMethod m2 =
         b.method("java.lang.Object", "getF2", ImmutableList.of()).getMethod();
     // TODO(b/72858955): due to the potential reflective access, they should have different names.
-    assertEquals(overloadaggressively, m1.method.name == m2.method.name);
+    assertEquals(overloadaggressively, m1.getReference().name == m2.getReference().name);
     DexEncodedMethod m3 =
         b.method("java.lang.String", "getF3", ImmutableList.of()).getMethod();
     assertNotNull(m3);
     // TODO(b/72858955): ditto
-    assertEquals(overloadaggressively, m1.method.name == m3.method.name);
+    assertEquals(overloadaggressively, m1.getReference().name == m3.getReference().name);
     // TODO(b/72858955): ditto
-    assertEquals(overloadaggressively, m2.method.name == m3.method.name);
+    assertEquals(overloadaggressively, m2.getReference().name == m3.getReference().name);
 
     String main = MethodResolution.class.getCanonicalName();
     ProcessResult javaOutput = runOnJavaRaw(main, classes);

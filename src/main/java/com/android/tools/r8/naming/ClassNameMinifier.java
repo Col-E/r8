@@ -152,11 +152,11 @@ class ClassNameMinifier {
   }
 
   private void renameDanglingTypesInField(DexEncodedField field) {
-    renameDanglingType(field.field.type);
+    renameDanglingType(field.getReference().type);
   }
 
   private void renameDanglingTypesInMethod(DexEncodedMethod method) {
-    DexProto proto = method.method.proto;
+    DexProto proto = method.getReference().proto;
     renameDanglingType(proto.returnType);
     for (DexType type : proto.parameters.values) {
       renameDanglingType(type);

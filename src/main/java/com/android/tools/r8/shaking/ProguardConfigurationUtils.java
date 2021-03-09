@@ -75,11 +75,13 @@ public class ProguardConfigurationUtils {
     memberRuleBuilder.setRuleType(ProguardMemberType.METHOD);
     memberRuleBuilder.getAccessFlags().setFlags(method.accessFlags);
     memberRuleBuilder.setName(
-        IdentifierPatternWithWildcards.withoutWildcards(method.method.name.toString()));
-    memberRuleBuilder.setTypeMatcher(ProguardTypeMatcher.create(method.method.proto.returnType));
-    List<ProguardTypeMatcher> arguments = Arrays.stream(method.method.proto.parameters.values)
-        .map(ProguardTypeMatcher::create)
-        .collect(Collectors.toList());
+        IdentifierPatternWithWildcards.withoutWildcards(method.getReference().name.toString()));
+    memberRuleBuilder.setTypeMatcher(
+        ProguardTypeMatcher.create(method.getReference().proto.returnType));
+    List<ProguardTypeMatcher> arguments =
+        Arrays.stream(method.getReference().proto.parameters.values)
+            .map(ProguardTypeMatcher::create)
+            .collect(Collectors.toList());
     memberRuleBuilder.setArguments(arguments);
     builder.getMemberRules().add(memberRuleBuilder.build());
     return builder.build();

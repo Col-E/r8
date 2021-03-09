@@ -276,7 +276,7 @@ public class TreePruner {
     AppInfoWithLiveness appInfo = appView.appInfo();
     InternalOptions options = appView.options();
     int firstUnreachable =
-        firstUnreachableIndex(methods, method -> appInfo.isLiveMethod(method.method));
+        firstUnreachableIndex(methods, method -> appInfo.isLiveMethod(method.getReference()));
     // Return the original array if all methods are used.
     if (firstUnreachable == -1) {
       return null;
@@ -295,7 +295,7 @@ public class TreePruner {
             method.shouldNotHaveCode() && !method.hasCode()
                 ? method
                 : method.toMethodThatLogsError(appView));
-        methodsToKeepForConfigurationDebugging.add(method.method);
+        methodsToKeepForConfigurationDebugging.add(method.getReference());
       } else if (appInfo.isTargetedMethod(method.getReference())) {
         // If the method is already abstract, and doesn't have code, let it be.
         if (method.shouldNotHaveCode() && !method.hasCode()) {
@@ -303,7 +303,7 @@ public class TreePruner {
           continue;
         }
         if (Log.ENABLED) {
-          Log.debug(getClass(), "Making method %s abstract.", method.method);
+          Log.debug(getClass(), "Making method %s abstract.", method.getReference());
         }
         // Final classes cannot be abstract, so we have to keep the method in that case.
         // Also some other kinds of methods cannot be abstract, so keep them around.
@@ -315,7 +315,7 @@ public class TreePruner {
                 && !method.isSynchronized()
                 && !method.accessFlags.isPrivate()
                 && !method.isStatic()
-                && !appInfo.isFailedResolutionTarget(method.method);
+                && !appInfo.isFailedResolutionTarget(method.getReference());
         // Private methods and static methods can only be targeted yet non-live as the result of
         // an invalid invoke. They will not actually be called at runtime but we have to keep them
         // as non-abstract (see above) to produce the same failure mode.
@@ -323,7 +323,7 @@ public class TreePruner {
             allowAbstract ? method.toAbstractMethod() : method.toEmptyThrowingMethod(options));
       } else {
         if (Log.ENABLED) {
-          Log.debug(getClass(), "Removing method %s.", method.method);
+          Log.debug(getClass(), "Removing method %s.", method.getReference());
         }
         unusedItemsPrinter.registerUnusedMethod(method);
       }
@@ -356,7 +356,7 @@ public class TreePruner {
         reachableOrReferencedFields.add(field);
       } else {
         if (Log.ENABLED) {
-          Log.debug(getClass(), "Removing field %s.", field.field);
+          Log.debug(getClass(), "Removing field %s.", field.getReference());
         }
         unusedItemsPrinter.registerUnusedField(field);
       }
@@ -379,7 +379,7 @@ public class TreePruner {
       // Pinned field which type is never instantiated are always null, they are marked as dead
       // so their reads and writes are cleared, but they are still in the program.
       assert !field.getOptimizationInfo().isDead() || appView.appInfo().isPinned(field)
-          : "Expected field `" + field.field.toSourceString() + "` to be absent";
+          : "Expected field `" + field.getReference().toSourceString() + "` to be absent";
     }
     return true;
   }

@@ -108,9 +108,9 @@ public class PrintUses {
       ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
       DexEncodedMethod target =
           resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
-      if (target != null && target.method != method) {
+      if (target != null && target.getReference() != method) {
         addType(method.holder);
-        addMethod(target.method);
+        addMethod(target.getReference());
       } else {
         addMethod(method);
       }
@@ -124,9 +124,9 @@ public class PrintUses {
     @Override
     public void registerInvokeStatic(DexMethod method) {
       DexEncodedMethod target = appInfo.unsafeResolveMethodDueToDexFormat(method).getSingleTarget();
-      if (target != null && target.method != method) {
+      if (target != null && target.getReference() != method) {
         addType(method.holder);
-        addMethod(target.method);
+        addMethod(target.getReference());
       } else {
         addMethod(method);
       }
@@ -204,7 +204,7 @@ public class PrintUses {
       addType(field.type);
       DexEncodedField baseField = appInfo.resolveField(field).getResolvedField();
       if (baseField != null && baseField.getHolderType() != field.holder) {
-        field = baseField.field;
+        field = baseField.getReference();
       }
       addType(field.holder);
       Set<DexField> typeFields = fields.get(field.holder);
@@ -245,7 +245,7 @@ public class PrintUses {
     }
 
     private void registerField(DexEncodedField field) {
-      registerTypeReference(field.field.type);
+      registerTypeReference(field.getReference().type);
     }
 
     private void registerMethod(ProgramMethod method) {
@@ -277,10 +277,11 @@ public class PrintUses {
       clazz.forEachMethod(
           method -> {
             ResolutionResult resolutionResult =
-                appInfo.resolveMethodOn(superType, method.method, superType != clazz.superType);
+                appInfo.resolveMethodOn(
+                    superType, method.getReference(), superType != clazz.superType);
             DexEncodedMethod dexEncodedMethod = resolutionResult.getSingleTarget();
             if (dexEncodedMethod != null) {
-              addMethod(dexEncodedMethod.method);
+              addMethod(dexEncodedMethod.getReference());
             }
           });
     }
@@ -428,7 +429,7 @@ public class PrintUses {
       if (encodedMethod.accessFlags.isConstructor()) {
         printConstructorName(encodedMethod);
       } else {
-        DexMethod method = encodedMethod.method;
+        DexMethod method = encodedMethod.getReference();
         append(method.proto.returnType.toSourceString());
         append(" ");
         append(method.name.toSourceString());
@@ -467,7 +468,7 @@ public class PrintUses {
           }
           methodDefinitions.add(encodedMethod);
         }
-        methodDefinitions.sort(Comparator.comparing(x -> x.method.name.toSourceString()));
+        methodDefinitions.sort(Comparator.comparing(x -> x.getReference().name.toSourceString()));
         for (DexEncodedMethod encodedMethod : methodDefinitions) {
           printMethod(encodedMethod, dexClass.type.toSourceString());
         }
@@ -506,7 +507,7 @@ public class PrintUses {
     void printMethod(DexEncodedMethod encodedMethod, String typeName) {
       append(typeName + ": ");
       printNameAndReturn(encodedMethod);
-      printArguments(encodedMethod.method);
+      printArguments(encodedMethod.getReference());
       appendLine("");
     }
 
@@ -578,7 +579,7 @@ public class PrintUses {
         append("static ");
       }
       printNameAndReturn(encodedMethod);
-      printArguments(encodedMethod.method);
+      printArguments(encodedMethod.getReference());
       appendLine(";");
     }
 

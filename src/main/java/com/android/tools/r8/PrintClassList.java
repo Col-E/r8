@@ -57,7 +57,7 @@ public class PrintClassList {
   }
 
   private static void printMethod(DexEncodedMethod encodedMethod, ClassNameMapper map) {
-    DexMethod method = encodedMethod.method;
+    DexMethod method = encodedMethod.getReference();
     if (map != null) {
       System.out.println(map.originalNameOf(method));
     } else {
@@ -68,7 +68,7 @@ public class PrintClassList {
   }
 
   private static void printField(DexEncodedField encodedField, ClassNameMapper map) {
-    DexField field = encodedField.field;
+    DexField field = encodedField.getReference();
     if (map != null) {
       System.out.println(map.originalNameOf(field));
     } else {

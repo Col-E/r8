@@ -140,7 +140,7 @@ public class FieldBitAccessInfoTest extends TestBase {
   private DexEncodedField uniqueFieldByName(DexProgramClass clazz, String name) {
     DexEncodedField result = null;
     for (DexEncodedField field : clazz.fields()) {
-      if (field.field.name.toSourceString().equals(name)) {
+      if (field.getReference().name.toSourceString().equals(name)) {
         assertNull(result);
         result = field;
       }

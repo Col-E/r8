@@ -63,11 +63,11 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
   }
 
   public DexDebugEntryBuilder(DexEncodedMethod method, DexItemFactory factory) {
-    assert method != null && method.method != null;
-    this.method = method.method;
+    assert method != null && method.getReference() != null;
+    this.method = method.getReference();
     positionState =
         new DexDebugPositionState(
-            method.getCode().asDexCode().getDebugInfo().startLine, method.method);
+            method.getCode().asDexCode().getDebugInfo().startLine, method.getReference());
     DexCode code = method.getCode().asDexCode();
     DexDebugInfo info = code.getDebugInfo();
     int argumentRegister = code.registerSize - code.incomingRegisterSize;
@@ -77,7 +77,7 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
       startArgument(argumentRegister, name, type);
       argumentRegister += ValueType.fromDexType(type).requiredRegisters();
     }
-    DexType[] types = method.method.proto.parameters.values;
+    DexType[] types = method.getReference().proto.parameters.values;
     DexString[] names = info.parameters;
     for (int i = 0; i < types.length; i++) {
       // If null, the parameter has a parameterized type and the local is introduced in the stream.

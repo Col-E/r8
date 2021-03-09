@@ -483,7 +483,8 @@ class InterfaceMethodNameMinifier {
                   boolean differentName = implementedMethod.getName() != virtualMethod.getName();
                   if (differentName
                       && MethodJavaSignatureEquivalence.getEquivalenceIgnoreName()
-                          .equivalent(implementedMethod.method, virtualMethod.method)) {
+                          .equivalent(
+                              implementedMethod.getReference(), virtualMethod.getReference())) {
                     InterfaceMethodGroupState interfaceMethodGroupState =
                         globalStateMap.computeIfAbsent(
                             definitionEquivalence.wrap(implementedMethod),

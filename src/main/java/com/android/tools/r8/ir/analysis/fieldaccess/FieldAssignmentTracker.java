@@ -102,7 +102,7 @@ public class FieldAssignmentTracker {
           Map<DexEncodedField, AbstractValue> abstractInstanceFieldValuesForClass =
               new IdentityHashMap<>();
           for (DexEncodedField field : clazz.instanceFields()) {
-            FieldAccessInfo fieldAccessInfo = fieldAccessInfos.get(field.field);
+            FieldAccessInfo fieldAccessInfo = fieldAccessInfos.get(field.getReference());
             if (fieldAccessInfo != null && !fieldAccessInfo.hasReflectiveAccess()) {
               abstractInstanceFieldValuesForClass.put(field, BottomValue.getInstance());
             }
@@ -112,14 +112,14 @@ public class FieldAssignmentTracker {
   }
 
   private boolean isAlwaysZero(DexEncodedField field) {
-    return !appView.appInfo().isPinned(field.field) && !nonZeroFields.contains(field);
+    return !appView.appInfo().isPinned(field.getReference()) && !nonZeroFields.contains(field);
   }
 
   void acceptClassInitializerDefaultsResult(
       ClassInitializerDefaultsResult classInitializerDefaultsResult) {
     classInitializerDefaultsResult.forEachOptimizedField(
         (field, value) -> {
-          if (!value.isDefault(field.field.type)) {
+          if (!value.isDefault(field.getReference().type)) {
             nonZeroFields.add(field);
           }
         });

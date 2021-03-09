@@ -19,7 +19,7 @@ public class CodeMatchers {
     if (!targetSubject.isPresent()) {
       throw new IllegalArgumentException();
     }
-    DexField target = targetSubject.getField().field;
+    DexField target = targetSubject.getField().getReference();
     return new TypeSafeMatcher<MethodSubject>() {
       @Override
       protected boolean matchesSafely(MethodSubject subject) {
@@ -79,7 +79,7 @@ public class CodeMatchers {
     if (!targetSubject.isPresent()) {
       throw new IllegalArgumentException();
     }
-    DexMethod target = targetSubject.getMethod().method;
+    DexMethod target = targetSubject.getMethod().getReference();
     return new TypeSafeMatcher<MethodSubject>() {
       @Override
       protected boolean matchesSafely(MethodSubject subject) {

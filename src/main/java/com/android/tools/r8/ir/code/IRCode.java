@@ -1091,7 +1091,7 @@ public class IRCode implements ValueFactory {
       }
     }
     assert arguments.size()
-        == method().method.getArity()
+        == method().getReference().getArity()
             + ((method().accessFlags.isStatic() || ignoreReceiver) ? 0 : 1);
     return arguments;
   }

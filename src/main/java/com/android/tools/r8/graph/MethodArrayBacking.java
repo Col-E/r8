@@ -26,8 +26,8 @@ public class MethodArrayBacking extends MethodCollectionBacking {
     Set<DexMethod> unique = Sets.newIdentityHashSet();
     forEachMethod(
         method -> {
-          boolean changed = unique.add(method.method);
-          assert changed : "Duplicate method `" + method.method.toSourceString() + "`";
+          boolean changed = unique.add(method.getReference());
+          assert changed : "Duplicate method `" + method.getReference().toSourceString() + "`";
         });
     return true;
   }

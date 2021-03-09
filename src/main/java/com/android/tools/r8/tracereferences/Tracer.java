@@ -301,7 +301,7 @@ class Tracer {
       addType(field.type);
       DexEncodedField baseField = appInfo.resolveField(field).getResolvedField();
       if (baseField != null && baseField.getHolderType() != field.holder) {
-        field = baseField.field;
+        field = baseField.getReference();
       }
       addType(field.holder);
       TracedFieldImpl tracedField = new TracedFieldImpl(field, baseField);
@@ -381,9 +381,9 @@ class Tracer {
       ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
       DexEncodedMethod target =
           resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
-      if (target != null && target.method != method) {
+      if (target != null && target.getReference() != method) {
         addType(method.holder);
-        addMethod(target.method);
+        addMethod(target.getReference());
       } else {
         addMethod(method);
       }
@@ -397,9 +397,9 @@ class Tracer {
     @Override
     public void registerInvokeStatic(DexMethod method) {
       DexEncodedMethod target = appInfo.unsafeResolveMethodDueToDexFormat(method).getSingleTarget();
-      if (target != null && target.method != method) {
+      if (target != null && target.getReference() != method) {
         addType(method.holder);
-        addMethod(target.method);
+        addMethod(target.getReference());
       } else {
         addMethod(method);
       }
@@ -456,7 +456,7 @@ class Tracer {
     }
 
     private void registerField(DexEncodedField field) {
-      registerTypeReference(field.field.type);
+      registerTypeReference(field.getReference().type);
     }
 
     private void registerMethod(ProgramMethod method) {
@@ -488,10 +488,11 @@ class Tracer {
       clazz.forEachMethod(
           method -> {
             ResolutionResult resolutionResult =
-                appInfo.resolveMethodOn(superType, method.method, superType != clazz.superType);
+                appInfo.resolveMethodOn(
+                    superType, method.getReference(), superType != clazz.superType);
             DexEncodedMethod dexEncodedMethod = resolutionResult.getSingleTarget();
             if (dexEncodedMethod != null) {
-              addMethod(dexEncodedMethod.method);
+              addMethod(dexEncodedMethod.getReference());
             }
           });
     }

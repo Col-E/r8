@@ -510,9 +510,9 @@ public class JarClassFileReader<T extends DexClass> {
         throw new CompilationError(message, origin);
       }
       for (DexEncodedField instanceField : instanceFields) {
-        if (!recordComponents.contains(instanceField.field)) {
+        if (!recordComponents.contains(instanceField.getReference())) {
           throw new CompilationError(
-              message + " Unmatched field " + instanceField.field + ".", origin);
+              message + " Unmatched field " + instanceField.getReference() + ".", origin);
         }
       }
     }

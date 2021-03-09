@@ -99,9 +99,9 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     DexClass clazz = classSubject.getDexProgramClass();
     assertEquals(3, clazz.getMethodCollection().numberOfVirtualMethods());
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
-      assertTrue(encodedMethod.method.name.toString().startsWith("foo"));
+      assertTrue(encodedMethod.getReference().name.toString().startsWith("foo"));
       MethodSubject methodSubject =
-          classSubject.method(MethodSignature.fromDexMethod(encodedMethod.method));
+          classSubject.method(MethodSignature.fromDexMethod(encodedMethod.getReference()));
       assertThat(methodSubject, isPresentAndNotRenamed());
     }
   }
@@ -135,9 +135,9 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     DexClass clazz = classSubject.getDexProgramClass();
     assertEquals(3, clazz.getMethodCollection().numberOfVirtualMethods());
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
-      assertTrue(encodedMethod.method.name.toString().startsWith("foo"));
+      assertTrue(encodedMethod.getReference().name.toString().startsWith("foo"));
       MethodSubject methodSubject =
-          classSubject.method(MethodSignature.fromDexMethod(encodedMethod.method));
+          classSubject.method(MethodSignature.fromDexMethod(encodedMethod.getReference()));
       assertThat(methodSubject, isPresentAndNotRenamed());
     }
   }
@@ -155,9 +155,9 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     DexClass clazz = classSubject.getDexProgramClass();
     assertEquals(3, clazz.getMethodCollection().numberOfVirtualMethods());
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
-      assertTrue(encodedMethod.method.name.toString().startsWith("foo"));
+      assertTrue(encodedMethod.getReference().name.toString().startsWith("foo"));
       MethodSubject methodSubject =
-          classSubject.method(MethodSignature.fromDexMethod(encodedMethod.method));
+          classSubject.method(MethodSignature.fromDexMethod(encodedMethod.getReference()));
       assertThat(methodSubject, isPresentAndNotRenamed());
     }
   }

@@ -63,11 +63,13 @@ public abstract class StaticFieldValues {
             assert valuesCandidateAbstractValue == null
                 || valuesCandidateAbstractValue.equals(value);
             valuesCandidateAbstractValue = value;
-            enumObjectStateBuilder.put(staticField.field, value.asSingleFieldValue().getState());
+            enumObjectStateBuilder.put(
+                staticField.getReference(), value.asSingleFieldValue().getState());
           }
         } else if (factory.enumMembers.isEnumField(staticField, staticField.getHolderType())) {
           if (value.isSingleFieldValue() && !value.asSingleFieldValue().getState().isEmpty()) {
-            enumObjectStateBuilder.put(staticField.field, value.asSingleFieldValue().getState());
+            enumObjectStateBuilder.put(
+                staticField.getReference(), value.asSingleFieldValue().getState());
           }
         }
       }

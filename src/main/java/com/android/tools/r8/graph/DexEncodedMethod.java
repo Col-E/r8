@@ -150,7 +150,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public static final Int2ReferenceMap<DebugLocalInfo> NO_PARAMETER_INFO =
       new Int2ReferenceArrayMap<>(0);
 
-  public final DexMethod method;
   public final MethodAccessFlags accessFlags;
   public final boolean deprecated;
   public ParameterAnnotationsList parameterAnnotationsList;
@@ -311,8 +310,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       boolean d8R8Synthesized,
       CfVersion classFileVersion,
       boolean deprecated) {
-    super(annotations, d8R8Synthesized);
-    this.method = method;
+    super(method, annotations, d8R8Synthesized);
     this.accessFlags = accessFlags;
     this.deprecated = deprecated;
     this.genericSignature = genericSignature;
@@ -386,7 +384,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   @Override
   public DexMethod getReference() {
     checkIfObsolete();
-    return method;
+    return super.getReference();
   }
 
   public DexType getParameter(int index) {
@@ -398,11 +396,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public DexMethodSignature getSignature() {
-    return new DexMethodSignature(method);
+    return new DexMethodSignature(getReference());
   }
 
   public DexType returnType() {
-    return method.proto.returnType;
+    return getReference().proto.returnType;
   }
 
   public ParameterAnnotationsList liveParameterAnnotations(AppView<AppInfoWithLiveness> appView) {
@@ -420,19 +418,19 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     assert isLibraryMethodOverride.isPossiblyFalse()
             || this.isLibraryMethodOverride.isPossiblyTrue()
         : "Method `"
-            + method.toSourceString()
+            + getReference().toSourceString()
             + "` went from not overriding a library method to overriding a library method";
     assert isLibraryMethodOverride.isPossiblyTrue()
             || this.isLibraryMethodOverride.isPossiblyFalse()
         : "Method `"
-            + method.toSourceString()
+            + getReference().toSourceString()
             + "` went from overriding a library method to not overriding a library method";
     this.isLibraryMethodOverride = isLibraryMethodOverride;
   }
 
   public boolean isProgramMethod(DexDefinitionSupplier definitions) {
-    if (method.holder.isClassType()) {
-      DexClass clazz = definitions.definitionFor(method.holder);
+    if (getReference().holder.isClassType()) {
+      DexClass clazz = definitions.definitionFor(getReference().holder);
       return clazz != null && clazz.isProgramClass();
     }
     return false;
@@ -444,8 +442,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public DexClassAndMethod asDexClassAndMethod(DexDefinitionSupplier definitions) {
-    assert method.holder.isClassType();
-    DexClass clazz = definitions.definitionForHolder(method);
+    assert getReference().holder.isClassType();
+    DexClass clazz = definitions.definitionForHolder(getReference());
     if (clazz != null) {
       return DexClassAndMethod.create(clazz, this);
     }
@@ -453,8 +451,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public ProgramMethod asProgramMethod(DexDefinitionSupplier definitions) {
-    assert method.holder.isClassType();
-    DexProgramClass clazz = asProgramClassOrNull(definitions.definitionForHolder(method));
+    assert getReference().holder.isClassType();
+    DexProgramClass clazz = asProgramClassOrNull(definitions.definitionForHolder(getReference()));
     if (clazz != null) {
       return new ProgramMethod(clazz, this);
     }
@@ -530,7 +528,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public boolean isDefaultInitializer() {
     checkIfObsolete();
-    return isInstanceInitializer() && method.proto.parameters.isEmpty();
+    return isInstanceInitializer() && getReference().proto.parameters.isEmpty();
   }
 
   public boolean isClassInitializer() {
@@ -698,28 +696,28 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         return true;
 
       case PROCESSED_INLINING_CANDIDATE_SUBCLASS:
-        if (appInfo.isSubtype(containerType, method.holder)) {
+        if (appInfo.isSubtype(containerType, getReference().holder)) {
           return true;
         }
         whyAreYouNotInliningReporter.reportCallerNotSubtype();
         return false;
 
       case PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE:
-        if (containerType.isSamePackage(method.holder)) {
+        if (containerType.isSamePackage(getReference().holder)) {
           return true;
         }
         whyAreYouNotInliningReporter.reportCallerNotSamePackage();
         return false;
 
       case PROCESSED_INLINING_CANDIDATE_SAME_NEST:
-        if (NestUtils.sameNest(containerType, method.holder, appInfo)) {
+        if (NestUtils.sameNest(containerType, getReference().holder, appInfo)) {
           return true;
         }
         whyAreYouNotInliningReporter.reportCallerNotSameNest();
         return false;
 
       case PROCESSED_INLINING_CANDIDATE_SAME_CLASS:
-        if (containerType == method.holder) {
+        if (containerType == getReference().holder) {
           return true;
         }
         whyAreYouNotInliningReporter.reportCallerNotSameClass();
@@ -808,7 +806,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   @Override
   public String toString() {
     checkIfObsolete();
-    return "Encoded method " + method;
+    return "Encoded method " + getReference();
   }
 
   @Override
@@ -869,7 +867,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public String qualifiedName() {
     checkIfObsolete();
-    return method.qualifiedName();
+    return getReference().qualifiedName();
   }
 
   public String descriptor() {
@@ -881,11 +879,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     checkIfObsolete();
     StringBuilder builder = new StringBuilder();
     builder.append("(");
-    for (DexType type : method.proto.parameters.values) {
+    for (DexType type : getReference().proto.parameters.values) {
       builder.append(namingLens.lookupDescriptor(type).toString());
     }
     builder.append(")");
-    builder.append(namingLens.lookupDescriptor(method.proto.returnType).toString());
+    builder.append(namingLens.lookupDescriptor(getReference().proto.returnType).toString());
     return builder.toString();
   }
 
@@ -903,8 +901,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     builder.append(".method ");
     builder.append(accessFlags.toSmaliString());
     builder.append(" ");
-    builder.append(method.name.toSmaliString());
-    builder.append(method.proto.toSmaliString());
+    builder.append(getReference().name.toSmaliString());
+    builder.append(getReference().proto.toSmaliString());
     builder.append("\n");
     if (code != null) {
       DexCode dexCode = code.asDexCode();
@@ -920,7 +918,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   @Override
   public String toSourceString() {
     checkIfObsolete();
-    return method.toSourceString();
+    return getReference().toSourceString();
   }
 
   public DexEncodedMethod toAbstractMethod() {
@@ -946,7 +944,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       offset += instruction.getSize();
     }
     int requiredArgRegisters = accessFlags.isStatic() ? 0 : 1;
-    for (DexType type : method.proto.parameters.values) {
+    for (DexType type : getReference().proto.parameters.values) {
       requiredArgRegisters += ValueType.fromDexType(type).requiredRegisters();
     }
     return new DexCode(
@@ -998,7 +996,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public CfCode buildEmptyThrowingCfCode() {
-    return buildEmptyThrowingCfCode(method);
+    return buildEmptyThrowingCfCode(getReference());
   }
 
   public static CfCode buildEmptyThrowingCfCode(DexMethod method) {
@@ -1034,9 +1032,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     }
     instructions[i] = new CfReturn(ValueType.INT);
     return new CfCode(
-        method.holder,
+        getReference().holder,
         1 + BooleanUtils.intValue(negate),
-        method.getArity() + 1,
+        getReference().getArity() + 1,
         Arrays.asList(instructions),
         Collections.emptyList(),
         Collections.emptyList());
@@ -1076,10 +1074,13 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   
   private DexEncodedMethod toMethodThatLogsErrorDexCode(DexItemFactory itemFactory) {
     checkIfObsolete();
-    Signature signature = MethodSignature.fromDexMethod(method);
+    Signature signature = MethodSignature.fromDexMethod(getReference());
     DexString message =
         itemFactory.createString(
-            CONFIGURATION_DEBUGGING_PREFIX + method.holder.toSourceString() + ": " + signature);
+            CONFIGURATION_DEBUGGING_PREFIX
+                + getReference().holder.toSourceString()
+                + ": "
+                + signature);
     DexString tag = itemFactory.createString("[R8]");
     DexType[] args = {itemFactory.stringType, itemFactory.stringType};
     DexProto proto = itemFactory.createProto(itemFactory.intType, args);
@@ -1110,10 +1111,13 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   private DexEncodedMethod toMethodThatLogsErrorCfCode(DexItemFactory itemFactory) {
     checkIfObsolete();
-    Signature signature = MethodSignature.fromDexMethod(method);
+    Signature signature = MethodSignature.fromDexMethod(getReference());
     DexString message =
         itemFactory.createString(
-            CONFIGURATION_DEBUGGING_PREFIX + method.holder.toSourceString() + ": " + signature);
+            CONFIGURATION_DEBUGGING_PREFIX
+                + getReference().holder.toSourceString()
+                + ": "
+                + signature);
     DexString tag = itemFactory.createString("[R8]");
     DexType logger = itemFactory.javaUtilLoggingLoggerType;
     DexMethod getLogger =
@@ -1132,7 +1136,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
             exceptionType,
             itemFactory.createProto(itemFactory.voidType, itemFactory.stringType),
             itemFactory.constructorMethodName);
-    int locals = method.proto.parameters.size() + 1;
+    int locals = getReference().proto.parameters.size() + 1;
     if (!isStaticMember()) {
       // Consider `this` pointer
       locals++;
@@ -1152,7 +1156,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         .add(new CfThrow());
     CfCode code =
         new CfCode(
-            method.holder,
+            getReference().holder,
             3,
             locals,
             instructionBuilder.build(),
@@ -1171,7 +1175,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public DexEncodedMethod toTypeSubstitutedMethod(DexMethod method, Consumer<Builder> consumer) {
     checkIfObsolete();
-    if (this.method == method) {
+    if (this.getReference() == method) {
       return this;
     }
     Builder builder = builder(this);
@@ -1243,7 +1247,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public DexEncodedMethod toRenamedHolderMethod(DexType newHolderType, DexItemFactory factory) {
     DexEncodedMethod.Builder builder = DexEncodedMethod.builder(this);
-    builder.setMethod(method.withHolder(newHolderType, factory));
+    builder.setMethod(getReference().withHolder(newHolderType, factory));
     return builder.build();
   }
 
@@ -1318,7 +1322,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public DexEncodedMethod toForwardingMethod(
       DexClass newHolder, DexDefinitionSupplier definitions) {
-    DexMethod newMethod = method.withHolder(newHolder, definitions.dexItemFactory());
+    DexMethod newMethod = getReference().withHolder(newHolder, definitions.dexItemFactory());
     checkIfObsolete();
 
     // Clear the final flag, as this method is now overwritten. Do this before creating the builder
@@ -1347,13 +1351,17 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
                                         .setStaticSource(newMethod)
                                         .setStaticTarget(
                                             getReference(),
-                                            method.getHolderType().isInterface(definitions)),
+                                            getReference()
+                                                .getHolderType()
+                                                .isInterface(definitions)),
                                 codeBuilder ->
                                     codeBuilder
                                         .setNonStaticSource(newMethod)
                                         .setSuperTarget(
                                             getReference(),
-                                            method.getHolderType().isInterface(definitions)))
+                                            getReference()
+                                                .getHolderType()
+                                                .isInterface(definitions)))
                             .build())
                     .modifyAccessFlags(MethodAccessFlags::setBridge))
         .build();
@@ -1435,7 +1443,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public MethodPosition getPosition() {
-    return new MethodPosition(method.asMethodReference());
+    return new MethodPosition(getReference().asMethodReference());
   }
 
   @Override
@@ -1456,7 +1464,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public static int slowCompare(DexEncodedMethod m1, DexEncodedMethod m2) {
-    return m1.method.compareTo(m2.method);
+    return m1.getReference().compareTo(m2.getReference());
   }
 
   public MethodOptimizationInfo getOptimizationInfo() {
@@ -1543,7 +1551,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
     private Builder(DexEncodedMethod from, boolean d8R8Synthesized) {
       // Copy all the mutable state of a DexEncodedMethod here.
-      method = from.method;
+      method = from.getReference();
       accessFlags = from.accessFlags.copy();
       genericSignature = from.getGenericSignature();
       annotations = from.annotations();

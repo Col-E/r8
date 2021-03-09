@@ -67,7 +67,7 @@ public class InstantiatedLowerBoundTest extends TestBase {
         appInfo.lookupSingleVirtualTarget(fooA, mainMethod, false, t -> false, typeA, latticeB);
     assertNotNull(singleTarget);
     DexMethod fooB = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
-    assertEquals(fooB, singleTarget.method);
+    assertEquals(fooB, singleTarget.getReference());
   }
 
   @Test
@@ -94,7 +94,7 @@ public class InstantiatedLowerBoundTest extends TestBase {
         appInfo.lookupSingleVirtualTarget(fooA, mainMethod, false, t -> false, typeA, latticeB);
     assertNotNull(singleTarget);
     DexMethod fooB = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
-    assertEquals(fooB, singleTarget.method);
+    assertEquals(fooB, singleTarget.getReference());
   }
 
   @Test
@@ -133,7 +133,7 @@ public class InstantiatedLowerBoundTest extends TestBase {
     lookupResult
         .asLookupResultSuccess()
         .forEach(
-            clazzAndMethod -> actual.add(clazzAndMethod.getDefinition().method),
+            clazzAndMethod -> actual.add(clazzAndMethod.getDefinition().getReference()),
             lambdaTarget -> {
               assert false;
             });

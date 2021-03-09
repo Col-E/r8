@@ -502,12 +502,12 @@ public class ProguardMapMinifier {
 
     @Override
     public DexString getReservedName(DexEncodedMethod method, DexClass holder) {
-      return getReservedName(method, method.method.name, holder);
+      return getReservedName(method, method.getReference().name, holder);
     }
 
     @Override
     public DexString getReservedName(DexEncodedField field, DexClass holder) {
-      return getReservedName(field, field.field.name, holder);
+      return getReservedName(field, field.getReference().name, holder);
     }
 
     private DexString getReservedName(DexDefinition definition, DexString name, DexClass holder) {

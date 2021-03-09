@@ -96,7 +96,7 @@ class MinifiedRenaming extends NonIdentityNamingLens {
     // If the method does not have a direct renaming, return the resolutions mapping.
     ResolutionResult resolutionResult = appView.appInfo().unsafeResolveMethodDueToDexFormat(method);
     if (resolutionResult.isSingleResolution()) {
-      return renaming.getOrDefault(resolutionResult.getSingleTarget().method, method.name);
+      return renaming.getOrDefault(resolutionResult.getSingleTarget().getReference(), method.name);
     }
     // If resolution fails, the method must be renamed consistently with the targets that give rise
     // to the failure.
@@ -104,8 +104,9 @@ class MinifiedRenaming extends NonIdentityNamingLens {
       List<DexEncodedMethod> targets = new ArrayList<>();
       resolutionResult.asFailedResolution().forEachFailureDependency(targets::add);
       if (!targets.isEmpty()) {
-        DexString firstRename = renaming.get(targets.get(0).method);
-        assert targets.stream().allMatch(target -> renaming.get(target.method) == firstRename);
+        DexString firstRename = renaming.get(targets.get(0).getReference());
+        assert targets.stream()
+            .allMatch(target -> renaming.get(target.getReference()) == firstRename);
         if (firstRename != null) {
           return firstRename;
         }
@@ -138,7 +139,7 @@ class MinifiedRenaming extends NonIdentityNamingLens {
       // If we can resolve `item`, then the renaming for `item` and its resolution should be the
       // same.
       DexEncodedMethod resolvedMethod = resolution.asSingleResolution().getResolvedMethod();
-      assert lookupName(method) == lookupName(resolvedMethod.method);
+      assert lookupName(method) == lookupName(resolvedMethod.getReference());
       return true;
     }
 
@@ -162,7 +163,7 @@ class MinifiedRenaming extends NonIdentityNamingLens {
         .asFailedResolution()
         .forEachFailureDependency(
             failureDependence -> {
-              assert lookupName(method) == lookupName(failureDependence.method);
+              assert lookupName(method) == lookupName(failureDependence.getReference());
             });
     return true;
   }

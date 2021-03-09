@@ -60,10 +60,11 @@ public class AppComparator extends TestBase {
     CodeInspector inspect2 = new CodeInspector(app2, Paths.get(MAP_2));
 
     // Define your own tester to pick methods to inspect.
-    Predicate<DexEncodedMethod> methodTester = encodedMethod -> {
-      return encodedMethod.method.name.toString().equals("run")
-          && encodedMethod.method.getArity() == 0;
-    };
+    Predicate<DexEncodedMethod> methodTester =
+        encodedMethod -> {
+          return encodedMethod.getReference().name.toString().equals("run")
+              && encodedMethod.getReference().getArity() == 0;
+        };
 
     inspect1.forAllClasses(clazz1 -> {
       clazz1.forAllMethods(method1 -> {

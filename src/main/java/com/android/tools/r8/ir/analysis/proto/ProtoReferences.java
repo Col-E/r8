@@ -147,7 +147,7 @@ public class ProtoReferences {
   }
 
   public boolean isDynamicMethod(DexEncodedMethod encodedMethod) {
-    return isDynamicMethod(encodedMethod.method);
+    return isDynamicMethod(encodedMethod.getReference());
   }
 
   public boolean isDynamicMethod(ProgramMethod method) {
@@ -160,7 +160,7 @@ public class ProtoReferences {
   }
 
   public boolean isDynamicMethodBridge(DexEncodedMethod method) {
-    return isDynamicMethodBridge(method.method);
+    return isDynamicMethodBridge(method.getReference());
   }
 
   public boolean isDynamicMethodBridge(ProgramMethod method) {

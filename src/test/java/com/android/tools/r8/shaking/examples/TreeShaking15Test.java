@@ -74,13 +74,13 @@ public class TreeShaking15Test extends TreeShakingTest {
   }
 
   private static void checkFieldInDictionary(FieldSubject field) {
-    if (!names.contains(field.getField().field.name.toSourceString())) {
+    if (!names.contains(field.getField().getReference().name.toSourceString())) {
       throw new AssertionError();
     }
   }
 
   private static void checkMethodInDictionary(MethodSubject method) {
-    String name = method.getMethod().method.name.toSourceString();
+    String name = method.getMethod().getReference().name.toSourceString();
     if (!names.contains(name) && !name.equals("<init>") && !name.equals("main")) {
       throw new AssertionError();
     }

@@ -64,7 +64,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
             .anyMatch(
                 m ->
                     m.getMethod()
-                        .method
+                        .getReference()
                         .proto
                         .parameters
                         .values[0]
@@ -75,7 +75,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
             .anyMatch(
                 m ->
                     m.getMethod()
-                        .method
+                        .getReference()
                         .proto
                         .parameters
                         .values[0]
@@ -210,9 +210,9 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
         virtualMethods.stream()
             .anyMatch(
                 m ->
-                    m.getMethod().method.name.toString().equals("foo")
+                    m.getMethod().getReference().name.toString().equals("foo")
                         && m.getMethod()
-                            .method
+                            .getReference()
                             .proto
                             .parameters
                             .values[0]

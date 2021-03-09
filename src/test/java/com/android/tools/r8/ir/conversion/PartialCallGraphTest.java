@@ -137,7 +137,7 @@ public class PartialCallGraphTest extends CallGraphTestBase {
 
   private Node findNode(Iterable<Node> nodes, String name) {
     for (Node n : nodes) {
-      if (n.getMethod().method.name.toString().equals(name)) {
+      if (n.getMethod().getReference().name.toString().equals(name)) {
         return n;
       }
     }
@@ -147,7 +147,7 @@ public class PartialCallGraphTest extends CallGraphTestBase {
   private ProgramMethod findMethod(String name) {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       for (DexEncodedMethod method : clazz.methods()) {
-        if (method.method.name.toString().equals(name)) {
+        if (method.getReference().name.toString().equals(name)) {
           return new ProgramMethod(clazz, method);
         }
       }

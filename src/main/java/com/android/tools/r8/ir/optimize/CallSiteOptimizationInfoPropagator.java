@@ -384,12 +384,13 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
         }
       }
     }
-    assert argumentsSeen == code.method().method.getArity() + (code.method().isStatic() ? 0 : 1)
+    assert argumentsSeen
+            == code.method().getReference().getArity() + (code.method().isStatic() ? 0 : 1)
         : "args: "
             + argumentsSeen
             + " != "
             + "arity: "
-            + code.method().method.getArity()
+            + code.method().getReference().getArity()
             + ", static: "
             + code.method().isStatic();
     // After packed Argument instructions, add Assume and constant instructions.

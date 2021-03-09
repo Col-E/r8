@@ -26,8 +26,8 @@ public class FieldInspectorImpl implements FieldInspector {
       reference =
           Reference.field(
               parent.getClassReference(),
-              field.field.name.toString(),
-              Reference.typeFromDescriptor(field.field.type.toDescriptorString()));
+              field.getReference().name.toString(),
+              Reference.typeFromDescriptor(field.getReference().type.toDescriptorString()));
     }
     return reference;
   }
@@ -45,7 +45,7 @@ public class FieldInspectorImpl implements FieldInspector {
   @Override
   public Optional<ValueInspector> getInitialValue() {
     if (field.isStatic() && field.getStaticValue() != null) {
-      return Optional.of(new ValueInspectorImpl(field.getStaticValue(), field.field.type));
+      return Optional.of(new ValueInspectorImpl(field.getStaticValue(), field.getReference().type));
     }
     return Optional.empty();
   }

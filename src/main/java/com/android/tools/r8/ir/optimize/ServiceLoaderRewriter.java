@@ -178,7 +178,7 @@ public class ServiceLoaderRewriter {
               });
 
       new Rewriter(code, instructionIterator, serviceLoaderLoad)
-          .perform(classLoaderInvoke, synthesizedMethod.method);
+          .perform(classLoaderInvoke, synthesizedMethod.getReference());
     }
   }
 

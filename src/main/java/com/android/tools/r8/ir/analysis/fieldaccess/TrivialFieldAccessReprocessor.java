@@ -134,7 +134,7 @@ public class TrivialFieldAccessReprocessor {
   private void clearReadsAndWritesFromFieldsOfInterest(AppInfoWithLiveness appInfo) {
     FieldAccessInfoCollection<?> fieldAccessInfoCollection = appInfo.getFieldAccessInfoCollection();
     for (DexEncodedField field : constantFields) {
-      fieldAccessInfoCollection.get(field.field).asMutable().clearReads();
+      fieldAccessInfoCollection.get(field.getReference()).asMutable().clearReads();
     }
     for (DexEncodedField field : readFields.keySet()) {
       fieldAccessInfoCollection.get(field.getReference()).asMutable().clearWrites();
@@ -165,7 +165,7 @@ public class TrivialFieldAccessReprocessor {
   private static FieldClassification classifyField(
       DexEncodedField field, AppView<AppInfoWithLiveness> appView) {
     FieldAccessInfo fieldAccessInfo =
-        appView.appInfo().getFieldAccessInfoCollection().get(field.field);
+        appView.appInfo().getFieldAccessInfoCollection().get(field.getReference());
     if (fieldAccessInfo == null
         || fieldAccessInfo.hasReflectiveAccess()
         || fieldAccessInfo.isAccessedFromMethodHandle()
@@ -184,7 +184,7 @@ public class TrivialFieldAccessReprocessor {
       if (singleValue.isSingleFieldValue()) {
         SingleFieldValue singleFieldValue = singleValue.asSingleFieldValue();
         DexField singleField = singleFieldValue.getField();
-        if (singleField != field.field
+        if (singleField != field.getReference()
             && !singleFieldValue.mayHaveFinalizeMethodDirectlyOrIndirectly(appView)) {
           return FieldClassification.CONSTANT;
         }

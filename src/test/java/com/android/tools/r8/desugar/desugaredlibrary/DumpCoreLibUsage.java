@@ -85,13 +85,13 @@ public class DumpCoreLibUsage {
         if (!field.accessFlags.isPublic()) {
           continue;
         }
-        if (filter.contains(field.field)) {
+        if (filter.contains(field.getReference())) {
           continue;
         }
-        if (usesTypeFromPackage(pkg, field.field)) {
+        if (usesTypeFromPackage(pkg, field.getReference())) {
           headerWritten = writeHeaderIfNeeded(libraryClass.type, headerWritten);
           System.out.println("  " + field.toSourceString());
-          found.add(field.field);
+          found.add(field.getReference());
         }
       }
 
@@ -105,13 +105,13 @@ public class DumpCoreLibUsage {
         if (method.isSyntheticMethod()) {
           continue;
         }
-        if (filter.contains(method.method)) {
+        if (filter.contains(method.getReference())) {
           continue;
         }
-        if (usesTypeFromPackage(pkg, method.method)) {
+        if (usesTypeFromPackage(pkg, method.getReference())) {
           headerWritten = writeHeaderIfNeeded(libraryClass.type, headerWritten);
-          System.out.println("  " + method.method.toSourceStringWithoutHolder());
-          found.add(method.method);
+          System.out.println("  " + method.getReference().toSourceStringWithoutHolder());
+          found.add(method.getReference());
         }
       }
 

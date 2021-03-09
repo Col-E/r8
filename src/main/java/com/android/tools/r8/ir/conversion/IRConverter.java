@@ -1196,7 +1196,7 @@ public class IRConverter {
             + ExceptionUtils.getMainStackTrace();
     assert !method.isProcessed()
             || !appView.enableWholeProgramOptimizations()
-            || !appView.appInfo().withLiveness().isNeverReprocessMethod(method.method)
+            || !appView.appInfo().withLiveness().isNeverReprocessMethod(method.getReference())
         : "Illegal reprocessing due to -neverreprocess rule: " + context.toSourceString();
 
     if (typeChecker != null && !typeChecker.check(code)) {
@@ -1621,7 +1621,7 @@ public class IRConverter {
       timing.end();
     }
 
-    if (appView.appInfo().withLiveness().isPinned(code.method().method)) {
+    if (appView.appInfo().withLiveness().isPinned(code.method().getReference())) {
       return;
     }
 
@@ -1785,7 +1785,7 @@ public class IRConverter {
       return;
     }
     // Only constructors with certain signatures.
-    DexTypeList paramTypes = code.method().method.proto.parameters;
+    DexTypeList paramTypes = code.method().getReference().proto.parameters;
     if (paramTypes.size() != 3 ||
         paramTypes.values[0] != options.itemFactory.doubleType ||
         paramTypes.values[1] != options.itemFactory.doubleType ||
@@ -1967,7 +1967,7 @@ public class IRConverter {
       printer.end("cfg");
     }
     if (options.extensiveLoggingFilter.size() > 0
-        && options.extensiveLoggingFilter.contains(code.method().method.toSourceString())) {
+        && options.extensiveLoggingFilter.contains(code.method().getReference().toSourceString())) {
       String current = code.toString();
       System.out.println();
       System.out.println("-----------------------------------------------------------------------");

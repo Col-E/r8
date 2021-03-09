@@ -260,22 +260,24 @@ public class Minifier {
       if (!allowMemberRenaming(holder)
           || holder.accessFlags.isAnnotation()
           || method.accessFlags.isConstructor()
-          || !appView.appInfo().isMinificationAllowed(method.method)) {
-        return method.method.name;
+          || !appView.appInfo().isMinificationAllowed(method.getReference())) {
+        return method.getReference().name;
       }
       if (desugaredLibraryRenaming
           && method.isLibraryMethodOverride().isTrue()
-          && appView.rewritePrefix.hasRewrittenTypeInSignature(method.method.proto, appView)) {
+          && appView.rewritePrefix.hasRewrittenTypeInSignature(
+              method.getReference().proto, appView)) {
         // With desugared library, call-backs names are reserved here.
-        return method.method.name;
+        return method.getReference().name;
       }
       return null;
     }
 
     @Override
     public DexString getReservedName(DexEncodedField field, DexClass holder) {
-      if (holder.isLibraryClass() || !appView.appInfo().isMinificationAllowed(field.field)) {
-        return field.field.name;
+      if (holder.isLibraryClass()
+          || !appView.appInfo().isMinificationAllowed(field.getReference())) {
+        return field.getReference().name;
       }
       return null;
     }

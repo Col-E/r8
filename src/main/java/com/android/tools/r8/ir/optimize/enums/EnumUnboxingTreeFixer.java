@@ -103,7 +103,7 @@ class EnumUnboxingTreeFixer {
 
   private DexEncodedMethod fixupEncodedMethodToUtility(
       DexEncodedMethod encodedMethod, DexType newHolder) {
-    DexMethod method = encodedMethod.method;
+    DexMethod method = encodedMethod.getReference();
     DexString newMethodName =
         factory.createString(
             enumUnboxerRewriter.compatibleName(method.holder)
@@ -137,9 +137,10 @@ class EnumUnboxingTreeFixer {
         method.getName().toString() + (method.isNonPrivateVirtualMethod() ? "$enumunboxing$" : "");
     DexMethod newMethod = factory.createMethod(method.getHolderType(), newProto, newMethodName);
     newMethod = ensureUniqueMethod(method, newMethod);
-    int numberOfExtraNullParameters = newMethod.getArity() - method.method.getArity();
+    int numberOfExtraNullParameters = newMethod.getArity() - method.getReference().getArity();
     boolean isStatic = method.isStatic();
-    lensBuilder.move(method.method, newMethod, isStatic, isStatic, numberOfExtraNullParameters);
+    lensBuilder.move(
+        method.getReference(), newMethod, isStatic, isStatic, numberOfExtraNullParameters);
     return method.toTypeSubstitutedMethod(
         newMethod,
         builder ->
@@ -195,7 +196,7 @@ class EnumUnboxingTreeFixer {
     }
     for (int i = 0; i < fields.size(); i++) {
       DexEncodedField encodedField = fields.get(i);
-      DexField field = encodedField.field;
+      DexField field = encodedField.getReference();
       DexType newType = fixupType(field.type);
       if (newType != field.type) {
         DexField newField = factory.createField(field.holder, newType, field.name);

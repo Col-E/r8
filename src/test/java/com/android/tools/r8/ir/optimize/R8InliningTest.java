@@ -276,7 +276,7 @@ public class R8InliningTest extends TestBase {
     for (int i = 0; i < 3; ++i) {
       MethodSubject markerSubject = clazz.method("void", "marker" + i, Collections.emptyList());
       assertTrue(markerSubject.isPresent());
-      markers[i] = markerSubject.getMethod().method;
+      markers[i] = markerSubject.getMethod().getReference();
     }
 
     // Count invokes to callee between markers.
@@ -290,7 +290,7 @@ public class R8InliningTest extends TestBase {
 
       DexMethod target = ((InvokeInstructionSubject) instruction).invokedMethod();
 
-      if (target == callee.getMethod().method) {
+      if (target == callee.getMethod().getReference()) {
         assertTrue(phase == 0 || phase == 1);
         ++counters[phase];
         continue;

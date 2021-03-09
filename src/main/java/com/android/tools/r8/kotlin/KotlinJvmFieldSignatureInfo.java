@@ -40,8 +40,8 @@ public class KotlinJvmFieldSignatureInfo implements EnqueuerMetadataTraceable {
       DexEncodedField field, AppView<?> appView, NamingLens namingLens) {
     String finalName = name;
     if (field != null) {
-      String fieldName = field.field.name.toString();
-      String rewrittenName = namingLens.lookupName(field.field).toString();
+      String fieldName = field.getReference().name.toString();
+      String rewrittenName = namingLens.lookupName(field.getReference()).toString();
       if (!fieldName.equals(rewrittenName)) {
         finalName = rewrittenName;
       }

@@ -54,7 +54,7 @@ public class ClassInitFieldSynthesizer {
       }
       // When compiling for dex, we can't use wide fields since we've only allocated a single
       // register for the out-value of each ClassInit instruction
-      if (staticField.field.type.isWideType()) {
+      if (staticField.getReference().type.isWideType()) {
         continue;
       }
       if (encodedClinitField == null) {
@@ -90,7 +90,7 @@ public class ClassInitFieldSynthesizer {
               d8R8Synthesized);
       clazz.appendStaticField(encodedClinitField);
     }
-    lensBuilder.map(type, encodedClinitField.field);
+    lensBuilder.map(type, encodedClinitField.getReference());
   }
 
   private boolean isMinimumRequiredVisibility(

@@ -65,7 +65,8 @@ public class IfRuleWithApplyMappingTest extends TestBase {
         inspector.clazz(IfRuleWithApplyMappingTestClass.class).uniqueMethodWithName("method");
     assertThat(methodSubject, isPresent());
     assertEquals(
-        A.class.getTypeName(), methodSubject.getMethod().method.proto.parameters.toSourceString());
+        A.class.getTypeName(),
+        methodSubject.getMethod().getReference().proto.parameters.toSourceString());
   }
 }
 

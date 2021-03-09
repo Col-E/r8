@@ -187,7 +187,7 @@ public class CfBuilder {
   public DexField resolveField(DexField field) {
     DexEncodedField resolvedField =
         appView.appInfoForDesugaring().resolveField(field).getResolvedField();
-    return resolvedField == null ? field : resolvedField.field;
+    return resolvedField == null ? field : resolvedField.getReference();
   }
 
   private void computeInitializers() {

@@ -357,11 +357,12 @@ public class LineNumberOptimizer {
             }
           }
 
-          DexMethod originalMethod = appView.graphLens().getOriginalMethodSignature(method.method);
+          DexMethod originalMethod =
+              appView.graphLens().getOriginalMethodSignature(method.getReference());
           MethodSignature originalSignature =
               MethodSignature.fromDexMethod(originalMethod, originalMethod.holder != originalType);
 
-          DexString obfuscatedNameDexString = namingLens.lookupName(method.method);
+          DexString obfuscatedNameDexString = namingLens.lookupName(method.getReference());
           String obfuscatedName = obfuscatedNameDexString.toString();
 
           // Add simple "a() -> b" mapping if we won't have any other with concrete line numbers
@@ -467,7 +468,7 @@ public class LineNumberOptimizer {
       }
       allSeenAreInstanceInitializers = false;
       // If the method is pinned, we cannot minify it.
-      if (!keepInfo.isMinificationAllowed(method.method, appView, appView.options())) {
+      if (!keepInfo.isMinificationAllowed(method.getReference(), appView, appView.options())) {
         continue;
       }
       // With desugared library, call-backs names are reserved here.
@@ -477,16 +478,17 @@ public class LineNumberOptimizer {
       // We use the same name for interface names even if it has different types.
       DexProgramClass clazz = appView.definitionForProgramType(method.getHolderType());
       DexClassAndMethod lookupResult =
-          appView.appInfo().lookupMaximallySpecificMethod(clazz, method.method);
+          appView.appInfo().lookupMaximallySpecificMethod(clazz, method.getReference());
       if (lookupResult == null) {
         // We cannot rename methods we cannot look up.
         continue;
       }
-      String errorString = method.method.qualifiedName() + " is not kept but is overloaded";
+      String errorString = method.getReference().qualifiedName() + " is not kept but is overloaded";
       assert lookupResult.getHolder().isInterface() : errorString;
       // TODO(b/159113601): Reenable assert.
-      assert true || originalName == null || originalName.equals(method.method.name) : errorString;
-      originalName = method.method.name;
+      assert true || originalName == null || originalName.equals(method.getReference().name)
+          : errorString;
+      originalName = method.getReference().name;
     }
     return true;
   }
@@ -544,7 +546,7 @@ public class LineNumberOptimizer {
       Supplier<Builder> onDemandClassNamingBuilder) {
     clazz.forEachField(
         dexEncodedField -> {
-          DexField dexField = dexEncodedField.field;
+          DexField dexField = dexEncodedField.getReference();
           DexField originalField = graphLens.getOriginalFieldSignature(dexField);
           DexString renamedName = namingLens.lookupName(dexField);
           if (renamedName != originalField.name || originalField.holder != originalType) {
@@ -562,7 +564,7 @@ public class LineNumberOptimizer {
         new IdentityHashMap<>(clazz.getMethodCollection().size());
     for (DexEncodedMethod encodedMethod : clazz.methods()) {
       // Add method only if renamed, moved, or contains positions.
-      DexMethod method = encodedMethod.method;
+      DexMethod method = encodedMethod.getReference();
       DexString renamedName = namingLens.lookupName(method);
       if (renamedName != method.name
           || graphLens.getOriginalMethodSignature(method) != method
@@ -626,7 +628,7 @@ public class LineNumberOptimizer {
     PositionEventEmitter positionEventEmitter =
         new PositionEventEmitter(
             application.dexItemFactory,
-            appView.graphLens().getOriginalMethodSignature(method.method),
+            appView.graphLens().getOriginalMethodSignature(method.getReference()),
             processedEvents);
 
     Box<Boolean> inlinedOriginalPosition = new Box<>(false);
@@ -634,7 +636,8 @@ public class LineNumberOptimizer {
     // Debug event visitor to map line numbers.
     DexDebugEventVisitor visitor =
         new DexDebugPositionState(
-            debugInfo.startLine, appView.graphLens().getOriginalMethodSignature(method.method)) {
+            debugInfo.startLine,
+            appView.graphLens().getOriginalMethodSignature(method.getReference())) {
 
           // Keep track of what PC has been emitted.
           private int emittedPc = 0;
@@ -734,7 +737,7 @@ public class LineNumberOptimizer {
     Pair<Integer, Position> lastPosition = new Pair<>();
 
     DexDebugEventVisitor visitor =
-        new DexDebugPositionState(debugInfo.startLine, method.method) {
+        new DexDebugPositionState(debugInfo.startLine, method.getReference()) {
           @Override
           public void visit(Default defaultEvent) {
             super.visit(defaultEvent);

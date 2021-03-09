@@ -188,11 +188,11 @@ public class MemberRebindingAnalysis {
           DexEncodedMethod target = lookupTarget.apply(method);
           // TODO(b/128404854) Rebind to the lowest library class or program class. For now we allow
           //  searching in library for methods, but this should be done on classpath instead.
-          if (target == null || target.method == method) {
+          if (target == null || target.getReference() == method) {
             return;
           }
           DexClass targetClass = appView.definitionFor(target.getHolderType());
-          DexMethod targetMethod = target.method;
+          DexMethod targetMethod = target.getReference();
           if (originalClass.isProgramClass()) {
             // In Java bytecode, it is only possible to target interface methods that are in one of
             // the immediate super-interfaces via a super-invocation (see
@@ -235,7 +235,7 @@ public class MemberRebindingAnalysis {
                   target.toForwardingMethod(bridgeHolder, appView);
               bridgeHolder.addMethod(bridgeMethodDefinition);
             }
-            assert lookupTarget.apply(method).method == bridgeMethod;
+            assert lookupTarget.apply(method).getReference() == bridgeMethod;
           }
         });
   }
@@ -267,7 +267,7 @@ public class MemberRebindingAnalysis {
     assert bridgeHolder != null;
     assert bridgeHolder != targetClass;
     bridges.accept(bridgeHolder, method, target);
-    return target.method.withHolder(bridgeHolder.getType(), appView.dexItemFactory());
+    return target.getReference().withHolder(bridgeHolder.getType(), appView.dexItemFactory());
   }
 
   private DexProgramClass findHolderForInterfaceMethodBridge(DexProgramClass clazz, DexType iface) {
@@ -316,9 +316,9 @@ public class MemberRebindingAnalysis {
           findHolderForVisibilityBridge(originalClass, targetClass, packageDescriptor);
       assert bridgeHolder != null;
       bridges.accept(bridgeHolder, method, target);
-      return target.method.withHolder(bridgeHolder.getType(), appView.dexItemFactory());
+      return target.getReference().withHolder(bridgeHolder.getType(), appView.dexItemFactory());
     }
-    return target.method;
+    return target.getReference();
   }
 
   private DexProgramClass findHolderForVisibilityBridge(

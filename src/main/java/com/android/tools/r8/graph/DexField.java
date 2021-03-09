@@ -175,7 +175,7 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
 
   @Override
   public boolean match(DexEncodedField encodedField) {
-    return match(encodedField.field);
+    return match(encodedField.getReference());
   }
 
   public String qualifiedName() {

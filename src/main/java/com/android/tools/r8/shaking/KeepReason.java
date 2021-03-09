@@ -96,12 +96,12 @@ public abstract class KeepReason {
     abstract String getKind();
 
     public DexMethod getMethod() {
-      return method.method;
+      return method.getReference();
     }
 
     @Override
     public GraphNode getSourceNode(GraphReporter graphReporter) {
-      return graphReporter.getMethodGraphNode(method.method);
+      return graphReporter.getMethodGraphNode(method.getReference());
     }
   }
 
@@ -264,10 +264,10 @@ public abstract class KeepReason {
       if (holder.isDexClass()) {
         return graphReporter.getClassGraphNode(holder.asDexClass().type);
       } else if (holder.isDexEncodedField()) {
-        return graphReporter.getFieldGraphNode(holder.asDexEncodedField().field);
+        return graphReporter.getFieldGraphNode(holder.asDexEncodedField().getReference());
       } else {
         assert holder.isDexEncodedMethod();
-        return graphReporter.getMethodGraphNode(holder.asDexEncodedMethod().method);
+        return graphReporter.getMethodGraphNode(holder.asDexEncodedMethod().getReference());
       }
     }
   }

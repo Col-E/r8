@@ -66,7 +66,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   @Override
   public void recordFieldHasAbstractValue(
       DexEncodedField field, AppView<AppInfoWithLiveness> appView, AbstractValue abstractValue) {
-    if (appView.appInfo().mayPropagateValueFor(field.field)) {
+    if (appView.appInfo().mayPropagateValueFor(field.getReference())) {
       field.getMutableOptimizationInfo().setAbstractValue(abstractValue);
     }
   }

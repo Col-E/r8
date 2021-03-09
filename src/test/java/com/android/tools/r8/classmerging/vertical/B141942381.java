@@ -77,8 +77,8 @@ public class B141942381 extends TestBase {
     assertThat(set, isPresent());
 
     assertEquals(
-        set.getMethod().method.proto.parameters.values[0],
-        storage.getField().field.type.toBaseType(inspector.getFactory()));
+        set.getMethod().getReference().proto.parameters.values[0],
+        storage.getField().getReference().type.toBaseType(inspector.getFactory()));
   }
 
   static class TestClass {

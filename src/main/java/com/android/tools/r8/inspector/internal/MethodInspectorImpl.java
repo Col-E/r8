@@ -27,14 +27,14 @@ public class MethodInspectorImpl implements MethodInspector {
       reference =
           Reference.method(
               parent.getClassReference(),
-              method.method.name.toString(),
+              method.getReference().name.toString(),
               ListUtils.map(
-                  Arrays.asList(method.method.proto.parameters.values),
+                  Arrays.asList(method.getReference().proto.parameters.values),
                   param -> Reference.typeFromDescriptor(param.toDescriptorString())),
-              method.method.proto.returnType.isVoidType()
+              method.getReference().proto.returnType.isVoidType()
                   ? null
                   : Reference.typeFromDescriptor(
-                      method.method.proto.returnType.toDescriptorString()));
+                      method.getReference().proto.returnType.toDescriptorString()));
     }
     return reference;
   }

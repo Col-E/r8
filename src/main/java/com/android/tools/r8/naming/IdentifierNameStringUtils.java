@@ -378,9 +378,9 @@ public final class IdentifierNameStringUtils {
 
   private static DexField inferFieldInHolder(DexClass holder, String name, DexType fieldType) {
     for (DexEncodedField encodedField : holder.fields()) {
-      if (encodedField.field.name.toString().equals(name)
-          && (fieldType == null || encodedField.field.type == fieldType)) {
-        return encodedField.field;
+      if (encodedField.getReference().name.toString().equals(name)
+          && (fieldType == null || encodedField.getReference().type == fieldType)) {
+        return encodedField.getReference();
       }
     }
     return null;
@@ -388,8 +388,8 @@ public final class IdentifierNameStringUtils {
 
   private static DexMethod inferMethodNameInHolder(DexClass holder, String name) {
     for (DexEncodedMethod encodedMethod : holder.methods()) {
-      if (encodedMethod.method.name.toString().equals(name)) {
-        return encodedMethod.method;
+      if (encodedMethod.getReference().name.toString().equals(name)) {
+        return encodedMethod.getReference();
       }
     }
     return null;
@@ -399,9 +399,9 @@ public final class IdentifierNameStringUtils {
       DexClass holder, String name, DexTypeList arguments) {
     assert arguments != null;
     for (DexEncodedMethod encodedMethod : holder.methods()) {
-      if (encodedMethod.method.name.toString().equals(name)
-          && encodedMethod.method.proto.parameters.equals(arguments)) {
-        return encodedMethod.method;
+      if (encodedMethod.getReference().name.toString().equals(name)
+          && encodedMethod.getReference().proto.parameters.equals(arguments)) {
+        return encodedMethod.getReference();
       }
     }
     return null;

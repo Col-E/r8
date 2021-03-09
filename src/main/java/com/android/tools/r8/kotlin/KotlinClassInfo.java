@@ -93,11 +93,11 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       Consumer<DexEncodedMethod> keepByteCode) {
     Map<String, DexEncodedField> fieldMap = new HashMap<>();
     for (DexEncodedField field : hostClass.fields()) {
-      fieldMap.put(toJvmFieldSignature(field.field).asString(), field);
+      fieldMap.put(toJvmFieldSignature(field.getReference()).asString(), field);
     }
     Map<String, DexEncodedMethod> methodMap = new HashMap<>();
     for (DexEncodedMethod method : hostClass.methods()) {
-      methodMap.put(toJvmMethodSignature(method.method).asString(), method);
+      methodMap.put(toJvmMethodSignature(method.getReference()).asString(), method);
     }
     ImmutableList.Builder<KotlinConstructorInfo> notBackedConstructors = ImmutableList.builder();
     for (KmConstructor kmConstructor : kmClass.getConstructors()) {
@@ -184,7 +184,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       return;
     }
     for (DexEncodedField field : hostClass.fields()) {
-      if (field.field.name.toString().equals(companionObjectName)) {
+      if (field.getReference().name.toString().equals(companionObjectName)) {
         field.setKotlinMemberInfo(new KotlinCompanionInfo());
         return;
       }
@@ -221,7 +221,10 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     // Find a companion object.
     for (DexEncodedField field : clazz.fields()) {
       if (field.getKotlinMemberInfo().isCompanion()) {
-        field.getKotlinMemberInfo().asCompanion().rewrite(kmClass, field.field, namingLens);
+        field
+            .getKotlinMemberInfo()
+            .asCompanion()
+            .rewrite(kmClass, field.getReference(), namingLens);
       }
     }
     // Take all not backed constructors because we will never find them in definitions.

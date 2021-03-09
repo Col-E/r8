@@ -164,7 +164,7 @@ public class ClassInitializerDefaultsOptimization {
     // Set initial values for static fields from the definitive static put instructions collected.
     finalFieldPuts.forEach(
         (field, put) -> {
-          DexType fieldType = field.field.type;
+          DexType fieldType = field.getReference().type;
           Value value = put.value().getAliasedValue();
           if (unnecessaryStaticPuts.contains(put)) {
             if (fieldType == dexItemFactory.stringType) {
@@ -253,7 +253,7 @@ public class ClassInitializerDefaultsOptimization {
                 .map(appInfoWithLiveness::resolveField)
                 .map(FieldResolutionResult::getResolvedField)
                 .filter(appInfoWithLiveness::isStaticFieldWrittenOnlyInEnclosingStaticInitializer)
-                .map(field -> field.field)
+                .map(field -> field.getReference())
                 .collect(Collectors.toSet());
 
         // Then retain only these fields that are actually no longer being written to.
@@ -264,7 +264,7 @@ public class ClassInitializerDefaultsOptimization {
             DexEncodedField encodedField =
                 appInfoWithLiveness.resolveField(field).getResolvedField();
             if (encodedField != null) {
-              candidates.remove(encodedField.field);
+              candidates.remove(encodedField.getReference());
             }
           }
         }

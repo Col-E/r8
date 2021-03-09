@@ -61,7 +61,7 @@ public class LibraryMethodOverrideInLambdaMarkingTest extends TestBase {
       AppInfoWithLiveness appInfo, DexType type) {
     DexProgramClass clazz = appInfo.definitionFor(type).asProgramClass();
     DexEncodedMethod method =
-        clazz.lookupVirtualMethod(m -> m.method.name.toString().equals("iterator"));
+        clazz.lookupVirtualMethod(m -> m.getReference().name.toString().equals("iterator"));
     // TODO(b/149976493): Mark library overrides from lambda instances.
     if (parameters.isCfRuntime()) {
       assertTrue(method.isLibraryMethodOverride().isFalse());

@@ -58,7 +58,7 @@ public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
       clazz.forEachMethod(
           encodedMethod -> {
             if (methodTester.test(encodedMethod)) {
-              methodPool.seen(equivalence.wrap(encodedMethod.method));
+              methodPool.seen(equivalence.wrap(encodedMethod.getReference()));
             }
           });
       if (clazz.superType != null) {

@@ -17,7 +17,7 @@ public class FieldBitAccessAnalysis {
 
   public void recordFieldAccess(
       FieldInstruction instruction, DexEncodedField field, OptimizationFeedback feedback) {
-    if (!field.field.type.isIntType()) {
+    if (!field.getReference().type.isIntType()) {
       return;
     }
 
@@ -79,7 +79,7 @@ public class FieldBitAccessAnalysis {
     }
     if (user.isFieldPut()) {
       FieldInstruction fieldInstruction = user.asFieldInstruction();
-      if (fieldInstruction.getField() == encodedField.field) {
+      if (fieldInstruction.getField() == encodedField.getReference()) {
         return true;
       }
     }

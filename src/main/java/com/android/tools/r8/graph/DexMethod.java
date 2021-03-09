@@ -223,7 +223,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
   @Override
   public boolean match(DexEncodedMethod encodedMethod) {
-    return match(encodedMethod.method);
+    return match(encodedMethod.getReference());
   }
 
   public String qualifiedName() {

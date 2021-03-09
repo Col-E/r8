@@ -31,7 +31,7 @@ public class NonEmptyObjectState extends ObjectState {
 
   @Override
   public AbstractValue getAbstractFieldValue(DexEncodedField field) {
-    return state.getOrDefault(field.field, UnknownValue.getInstance());
+    return state.getOrDefault(field.getReference(), UnknownValue.getInstance());
   }
 
   @Override

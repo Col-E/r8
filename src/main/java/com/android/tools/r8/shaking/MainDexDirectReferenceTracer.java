@@ -53,7 +53,7 @@ public class MainDexDirectReferenceTracer {
           clazz.annotations(), appInfo.dexItemFactory())) {
         traceAnnotationsDirectDependencies(clazz.annotations());
       }
-      clazz.forEachField(field -> consumer.accept(field.field.type));
+      clazz.forEachField(field -> consumer.accept(field.getReference().type));
       clazz.forEachProgramMethodMatching(
           definition -> {
             traceMethodDirectDependencies(definition.getReference(), consumer);

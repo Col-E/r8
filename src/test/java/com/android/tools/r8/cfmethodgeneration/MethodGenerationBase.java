@@ -111,7 +111,7 @@ public abstract class MethodGenerationBase extends TestBase {
                   continue;
                 }
                 String holderName = method.getHolderType().getName();
-                String methodName = method.method.name.toString();
+                String methodName = method.getReference().name.toString();
                 String generatedMethodName = holderName + "_" + methodName;
                 CfCode code = getCode(holderName, methodName, method.getCode().asCfCode());
                 if (code != null) {

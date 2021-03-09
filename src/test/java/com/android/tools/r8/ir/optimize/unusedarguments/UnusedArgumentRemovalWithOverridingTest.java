@@ -63,7 +63,8 @@ public class UnusedArgumentRemovalWithOverridingTest extends TestBase {
 
     MethodSubject methodSubject = classSubject.uniqueMethodWithName("greeting");
     assertThat(methodSubject, isPresent());
-    assertEquals("java.lang.String", methodSubject.getMethod().method.proto.parameters.toString());
+    assertEquals(
+        "java.lang.String", methodSubject.getMethod().getReference().proto.parameters.toString());
   }
 
   static class TestClass {

@@ -100,7 +100,7 @@ public class SwitchMapCollector {
   }
 
   private void extractSwitchMap(DexEncodedField encodedField, IRCode initializer) {
-    DexField field = encodedField.field;
+    DexField field = encodedField.getReference();
     Int2ReferenceMap<DexField> switchMap = new Int2ReferenceArrayMap<>();
 
     // Find each array-put instruction that updates an entry of the array that is stored in
@@ -162,7 +162,7 @@ public class SwitchMapCollector {
 
   private boolean maybeIsSwitchMap(DexEncodedField dexEncodedField) {
     // We are looking for synthetic fields of type int[].
-    DexField field = dexEncodedField.field;
+    DexField field = dexEncodedField.getReference();
     return dexEncodedField.accessFlags.isSynthetic()
         && (field.name.startsWith(switchMapPrefix) || field.name.startsWith(kotlinSwitchMapPrefix))
         && field.type == intArrayType;

@@ -254,7 +254,7 @@ public class AnnotationRemover {
     boolean liveGetter =
         definition
             .getMethodCollection()
-            .hasVirtualMethods(method -> method.method.name == original.name);
+            .hasVirtualMethods(method -> method.getReference().name == original.name);
     return liveGetter ? original : null;
   }
 

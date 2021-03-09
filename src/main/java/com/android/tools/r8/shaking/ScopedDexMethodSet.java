@@ -46,7 +46,7 @@ class ScopedDexMethodSet {
   }
 
   public boolean addMethod(DexEncodedMethod method) {
-    Wrapper<DexMethod> wrapped = METHOD_EQUIVALENCE.wrap(method.method);
+    Wrapper<DexMethod> wrapped = METHOD_EQUIVALENCE.wrap(method.getReference());
     if (contains(wrapped)) {
       return false;
     }
@@ -55,7 +55,7 @@ class ScopedDexMethodSet {
   }
 
   public AddMethodIfMoreVisibleResult addMethodIfMoreVisible(DexEncodedMethod method) {
-    Wrapper<DexMethod> wrapped = METHOD_EQUIVALENCE.wrap(method.method);
+    Wrapper<DexMethod> wrapped = METHOD_EQUIVALENCE.wrap(method.getReference());
     DexEncodedMethod existing = lookup(wrapped);
     if (existing == null) {
       items.put(wrapped, method);

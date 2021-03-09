@@ -77,7 +77,7 @@ public class RedundantFinalStaticFieldLoadAfterStoreTest extends TestBase {
         .streamInstructions()
         .filter(InstructionSubject::isStaticGet)
         .map(InstructionSubject::getField)
-        .filter(fieldSubject.getField().field::equals)
+        .filter(fieldSubject.getField().getReference()::equals)
         .count();
   }
 

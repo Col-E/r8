@@ -387,8 +387,8 @@ public class RootSetUtils {
           assert !encodedMethod.shouldNotHaveCode();
           continue;
         }
-        propagateAssumeRules(clazz.type, encodedMethod.method, subTypes, noSideEffects);
-        propagateAssumeRules(clazz.type, encodedMethod.method, subTypes, assumedValues);
+        propagateAssumeRules(clazz.type, encodedMethod.getReference(), subTypes, noSideEffects);
+        propagateAssumeRules(clazz.type, encodedMethod.getReference(), subTypes, assumedValues);
       }
     }
 
@@ -414,7 +414,7 @@ public class RootSetUtils {
         if (target == null || target.getHolderType() == type) {
           continue;
         }
-        ProguardMemberRule ruleInSubType = assumeRulePool.get(target.method);
+        ProguardMemberRule ruleInSubType = assumeRulePool.get(target.getReference());
         // We are looking for the greatest lower bound of assume rules from all sub types.
         // If any subtype doesn't have a matching assume rule, the lower bound is literally nothing.
         if (ruleInSubType == null) {
@@ -578,7 +578,7 @@ public class RootSetUtils {
         }
         for (DexEncodedMethod method : clazz.virtualMethods()) {
           // Check if we already added this.
-          Wrapper<DexMethod> wrapped = MethodSignatureEquivalence.get().wrap(method.method);
+          Wrapper<DexMethod> wrapped = MethodSignatureEquivalence.get().wrap(method.getReference());
           if (!seenMethods.add(wrapped)) {
             continue;
           }
@@ -592,7 +592,10 @@ public class RootSetUtils {
 
       private void tryAndKeepMethodOnClass(DexEncodedMethod method, ProguardMemberRule rule) {
         SingleResolutionResult resolutionResult =
-            appView.appInfo().resolveMethodOn(originalClazz, method.method).asSingleResolution();
+            appView
+                .appInfo()
+                .resolveMethodOn(originalClazz, method.getReference())
+                .asSingleResolution();
         if (resolutionResult == null || !resolutionResult.isVirtualTarget()) {
           return;
         }
@@ -1008,7 +1011,7 @@ public class RootSetUtils {
         DexDefinition precondition,
         ProguardIfRule ifRule) {
       if (methodsMarked != null
-          && methodsMarked.contains(MethodSignatureEquivalence.get().wrap(method.method))) {
+          && methodsMarked.contains(MethodSignatureEquivalence.get().wrap(method.getReference()))) {
         // Ignore, method is overridden in sub class.
         return;
       }
@@ -1019,7 +1022,7 @@ public class RootSetUtils {
                 getClass(), "Marking method `%s` due to `%s { %s }`.", method, context, rule);
           }
           if (methodsMarked != null) {
-            methodsMarked.add(MethodSignatureEquivalence.get().wrap(method.method));
+            methodsMarked.add(MethodSignatureEquivalence.get().wrap(method.getReference()));
           }
           addItemToSets(method, context, rule, precondition, ifRule);
         }
@@ -1075,13 +1078,13 @@ public class RootSetUtils {
 
     private void includeDescriptorClasses(DexDefinition item, ProguardKeepRuleBase context) {
       if (item.isDexEncodedMethod()) {
-        DexMethod method = item.asDexEncodedMethod().method;
+        DexMethod method = item.asDexEncodedMethod().getReference();
         includeDescriptor(item, method.proto.returnType, context);
         for (DexType value : method.proto.parameters.values) {
           includeDescriptor(item, value, context);
         }
       } else if (item.isDexEncodedField()) {
-        DexField field = item.asDexEncodedField().field;
+        DexField field = item.asDexEncodedField().getReference();
         includeDescriptor(item, field.type, context);
       } else {
         assert item.isDexClass();
@@ -1114,7 +1117,7 @@ public class RootSetUtils {
             return;
           }
           if (options.isGeneratingDex()
-              && encodedMethod.method.isLambdaDeserializeMethod(appView.dexItemFactory())) {
+              && encodedMethod.getReference().isLambdaDeserializeMethod(appView.dexItemFactory())) {
             // Don't keep lambda deserialization methods.
             return;
           }
@@ -1131,7 +1134,7 @@ public class RootSetUtils {
                         "The rule `"
                             + rule
                             + "` is ignored because the targeting interface method `"
-                            + encodedMethod.method.toSourceString()
+                            + encodedMethod.getReference().toSourceString()
                             + "` will be desugared."));
               }
               return;
@@ -1244,7 +1247,7 @@ public class RootSetUtils {
         if (!item.isDexEncodedMethod()) {
           throw new Unreachable();
         }
-        whyAreYouNotInlining.add(item.asDexEncodedMethod().method);
+        whyAreYouNotInlining.add(item.asDexEncodedMethod().getReference());
         context.markAsUsed();
       } else if (context.isClassInlineRule()) {
         ClassInlineRule classInlineRule = context.asClassInlineRule();
@@ -1285,13 +1288,13 @@ public class RootSetUtils {
             if (item.isDexEncodedField()) {
               DexEncodedField field = item.asDexEncodedField();
               if (field.isProgramField(appView)) {
-                neverPropagateValue.add(item.asDexEncodedField().field);
+                neverPropagateValue.add(item.asDexEncodedField().getReference());
                 context.markAsUsed();
               }
             } else if (item.isDexEncodedMethod()) {
               DexEncodedMethod method = item.asDexEncodedMethod();
               if (method.isProgramMethod(appView)) {
-                neverPropagateValue.add(item.asDexEncodedMethod().method);
+                neverPropagateValue.add(item.asDexEncodedMethod().getReference());
                 context.markAsUsed();
               }
             }
@@ -1301,15 +1304,15 @@ public class RootSetUtils {
         }
       } else if (context instanceof ProguardIdentifierNameStringRule) {
         if (item.isDexEncodedField()) {
-          identifierNameStrings.add(item.asDexEncodedField().field);
+          identifierNameStrings.add(item.asDexEncodedField().getReference());
           context.markAsUsed();
         } else if (item.isDexEncodedMethod()) {
-          identifierNameStrings.add(item.asDexEncodedMethod().method);
+          identifierNameStrings.add(item.asDexEncodedMethod().getReference());
           context.markAsUsed();
         }
       } else if (context instanceof ConstantArgumentRule) {
         if (item.isDexEncodedMethod()) {
-          keepParametersWithConstantValue.add(item.asDexEncodedMethod().method);
+          keepParametersWithConstantValue.add(item.asDexEncodedMethod().getReference());
           context.markAsUsed();
         }
       } else if (context instanceof ReprocessClassInitializerRule) {
@@ -1317,10 +1320,10 @@ public class RootSetUtils {
         if (clazz != null && clazz.hasClassInitializer()) {
           switch (context.asReprocessClassInitializerRule().getType()) {
             case ALWAYS:
-              reprocess.add(clazz.getClassInitializer().method);
+              reprocess.add(clazz.getClassInitializer().getReference());
               break;
             case NEVER:
-              neverReprocess.add(clazz.getClassInitializer().method);
+              neverReprocess.add(clazz.getClassInitializer().getReference());
               break;
             default:
               throw new Unreachable();
@@ -1332,10 +1335,10 @@ public class RootSetUtils {
           DexEncodedMethod method = item.asDexEncodedMethod();
           switch (context.asReprocessMethodRule().getType()) {
             case ALWAYS:
-              reprocess.add(method.method);
+              reprocess.add(method.getReference());
               break;
             case NEVER:
-              neverReprocess.add(method.method);
+              neverReprocess.add(method.getReference());
               break;
             default:
               throw new Unreachable();
@@ -1344,7 +1347,7 @@ public class RootSetUtils {
         }
       } else if (context instanceof UnusedArgumentRule) {
         if (item.isDexEncodedMethod()) {
-          keepUnusedArguments.add(item.asDexEncodedMethod().method);
+          keepUnusedArguments.add(item.asDexEncodedMethod().getReference());
           context.markAsUsed();
         }
       } else {

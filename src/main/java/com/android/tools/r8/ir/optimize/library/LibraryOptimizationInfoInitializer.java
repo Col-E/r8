@@ -94,7 +94,8 @@ public class LibraryOptimizationInfoInitializer {
     for (DexEncodedField field : finalLibraryFields) {
       if (field.isStatic()) {
         feedback.recordLibraryFieldHasAbstractValue(
-            field, abstractValueFactory.createSingleFieldValue(field.field, ObjectState.empty()));
+            field,
+            abstractValueFactory.createSingleFieldValue(field.getReference(), ObjectState.empty()));
       }
     }
   }

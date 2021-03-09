@@ -128,9 +128,10 @@ public class AssemblyWriter extends DexByteCodeWriter {
   void writeField(DexEncodedField field, PrintStream ps) {
     if (writeFields) {
       ClassNameMapper naming = application.getProguardMap();
-      FieldSignature fieldSignature = naming != null
-          ? naming.originalSignatureOf(field.field)
-          : FieldSignature.fromDexField(field.field);
+      FieldSignature fieldSignature =
+          naming != null
+              ? naming.originalSignatureOf(field.getReference())
+              : FieldSignature.fromDexField(field.getReference());
       writeAnnotations(null, field.annotations(), ps);
       ps.print(field.accessFlags + " ");
       ps.print(fieldSignature);

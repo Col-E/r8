@@ -253,13 +253,15 @@ final class StaticizingProcessor {
                 .filter(
                     instruction -> {
                       if (instruction.isStaticGet()
-                          && instruction.asStaticGet().getField() == info.singletonField.field) {
+                          && instruction.asStaticGet().getField()
+                              == info.singletonField.getReference()) {
                         return true;
                       }
                       DexEncodedMethod getter = info.getter.get();
                       return getter != null
                           && instruction.isInvokeStatic()
-                          && instruction.asInvokeStatic().getInvokedMethod() == getter.method;
+                          && instruction.asInvokeStatic().getInvokedMethod()
+                              == getter.getReference();
                     })
                 .collect(Collectors.toList());
         boolean fixableFieldReadsPerUsage = true;
@@ -319,10 +321,10 @@ final class StaticizingProcessor {
             return false;
           },
           methodsToBeStaticized::add);
-      singletonFields.put(candidate.singletonField.field, candidate);
+      singletonFields.put(candidate.singletonField.getReference(), candidate);
       DexEncodedMethod getter = candidate.getter.get();
       if (getter != null) {
-        singletonGetters.put(getter.method, candidate);
+        singletonGetters.put(getter.getReference(), candidate);
       }
       ProgramMethodSet referencedFrom =
           materializedReferencedFromCollections.getOrDefault(candidate, ProgramMethodSet.empty());
@@ -447,7 +449,8 @@ final class StaticizingProcessor {
         if (newInstance.outValue().hasAnyUsers()) {
           TypeElement type = TypeElement.fromDexType(newInstance.clazz, maybeNull(), appView);
           newInstance.replace(
-              new StaticGet(code.createValue(type), candidateInfo.singletonField.field), code);
+              new StaticGet(code.createValue(type), candidateInfo.singletonField.getReference()),
+              code);
         } else {
           newInstance.removeOrReplaceByDebugLocalRead(code);
         }
@@ -753,11 +756,11 @@ final class StaticizingProcessor {
       for (DexEncodedMethod method : candidateClass.methods()) {
         if (method.isStatic()) {
           newDirectMethods.add(method);
-        } else if (!factory().isConstructor(method.method)) {
+        } else if (!factory().isConstructor(method.getReference())) {
           DexEncodedMethod staticizedMethod = method.toStaticMethodWithoutThis();
           newDirectMethods.add(staticizedMethod);
           staticizedMethods.createAndAdd(candidateClass, staticizedMethod);
-          methodMapping.put(method.method, staticizedMethod.method);
+          methodMapping.put(method.getReference(), staticizedMethod.getReference());
         }
       }
       candidateClass.setVirtualMethods(DexEncodedMethod.EMPTY_ARRAY);
@@ -786,8 +789,9 @@ final class StaticizingProcessor {
   private boolean classMembersConflict(DexClass a, DexClass b) {
     assert Streams.stream(a.methods()).allMatch(DexEncodedMethod::isStatic);
     assert a.instanceFields().size() == 0;
-    return a.staticFields().stream().anyMatch(fld -> b.lookupField(fld.field) != null)
-        || Streams.stream(a.methods()).anyMatch(method -> b.lookupMethod(method.method) != null);
+    return a.staticFields().stream().anyMatch(fld -> b.lookupField(fld.getReference()) != null)
+        || Streams.stream(a.methods())
+            .anyMatch(method -> b.lookupMethod(method.getReference()) != null);
   }
 
   private boolean hasMembersNotStaticized(
@@ -818,10 +822,10 @@ final class StaticizingProcessor {
     List<DexEncodedField> oldFields = hostClass.staticFields();
     for (int i = 0; i < oldFields.size(); i++) {
       DexEncodedField field = oldFields.get(i);
-      DexField newField = mapCandidateField(field.field, candidateClass.type, hostType);
-      if (newField != field.field) {
+      DexField newField = mapCandidateField(field.getReference(), candidateClass.type, hostType);
+      if (newField != field.getReference()) {
         newFields[i] = field.toTypeSubstitutedField(newField);
-        fieldMapping.put(field.field, newField);
+        fieldMapping.put(field.getReference(), newField);
       } else {
         newFields[i] = field;
       }
@@ -830,10 +834,10 @@ final class StaticizingProcessor {
       List<DexEncodedField> extraFields = candidateClass.staticFields();
       for (int i = 0; i < extraFields.size(); i++) {
         DexEncodedField field = extraFields.get(i);
-        DexField newField = mapCandidateField(field.field, candidateClass.type, hostType);
-        if (newField != field.field) {
+        DexField newField = mapCandidateField(field.getReference(), candidateClass.type, hostType);
+        if (newField != field.getReference()) {
           newFields[numOfHostStaticFields + i] = field.toTypeSubstitutedField(newField);
-          fieldMapping.put(field.field, newField);
+          fieldMapping.put(field.getReference(), newField);
         } else {
           newFields[numOfHostStaticFields + i] = field;
         }
@@ -852,7 +856,8 @@ final class StaticizingProcessor {
     for (DexEncodedMethod method : extraMethods) {
       DexEncodedMethod newMethod =
           method.toTypeSubstitutedMethod(
-              factory().createMethod(hostType, method.method.proto, method.method.name));
+              factory()
+                  .createMethod(hostType, method.getReference().proto, method.getReference().name));
       newMethods.add(newMethod);
       // If the old method from the candidate class has been staticized,
       if (staticizedMethods.remove(method)) {
@@ -860,11 +865,11 @@ final class StaticizingProcessor {
         // has just been migrated to the host class.
         staticizedMethods.createAndAdd(hostClass, newMethod);
       }
-      DexMethod originalMethod = methodMapping.getRepresentativeKey(method.method);
+      DexMethod originalMethod = methodMapping.getRepresentativeKey(method.getReference());
       if (originalMethod == null) {
-        methodMapping.put(method.method, newMethod.method);
+        methodMapping.put(method.getReference(), newMethod.getReference());
       } else {
-        methodMapping.put(originalMethod, newMethod.method);
+        methodMapping.put(originalMethod, newMethod.getReference());
       }
     }
     hostClass.addDirectMethods(newMethods);

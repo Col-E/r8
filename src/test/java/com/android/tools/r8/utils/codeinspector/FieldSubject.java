@@ -15,7 +15,7 @@ public abstract class FieldSubject extends MemberSubject {
   public abstract DexEncodedField getField();
 
   public DexField getDexField() {
-    return getField().field;
+    return getField().getReference();
   }
 
   public abstract DexValue getStaticValue();

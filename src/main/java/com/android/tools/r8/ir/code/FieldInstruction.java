@@ -113,7 +113,7 @@ public abstract class FieldInstruction extends Instruction {
       // Only check for <clinit> side effects if there is no -assumenosideeffects rule.
       if (appView.appInfo().hasLiveness()) {
         AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
-        if (appInfoWithLiveness.noSideEffects.containsKey(resolvedField.field)) {
+        if (appInfoWithLiveness.noSideEffects.containsKey(resolvedField.getReference())) {
           return false;
         }
       }

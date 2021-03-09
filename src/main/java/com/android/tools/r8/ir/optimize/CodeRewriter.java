@@ -263,7 +263,7 @@ public class CodeRewriter {
           if (appView
               .dexItemFactory()
               .objectsMethods
-              .isRequireNonNullMethod(code.method().method)) {
+              .isRequireNonNullMethod(code.method().getReference())) {
             continue;
           }
 
@@ -524,7 +524,8 @@ public class CodeRewriter {
     int selfRecursionFanOut = 0;
     Instruction lastSelfRecursiveCall = null;
     for (Instruction i : code.instructions()) {
-      if (i.isInvokeMethod() && i.asInvokeMethod().getInvokedMethod() == code.method().method) {
+      if (i.isInvokeMethod()
+          && i.asInvokeMethod().getInvokedMethod() == code.method().getReference()) {
         selfRecursionFanOut++;
         lastSelfRecursiveCall = i;
       }
@@ -3720,7 +3721,7 @@ public class CodeRewriter {
     InstructionListIterator iterator = block.listIterator(code);
 
     // Attach some synthetic position to all inserted code.
-    Position position = Position.synthetic(1, method.method, null);
+    Position position = Position.synthetic(1, method.getReference(), null);
     iterator.setInsertionPosition(position);
 
     // Split arguments into their own block.
@@ -3748,7 +3749,7 @@ public class CodeRewriter {
     Value value = addConstString(code, iterator, "INVOKE ");
     iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));
 
-    value = addConstString(code, iterator, method.method.qualifiedName());
+    value = addConstString(code, iterator, method.getReference().qualifiedName());
     iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));
 
     Value openParenthesis = addConstString(code, iterator, "(");

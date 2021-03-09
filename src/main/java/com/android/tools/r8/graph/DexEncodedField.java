@@ -31,7 +31,6 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     implements StructuralItem<DexEncodedField> {
   public static final DexEncodedField[] EMPTY_ARRAY = {};
 
-  public final DexField field;
   public final FieldAccessFlags accessFlags;
   private DexValue staticValue;
   private final boolean deprecated;
@@ -42,10 +41,10 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   private KotlinFieldLevelInfo kotlinMemberInfo = NO_KOTLIN_INFO;
 
   private static void specify(StructuralSpecification<DexEncodedField, ?> spec) {
-    spec.withItem(f -> f.field)
-        .withItem(f -> f.accessFlags)
+    spec.withItem(DexEncodedField::getReference)
+        .withItem(DexEncodedField::getAccessFlags)
         .withNullableItem(f -> f.staticValue)
-        .withBool(f -> f.deprecated)
+        .withBool(DexEncodedField::isDeprecated)
         // TODO(b/171867022): The generic signature should be part of the definition.
         .withAssert(f -> f.genericSignature.hasNoSignature());
     // TODO(b/171867022): Should the optimization info and member info be part of the definition?
@@ -82,8 +81,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       DexValue staticValue,
       boolean deprecated,
       boolean d8R8Synthesized) {
-    super(annotations, d8R8Synthesized);
-    this.field = field;
+    super(field, annotations, d8R8Synthesized);
     this.accessFlags = accessFlags;
     this.staticValue = staticValue;
     this.deprecated = deprecated;
@@ -103,7 +101,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   public DexType type() {
-    return field.type;
+    return getReference().type;
   }
 
   public boolean isDeprecated() {
@@ -111,8 +109,8 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   public boolean isProgramField(DexDefinitionSupplier definitions) {
-    if (field.holder.isClassType()) {
-      DexClass clazz = definitions.definitionFor(field.holder);
+    if (getReference().holder.isClassType()) {
+      DexClass clazz = definitions.definitionFor(getReference().holder);
       return clazz != null && clazz.isProgramClass();
     }
     return false;
@@ -158,22 +156,17 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
 
   @Override
   public String toString() {
-    return "Encoded field " + field;
+    return "Encoded field " + getReference();
   }
 
   @Override
   public String toSmaliString() {
-    return field.toSmaliString();
+    return getReference().toSmaliString();
   }
 
   @Override
   public String toSourceString() {
-    return field.toSourceString();
-  }
-
-  @Override
-  public DexField getReference() {
-    return field;
+    return getReference().toSourceString();
   }
 
   public DexType getType() {
@@ -201,7 +194,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
 
   public ProgramField asProgramField(DexDefinitionSupplier definitions) {
     assert getHolderType().isClassType();
-    DexProgramClass clazz = asProgramClassOrNull(definitions.definitionForHolder(field));
+    DexProgramClass clazz = asProgramClassOrNull(definitions.definitionForHolder(getReference()));
     if (clazz != null) {
       return new ProgramField(clazz, this);
     }
@@ -264,7 +257,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
 
   public DexValue getStaticValue() {
     assert accessFlags.isStatic();
-    return staticValue == null ? DexValue.defaultForType(field.type) : staticValue;
+    return staticValue == null ? DexValue.defaultForType(getReference().type) : staticValue;
   }
 
   /**
@@ -277,7 +270,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     boolean isWritten = appView.appInfo().isFieldWrittenByFieldPutInstruction(this);
     if (!isWritten) {
       // Since the field is not written, we can simply return the default value for the type.
-      DexValue value = isStatic() ? getStaticValue() : DexValue.defaultForType(field.type);
+      DexValue value = isStatic() ? getStaticValue() : DexValue.defaultForType(getReference().type);
       return value.asConstInstruction(appView, code, local);
     }
 
@@ -286,11 +279,11 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     if (abstractValue.isSingleValue()) {
       SingleValue singleValue = abstractValue.asSingleValue();
       if (singleValue.isSingleFieldValue()
-          && singleValue.asSingleFieldValue().getField() == field) {
+          && singleValue.asSingleFieldValue().getField() == getReference()) {
         return null;
       }
       if (singleValue.isMaterializableInContext(appView, code.context())) {
-        TypeElement type = TypeElement.fromDexType(field.type, maybeNull(), appView);
+        TypeElement type = TypeElement.fromDexType(getReference().type, maybeNull(), appView);
         return singleValue.createMaterializingInstruction(
             appView, code, TypeAndLocalInfoSupplier.create(type, local));
       }
@@ -299,12 +292,12 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     // The only way to figure out whether the static value contains the final value is ensure the
     // value is not the default or check that <clinit> is not present.
     if (accessFlags.isFinal() && isStatic()) {
-      DexClass clazz = appView.definitionFor(field.holder);
+      DexClass clazz = appView.definitionFor(getReference().holder);
       if (clazz == null || clazz.hasClassInitializer()) {
         return null;
       }
       DexValue staticValue = getStaticValue();
-      if (!staticValue.isDefault(field.type)) {
+      if (!staticValue.isDefault(getReference().type)) {
         return staticValue.asConstInstruction(appView, code, local);
       }
     }
@@ -317,7 +310,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   public DexEncodedField toTypeSubstitutedField(DexField field, Consumer<Builder> consumer) {
-    if (this.field == field) {
+    if (this.getReference() == field) {
       return this;
     }
     return builder(this).setField(field).apply(consumer).build();
@@ -327,12 +320,13 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     if (!accessFlags.isStatic() || staticValue == null) {
       return true;
     }
-    if (field.type.isPrimitiveType()) {
-      assert staticValue.getType(factory) == field.type
-          : "Static " + field + " has invalid static value " + staticValue + ".";
+    if (getReference().type.isPrimitiveType()) {
+      assert staticValue.getType(factory) == getReference().type
+          : "Static " + getReference() + " has invalid static value " + staticValue + ".";
     }
     if (staticValue.isDexValueNull()) {
-      assert field.type.isReferenceType() : "Static " + field + " has invalid null static value.";
+      assert getReference().type.isReferenceType()
+          : "Static " + getReference() + " has invalid null static value.";
     }
     // TODO(b/150593449): Support non primitive DexValue (String, enum) and add assertions.
     return true;
@@ -369,7 +363,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
 
     Builder(DexEncodedField from) {
       // Copy all the mutable state of a DexEncodedField here.
-      field = from.field;
+      field = from.getReference();
       accessFlags = from.accessFlags.copy();
       // TODO(b/169923358): Consider removing the fieldSignature here.
       genericSignature = from.getGenericSignature();

@@ -86,16 +86,19 @@ public class MinimumNumberOfBridgesGenerated extends TestBase {
   private boolean isNestBridge(FoundMethodSubject methodSubject) {
     DexEncodedMethod method = methodSubject.getMethod();
     if (method.isInstanceInitializer()) {
-      if (method.method.proto.parameters.isEmpty()) {
+      if (method.getReference().proto.parameters.isEmpty()) {
         return false;
       }
-      DexType[] formals = method.method.proto.parameters.values;
+      DexType[] formals = method.getReference().proto.parameters.values;
       DexType lastFormal = formals[formals.length - 1];
       return lastFormal.isClassType()
           && SyntheticItemsTestUtils.isInitializerTypeArgument(
               Reference.classFromDescriptor(lastFormal.toDescriptorString()));
     }
-    return method.method.name.toString()
+    return method
+        .getReference()
+        .name
+        .toString()
         .startsWith(NestBasedAccessDesugaring.NEST_ACCESS_NAME_PREFIX);
   }
 }

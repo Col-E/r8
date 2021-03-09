@@ -70,8 +70,8 @@ public abstract class ObjectState {
 
     public void recordFieldHasValue(DexEncodedField field, AbstractValue abstractValue) {
       if (!abstractValue.isUnknown()) {
-        assert !state.containsKey(field.field);
-        state.put(field.field, abstractValue);
+        assert !state.containsKey(field.getReference());
+        state.put(field.getReference(), abstractValue);
       }
     }
 

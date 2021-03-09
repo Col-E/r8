@@ -113,7 +113,7 @@ public class EnumLiteProtoShrinker {
     }
     DexType enumLiteCandidate = null;
     for (DexEncodedMethod virtualMethod : enumLiteMap.virtualMethods()) {
-      if (!matchesFindValueByNumberMethod(virtualMethod.method)) {
+      if (!matchesFindValueByNumberMethod(virtualMethod.getReference())) {
         return null;
       }
       if (virtualMethod.returnType() == references.enumLiteType) {

@@ -512,7 +512,7 @@ public class VerticalClassMerger {
       }
       // Check if the target is overriding and narrowing the access.
       if (method.isPublic()) {
-        DexEncodedMethod targetOverride = target.lookupVirtualMethod(method.method);
+        DexEncodedMethod targetOverride = target.lookupVirtualMethod(method.getReference());
         if (targetOverride != null && !targetOverride.isPublic()) {
           return true;
         }
@@ -565,7 +565,7 @@ public class VerticalClassMerger {
       Set<Wrapper<DexMethod>> filteredSignatures = new HashSet<>();
       for (DexProgramClass clazz : appInfo.classes()) {
         for (DexEncodedMethod encodedMethod : clazz.methods()) {
-          DexMethod method = encodedMethod.method;
+          DexMethod method = encodedMethod.getReference();
           DexClass definition = appInfo.definitionFor(method.holder);
           if (definition != null
               && definition.isProgramClass()
@@ -695,7 +695,7 @@ public class VerticalClassMerger {
 
     for (DexProgramClass clazz : appInfo.classes()) {
       for (DexEncodedMethod encodedMethod : clazz.methods()) {
-        DexMethod method = encodedMethod.method;
+        DexMethod method = encodedMethod.getReference();
         DexMethod originalMethod = graphLens.getOriginalMethodSignature(method);
         DexMethod renamedMethod = graphLens.getRenamedMethodSignature(originalMethod);
 
@@ -727,7 +727,8 @@ public class VerticalClassMerger {
 
   private boolean methodResolutionMayChange(DexProgramClass source, DexProgramClass target) {
     for (DexEncodedMethod virtualSourceMethod : source.virtualMethods()) {
-      DexEncodedMethod directTargetMethod = target.lookupDirectMethod(virtualSourceMethod.method);
+      DexEncodedMethod directTargetMethod =
+          target.lookupDirectMethod(virtualSourceMethod.getReference());
       if (directTargetMethod != null) {
         // A private method shadows a virtual method. This situation is rare, since it is not
         // allowed by javac. Therefore, we just give up in this case. (In principle, it would be
@@ -763,7 +764,7 @@ public class VerticalClassMerger {
         // Conservatively find all possible targets for this method.
         LookupResultSuccess lookupResult =
             appInfo
-                .resolveMethodOnInterface(method.getHolderType(), method.method)
+                .resolveMethodOnInterface(method.getHolderType(), method.getReference())
                 .lookupVirtualDispatchTargets(target, appInfo)
                 .asLookupResultSuccess();
         assert lookupResult != null;
@@ -873,11 +874,12 @@ public class VerticalClassMerger {
       for (DexType interfaceType : target.interfaces.values) {
         DexClass clazz = appInfo.definitionFor(interfaceType);
         for (DexEncodedField staticField : clazz.staticFields()) {
-          staticFieldsInInterfacesOfTarget.add(equivalence.wrap(staticField.field));
+          staticFieldsInInterfacesOfTarget.add(equivalence.wrap(staticField.getReference()));
         }
       }
       for (DexEncodedField instanceField : source.instanceFields()) {
-        if (staticFieldsInInterfacesOfTarget.contains(equivalence.wrap(instanceField.field))) {
+        if (staticFieldsInInterfacesOfTarget.contains(
+            equivalence.wrap(instanceField.getReference()))) {
           // An instruction "iget Target.f" or "iput Target.f" that used to hit a static field in an
           // interface would now hit an instance field from [source], so that an IncompatibleClass-
           // ChangeError would no longer be thrown. Abort merge.
@@ -926,7 +928,7 @@ public class VerticalClassMerger {
           DexEncodedMethod resultingConstructor =
               renameConstructor(directMethod, availableMethodSignatures);
           add(directMethods, resultingConstructor, MethodSignatureEquivalence.get());
-          blockRedirectionOfSuperCalls(resultingConstructor.method);
+          blockRedirectionOfSuperCalls(resultingConstructor.getReference());
         } else {
           DexEncodedMethod resultingDirectMethod =
               renameMethod(
@@ -934,9 +936,10 @@ public class VerticalClassMerger {
                   availableMethodSignatures,
                   directMethod.isClassInitializer() ? Rename.NEVER : Rename.IF_NEEDED);
           add(directMethods, resultingDirectMethod, MethodSignatureEquivalence.get());
-          deferredRenamings.map(directMethod.method, resultingDirectMethod.method);
-          deferredRenamings.recordMove(directMethod.method, resultingDirectMethod.method);
-          blockRedirectionOfSuperCalls(resultingDirectMethod.method);
+          deferredRenamings.map(directMethod.getReference(), resultingDirectMethod.getReference());
+          deferredRenamings.recordMove(
+              directMethod.getReference(), resultingDirectMethod.getReference());
+          blockRedirectionOfSuperCalls(resultingDirectMethod.getReference());
         }
       }
 
@@ -945,7 +948,7 @@ public class VerticalClassMerger {
         if (shadowedBy != null) {
           if (virtualMethod.isAbstract()) {
             // Remove abstract/interface methods that are shadowed.
-            deferredRenamings.map(virtualMethod.method, shadowedBy.method);
+            deferredRenamings.map(virtualMethod.getReference(), shadowedBy.getReference());
 
             // The override now corresponds to the method in the parent, so unset its synthetic flag
             // if the method in the parent is not synthetic.
@@ -977,8 +980,10 @@ public class VerticalClassMerger {
                 renameMethod(virtualMethod, availableMethodSignatures, Rename.NEVER);
             resultingVirtualMethod.setLibraryMethodOverride(
                 virtualMethod.isLibraryMethodOverride());
-            deferredRenamings.map(virtualMethod.method, resultingVirtualMethod.method);
-            deferredRenamings.recordMove(virtualMethod.method, resultingVirtualMethod.method);
+            deferredRenamings.map(
+                virtualMethod.getReference(), resultingVirtualMethod.getReference());
+            deferredRenamings.recordMove(
+                virtualMethod.getReference(), resultingVirtualMethod.getReference());
             add(virtualMethods, resultingVirtualMethod, MethodSignatureEquivalence.get());
             continue;
           }
@@ -1005,7 +1010,7 @@ public class VerticalClassMerger {
           makeStatic(resultingDirectMethod);
 
           // Update method pool collection now that we are adding a new public method.
-          methodPoolForTarget.seen(resultingDirectMethod.method);
+          methodPoolForTarget.seen(resultingDirectMethod.getReference());
         } else {
           // This virtual method could be called directly from a sub class via an invoke-super in-
           // struction. Therefore, we translate this virtual method into a direct method, such that
@@ -1019,8 +1024,9 @@ public class VerticalClassMerger {
 
         // Record that invoke-super instructions in the target class should be redirected to the
         // newly created direct method.
-        redirectSuperCallsInTarget(virtualMethod.method, resultingDirectMethod.method);
-        blockRedirectionOfSuperCalls(resultingDirectMethod.method);
+        redirectSuperCallsInTarget(
+            virtualMethod.getReference(), resultingDirectMethod.getReference());
+        blockRedirectionOfSuperCalls(resultingDirectMethod.getReference());
 
         if (shadowedBy == null) {
           // In addition to the newly added direct method, create a virtual method such that we do
@@ -1029,12 +1035,14 @@ public class VerticalClassMerger {
           // it turns out that the method is never used, it will be removed by the final round
           // of tree shaking.
           shadowedBy = buildBridgeMethod(virtualMethod, resultingDirectMethod);
-          deferredRenamings.recordCreationOfBridgeMethod(virtualMethod.method, shadowedBy.method);
+          deferredRenamings.recordCreationOfBridgeMethod(
+              virtualMethod.getReference(), shadowedBy.getReference());
           add(virtualMethods, shadowedBy, MethodSignatureEquivalence.get());
         }
 
-        deferredRenamings.map(virtualMethod.method, shadowedBy.method);
-        deferredRenamings.recordMove(virtualMethod.method, resultingDirectMethod.method);
+        deferredRenamings.map(virtualMethod.getReference(), shadowedBy.getReference());
+        deferredRenamings.recordMove(
+            virtualMethod.getReference(), resultingDirectMethod.getReference());
       }
 
       if (abortMerge) {
@@ -1046,7 +1054,7 @@ public class VerticalClassMerger {
       // Step 2: Merge fields
       Set<DexString> existingFieldNames = new HashSet<>();
       for (DexEncodedField field : target.fields()) {
-        existingFieldNames.add(field.field.name);
+        existingFieldNames.add(field.getReference().name);
       }
 
       // In principle, we could allow multiple fields with the same name, and then only rename the
@@ -1223,8 +1231,8 @@ public class VerticalClassMerger {
     private DexEncodedMethod buildBridgeMethod(
         DexEncodedMethod method, DexEncodedMethod invocationTarget) {
       DexType holder = target.type;
-      DexProto proto = method.method.proto;
-      DexString name = method.method.name;
+      DexProto proto = method.getReference().proto;
+      DexString name = method.getReference().name;
       DexMethod newMethod = application.dexItemFactory.createMethod(holder, proto, name);
       MethodAccessFlags accessFlags = method.accessFlags.copy();
       accessFlags.setBridge();
@@ -1235,8 +1243,8 @@ public class VerticalClassMerger {
       SynthesizedBridgeCode code =
           new SynthesizedBridgeCode(
               newMethod,
-              appView.graphLens().getOriginalMethodSignature(method.method),
-              invocationTarget.method,
+              appView.graphLens().getOriginalMethodSignature(method.getReference()),
+              invocationTarget.getReference(),
               invocationTarget.isPrivateMethod() ? DIRECT : STATIC,
               target.isInterface());
 
@@ -1265,7 +1273,7 @@ public class VerticalClassMerger {
 
     // Returns the method that shadows the given method, or null if method is not shadowed.
     private DexEncodedMethod findMethodInTarget(DexEncodedMethod method) {
-      ResolutionResult resolutionResult = appInfo.resolveMethodOn(target, method.method);
+      ResolutionResult resolutionResult = appInfo.resolveMethodOn(target, method.getReference());
       if (!resolutionResult.isSingleResolution()) {
         // May happen in case of missing classes, or if multiple implementations were found.
         abortMerge = true;
@@ -1285,7 +1293,7 @@ public class VerticalClassMerger {
               "The non-abstract type `"
                   + target.type.toSourceString()
                   + "` does not implement the method `"
-                  + method.method.toSourceString()
+                  + method.getReference().toSourceString()
                   + "`.");
         }
       }
@@ -1321,8 +1329,8 @@ public class VerticalClassMerger {
       int i = 0;
       for (DexEncodedField field : sourceFields) {
         DexEncodedField resultingField = renameFieldIfNeeded(field, availableFieldSignatures);
-        existingFieldNames.add(resultingField.field.name);
-        deferredRenamings.map(field.field, resultingField.field);
+        existingFieldNames.add(resultingField.getReference().name);
+        deferredRenamings.map(field.getReference(), resultingField.getReference());
         result[i] = resultingField;
         i++;
       }
@@ -1354,14 +1362,15 @@ public class VerticalClassMerger {
       do {
         DexString newName = getFreshName(TEMPORARY_INSTANCE_INITIALIZER_PREFIX, count, oldHolder);
         newSignature =
-            application.dexItemFactory.createMethod(target.type, method.method.proto, newName);
+            application.dexItemFactory.createMethod(
+                target.type, method.getReference().proto, newName);
         count++;
       } while (!availableMethodSignatures.test(newSignature));
 
       DexEncodedMethod result = method.toTypeSubstitutedMethod(newSignature);
       result.getMutableOptimizationInfo().markForceInline();
-      deferredRenamings.map(method.method, result.method);
-      deferredRenamings.recordMove(method.method, result.method);
+      deferredRenamings.map(method.getReference(), result.getReference());
+      deferredRenamings.recordMove(method.getReference(), result.getReference());
       // Renamed constructors turn into ordinary private functions. They can be private, as
       // they are only references from their direct subclass, which they were merged into.
       result.accessFlags.unsetConstructor();
@@ -1371,7 +1380,7 @@ public class VerticalClassMerger {
 
     private DexEncodedMethod renameMethod(
         DexEncodedMethod method, Predicate<DexMethod> availableMethodSignatures, Rename strategy) {
-      return renameMethod(method, availableMethodSignatures, strategy, method.method.proto);
+      return renameMethod(method, availableMethodSignatures, strategy, method.getReference().proto);
     }
 
     private DexEncodedMethod renameMethod(
@@ -1382,7 +1391,7 @@ public class VerticalClassMerger {
       // We cannot handle renaming static initializers yet and constructors should have been
       // renamed already.
       assert !method.accessFlags.isConstructor() || strategy == Rename.NEVER;
-      DexString oldName = method.method.name;
+      DexString oldName = method.getReference().name;
       DexType oldHolder = method.getHolderType();
 
       DexMethod newSignature;
@@ -1417,17 +1426,18 @@ public class VerticalClassMerger {
 
     private DexEncodedField renameFieldIfNeeded(
         DexEncodedField field, Predicate<DexField> availableFieldSignatures) {
-      DexString oldName = field.field.name;
+      DexString oldName = field.getReference().name;
       DexType oldHolder = field.getHolderType();
 
       DexField newSignature =
-          application.dexItemFactory.createField(target.type, field.field.type, oldName);
+          application.dexItemFactory.createField(target.type, field.getReference().type, oldName);
       if (!availableFieldSignatures.test(newSignature)) {
         int count = 1;
         do {
           DexString newName = getFreshName(oldName.toSourceString(), count, oldHolder);
           newSignature =
-              application.dexItemFactory.createField(target.type, field.field.type, newName);
+              application.dexItemFactory.createField(
+                  target.type, field.getReference().type, newName);
           count++;
         } while (!availableFieldSignatures.test(newSignature));
       }
@@ -1520,7 +1530,7 @@ public class VerticalClassMerger {
     @Override
     public DexEncodedMethod recordMethodChange(
         DexEncodedMethod method, DexEncodedMethod newMethod) {
-      recordMethodChange(method.method, newMethod.method);
+      recordMethodChange(method.getReference(), newMethod.getReference());
       if (newMethod.isNonPrivateVirtualMethod()) {
         // Since we changed the return type or one of the parameters, this method cannot be a
         // classpath or library method override, since we only class merge program classes.

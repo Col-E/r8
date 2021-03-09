@@ -384,7 +384,7 @@ final class ClassProcessor {
     Set<Wrapper<DexMethod>> defaultMethods =
         new HashSet<>(iface.getMethodCollection().numberOfVirtualMethods());
     for (DexEncodedMethod method : iface.virtualMethods(DexEncodedMethod::isDefaultMethod)) {
-      defaultMethods.add(equivalence.wrap(method.method));
+      defaultMethods.add(equivalence.wrap(method.getReference()));
     }
     return MethodSignatures.create(defaultMethods);
   }
@@ -644,7 +644,7 @@ final class ClassProcessor {
           "Attempt to add forwarding method that conflicts with existing method.",
           null,
           clazz.getOrigin(),
-          new MethodPosition(methodOnSelf.method.asMethodReference()));
+          new MethodPosition(methodOnSelf.getReference().asMethodReference()));
     }
 
     // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar

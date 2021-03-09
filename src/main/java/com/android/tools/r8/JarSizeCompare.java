@@ -332,8 +332,9 @@ public class JarSizeCompare {
             MethodSignature originalSignature =
                 proguardMap == null
                     ? null
-                    : proguardMap.originalSignatureOf(dexEncodedMethod.method);
-            MethodSignature signature = MethodSignature.fromDexMethod(dexEncodedMethod.method);
+                    : proguardMap.originalSignatureOf(dexEncodedMethod.getReference());
+            MethodSignature signature =
+                MethodSignature.fromDexMethod(dexEncodedMethod.getReference());
             consumer.accept(
                 originalSignature == null ? signature : originalSignature, dexEncodedMethod);
           });
@@ -346,8 +347,10 @@ public class JarSizeCompare {
       programClass.forEachField(
           dexEncodedField -> {
             FieldSignature originalSignature =
-                proguardMap == null ? null : proguardMap.originalSignatureOf(dexEncodedField.field);
-            FieldSignature signature = FieldSignature.fromDexField(dexEncodedField.field);
+                proguardMap == null
+                    ? null
+                    : proguardMap.originalSignatureOf(dexEncodedField.getReference());
+            FieldSignature signature = FieldSignature.fromDexField(dexEncodedField.getReference());
             consumer.accept(
                 originalSignature == null ? signature : originalSignature, dexEncodedField);
           });

@@ -105,7 +105,7 @@ public class MainDexListBuilder {
         // Browse annotation values types in search for enum.
         // Each annotation value is represented by a virtual method.
         for (DexEncodedMethod method : clazz.virtualMethods()) {
-          DexProto proto = method.method.proto;
+          DexProto proto = method.getReference().proto;
           if (proto.parameters.isEmpty()) {
             DexType valueType = proto.returnType.toBaseType(appView.dexItemFactory());
             if (valueType.isClassType()) {
@@ -143,7 +143,7 @@ public class MainDexListBuilder {
     addDirectDependency(clazz);
     // Add enum classes used for values as direct dependencies.
     for (DexEncodedMethod method : clazz.virtualMethods()) {
-      DexProto proto = method.method.proto;
+      DexProto proto = method.getReference().proto;
       if (proto.parameters.isEmpty()) {
         DexType valueType = proto.returnType.toBaseType(appView.dexItemFactory());
         if (isEnum(valueType)) {

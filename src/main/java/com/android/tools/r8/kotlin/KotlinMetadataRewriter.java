@@ -182,7 +182,10 @@ public class KotlinMetadataRewriter {
     if (kotlinMetadata == null || kotlinMetadata.isNotProgramClass()) {
       return true;
     }
-    return kotlinMetadata.methods(method -> method.method.name == fieldName).iterator().hasNext();
+    return kotlinMetadata
+        .methods(method -> method.getReference().name == fieldName)
+        .iterator()
+        .hasNext();
   }
 
   private DexAnnotation createKotlinMetadataAnnotation(

@@ -109,7 +109,8 @@ public class GeneratedExtensionRegistryShrinker {
         @Override
         public boolean isReachableOrReferencedField(
             AppInfoWithLiveness appInfo, DexEncodedField field) {
-          return !wasRemoved(field.field) && super.isReachableOrReferencedField(appInfo, field);
+          return !wasRemoved(field.getReference())
+              && super.isReachableOrReferencedField(appInfo, field);
         }
       };
     }

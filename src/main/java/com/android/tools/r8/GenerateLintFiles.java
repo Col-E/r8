@@ -150,11 +150,11 @@ public class GenerateLintFiles {
       assert method.getHolderType() == clazz.type;
       CfCode code = null;
       if (!method.accessFlags.isAbstract() /*&& !method.accessFlags.isNative()*/) {
-        code = buildEmptyThrowingCfCode(method.method);
+        code = buildEmptyThrowingCfCode(method.getReference());
       }
       DexEncodedMethod throwingMethod =
           new DexEncodedMethod(
-              method.method,
+              method.getReference(),
               method.accessFlags,
               MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
@@ -246,7 +246,7 @@ public class GenerateLintFiles {
               continue;
             }
             ProgramMethod implementationMethod =
-                implementationClass.lookupProgramMethod(method.method);
+                implementationClass.lookupProgramMethod(method.getReference());
             // Don't include methods which are not implemented by the desugared library.
             if (supported.test(method) && implementationMethod != null) {
               supportedMethods.computeIfAbsent(clazz, k -> new ArrayList<>()).add(method);
@@ -265,10 +265,10 @@ public class GenerateLintFiles {
         if (desugaredLibraryConfiguration
             .getRetargetCoreLibMember()
             .keySet()
-            .contains(method.method.name)) {
+            .contains(method.getReference().name)) {
           if (desugaredLibraryConfiguration
               .getRetargetCoreLibMember()
-              .get(method.method.name)
+              .get(method.getReference().name)
               .containsKey(clazz.type)) {
             if (supported.test(method)) {
               supportedMethods.computeIfAbsent(clazz, k -> new ArrayList<>()).add(method);
@@ -333,8 +333,8 @@ public class GenerateLintFiles {
               desugaredApisSignatures.add(
                   classBinaryName
                       + '#'
-                      + method.method.name
-                      + method.method.proto.toDescriptorString());
+                      + method.getReference().name
+                      + method.getReference().proto.toDescriptorString());
             }
           } else {
             desugaredApisSignatures.add(classBinaryName);
@@ -405,7 +405,7 @@ public class GenerateLintFiles {
             return true;
           }
           assert minApiLevel == AndroidApiLevel.B;
-          return !parallelMethods.contains(method.method);
+          return !parallelMethods.contains(method.getReference());
         });
   }
 
@@ -585,7 +585,7 @@ public class GenerateLintFiles {
     }
 
     public String arguments(DexEncodedMethod method) {
-      DexProto proto = method.method.proto;
+      DexProto proto = method.getReference().proto;
       StringBuilder argsBuilder = new StringBuilder();
       boolean firstArg = true;
       int argIndex = method.isVirtualMethod() || method.accessFlags.isConstructor() ? 1 : 0;
@@ -685,9 +685,9 @@ public class GenerateLintFiles {
           builder.appendLiCode(
               accessFlags(field.accessFlags)
                   + " "
-                  + typeInPackage(field.field.type)
+                  + typeInPackage(field.getReference().type)
                   + " "
-                  + field.field.name);
+                  + field.getReference().name);
         }
       }
       if (!constructors.isEmpty()) {
@@ -705,12 +705,12 @@ public class GenerateLintFiles {
           builder.appendLiCode(
               accessFlags(method.accessFlags)
                   + " "
-                  + typeInPackage(method.method.proto.returnType)
+                  + typeInPackage(method.getReference().proto.returnType)
                   + " "
-                  + method.method.name
+                  + method.getReference().name
                   + arguments(method));
-          if (parallelMethods.contains(method.method)) {
-            parallelM.add(method.method.name.toString());
+          if (parallelMethods.contains(method.getReference())) {
+            parallelM.add(method.getReference().name.toString());
           }
         }
       }

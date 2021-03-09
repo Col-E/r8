@@ -55,7 +55,7 @@ public class SuccessAndInvalidLookupTest extends TestBase {
     DexEncodedMethod singleTarget =
         appInfo.lookupSingleVirtualTarget(fooA, mainMethod, false, t -> false, typeA, null);
     assertNotNull(singleTarget);
-    assertEquals(fooA, singleTarget.method);
+    assertEquals(fooA, singleTarget.getReference());
     DexEncodedMethod invalidSingleTarget =
         appInfo.lookupSingleVirtualTarget(fooA, mainMethod, true, t -> false, typeA, null);
     assertNull(invalidSingleTarget);
@@ -82,7 +82,7 @@ public class SuccessAndInvalidLookupTest extends TestBase {
     DexEncodedMethod singleTarget =
         appInfo.lookupSingleVirtualTarget(fooI, mainMethod, true, t -> false, typeA, null);
     assertNotNull(singleTarget);
-    assertEquals(fooA, singleTarget.method);
+    assertEquals(fooA, singleTarget.getReference());
     DexEncodedMethod invalidSingleTarget =
         appInfo.lookupSingleVirtualTarget(fooI, mainMethod, false, t -> false, typeA, null);
     assertNull(invalidSingleTarget);

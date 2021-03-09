@@ -150,7 +150,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
 
     // Dynamic upper bound type.
     TypeElement fieldType =
-        TypeElement.fromDexType(field.field.type, Nullability.maybeNull(), appView);
+        TypeElement.fromDexType(field.getReference().type, Nullability.maybeNull(), appView);
     TypeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
     if (dynamicUpperBoundType.strictlyLessThan(fieldType, appView)) {
       if (maybeNull && dynamicUpperBoundType.isDefinitelyNotNull()) {
@@ -201,7 +201,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     }
     return appView
         .abstractValueFactory()
-        .createSingleFieldValue(field.field, computeObjectState(value));
+        .createSingleFieldValue(field.getReference(), computeObjectState(value));
   }
 
   /**
@@ -330,7 +330,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
 
     return appView
         .abstractValueFactory()
-        .createSingleFieldValue(valuesField.field, new EnumValuesObjectState(valuesState));
+        .createSingleFieldValue(valuesField.getReference(), new EnumValuesObjectState(valuesState));
   }
 
   private ObjectState computeEnumInstanceObjectState(Value value) {
@@ -428,7 +428,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
 
     return appView
         .abstractValueFactory()
-        .createSingleFieldValue(enumField.field, computeObjectState(value));
+        .createSingleFieldValue(enumField.getReference(), computeObjectState(value));
   }
 
   private ObjectState computeObjectState(Value value) {

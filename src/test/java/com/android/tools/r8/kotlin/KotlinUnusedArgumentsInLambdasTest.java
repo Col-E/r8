@@ -52,7 +52,7 @@ public class KotlinUnusedArgumentsInLambdasTest extends AbstractR8KotlinTestBase
 
                         MethodSubject invoke = classSubject.uniqueMethodWithName("invoke");
                         assertThat(invoke, isPresent());
-                        assertEquals(2, invoke.getMethod().method.proto.parameters.size());
+                        assertEquals(2, invoke.getMethod().getReference().proto.parameters.size());
                       }
                     }));
   }
@@ -68,7 +68,7 @@ public class KotlinUnusedArgumentsInLambdasTest extends AbstractR8KotlinTestBase
                       if (classSubject.getOriginalDescriptor().contains("$js")) {
                         MethodSubject get = classSubject.uniqueMethodWithName("get");
                         assertThat(get, isPresent());
-                        assertEquals(3, get.getMethod().method.proto.parameters.size());
+                        assertEquals(3, get.getMethod().getReference().proto.parameters.size());
                       }
                     }));
   }

@@ -158,7 +158,7 @@ public class UninstantiatedTypeOptimization {
       for (DexEncodedMethod virtualMethod : clazz.virtualMethods()) {
         RewrittenPrototypeDescription prototypeChanges =
             RewrittenPrototypeDescription.createForUninstantiatedTypes(
-                virtualMethod.method,
+                virtualMethod.getReference(),
                 appView,
                 getRemovedArgumentsInfo(virtualMethod, ALLOW_ARGUMENT_REMOVAL));
         if (!prototypeChanges.isEmpty()) {
@@ -186,7 +186,7 @@ public class UninstantiatedTypeOptimization {
     Set<Wrapper<DexMethod>> usedSignatures = new HashSet<>();
     for (DexEncodedMethod method : clazz.methods()) {
       if (!prototypeChangesPerMethod.containsKey(method)) {
-        usedSignatures.add(equivalence.wrap(method.method));
+        usedSignatures.add(equivalence.wrap(method.getReference()));
       }
     }
 
@@ -195,7 +195,7 @@ public class UninstantiatedTypeOptimization {
         .getMethodCollection()
         .replaceDirectMethods(
             encodedMethod -> {
-              DexMethod method = encodedMethod.method;
+              DexMethod method = encodedMethod.getReference();
               RewrittenPrototypeDescription prototypeChanges =
                   prototypeChangesPerMethod.getOrDefault(
                       encodedMethod, RewrittenPrototypeDescription.none());
@@ -230,7 +230,7 @@ public class UninstantiatedTypeOptimization {
         .getMethodCollection()
         .replaceVirtualMethods(
             encodedMethod -> {
-              DexMethod method = encodedMethod.method;
+              DexMethod method = encodedMethod.getReference();
               RewrittenPrototypeDescription prototypeChanges =
                   getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
               ArgumentInfoCollection removedArgumentsInfo =
@@ -262,7 +262,7 @@ public class UninstantiatedTypeOptimization {
         .getMethodCollection()
         .replaceVirtualMethods(
             encodedMethod -> {
-              DexMethod method = encodedMethod.method;
+              DexMethod method = encodedMethod.getReference();
               RewrittenPrototypeDescription prototypeChanges =
                   getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
               ArgumentInfoCollection removedArgumentsInfo =
@@ -299,11 +299,11 @@ public class UninstantiatedTypeOptimization {
   private RewrittenPrototypeDescription getPrototypeChanges(
       DexEncodedMethod encodedMethod, Strategy strategy) {
     if (ArgumentRemovalUtils.isPinned(encodedMethod, appView)
-        || appView.appInfo().isKeepConstantArgumentsMethod(encodedMethod.method)) {
+        || appView.appInfo().isKeepConstantArgumentsMethod(encodedMethod.getReference())) {
       return RewrittenPrototypeDescription.none();
     }
     return RewrittenPrototypeDescription.createForUninstantiatedTypes(
-        encodedMethod.method, appView, getRemovedArgumentsInfo(encodedMethod, strategy));
+        encodedMethod.getReference(), appView, getRemovedArgumentsInfo(encodedMethod, strategy));
   }
 
   private ArgumentInfoCollection getRemovedArgumentsInfo(
@@ -313,7 +313,7 @@ public class UninstantiatedTypeOptimization {
     }
 
     ArgumentInfoCollection.Builder argInfosBuilder = ArgumentInfoCollection.builder();
-    DexProto proto = encodedMethod.method.proto;
+    DexProto proto = encodedMethod.getReference().proto;
     int offset = encodedMethod.isStatic() ? 0 : 1;
     for (int i = 0; i < proto.parameters.size(); ++i) {
       DexType type = proto.parameters.values[i];
@@ -329,7 +329,7 @@ public class UninstantiatedTypeOptimization {
   private DexMethod getNewMethodSignature(
       DexEncodedMethod encodedMethod, RewrittenPrototypeDescription prototypeChanges) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-    DexMethod method = encodedMethod.method;
+    DexMethod method = encodedMethod.getReference();
     DexProto newProto = prototypeChanges.rewriteProto(encodedMethod, dexItemFactory);
 
     return dexItemFactory.createMethod(method.holder, newProto, method.name);

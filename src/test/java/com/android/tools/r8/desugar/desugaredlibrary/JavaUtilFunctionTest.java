@@ -16,7 +16,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.List;
 import java.util.function.Function;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -51,7 +50,7 @@ public class JavaUtilFunctionTest extends DesugaredLibraryTestBase {
         classSubject
             .uniqueMethodWithName("applyFunction")
             .getMethod()
-            .method
+            .getReference()
             .proto
             .parameters
             .values[0]

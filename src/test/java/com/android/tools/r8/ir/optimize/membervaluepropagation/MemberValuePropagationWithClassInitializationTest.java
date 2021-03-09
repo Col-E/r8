@@ -84,7 +84,7 @@ public class MemberValuePropagationWithClassInitializationTest extends TestBase 
         mainMethodSubject
             .streamInstructions()
             .filter(InstructionSubject::isStaticGet)
-            .anyMatch(x -> x.getField() == clinitFieldSubject.getField().field));
+            .anyMatch(x -> x.getField() == clinitFieldSubject.getField().getReference()));
   }
 
   static class TestClass {

@@ -106,10 +106,10 @@ class FieldNameMinifier {
                     reservedNames = getOrCreateReservedFieldNamingState(clazz.type);
                   }
                   reservedNames.markReservedDirectly(
-                      reservedName, field.field.name, field.field.type);
+                      reservedName, field.getReference().name, field.getReference().type);
                   // TODO(b/148846065): Consider lazily computing the renaming on actual lookups.
-                  if (reservedName != field.field.name) {
-                    renaming.put(field.field, reservedName);
+                  if (reservedName != field.getReference().name) {
+                    renaming.put(field.getReference(), reservedName);
                   }
                 }
               }
@@ -135,8 +135,8 @@ class FieldNameMinifier {
             clazz -> {
               for (DexEncodedField field : clazz.fields()) {
                 DexString reservedName = strategy.getReservedName(field, clazz);
-                if (reservedName != null && reservedName != field.field.name) {
-                  renaming.put(field.field, reservedName);
+                if (reservedName != null && reservedName != field.getReference().name) {
+                  renaming.put(field.getReference(), reservedName);
                 }
               }
             });
@@ -270,8 +270,10 @@ class FieldNameMinifier {
       return;
     }
     DexEncodedField definition = appView.appInfo().resolveFieldOn(holder, field).getResolvedField();
-    if (definition != null && definition.field != field && renaming.containsKey(definition.field)) {
-      renaming.put(field, renaming.get(definition.field));
+    if (definition != null
+        && definition.getReference() != field
+        && renaming.containsKey(definition.getReference())) {
+      renaming.put(field, renaming.get(definition.getReference()));
     }
   }
 

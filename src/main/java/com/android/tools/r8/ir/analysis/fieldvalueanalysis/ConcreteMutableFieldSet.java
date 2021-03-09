@@ -73,7 +73,7 @@ public class ConcreteMutableFieldSet extends AbstractFieldSet implements KnownFi
     assert !isEmpty();
     ConcreteMutableFieldSet rewrittenSet = new ConcreteMutableFieldSet();
     for (DexEncodedField field : fields) {
-      DexField rewrittenFieldReference = lens.lookupField(field.field);
+      DexField rewrittenFieldReference = lens.lookupField(field.getReference());
       DexClass holder = appView.definitionForHolder(rewrittenFieldReference);
       DexEncodedField rewrittenField = rewrittenFieldReference.lookupOnClass(holder);
       if (rewrittenField == null) {

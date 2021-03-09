@@ -575,7 +575,7 @@ public final class LambdaClass {
                             true);
                     newMethod.copyMetadata(encodedMethod);
                     forcefullyMovedLambdaMethodConsumer.acceptForcefullyMovedLambdaMethod(
-                        encodedMethod.method, callTarget);
+                        encodedMethod.getReference(), callTarget);
 
                     DexEncodedMethod.setDebugInfoWithFakeThisParameter(
                         newMethod.getCode(), callTarget.getArity(), appView);
@@ -659,7 +659,7 @@ public final class LambdaClass {
                             true);
                     newMethod.copyMetadata(encodedMethod);
                     forcefullyMovedLambdaMethodConsumer.acceptForcefullyMovedLambdaMethod(
-                        encodedMethod.method, callTarget);
+                        encodedMethod.getReference(), callTarget);
                     return newMethod;
                   });
       if (replacement != null) {

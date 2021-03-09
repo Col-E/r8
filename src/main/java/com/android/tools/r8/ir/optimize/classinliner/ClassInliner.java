@@ -290,8 +290,8 @@ public final class ClassInliner {
     // Class must not define finalizer.
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     for (DexEncodedMethod method : clazz.virtualMethods()) {
-      if (method.method.name == dexItemFactory.finalizeMethodName
-          && method.method.proto == dexItemFactory.objectMembers.finalize.proto) {
+      if (method.getReference().name == dexItemFactory.finalizeMethodName
+          && method.getReference().proto == dexItemFactory.objectMembers.finalize.proto) {
         return EligibilityStatus.NOT_ELIGIBLE;
       }
     }

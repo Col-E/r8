@@ -114,8 +114,8 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
     // TODO(b/154348683): Check method for flags to pass in.
     String finalName = this.name;
     if (method != null) {
-      String methodName = method.method.name.toString();
-      String rewrittenName = namingLens.lookupName(method.method).toString();
+      String methodName = method.getReference().name.toString();
+      String rewrittenName = namingLens.lookupName(method.getReference()).toString();
       if (!methodName.equals(rewrittenName)) {
         finalName = rewrittenName;
       }

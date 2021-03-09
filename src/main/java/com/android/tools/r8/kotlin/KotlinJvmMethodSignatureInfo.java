@@ -79,8 +79,8 @@ public class KotlinJvmMethodSignatureInfo implements EnqueuerMetadataTraceable {
     assert returnType != null;
     String finalName = name;
     if (method != null) {
-      String methodName = method.method.name.toString();
-      String rewrittenName = namingLens.lookupName(method.method).toString();
+      String methodName = method.getReference().name.toString();
+      String rewrittenName = namingLens.lookupName(method.getReference()).toString();
       if (!methodName.equals(rewrittenName)) {
         finalName = rewrittenName;
       }

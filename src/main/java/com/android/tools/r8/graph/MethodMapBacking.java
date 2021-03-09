@@ -57,7 +57,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
       methodMap.put(existingKey, method);
     } else {
       methodMap.remove(existingKey);
-      methodMap.put(wrap(method.method), method);
+      methodMap.put(wrap(method.getReference()), method);
     }
   }
 
@@ -165,7 +165,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
 
   @Override
   void addMethod(DexEncodedMethod method) {
-    Wrapper<DexMethod> key = wrap(method.method);
+    Wrapper<DexMethod> key = wrap(method.getReference());
     DexEncodedMethod old = methodMap.put(key, method);
     assert old == null;
   }
@@ -229,12 +229,12 @@ public class MethodMapBacking extends MethodCollectionBacking {
     forEachMethod(
         method -> {
           if (belongsToVirtualPool(method)) {
-            newMap.put(wrap(method.method), method);
+            newMap.put(wrap(method.getReference()), method);
           }
         });
     for (DexEncodedMethod method : methods) {
       assert belongsToDirectPool(method);
-      newMap.put(wrap(method.method), method);
+      newMap.put(wrap(method.getReference()), method);
     }
     methodMap = newMap;
   }
@@ -252,12 +252,12 @@ public class MethodMapBacking extends MethodCollectionBacking {
     forEachMethod(
         method -> {
           if (belongsToDirectPool(method)) {
-            newMap.put(wrap(method.method), method);
+            newMap.put(wrap(method.getReference()), method);
           }
         });
     for (DexEncodedMethod method : methods) {
       assert belongsToVirtualPool(method);
-      newMap.put(wrap(method.method), method);
+      newMap.put(wrap(method.getReference()), method);
     }
     methodMap = newMap;
   }
@@ -271,7 +271,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
     for (DexEncodedMethod method : initialValues) {
       DexEncodedMethod newMethod = replacement.apply(method);
       if (newMethod != method) {
-        removeMethod(method.method);
+        removeMethod(method.getReference());
         addMethod(newMethod);
       }
     }
@@ -359,7 +359,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
   private boolean verifyVirtualizedMethods(Set<DexEncodedMethod> methods) {
     for (DexEncodedMethod method : methods) {
       assert belongsToVirtualPool(method);
-      assert methodMap.get(wrap(method.method)) == method;
+      assert methodMap.get(wrap(method.getReference())) == method;
     }
     return true;
   }

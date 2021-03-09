@@ -232,7 +232,7 @@ public class B111250398 extends TestBase {
     return Arrays.stream(method.getMethod().getCode().asDexCode().instructions)
         .filter(instruction -> instruction instanceof IgetObject)
         .map(instruction -> (IgetObject) instruction)
-        .filter(get -> get.getField() == field.getField().field)
+        .filter(get -> get.getField() == field.getField().getReference())
         .count();
   }
 
@@ -268,23 +268,33 @@ public class B111250398 extends TestBase {
     MethodSubject msvOnB = classB.method("void", "msv", ImmutableList.of());
     assertThat(msvOnB, isPresent());
     // Field load of volatile fields are never eliminated.
-    assertEquals(5, countIget(mvOnA.getMethod().getCode().asDexCode(), vOnA.getField().field));
-    assertEquals(5, countSget(msvOnA.getMethod().getCode().asDexCode(), svOnA.getField().field));
-    assertEquals(5, countIget(mvOnB.getMethod().getCode().asDexCode(), vOnA.getField().field));
-    assertEquals(5, countSget(msvOnB.getMethod().getCode().asDexCode(), svOnA.getField().field));
+    assertEquals(
+        5, countIget(mvOnA.getMethod().getCode().asDexCode(), vOnA.getField().getReference()));
+    assertEquals(
+        5, countSget(msvOnA.getMethod().getCode().asDexCode(), svOnA.getField().getReference()));
+    assertEquals(
+        5, countIget(mvOnB.getMethod().getCode().asDexCode(), vOnA.getField().getReference()));
+    assertEquals(
+        5, countSget(msvOnB.getMethod().getCode().asDexCode(), svOnA.getField().getReference()));
     // For fields on the same class both separate compilation (D8) and whole program
     // compilation (R8) will eliminate field loads on non-volatile fields.
-    assertEquals(1, countIget(mfOnA.getMethod().getCode().asDexCode(), fOnA.getField().field));
-    assertEquals(1, countSget(msfOnA.getMethod().getCode().asDexCode(), sfOnA.getField().field));
     assertEquals(
-        2, countIget(mfWithMonitorOnA.getMethod().getCode().asDexCode(), fOnA.getField().field));
+        1, countIget(mfOnA.getMethod().getCode().asDexCode(), fOnA.getField().getReference()));
+    assertEquals(
+        1, countSget(msfOnA.getMethod().getCode().asDexCode(), sfOnA.getField().getReference()));
+    assertEquals(
+        2,
+        countIget(
+            mfWithMonitorOnA.getMethod().getCode().asDexCode(), fOnA.getField().getReference()));
 
     // For fields on other class both separate compilation (D8) and whole program
     // compilation (R8) will differ in the eliminated field loads of non-volatile fields.
-    assertEquals(mfOnBGets,
-        countIget(mfOnB.getMethod().getCode().asDexCode(), fOnA.getField().field));
-    assertEquals(msfOnBGets,
-        countSget(msfOnB.getMethod().getCode().asDexCode(), sfOnA.getField().field));
+    assertEquals(
+        mfOnBGets,
+        countIget(mfOnB.getMethod().getCode().asDexCode(), fOnA.getField().getReference()));
+    assertEquals(
+        msfOnBGets,
+        countSget(msfOnB.getMethod().getCode().asDexCode(), sfOnA.getField().getReference()));
   }
 
   @Test
@@ -320,12 +330,17 @@ public class B111250398 extends TestBase {
 
 
     for (FieldSubject field : new FieldSubject[]{years, months, days}) {
-      assertEquals(1,
-          countIget(totalDays.getMethod().getCode().asDexCode(), field.getField().field));
-      assertEquals(2,
-          countIget(totalDaysTimes2.getMethod().getCode().asDexCode(), field.getField().field));
-      assertEquals(3,
-          countIget(totalDaysTimes3.getMethod().getCode().asDexCode(), field.getField().field));
+      assertEquals(
+          1,
+          countIget(totalDays.getMethod().getCode().asDexCode(), field.getField().getReference()));
+      assertEquals(
+          2,
+          countIget(
+              totalDaysTimes2.getMethod().getCode().asDexCode(), field.getField().getReference()));
+      assertEquals(
+          3,
+          countIget(
+              totalDaysTimes3.getMethod().getCode().asDexCode(), field.getField().getReference()));
     }
   }
 

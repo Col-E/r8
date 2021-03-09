@@ -133,8 +133,8 @@ public class UnusedArgumentsCollector {
       DexString newName = null;
       do {
         if (newName == null) {
-          newName = method.method.name;
-        } else if (!appView.dexItemFactory().isConstructor(method.method)) {
+          newName = method.getReference().name;
+        } else if (!appView.dexItemFactory().isConstructor(method.getReference())) {
           newName =
               appView
                   .dexItemFactory()
@@ -142,7 +142,7 @@ public class UnusedArgumentsCollector {
                       SymbolGenerationUtils.numberToIdentifier(
                           count,
                           MixedCasing.USE_MIXED_CASE,
-                          method.method.name.toSourceString().toCharArray()));
+                          method.getReference().name.toSourceString().toCharArray()));
         } else {
           // Constructors must be named `<init>`.
           return null;
@@ -156,7 +156,7 @@ public class UnusedArgumentsCollector {
 
     DexEncodedMethod removeArguments(
         DexEncodedMethod method, DexMethod newSignature, ArgumentInfoCollection unused) {
-      boolean removed = usedSignatures.remove(equivalence.wrap(method.method));
+      boolean removed = usedSignatures.remove(equivalence.wrap(method.getReference()));
       assert removed;
 
       markSignatureAsUsed(newSignature);
@@ -180,10 +180,12 @@ public class UnusedArgumentsCollector {
       DexString newName = null;
       do {
         if (newName == null) {
-          newName = method.method.name;
-        } else if (!appView.dexItemFactory().isConstructor(method.method)) {
+          newName = method.getReference().name;
+        } else if (!appView.dexItemFactory().isConstructor(method.getReference())) {
           newName =
-              appView.dexItemFactory().createString(method.method.name.toSourceString() + count);
+              appView
+                  .dexItemFactory()
+                  .createString(method.getReference().name.toSourceString() + count);
         } else {
           // Constructors must be named `<init>`.
           return null;
@@ -210,7 +212,7 @@ public class UnusedArgumentsCollector {
   private void processDirectMethods(DexProgramClass clazz) {
     UsedSignatures signatures = new UsedSignatures();
     for (DexEncodedMethod method : clazz.methods()) {
-      signatures.markSignatureAsUsed(method.method);
+      signatures.markSignatureAsUsed(method.getReference());
     }
 
     clazz
@@ -220,7 +222,7 @@ public class UnusedArgumentsCollector {
 
               // If this is a method with known resolution issues, then don't remove any unused
               // arguments.
-              if (appView.appInfo().isFailedResolutionTarget(method.method)) {
+              if (appView.appInfo().isFailedResolutionTarget(method.getReference())) {
                 return method;
               }
 
@@ -229,14 +231,14 @@ public class UnusedArgumentsCollector {
                 DexProto newProto = createProtoWithRemovedArguments(method, unused);
                 DexMethod newSignature = signatures.getNewSignature(method, newProto);
                 if (newSignature == null) {
-                  assert appView.dexItemFactory().isConstructor(method.method);
+                  assert appView.dexItemFactory().isConstructor(method.getReference());
                   return method;
                 }
                 DexEncodedMethod newMethod =
                     signatures.removeArguments(method, newSignature, unused);
                 synchronized (this) {
-                  methodMapping.put(method.method, newMethod.method);
-                  removedArguments.put(newMethod.method, unused);
+                  methodMapping.put(method.getReference(), newMethod.getReference());
+                  removedArguments.put(newMethod.getReference(), unused);
                 }
                 return newMethod;
               }
@@ -265,8 +267,8 @@ public class UnusedArgumentsCollector {
                     signatures.removeArguments(
                         method, signatures.getNewSignature(method, newProto), unused);
 
-                methodMapping.put(method.method, newMethod.method);
-                removedArguments.put(newMethod.method, unused);
+                methodMapping.put(method.getReference(), newMethod.getReference());
+                removedArguments.put(newMethod.getReference(), unused);
                 return newMethod;
               }
               return method;
@@ -280,7 +282,7 @@ public class UnusedArgumentsCollector {
   private ArgumentInfoCollection collectUnusedArguments(
       DexEncodedMethod method, MemberPool<DexMethod> methodPool) {
     if (ArgumentRemovalUtils.isPinned(method, appView)
-        || appView.appInfo().isKeepUnusedArgumentsMethod(method.method)) {
+        || appView.appInfo().isKeepUnusedArgumentsMethod(method.getReference())) {
       return null;
     }
     // Only process classfile code objects.
@@ -292,13 +294,13 @@ public class UnusedArgumentsCollector {
       // an unused argument cannot be removed unless it is unused in all of the related methods in
       // the hierarchy.
       assert methodPool != null;
-      Wrapper<DexMethod> wrapper = equivalence.wrap(method.method);
+      Wrapper<DexMethod> wrapper = equivalence.wrap(method.getReference());
       if (methodPool.hasSeenStrictlyAbove(wrapper) || methodPool.hasSeenStrictlyBelow(wrapper)) {
         return null;
       }
     }
     int offset = method.accessFlags.isStatic() ? 0 : 1;
-    int argumentCount = method.method.proto.parameters.size() + offset;
+    int argumentCount = method.getReference().proto.parameters.size() + offset;
     CollectUsedArguments collector = new CollectUsedArguments();
     if (!method.accessFlags.isStatic()) {
       // TODO(65810338): The receiver cannot be removed without transforming the method to being
@@ -313,7 +315,7 @@ public class UnusedArgumentsCollector {
         if (!used.get(argumentIndex)) {
           RemovedArgumentInfo removedArg =
               RemovedArgumentInfo.builder()
-                  .setType(method.method.proto.parameters.values[argumentIndex - offset])
+                  .setType(method.getReference().proto.parameters.values[argumentIndex - offset])
                   .build();
           argInfosBuilder.addArgumentInfo(argumentIndex, removedArg);
         }
@@ -326,7 +328,9 @@ public class UnusedArgumentsCollector {
   private DexProto createProtoWithRemovedArguments(
       DexEncodedMethod encodedMethod, ArgumentInfoCollection unused) {
     DexType[] parameters = unused.rewriteParameters(encodedMethod);
-    return appView.dexItemFactory().createProto(encodedMethod.method.proto.returnType, parameters);
+    return appView
+        .dexItemFactory()
+        .createProto(encodedMethod.getReference().proto.returnType, parameters);
   }
 
   private static class CollectUsedArguments extends ArgumentUse {

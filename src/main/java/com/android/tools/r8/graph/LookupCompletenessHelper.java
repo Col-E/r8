@@ -34,7 +34,7 @@ public class LookupCompletenessHelper {
       if (pinnedMethods == null) {
         pinnedMethods = Sets.newIdentityHashSet();
       }
-      pinnedMethods.add(method.method);
+      pinnedMethods.add(method.getReference());
     }
   }
 

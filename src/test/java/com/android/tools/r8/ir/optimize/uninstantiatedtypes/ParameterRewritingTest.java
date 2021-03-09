@@ -64,7 +64,7 @@ public class ParameterRewritingTest extends TestBase {
     MethodSubject createStaticMethodSubject =
         factoryClassSubject.uniqueMethodWithName("createStatic");
     assertThat(createStaticMethodSubject, isPresent());
-    assertEquals(1, createStaticMethodSubject.getMethod().method.proto.parameters.size());
+    assertEquals(1, createStaticMethodSubject.getMethod().getReference().proto.parameters.size());
 
     for (int i = 1; i <= 3; ++i) {
       String createStaticWithUnusedMethodName = "createStaticWithUnused" + i;
@@ -72,7 +72,7 @@ public class ParameterRewritingTest extends TestBase {
           factoryClassSubject.uniqueMethodWithName(createStaticWithUnusedMethodName);
       assertThat(createStaticWithUnusedMethodSubject, isPresent());
 
-      DexMethod method = createStaticWithUnusedMethodSubject.getMethod().method;
+      DexMethod method = createStaticWithUnusedMethodSubject.getMethod().getReference();
       assertEquals(1, method.proto.parameters.size());
       assertEquals("java.lang.String", method.proto.parameters.toString());
     }
@@ -81,7 +81,7 @@ public class ParameterRewritingTest extends TestBase {
         factoryClassSubject.uniqueMethodWithName("createStaticWithUnused4");
     assertThat(createStaticWithUnusedMethodSubject, isPresent());
 
-    DexMethod method = createStaticWithUnusedMethodSubject.getMethod().method;
+    DexMethod method = createStaticWithUnusedMethodSubject.getMethod().getReference();
     assertEquals(3, method.proto.parameters.size());
     assertEquals(
         "java.lang.String java.lang.String java.lang.String", method.proto.parameters.toString());

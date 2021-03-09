@@ -334,7 +334,7 @@ public abstract class GraphLens {
       DexDefinitionSupplier definitions,
       GraphLens applied) {
     assert originalEncodedMethod != DexEncodedMethod.SENTINEL;
-    DexMethod newMethod = getRenamedMethodSignature(originalEncodedMethod.method, applied);
+    DexMethod newMethod = getRenamedMethodSignature(originalEncodedMethod.getReference(), applied);
     // Note that:
     // * Even if `newMethod` is the same as `originalEncodedMethod.method`, we still need to look it
     //   up, since `originalEncodedMethod` may be obsolete.
@@ -602,10 +602,10 @@ public abstract class GraphLens {
     Set<DexMethod> originalMethods = Sets.newIdentityHashSet();
     for (DexProgramClass clazz : originalApplication.classes()) {
       for (DexEncodedField field : clazz.fields()) {
-        originalFields.add(field.field);
+        originalFields.add(field.getReference());
       }
       for (DexEncodedMethod method : clazz.methods()) {
-        originalMethods.add(method.method);
+        originalMethods.add(method.getReference());
       }
     }
 
@@ -631,7 +631,7 @@ public abstract class GraphLens {
           // Methods synthesized by D8/R8 may not be mapped.
           continue;
         }
-        DexMethod originalMethod = getOriginalMethodSignature(method.method);
+        DexMethod originalMethod = getOriginalMethodSignature(method.getReference());
         assert originalMethods.contains(originalMethod);
       }
     }

@@ -144,7 +144,7 @@ public class EnumValueOptimizer {
                 .appInfo()
                 .resolveMethodOnClass(factory.objectMembers.toString, enumFieldType.getClassType())
                 .getSingleTarget();
-        if (singleTarget != null && singleTarget.method != factory.enumMembers.toString) {
+        if (singleTarget != null && singleTarget.getReference() != factory.enumMembers.toString) {
           continue;
         }
 

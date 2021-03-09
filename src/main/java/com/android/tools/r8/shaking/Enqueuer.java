@@ -929,17 +929,17 @@ public class Enqueuer {
       }
 
       // Check if we have previously created a FieldAccessInfo object for the field definition.
-      info = fieldAccessInfoCollection.get(encodedField.field);
+      info = fieldAccessInfoCollection.get(encodedField.getReference());
 
       // If not, we must create one.
       if (info == null) {
-        info = new FieldAccessInfoImpl(encodedField.field);
-        fieldAccessInfoCollection.extend(encodedField.field, info);
+        info = new FieldAccessInfoImpl(encodedField.getReference());
+        fieldAccessInfoCollection.extend(encodedField.getReference(), info);
       }
 
       // If `field` is an indirect reference, then create a mapping for it, such that we don't have
       // to resolve the field the next time we see the reference.
-      if (field != encodedField.field) {
+      if (field != encodedField.getReference()) {
         fieldAccessInfoCollection.extend(field, info);
       }
     } else if (info == MISSING_FIELD_ACCESS_INFO) {
@@ -2122,7 +2122,7 @@ public class Enqueuer {
     // targets another default method in the same interface (see testInvokeSpecialToDefault-
     // Method). In a class, that would lead to a verification error.
     if (encodedMethod.isNonPrivateVirtualMethod()
-        && virtualMethodsTargetedByInvokeDirect.add(encodedMethod.method)) {
+        && virtualMethodsTargetedByInvokeDirect.add(encodedMethod.getReference())) {
       workList.enqueueMarkMethodLiveAction(method, context, reason);
     }
   }
@@ -2442,7 +2442,7 @@ public class Enqueuer {
       markVirtualMethodAsLive(
           resolutionMethod,
           graphReporter.reportReachableMethodAsLive(
-              resolutionMethod.getDefinition().method, resolutionMethod));
+              resolutionMethod.getDefinition().getReference(), resolutionMethod));
       return;
     }
     // Otherwise, we set the initial holder type to be the holder of the reachable method, which
@@ -2456,7 +2456,7 @@ public class Enqueuer {
           lookup,
           programMethod ->
               graphReporter.reportReachableMethodAsLive(
-                  resolutionMethod.getDefinition().method, programMethod));
+                  resolutionMethod.getDefinition().getReference(), programMethod));
     }
   }
 
@@ -2474,7 +2474,9 @@ public class Enqueuer {
       // Note: It would be reasonable to not process methods already seen during the marking of
       // program usages, but that would cause the methods to not be marked as library overrides.
       markLibraryOrClasspathOverrideLive(
-          instantiation, libraryClass, appInfo.resolveMethodOn(libraryClass, method.method));
+          instantiation,
+          libraryClass,
+          appInfo.resolveMethodOn(libraryClass, method.getReference()));
 
       // Due to API conversion, some overrides can be hidden since they will be rewritten. See
       // class comment of DesugaredLibraryAPIConverter and vivifiedType logic.
@@ -2482,11 +2484,12 @@ public class Enqueuer {
       // maintains the library override. In the second enqueuer phase, the signature has been
       // desugared, and the second resolution maintains the the library override.
       if (instantiation.isClass()
-          && appView.rewritePrefix.hasRewrittenTypeInSignature(method.method.proto, appView)) {
+          && appView.rewritePrefix.hasRewrittenTypeInSignature(
+              method.getReference().proto, appView)) {
         DexMethod methodToResolve =
             DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(
-                method.method, method.getHolderType(), appView);
-        assert methodToResolve != method.method;
+                method.getReference(), method.getHolderType(), appView);
+        assert methodToResolve != method.getReference();
         markLibraryOrClasspathOverrideLive(
             instantiation,
             libraryClass,
@@ -2514,7 +2517,7 @@ public class Enqueuer {
     if (instantiation.isClass()) {
       // TODO(b/149976493): We need to mark these for lambdas too!
       markOverridesAsLibraryMethodOverrides(
-          instantiation.asClass(), lookup.asMethodTarget().getDefinition().method);
+          instantiation.asClass(), lookup.asMethodTarget().getDefinition().getReference());
     }
   }
 
@@ -2688,7 +2691,7 @@ public class Enqueuer {
   }
 
   public boolean isFieldReferenced(DexEncodedField field) {
-    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.field);
+    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.getReference());
     return info != null;
   }
 
@@ -2834,7 +2837,7 @@ public class Enqueuer {
                     target,
                     programMethod ->
                         graphReporter.reportReachableMethodAsLive(
-                            resolvedMethod.method, programMethod)));
+                            resolvedMethod.getReference(), programMethod)));
   }
 
   private void markVirtualDispatchTargetAsLive(
@@ -2874,7 +2877,7 @@ public class Enqueuer {
         method -> {
           DexProgramClass clazz = getProgramClassOrNull(method.getHolderType(), context);
           if (clazz != null) {
-            failedMethodResolutionTargets.add(method.method);
+            failedMethodResolutionTargets.add(method.getReference());
             markMethodAsTargeted(new ProgramMethod(clazz, method), reason);
           }
         });
@@ -2920,7 +2923,7 @@ public class Enqueuer {
     // If invoke target is invalid (inaccessible or not an instance-method) record it and stop.
     DexClassAndMethod target = resolution.lookupInvokeSuperTarget(from.getHolder(), appInfo);
     if (target == null) {
-      failedMethodResolutionTargets.add(resolution.getResolvedMethod().method);
+      failedMethodResolutionTargets.add(resolution.getResolvedMethod().getReference());
       return;
     }
 
@@ -2961,7 +2964,7 @@ public class Enqueuer {
     MainDexInfo.Builder builder = appView.appInfo().getMainDexInfo().builder();
     liveTypes.getItems().forEach(builder::addRoot);
     if (mode.isInitialMainDexTracing()) {
-      liveMethods.getItems().forEach(method -> builder.addRoot(method.method));
+      liveMethods.getItems().forEach(method -> builder.addRoot(method.getReference()));
     } else {
       assert appView.appInfo().getMainDexInfo().isTracedMethodRootsCleared()
           || mode.isGenerateMainDexList();
@@ -3115,7 +3118,7 @@ public class Enqueuer {
     }
 
     void addLiveMethod(ProgramMethod method) {
-      DexMethod signature = method.getDefinition().method;
+      DexMethod signature = method.getDefinition().getReference();
       assert !liveMethods.containsKey(signature);
       liveMethods.put(signature, method);
     }
@@ -3399,7 +3402,7 @@ public class Enqueuer {
         : "Expected type to be in live non-program types: " + clazz;
     for (DexEncodedField field : clazz.fields()) {
       if (clazz.isNotProgramClass() || isFieldReferenced(field)) {
-        assert verifyReferencedType(field.field.type, worklist, app);
+        assert verifyReferencedType(field.getReference().type, worklist, app);
       }
     }
     for (DexEncodedMethod method : clazz.methods()) {
@@ -3412,8 +3415,8 @@ public class Enqueuer {
 
   private boolean verifyReferencedMethod(
       DexEncodedMethod method, WorkList<DexClass> worklist, DexApplication app) {
-    assert verifyReferencedType(method.method.proto.returnType, worklist, app);
-    for (DexType param : method.method.proto.parameters.values) {
+    assert verifyReferencedType(method.getReference().proto.returnType, worklist, app);
+    for (DexType param : method.getReference().proto.parameters.values) {
       assert verifyReferencedType(param, worklist, app);
     }
     return true;
@@ -3644,16 +3647,19 @@ public class Enqueuer {
       return;
     }
     if (methodToKeep != singleTarget
-        && !syntheticInterfaceMethodBridges.containsKey(methodToKeep.getDefinition().method)) {
-      syntheticInterfaceMethodBridges.put(methodToKeep.getDefinition().method, methodToKeep);
-      assert null == methodToKeep.getHolder().lookupMethod(methodToKeep.getDefinition().method);
+        && !syntheticInterfaceMethodBridges.containsKey(
+            methodToKeep.getDefinition().getReference())) {
+      syntheticInterfaceMethodBridges.put(
+          methodToKeep.getDefinition().getReference(), methodToKeep);
+      assert null
+          == methodToKeep.getHolder().lookupMethod(methodToKeep.getDefinition().getReference());
       if (singleTargetMethod.isLibraryMethodOverride().isTrue()) {
         methodToKeep.getDefinition().setLibraryMethodOverride(OptionalBool.TRUE);
       }
       DexProgramClass singleTargetHolder = singleTarget.getHolder();
       assert singleTargetHolder.isInterface();
       markVirtualMethodAsReachable(
-          singleTargetMethod.method,
+          singleTargetMethod.getReference(),
           singleTargetHolder.isInterface(),
           singleTarget,
           graphReporter.fakeReportShouldNotBeUsed());
@@ -3748,7 +3754,7 @@ public class Enqueuer {
       DexProgramClass current = worklist.removeFirst();
       assert visited.contains(current);
 
-      if (current.lookupVirtualMethod(method.method) != null) {
+      if (current.lookupVirtualMethod(method.getReference()) != null) {
         continue;
       }
 
@@ -4482,7 +4488,7 @@ public class Enqueuer {
       DexEncodedMethod target = holder.lookupDirectMethod(method);
       if (target != null) {
         // There is no dispatch on annotations, so only keep what is directly referenced.
-        if (target.method == method) {
+        if (target.getReference() == method) {
           markDirectStaticOrConstructorMethodAsLive(
               new ProgramMethod(holder, target),
               KeepReason.referencedInAnnotation(annotationHolder));
@@ -4490,7 +4496,7 @@ public class Enqueuer {
       } else {
         target = holder.lookupVirtualMethod(method);
         // There is no dispatch on annotations, so only keep what is directly referenced.
-        if (target != null && target.method == method) {
+        if (target != null && target.getReference() == method) {
           markMethodAsTargeted(
               new ProgramMethod(holder, target),
               KeepReason.referencedInAnnotation(annotationHolder));

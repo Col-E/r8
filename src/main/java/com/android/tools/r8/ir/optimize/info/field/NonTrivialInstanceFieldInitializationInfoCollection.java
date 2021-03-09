@@ -57,7 +57,8 @@ public class NonTrivialInstanceFieldInitializationInfoCollection
 
   @Override
   public InstanceFieldInitializationInfo get(DexEncodedField field) {
-    return infos.getOrDefault(field.field, UnknownInstanceFieldInitializationInfo.getInstance());
+    return infos.getOrDefault(
+        field.getReference(), UnknownInstanceFieldInitializationInfo.getInstance());
   }
 
   @Override

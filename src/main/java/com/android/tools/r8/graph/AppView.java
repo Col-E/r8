@@ -588,11 +588,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     if (!options().isGeneratingClassFiles()) {
       return false;
     }
-    if (cfByteCodePassThrough.contains(method.method)) {
+    if (cfByteCodePassThrough.contains(method.getReference())) {
       return true;
     }
     return options().testing.cfByteCodePassThrough != null
-        && options().testing.cfByteCodePassThrough.test(method.method);
+        && options().testing.cfByteCodePassThrough.test(method.getReference());
   }
 
   public boolean hasCfByteCodePassThroughMethods() {

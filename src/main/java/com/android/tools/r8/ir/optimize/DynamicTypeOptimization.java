@@ -30,7 +30,7 @@ public class DynamicTypeOptimization {
    * <p>If the method has no normal exits, then null is returned.
    */
   public TypeElement computeDynamicReturnType(DexEncodedMethod method, IRCode code) {
-    assert method.method.proto.returnType.isReferenceType();
+    assert method.getReference().proto.returnType.isReferenceType();
     List<TypeElement> returnedTypes = new ArrayList<>();
     for (BasicBlock block : code.blocks) {
       JumpInstruction exitInstruction = block.exit();
@@ -43,7 +43,7 @@ public class DynamicTypeOptimization {
   }
 
   public ClassTypeElement computeDynamicLowerBoundType(DexEncodedMethod method, IRCode code) {
-    assert method.method.proto.returnType.isReferenceType();
+    assert method.getReference().proto.returnType.isReferenceType();
     ClassTypeElement result = null;
     for (BasicBlock block : code.blocks) {
       JumpInstruction exitInstruction = block.exit();

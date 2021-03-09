@@ -64,7 +64,8 @@ public class ProtoEnumSwitchMapRemover {
       return null;
     }
     ObjectState state =
-        enumStaticFieldValues.getObjectStateForPossiblyPinnedField(enumInstanceField.field);
+        enumStaticFieldValues.getObjectStateForPossiblyPinnedField(
+            enumInstanceField.getReference());
     if (state == null) {
       return null;
     }
