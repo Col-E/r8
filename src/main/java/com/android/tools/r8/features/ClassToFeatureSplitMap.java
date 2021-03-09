@@ -159,6 +159,11 @@ public class ClassToFeatureSplitMap {
 
   public boolean isInBaseOrSameFeatureAs(
       DexProgramClass clazz, ProgramDefinition context, SyntheticItems syntheticItems) {
+    return isInBaseOrSameFeatureAs(clazz.getContextType(), context, syntheticItems);
+  }
+
+  public boolean isInBaseOrSameFeatureAs(
+      DexType clazz, ProgramDefinition context, SyntheticItems syntheticItems) {
     FeatureSplit split = getFeatureSplit(clazz, syntheticItems);
     return split.isBase() || split == getFeatureSplit(context, syntheticItems);
   }

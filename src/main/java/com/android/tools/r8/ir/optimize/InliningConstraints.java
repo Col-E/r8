@@ -370,6 +370,17 @@ public class InliningConstraints {
       // This will fail at runtime.
       return ConstraintWithTarget.NEVER;
     }
+    if (!appView
+        .appInfo()
+        .getClassToFeatureSplitMap()
+        .isInBaseOrSameFeatureAs(
+            resolvedMember.getHolderType(),
+            context.asProgramMethod(),
+            appView.getSyntheticItems())) {
+      // We never inline into the base from a feature (calls should never happen) and we
+      // never inline between features, so this check should be sufficient.
+      return ConstraintWithTarget.NEVER;
+    }
     DexType resolvedHolder = graphLens.lookupType(resolvedMember.getHolderType());
     assert initialResolutionHolder != null;
     ConstraintWithTarget memberConstraintWithTarget =
