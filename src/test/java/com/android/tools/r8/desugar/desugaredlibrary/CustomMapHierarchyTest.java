@@ -24,10 +24,13 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class CustomMapHierarchyTest extends DesugaredLibraryTestBase {
 
+  private static final String EXPECTED =
+      StringUtils.lines("B::getOrDefault", "default 1", "B::getOrDefault", "default 2");
+
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
@@ -67,13 +70,7 @@ public class CustomMapHierarchyTest extends DesugaredLibraryTestBase {
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/182381011): Should always be EXPECTED.
-        .assertSuccessWithOutput(
-            parameters
-                    .getApiLevel()
-                    .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport())
-                ? EXPECTED
-                : NOT_EXPECTED);
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
@@ -109,25 +106,13 @@ public class CustomMapHierarchyTest extends DesugaredLibraryTestBase {
               desugaredLibraryKeepRules,
               shrinkDesugaredLibrary)
           .run(parameters.getRuntime(), Main.class)
-          // TODO(b/182381011): Should always be EXPECTED.
-          .assertSuccessWithOutput(
-              parameters
-                      .getApiLevel()
-                      .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport())
-                  ? EXPECTED
-                  : NOT_EXPECTED);
+          .assertSuccessWithOutput(EXPECTED);
     } else {
       testForJvm()
           .addProgramFiles(jar)
           .addRunClasspathFiles(getDesugaredLibraryInCF(parameters, options -> {}))
           .run(parameters.getRuntime(), Main.class)
-          // TODO(b/182381011): Should always be EXPECTED.
-          .assertSuccessWithOutput(
-              parameters
-                      .getApiLevel()
-                      .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport())
-                  ? EXPECTED
-                  : NOT_EXPECTED);
+          .assertSuccessWithOutput(EXPECTED);
     }
   }
 
@@ -145,12 +130,6 @@ public class CustomMapHierarchyTest extends DesugaredLibraryTestBase {
             ProguardKeepAttributes.ENCLOSING_METHOD)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        // TODO(b/182381011): Should not happen.
-        .applyIf(
-            parameters
-                .getApiLevel()
-                .isLessThan(TestBase.apiLevelWithDefaultInterfaceMethodsSupport()),
-            b -> b.addDontWarn("java.util.Map$-CC"))
         .compile()
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
@@ -158,18 +137,8 @@ public class CustomMapHierarchyTest extends DesugaredLibraryTestBase {
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/182381011): Should always be EXPECTED.
-        .assertSuccessWithOutput(
-            parameters
-                    .getApiLevel()
-                    .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport())
-                ? EXPECTED
-                : NOT_EXPECTED);
+        .assertSuccessWithOutput(EXPECTED);
   }
-
-  final String EXPECTED =
-      StringUtils.lines("B::getOrDefault", "default 1", "B::getOrDefault", "default 2");
-  final String NOT_EXPECTED = StringUtils.lines("B::getOrDefault", "default 1", "default 2");
 
   public static class Main {
     public static void main(String[] args) {

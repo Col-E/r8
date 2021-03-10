@@ -126,7 +126,7 @@ final class ClassProcessor {
         ClassInfo parent,
         ImmutableList<DexClassAndMethod> forwardedMethodTargets,
         EmulatedInterfaceInfo emulatedInterfaceInfo) {
-      return forwardedMethodTargets.isEmpty()
+      return forwardedMethodTargets.isEmpty() && emulatedInterfaceInfo.isEmpty()
           ? parent
           : new ClassInfo(parent, forwardedMethodTargets, emulatedInterfaceInfo);
     }
@@ -725,8 +725,8 @@ final class ClassProcessor {
     SignaturesInfo signatures = visitLibraryClassInfo(clazz.superType);
     // The class may inherit emulated interface info from its program superclass if the latter
     // did not require to resolve the forwarding methods for emualted interfaces.
-    signatures = signatures.withEmulatedInterfaceInfo(superInfo.emulatedInterfaceInfo);
     assert superInfo.isEmpty() || signatures.isEmpty();
+    signatures = signatures.withEmulatedInterfaceInfo(superInfo.emulatedInterfaceInfo);
     for (DexType iface : clazz.interfaces.values) {
       signatures = signatures.merge(visitInterfaceInfo(iface, thisContext));
     }
