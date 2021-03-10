@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -21,7 +22,7 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
-class EnumUnboxingLens extends GraphLens.NestedGraphLens {
+class EnumUnboxingLens extends NestedGraphLens {
 
   private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod;
   private final Set<DexType> unboxedEnums;

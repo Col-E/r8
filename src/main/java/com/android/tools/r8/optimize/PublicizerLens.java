@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
+import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
 import com.google.common.collect.ImmutableMap;
