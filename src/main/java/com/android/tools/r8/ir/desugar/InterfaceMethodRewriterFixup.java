@@ -53,8 +53,7 @@ class InterfaceMethodRewriterFixup {
       return null;
     }
     // Map default methods to their companion methods.
-    DexMethod mappedMethod =
-        graphLens.getExtraOriginalMethodSignatures().getRepresentativeKey(method);
+    DexMethod mappedMethod = graphLens.getExtraNewMethodSignatures().getRepresentativeValue(method);
     if (mappedMethod != null) {
       return mappedMethod;
     }

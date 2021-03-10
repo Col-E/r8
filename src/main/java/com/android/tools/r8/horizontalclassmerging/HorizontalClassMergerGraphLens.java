@@ -8,14 +8,12 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.LegacyNestedGraphLens;
+import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
-import com.android.tools.r8.utils.collections.BidirectionalOneToManyRepresentativeHashMap;
-import com.android.tools.r8.utils.collections.BidirectionalOneToManyRepresentativeMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
@@ -25,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class HorizontalClassMergerGraphLens extends LegacyNestedGraphLens {
+public class HorizontalClassMergerGraphLens extends NestedGraphLens {
 
   private final Map<DexMethod, List<ExtraParameter>> methodExtraParameters;
   private final HorizontallyMergedClasses mergedClasses;
@@ -36,14 +34,8 @@ public class HorizontalClassMergerGraphLens extends LegacyNestedGraphLens {
       Map<DexMethod, List<ExtraParameter>> methodExtraParameters,
       BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
-      BidirectionalOneToManyRepresentativeMap<DexMethod, DexMethod> originalMethodSignatures) {
-    super(
-        mergedClasses.getForwardMap(),
-        methodMap,
-        fieldMap,
-        originalMethodSignatures,
-        appView.graphLens(),
-        appView.dexItemFactory());
+      BidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> newMethodSignatures) {
+    super(appView, fieldMap, methodMap, mergedClasses.getForwardMap(), newMethodSignatures);
     this.methodExtraParameters = methodExtraParameters;
     this.mergedClasses = mergedClasses;
   }
@@ -94,29 +86,30 @@ public class HorizontalClassMergerGraphLens extends LegacyNestedGraphLens {
         BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
     private final BidirectionalManyToOneHashMap<DexMethod, DexMethod> methodMap =
         BidirectionalManyToOneHashMap.newIdentityHashMap();
-    private final BidirectionalOneToManyRepresentativeHashMap<DexMethod, DexMethod>
-        originalMethodSignatures = new BidirectionalOneToManyRepresentativeHashMap<>();
+    private final BidirectionalManyToOneRepresentativeHashMap<DexMethod, DexMethod>
+        newMethodSignatures = BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
     private final Map<DexMethod, List<ExtraParameter>> methodExtraParameters =
         new IdentityHashMap<>();
 
     private final BidirectionalManyToOneHashMap<DexMethod, DexMethod> pendingMethodMapUpdates =
         BidirectionalManyToOneHashMap.newIdentityHashMap();
-    private final BidirectionalOneToManyRepresentativeHashMap<DexMethod, DexMethod>
-        pendingOriginalMethodSignatureUpdates = new BidirectionalOneToManyRepresentativeHashMap<>();
+    private final BidirectionalManyToOneRepresentativeHashMap<DexMethod, DexMethod>
+        pendingNewMethodSignatureUpdates =
+            BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
 
     Builder() {}
 
     HorizontalClassMergerGraphLens build(
         AppView<?> appView, HorizontallyMergedClasses mergedClasses) {
       assert pendingMethodMapUpdates.isEmpty();
-      assert pendingOriginalMethodSignatureUpdates.isEmpty();
+      assert pendingNewMethodSignatureUpdates.isEmpty();
       return new HorizontalClassMergerGraphLens(
           appView,
           mergedClasses,
           methodExtraParameters,
           fieldMap,
           methodMap.getForwardMap(),
-          originalMethodSignatures);
+          newMethodSignatures);
     }
 
     void recordNewFieldSignature(DexField oldFieldSignature, DexField newFieldSignature) {
@@ -161,7 +154,7 @@ public class HorizontalClassMergerGraphLens extends LegacyNestedGraphLens {
     }
 
     void recordNewMethodSignature(DexMethod oldMethodSignature, DexMethod newMethodSignature) {
-      originalMethodSignatures.put(newMethodSignature, oldMethodSignature);
+      newMethodSignatures.put(oldMethodSignature, newMethodSignature);
     }
 
     void fixupMethod(DexMethod oldMethodSignature, DexMethod newMethodSignature) {
@@ -182,12 +175,12 @@ public class HorizontalClassMergerGraphLens extends LegacyNestedGraphLens {
 
     private void fixupOriginalMethodSignatures(
         DexMethod oldMethodSignature, DexMethod newMethodSignature) {
-      Set<DexMethod> oldMethodSignatures = originalMethodSignatures.getValues(oldMethodSignature);
+      Set<DexMethod> oldMethodSignatures = newMethodSignatures.getKeys(oldMethodSignature);
       if (oldMethodSignatures.isEmpty()) {
-        pendingOriginalMethodSignatureUpdates.put(newMethodSignature, oldMethodSignature);
+        pendingNewMethodSignatureUpdates.put(oldMethodSignature, newMethodSignature);
       } else {
         for (DexMethod originalMethodSignature : oldMethodSignatures) {
-          pendingOriginalMethodSignatureUpdates.put(newMethodSignature, originalMethodSignature);
+          pendingNewMethodSignatureUpdates.put(originalMethodSignature, newMethodSignature);
         }
       }
     }
@@ -199,9 +192,9 @@ public class HorizontalClassMergerGraphLens extends LegacyNestedGraphLens {
       pendingMethodMapUpdates.clear();
 
       // Commit pending original method signatures updates.
-      originalMethodSignatures.removeAll(pendingOriginalMethodSignatureUpdates.keySet());
-      pendingOriginalMethodSignatureUpdates.forEachOneToManyMapping(originalMethodSignatures::put);
-      pendingOriginalMethodSignatureUpdates.clear();
+      newMethodSignatures.removeAll(pendingNewMethodSignatureUpdates.keySet());
+      pendingNewMethodSignatureUpdates.forEachManyToOneMapping(newMethodSignatures::put);
+      pendingNewMethodSignatureUpdates.clear();
     }
 
     /**

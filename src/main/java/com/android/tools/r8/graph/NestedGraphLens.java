@@ -87,10 +87,6 @@ public class NestedGraphLens extends NonIdentityGraphLens {
     this.newMethodSignatures = newMethodSignatures;
   }
 
-  public static Builder builder() {
-    return new Builder();
-  }
-
   protected DexType internalGetOriginalType(DexType previous) {
     return previous;
   }

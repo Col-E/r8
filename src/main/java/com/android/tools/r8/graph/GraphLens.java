@@ -15,9 +15,7 @@ import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
-import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
-import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -231,17 +229,15 @@ public abstract class GraphLens {
     }
   }
 
-  public static class Builder {
+  public abstract static class Builder {
 
-    protected Builder() {}
-
-    protected final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
-    protected final Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
     protected final MutableBidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap =
         BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
+    protected final MutableBidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> methodMap =
+        BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
+    protected final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
 
-    protected final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures =
-        new BidirectionalOneToOneHashMap<>();
+    protected Builder() {}
 
     public void map(DexType from, DexType to) {
       if (from == to) {
@@ -250,19 +246,11 @@ public abstract class GraphLens {
       typeMap.put(from, to);
     }
 
-    public void map(DexMethod from, DexMethod to) {
-      if (from == to) {
-        return;
-      }
-      methodMap.put(from, to);
-    }
-
     public void move(DexMethod from, DexMethod to) {
       if (from == to) {
         return;
       }
-      map(from, to);
-      originalMethodSignatures.put(to, from);
+      methodMap.put(from, to);
     }
 
     public void move(DexField from, DexField to) {
@@ -272,17 +260,7 @@ public abstract class GraphLens {
       fieldMap.put(from, to);
     }
 
-    public GraphLens build(DexItemFactory dexItemFactory) {
-      return build(dexItemFactory, getIdentityLens());
-    }
-
-    public GraphLens build(DexItemFactory dexItemFactory, GraphLens previousLens) {
-      if (typeMap.isEmpty() && methodMap.isEmpty() && fieldMap.isEmpty()) {
-        return previousLens;
-      }
-      return new LegacyNestedGraphLens(
-          typeMap, methodMap, fieldMap, originalMethodSignatures, previousLens, dexItemFactory);
-    }
+    public abstract GraphLens build(AppView<?> appView);
   }
 
   /**

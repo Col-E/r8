@@ -11,8 +11,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.LegacyNestedGraphLens;
+import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -52,7 +51,7 @@ import java.util.Set;
 // invocation will hit the same implementation as the original super.m() call.
 //
 // For the invocation "invoke-virtual A.m()" in B.m2, this graph lens will return the method B.m.
-public class VerticalClassMergerGraphLens extends LegacyNestedGraphLens {
+public class VerticalClassMergerGraphLens extends NestedGraphLens {
 
   interface GraphLensLookupResultProvider {
 
@@ -75,16 +74,9 @@ public class VerticalClassMergerGraphLens extends LegacyNestedGraphLens {
       Set<DexMethod> mergedMethods,
       Map<DexType, Map<DexMethod, GraphLensLookupResultProvider>>
           contextualVirtualToDirectMethodMaps,
-      BidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures,
-      Map<DexMethod, DexMethod> originalMethodSignaturesForBridges,
-      GraphLens previousLens) {
-    super(
-        mergedClasses.getForwardMap(),
-        methodMap,
-        fieldMap,
-        originalMethodSignatures,
-        previousLens,
-        appView.dexItemFactory());
+      BidirectionalOneToOneMap<DexMethod, DexMethod> newMethodSignatures,
+      Map<DexMethod, DexMethod> originalMethodSignaturesForBridges) {
+    super(appView, fieldMap, methodMap, mergedClasses.getForwardMap(), newMethodSignatures);
     this.appView = appView;
     this.mergedClasses = mergedClasses;
     this.contextualVirtualToDirectMethodMaps = contextualVirtualToDirectMethodMaps;
@@ -172,7 +164,7 @@ public class VerticalClassMergerGraphLens extends LegacyNestedGraphLens {
     private final Map<DexType, Map<DexMethod, GraphLensLookupResultProvider>>
         contextualVirtualToDirectMethodMaps = new IdentityHashMap<>();
 
-    private final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures =
+    private final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> newMethodSignatures =
         new BidirectionalOneToOneHashMap<>();
     private final Map<DexMethod, DexMethod> originalMethodSignaturesForBridges =
         new IdentityHashMap<>();
@@ -216,8 +208,8 @@ public class VerticalClassMergerGraphLens extends LegacyNestedGraphLens {
               context);
         }
       }
-      builder.originalMethodSignatures.forEach(
-          (renamedMethodSignature, originalMethodSignature) ->
+      builder.newMethodSignatures.forEach(
+          (originalMethodSignature, renamedMethodSignature) ->
               newBuilder.recordMove(
                   originalMethodSignature,
                   builder.getMethodSignatureAfterClassMerging(
@@ -244,9 +236,8 @@ public class VerticalClassMergerGraphLens extends LegacyNestedGraphLens {
           methodMap,
           mergedMethodsBuilder.build(),
           contextualVirtualToDirectMethodMaps,
-          originalMethodSignatures,
-          originalMethodSignaturesForBridges,
-          appView.graphLens());
+          newMethodSignatures,
+          originalMethodSignaturesForBridges);
     }
 
     private DexField getFieldSignatureAfterClassMerging(
@@ -309,7 +300,7 @@ public class VerticalClassMergerGraphLens extends LegacyNestedGraphLens {
     }
 
     public boolean hasOriginalSignatureMappingFor(DexMethod method) {
-      return originalMethodSignatures.containsKey(method)
+      return newMethodSignatures.containsValue(method)
           || originalMethodSignaturesForBridges.containsKey(method);
     }
 
@@ -327,7 +318,7 @@ public class VerticalClassMergerGraphLens extends LegacyNestedGraphLens {
     }
 
     public void recordMove(DexMethod from, DexMethod to) {
-      originalMethodSignatures.put(to, from);
+      newMethodSignatures.put(from, to);
     }
 
     public void recordCreationOfBridgeMethod(DexMethod from, DexMethod to) {
@@ -345,7 +336,7 @@ public class VerticalClassMergerGraphLens extends LegacyNestedGraphLens {
       fieldMap.putAll(builder.fieldMap);
       methodMap.putAll(builder.methodMap);
       mergedMethodsBuilder.addAll(builder.mergedMethodsBuilder.build());
-      originalMethodSignatures.putAll(builder.originalMethodSignatures);
+      newMethodSignatures.putAll(builder.newMethodSignatures);
       originalMethodSignaturesForBridges.putAll(builder.originalMethodSignaturesForBridges);
       for (DexType context : builder.contextualVirtualToDirectMethodMaps.keySet()) {
         Map<DexMethod, GraphLensLookupResultProvider> current =

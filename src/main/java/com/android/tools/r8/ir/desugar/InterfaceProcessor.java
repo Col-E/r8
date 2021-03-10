@@ -37,9 +37,9 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.LegacyNestedGraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodCollection;
+import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -325,7 +325,8 @@ public final class InterfaceProcessor {
       newFlags.promoteToStatic();
 
       DexMethod companionMethod =
-          rewriter.privateAsMethodOfCompanionClass(oldMethod, appView.dexItemFactory());
+          InterfaceMethodRewriter.privateAsMethodOfCompanionClass(
+              oldMethod, appView.dexItemFactory());
 
       Code code = definition.getCode();
       if (code == null) {
@@ -440,27 +441,18 @@ public final class InterfaceProcessor {
 
   // Specific lens which remaps invocation types to static since all rewrites performed here
   // are to static companion methods.
-  public static class InterfaceProcessorNestedGraphLens extends LegacyNestedGraphLens {
+  public static class InterfaceProcessorNestedGraphLens extends NestedGraphLens {
 
-    private BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
-        extraOriginalMethodSignatures;
+    private BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> extraNewMethodSignatures;
 
     public InterfaceProcessorNestedGraphLens(
-        Map<DexType, DexType> typeMap,
-        Map<DexMethod, DexMethod> methodMap,
+        AppView<?> appView,
         BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
-        BidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures,
-        BidirectionalOneToOneMap<DexMethod, DexMethod> extraOriginalMethodSignatures,
-        GraphLens previousLens,
-        DexItemFactory dexItemFactory) {
-      super(
-          typeMap,
-          methodMap,
-          fieldMap,
-          originalMethodSignatures,
-          previousLens,
-          dexItemFactory);
-      this.extraOriginalMethodSignatures = extraOriginalMethodSignatures;
+        BidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> methodMap,
+        Map<DexType, DexType> typeMap,
+        BidirectionalOneToOneMap<DexMethod, DexMethod> extraNewMethodSignatures) {
+      super(appView, fieldMap, methodMap, typeMap);
+      this.extraNewMethodSignatures = extraNewMethodSignatures;
     }
 
     public static InterfaceProcessorNestedGraphLens find(GraphLens lens) {
@@ -478,14 +470,14 @@ public final class InterfaceProcessor {
     }
 
     public void toggleMappingToExtraMethods() {
-      BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> tmp = originalMethodSignatures;
-      this.originalMethodSignatures = extraOriginalMethodSignatures;
-      this.extraOriginalMethodSignatures = tmp;
+      BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> tmp = newMethodSignatures;
+      this.newMethodSignatures = extraNewMethodSignatures;
+      this.extraNewMethodSignatures = tmp;
     }
 
     public BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
-        getExtraOriginalMethodSignatures() {
-      return extraOriginalMethodSignatures;
+        getExtraNewMethodSignatures() {
+      return extraNewMethodSignatures;
     }
 
     @Override
@@ -505,14 +497,14 @@ public final class InterfaceProcessor {
 
     @Override
     protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
-      return extraOriginalMethodSignatures.getRepresentativeValueOrDefault(
-          method, originalMethodSignatures.getRepresentativeValueOrDefault(method, method));
+      return extraNewMethodSignatures.getRepresentativeKeyOrDefault(
+          method, newMethodSignatures.getRepresentativeKeyOrDefault(method, method));
     }
 
     @Override
     protected DexMethod internalGetNextMethodSignature(DexMethod method) {
-      return originalMethodSignatures.getRepresentativeKeyOrDefault(
-          method, extraOriginalMethodSignatures.getRepresentativeKeyOrDefault(method, method));
+      return newMethodSignatures.getRepresentativeValueOrDefault(
+          method, extraNewMethodSignatures.getRepresentativeValueOrDefault(method, method));
     }
 
     @Override
@@ -524,33 +516,24 @@ public final class InterfaceProcessor {
       return new Builder();
     }
 
-    public static class Builder extends LegacyNestedGraphLens.Builder {
+    public static class Builder extends GraphLens.Builder {
 
-      private final MutableBidirectionalOneToOneMap<DexMethod, DexMethod>
-          extraOriginalMethodSignatures = new BidirectionalOneToOneHashMap<>();
+      private final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> extraNewMethodSignatures =
+          new BidirectionalOneToOneHashMap<>();
 
       public void recordCodeMovedToCompanionClass(DexMethod from, DexMethod to) {
         assert from != to;
-        originalMethodSignatures.put(from, from);
-        extraOriginalMethodSignatures.put(to, from);
+        methodMap.put(from, from);
+        extraNewMethodSignatures.put(from, to);
       }
 
       @Override
-      public InterfaceProcessorNestedGraphLens build(
-          DexItemFactory dexItemFactory, GraphLens previousLens) {
-        if (fieldMap.isEmpty()
-            && originalMethodSignatures.isEmpty()
-            && extraOriginalMethodSignatures.isEmpty()) {
+      public InterfaceProcessorNestedGraphLens build(AppView<?> appView) {
+        if (fieldMap.isEmpty() && methodMap.isEmpty() && extraNewMethodSignatures.isEmpty()) {
           return null;
         }
         return new InterfaceProcessorNestedGraphLens(
-            typeMap,
-            methodMap,
-            fieldMap,
-            originalMethodSignatures,
-            extraOriginalMethodSignatures,
-            previousLens,
-            dexItemFactory);
+            appView, fieldMap, methodMap, typeMap, extraNewMethodSignatures);
       }
     }
   }

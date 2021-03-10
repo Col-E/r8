@@ -1245,8 +1245,7 @@ public final class InterfaceMethodRewriter {
         InterfaceProcessorNestedGraphLens.builder();
     Map<DexClass, DexProgramClass> classMapping =
         processInterfaces(builder, flavour, graphLensBuilder, synthesizedMethods::add);
-    InterfaceProcessorNestedGraphLens graphLens =
-        graphLensBuilder.build(appView.dexItemFactory(), appView.graphLens());
+    InterfaceProcessorNestedGraphLens graphLens = graphLensBuilder.build(appView);
     if (appView.enableWholeProgramOptimizations() && graphLens != null) {
       appView.setGraphLens(graphLens);
     }
