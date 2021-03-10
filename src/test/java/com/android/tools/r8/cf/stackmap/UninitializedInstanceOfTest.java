@@ -59,7 +59,7 @@ public class UninitializedInstanceOfTest extends TestBase {
   @Test()
   public void testD8Dex() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    boolean expectFailure = parameters.getDexRuntimeVersion().isAtLeast(Version.V7_0_0);
+    boolean expectFailure = parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V7_0_0);
     testForD8(parameters.getBackend())
         .addProgramClassFileData(dump())
         .setMinApi(parameters.getApiLevel())

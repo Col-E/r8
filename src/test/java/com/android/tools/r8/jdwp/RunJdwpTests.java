@@ -70,7 +70,7 @@ public class RunJdwpTests {
   }
 
   static boolean isAndroidKOrAbove(DexVm dexVm, Tool tool) {
-    return dexVm.getVersion().isAtLeast(Version.V4_4_4);
+    return dexVm.getVersion().isNewerThanOrEqual(Version.V4_4_4);
   }
 
   static boolean isAndroidLOrAbove(DexVm dexVm, Tool tool) {

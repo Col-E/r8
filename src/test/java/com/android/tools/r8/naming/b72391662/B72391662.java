@@ -104,7 +104,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
   }
 
   private static boolean vmVersionIgnored() {
-    return !ToolHelper.getDexVm().getVersion().isAtLeast(Version.V7_0_0);
+    return !ToolHelper.getDexVm().getVersion().isNewerThanOrEqual(Version.V7_0_0);
   }
 
   @Test

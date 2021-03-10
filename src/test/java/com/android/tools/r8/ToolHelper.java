@@ -266,7 +266,7 @@ public class ToolHelper {
       }
 
       public boolean isLatest() {
-        return this == V10_0_0;
+        return this == last();
       }
 
       public boolean isNewerThan(Version other) {
@@ -274,10 +274,6 @@ public class ToolHelper {
       }
 
       public boolean isNewerThanOrEqual(Version other) {
-        return compareTo(other) >= 0;
-      }
-
-      public boolean isAtLeast(Version other) {
         return compareTo(other) >= 0;
       }
 
@@ -293,7 +289,7 @@ public class ToolHelper {
         return shortName;
       }
 
-      private String shortName;
+      private final String shortName;
 
       public static Version first() {
         return V4_0_4;

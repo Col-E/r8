@@ -144,7 +144,7 @@ public class NonVirtualOverrideTest extends TestBase {
       return false;
     }
     Version version = parameters.getRuntime().asDex().getVm().getVersion();
-    return version.isOlderThanOrEqual(Version.V7_0_0) && version.isAtLeast(Version.V5_1_1);
+    return version.isOlderThanOrEqual(Version.V7_0_0) && version.isNewerThanOrEqual(Version.V5_1_1);
   }
 
   public static R8TestCompileResult compile(Dimensions dimensions) throws Exception {

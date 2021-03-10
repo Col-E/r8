@@ -100,7 +100,7 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
 
   @Test
   public void testKeptMethod() throws Exception {
-    assumeTrue(ToolHelper.getDexVm().getVersion().isAtLeast(Version.V7_0_0));
+    assumeTrue(ToolHelper.getDexVm().getVersion().isNewerThanOrEqual(Version.V7_0_0));
 
     MethodReference mainMethod =
         methodFromMethod(Main.class.getDeclaredMethod("main", String[].class));

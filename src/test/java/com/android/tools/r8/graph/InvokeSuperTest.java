@@ -60,7 +60,8 @@ public class InvokeSuperTest extends TestBase {
   String getExpectedOutput() {
     if (parameters.isDexRuntime()) {
       Version version = parameters.getRuntime().asDex().getVm().getVersion();
-      if (version.isAtLeast(Version.V5_1_1) && version.isOlderThanOrEqual(Version.V6_0_1)) {
+      if (version.isNewerThanOrEqual(Version.V5_1_1)
+          && version.isOlderThanOrEqual(Version.V6_0_1)) {
         return UNEXPECTED_DEX_5_AND_6_OUTPUT;
       }
     }

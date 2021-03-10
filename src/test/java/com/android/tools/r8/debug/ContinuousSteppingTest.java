@@ -105,7 +105,7 @@ public class ContinuousSteppingTest extends DebugTestBase {
   }
 
   public static boolean fromAndroidN(Version dexVmVersion) {
-    return dexVmVersion.isAtLeast(Version.V7_0_0);
+    return dexVmVersion.isNewerThanOrEqual(Version.V7_0_0);
   }
 
   private static List<Path> findAllJarsIn(Path root) {

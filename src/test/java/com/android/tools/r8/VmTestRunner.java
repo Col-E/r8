@@ -78,7 +78,7 @@ public class VmTestRunner extends BlockJUnit4ClassRunner {
     IgnoreIfVmOlderThan ignoreIfVmOlderThan =
         child.getAnnotation(IgnoreIfVmOlderThan.class);
     if (ignoreIfVmOlderThan != null
-        && !currentVersion.isAtLeast(ignoreIfVmOlderThan.value())) {
+        && !currentVersion.isNewerThanOrEqual(ignoreIfVmOlderThan.value())) {
       return true;
     }
     IgnoreIfVmOlderOrEqualThan ignoreIfVmOlderOrEqualThan =

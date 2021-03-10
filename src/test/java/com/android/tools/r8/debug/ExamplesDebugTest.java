@@ -338,7 +338,7 @@ public class ExamplesDebugTest extends DebugTestBase {
     // See verifyStateLocation in DebugTestBase.
     Assume.assumeTrue(
         "Streaming on Dalvik DEX runtimes has some unknown interference issue",
-        ToolHelper.getDexVm().getVersion().isAtLeast(Version.V6_0_1));
+        ToolHelper.getDexVm().getVersion().isNewerThanOrEqual(Version.V6_0_1));
     Assume.assumeTrue(
         "Skipping test "
             + testName.getMethodName()
