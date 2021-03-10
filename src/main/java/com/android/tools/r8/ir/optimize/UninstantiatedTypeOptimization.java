@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.LegacyNestedGraphLens;
+import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
@@ -28,11 +28,9 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
-import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.BiMap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.HashMap;
@@ -49,23 +47,15 @@ public class UninstantiatedTypeOptimization {
     DISALLOW_ARGUMENT_REMOVAL
   }
 
-  public static class UninstantiatedTypeOptimizationGraphLens extends LegacyNestedGraphLens {
+  public static class UninstantiatedTypeOptimizationGraphLens extends NestedGraphLens {
 
-    private final AppView<?> appView;
     private final Map<DexMethod, ArgumentInfoCollection> removedArgumentsInfoPerMethod;
 
     UninstantiatedTypeOptimizationGraphLens(
         BidirectionalOneToOneMap<DexMethod, DexMethod> methodMap,
         Map<DexMethod, ArgumentInfoCollection> removedArgumentsInfoPerMethod,
         AppView<?> appView) {
-      super(
-          ImmutableMap.of(),
-          methodMap.getForwardMap(),
-          new EmptyBidirectionalOneToOneMap<>(),
-          methodMap.getInverseOneToOneMap(),
-          appView.graphLens(),
-          appView.dexItemFactory());
-      this.appView = appView;
+      super(appView, EMPTY_FIELD_MAP, methodMap, EMPTY_TYPE_MAP);
       this.removedArgumentsInfoPerMethod = removedArgumentsInfoPerMethod;
     }
 
@@ -78,7 +68,8 @@ public class UninstantiatedTypeOptimization {
         return prototypeChanges;
       }
       if (method.getReturnType().isVoidType() && !previous.getReturnType().isVoidType()) {
-        prototypeChanges = prototypeChanges.withConstantReturn(previous.getReturnType(), appView);
+        prototypeChanges =
+            prototypeChanges.withConstantReturn(previous.getReturnType(), dexItemFactory());
       }
       return prototypeChanges.withRemovedArguments(
           removedArgumentsInfoPerMethod.getOrDefault(method, ArgumentInfoCollection.empty()));

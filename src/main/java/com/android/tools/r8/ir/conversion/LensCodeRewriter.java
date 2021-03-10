@@ -280,7 +280,7 @@ public class LensCodeRewriter {
                 }
 
                 ConstInstruction constantReturnMaterializingInstruction = null;
-                if (prototypeChanges.hasBeenChangedToReturnVoid(appView)
+                if (prototypeChanges.hasBeenChangedToReturnVoid(appView.dexItemFactory())
                     && invoke.outValue() != null) {
                   constantReturnMaterializingInstruction =
                       prototypeChanges.getConstantReturn(code, invoke.getPosition());
@@ -297,7 +297,7 @@ public class LensCodeRewriter {
                 }
 
                 Value newOutValue =
-                    prototypeChanges.hasBeenChangedToReturnVoid(appView)
+                    prototypeChanges.hasBeenChangedToReturnVoid(appView.dexItemFactory())
                         ? null
                         : makeOutValue(invoke, code);
 

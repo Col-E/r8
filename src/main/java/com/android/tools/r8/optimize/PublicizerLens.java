@@ -8,26 +8,18 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.LegacyNestedGraphLens;
+import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.ir.code.Invoke.Type;
-import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
-final class PublicizerLens extends LegacyNestedGraphLens {
+final class PublicizerLens extends NestedGraphLens {
 
   private final AppView<?> appView;
   private final Set<DexMethod> publicizedMethods;
 
   private PublicizerLens(AppView<?> appView, Set<DexMethod> publicizedMethods) {
-    super(
-        ImmutableMap.of(),
-        ImmutableMap.of(),
-        new EmptyBidirectionalOneToOneMap<>(),
-        new EmptyBidirectionalOneToOneMap<>(),
-        appView.graphLens(),
-        appView.dexItemFactory());
+    super(appView, EMPTY_FIELD_MAP, EMPTY_METHOD_MAP, EMPTY_TYPE_MAP);
     this.appView = appView;
     this.publicizedMethods = publicizedMethods;
   }

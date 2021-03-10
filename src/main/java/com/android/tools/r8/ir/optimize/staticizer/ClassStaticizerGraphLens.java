@@ -7,24 +7,17 @@ package com.android.tools.r8.ir.optimize.staticizer;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.LegacyNestedGraphLens;
+import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
-import com.google.common.collect.ImmutableMap;
 
-class ClassStaticizerGraphLens extends LegacyNestedGraphLens {
+class ClassStaticizerGraphLens extends NestedGraphLens {
 
   ClassStaticizerGraphLens(
       AppView<?> appView,
       BidirectionalOneToOneMap<DexField, DexField> fieldMapping,
       BidirectionalOneToOneMap<DexMethod, DexMethod> methodMapping) {
-    super(
-        ImmutableMap.of(),
-        methodMapping.getForwardMap(),
-        fieldMapping,
-        methodMapping.getInverseOneToOneMap(),
-        appView.graphLens(),
-        appView.dexItemFactory());
+    super(appView, fieldMapping, methodMapping, EMPTY_TYPE_MAP);
   }
 
   @Override

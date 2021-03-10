@@ -9,6 +9,8 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
+import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
+import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -23,6 +25,12 @@ import java.util.stream.Collectors;
  * invocation type might need to change.
  */
 public class NestedGraphLens extends NonIdentityGraphLens {
+
+  protected static final EmptyBidirectionalOneToOneMap<DexField, DexField> EMPTY_FIELD_MAP =
+      new EmptyBidirectionalOneToOneMap<>();
+  protected static final EmptyBidirectionalOneToOneMap<DexMethod, DexMethod> EMPTY_METHOD_MAP =
+      new EmptyBidirectionalOneToOneMap<>();
+  protected static final Map<DexType, DexType> EMPTY_TYPE_MAP = Collections.emptyMap();
 
   protected final BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap;
   protected final Map<DexMethod, DexMethod> methodMap;

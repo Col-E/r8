@@ -89,7 +89,7 @@ class EnumUnboxingTreeFixer {
           DexProgramClass newHolderClass = appView.definitionFor(newHolderType).asProgramClass();
           newHolderClass.addDirectMethods(movedMethods);
         });
-    return lensBuilder.build(factory, appView.graphLens(), enumsToUnbox);
+    return lensBuilder.build(appView);
   }
 
   private void clearEnumToUnboxMethod(DexEncodedMethod enumMethod) {

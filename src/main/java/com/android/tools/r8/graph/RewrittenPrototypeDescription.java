@@ -133,8 +133,8 @@ public class RewrittenPrototypeDescription {
     private final DexType oldType;
     private final DexType newType;
 
-    static RewrittenTypeInfo toVoid(DexType oldReturnType, AppView<?> appView) {
-      return new RewrittenTypeInfo(oldReturnType, appView.dexItemFactory().voidType);
+    static RewrittenTypeInfo toVoid(DexType oldReturnType, DexItemFactory dexItemFactory) {
+      return new RewrittenTypeInfo(oldReturnType, dexItemFactory.voidType);
     }
 
     public RewrittenTypeInfo(DexType oldType, DexType newType) {
@@ -150,8 +150,8 @@ public class RewrittenPrototypeDescription {
       return oldType;
     }
 
-    boolean hasBeenChangedToReturnVoid(AppView<?> appView) {
-      return newType == appView.dexItemFactory().voidType;
+    boolean hasBeenChangedToReturnVoid(DexItemFactory dexItemFactory) {
+      return newType == dexItemFactory.voidType;
     }
 
     @Override
@@ -367,7 +367,9 @@ public class RewrittenPrototypeDescription {
       ArgumentInfoCollection removedArgumentsInfo) {
     DexType returnType = method.proto.returnType;
     RewrittenTypeInfo returnInfo =
-        returnType.isAlwaysNull(appView) ? RewrittenTypeInfo.toVoid(returnType, appView) : null;
+        returnType.isAlwaysNull(appView)
+            ? RewrittenTypeInfo.toVoid(returnType, appView.dexItemFactory())
+            : null;
     return create(Collections.emptyList(), returnInfo, removedArgumentsInfo);
   }
 
@@ -394,8 +396,9 @@ public class RewrittenPrototypeDescription {
     return extraParameters.size();
   }
 
-  public boolean hasBeenChangedToReturnVoid(AppView<?> appView) {
-    return rewrittenReturnInfo != null && rewrittenReturnInfo.hasBeenChangedToReturnVoid(appView);
+  public boolean hasBeenChangedToReturnVoid(DexItemFactory dexItemFactory) {
+    return rewrittenReturnInfo != null
+        && rewrittenReturnInfo.hasBeenChangedToReturnVoid(dexItemFactory);
   }
 
   public ArgumentInfoCollection getArgumentInfoCollection() {
@@ -444,12 +447,12 @@ public class RewrittenPrototypeDescription {
   }
 
   public RewrittenPrototypeDescription withConstantReturn(
-      DexType oldReturnType, AppView<?> appView) {
+      DexType oldReturnType, DexItemFactory dexItemFactory) {
     assert rewrittenReturnInfo == null;
-    return !hasBeenChangedToReturnVoid(appView)
+    return !hasBeenChangedToReturnVoid(dexItemFactory)
         ? new RewrittenPrototypeDescription(
             extraParameters,
-            RewrittenTypeInfo.toVoid(oldReturnType, appView),
+            RewrittenTypeInfo.toVoid(oldReturnType, dexItemFactory),
             argumentInfoCollection)
         : this;
   }

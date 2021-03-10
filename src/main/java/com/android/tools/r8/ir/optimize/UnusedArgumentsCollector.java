@@ -7,14 +7,12 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ArgumentUse;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.LegacyNestedGraphLens;
+import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
@@ -27,10 +25,8 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
-import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import java.util.BitSet;
 import java.util.HashSet;
@@ -52,23 +48,15 @@ public class UnusedArgumentsCollector {
       new BidirectionalOneToOneHashMap<>();
   private final Map<DexMethod, ArgumentInfoCollection> removedArguments = new IdentityHashMap<>();
 
-  public static class UnusedArgumentsGraphLens extends LegacyNestedGraphLens {
+  public static class UnusedArgumentsGraphLens extends NestedGraphLens {
 
     private final Map<DexMethod, ArgumentInfoCollection> removedArguments;
 
     UnusedArgumentsGraphLens(
-        Map<DexMethod, DexMethod> methodMap,
-        BidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures,
-        GraphLens previousLens,
-        DexItemFactory dexItemFactory,
+        AppView<?> appView,
+        BidirectionalOneToOneMap<DexMethod, DexMethod> methodMap,
         Map<DexMethod, ArgumentInfoCollection> removedArguments) {
-      super(
-          ImmutableMap.of(),
-          methodMap,
-          new EmptyBidirectionalOneToOneMap<>(),
-          originalMethodSignatures,
-          previousLens,
-          dexItemFactory);
+      super(appView, EMPTY_FIELD_MAP, methodMap, EMPTY_TYPE_MAP);
       this.removedArguments = removedArguments;
     }
 
@@ -103,12 +91,7 @@ public class UnusedArgumentsCollector {
     appView.appInfo().classesWithDeterministicOrder().forEach(this::processVirtualMethods);
 
     if (!methodMapping.isEmpty()) {
-      return new UnusedArgumentsGraphLens(
-          methodMapping.getForwardMap(),
-          methodMapping.getInverseOneToOneMap(),
-          appView.graphLens(),
-          appView.dexItemFactory(),
-          removedArguments);
+      return new UnusedArgumentsGraphLens(appView, methodMapping, removedArguments);
     }
 
     return null;

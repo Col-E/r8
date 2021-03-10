@@ -21,7 +21,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
-import com.android.tools.r8.graph.LegacyNestedGraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -72,7 +71,7 @@ public class EnumUnboxingRewriter {
   private final DexItemFactory factory;
   private final EnumDataMap unboxedEnumsData;
   private final UnboxedEnumMemberRelocator relocator;
-  private LegacyNestedGraphLens enumUnboxingLens;
+  private EnumUnboxingLens enumUnboxingLens;
 
   private final Map<DexMethod, DexEncodedMethod> utilityMethods = new ConcurrentHashMap<>();
 
@@ -128,7 +127,7 @@ public class EnumUnboxingRewriter {
             ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "zeroCheckMessage");
   }
 
-  public void setEnumUnboxingLens(LegacyNestedGraphLens enumUnboxingLens) {
+  public void setEnumUnboxingLens(EnumUnboxingLens enumUnboxingLens) {
     this.enumUnboxingLens = enumUnboxingLens;
   }
 
