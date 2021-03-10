@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.LookupResult.LookupResultSuccess.LookupResultC
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.InstantiatedObject;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.OptionalBool;
 import java.util.ArrayList;
@@ -57,6 +58,14 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
   }
 
   public boolean isIncompatibleClassChangeErrorResult() {
+    return false;
+  }
+
+  public boolean isNoSuchMethodErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
+    return false;
+  }
+
+  public boolean isIllegalAccessErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
     return false;
   }
 
@@ -814,6 +823,10 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
     public boolean isVirtualTarget() {
       return false;
     }
+
+    public boolean hasMethodsCausingError() {
+      return false;
+    }
   }
 
   public static class ClassNotFoundResult extends FailedResolutionResult {
@@ -824,7 +837,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
     }
   }
 
-  abstract static class FailedResolutionWithCausingMethods extends FailedResolutionResult {
+  public abstract static class FailedResolutionWithCausingMethods extends FailedResolutionResult {
 
     private final Collection<DexEncodedMethod> methodsCausingError;
 
@@ -835,6 +848,11 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
     @Override
     public void forEachFailureDependency(Consumer<DexEncodedMethod> methodCausingFailureConsumer) {
       this.methodsCausingError.forEach(methodCausingFailureConsumer);
+    }
+
+    @Override
+    public boolean hasMethodsCausingError() {
+      return methodsCausingError.size() > 0;
     }
   }
 
@@ -861,13 +879,70 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
   public static class NoSuchMethodResult extends FailedResolutionResult {
 
     static final NoSuchMethodResult INSTANCE = new NoSuchMethodResult();
+
+    @Override
+    public boolean isNoSuchMethodErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
+      return true;
+    }
   }
 
-  public static class IllegalAccessOrNoSuchMethodResult extends FailedResolutionWithCausingMethods {
+  static class IllegalAccessOrNoSuchMethodResult extends FailedResolutionWithCausingMethods {
 
-    public IllegalAccessOrNoSuchMethodResult(DexEncodedMethod methodCausingError) {
-      super(Collections.singletonList(methodCausingError));
+    private final DexClass initialResolutionHolder;
+
+    public IllegalAccessOrNoSuchMethodResult(
+        DexClass initialResolutionHolder, Collection<DexEncodedMethod> methodsCausingError) {
+      super(methodsCausingError);
+      this.initialResolutionHolder = initialResolutionHolder;
+    }
+
+    public IllegalAccessOrNoSuchMethodResult(
+        DexClass initialResolutionHolder, DexEncodedMethod methodCausingError) {
+      this(initialResolutionHolder, Collections.singletonList(methodCausingError));
       assert methodCausingError != null;
+    }
+
+    @Override
+    public boolean isIllegalAccessErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
+      if (!hasMethodsCausingError()) {
+        return false;
+      }
+      BooleanBox seenNoAccess = new BooleanBox(false);
+      forEachFailureDependency(
+          method -> {
+            DexClassAndMethod classAndMethod =
+                DexClassAndMethod.create(appInfo.definitionFor(method.getHolderType()), method);
+            seenNoAccess.or(
+                AccessControl.isMemberAccessible(
+                        classAndMethod, initialResolutionHolder, context, appInfo)
+                    .isFalse());
+          });
+      return seenNoAccess.get();
+    }
+
+    @Override
+    public boolean isNoSuchMethodErrorResult(DexClass context, AppInfoWithClassHierarchy appInfo) {
+      if (!hasMethodsCausingError()) {
+        return true;
+      }
+      if (isIllegalAccessErrorResult(context, appInfo)) {
+        return false;
+      }
+      // At this point we know we have methods causing errors but we have access to them. To be
+      // certain that this is the case where we have nest access but we are invoking a method with
+      // an incorrect symbolic reference, we directly test for it by having an assert.
+      assert verifyInvalidSymbolicReference();
+      return true;
+    }
+
+    private boolean verifyInvalidSymbolicReference() {
+      BooleanBox invalidSymbolicReference = new BooleanBox(true);
+      forEachFailureDependency(
+          method -> {
+            invalidSymbolicReference.and(
+                method.getHolderType() != initialResolutionHolder.getType());
+          });
+      return invalidSymbolicReference.get();
     }
   }
 }

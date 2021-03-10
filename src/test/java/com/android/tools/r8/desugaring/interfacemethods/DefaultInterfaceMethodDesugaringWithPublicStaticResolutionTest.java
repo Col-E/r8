@@ -25,7 +25,7 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionTest exte
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   public DefaultInterfaceMethodDesugaringWithPublicStaticResolutionTest(TestParameters parameters) {
@@ -61,8 +61,7 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionTest exte
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8()
+    testForD8(parameters.getBackend())
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getProgramClassData())
         .setMinApi(parameters.getApiLevel())

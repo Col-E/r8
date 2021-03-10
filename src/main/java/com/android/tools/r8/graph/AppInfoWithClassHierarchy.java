@@ -711,7 +711,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       // allowed because of nests, a NoSuchMethodError. Which error cannot be determined without
       // knowing the calling context.
       if (result.isPrivateMethod() && clazz != initialResolutionHolder) {
-        return new IllegalAccessOrNoSuchMethodResult(result);
+        return new IllegalAccessOrNoSuchMethodResult(initialResolutionHolder, result);
       }
       return new SingleResolutionResult(initialResolutionHolder, clazz, result);
     }

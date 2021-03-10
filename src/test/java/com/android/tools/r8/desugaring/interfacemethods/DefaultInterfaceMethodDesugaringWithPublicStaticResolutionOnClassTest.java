@@ -27,7 +27,7 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionOnClassTe
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   public DefaultInterfaceMethodDesugaringWithPublicStaticResolutionOnClassTest(
@@ -64,8 +64,7 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionOnClassTe
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8()
+    testForD8(parameters.getBackend())
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getProgramClassData())
         .setMinApi(parameters.getApiLevel())
@@ -73,7 +72,7 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionOnClassTe
         .run(parameters.getRuntime(), TestClass.class)
         // TODO(b/182335909): Ideally, this should also throw ICCE when desugaring.
         .applyIf(
-            !parameters.canUseDefaultAndStaticInterfaceMethods()
+            !parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()
                 || parameters.isDexRuntimeVersion(Version.V7_0_0),
             r -> r.assertSuccessWithOutput(EXPECTED_INVALID),
             r -> r.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class));

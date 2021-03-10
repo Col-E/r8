@@ -45,4 +45,12 @@ public class BooleanBox {
   public void unset() {
     set(false);
   }
+
+  public void and(boolean value) {
+    this.value = value && this.value;
+  }
+
+  public void or(boolean value) {
+    this.value = value || this.value;
+  }
 }

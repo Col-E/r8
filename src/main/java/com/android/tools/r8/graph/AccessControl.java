@@ -25,15 +25,16 @@ public class AccessControl {
 
   public static OptionalBool isClassAccessible(
       DexClass clazz,
-      ProgramDefinition context,
+      Definition context,
       ClassToFeatureSplitMap classToFeatureSplitMap,
       SyntheticItems syntheticItems) {
     if (!clazz.isPublic() && !clazz.getType().isSamePackage(context.getContextType())) {
       return OptionalBool.FALSE;
     }
     if (clazz.isProgramClass()
+        && context.isProgramDefinition()
         && !classToFeatureSplitMap.isInBaseOrSameFeatureAs(
-            clazz.asProgramClass(), context, syntheticItems)) {
+            clazz.asProgramClass(), context.asProgramDefinition(), syntheticItems)) {
       return OptionalBool.UNKNOWN;
     }
     return OptionalBool.TRUE;
@@ -47,7 +48,7 @@ public class AccessControl {
     return isMemberAccessible(
         resolutionResult.getResolutionPair(),
         resolutionResult.getInitialResolutionHolder(),
-        context,
+        context.getContextClass(),
         appInfo);
   }
 
@@ -56,13 +57,14 @@ public class AccessControl {
       DexClass initialResolutionHolder,
       ProgramDefinition context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
-    return isMemberAccessible(member, initialResolutionHolder, context, appView.appInfo());
+    return isMemberAccessible(
+        member, initialResolutionHolder, context.getContextClass(), appView.appInfo());
   }
 
-  public static OptionalBool isMemberAccessible(
+  static OptionalBool isMemberAccessible(
       DexClassAndMember<?, ?> member,
       DexClass initialResolutionHolder,
-      ProgramDefinition context,
+      DexClass context,
       AppInfoWithClassHierarchy appInfo) {
     AccessFlags<?> memberFlags = member.getDefinition().getAccessFlags();
     OptionalBool classAccessibility =
@@ -78,24 +80,27 @@ public class AccessControl {
       return classAccessibility;
     }
     if (memberFlags.isPrivate()) {
-      if (!isNestMate(member.getHolder(), context.getContextClass())) {
+      if (!isNestMate(member.getHolder(), context)) {
         return OptionalBool.FALSE;
       }
       return classAccessibility;
     }
-    if (member.getHolderType().isSamePackage(context.getContextType())) {
+    if (member.getHolderType().isSamePackage(context.getType())) {
       return classAccessibility;
     }
-    if (memberFlags.isProtected()
-        && appInfo.isSubtype(context.getContextType(), member.getHolderType())) {
+    if (memberFlags.isProtected() && appInfo.isSubtype(context.getType(), member.getHolderType())) {
       return classAccessibility;
     }
     return OptionalBool.FALSE;
   }
 
-  private static boolean isNestMate(DexClass clazz, DexProgramClass context) {
+  private static boolean isNestMate(DexClass clazz, DexClass context) {
     if (clazz == context) {
       return true;
+    }
+    if (context == null) {
+      assert false : "context should not be null";
+      return false;
     }
     if (!clazz.isInANest() || !context.isInANest()) {
       return false;

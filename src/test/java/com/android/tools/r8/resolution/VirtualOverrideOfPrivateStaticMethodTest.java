@@ -4,17 +4,17 @@
 package com.android.tools.r8.resolution;
 
 import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.graph.ResolutionResult.IllegalAccessOrNoSuchMethodResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -30,17 +30,24 @@ import org.junit.runners.Parameterized.Parameters;
 public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
 
   public interface I {
-    default void f() {}
+    default void f() {
+      System.out.println("I::f");
+    }
   }
 
   public static class A {
-    private static void f() {}
+    private static void f() {
+      System.out.println("A::f");
+    }
   }
 
   public static class B extends A implements I {}
 
   public static class C extends B {
-    public void f() {}
+    @Override
+    public void f() {
+      System.out.println("C::f");
+    }
   }
 
   public static class Main {
@@ -64,13 +71,13 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
             .appInfo();
   }
 
-  private static DexMethod buildMethod(Class clazz, String name) {
+  private static DexMethod buildMethod(Class<?> clazz, String name) {
     return buildNullaryVoidMethod(clazz, name, appInfo.dexItemFactory());
   }
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   private final TestParameters parameters;
@@ -85,30 +92,48 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
   @Test
   public void resolveTarget() {
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB, methodOnB.holder);
-    assertTrue(resolutionResult instanceof IllegalAccessOrNoSuchMethodResult);
+    DexClass context = appInfo.definitionFor(methodOnB.holder);
+    assertTrue(resolutionResult.isIllegalAccessErrorResult(context, appInfo));
   }
 
   @Test
-  public void runTest() throws ExecutionException, CompilationFailedException, IOException {
-    if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addProgramClasses(CLASSES)
-          .run(parameters.getRuntime(), Main.class)
-          .assertFailureWithErrorThatMatches(containsString(expectedRuntimeError()));
-    }
+  public void testJvm() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
+    testForJvm()
+        .addProgramClasses(CLASSES)
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(IllegalAccessError.class);
+  }
+
+  @Test
+  public void testD8() throws ExecutionException, CompilationFailedException, IOException {
+    testForD8(parameters.getBackend())
+        .addProgramClasses(CLASSES)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        // TODO(b/182335909): Ideally, this should IllegalAccessError.
+        .applyIf(
+            parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()
+                && parameters.isCfRuntime(),
+            r -> r.assertFailureWithErrorThatThrows(IllegalAccessError.class),
+            r -> r.assertSuccessWithOutputLines("C::f"));
+  }
+
+  @Test
+  public void testR8() throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
         .addProgramClasses(CLASSES)
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(containsString(expectedRuntimeError()));
+        .assertFailureWithErrorThatThrows(expectedRuntimeError());
   }
 
-  private String expectedRuntimeError() {
+  private Class<? extends Throwable> expectedRuntimeError() {
     if (parameters.isDexRuntime()
         && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
-      return "IncompatibleClassChangeError";
+      return IncompatibleClassChangeError.class;
     }
-    return "IllegalAccessError";
+    return IllegalAccessError.class;
   }
 }

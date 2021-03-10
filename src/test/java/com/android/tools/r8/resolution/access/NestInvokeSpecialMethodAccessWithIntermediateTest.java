@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.graph.ResolutionResult.IllegalAccessOrNoSuchMethodResult;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -124,7 +123,11 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
 
     // Resolution fails when there is a mismatch between the symbolic reference and the definition.
     if (!symbolicReferenceIsDefiningType) {
-      assertTrue(resolutionResult instanceof IllegalAccessOrNoSuchMethodResult);
+      if (inSameNest) {
+        assertTrue(resolutionResult.isNoSuchMethodErrorResult(callerClassDefinition, appInfo));
+      } else {
+        assertTrue(resolutionResult.isIllegalAccessErrorResult(callerClassDefinition, appInfo));
+      }
       return;
     }
 

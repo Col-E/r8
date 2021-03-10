@@ -36,6 +36,13 @@ public class TestParameters {
             .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport());
   }
 
+  public boolean canUseDefaultAndStaticInterfaceMethodsWhenDesugaring() {
+    assert isCfRuntime() || isDexRuntime();
+    assert apiLevel != null;
+    return getApiLevel()
+        .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport());
+  }
+
   // Convenience predicates.
   public boolean isDexRuntime() {
     return runtime.isDex();
