@@ -19,7 +19,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
-import com.android.tools.r8.graph.LegacyNestedGraphLens;
+import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.ir.code.NumberGenerator;
@@ -28,11 +28,9 @@ import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
-import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
-import com.android.tools.r8.utils.collections.BidirectionalOneToManyRepresentativeHashMap;
-import com.android.tools.r8.utils.collections.MutableBidirectionalOneToManyRepresentativeMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.structural.RepresentativeMap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -69,16 +67,14 @@ public class SyntheticFinalization {
     }
   }
 
-  public static class SyntheticFinalizationGraphLens extends LegacyNestedGraphLens {
+  public static class SyntheticFinalizationGraphLens extends NestedGraphLens {
 
     private SyntheticFinalizationGraphLens(
-        GraphLens previous,
-        Map<DexType, DexType> typeMap,
+        AppView<?> appView,
         BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
-        Map<DexMethod, DexMethod> methodMap,
-        BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> originalMethodSignatures,
-        DexItemFactory factory) {
-      super(typeMap, methodMap, fieldMap, originalMethodSignatures, previous, factory);
+        BidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> methodMap,
+        Map<DexType, DexType> typeMap) {
+      super(appView, fieldMap, methodMap, typeMap);
     }
 
     @Override
@@ -89,13 +85,11 @@ public class SyntheticFinalization {
 
   private static class Builder {
 
-    Map<DexType, DexType> typeMap = new IdentityHashMap<>();
-    BidirectionalManyToOneRepresentativeHashMap<DexField, DexField> fieldMap =
+    private final BidirectionalManyToOneRepresentativeHashMap<DexField, DexField> fieldMap =
         BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
-    Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
-
-    protected final MutableBidirectionalOneToManyRepresentativeMap<DexMethod, DexMethod>
-        originalMethodSignatures = new BidirectionalOneToManyRepresentativeHashMap<>();
+    private final MutableBidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> methodMap =
+        BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
+    private final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
 
     void move(DexType from, DexType to) {
       DexType old = typeMap.put(from, to);
@@ -108,22 +102,14 @@ public class SyntheticFinalization {
     }
 
     void move(DexMethod from, DexMethod to) {
-      DexMethod old = methodMap.put(from, to);
-      assert old == null || old == to;
-      originalMethodSignatures.put(to, from);
+      methodMap.put(from, to);
     }
 
-    SyntheticFinalizationGraphLens build(GraphLens previous, DexItemFactory factory) {
+    SyntheticFinalizationGraphLens build(AppView<?> appView) {
       if (typeMap.isEmpty() && fieldMap.isEmpty() && methodMap.isEmpty()) {
         return null;
       }
-      return new SyntheticFinalizationGraphLens(
-          previous,
-          typeMap,
-          fieldMap,
-          methodMap,
-          originalMethodSignatures,
-          factory);
+      return new SyntheticFinalizationGraphLens(appView, fieldMap, methodMap, typeMap);
     }
   }
 
@@ -262,7 +248,7 @@ public class SyntheticFinalization {
             new CommittedSyntheticsCollection(
                 committed.getLegacyTypes(), finalMethods, finalClasses),
             ImmutableList.of()),
-        lensBuilder.build(appView.graphLens(), appView.dexItemFactory()),
+        lensBuilder.build(appView),
         PrunedItems.builder().setPrunedApp(application).addRemovedClasses(prunedSynthetics).build(),
         mainDexInfoBuilder.build());
   }
