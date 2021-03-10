@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.LegacyNestedGraphLens;
+import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
@@ -20,25 +20,19 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.Map;
 
-public class RepackagingLens extends LegacyNestedGraphLens {
+public class RepackagingLens extends NestedGraphLens {
 
-  private final BiMap<DexType, DexType> originalTypes;
+  private final BiMap<DexType, DexType> newTypes;
   private final Map<String, String> packageRenamings;
 
   private RepackagingLens(
       AppView<AppInfoWithLiveness> appView,
       BidirectionalOneToOneMap<DexField, DexField> newFieldSignatures,
-      BidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures,
-      BiMap<DexType, DexType> originalTypes,
+      BidirectionalOneToOneMap<DexMethod, DexMethod> newMethodSignatures,
+      BiMap<DexType, DexType> newTypes,
       Map<String, String> packageRenamings) {
-    super(
-        originalTypes.inverse(),
-        originalMethodSignatures.getInverseOneToOneMap().getForwardMap(),
-        newFieldSignatures,
-        originalMethodSignatures,
-        appView.graphLens(),
-        appView.dexItemFactory());
-    this.originalTypes = originalTypes;
+    super(appView, newFieldSignatures, newMethodSignatures, newTypes);
+    this.newTypes = newTypes;
     this.packageRenamings = packageRenamings;
   }
 
@@ -49,7 +43,7 @@ public class RepackagingLens extends LegacyNestedGraphLens {
 
   @Override
   public DexType getOriginalType(DexType type) {
-    DexType previous = originalTypes.getOrDefault(type, type);
+    DexType previous = newTypes.inverse().getOrDefault(type, type);
     return getPrevious().getOriginalType(previous);
   }
 
@@ -73,7 +67,7 @@ public class RepackagingLens extends LegacyNestedGraphLens {
   }
 
   private boolean isSimpleTypeRenamingOrEqual(DexType from, DexType to) {
-    return from == to || originalTypes.get(to) == from;
+    return from == to || newTypes.get(from) == to;
   }
 
   private boolean isSimpleTypeRenamingOrEqual(DexMember<?, ?> from, DexMember<?, ?> to) {
@@ -82,16 +76,16 @@ public class RepackagingLens extends LegacyNestedGraphLens {
     }
     return IterableUtils.testPairs(
         this::isSimpleTypeRenamingOrEqual,
-        from.getReferencedBaseTypes(dexItemFactory),
-        to.getReferencedBaseTypes(dexItemFactory));
+        from.getReferencedBaseTypes(dexItemFactory()),
+        to.getReferencedBaseTypes(dexItemFactory()));
   }
 
   public static class Builder {
 
-    protected final BiMap<DexType, DexType> originalTypes = HashBiMap.create();
+    protected final BiMap<DexType, DexType> newTypes = HashBiMap.create();
     protected final MutableBidirectionalOneToOneMap<DexField, DexField> newFieldSignatures =
         new BidirectionalOneToOneHashMap<>();
-    protected final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures =
+    protected final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> newMethodSignatures =
         new BidirectionalOneToOneHashMap<>();
 
     public void recordMove(DexField from, DexField to) {
@@ -99,18 +93,18 @@ public class RepackagingLens extends LegacyNestedGraphLens {
     }
 
     public void recordMove(DexMethod from, DexMethod to) {
-      originalMethodSignatures.put(to, from);
+      newMethodSignatures.put(from, to);
     }
 
     public void recordMove(DexType from, DexType to) {
-      originalTypes.put(to, from);
+      newTypes.put(from, to);
     }
 
     public RepackagingLens build(
         AppView<AppInfoWithLiveness> appView, Map<String, String> packageRenamings) {
-      assert !originalTypes.isEmpty();
+      assert !newTypes.isEmpty();
       return new RepackagingLens(
-          appView, newFieldSignatures, originalMethodSignatures, originalTypes, packageRenamings);
+          appView, newFieldSignatures, newMethodSignatures, newTypes, packageRenamings);
     }
   }
 }

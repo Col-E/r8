@@ -24,8 +24,6 @@ import java.util.stream.Collectors;
  */
 public class NestedGraphLens extends NonIdentityGraphLens {
 
-  protected final DexItemFactory dexItemFactory;
-
   protected final BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap;
   protected final Map<DexMethod, DexMethod> methodMap;
   protected final Map<DexType, DexType> typeMap;
@@ -57,22 +55,28 @@ public class NestedGraphLens extends NonIdentityGraphLens {
   }
 
   public NestedGraphLens(
-      Map<DexType, DexType> typeMap,
-      Map<DexMethod, DexMethod> methodMap,
+      AppView<?> appView,
       BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
-      BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> newMethodSignatures,
-      GraphLens previousLens,
-      DexItemFactory dexItemFactory) {
-    super(dexItemFactory, previousLens);
+      BidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> methodMap,
+      Map<DexType, DexType> typeMap) {
+    this(appView, fieldMap, methodMap.getForwardMap(), typeMap, methodMap);
+  }
+
+  public NestedGraphLens(
+      AppView<?> appView,
+      BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
+      Map<DexMethod, DexMethod> methodMap,
+      Map<DexType, DexType> typeMap,
+      BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> newMethodSignatures) {
+    super(appView);
     assert !typeMap.isEmpty()
         || !methodMap.isEmpty()
         || !fieldMap.isEmpty()
         || isLegitimateToHaveEmptyMappings();
-    this.typeMap = typeMap.isEmpty() ? null : typeMap;
-    this.methodMap = methodMap;
     this.fieldMap = fieldMap;
+    this.methodMap = methodMap;
+    this.typeMap = typeMap;
     this.newMethodSignatures = newMethodSignatures;
-    this.dexItemFactory = dexItemFactory;
   }
 
   public static Builder builder() {
@@ -126,7 +130,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
 
   @Override
   protected DexType internalDescribeLookupClassType(DexType previous) {
-    return typeMap != null ? typeMap.getOrDefault(previous, previous) : previous;
+    return typeMap.getOrDefault(previous, previous);
   }
 
   @Override
@@ -139,7 +143,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
               ? rewrittenReboundReference
               : rewrittenReboundReference.withHolder(
                   internalDescribeLookupClassType(previous.getReference().getHolderType()),
-                  dexItemFactory);
+                  dexItemFactory());
       return FieldLookupResult.builder(this)
           .setReboundReference(rewrittenReboundReference)
           .setReference(rewrittenNonReboundReference)
@@ -169,7 +173,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
               : // This assumes that the holder will always be moved in lock-step with the method!
               rewrittenReboundReference.withHolder(
                   internalDescribeLookupClassType(previous.getReference().getHolderType()),
-                  dexItemFactory);
+                  dexItemFactory());
       return MethodLookupResult.builder(this)
           .setReference(rewrittenReference)
           .setReboundReference(rewrittenReboundReference)
@@ -283,24 +287,28 @@ public class NestedGraphLens extends NonIdentityGraphLens {
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    if (typeMap != null) {
-      for (Map.Entry<DexType, DexType> entry : typeMap.entrySet()) {
-        builder.append(entry.getKey().toSourceString()).append(" -> ");
-        builder.append(entry.getValue().toSourceString()).append(System.lineSeparator());
-      }
-    }
-    for (Map.Entry<DexMethod, DexMethod> entry : methodMap.entrySet()) {
-      builder.append(entry.getKey().toSourceString()).append(" -> ");
-      builder.append(entry.getValue().toSourceString()).append(System.lineSeparator());
-    }
+    typeMap.forEach(
+        (from, to) ->
+            builder
+                .append(from.getTypeName())
+                .append(" -> ")
+                .append(to.getTypeName())
+                .append(System.lineSeparator()));
+    methodMap.forEach(
+        (from, to) ->
+            builder
+                .append(from.toSourceString())
+                .append(" -> ")
+                .append(to.toSourceString())
+                .append(System.lineSeparator()));
     fieldMap.forEachManyToOneMapping(
-        (keys, value) -> {
+        (fromSet, to) -> {
           builder.append(
-              keys.stream()
+              fromSet.stream()
                   .map(DexField::toSourceString)
                   .collect(Collectors.joining("," + System.lineSeparator())));
           builder.append(" -> ");
-          builder.append(value.toSourceString()).append(System.lineSeparator());
+          builder.append(to.toSourceString()).append(System.lineSeparator());
         });
     builder.append(getPrevious().toString());
     return builder.toString();
