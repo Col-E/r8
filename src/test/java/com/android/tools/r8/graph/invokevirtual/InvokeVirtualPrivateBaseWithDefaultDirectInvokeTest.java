@@ -7,6 +7,7 @@ package com.android.tools.r8.graph.invokevirtual;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NoVerticalClassMerging;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -21,7 +22,6 @@ import org.junit.runners.Parameterized.Parameters;
 public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBase {
 
   private final TestParameters parameters;
-  private final String INVALID_EXPECTED = "I::foo";
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -40,9 +40,7 @@ public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBas
         .run(parameters.getRuntime(), Main.class)
         .applyIf(
             parameters.isCfRuntime(CfVm.JDK11),
-            // TODO(B/182148338): Figure out why JVM 11 has changed resolution for interface
-            //  lookups.
-            r -> r.assertSuccessWithOutputLines(INVALID_EXPECTED),
+            r -> r.assertSuccessWithOutputLines("I::foo"),
             r -> r.assertFailureWithErrorThatThrows(IllegalAccessError.class));
   }
 
@@ -52,14 +50,7 @@ public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBas
         .addInnerClasses(getClass())
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(B/182148338): Figure out why JVM 11 has changed resolution for interface lookups.
-        // TODO(b/171550305): Should be illegal access for DEX.
-        .applyIf(
-            parameters.isDexRuntime()
-                || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B)
-                || parameters.isCfRuntime(CfVm.JDK11),
-            r -> r.assertSuccessWithOutputLines(INVALID_EXPECTED),
-            r -> r.assertFailureWithErrorThatThrows(IllegalAccessError.class));
+        .apply(this::assertResultIsCorrect);
   }
 
   @Test
@@ -70,10 +61,23 @@ public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBas
         .addKeepClassAndMembersRules(I.class)
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/171550305): Should be illegal access.
-        .assertSuccessWithOutputLines(INVALID_EXPECTED);
+        // TODO(b/182189123): This should have the same behavior as D8.
+        .assertSuccessWithOutputLines("I::foo");
+  }
+
+  public void assertResultIsCorrect(SingleTestRunResult<?> result) {
+    if (parameters.isCfRuntime(CfVm.JDK11)
+        && parameters.getApiLevel().isGreaterThan(AndroidApiLevel.M)) {
+      result.assertSuccessWithOutputLines("I::foo");
+      return;
+    }
+    // TODO(b/152199517): Should be illegal access for DEX.
+    if (parameters.isDexRuntime() && parameters.getApiLevel().isGreaterThan(AndroidApiLevel.M)) {
+      result.assertSuccessWithOutputLines("I::foo");
+      return;
+    }
+    result.assertFailureWithErrorThatThrows(IllegalAccessError.class);
   }
 
   @NoVerticalClassMerging

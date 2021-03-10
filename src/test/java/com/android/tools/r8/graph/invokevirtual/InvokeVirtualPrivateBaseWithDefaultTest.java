@@ -20,7 +20,6 @@ import org.junit.runners.Parameterized.Parameters;
 public class InvokeVirtualPrivateBaseWithDefaultTest extends TestBase {
 
   private final TestParameters parameters;
-  private final String INVALID_EXPECTED = "I::foo";
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -46,11 +45,12 @@ public class InvokeVirtualPrivateBaseWithDefaultTest extends TestBase {
         .addInnerClasses(getClass())
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/171550305): Should be illegal access for DEX.
         .applyIf(
-            parameters.isDexRuntime() || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B),
-            r -> r.assertSuccessWithOutputLines(INVALID_EXPECTED),
-            r -> r.assertFailureWithErrorThatThrows(IllegalAccessError.class));
+            parameters.isCfRuntime()
+                || parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.M),
+            r -> r.assertFailureWithErrorThatThrows(IllegalAccessError.class),
+            // TODO(b/152199517): Should be illegal access for DEX.
+            r -> r.assertSuccessWithOutputLines("I::foo"));
   }
 
   @Test
@@ -63,11 +63,12 @@ public class InvokeVirtualPrivateBaseWithDefaultTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/171550305): Should be illegal access.
         .applyIf(
-            parameters.isDexRuntime(),
-            r -> r.assertSuccessWithOutputLines(INVALID_EXPECTED),
-            r -> r.assertFailureWithErrorThatThrows(IllegalAccessError.class));
+            parameters.isCfRuntime()
+                || parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.M),
+            r -> r.assertFailureWithErrorThatThrows(IllegalAccessError.class),
+            // TODO(b/152199517): Should be illegal access for DEX.
+            r -> r.assertSuccessWithOutputLines("I::foo"));
   }
 
   @NoVerticalClassMerging

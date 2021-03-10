@@ -9,6 +9,7 @@ import java.util.function.BooleanSupplier;
 public class BooleanBox {
 
   private boolean value;
+  private boolean assigned = false;
 
   public BooleanBox() {}
 
@@ -39,6 +40,7 @@ public class BooleanBox {
   }
 
   public void set(boolean value) {
+    assigned = true;
     this.value = value;
   }
 
@@ -47,10 +49,14 @@ public class BooleanBox {
   }
 
   public void and(boolean value) {
-    this.value = value && this.value;
+    set(value && this.value);
   }
 
   public void or(boolean value) {
-    this.value = value || this.value;
+    set(value || this.value);
+  }
+
+  public boolean isAssigned() {
+    return assigned;
   }
 }

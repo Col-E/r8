@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.synthetic.ExceptionThrowingSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.position.MethodPosition;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.WorkList;
@@ -533,27 +534,44 @@ final class ClassProcessor {
   // the 'addForward' call-back is called with the target of the forward.
   private void resolveForwardForSignature(
       DexClass clazz, DexMethod method, Consumer<DexClassAndMethod> addForward) {
-    // Resolve the default method with base type as the symbolic holder as call sites are not known.
-    // The dispatch target is then looked up from the possible "instance" class.
-    // Doing so can cause an invalid invoke to become valid (at runtime resolution at a subtype
-    // might have failed which is hidden by the insertion of the forward method). However, not doing
-    // so could cause valid dispatches to become invalid by resolving to private overrides.
     AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
-    DexClassAndMethod virtualDispatchTarget =
-        appInfo
-            .resolveMethodOnInterface(method.holder, method)
-            .lookupVirtualDispatchTarget(clazz, appInfo);
-    if (virtualDispatchTarget == null) {
-      // If no target is found due to multiple default method targets, preserve ICCE behavior.
-      ResolutionResult resolutionFromSubclass = appInfo.resolveMethodOn(clazz, method);
-      if (resolutionFromSubclass.isIncompatibleClassChangeErrorResult()) {
-        addICCEThrowingMethod(method, clazz);
+    ResolutionResult resolutionResult = appInfo.resolveMethodOn(clazz, method);
+    if (resolutionResult.isFailedResolution()
+        || resolutionResult.asSuccessfulMemberResolutionResult().getResolvedMember().isStatic()) {
+      // When doing resolution we may find a static or private targets and bubble up the failed
+      // resolution to preserve ICCE even though the resolution actually succeeded, ie. finding a
+      // method with the same name and descriptor. For invoke-virtual and invoke-interface, the
+      // selected method will only consider instance methods.
+      BooleanBox staticTarget = new BooleanBox(true);
+      if (resolutionResult.isFailedResolution()) {
+        resolutionResult
+            .asFailedResolution()
+            .forEachFailureDependency(target -> staticTarget.and(target.isStatic()));
+      } else if (resolutionResult.isSuccessfulMemberResolutionResult()) {
+        staticTarget.set(
+            resolutionResult.asSuccessfulMemberResolutionResult().getResolvedMember().isStatic());
+      }
+      if (staticTarget.isAssigned() && staticTarget.isTrue()) {
+        resolutionResult = appInfo.resolveMethodOnInterface(method.holder, method);
+      }
+      if (resolutionResult.isFailedResolution()) {
+        if (resolutionResult.isIncompatibleClassChangeErrorResult()) {
+          addICCEThrowingMethod(method, clazz);
+          return;
+        }
+        if (resolutionResult.isNoSuchMethodErrorResult(clazz, appInfo)) {
+          addNoSuchMethodErrorThrowingMethod(method, clazz);
+          return;
+        }
+        assert resolutionResult.isIllegalAccessErrorResult(clazz, appInfo);
+        addIllegalAccessErrorThrowingMethod(method, clazz);
         return;
       }
-      assert resolutionFromSubclass.isFailedResolution()
-          || resolutionFromSubclass.getSingleTarget().isPrivateMethod();
-      return;
     }
+    assert resolutionResult.isSuccessfulMemberResolutionResult();
+    DexClassAndMethod virtualDispatchTarget =
+        resolutionResult.lookupVirtualDispatchTarget(clazz, appInfo);
+    assert virtualDispatchTarget != null;
 
     // Don't forward if the target is explicitly marked as 'dont-rewrite'
     if (dontRewrite(virtualDispatchTarget)) {
@@ -612,6 +630,18 @@ final class ClassProcessor {
   }
 
   private void addICCEThrowingMethod(DexMethod method, DexClass clazz) {
+    addThrowingMethod(method, clazz, dexItemFactory.icceType);
+  }
+
+  private void addIllegalAccessErrorThrowingMethod(DexMethod method, DexClass clazz) {
+    addThrowingMethod(method, clazz, dexItemFactory.illegalAccessErrorType);
+  }
+
+  private void addNoSuchMethodErrorThrowingMethod(DexMethod method, DexClass clazz) {
+    addThrowingMethod(method, clazz, dexItemFactory.noSuchMethodErrorType);
+  }
+
+  private void addThrowingMethod(DexMethod method, DexClass clazz, DexType errorType) {
     if (!clazz.isProgramClass()) {
       return;
     }
@@ -625,8 +655,7 @@ final class ClassProcessor {
             ParameterAnnotationsList.empty(),
             new SynthesizedCode(
                 callerPosition ->
-                    new ExceptionThrowingSourceCode(
-                        clazz.type, method, callerPosition, dexItemFactory.icceType)),
+                    new ExceptionThrowingSourceCode(clazz.type, method, callerPosition, errorType)),
             true);
     addSyntheticMethod(clazz.asProgramClass(), newEncodedMethod);
   }

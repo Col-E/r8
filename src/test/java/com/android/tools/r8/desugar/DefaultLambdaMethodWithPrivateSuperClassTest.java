@@ -48,11 +48,12 @@ public class DefaultLambdaMethodWithPrivateSuperClassTest extends TestBase {
         .addInnerClasses(getClass())
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/171550305): Should be illegal access for DEX.
         .applyIf(
-            parameters.isDexRuntime() || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B),
-            r -> r.assertSuccessWithOutputLines("interface"),
-            r -> r.assertFailureWithErrorThatThrows(IllegalAccessError.class));
+            parameters.isCfRuntime()
+                || parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.M),
+            r -> r.assertFailureWithErrorThatThrows(IllegalAccessError.class),
+            // TODO(b/152199517): Should be illegal access for DEX.
+            r -> r.assertSuccessWithOutputLines("interface"));
   }
 
   interface Named {

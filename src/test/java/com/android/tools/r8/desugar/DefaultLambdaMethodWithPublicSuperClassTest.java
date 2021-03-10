@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar;
 
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -20,7 +22,7 @@ public class DefaultLambdaMethodWithPublicSuperClassTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntimes().withAllApiLevelsAlsoForCf().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   public DefaultLambdaMethodWithPublicSuperClassTest(TestParameters parameters) {
@@ -29,6 +31,7 @@ public class DefaultLambdaMethodWithPublicSuperClassTest extends TestBase {
 
   @Test
   public void testJvm() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
     testForJvm()
         .addInnerClasses(getClass())
         .run(parameters.getRuntime(), Main.class)
