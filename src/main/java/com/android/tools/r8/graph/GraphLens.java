@@ -280,13 +280,8 @@ public abstract class GraphLens {
       if (typeMap.isEmpty() && methodMap.isEmpty() && fieldMap.isEmpty()) {
         return previousLens;
       }
-      return new NestedGraphLens(
-          typeMap,
-          methodMap,
-          fieldMap,
-          originalMethodSignatures,
-          previousLens,
-          dexItemFactory);
+      return new LegacyNestedGraphLens(
+          typeMap, methodMap, fieldMap, originalMethodSignatures, previousLens, dexItemFactory);
     }
   }
 

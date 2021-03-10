@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.optimize;
 
-import static com.android.tools.r8.graph.NestedGraphLens.mapVirtualInterfaceInvocationTypes;
+import static com.android.tools.r8.graph.LegacyNestedGraphLens.mapVirtualInterfaceInvocationTypes;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;

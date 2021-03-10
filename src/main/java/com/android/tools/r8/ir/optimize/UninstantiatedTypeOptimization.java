@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.NestedGraphLens;
+import com.android.tools.r8.graph.LegacyNestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
@@ -49,7 +49,7 @@ public class UninstantiatedTypeOptimization {
     DISALLOW_ARGUMENT_REMOVAL
   }
 
-  public static class UninstantiatedTypeOptimizationGraphLens extends NestedGraphLens {
+  public static class UninstantiatedTypeOptimizationGraphLens extends LegacyNestedGraphLens {
 
     private final AppView<?> appView;
     private final Map<DexMethod, ArgumentInfoCollection> removedArgumentsInfoPerMethod;

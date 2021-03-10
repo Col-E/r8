@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.NestedGraphLens;
+import com.android.tools.r8.graph.LegacyNestedGraphLens;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class HorizontalClassMergerGraphLens extends NestedGraphLens {
+public class HorizontalClassMergerGraphLens extends LegacyNestedGraphLens {
 
   private final Map<DexMethod, List<ExtraParameter>> methodExtraParameters;
   private final HorizontallyMergedClasses mergedClasses;

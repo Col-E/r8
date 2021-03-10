@@ -8,14 +8,14 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.NestedGraphLens;
+import com.android.tools.r8.graph.LegacyNestedGraphLens;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
-final class PublicizerLens extends NestedGraphLens {
+final class PublicizerLens extends LegacyNestedGraphLens {
 
   private final AppView<?> appView;
   private final Set<DexMethod> publicizedMethods;

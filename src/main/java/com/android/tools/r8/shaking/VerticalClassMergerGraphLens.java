@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.NestedGraphLens;
+import com.android.tools.r8.graph.LegacyNestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -52,7 +52,7 @@ import java.util.Set;
 // invocation will hit the same implementation as the original super.m() call.
 //
 // For the invocation "invoke-virtual A.m()" in B.m2, this graph lens will return the method B.m.
-public class VerticalClassMergerGraphLens extends NestedGraphLens {
+public class VerticalClassMergerGraphLens extends LegacyNestedGraphLens {
 
   interface GraphLensLookupResultProvider {
 

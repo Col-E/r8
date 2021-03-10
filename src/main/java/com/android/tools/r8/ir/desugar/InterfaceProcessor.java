@@ -37,9 +37,9 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.LegacyNestedGraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodCollection;
-import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -440,7 +440,7 @@ public final class InterfaceProcessor {
 
   // Specific lens which remaps invocation types to static since all rewrites performed here
   // are to static companion methods.
-  public static class InterfaceProcessorNestedGraphLens extends NestedGraphLens {
+  public static class InterfaceProcessorNestedGraphLens extends LegacyNestedGraphLens {
 
     private BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
         extraOriginalMethodSignatures;
@@ -524,7 +524,7 @@ public final class InterfaceProcessor {
       return new Builder();
     }
 
-    public static class Builder extends NestedGraphLens.Builder {
+    public static class Builder extends LegacyNestedGraphLens.Builder {
 
       private final MutableBidirectionalOneToOneMap<DexMethod, DexMethod>
           extraOriginalMethodSignatures = new BidirectionalOneToOneHashMap<>();

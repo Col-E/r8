@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.NestedGraphLens;
+import com.android.tools.r8.graph.LegacyNestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
@@ -52,7 +52,7 @@ public class UnusedArgumentsCollector {
       new BidirectionalOneToOneHashMap<>();
   private final Map<DexMethod, ArgumentInfoCollection> removedArguments = new IdentityHashMap<>();
 
-  public static class UnusedArgumentsGraphLens extends NestedGraphLens {
+  public static class UnusedArgumentsGraphLens extends LegacyNestedGraphLens {
 
     private final Map<DexMethod, ArgumentInfoCollection> removedArguments;
 

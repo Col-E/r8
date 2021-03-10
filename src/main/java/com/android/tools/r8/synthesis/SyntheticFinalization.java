@@ -19,7 +19,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
-import com.android.tools.r8.graph.NestedGraphLens;
+import com.android.tools.r8.graph.LegacyNestedGraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.ir.code.NumberGenerator;
@@ -69,7 +69,7 @@ public class SyntheticFinalization {
     }
   }
 
-  public static class SyntheticFinalizationGraphLens extends NestedGraphLens {
+  public static class SyntheticFinalizationGraphLens extends LegacyNestedGraphLens {
 
     private SyntheticFinalizationGraphLens(
         GraphLens previous,

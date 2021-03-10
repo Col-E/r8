@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * #mapInvocationType(DexMethod, DexMethod, Type)} if the default name mapping applies, and only
  * invocation type might need to change.
  */
-public class NestedGraphLens extends NonIdentityGraphLens {
+public class LegacyNestedGraphLens extends NonIdentityGraphLens {
 
   protected final DexItemFactory dexItemFactory;
 
@@ -40,7 +40,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
     return false;
   }
 
-  public NestedGraphLens(
+  public LegacyNestedGraphLens(
       Map<DexType, DexType> typeMap,
       Map<DexMethod, DexMethod> methodMap,
       BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
