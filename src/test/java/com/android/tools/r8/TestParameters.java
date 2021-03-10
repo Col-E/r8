@@ -49,6 +49,10 @@ public class TestParameters {
     return runtime.isCf() && runtime.asCf().getVm() == vm;
   }
 
+  public boolean isDexRuntimeVersion(DexVm.Version vm) {
+    return isDexRuntime() && vm == getDexRuntimeVersion();
+  }
+
   public boolean isNoneRuntime() {
     return runtime == NoneRuntime.getInstance();
   }

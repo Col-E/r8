@@ -285,6 +285,11 @@ public class ToolHelper {
         return compareTo(other) <= 0;
       }
 
+      public boolean isInRangeInclusive(Version start, Version end) {
+        assert start.isOlderThanOrEqual(end);
+        return isNewerThanOrEqual(start) && isOlderThanOrEqual(end);
+      }
+
       public String toString() {
         return shortName;
       }
