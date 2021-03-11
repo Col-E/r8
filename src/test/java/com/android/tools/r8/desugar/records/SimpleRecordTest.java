@@ -40,7 +40,7 @@ public class SimpleRecordTest extends TestBase {
         getTestParameters()
             .withCustomRuntime(CfRuntime.getCheckedInJdk15())
             .withDexRuntimes()
-            .withAllApiLevels()
+            .withAllApiLevelsAlsoForCf()
             .build());
   }
 
@@ -52,10 +52,8 @@ public class SimpleRecordTest extends TestBase {
           .enablePreview()
           .run(parameters.getRuntime(), MAIN_TYPE)
           .assertSuccessWithOutput(EXPECTED_RESULT);
-      // TODO(b/179146128): Add a test for D8 cf to cf.
-      return;
     }
-    testForD8()
+    testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
