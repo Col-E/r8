@@ -5,11 +5,13 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.FieldAccessInfoImpl.MISSING_FIELD_ACCESS_INFO;
+import static com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult.isOverriding;
 import static com.android.tools.r8.ir.desugar.LambdaDescriptor.isLambdaMetafactoryMethod;
 import static com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator.ENUM_UNBOXING_UTILITY_CLASS_SUFFIX;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
+import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -140,7 +142,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -2363,11 +2364,13 @@ public class Enqueuer {
    */
   private void transitionMethodsForInstantiatedObject(
       InstantiatedObject instantiation, DexClass clazz, List<DexType> interfaces) {
-    Set<Wrapper<DexMethod>> seen = new HashSet<>();
+    Map<Wrapper<DexMethod>, List<DexEncodedMethod>> seen = new HashMap<>();
     WorkList<DexType> worklist = WorkList.newIdentityWorkList();
     worklist.addIfNotSeen(interfaces);
     // First we lookup and mark all targets on the instantiated class for each reachable method in
     // the super chain (inclusive).
+    // TODO(b/182458496): Consider changing this algorithm to a version that collects all reachable
+    //  methods and then does lookup.
     DexClass initialClass = clazz;
     while (clazz != null) {
       if (clazz.isProgramClass()) {
@@ -2405,14 +2408,25 @@ public class Enqueuer {
   private void markProgramMethodOverridesAsLive(
       InstantiatedObject instantiation,
       DexClass initialClass,
-      DexProgramClass superClass,
-      Set<Wrapper<DexMethod>> seenMethods) {
-    for (DexMethod method : getReachableVirtualTargets(superClass)) {
-      assert method.holder == superClass.type;
+      DexProgramClass currentClass,
+      Map<Wrapper<DexMethod>, List<DexEncodedMethod>> seenMethods) {
+    for (DexMethod method : getReachableVirtualTargets(currentClass)) {
+      assert method.holder == currentClass.type;
       Wrapper<DexMethod> signature = MethodSignatureEquivalence.get().wrap(method);
-      if (!seenMethods.contains(signature)) {
+      // TODO(b/182456011): Could reachableVirtalTarget be dex encoded methods.
+      DexEncodedMethod currentTarget = definitionFor(method, currentClass);
+      List<DexEncodedMethod> potentialOverrides =
+          seenMethods.computeIfAbsent(signature, ignoreArgument(ArrayList::new));
+      boolean notOverridingCurrentTarget = potentialOverrides.isEmpty();
+      for (DexEncodedMethod potentialOverride : potentialOverrides) {
+        if (!isOverriding(currentTarget, potentialOverride)) {
+          notOverridingCurrentTarget = true;
+          break;
+        }
+      }
+      if (notOverridingCurrentTarget) {
         SingleResolutionResult resolution =
-            appInfo.resolveMethodOn(superClass, method).asSingleResolution();
+            appInfo.resolveMethodOn(currentClass, method).asSingleResolution();
         assert resolution != null;
         assert resolution.getResolvedHolder().isProgramClass();
         if (resolution != null) {
@@ -2420,11 +2434,11 @@ public class Enqueuer {
               || resolution
                   .isAccessibleForVirtualDispatchFrom(initialClass.asProgramClass(), appInfo)
                   .isTrue()) {
-            seenMethods.add(signature);
+            potentialOverrides.add(currentTarget);
           }
           if (resolution.getResolvedHolder().isProgramClass()) {
             markLiveOverrides(
-                instantiation, superClass, resolution.getResolutionPair().asProgramMethod());
+                instantiation, currentClass, resolution.getResolutionPair().asProgramMethod());
           }
         }
       }

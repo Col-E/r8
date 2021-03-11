@@ -69,8 +69,7 @@ public class AbstractSuperClassLiveMethodTest extends TestBase {
         .applyIf(
             parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isDalvik(),
             r -> r.assertSuccessWithOutputLines(EXPECTED_DALVIK),
-            // TODO(b/182444403): Should succeed with EXPECTED.
-            r -> r.assertFailureWithErrorThatThrows(AbstractMethodError.class));
+            r -> r.assertSuccessWithOutputLines(EXPECTED));
   }
 
   @NoVerticalClassMerging
