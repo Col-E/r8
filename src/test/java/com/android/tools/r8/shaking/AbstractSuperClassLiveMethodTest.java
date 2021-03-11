@@ -64,6 +64,7 @@ public class AbstractSuperClassLiveMethodTest extends TestBase {
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
+        .addOptionsModification(options -> options.enableDevirtualization = false)
         .run(parameters.getRuntime(), Main.class)
         .applyIf(
             parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isDalvik(),
