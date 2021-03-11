@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceCommand;
 import com.android.tools.r8.utils.StringUtils;
@@ -17,6 +18,7 @@ import com.google.common.base.Equivalence;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -54,6 +56,10 @@ public class StackTrace {
       return addWithoutFileNameAndLineNumber(clazz.getTypeName(), methodName);
     }
 
+    public Builder addWithoutFileNameAndLineNumber(ClassReference clazz, String methodName) {
+      return addWithoutFileNameAndLineNumber(clazz.getTypeName(), methodName);
+    }
+
     public Builder addWithoutFileNameAndLineNumber(String className, String methodName) {
       stackTraceLines.add(
           StackTraceLine.builder().setClassName(className).setMethodName(methodName).build());
@@ -62,6 +68,13 @@ public class StackTrace {
 
     public Builder map(int i, Function<StackTraceLine, StackTraceLine> map) {
       stackTraceLines.set(i, map.apply(stackTraceLines.get(i)));
+      return this;
+    }
+
+    public Builder applyIf(boolean condition, Consumer<Builder> fn) {
+      if (condition) {
+        fn.accept(this);
+      }
       return this;
     }
 
