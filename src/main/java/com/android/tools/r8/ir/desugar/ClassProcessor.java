@@ -205,6 +205,40 @@ final class ClassProcessor {
     }
   }
 
+  // Emulated interfaces together with the generic signatures.
+  static class EmulatedInterfaces {
+    static EmulatedInterfaces EMPTY = new EmulatedInterfaces(ImmutableSet.of());
+
+    final Set<DexType> emulatedInterfaces;
+
+    EmulatedInterfaces(DexType emulatedInterface) {
+      this.emulatedInterfaces = ImmutableSet.of(emulatedInterface);
+    }
+
+    private EmulatedInterfaces(Set<DexType> emulatedInterfaces) {
+      this.emulatedInterfaces = emulatedInterfaces;
+    }
+
+    boolean isEmpty() {
+      return emulatedInterfaces.isEmpty();
+    }
+
+    boolean contains(DexType type) {
+      return emulatedInterfaces.contains(type);
+    }
+
+    Set<DexType> getEmulatedInterfaces() {
+      return emulatedInterfaces;
+    }
+
+    EmulatedInterfaces merge(EmulatedInterfaces other) {
+      ImmutableSet.Builder<DexType> newEmulatedInterfaces = ImmutableSet.builder();
+      newEmulatedInterfaces.addAll(emulatedInterfaces);
+      newEmulatedInterfaces.addAll(other.emulatedInterfaces);
+      return new EmulatedInterfaces(newEmulatedInterfaces.build());
+    }
+  }
+
   // List of emulated interfaces and corresponding signatures which may require forwarding methods.
   // If one of the signatures has an override, then the class holding the override is required to
   // add the forwarding methods for all signatures, and introduce the corresponding emulated
@@ -214,13 +248,13 @@ final class ClassProcessor {
   private static class EmulatedInterfaceInfo {
 
     static final EmulatedInterfaceInfo EMPTY =
-        new EmulatedInterfaceInfo(MethodSignatures.EMPTY, ImmutableSet.of());
+        new EmulatedInterfaceInfo(MethodSignatures.EMPTY, EmulatedInterfaces.EMPTY);
 
     final MethodSignatures signatures;
-    final ImmutableSet<DexType> emulatedInterfaces;
+    final EmulatedInterfaces emulatedInterfaces;
 
     private EmulatedInterfaceInfo(
-        MethodSignatures methodsToForward, ImmutableSet<DexType> emulatedInterfaces) {
+        MethodSignatures methodsToForward, EmulatedInterfaces emulatedInterfaces) {
       this.signatures = methodsToForward;
       this.emulatedInterfaces = emulatedInterfaces;
     }
@@ -232,16 +266,17 @@ final class ClassProcessor {
       if (other.isEmpty()) {
         return this;
       }
-      ImmutableSet.Builder<DexType> newEmulatedInterfaces = ImmutableSet.builder();
-      newEmulatedInterfaces.addAll(emulatedInterfaces);
-      newEmulatedInterfaces.addAll(other.emulatedInterfaces);
       return new EmulatedInterfaceInfo(
-          signatures.merge(other.signatures), newEmulatedInterfaces.build());
+          signatures.merge(other.signatures), emulatedInterfaces.merge(other.emulatedInterfaces));
     }
 
     public boolean isEmpty() {
       assert !emulatedInterfaces.isEmpty() || signatures.isEmpty();
       return emulatedInterfaces.isEmpty();
+    }
+
+    boolean contains(DexType type) {
+      return emulatedInterfaces.contains(type);
     }
   }
 
@@ -376,7 +411,7 @@ final class ClassProcessor {
     assert needsLibraryInfo();
     MethodSignatures signatures = getDefaultMethods(iface);
     EmulatedInterfaceInfo emulatedInterfaceInfo =
-        new EmulatedInterfaceInfo(signatures, ImmutableSet.of(iface.type));
+        new EmulatedInterfaceInfo(signatures, new EmulatedInterfaces(iface.type));
     return interfaceInfo.withEmulatedInterfaceInfo(emulatedInterfaceInfo);
   }
 
@@ -423,14 +458,13 @@ final class ClassProcessor {
   // implement the interface and the emulated one for correct emulated dispatch.
   // The class signature won't include the correct type parameters for the duplicated interfaces,
   // i.e., there will be foo.A instead of foo.A<K,V>, but such parameters are unused.
-  private void duplicateEmulatedInterfaces(
-      DexClass clazz, ImmutableSet<DexType> emulatedInterfaces) {
+  private void duplicateEmulatedInterfaces(DexClass clazz, EmulatedInterfaces emulatedInterfaces) {
     if (clazz.isNotProgramClass()) {
       return;
     }
-    Set<DexType> filtered = new HashSet<>(emulatedInterfaces);
+    Set<DexType> filtered = new HashSet<>(emulatedInterfaces.getEmulatedInterfaces());
     WorkList<DexType> workList = WorkList.newIdentityWorkList();
-    for (DexType emulatedInterface : emulatedInterfaces) {
+    for (DexType emulatedInterface : emulatedInterfaces.getEmulatedInterfaces()) {
       DexClass iface = appView.definitionFor(emulatedInterface);
       if (iface != null) {
         assert iface.isLibraryClass()
@@ -448,7 +482,7 @@ final class ClassProcessor {
       workList.addIfNotSeen(iface.getInterfaces());
     }
 
-    for (DexType emulatedInterface : emulatedInterfaces) {
+    for (DexType emulatedInterface : emulatedInterfaces.getEmulatedInterfaces()) {
       DexClass s = appView.definitionFor(emulatedInterface);
       if (s != null) {
         s = appView.definitionFor(s.superType);
@@ -459,13 +493,17 @@ final class ClassProcessor {
       }
     }
 
+    // Collect the signatures for the emulated interfaces to add.
+    Map<DexType, GenericSignature.ClassTypeSignature> signatures = new IdentityHashMap<>();
+    collectEmulatedInterfaces(clazz, filtered, signatures);
     // We need to introduce them in deterministic order for deterministic compilation.
     ArrayList<DexType> sortedEmulatedInterfaces = new ArrayList<>(filtered);
     Collections.sort(sortedEmulatedInterfaces);
     List<GenericSignature.ClassTypeSignature> extraInterfaceSignatures = new ArrayList<>();
     for (DexType extraInterface : sortedEmulatedInterfaces) {
-      extraInterfaceSignatures.add(
-          new GenericSignature.ClassTypeSignature(rewriter.getEmulatedInterface(extraInterface)));
+      GenericSignature.ClassTypeSignature signature = signatures.get(extraInterface);
+      assert signature != null;
+      extraInterfaceSignatures.add(signature);
     }
     // The emulated interface might already be implemented if the input class has gone through
     // library desugaring already.
@@ -490,6 +528,65 @@ final class ClassProcessor {
     clazz.asProgramClass().addExtraInterfaces(extraInterfaceSignatures);
   }
 
+  private void collectEmulatedInterfaces(
+      DexClass clazz,
+      Set<DexType> emulatesInterfaces,
+      Map<DexType, GenericSignature.ClassTypeSignature> extraInterfaceSignatures) {
+    clazz.forEachImmediateSupertype(
+        (type, signature) -> {
+          if (emulatesInterfaces.contains(type)) {
+            extraInterfaceSignatures.put(
+                type,
+                new GenericSignature.ClassTypeSignature(
+                    rewriter.getEmulatedInterface(type), signature.typeArguments()));
+          }
+          // TODO(b/182329331): Only handle type arguments for Cf to Cf desugar.
+          collectEmulatedInterfacesWithPropagatedTypeArguments(
+              type,
+              appView.options().cfToCfDesugar ? signature.typeArguments() : null,
+              emulatesInterfaces,
+              extraInterfaceSignatures);
+        });
+  }
+
+  private void collectEmulatedInterfacesWithPropagatedTypeArguments(
+      DexType type,
+      List<GenericSignature.FieldTypeSignature> typeArguments,
+      Set<DexType> emulatesInterfaces,
+      Map<DexType, GenericSignature.ClassTypeSignature> extraInterfaceSignatures) {
+    DexClass clazz = appView.definitionFor(type);
+    if (clazz == null) {
+      return;
+    }
+    // TODO(b/182329331): Only handle type arguments for Cf to Cf desugar.
+    if (appView.options().cfToCfDesugar) {
+      assert typeArguments != null;
+      clazz.forEachImmediateSupertypeWithAppliedTypeArguments(
+          typeArguments,
+          (iface, signature) -> {
+            if (emulatesInterfaces.contains(iface)) {
+              extraInterfaceSignatures.put(
+                  iface,
+                  new GenericSignature.ClassTypeSignature(
+                      rewriter.getEmulatedInterface(iface), signature));
+            }
+            collectEmulatedInterfacesWithPropagatedTypeArguments(
+                iface, signature, emulatesInterfaces, extraInterfaceSignatures);
+          });
+    } else {
+      assert typeArguments == null;
+      clazz.forEachImmediateSupertype(
+          iface -> {
+            if (emulatesInterfaces.contains(iface)) {
+              extraInterfaceSignatures.put(
+                  iface,
+                  new GenericSignature.ClassTypeSignature(rewriter.getEmulatedInterface(iface)));
+            }
+            collectEmulatedInterfacesWithPropagatedTypeArguments(
+                iface, null, emulatesInterfaces, extraInterfaceSignatures);
+          });
+    }
+  }
   // If any of the signature would lead to a different behavior than the default method on the
   // emulated interface, we need to resolve the forwarding methods.
   private boolean shouldResolveForwardingMethodsForEmulatedInterfaces(
@@ -502,7 +599,7 @@ final class ClassProcessor {
       }
       DexClass resolvedHolder = resolutionResult.asSingleResolution().getResolvedHolder();
       if (!resolvedHolder.isLibraryClass()
-          && !emulatedInterfaceInfo.emulatedInterfaces.contains(resolvedHolder.type)) {
+          && !emulatedInterfaceInfo.contains(resolvedHolder.type)) {
         return true;
       }
     }
