@@ -162,6 +162,8 @@ def ParseOptions():
       help='Enable Java debug agent and suspend compilation (default disabled)',
       default=False,
       action='store_true')
+  result.add_option('--desugared-library-configuration', '--desugared_library-configuration',
+      help='Use alternative desugared library configuration.')
   result.add_option('--desugared-library', '--desugared_library',
       help='Build and use desugared library from GitHub.')
   return result.parse_args()
@@ -181,6 +183,13 @@ def Main():
   if utils.is_bot():
     gradle.RunGradle(['--no-daemon', 'clean'])
 
+  desugar_jdk_json_dir = None
+  if options.desugared_library_configuration:
+    if options.desugared_library_configuration != 'jdk11':
+      print("Only value supported for --desugared-library is 'jdk11'")
+      exit(1)
+    desugar_jdk_json_dir = 'src/library_desugar/jdk11'
+
   desugar_jdk_libs = None
   if options.desugared_library:
     if options.desugared_library != 'HEAD':
@@ -195,11 +204,11 @@ def Main():
       # Make sure bazel is extracted in third_party.
       utils.DownloadFromGoogleCloudStorage(utils.BAZEL_SHA_FILE)
       utils.DownloadFromGoogleCloudStorage(utils.JAVA8_SHA_FILE)
-      (library_jar, maven_zip) = archive_desugar_jdk_libs.BuildDesugaredLibrary(checkout_dir)
+      utils.DownloadFromGoogleCloudStorage(utils.JAVA11_SHA_FILE)
+      (library_jar, maven_zip) = archive_desugar_jdk_libs.BuildDesugaredLibrary(checkout_dir, 'jdk11' if options.desugared_library_configuration == 'jdk11' else 'jdk8')
       desugar_jdk_libs = os.path.join(desugar_jdk_libs_dir, os.path.basename(library_jar))
       shutil.copyfile(library_jar, desugar_jdk_libs)
       print('Desugared library for test in ' + desugar_jdk_libs)
-
 
   gradle_args = ['--stacktrace']
   if utils.is_bot():
@@ -284,6 +293,8 @@ def Main():
     gradle_args.append('--no-daemon')
   if options.debug_agent:
     gradle_args.append('--no-daemon')
+  if desugar_jdk_json_dir:
+    gradle_args.append('-Pdesugar_jdk_json_dir=' + desugar_jdk_json_dir)
   if desugar_jdk_libs:
     gradle_args.append('-Pdesugar_jdk_libs=' + desugar_jdk_libs)
 

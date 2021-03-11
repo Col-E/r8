@@ -180,10 +180,12 @@ public class ToolHelper {
 
   public static final Path DESUGAR_LIB_CONVERSIONS =
       Paths.get(LIBS_DIR, "library_desugar_conversions.zip");
+  public static final String DESUGAR_LIB_JSON_DIR =
+      System.getProperty("desugar_jdk_json_dir", "src/library_desugar");
   public static final Path DESUGAR_LIB_JSON_FOR_TESTING =
-      Paths.get("src/library_desugar/desugar_jdk_libs.json");
+      Paths.get(DESUGAR_LIB_JSON_DIR, "desugar_jdk_libs.json");
   public static final Path DESUGAR_LIB_JSON_FOR_TESTING_ALTERNATIVE_3 =
-      Paths.get("src/library_desugar/desugar_jdk_libs_alternative_3.json");
+      Paths.get(DESUGAR_LIB_JSON_DIR, "desugar_jdk_libs_alternative_3.json");
 
   public static boolean isLocalDevelopment() {
     return System.getProperty("local_development", "0").equals("1");

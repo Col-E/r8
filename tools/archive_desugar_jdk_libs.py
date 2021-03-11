@@ -85,10 +85,12 @@ def CloneDesugaredLibrary(github_account, checkout_dir):
     'https://github.com/'
         + github_account + '/' + LIBRARY_NAME, checkout_dir)
 
-def BuildDesugaredLibrary(checkout_dir):
+def BuildDesugaredLibrary(checkout_dir, variant):
+  if (variant != 'jdk8' and variant != 'jdk11'):
+    raise Exception('Variant ' + variant + 'is not supported')
   with utils.ChangedWorkingDirectory(checkout_dir):
     bazel = os.path.join(utils.BAZEL_TOOL, 'lib', 'bazel', 'bin', 'bazel')
-    cmd = [bazel, 'build', 'maven_release']
+    cmd = [bazel, 'build', 'maven_release' + ('_jdk11' if variant == 'jdk11' else '')]
     utils.PrintCmd(cmd)
     subprocess.check_call(cmd)
     cmd = [bazel, 'shutdown']
@@ -97,9 +99,16 @@ def BuildDesugaredLibrary(checkout_dir):
 
     # Locate the library jar and the maven zip with the jar from the
     # bazel build.
-    library_jar = os.path.join(
-        checkout_dir, 'bazel-bin', 'src', 'share', 'classes', 'java', 'libjava.jar')
-    maven_zip = os.path.join(checkout_dir, 'bazel-bin', LIBRARY_NAME +'.zip')
+    if variant == 'jdk8':
+      library_jar = os.path.join(
+          checkout_dir, 'bazel-bin', 'src', 'share', 'classes', 'java', 'libjava.jar')
+    else:
+      library_jar = os.path.join(
+          checkout_dir, 'bazel-bin', 'jdk11', 'src', 'java_base_selected.jar')
+    maven_zip = os.path.join(
+      checkout_dir,
+      'bazel-bin',
+      LIBRARY_NAME + ('_jdk11' if variant != 'jdk11' else '') +'.zip')
     return (library_jar, maven_zip)
 
 
@@ -124,11 +133,12 @@ def Main(argv):
   # Make sure bazel is extracted in third_party.
   utils.DownloadFromGoogleCloudStorage(utils.BAZEL_SHA_FILE)
   utils.DownloadFromGoogleCloudStorage(utils.JAVA8_SHA_FILE)
+  utils.DownloadFromGoogleCloudStorage(utils.JAVA11_SHA_FILE)
 
   if options.build_only:
     with utils.TempDir() as checkout_dir:
       CloneDesugaredLibrary(options.github_account, checkout_dir)
-      (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir)
+      (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir, "jdk8")
       shutil.copyfile(
         library_jar,
         os.path.join(options.build_only, os.path.basename(library_jar)))
@@ -150,7 +160,7 @@ def Main(argv):
       raise Exception(
           'Target archive directory %s already exists' % destination)
 
-    (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir)
+    (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir, "jdk8")
 
     storage_path = LIBRARY_NAME + '/' + version
     # Upload the jar file with the library.

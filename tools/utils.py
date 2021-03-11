@@ -83,6 +83,7 @@ INTERNAL_DUMPS_DIR = os.path.join(THIRD_PARTY, 'internal-apps')
 BAZEL_SHA_FILE = os.path.join(THIRD_PARTY, 'bazel.tar.gz.sha1')
 BAZEL_TOOL = os.path.join(THIRD_PARTY, 'bazel')
 JAVA8_SHA_FILE = os.path.join(THIRD_PARTY, 'openjdk', 'jdk8', 'linux-x86.tar.gz.sha1')
+JAVA11_SHA_FILE = os.path.join(THIRD_PARTY, 'openjdk', 'jdk-11', 'linux.tar.gz.sha1')
 IGNORE_WARNINGS_RULES = os.path.join(REPO_ROOT, 'src', 'test', 'ignorewarnings.rules')
 
 ANDROID_HOME_ENVIROMENT_NAME = "ANDROID_HOME"

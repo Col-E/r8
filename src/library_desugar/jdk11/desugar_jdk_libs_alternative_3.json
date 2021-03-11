@@ -2,7 +2,7 @@
   "configuration_format_version": 3,
   "group_id" : "com.tools.android",
   "artifact_id" : "desugar_jdk_libs_alternative_3",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "required_compilation_api_level": 26,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": false,
@@ -75,7 +75,9 @@
       "rewrite_prefix": {
         "j$.time.": "java.time.",
         "java.time.": "j$.time.",
-        "java.util.Desugar": "j$.util.Desugar"
+        "java.util.Desugar": "j$.util.Desugar",
+        "sun.misc.Desugar": "j$.sun.misc.Desugar",
+        "jdk.internal.util.Preconditions": "j$.jdk.internal.util.Preconditions"
       },
       "retarget_lib_member": {
         "java.util.Date#toInstant": "java.util.DesugarDate",
@@ -111,10 +113,14 @@
         "java.util.Spliterator": "j$.util.Spliterator",
         "java.util.StringJoiner": "j$.util.StringJoiner",
         "java.util.Tripwire": "j$.util.Tripwire",
-        "java.util.concurrent.DesugarUnsafe": "j$.util.concurrent.DesugarUnsafe",
+        "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers",
         "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
         "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic",
         "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap",
+        "java.util.AbstractList": "j$.util.AbstractList",
+        "java.util.CollSer": "j$.util.CollSer",
+        "java.util.ImmutableCollections": "j$.util.ImmutableCollections",
+        "java.util.KeyValueHolder": "j$.util.KeyValueHolder",
         "java.io.DesugarBufferedReader": "j$.io.DesugarBufferedReader",
         "java.io.UncheckedIOException": "j$.io.UncheckedIOException"
       },

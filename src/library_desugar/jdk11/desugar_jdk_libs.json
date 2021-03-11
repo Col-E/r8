@@ -1,11 +1,11 @@
 {
   "configuration_format_version": 3,
   "group_id" : "com.tools.android",
-  "artifact_id" : "desugar_jdk_libs_alternative_3",
-  "version": "1.2.1",
+  "artifact_id" : "desugar_jdk_libs",
+  "version": "2.0.0",
   "required_compilation_api_level": 26,
   "synthesized_library_classes_package_prefix": "j$.",
-  "support_all_callbacks_from_library": false,
+  "support_all_callbacks_from_library": true,
   "common_flags": [
     {
       "api_level_below_or_equal": 25,
@@ -75,7 +75,9 @@
       "rewrite_prefix": {
         "j$.time.": "java.time.",
         "java.time.": "j$.time.",
-        "java.util.Desugar": "j$.util.Desugar"
+        "java.util.Desugar": "j$.util.Desugar",
+        "sun.misc.Desugar": "j$.sun.misc.Desugar",
+        "jdk.internal.util.Preconditions": "j$.jdk.internal.util.Preconditions"
       },
       "retarget_lib_member": {
         "java.util.Date#toInstant": "java.util.DesugarDate",
@@ -111,23 +113,25 @@
         "java.util.Spliterator": "j$.util.Spliterator",
         "java.util.StringJoiner": "j$.util.StringJoiner",
         "java.util.Tripwire": "j$.util.Tripwire",
-        "java.util.concurrent.DesugarUnsafe": "j$.util.concurrent.DesugarUnsafe",
+        "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers",
         "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
         "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic",
         "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap",
-        "java.io.DesugarBufferedReader": "j$.io.DesugarBufferedReader",
-        "java.io.UncheckedIOException": "j$.io.UncheckedIOException"
+        "java.util.AbstractList": "j$.util.AbstractList",
+        "java.util.CollSer": "j$.util.CollSer",
+        "java.util.ImmutableCollections": "j$.util.ImmutableCollections",
+        "java.util.KeyValueHolder": "j$.util.KeyValueHolder"
       },
       "retarget_lib_member": {
         "java.util.Arrays#stream": "java.util.DesugarArrays",
         "java.util.Arrays#spliterator": "java.util.DesugarArrays",
-        "java.util.LinkedHashSet#spliterator": "java.util.DesugarLinkedHashSet",
-        "java.io.BufferedReader#lines": "java.io.DesugarBufferedReader"
+        "java.util.LinkedHashSet#spliterator": "java.util.DesugarLinkedHashSet"
       },
       "dont_rewrite": [
         "java.util.Iterator#remove"
       ],
       "emulate_interface": {
+        "java.lang.Iterable": "j$.lang.Iterable",
         "java.util.Map$Entry": "j$.util.Map$Entry",
         "java.util.Collection": "j$.util.Collection",
         "java.util.Map": "j$.util.Map",
@@ -182,15 +186,13 @@
         "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
         "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
         "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatistics",
-        "java.util.Objects": "j$.util.Objects",
         "java.util.Optional": "j$.util.Optional",
         "java.util.PrimitiveIterator": "j$.util.PrimitiveIterator",
         "java.util.Spliterator": "j$.util.Spliterator",
         "java.util.StringJoiner": "j$.util.StringJoiner",
         "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
         "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic",
-        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap",
-        "java.io.UncheckedIOException": "j$.io.UncheckedIOException"
+        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap"
       },
       "retarget_lib_member": {
         "java.util.Arrays#stream": "java.util.DesugarArrays",
@@ -209,13 +211,13 @@
         "java.util.concurrent.atomic.AtomicReference#getAndAccumulate": "java.util.concurrent.atomic.DesugarAtomicReference",
         "java.util.concurrent.atomic.AtomicReference#accumulateAndGet": "java.util.concurrent.atomic.DesugarAtomicReference",
         "java.util.Collections#synchronizedMap": "java.util.DesugarCollections",
-        "java.util.Collections#synchronizedSortedMap": "java.util.DesugarCollections",
-        "java.io.BufferedReader#lines": "java.io.DesugarBufferedReader"
+        "java.util.Collections#synchronizedSortedMap": "java.util.DesugarCollections"
       },
       "dont_rewrite": [
         "java.util.Iterator#remove"
       ],
       "emulate_interface": {
+        "java.lang.Iterable": "j$.lang.Iterable",
         "java.util.Map$Entry": "j$.util.Map$Entry",
         "java.util.Collection": "j$.util.Collection",
         "java.util.Map": "j$.util.Map",
@@ -240,9 +242,10 @@
   "shrinker_config": [
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$TreeBin { int lockState; }",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { int sizeCtl; int transferIndex; long baseCount; int cellsBusy; }",
+    "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { private void readObject(java.io.ObjectInputStream); private void writeObject(java.io.ObjectOutputStream); private void readObjectNoData(); private static final java.io.ObjectStreamField[] serialPersistentFields; private static final long serialVersionUID;}",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$CounterCell { long value; }",
     "-keepclassmembers enum * { public static **[] values(); public static ** valueOf(java.lang.String); public static final !synthetic <fields>; }",
-    "-keeppackagenames j$",
+    "-keeppackagenames j$.**",
     "-keepclassmembers class j$.util.IntSummaryStatistics { long count; long sum; int min; int max; }",
     "-keepclassmembers class j$.util.LongSummaryStatistics { long count; long sum; long min; long max; }",
     "-keepclassmembers class j$.util.DoubleSummaryStatistics { long count; double sum; double min; double max; }",
