@@ -7,7 +7,6 @@ package com.android.tools.r8.utils;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class FunctionUtils {
 
@@ -28,9 +27,5 @@ public class FunctionUtils {
     for (T t : list) {
       func.apply(t).accept(argument);
     }
-  }
-
-  public static <T, R> Function<T, R> ignoreArgument(Supplier<R> supplier) {
-    return ignore -> supplier.get();
   }
 }
