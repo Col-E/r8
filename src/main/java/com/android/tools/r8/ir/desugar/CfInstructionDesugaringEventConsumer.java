@@ -64,6 +64,11 @@ public abstract class CfInstructionDesugaringEventConsumer
       }
 
       @Override
+      public void acceptRecordMethod(ProgramMethod method) {
+        assert false;
+      }
+
+      @Override
       public void acceptBackportedMethod(ProgramMethod backportedMethod, ProgramMethod context) {
         assert false;
       }
@@ -116,6 +121,11 @@ public abstract class CfInstructionDesugaringEventConsumer
     @Override
     public void acceptBackportedMethod(ProgramMethod backportedMethod, ProgramMethod context) {
       methodProcessor.scheduleMethodForProcessing(backportedMethod, this);
+    }
+
+    @Override
+    public void acceptRecordMethod(ProgramMethod method) {
+      methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
 
     @Override
@@ -238,6 +248,11 @@ public abstract class CfInstructionDesugaringEventConsumer
     @Override
     public void acceptRecordClass(DexProgramClass recordClass) {
       // This is called each time an instruction or a class is found to require the record class.
+      assert false : "TODO(b/179146128): To be implemented";
+    }
+
+    @Override
+    public void acceptRecordMethod(ProgramMethod method) {
       assert false : "TODO(b/179146128): To be implemented";
     }
 

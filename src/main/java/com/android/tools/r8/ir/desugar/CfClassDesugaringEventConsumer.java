@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
 
 public abstract class CfClassDesugaringEventConsumer implements RecordDesugaringEventConsumer {
@@ -24,6 +25,11 @@ public abstract class CfClassDesugaringEventConsumer implements RecordDesugaring
     @Override
     public void acceptRecordClass(DexProgramClass recordClass) {
       methodProcessor.scheduleDesugaredMethodsForProcessing(recordClass.programMethods());
+    }
+
+    @Override
+    public void acceptRecordMethod(ProgramMethod method) {
+      assert false;
     }
   }
 

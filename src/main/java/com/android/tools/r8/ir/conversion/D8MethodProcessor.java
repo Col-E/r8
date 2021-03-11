@@ -95,6 +95,9 @@ public class D8MethodProcessor extends MethodProcessor {
       // The non-synthetic holder is not scheduled. It will be processed once holder is scheduled.
       return;
     }
+    if (method.getDefinition().isAbstract()) {
+      return;
+    }
     terminalFutures.add(
         ThreadUtils.processAsynchronously(
             () ->

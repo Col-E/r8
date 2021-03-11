@@ -31,6 +31,7 @@ public class SyntheticNaming {
     HORIZONTAL_INIT_TYPE_ARGUMENT_2(SYNTHETIC_CLASS_SEPARATOR + "IA$2", false, true),
     HORIZONTAL_INIT_TYPE_ARGUMENT_3(SYNTHETIC_CLASS_SEPARATOR + "IA$3", false, true),
     // Method synthetics.
+    RECORD_HELPER("Record", true),
     BACKPORT("Backport", true),
     STATIC_INTERFACE_CALL("StaticInterfaceCall", true),
     TO_STRING_IF_NOT_NULL("ToStringIfNotNull", true),

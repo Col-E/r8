@@ -5,8 +5,11 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramMethod;
 
 public interface RecordDesugaringEventConsumer {
 
   void acceptRecordClass(DexProgramClass recordClass);
+
+  void acceptRecordMethod(ProgramMethod method);
 }

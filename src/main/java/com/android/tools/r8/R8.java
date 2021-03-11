@@ -46,6 +46,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
+import com.android.tools.r8.ir.desugar.RecordRewriter;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.NestReducer;
@@ -308,6 +309,9 @@ public class R8 {
       BackportedMethodRewriter.registerAssumedLibraryTypes(options);
       if (options.enableEnumUnboxing) {
         EnumUnboxingCfMethods.registerSynthesizedCodeReferences(appView.dexItemFactory());
+      }
+      if (options.shouldDesugarRecords()) {
+        RecordRewriter.registerSynthesizedCodeReferences(appView.dexItemFactory());
       }
       CfUtilityMethodsForCodeOptimizations.registerSynthesizedCodeReferences(
           appView.dexItemFactory());

@@ -13,6 +13,7 @@ import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -48,20 +49,37 @@ public class RecordInvokeCustomTest extends TestBase {
   public static List<Object[]> data() {
     // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk15).
     return buildParameters(
-        getTestParameters().withCustomRuntime(CfRuntime.getCheckedInJdk15()).build());
+        getTestParameters()
+            .withCustomRuntime(CfRuntime.getCheckedInJdk15())
+            .withDexRuntimes()
+            .withAllApiLevels()
+            .build());
   }
 
   @Test
-  public void testJvm() throws Exception {
-    testForJvm()
+  public void testD8AndJvm() throws Exception {
+    if (parameters.isCfRuntime()) {
+      testForJvm()
+          .addProgramClassFileData(PROGRAM_DATA)
+          .enablePreview()
+          .run(parameters.getRuntime(), MAIN_TYPE)
+          .assertSuccessWithOutput(EXPECTED_RESULT);
+      // TODO(b/179146128): Add a test for D8 cf to cf.
+      return;
+    }
+    testForD8()
         .addProgramClassFileData(PROGRAM_DATA)
-        .enablePreview()
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+        .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
+        .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   @Test
   public void testR8Cf() throws Exception {
+    Assume.assumeTrue(parameters.isCfRuntime());
     Path output =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)

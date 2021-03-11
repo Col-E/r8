@@ -631,6 +631,10 @@ public class DexItemFactory {
   public final DexType callSiteType = createStaticallyKnownType("Ljava/lang/invoke/CallSite;");
   public final DexType lookupType =
       createStaticallyKnownType("Ljava/lang/invoke/MethodHandles$Lookup;");
+  public final DexType objectMethodsType =
+      createStaticallyKnownType("Ljava/lang/runtime/ObjectMethods;");
+  public final DexType typeDescriptorType =
+      createStaticallyKnownType("Ljava/lang/invoke/TypeDescriptor;");
   public final DexType iteratorType = createStaticallyKnownType("Ljava/util/Iterator;");
   public final DexType listIteratorType = createStaticallyKnownType("Ljava/util/ListIterator;");
   public final DexType enumerationType = createStaticallyKnownType("Ljava/util/Enumeration;");
@@ -642,6 +646,7 @@ public class DexItemFactory {
       createStaticallyKnownType("Ljava/lang/invoke/StringConcatFactory;");
   public final DexType unsafeType = createStaticallyKnownType("Lsun/misc/Unsafe;");
 
+  public final ObjectMethodsMembers objectMethodsMembers = new ObjectMethodsMembers();
   public final ServiceLoaderMethods serviceLoaderMethods = new ServiceLoaderMethods();
   public final StringConcatFactoryMembers stringConcatFactoryMembers =
       new StringConcatFactoryMembers();
@@ -1213,6 +1218,21 @@ public class DexItemFactory {
         createMethod(recordType, createProto(booleanType, objectType), "equals");
     public final DexMethod hashCode = createMethod(recordType, createProto(intType), "hashCode");
     public final DexMethod toString = createMethod(recordType, createProto(stringType), "toString");
+  }
+
+  public class ObjectMethodsMembers {
+    public final DexMethod bootstrap =
+        createMethod(
+            objectMethodsType,
+            createProto(
+                objectType,
+                lookupType,
+                stringType,
+                typeDescriptorType,
+                classType,
+                stringType,
+                createArrayType(1, methodHandleType)),
+            "bootstrap");
   }
 
   public class ObjectMembers {
