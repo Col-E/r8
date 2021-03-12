@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.maindexlist;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -15,6 +16,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.errors.UnsupportedMainDexListUsageDiagnostic;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -59,6 +61,7 @@ public class MainDexListFromGenerateMainDexInliningSpuriousRootTest extends Test
     this.parameters = parameters;
   }
 
+  // TODO(b/181858113): This test is likely obsolete once main-dex-list support is removed.
   @Test
   public void test() throws Exception {
     // The generated main dex list should contain Main (which is a root) and A (which is a direct
@@ -82,7 +85,13 @@ public class MainDexListFromGenerateMainDexInliningSpuriousRootTest extends Test
             .enableNoHorizontalClassMergingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .noMinification()
-            .compile();
+            .allowDiagnosticMessages()
+            .compileWithExpectedDiagnostics(
+                diagnostics ->
+                    diagnostics
+                        .assertOnlyWarnings()
+                        .assertWarningsMatch(
+                            diagnosticType(UnsupportedMainDexListUsageDiagnostic.class)));
     CodeInspector inspector = compileResult.inspector();
     ClassSubject mainClassSubject = inspector.clazz(Main.class);
     assertThat(mainClassSubject, isPresent());

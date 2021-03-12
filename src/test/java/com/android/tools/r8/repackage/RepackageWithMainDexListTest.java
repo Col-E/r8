@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.repackage;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -13,6 +14,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.errors.UnsupportedMainDexListUsageDiagnostic;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -22,6 +24,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+// TODO(b/181858113): This test is likely obsolete once main-dex-list support is removed.
 @RunWith(Parameterized.class)
 public class RepackageWithMainDexListTest extends RepackageTestBase {
 
@@ -54,7 +57,13 @@ public class RepackageWithMainDexListTest extends RepackageTestBase {
         // Debug mode to enable minimal main dex.
         .debug()
         .setMinApi(parameters.getApiLevel())
-        .compile()
+        .allowDiagnosticMessages()
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics
+                    .assertOnlyWarnings()
+                    .assertWarningsMatch(
+                        diagnosticType(UnsupportedMainDexListUsageDiagnostic.class)))
         .apply(this::checkCompileResult)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");

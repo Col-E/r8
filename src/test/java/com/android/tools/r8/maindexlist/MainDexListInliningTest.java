@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.maindexlist;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
@@ -14,6 +15,7 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.errors.UnsupportedMainDexListUsageDiagnostic;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
@@ -37,6 +39,7 @@ public class MainDexListInliningTest extends TestBase {
     this.parameters = parameters;
   }
 
+  // TODO(b/181858113): This test should be converted to a main-dex-rules test.
   @Test
   public void test() throws Exception {
     R8TestCompileResult compileResult =
@@ -47,7 +50,13 @@ public class MainDexListInliningTest extends TestBase {
             .collectMainDexClasses()
             .enableNoHorizontalClassMergingAnnotations()
             .setMinApi(parameters.getApiLevel())
-            .compile();
+            .allowDiagnosticMessages()
+            .compileWithExpectedDiagnostics(
+                diagnostics ->
+                    diagnostics
+                        .assertOnlyWarnings()
+                        .assertWarningsMatch(
+                            diagnosticType(UnsupportedMainDexListUsageDiagnostic.class)));
 
     CodeInspector inspector = compileResult.inspector();
 

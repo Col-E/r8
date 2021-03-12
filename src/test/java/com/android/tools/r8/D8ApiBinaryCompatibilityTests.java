@@ -95,7 +95,17 @@ public class D8ApiBinaryCompatibilityTests extends TestBase {
     ProcessBuilder builder = new ProcessBuilder(command);
     ProcessResult result = ToolHelper.runProcess(builder);
     assertEquals(result.stderr + "\n" + result.stdout, 0, result.exitCode);
-    Assert.assertTrue(result.stdout, result.stdout.isEmpty());
-    Assert.assertTrue(result.stderr, result.stderr.isEmpty());
+    Assert.assertEquals("", filterOutMainDexListWarnings(result.stdout));
+    Assert.assertEquals("", result.stderr);
+  }
+
+  public static String filterOutMainDexListWarnings(String output) {
+    StringBuilder builder = new StringBuilder();
+    for (String line : output.split("\n")) {
+      if (!line.contains("Unsupported usage of main-dex list")) {
+        builder.append(line).append("\n");
+      }
+    }
+    return builder.toString();
   }
 }

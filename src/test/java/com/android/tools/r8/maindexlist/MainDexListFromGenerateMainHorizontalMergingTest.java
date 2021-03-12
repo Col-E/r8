@@ -65,6 +65,7 @@ public class MainDexListFromGenerateMainHorizontalMergingTest extends TestBase {
     this.parameters = parameters;
   }
 
+  // TODO(b/181858113): This test is likely obsolete once main-dex-list support is removed.
   @Test
   public void testMainDexList() throws Exception {
     assertEquals(3, mainDexList.size());
@@ -73,7 +74,9 @@ public class MainDexListFromGenerateMainHorizontalMergingTest extends TestBase {
     assertTrue(mainDexReferences.contains(A.class.getTypeName()));
     assertTrue(mainDexReferences.contains(B.class.getTypeName()));
     assertTrue(mainDexReferences.contains(Main.class.getTypeName()));
-    runTest(builder -> builder.addMainDexListClassReferences(mainDexList));
+    runTest(
+        builder ->
+            builder.addMainDexListClassReferences(mainDexList).allowDiagnosticWarningMessages());
   }
 
   @Test

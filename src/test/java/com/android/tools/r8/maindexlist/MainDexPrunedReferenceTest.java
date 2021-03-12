@@ -48,11 +48,12 @@ public class MainDexPrunedReferenceTest extends TestBase {
     testMainDex(builder -> {}, Assert::assertNull);
   }
 
+  // TODO(b/181858113): This test is likely obsolete once main-dex-list support is removed.
   @Test
   public void testMainDexClassesList() throws Exception {
     assumeTrue(parameters.getDexRuntimeVersion().isDalvik());
     testMainDex(
-        builder -> builder.addMainDexListClasses(Main.class),
+        builder -> builder.addMainDexListClasses(Main.class).allowDiagnosticWarningMessages(),
         mainDexClasses -> assertEquals(ImmutableSet.of(Main.class.getTypeName()), mainDexClasses));
   }
 

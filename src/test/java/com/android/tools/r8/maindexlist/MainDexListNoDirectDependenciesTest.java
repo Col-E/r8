@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.maindexlist;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -11,6 +12,7 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.errors.UnsupportedMainDexListUsageDiagnostic;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
@@ -34,17 +36,24 @@ public class MainDexListNoDirectDependenciesTest extends TestBase {
     this.parameters = parameters;
   }
 
+  // TODO(b/181858113): This test is likely obsolete once main-dex-list support is removed.
   @Test
   public void test() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addInnerClasses(getClass())
             .addMainDexListClasses(A.class)
-            .addMainDexClassRules(B.class)
+            .addMainDexKeepClassRules(B.class)
             .collectMainDexClasses()
             .noTreeShaking()
             .setMinApi(parameters.getApiLevel())
-            .compile();
+            .allowDiagnosticMessages()
+            .compileWithExpectedDiagnostics(
+                diagnostics ->
+                    diagnostics
+                        .assertOnlyWarnings()
+                        .assertWarningsMatch(
+                            diagnosticType(UnsupportedMainDexListUsageDiagnostic.class)));
 
     CodeInspector inspector = compileResult.inspector();
 

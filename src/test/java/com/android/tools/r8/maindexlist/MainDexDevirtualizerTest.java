@@ -79,13 +79,16 @@ public class MainDexDevirtualizerTest extends TestBase {
         });
   }
 
+  // TODO(b/181858113): This test is likely obsolete once main-dex-list support is removed.
   @Test
   public void testMainDexClasses() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     assumeTrue(parameters.getDexRuntimeVersion().isDalvik());
     runTest(
         r8FullTestBuilder ->
-            r8FullTestBuilder.addMainDexListClasses(I.class, Provider.class, Main.class),
+            r8FullTestBuilder
+                .addMainDexListClasses(I.class, Provider.class, Main.class)
+                .allowDiagnosticWarningMessages(),
         this::inspect);
   }
 
@@ -94,7 +97,7 @@ public class MainDexDevirtualizerTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     assumeTrue(parameters.getDexRuntimeVersion().isDalvik());
     runTest(
-        r8FullTestBuilder -> r8FullTestBuilder.addMainDexClassRules(Main.class, I.class),
+        r8FullTestBuilder -> r8FullTestBuilder.addMainDexKeepClassRules(Main.class, I.class),
         this::inspect);
   }
 

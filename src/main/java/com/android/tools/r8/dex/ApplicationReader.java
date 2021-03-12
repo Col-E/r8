@@ -17,6 +17,7 @@ import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.UnsupportedMainDexListUsageDiagnostic;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -29,6 +30,7 @@ import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.JarClassFileReader;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -64,6 +66,9 @@ public class ApplicationReader {
   private final DexItemFactory itemFactory;
   private final Timing timing;
   private final AndroidApp inputApp;
+
+  private boolean hasReadProgramResourcesFromCf = false;
+  private boolean hasReadProgramResourcesFromDex = false;
 
   public interface ProgramClassConflictResolver {
     DexProgramClass resolveClassConflict(DexProgramClass a, DexProgramClass b);
@@ -151,7 +156,9 @@ public class ApplicationReader {
       // TODO: try and preload less classes.
       readProguardMap(proguardMap, builder, executorService, futures);
       ClassReader classReader = new ClassReader(executorService, futures);
-      JarClassFileReader<DexProgramClass> jcf = classReader.readSources();
+      classReader.readSources();
+      hasReadProgramResourcesFromCf = classReader.hasReadProgramResourceFromCf;
+      hasReadProgramResourcesFromDex = classReader.hasReadProgramResourceFromDex;
       ThreadUtils.awaitFutures(futures);
       classReader.initializeLazyClassCollection(builder);
       for (ProgramResourceProvider provider : inputApp.getProgramResourceProviders()) {
@@ -199,17 +206,35 @@ public class ApplicationReader {
   }
 
   public MainDexInfo readMainDexClasses(DexApplication app) {
+    return readMainDexClasses(app, hasReadProgramResourcesFromCf);
+  }
+
+  public MainDexInfo readMainDexClassesForR8(DexApplication app) {
+    // Officially R8 only support reading CF program inputs, thus we always generate a deprecated
+    // diagnostic if main-dex list is used.
+    return readMainDexClasses(app, true);
+  }
+
+  private MainDexInfo readMainDexClasses(DexApplication app, boolean emitDeprecatedDiagnostics) {
     MainDexInfo.Builder builder = MainDexInfo.none().builder();
     if (inputApp.hasMainDexList()) {
       for (StringResource resource : inputApp.getMainDexListResources()) {
+        if (emitDeprecatedDiagnostics) {
+          options.reporter.warning(new UnsupportedMainDexListUsageDiagnostic(resource.getOrigin()));
+        }
         addToMainDexClasses(app, builder, MainDexListParser.parseList(resource, itemFactory));
       }
-      addToMainDexClasses(
-          app,
-          builder,
-          inputApp.getMainDexClasses().stream()
-              .map(clazz -> itemFactory.createType(DescriptorUtils.javaTypeToDescriptor(clazz)))
-              .collect(Collectors.toList()));
+      if (!inputApp.getMainDexClasses().isEmpty()) {
+        if (emitDeprecatedDiagnostics) {
+          options.reporter.warning(new UnsupportedMainDexListUsageDiagnostic(Origin.unknown()));
+        }
+        addToMainDexClasses(
+            app,
+            builder,
+            inputApp.getMainDexClasses().stream()
+                .map(clazz -> itemFactory.createType(DescriptorUtils.javaTypeToDescriptor(clazz)))
+                .collect(Collectors.toList()));
+      }
     }
     return builder.buildList();
   }
@@ -291,6 +316,13 @@ public class ApplicationReader {
     // Jar application reader to share across all class readers.
     private final JarApplicationReader application = new JarApplicationReader(options);
 
+    // Flag of which input resource types have flowen into the program classes.
+    // Note that this is just at the level of the resources having been given.
+    // It is possible to have, e.g., an empty dex file, so no classes, but this will still be true
+    // as there was a dex resource.
+    private boolean hasReadProgramResourceFromCf = false;
+    private boolean hasReadProgramResourceFromDex = false;
+
     ClassReader(ExecutorService executorService, List<Future<?>> futures) {
       this.executorService = executorService;
       this.futures = futures;
@@ -298,36 +330,42 @@ public class ApplicationReader {
 
     private void readDexSources(List<ProgramResource> dexSources, Queue<DexProgramClass> classes)
         throws IOException, ResourceException {
-      if (dexSources.size() > 0) {
-        List<DexParser<DexProgramClass>> dexParsers = new ArrayList<>(dexSources.size());
-        int computedMinApiLevel = options.minApiLevel;
-        for (ProgramResource input : dexSources) {
-          DexReader dexReader = new DexReader(input);
-          if (options.passthroughDexCode) {
-            computedMinApiLevel = validateOrComputeMinApiLevel(computedMinApiLevel, dexReader);
-          }
-          dexParsers.add(new DexParser<>(dexReader, PROGRAM, options));
+      if (dexSources.isEmpty()) {
+        return;
+      }
+      hasReadProgramResourceFromDex = true;
+      List<DexParser<DexProgramClass>> dexParsers = new ArrayList<>(dexSources.size());
+      int computedMinApiLevel = options.minApiLevel;
+      for (ProgramResource input : dexSources) {
+        DexReader dexReader = new DexReader(input);
+        if (options.passthroughDexCode) {
+          computedMinApiLevel = validateOrComputeMinApiLevel(computedMinApiLevel, dexReader);
         }
+        dexParsers.add(new DexParser<>(dexReader, PROGRAM, options));
+      }
 
-        options.minApiLevel = computedMinApiLevel;
+      options.minApiLevel = computedMinApiLevel;
+      for (DexParser<DexProgramClass> dexParser : dexParsers) {
+        dexParser.populateIndexTables();
+      }
+      // Read the DexCode items and DexProgramClass items in parallel.
+      if (!options.skipReadingDexCode) {
         for (DexParser<DexProgramClass> dexParser : dexParsers) {
-          dexParser.populateIndexTables();
-        }
-        // Read the DexCode items and DexProgramClass items in parallel.
-        if (!options.skipReadingDexCode) {
-          for (DexParser<DexProgramClass> dexParser : dexParsers) {
-            futures.add(
-                executorService.submit(
-                    () -> {
-                      dexParser.addClassDefsTo(classes::add); // Depends on Methods, Code items etc.
-                    }));
-          }
+          futures.add(
+              executorService.submit(
+                  () -> {
+                    dexParser.addClassDefsTo(classes::add); // Depends on Methods, Code items etc.
+                  }));
         }
       }
     }
 
-    private JarClassFileReader<DexProgramClass> readClassSources(
+    private void readClassSources(
         List<ProgramResource> classSources, Queue<DexProgramClass> classes) {
+      if (classSources.isEmpty()) {
+        return;
+      }
+      hasReadProgramResourceFromCf = true;
       JarClassFileReader<DexProgramClass> reader =
           new JarClassFileReader<>(application, classes::add, PROGRAM);
       // Read classes in parallel.
@@ -341,10 +379,9 @@ public class ApplicationReader {
                   return null;
                 }));
       }
-      return reader;
     }
 
-    JarClassFileReader<DexProgramClass> readSources() throws IOException, ResourceException {
+    void readSources() throws IOException, ResourceException {
       Collection<ProgramResource> resources = inputApp.computeAllProgramResources();
       List<ProgramResource> dexResources = new ArrayList<>(resources.size());
       List<ProgramResource> cfResources = new ArrayList<>(resources.size());
@@ -357,7 +394,7 @@ public class ApplicationReader {
         }
       }
       readDexSources(dexResources, programClasses);
-      return readClassSources(cfResources, programClasses);
+      readClassSources(cfResources, programClasses);
     }
 
     private <T extends DexClass> ClassProvider<T> buildClassProvider(

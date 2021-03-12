@@ -56,7 +56,7 @@ public class MainDexWarningsTest extends TestBase {
         .addProgramClasses(testClasses)
         .addKeepMainRule(mainClass)
         // Include main dex rule for class Static.
-        .addMainDexClassRules(Main.class, Static.class)
+        .addMainDexKeepClassRules(Main.class, Static.class)
         .enableForceInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -93,7 +93,7 @@ public class MainDexWarningsTest extends TestBase {
         // Include explicit main dex entry for class Static.
         .addMainDexListClasses(Main.class, Static.class)
         // Include main dex rule for class Static2.
-        .addMainDexClassRules(Static2.class)
+        .addMainDexKeepClassRules(Static2.class)
         .addDontWarn(Static.class)
         .allowDiagnosticWarningMessages()
         .enableForceInliningAnnotations()

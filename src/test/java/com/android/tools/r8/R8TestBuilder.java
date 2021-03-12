@@ -229,7 +229,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return addMainDexRuleFiles(Arrays.asList(files));
   }
 
-  public T addMainDexClassRules(Class<?>... classes) {
+  public T addMainDexKeepClassRules(Class<?>... classes) {
     for (Class<?> clazz : classes) {
       addMainDexRules("-keep class " + clazz.getTypeName());
     }

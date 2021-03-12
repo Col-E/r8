@@ -89,4 +89,9 @@ public class GenerateMainDexListTestBuilder
   public GenerateMainDexListTestBuilder addDataEntryResources(DataEntryResource... resources) {
     return addDataResources(Arrays.asList(resources));
   }
+
+  public GenerateMainDexListTestBuilder setMainDexListOutputPath(Path output) {
+    builder.setMainDexListOutputPath(output);
+    return self();
+  }
 }

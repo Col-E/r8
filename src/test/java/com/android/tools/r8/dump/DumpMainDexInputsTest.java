@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dump;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -12,7 +13,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -89,19 +89,32 @@ public class DumpMainDexInputsTest extends TestBase {
         "pre-native-multidex only",
         parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.K));
     Path dumpDir = temp.newFolder().toPath();
+    // Pre-compile to DEX and do main-dex list on DEX inputs only.
+    Path dexed =
+        testForD8()
+            .addInnerClasses(DumpMainDexInputsTest.class)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+
     testForD8()
+        .addProgramFiles(dexed)
         .setMinApi(parameters.getApiLevel())
-        .addInnerClasses(DumpMainDexInputsTest.class)
         .addMainDexListFiles(
             mainDexListForMainDexFile1AndMainDexFile2(), mainDexListForMainDexFile3())
         .addMainDexListClasses(MainDexClass1.class, MainDexClass2.class, TestClass.class)
-        .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
         .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
-        .compile()
-        .assertAllInfoMessagesMatch(containsString("Dumped compilation inputs to:"))
-        .assertAllWarningMessagesMatch(
-            containsString(
-                "Dumping main dex list resources may have side effects due to I/O on Paths."))
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics
+                    .assertNoErrors()
+                    .assertInfosMatch(
+                        diagnosticMessage(containsString("Dumped compilation inputs to:")))
+                    .assertWarningsMatch(
+                        diagnosticMessage(
+                            containsString(
+                                "Dumping main dex list resources may have side effects due to I/O"
+                                    + " on Paths."))))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello, world");
     verifyDumpDir(dumpDir, true);
@@ -117,7 +130,7 @@ public class DumpMainDexInputsTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addInnerClasses(DumpMainDexInputsTest.class)
         .addMainDexRulesFiles(newMainDexRulesPath1(), newMainDexRulesPath2())
-        .addMainDexListClasses(MainDexClass1.class, MainDexClass2.class, TestClass.class)
+        .addMainDexKeepClassRules(MainDexClass1.class, MainDexClass2.class, TestClass.class)
         .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
         .compile()
         .assertAllInfoMessagesMatch(containsString("Dumped compilation inputs to:"))
@@ -136,7 +149,7 @@ public class DumpMainDexInputsTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addInnerClasses(DumpMainDexInputsTest.class)
         .addMainDexRuleFiles(newMainDexRulesPath1(), newMainDexRulesPath2())
-        .addMainDexListClasses(MainDexClass1.class, MainDexClass2.class, TestClass.class)
+        .addMainDexKeepClassRules(MainDexClass1.class, MainDexClass2.class, TestClass.class)
         .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
         .addKeepAllClassesRule()
         .allowDiagnosticMessages()
@@ -168,9 +181,10 @@ public class DumpMainDexInputsTest extends TestBase {
     assertTrue(Files.exists(unzipped.resolve("r8-version")));
     assertTrue(Files.exists(unzipped.resolve("program.jar")));
     assertTrue(Files.exists(unzipped.resolve("library.jar")));
-    assertTrue(Files.exists(unzipped.resolve("main-dex-list.txt")));
     if (checkMainDexList) {
-      String mainDex = new String(Files.readAllBytes(unzipped.resolve("main-dex-list.txt")));
+      Path mainDexListFile = unzipped.resolve("main-dex-list.txt");
+      assertTrue(Files.exists(mainDexListFile));
+      String mainDex = new String(Files.readAllBytes(mainDexListFile));
       List<String> mainDexLines =
           Arrays.stream(mainDex.split("\n")).filter(s -> !s.isEmpty()).collect(toList());
       assertEquals(6, mainDexLines.size());
@@ -186,7 +200,9 @@ public class DumpMainDexInputsTest extends TestBase {
               .collect(toList());
       assertEquals(expected, mainDexLines);
     } else {
-      String mainDexRules = new String(Files.readAllBytes(unzipped.resolve("main-dex-rules.txt")));
+      Path mainDexRulesFile = unzipped.resolve("main-dex-rules.txt");
+      assertTrue(Files.exists(mainDexRulesFile));
+      String mainDexRules = new String(Files.readAllBytes(mainDexRulesFile));
       assertThat(mainDexRules, containsString(mainDexRulesForMainDexFile1AndMainDexFile2));
       assertThat(mainDexRules, containsString(mainDexRulesForMainDexFile3));
     }

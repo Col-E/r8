@@ -4,7 +4,6 @@
 package com.android.tools.r8;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -82,7 +81,7 @@ public class R8ApiBinaryCompatibilityTests extends TestBase {
     ProcessBuilder builder = new ProcessBuilder(command);
     ProcessResult result = ToolHelper.runProcess(builder);
     assertEquals(result.stderr + "\n" + result.stdout, 0, result.exitCode);
-    assertTrue(result.stdout, result.stdout.isEmpty());
-    assertTrue(result.stderr, result.stderr.isEmpty());
+    assertEquals("", D8ApiBinaryCompatibilityTests.filterOutMainDexListWarnings(result.stdout));
+    assertEquals("", result.stderr);
   }
 }

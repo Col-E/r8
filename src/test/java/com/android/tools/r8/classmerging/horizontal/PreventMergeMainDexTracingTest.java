@@ -40,7 +40,7 @@ public class PreventMergeMainDexTracingTest extends HorizontalClassMergingTestBa
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(Other.class)
-        .addMainDexClassRules(Main.class)
+        .addMainDexKeepClassRules(Main.class)
         .addOptionsModification(options -> options.minimalMainDex = true)
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()

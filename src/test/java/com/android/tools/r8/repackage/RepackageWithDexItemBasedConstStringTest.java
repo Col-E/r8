@@ -46,7 +46,7 @@ public class RepackageWithDexItemBasedConstStringTest extends RepackageTestBase 
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
-        .addMainDexClassRules(TestClass.class)
+        .addMainDexKeepClassRules(TestClass.class)
         .apply(this::configureRepackaging)
         .setMinApi(parameters.getApiLevel())
         .compile()
