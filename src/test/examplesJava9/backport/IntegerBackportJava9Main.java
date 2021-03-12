@@ -67,7 +67,7 @@ public final class IntegerBackportJava9Main {
     }
 
     try {
-      throw new AssertionError(Integer.parseInt("+a", 0, 1, 10));
+      throw new AssertionError(Integer.parseInt("+a", 0, 2, 10));
     } catch (NumberFormatException expected) {
     }
 

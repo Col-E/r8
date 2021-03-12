@@ -12,7 +12,6 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -92,13 +91,6 @@ abstract class AbstractBackportTest extends TestBase {
 
   @Test
   public void desugaring() throws Exception {
-    if (getClass() == LongBackportJava9Test.class
-        && parameters.isDexRuntime()
-        && parameters.getDexRuntimeVersion() == Version.V6_0_1
-        && parameters.getApiLevel() == AndroidApiLevel.M) {
-      // TODO(b/182249451): Remove this!
-      return;
-    }
     if (parameters.isCfRuntime()) {
       testForJvm()
           .apply(this::configureProgram)

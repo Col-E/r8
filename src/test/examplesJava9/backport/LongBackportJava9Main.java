@@ -70,7 +70,7 @@ public final class LongBackportJava9Main {
     }
 
     try {
-      throw new AssertionError(Long.parseLong("+a", 0, 1, 10));
+      throw new AssertionError(Long.parseLong("+a", 0, 2, 10));
     } catch (NumberFormatException expected) {
     }
 
@@ -128,7 +128,7 @@ public final class LongBackportJava9Main {
     }
 
     try {
-      throw new AssertionError(Long.parseUnsignedLong("+a", 0, 1, 10));
+      throw new AssertionError(Long.parseUnsignedLong("+a", 0, 2, 10));
     } catch (NumberFormatException expected) {
     }
 
