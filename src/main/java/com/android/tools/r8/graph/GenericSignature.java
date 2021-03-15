@@ -542,15 +542,6 @@ public class GenericSignature {
         visitor.visitSimpleClass(innerTypeSignature);
       }
     }
-
-    public boolean hasTypeVariableArguments() {
-      for (FieldTypeSignature typeArgument : typeArguments) {
-        if (typeArgument.isTypeVariableSignature()) {
-          return true;
-        }
-      }
-      return false;
-    }
   }
 
   public static class ArrayTypeSignature extends FieldTypeSignature {
