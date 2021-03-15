@@ -49,7 +49,7 @@ public class InnerClassesSimpleTest extends TestBase {
         .addKeepAllClassesRule()
         .allowDiagnosticInfoMessages(minify)
         .compile()
-        // TODO(b/182524171): This should not happen
+        // TODO(b/182524171): Prune inner class attributes if they are not kept.
         .assertAllInfoMessagesMatch(containsString("Malformed inner-class attribute"))
         .assertInfosCount(minify ? 4 : 0)
         .run(parameters.getRuntime(), Main.class)
