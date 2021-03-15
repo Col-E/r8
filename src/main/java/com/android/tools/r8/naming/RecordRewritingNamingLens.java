@@ -45,7 +45,7 @@ public class RecordRewritingNamingLens extends NonIdentityNamingLens {
 
   private DexString getRenaming(DexType type) {
     if (type == factory.recordType) {
-      return factory.r8RecordType.descriptor;
+      return factory.recordTagType.descriptor;
     }
     return null;
   }
@@ -77,7 +77,7 @@ public class RecordRewritingNamingLens extends NonIdentityNamingLens {
   @Override
   public DexString lookupDescriptorForJavaTypeName(String typeName) {
     if (typeName.equals(factory.recordType.toSourceString())) {
-      return factory.r8RecordType.descriptor;
+      return factory.recordTagType.descriptor;
     }
     return namingLens.lookupDescriptorForJavaTypeName(typeName);
   }

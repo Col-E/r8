@@ -64,6 +64,8 @@ public class DexItemFactory {
 
   public static final String throwableDescriptorString = "Ljava/lang/Throwable;";
   public static final String dalvikAnnotationSignatureString = "Ldalvik/annotation/Signature;";
+  public static final String recordTagDescriptorString = "Lcom/android/tools/r8/RecordTag;";
+  public static final String recordDescriptorString = "Ljava/lang/Record;";
 
   /** Set of types that may be synthesized during compilation. */
   private final Set<DexType> possibleCompilerSynthesizedTypes = Sets.newIdentityHashSet();
@@ -215,8 +217,8 @@ public class DexItemFactory {
   public final DexString stringDescriptor = createString("Ljava/lang/String;");
   public final DexString stringArrayDescriptor = createString("[Ljava/lang/String;");
   public final DexString objectDescriptor = createString("Ljava/lang/Object;");
-  public final DexString recordDescriptor = createString("Ljava/lang/Record;");
-  public final DexString r8RecordDescriptor = createString("Lcom/android/tools/r8/RecordTag;");
+  public final DexString recordDescriptor = createString(recordDescriptorString);
+  public final DexString recordTagDescriptor = createString(recordTagDescriptorString);
   public final DexString objectArrayDescriptor = createString("[Ljava/lang/Object;");
   public final DexString classDescriptor = createString("Ljava/lang/Class;");
   public final DexString classLoaderDescriptor = createString("Ljava/lang/ClassLoader;");
@@ -348,7 +350,7 @@ public class DexItemFactory {
   public final DexType stringArrayType = createStaticallyKnownType(stringArrayDescriptor);
   public final DexType objectType = createStaticallyKnownType(objectDescriptor);
   public final DexType recordType = createStaticallyKnownType(recordDescriptor);
-  public final DexType r8RecordType = createStaticallyKnownType(r8RecordDescriptor);
+  public final DexType recordTagType = createStaticallyKnownType(recordTagDescriptor);
   public final DexType objectArrayType = createStaticallyKnownType(objectArrayDescriptor);
   public final DexType classArrayType = createStaticallyKnownType(classArrayDescriptor);
   public final DexType enumType = createStaticallyKnownType(enumDescriptor);

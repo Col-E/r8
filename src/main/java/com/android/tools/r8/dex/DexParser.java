@@ -12,6 +12,7 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InstructionFactory;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.ApplicationReaderMap;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -79,6 +80,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -992,9 +994,12 @@ public class DexParser<T extends DexClass> {
   private void populateTypes() {
     DexSection dexSection = lookupSection(Constants.TYPE_TYPE_ID_ITEM);
     assert verifyOrderOfTypeIds(dexSection);
+    Map<DexType, DexType> typeMap = ApplicationReaderMap.getTypeMap(options);
     indexedItems.initializeTypes(dexSection.length);
     for (int i = 0; i < dexSection.length; i++) {
-      indexedItems.setType(i, typeAt(i));
+      DexType type = typeAt(i);
+      DexType actualType = typeMap.getOrDefault(type, type);
+      indexedItems.setType(i, actualType);
     }
   }
 

@@ -191,7 +191,7 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
             null,
             true);
     encodedMethod.setCode(
-        new RecordGetFieldsAsObjectsCfCodeProvider(appView, factory.r8RecordType, fields)
+        new RecordGetFieldsAsObjectsCfCodeProvider(appView, factory.recordTagType, fields)
             .generateCfCode(),
         appView);
     return new ProgramMethod(clazz, encodedMethod);
@@ -316,7 +316,6 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
 
   @Override
   public boolean needsDesugaring(DexProgramClass clazz) {
-    assert clazz.isRecord() || clazz.superType != factory.recordType;
     return clazz.isRecord();
   }
 
@@ -460,6 +459,17 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
 
   private DexProgramClass synthesizeR8Record() {
     DexItemFactory factory = appView.dexItemFactory();
+    DexClass r8RecordClass =
+        appView.appInfo().definitionForWithoutExistenceAssert(factory.recordTagType);
+    if (r8RecordClass != null && r8RecordClass.isProgramClass()) {
+      appView
+          .options()
+          .reporter
+          .error(
+              "D8/R8 is compiling a mix of desugared and non desugared input using"
+                  + " java.lang.Record, but the application reader did not import correctly "
+                  + factory.recordTagType.toString());
+    }
     DexClass recordClass =
         appView.appInfo().definitionForWithoutExistenceAssert(factory.recordType);
     if (recordClass != null && recordClass.isProgramClass()) {
@@ -520,7 +530,7 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
             null,
             true);
     init.setCode(
-        new CallObjectInitCfCodeProvider(appView, factory.r8RecordType).generateCfCode(), appView);
+        new CallObjectInitCfCodeProvider(appView, factory.recordTagType).generateCfCode(), appView);
     return init;
   }
 }

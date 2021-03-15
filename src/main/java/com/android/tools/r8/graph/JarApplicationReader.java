@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.objectweb.asm.Type;
 
@@ -23,9 +24,11 @@ public class JarApplicationReader {
   private final ConcurrentHashMap<String, Type> asmObjectTypeCache = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, Type> asmTypeCache = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, DexString> stringCache = new ConcurrentHashMap<>();
+  private final Map<String, String> typeDescriptorMap;
 
   public JarApplicationReader(InternalOptions options) {
     this.options = options;
+    typeDescriptorMap = ApplicationReaderMap.getDescriptorMap(options);
   }
 
   public Type getAsmObjectType(String name) {
@@ -55,7 +58,8 @@ public class JarApplicationReader {
 
   public DexType getTypeFromDescriptor(String desc) {
     assert isValidDescriptor(desc);
-    return options.itemFactory.createType(getString(desc));
+    String actualDesc = typeDescriptorMap.getOrDefault(desc, desc);
+    return options.itemFactory.createType(getString(actualDesc));
   }
 
   public DexTypeList getTypeListFromNames(String[] names) {

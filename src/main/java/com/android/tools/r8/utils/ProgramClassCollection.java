@@ -62,10 +62,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
     // All other conflicts are reported as a fatal error.
     return (DexProgramClass a, DexProgramClass b) -> {
       assert a.type == b.type;
-      if (a.originatesFromDexResource()
-          && b.originatesFromDexResource()
-          && a.accessFlags.isSynthetic()
-          && b.accessFlags.isSynthetic()) {
+      if (a.accessFlags.isSynthetic() && b.accessFlags.isSynthetic()) {
         return mergeClasses(reporter, a, b);
       }
       throw reportDuplicateTypes(reporter, a, b);
@@ -82,7 +79,8 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
 
   private static DexProgramClass mergeClasses(
       Reporter reporter, DexProgramClass a, DexProgramClass b) {
-    if (a.type.isLegacySynthesizedTypeAllowedDuplication()) {
+    if (a.type.isLegacySynthesizedTypeAllowedDuplication()
+        || a.type.isSynthesizedTypeAllowedDuplication()) {
       assert assertEqualClasses(a, b);
       return a;
     }
