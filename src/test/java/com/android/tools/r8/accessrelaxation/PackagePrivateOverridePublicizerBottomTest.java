@@ -64,8 +64,7 @@ public class PackagePrivateOverridePublicizerBottomTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .allowAccessModification()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/182185057): This is an error in the devirtualizer
-        .assertSuccessWithOutputLines(EXPECTED_ART_4)
+        .apply(this::assertSuccessOutput)
         .inspect(
             inspector -> {
               ClassSubject subViewModelSubject =

@@ -56,8 +56,7 @@ public class PackagePrivateOverrideDeVirtualizerTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/182185057): This should be EXPECTED.
-        .assertSuccessWithOutputLines(EXPECTED_DALVIK);
+        .apply(this::assertSuccessOutput);
   }
 
   private byte[] getSubViewModelInAnotherPackage() throws Exception {

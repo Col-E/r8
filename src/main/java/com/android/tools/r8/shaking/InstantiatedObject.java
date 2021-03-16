@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
+import java.util.function.Consumer;
 
 public abstract class InstantiatedObject {
 
@@ -14,6 +15,16 @@ public abstract class InstantiatedObject {
 
   public static InstantiatedObject of(LambdaDescriptor lambda) {
     return new InstantiatedLambda(lambda);
+  }
+
+  public void apply(
+      Consumer<DexProgramClass> classConsumer, Consumer<LambdaDescriptor> lambdaConsumer) {
+    if (isClass()) {
+      classConsumer.accept(asClass());
+    } else {
+      assert isLambda();
+      lambdaConsumer.accept(asLambda());
+    }
   }
 
   public boolean isClass() {

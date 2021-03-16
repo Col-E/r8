@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult.isOverriding;
+
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -376,7 +378,11 @@ public class Devirtualizer {
         || !newResolutionResult
             .getResolvedMethod()
             .getAccessFlags()
-            .isAtLeastAsVisibleAs(resolutionResult.getResolvedMethod().getAccessFlags())) {
+            .isAtLeastAsVisibleAs(resolutionResult.getResolvedMethod().getAccessFlags())
+        // isOverriding expects both arguments to be not private.
+        || (!newResolutionResult.getResolvedMethod().isPrivateMethod()
+            && !isOverriding(
+                resolutionResult.getResolvedMethod(), newResolutionResult.getResolvedMethod()))) {
       return target;
     }
 

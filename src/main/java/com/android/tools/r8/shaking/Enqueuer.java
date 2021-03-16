@@ -10,6 +10,8 @@ import static com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator.
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
+import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
+import static java.util.Collections.emptySet;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -114,7 +116,6 @@ import com.android.tools.r8.synthesis.SyntheticItems.SynthesizingContextOracle;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
-import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.SetUtils;
@@ -136,11 +137,9 @@ import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.lang.reflect.InvocationHandler;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -148,6 +147,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -351,9 +351,9 @@ public class Enqueuer {
   /** A set of methods that need code inspection for Java reflection in use. */
   private final ProgramMethodSet pendingReflectiveUses = ProgramMethodSet.createLinked();
 
-  /** Mapping of types to the methods reachable at that type. */
-  private final Map<DexProgramClass, Set<DexMethod>> reachableVirtualTargets =
-      new IdentityHashMap<>();
+  /** Mapping of types to the resolved methods for that type along with the context. */
+  private final Map<DexProgramClass, Map<ResolutionSearchKey, Set<DexProgramClass>>>
+      reachableVirtualTargets = new IdentityHashMap<>();
 
   /** Collection of keep requirements for the program. */
   private final MutableKeepInfoCollection keepInfo = new MutableKeepInfoCollection();
@@ -2342,16 +2342,14 @@ public class Enqueuer {
 
   private void transitionMethodsForInstantiatedLambda(LambdaDescriptor lambda) {
     transitionMethodsForInstantiatedObject(
-        InstantiatedObject.of(lambda),
-        appInfo().definitionFor(appInfo.dexItemFactory().objectType),
-        lambda.interfaces);
+        InstantiatedObject.of(lambda), appInfo.dexItemFactory().objectType, lambda.interfaces);
   }
 
   private void transitionMethodsForInstantiatedClass(DexProgramClass clazz) {
     assert !clazz.isAnnotation();
     assert !clazz.isInterface();
     transitionMethodsForInstantiatedObject(
-        InstantiatedObject.of(clazz), clazz, Collections.emptyList());
+        InstantiatedObject.of(clazz), clazz.type, Collections.emptyList());
   }
 
   /**
@@ -2362,102 +2360,66 @@ public class Enqueuer {
    * methods are considered reachable.
    */
   private void transitionMethodsForInstantiatedObject(
-      InstantiatedObject instantiation, DexClass clazz, List<DexType> interfaces) {
-    Set<Wrapper<DexMethod>> seen = new HashSet<>();
-    WorkList<DexType> worklist = WorkList.newIdentityWorkList();
+      InstantiatedObject instantiation, DexType type, List<DexType> interfaces) {
+    WorkList<DexType> worklist = WorkList.newIdentityWorkList(type);
     worklist.addIfNotSeen(interfaces);
-    // First we lookup and mark all targets on the instantiated class for each reachable method in
-    // the super chain (inclusive).
-    DexClass initialClass = clazz;
-    while (clazz != null) {
+    while (worklist.hasNext()) {
+      DexClass clazz = appInfo().definitionFor(worklist.next());
+      if (clazz == null) {
+        continue;
+      }
       if (clazz.isProgramClass()) {
-        markProgramMethodOverridesAsLive(instantiation, initialClass, clazz.asProgramClass(), seen);
+        markProgramMethodOverridesAsLive(instantiation, clazz.asProgramClass());
       } else {
         markLibraryAndClasspathMethodOverridesAsLive(instantiation, clazz);
       }
+      if (clazz.superType != null) {
+        worklist.addIfNotSeen(clazz.superType);
+      }
       worklist.addIfNotSeen(clazz.interfaces);
-      clazz = clazz.superType != null ? appInfo().definitionFor(clazz.superType) : null;
-    }
-    // The targets for methods on the type and its supertype that are reachable are now marked.
-    // In a second step, we look at interfaces. We order the search this way such that a
-    // method reachable on a class takes precedence when reporting edges. That order mirrors JVM
-    // resolution/dispatch.
-    while (worklist.hasNext()) {
-      DexType type = worklist.next();
-      DexClass iface = appInfo().definitionFor(type);
-      if (iface == null) {
-        continue;
-      }
-      assert iface.superType == appInfo.dexItemFactory().objectType;
-      if (iface.isNotProgramClass()) {
-        markLibraryAndClasspathMethodOverridesAsLive(instantiation, iface);
-      } else {
-        markProgramMethodOverridesAsLive(instantiation, initialClass, iface.asProgramClass(), seen);
-      }
-      worklist.addIfNotSeen(Arrays.asList(iface.interfaces.values));
     }
   }
 
-  private Set<DexMethod> getReachableVirtualTargets(DexProgramClass clazz) {
-    return reachableVirtualTargets.getOrDefault(clazz, Collections.emptySet());
+  private Map<ResolutionSearchKey, Set<DexProgramClass>> getReachableVirtualTargets(
+      DexProgramClass clazz) {
+    return reachableVirtualTargets.getOrDefault(clazz, Collections.emptyMap());
   }
 
   private void markProgramMethodOverridesAsLive(
-      InstantiatedObject instantiation,
-      DexClass initialClass,
-      DexProgramClass superClass,
-      Set<Wrapper<DexMethod>> seenMethods) {
-    for (DexMethod method : getReachableVirtualTargets(superClass)) {
-      assert method.holder == superClass.type;
-      Wrapper<DexMethod> signature = MethodSignatureEquivalence.get().wrap(method);
-      if (!seenMethods.contains(signature)) {
-        SingleResolutionResult resolution =
-            appInfo.resolveMethodOn(superClass, method).asSingleResolution();
-        assert resolution != null;
-        assert resolution.getResolvedHolder().isProgramClass();
-        if (resolution != null) {
-          if (!initialClass.isProgramClass()
-              || resolution
-                  .isAccessibleForVirtualDispatchFrom(initialClass.asProgramClass(), appInfo)
-                  .isTrue()) {
-            seenMethods.add(signature);
-          }
-          if (resolution.getResolvedHolder().isProgramClass()) {
-            markLiveOverrides(
-                instantiation, superClass, resolution.getResolutionPair().asProgramMethod());
-          }
-        }
-      }
-    }
-  }
-
-  private void markLiveOverrides(
-      InstantiatedObject instantiation,
-      DexProgramClass initialHolder,
-      ProgramMethod resolutionMethod) {
-    // The validity of the reachable method is checked at the point it becomes "reachable" and is
-    // resolved. If the method is private, then the dispatch is not "virtual" and the method is
-    // simply marked live on its holder.
-    if (resolutionMethod.getDefinition().isPrivateMethod()) {
-      markVirtualMethodAsLive(
-          resolutionMethod,
-          graphReporter.reportReachableMethodAsLive(
-              resolutionMethod.getDefinition().getReference(), resolutionMethod));
-      return;
-    }
-    // Otherwise, we set the initial holder type to be the holder of the reachable method, which
-    // ensures that access will be generally valid.
-    SingleResolutionResult resolution =
-        new SingleResolutionResult(
-            initialHolder, resolutionMethod.getHolder(), resolutionMethod.getDefinition());
-    LookupTarget lookup = resolution.lookupVirtualDispatchTarget(instantiation, appInfo);
-    if (lookup != null) {
-      markVirtualDispatchTargetAsLive(
-          lookup,
-          programMethod ->
-              graphReporter.reportReachableMethodAsLive(
-                  resolutionMethod.getDefinition().getReference(), programMethod));
-    }
+      InstantiatedObject instantiation, DexProgramClass currentClass) {
+    assert instantiation.isLambda()
+        || appInfo.isSubtype(instantiation.asClass().getType(), currentClass.type);
+    getReachableVirtualTargets(currentClass)
+        .forEach(
+            (resolutionSearchKey, contexts) -> {
+              SingleResolutionResult singleResolution =
+                  appInfo
+                      .resolveMethod(resolutionSearchKey.method, resolutionSearchKey.isInterface)
+                      .asSingleResolution();
+              if (singleResolution == null) {
+                assert false : "Should not be null";
+                return;
+              }
+              contexts.forEach(
+                  context ->
+                      singleResolution
+                          .lookupVirtualDispatchTargets(
+                              context,
+                              appInfo,
+                              (type, subTypeConsumer, lambdaConsumer) -> {
+                                assert appInfo.isSubtype(currentClass.type, type);
+                                instantiation.apply(subTypeConsumer, lambdaConsumer);
+                              },
+                              definition -> keepInfo.isPinned(definition.getReference(), appInfo))
+                          .forEach(
+                              target ->
+                                  markVirtualDispatchTargetAsLive(
+                                      target,
+                                      programMethod ->
+                                          graphReporter.reportReachableMethodAsLive(
+                                              singleResolution.getResolvedMethod().getReference(),
+                                              programMethod))));
+            });
   }
 
   private void markLibraryAndClasspathMethodOverridesAsLive(
@@ -2798,8 +2760,13 @@ public class Enqueuer {
       return;
     }
 
-    // If the method has already been marked, just report the new reason for the resolved target.
-    if (getReachableVirtualTargets(holder).contains(method)) {
+    DexProgramClass contextHolder = context.getContextClass();
+    // If the method has already been marked, just report the new reason for the resolved target and
+    // save the context to ensure correct lookup of virtual dispatch targets.
+    ResolutionSearchKey resolutionSearchKey = new ResolutionSearchKey(method, interfaceInvoke);
+    Set<DexProgramClass> seenContexts = getReachableVirtualTargets(holder).get(resolutionSearchKey);
+    if (seenContexts != null) {
+      seenContexts.add(contextHolder);
       graphReporter.registerMethod(resolution.getResolvedMethod(), reason);
       return;
     }
@@ -2813,15 +2780,16 @@ public class Enqueuer {
     DexProgramClass resolvedHolder = resolution.getResolvedHolder().asProgramClass();
     DexEncodedMethod resolvedMethod = resolution.getResolvedMethod();
     markMethodAsTargeted(new ProgramMethod(resolvedHolder, resolvedMethod), reason);
-
-    DexProgramClass contextHolder = context.getContextClass();
     if (resolution.isAccessibleForVirtualDispatchFrom(contextHolder, appInfo).isFalse()) {
       // Not accessible from this context, so this call will cause a runtime exception.
       return;
     }
 
     // The method resolved and is accessible, so currently live overrides become live.
-    reachableVirtualTargets.computeIfAbsent(holder, k -> Sets.newIdentityHashSet()).add(method);
+    reachableVirtualTargets
+        .computeIfAbsent(holder, ignoreArgument(HashMap::new))
+        .computeIfAbsent(resolutionSearchKey, ignoreArgument(Sets::newIdentityHashSet))
+        .add(contextHolder);
 
     resolution
         .lookupVirtualDispatchTargets(
@@ -3347,7 +3315,7 @@ public class Enqueuer {
             rootSet.noHorizontalClassMerging,
             rootSet.neverPropagateValue,
             joinIdentifierNameStrings(rootSet.identifierNameStrings, identifierNameStrings),
-            Collections.emptySet(),
+            emptySet(),
             Collections.emptyMap(),
             lockCandidates,
             initClassReferences);
@@ -3776,7 +3744,7 @@ public class Enqueuer {
     Set<DexClass> subtypes =
         objectAllocationInfoCollection.getImmediateSubtypesInInstantiatedHierarchy(clazz.type);
     if (subtypes == null) {
-      return Collections.emptySet();
+      return emptySet();
     }
     Set<DexProgramClass> programClasses = SetUtils.newIdentityHashSet(subtypes.size());
     for (DexClass subtype : subtypes) {
@@ -4546,6 +4514,31 @@ public class Enqueuer {
 
     public DexClass definitionFor(DexType type, ProgramDefinition context) {
       return enqueuer.definitionFor(type, context, enqueuer::ignoreMissingClass);
+    }
+  }
+
+  public static class ResolutionSearchKey {
+
+    private final DexMethod method;
+    private final boolean isInterface;
+
+    private ResolutionSearchKey(DexMethod method, boolean isInterface) {
+      this.method = method;
+      this.isInterface = isInterface;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      ResolutionSearchKey that = (ResolutionSearchKey) o;
+      return method == that.method && isInterface == that.isInterface;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(method, isInterface);
     }
   }
 }
