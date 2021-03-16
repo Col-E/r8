@@ -7,7 +7,6 @@ package com.android.tools.r8.repackage;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
@@ -83,12 +82,10 @@ public class RepackageDontObfuscateTest extends RepackageTestBase {
         .inspect(
             inspector -> {
               ClassSubject aClass = inspector.clazz(A.class);
-              // TODO(b/182543183): Should not be renamed.
-              assertThat(aClass, isPresentAndRenamed());
+              assertThat(aClass, isPresentAndNotRenamed());
             })
         .run(parameters.getRuntime(), Main.class, A.class.getTypeName())
-        // TODO(b/182543183): Should be able to find the class.
-        .assertFailureWithErrorThatThrows(ClassNotFoundException.class);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public static class A {
