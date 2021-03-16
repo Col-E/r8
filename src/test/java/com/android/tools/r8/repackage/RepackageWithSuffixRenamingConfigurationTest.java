@@ -30,10 +30,12 @@ public class RepackageWithSuffixRenamingConfigurationTest extends RepackageTestB
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(GreeterFoo.class)
         .addOptionsModification(
-            options ->
-                options.testing.repackagingConfigurationFactory =
-                    appView ->
-                        new SuffixRenamingRepackagingConfiguration("Foo", appView.dexItemFactory()))
+            options -> {
+              options.testing.repackageWithNoMinification = true;
+              options.testing.repackagingConfigurationFactory =
+                  appView ->
+                      new SuffixRenamingRepackagingConfiguration("Foo", appView.dexItemFactory());
+            })
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .noMinification()
