@@ -566,7 +566,9 @@ def setJdkCompilationWithCompatibility(String sourceSet, String javaHome, JavaVe
         if (OperatingSystem.current().isLinux()) {
             options.forkOptions.javaHome = file(jdkDir + 'linux')
         } else if (OperatingSystem.current().isMacOsX()) {
-            options.forkOptions.javaHome = file(jdkDir + 'osx')
+            options.forkOptions.javaHome = compatibility > JavaVersion.VERSION_1_9
+                    ? file(jdkDir + 'osx/Contents/Home')
+                    : file(jdkDir + 'osx')
         } else {
             options.forkOptions.javaHome = file(jdkDir + 'windows')
         }

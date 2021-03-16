@@ -83,11 +83,13 @@ public abstract class TestRuntime {
     return new CfRuntime(CfVm.JDK8, home);
   }
 
-  private static Path getCheckedInJdkHome(Path path) {
+  private static Path getCheckedInJdkHome(Path path, CfVm vm) {
     if (ToolHelper.isLinux()) {
       return path.resolve("linux");
     } else if (ToolHelper.isMac()) {
-      return path.resolve("osx");
+      return vm.lessThanOrEqual(CfVm.JDK9)
+          ? path.resolve("osx")
+          : path.resolve("osx/Contents/Home");
     } else {
       assert ToolHelper.isWindows();
       return path.resolve("windows");
@@ -95,16 +97,16 @@ public abstract class TestRuntime {
   }
 
   public static CfRuntime getCheckedInJdk9() {
-    return new CfRuntime(CfVm.JDK9, getCheckedInJdkHome(JDK9_PATH));
+    return new CfRuntime(CfVm.JDK9, getCheckedInJdkHome(JDK9_PATH, CfVm.JDK9));
   }
 
   public static CfRuntime getCheckedInJdk11() {
-    return new CfRuntime(CfVm.JDK11, getCheckedInJdkHome(JDK11_PATH));
+    return new CfRuntime(CfVm.JDK11, getCheckedInJdkHome(JDK11_PATH, CfVm.JDK11));
   }
 
   // TODO(b/169692487): Add this to 'getCheckedInCfRuntimes' when we start having support for JDK15.
   public static CfRuntime getCheckedInJdk15() {
-    return new CfRuntime(CfVm.JDK15, getCheckedInJdkHome(JDK15_PATH));
+    return new CfRuntime(CfVm.JDK15, getCheckedInJdkHome(JDK15_PATH, CfVm.JDK15));
   }
 
   public static List<CfRuntime> getCheckedInCfRuntimes() {
