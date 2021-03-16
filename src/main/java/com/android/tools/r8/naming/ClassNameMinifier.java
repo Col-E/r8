@@ -344,8 +344,7 @@ class ClassNameMinifier {
     }
 
     @Override
-    public int incrementNameIndex(boolean isDirectMethodCall) {
-      assert !isDirectMethodCall;
+    public int incrementNameIndex() {
       return nameIndex++;
     }
   }

@@ -10,5 +10,5 @@ interface InternalNamingState {
 
   int incrementDictionaryIndex();
 
-  int incrementNameIndex(boolean isDirectMethodCall);
+  int incrementNameIndex();
 }

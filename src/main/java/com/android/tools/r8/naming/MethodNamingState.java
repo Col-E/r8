@@ -185,7 +185,7 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
     }
 
     @Override
-    public int incrementNameIndex(boolean isDirectMethodCall) {
+    public int incrementNameIndex() {
       assert checkParentPublicNameCountIsLessThanOrEqual();
       return nameCount++;
     }

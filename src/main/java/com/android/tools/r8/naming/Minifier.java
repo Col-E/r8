@@ -113,7 +113,7 @@ public class Minifier {
       assert obfuscationDictionary != null;
     }
 
-    String nextName(char[] packagePrefix, InternalNamingState state, boolean isDirectMethodCall) {
+    String nextName(char[] packagePrefix, InternalNamingState state) {
       StringBuilder nextName = new StringBuilder();
       nextName.append(packagePrefix);
       String nextString;
@@ -123,8 +123,7 @@ public class Minifier {
         } else {
           do {
             nextString =
-                SymbolGenerationUtils.numberToIdentifier(
-                    state.incrementNameIndex(isDirectMethodCall), mixedCasing);
+                SymbolGenerationUtils.numberToIdentifier(state.incrementNameIndex(), mixedCasing);
           } while (obfuscationDictionaryForLookup.contains(nextString));
         }
       } while (PRIMITIVE_TYPE_NAMES.contains(nextString));
@@ -153,7 +152,7 @@ public class Minifier {
       String candidate = null;
       String lastName = null;
       do {
-        String newName = nextName(packagePrefix, state, false) + ";";
+        String newName = nextName(packagePrefix, state) + ";";
         if (newName.equals(lastName)) {
           throw new CompilationError(
               "Generating same name '"
@@ -204,7 +203,7 @@ public class Minifier {
       // 3) this one removes 'L' at the beginning to make the return value a binary form.
       String nextPackageName;
       do {
-        nextPackageName = nextName(packagePrefix, state, false).substring(1);
+        nextPackageName = nextName(packagePrefix, state).substring(1);
       } while (isUsed.test(nextPackageName));
       return nextPackageName;
     }
@@ -230,10 +229,9 @@ public class Minifier {
         InternalNamingState internalState,
         BiPredicate<DexString, DexMethod> isAvailable) {
       assert checkAllowMemberRenaming(method.getHolderType());
-      boolean isDirectOrStatic = method.isDirectMethod() || method.isStatic();
       DexString candidate;
       do {
-        candidate = getNextName(internalState, isDirectOrStatic);
+        candidate = getNextName(internalState);
       } while (!isAvailable.test(candidate, method.getReference()));
       return candidate;
     }
@@ -246,13 +244,13 @@ public class Minifier {
       assert checkAllowMemberRenaming(field.getHolderType());
       DexString candidate;
       do {
-        candidate = getNextName(internalState, false);
+        candidate = getNextName(internalState);
       } while (!isAvailable.test(candidate, field));
       return candidate;
     }
 
-    private DexString getNextName(InternalNamingState internalState, boolean isDirectOrStatic) {
-      return factory.createString(nextName(EMPTY_CHAR_ARRAY, internalState, isDirectOrStatic));
+    private DexString getNextName(InternalNamingState internalState) {
+      return factory.createString(nextName(EMPTY_CHAR_ARRAY, internalState));
     }
 
     @Override

@@ -114,8 +114,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     }
 
     @Override
-    public int incrementNameIndex(boolean isDirectMethodCall) {
-      assert !isDirectMethodCall;
+    public int incrementNameIndex() {
       return nextNameIndex++;
     }
   }
