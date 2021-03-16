@@ -92,7 +92,6 @@ public class RepackageFeatureWithSyntheticsTest extends RepackageTestBase {
             .addKeepMethodRules(
                 Reference.methodFromMethod(TestClass.class.getDeclaredMethod("run", I.class)))
             .addKeepAttributeInnerClassesAndEnclosingMethod()
-            .noMinification()
             .apply(this::configureRepackaging)
             .enableNeverClassInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
@@ -107,14 +106,14 @@ public class RepackageFeatureWithSyntheticsTest extends RepackageTestBase {
     // If it is, the access will fail resulting in a runtime exception.
     compileResult.inspect(
         baseInspector -> {
-          assertThat(FIRST_FOO, isRepackagedAsExpected(baseInspector, "first"));
+          assertThat(FIRST_FOO, isRepackagedAsExpected(baseInspector, "b"));
           assertThat(FIRST_PKG_PRIVATE, isNotRepackaged(baseInspector));
           assertEquals(
               getTestClasses().size() + expectedSyntheticsInBase,
               baseInspector.allClasses().size());
         },
         featureInspector -> {
-          assertThat(FIRST_FIRST_FOO, isRepackagedAsExpected(featureInspector, "first$1"));
+          assertThat(FIRST_FIRST_FOO, isRepackagedAsExpected(featureInspector, "a"));
           assertThat(FIRST_FIRST_PKG_PRIVATE, isNotRepackaged(featureInspector));
           assertEquals(
               getFeatureClasses().size() + expectedSyntheticsInFeature,
