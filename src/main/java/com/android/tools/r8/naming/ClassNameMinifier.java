@@ -18,10 +18,8 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.ProguardPackageNameList;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -37,9 +35,7 @@ class ClassNameMinifier {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final ClassNamingStrategy classNamingStrategy;
-  private final PackageNamingStrategy packageNamingStrategy;
   private final Iterable<? extends DexClass> classes;
-  private final Set<String> usedPackagePrefixes = Sets.newHashSet();
   private final Set<String> usedTypeNames = Sets.newHashSet();
   private final Map<DexType, DexString> renaming = Maps.newIdentityHashMap();
   private final Map<String, Namespace> states = new HashMap<>();
@@ -48,27 +44,19 @@ class ClassNameMinifier {
   private final Namespace topLevelState;
   private final boolean allowMixedCaseNaming;
   private final Predicate<String> isUsed;
-  private final ProguardPackageNameList keepPackageNames;
 
   ClassNameMinifier(
       AppView<AppInfoWithLiveness> appView,
       ClassNamingStrategy classNamingStrategy,
-      PackageNamingStrategy packageNamingStrategy,
       Iterable<? extends DexClass> classes) {
     this.appView = appView;
     this.classNamingStrategy = classNamingStrategy;
-    this.packageNamingStrategy = packageNamingStrategy;
     this.classes = classes;
     InternalOptions options = appView.options();
     this.keepInnerClassStructure = options.keepInnerClassStructure();
 
     // Initialize top-level naming state.
     topLevelState = new Namespace("");
-    String newPackageDescriptor =
-        StringUtils.replaceAll(options.getProguardConfiguration().getPackagePrefix(), ".", "/");
-    if (!newPackageDescriptor.isEmpty()) {
-      registerPackagePrefixesAsUsed(newPackageDescriptor);
-    }
     states.put("", topLevelState);
 
     if (options.getProguardConfiguration().hasDontUseMixedCaseClassnames()) {
@@ -78,7 +66,6 @@ class ClassNameMinifier {
       allowMixedCaseNaming = true;
       isUsed = usedTypeNames::contains;
     }
-    keepPackageNames = options.getProguardConfiguration().getKeepPackageNamesPatterns();
   }
 
   private void setUsedTypeName(String typeName) {
@@ -176,8 +163,6 @@ class ClassNameMinifier {
 
   private void registerClassAsUsed(DexType type, DexString descriptor) {
     renaming.put(type, descriptor);
-    registerPackagePrefixesAsUsed(
-        getParentPackagePrefix(getClassBinaryNameFromDescriptor(descriptor.toSourceString())));
     setUsedTypeName(descriptor.toString());
     if (keepInnerClassStructure) {
       DexType outerClass = getOutClassForType(type);
@@ -189,16 +174,6 @@ class ClassNameMinifier {
           registerClassAsUsed(outerClass, outerClass.descriptor);
         }
       }
-    }
-  }
-
-  /** Registers the given package prefix and all of parent packages as used. */
-  private void registerPackagePrefixesAsUsed(String packagePrefix) {
-    String usedPrefix = packagePrefix;
-    while (usedPrefix.length() > 0) {
-      usedPackagePrefixes.add(usedPrefix);
-      states.computeIfAbsent(usedPrefix, Namespace::new);
-      usedPrefix = getParentPackagePrefix(usedPrefix);
     }
   }
 
@@ -249,29 +224,8 @@ class ClassNameMinifier {
 
   private Namespace getStateForClass(DexType type) {
     String packageName = getPackageBinaryNameFromJavaType(type.getPackageDescriptor());
-    // Check whether the given class should be kept.
-    // or check whether the given class belongs to a package that is kept for another class.
-    if (keepPackageNames.matches(type)) {
-      return states.computeIfAbsent(packageName, Namespace::new);
-    }
-    return getStateForPackagePrefix(packageName);
-  }
-
-  private Namespace getStateForPackagePrefix(String prefix) {
-    Namespace state = states.get(prefix);
-    if (state == null) {
-      // Calculate the parent package prefix, e.g., La/b/c -> La/b
-      String parentPackage = getParentPackagePrefix(prefix);
-      // Create a state for parent package prefix, if necessary, in a recursive manner.
-      // That recursion should end when the parent package hits the top-level, "".
-      Namespace superState = getStateForPackagePrefix(parentPackage);
-      // From the super state, get a renamed package prefix for the current level.
-      String renamedPackagePrefix = superState.nextPackagePrefix();
-      // Create a new state, which corresponds to a new name space, for the current level.
-      state = new Namespace(renamedPackagePrefix);
-      states.put(prefix, state);
-    }
-    return state;
+    // Packages are repackaged and obfuscated when doing repackaging.
+    return states.computeIfAbsent(packageName, Namespace::new);
   }
 
   private Namespace getStateForOuterClass(DexType outer, String innerClassSeparator) {
@@ -326,13 +280,6 @@ class ClassNameMinifier {
       return candidate;
     }
 
-    String nextPackagePrefix() {
-      String next = packageNamingStrategy.next(packagePrefix, this, usedPackagePrefixes::contains);
-      assert !usedPackagePrefixes.contains(next);
-      usedPackagePrefixes.add(next);
-      return next;
-    }
-
     @Override
     public int getDictionaryIndex() {
       return dictionaryIndex;
@@ -365,10 +312,6 @@ class ClassNameMinifier {
     DexString reservedDescriptor(DexType type);
 
     boolean isRenamedByApplyMapping(DexType type);
-  }
-
-  protected interface PackageNamingStrategy {
-    String next(char[] packagePrefix, InternalNamingState state, Predicate<String> isUsed);
   }
 
   /**

@@ -29,7 +29,6 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
 import com.android.tools.r8.naming.Minifier.MinificationClassNamingStrategy;
-import com.android.tools.r8.naming.Minifier.MinificationPackageNamingStrategy;
 import com.android.tools.r8.naming.Minifier.MinifierMemberNamingStrategy;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -137,11 +136,6 @@ public class ProguardMapMinifier {
             appView,
             new ApplyMappingClassNamingStrategy(
                 appView, mappedNames, seedMapper.getMappedToDescriptorNames()),
-            // The package naming strategy will actually not be used since all classes and methods
-            // will be output with identity name if not found in mapping. However, there is a check
-            // in the ClassNameMinifier that the strategy should produce a "fresh" name so we just
-            // use the existing strategy.
-            new MinificationPackageNamingStrategy(appView),
             classesWithDeterministicOrder(mappedClasses));
     ClassRenaming classRenaming = classNameMinifier.computeRenaming(timing);
     timing.end();

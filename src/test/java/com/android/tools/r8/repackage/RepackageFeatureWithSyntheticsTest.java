@@ -106,14 +106,14 @@ public class RepackageFeatureWithSyntheticsTest extends RepackageTestBase {
     // If it is, the access will fail resulting in a runtime exception.
     compileResult.inspect(
         baseInspector -> {
-          assertThat(FIRST_FOO, isRepackagedAsExpected(baseInspector, "b"));
+          assertThat(FIRST_FOO, isRepackagedAsExpected(baseInspector, "a"));
           assertThat(FIRST_PKG_PRIVATE, isNotRepackaged(baseInspector));
           assertEquals(
               getTestClasses().size() + expectedSyntheticsInBase,
               baseInspector.allClasses().size());
         },
         featureInspector -> {
-          assertThat(FIRST_FIRST_FOO, isRepackagedAsExpected(featureInspector, "a"));
+          assertThat(FIRST_FIRST_FOO, isRepackagedAsExpected(featureInspector, "b"));
           assertThat(FIRST_FIRST_PKG_PRIVATE, isNotRepackaged(featureInspector));
           assertEquals(
               getFeatureClasses().size() + expectedSyntheticsInFeature,

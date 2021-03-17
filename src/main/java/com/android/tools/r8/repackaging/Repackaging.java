@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.graph.SortedProgramPackageCollection;
 import com.android.tools.r8.graph.TreeFixerBase;
+import com.android.tools.r8.naming.Minifier.MinificationPackageNamingStrategy;
 import com.android.tools.r8.repackaging.RepackagingLens.Builder;
 import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -202,19 +204,17 @@ public class Repackaging {
     Iterator<ProgramPackage> iterator = packages.iterator();
     while (iterator.hasNext()) {
       ProgramPackage pkg = iterator.next();
-      String newPackageDescriptor =
-          repackagingConfiguration.getNewPackageDescriptor(pkg, seenPackageDescriptors);
-      if (pkg.getPackageDescriptor().equals(newPackageDescriptor)) {
+      if (repackagingConfiguration.isPackageInTargetLocation(pkg)) {
         for (DexProgramClass alreadyRepackagedClass : pkg) {
           if (!appView.appInfo().isRepackagingAllowed(alreadyRepackagedClass)) {
             mappings.put(alreadyRepackagedClass.getType(), alreadyRepackagedClass.getType());
           }
         }
         for (DexProgramClass alreadyRepackagedClass : pkg) {
-          processClass(alreadyRepackagedClass, pkg, newPackageDescriptor, mappings);
+          processClass(alreadyRepackagedClass, pkg, pkg.getPackageDescriptor(), mappings);
         }
-        packageMappings.put(pkg.getPackageDescriptor(), newPackageDescriptor);
-        seenPackageDescriptors.add(newPackageDescriptor);
+        packageMappings.put(pkg.getPackageDescriptor(), pkg.getPackageDescriptor());
+        seenPackageDescriptors.add(pkg.getPackageDescriptor());
         iterator.remove();
       }
     }
@@ -228,15 +228,28 @@ public class Repackaging {
       ExecutorService executorService)
       throws ExecutionException {
     // For each package, find the set of classes that can be repackaged, and move them to the
-    // desired package.
+    // desired package. We iterate all packages first to see if any classes are pinned and cannot
+    // be moved, to properly reserve their package.
+    Map<ProgramPackage, Collection<DexProgramClass>> packagesWithClassesToRepackage =
+        new IdentityHashMap<>();
     for (ProgramPackage pkg : packages) {
+      Collection<DexProgramClass> classesToRepackage =
+          computeClassesToRepackage(pkg, executorService);
+      packagesWithClassesToRepackage.put(pkg, classesToRepackage);
+      // Reserve the package name to ensure that we are not renaming to a package we cannot move.
+      if (classesToRepackage.size() != pkg.classesInPackage().size()) {
+        seenPackageDescriptors.add(pkg.getPackageDescriptor());
+      }
+    }
+    for (ProgramPackage pkg : packages) {
+      Collection<DexProgramClass> classesToRepackage = packagesWithClassesToRepackage.get(pkg);
+      if (classesToRepackage.isEmpty()) {
+        continue;
+      }
       // Already processed packages should have been removed.
       String newPackageDescriptor =
           repackagingConfiguration.getNewPackageDescriptor(pkg, seenPackageDescriptors);
-      assert !pkg.getPackageDescriptor().equals(newPackageDescriptor);
-
-      Collection<DexProgramClass> classesToRepackage =
-          computeClassesToRepackage(pkg, executorService);
+      assert !repackagingConfiguration.isPackageInTargetLocation(pkg);
       for (DexProgramClass classToRepackage : classesToRepackage) {
         processClass(classToRepackage, pkg, newPackageDescriptor, mappings);
       }
@@ -249,8 +262,6 @@ public class Repackaging {
           classesToRepackage.size() == pkg.classesInPackage().size()
               ? newPackageDescriptor
               : pkg.getPackageDescriptor());
-      // TODO(b/165783399): Investigate if repackaging can lead to different dynamic dispatch. See,
-      //  for example, CrossPackageInvokeSuperToPackagePrivateMethodTest.
     }
   }
 
@@ -298,6 +309,8 @@ public class Repackaging {
 
     String getNewPackageDescriptor(ProgramPackage pkg, Set<String> seenPackageDescriptors);
 
+    boolean isPackageInTargetLocation(ProgramPackage pkg);
+
     DexType getRepackagedType(
         DexProgramClass clazz,
         DexProgramClass outerClass,
@@ -310,12 +323,13 @@ public class Repackaging {
     private final AppView<?> appView;
     private final DexItemFactory dexItemFactory;
     private final ProguardConfiguration proguardConfiguration;
-    public static final String TEMPORARY_PACKAGE_NAME = "TEMPORARY_PACKAGE_NAME_FOR_";
+    private final MinificationPackageNamingStrategy packageMinificationStrategy;
 
     public DefaultRepackagingConfiguration(AppView<?> appView) {
       this.appView = appView;
       this.dexItemFactory = appView.dexItemFactory();
       this.proguardConfiguration = appView.options().getProguardConfiguration();
+      this.packageMinificationStrategy = new MinificationPackageNamingStrategy(appView);
     }
 
     @Override
@@ -326,13 +340,7 @@ public class Repackaging {
           proguardConfiguration.getPackageObfuscationMode();
       if (packageObfuscationMode.isRepackageClasses()) {
         return newPackageDescriptor;
-      }
-      assert packageObfuscationMode.isFlattenPackageHierarchy()
-          || packageObfuscationMode.isMinification();
-      if (!newPackageDescriptor.isEmpty()) {
-        newPackageDescriptor += DESCRIPTOR_PACKAGE_SEPARATOR;
-      }
-      if (packageObfuscationMode.isMinification()) {
+      } else if (packageObfuscationMode.isMinification()) {
         assert !proguardConfiguration.hasApplyMappingFile();
         // Always keep top-level classes since there packages can never be minified.
         if (pkg.getPackageDescriptor().equals("")
@@ -340,18 +348,37 @@ public class Repackaging {
             || mayHavePinnedPackagePrivateOrProtectedItem(pkg)) {
           return pkg.getPackageDescriptor();
         }
-        // For us to rename shaking/A to a/a if we have a class shaking/Kept, we have to propose
-        // a different name than the last package name - the class will be minified in
-        // ClassNameMinifier.
-        newPackageDescriptor += TEMPORARY_PACKAGE_NAME + pkg.getLastPackageName();
+        // Plain minification do not support using a specified package prefix.
+        newPackageDescriptor = "";
       } else {
-        newPackageDescriptor += pkg.getLastPackageName();
+        assert packageObfuscationMode.isFlattenPackageHierarchy();
+        if (!newPackageDescriptor.isEmpty()) {
+          newPackageDescriptor += DESCRIPTOR_PACKAGE_SEPARATOR;
+        }
       }
-      String finalPackageDescriptor = newPackageDescriptor;
-      for (int i = 1; seenPackageDescriptors.contains(finalPackageDescriptor); i++) {
-        finalPackageDescriptor = newPackageDescriptor + INNER_CLASS_SEPARATOR + i;
+      return packageMinificationStrategy.next(
+          newPackageDescriptor, seenPackageDescriptors::contains);
+    }
+
+    @Override
+    public boolean isPackageInTargetLocation(ProgramPackage pkg) {
+      String newPackageDescriptor =
+          DescriptorUtils.getBinaryNameFromJavaType(proguardConfiguration.getPackagePrefix());
+      PackageObfuscationMode packageObfuscationMode =
+          proguardConfiguration.getPackageObfuscationMode();
+      if (packageObfuscationMode.isRepackageClasses()) {
+        return pkg.getPackageDescriptor().equals(newPackageDescriptor);
+      } else if (packageObfuscationMode.isMinification()) {
+        // Always keep top-level classes since there packages can never be minified.
+        return pkg.getPackageDescriptor().equals("")
+            || proguardConfiguration.getKeepPackageNamesPatterns().matches(pkg)
+            || mayHavePinnedPackagePrivateOrProtectedItem(pkg);
+      } else {
+        assert packageObfuscationMode.isFlattenPackageHierarchy();
+        // For flatten we will move the package into the package specified by the prefix so we can
+        // always minify the last part.
+        return false;
       }
-      return finalPackageDescriptor;
     }
 
     private boolean mayHavePinnedPackagePrivateOrProtectedItem(ProgramPackage pkg) {
@@ -425,6 +452,11 @@ public class Repackaging {
     public String getNewPackageDescriptor(ProgramPackage pkg, Set<String> seenPackageDescriptors) {
       // Don't change the package of classes.
       return pkg.getPackageDescriptor();
+    }
+
+    @Override
+    public boolean isPackageInTargetLocation(ProgramPackage pkg) {
+      return true;
     }
 
     @Override

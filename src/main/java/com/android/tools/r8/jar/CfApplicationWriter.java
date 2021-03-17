@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jar;
 
-import static com.android.tools.r8.repackaging.Repackaging.DefaultRepackagingConfiguration.TEMPORARY_PACKAGE_NAME;
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
 import com.android.tools.r8.ByteDataView;
@@ -186,7 +185,6 @@ public class CfApplicationWriter {
     }
     String desc = namingLens.lookupDescriptor(clazz.type).toString();
     String name = namingLens.lookupInternalName(clazz.type);
-    assert !name.contains(TEMPORARY_PACKAGE_NAME);
     String signature = clazz.getClassSignature().toRenamedString(namingLens, isTypeMissing);
     String superName =
         clazz.type == options.itemFactory.objectType

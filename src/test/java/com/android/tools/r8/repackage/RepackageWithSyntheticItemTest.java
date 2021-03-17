@@ -67,7 +67,7 @@ public class RepackageWithSyntheticItemTest extends RepackageTestBase {
               // TODO(b/172014416): We should not be able to look this up through the repackage name
               String expectedOriginalNamePrefix =
                   isFlattenPackageHierarchy()
-                      ? "foo.repackage.RepackageWithSyntheticItemTest$A"
+                      ? "foo.a.RepackageWithSyntheticItemTest$A"
                       : "foo.RepackageWithSyntheticItemTest$A";
               assertThat(
                   classesStartingWithfoo.get(0).getOriginalName(),
