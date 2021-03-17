@@ -47,6 +47,7 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
+import com.android.tools.r8.naming.mappinginformation.CompilerSynthesizedMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
 import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -274,6 +275,8 @@ public class LineNumberOptimizer {
     ClassNameMapper.Builder classNameMapperBuilder = ClassNameMapper.builder();
     // Collect which files contain which classes that need to have their line numbers optimized.
     for (DexProgramClass clazz : application.classes()) {
+      boolean isSyntheticClass = appView.getSyntheticItems().isSyntheticClass(clazz);
+
       IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByRenamedName =
           groupMethodsByRenamedName(appView.graphLens(), namingLens, clazz);
 
@@ -297,6 +300,12 @@ public class LineNumberOptimizer {
           Builder builder = onDemandClassNamingBuilder.get();
           builder.addMappingInformation(FileNameInformation.build(sourceFile));
         }
+      }
+
+      if (isSyntheticClass) {
+        onDemandClassNamingBuilder
+            .get()
+            .addMappingInformation(new CompilerSynthesizedMappingInformation());
       }
 
       // If the class is renamed add it to the classNamingBuilder.

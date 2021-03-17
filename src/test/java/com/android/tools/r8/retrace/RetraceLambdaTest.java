@@ -5,15 +5,23 @@
 package com.android.tools.r8.retrace;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;
+import static com.android.tools.r8.references.Reference.classFromClass;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isCompilerSynthesized;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.retrace.StackTrace;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import com.google.common.collect.ImmutableList;
+import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -48,22 +56,48 @@ public class RetraceLambdaTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatMatches(containsString("Hello World!"))
         .inspectStackTrace(
-            stackTrace -> {
-              assertThat(
-                  stackTrace,
-                  isSameExceptForFileNameAndLineNumber(
-                      StackTrace.builder()
-                          .addWithoutFileNameAndLineNumber(Main.class, JAVAC_LAMBDA_METHOD)
-                          // TODO(b/172014416): Support a D8 mapping and prune the synthetic.
-                          .applyIf(
-                              parameters.isDexRuntime(),
-                              b ->
-                                  b.addWithoutFileNameAndLineNumber(
-                                      SyntheticItemsTestUtils.syntheticLambdaClass(Main.class, 0),
-                                      "run"))
-                          .addWithoutFileNameAndLineNumber(Main.class, "runIt")
-                          .addWithoutFileNameAndLineNumber(Main.class, "main")
-                          .build()));
+            stackTrace ->
+                assertThat(
+                    stackTrace,
+                    isSameExceptForFileNameAndLineNumber(
+                        StackTrace.builder()
+                            .addWithoutFileNameAndLineNumber(Main.class, JAVAC_LAMBDA_METHOD)
+                            // TODO(b/172014416): Support a D8 mapping and prune the synthetic.
+                            .applyIf(
+                                parameters.isDexRuntime(),
+                                b ->
+                                    b.addWithoutFileNameAndLineNumber(
+                                        SyntheticItemsTestUtils.syntheticLambdaClass(Main.class, 0),
+                                        "run"))
+                            .addWithoutFileNameAndLineNumber(Main.class, "runIt")
+                            .addWithoutFileNameAndLineNumber(Main.class, "main")
+                            .build())));
+  }
+
+  @Test
+  public void testMappingInformation() throws Exception {
+    assumeTrue("R8/CF does not desugar", parameters.isDexRuntime());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepAttributeSourceFile()
+        .addKeepAttributeLineNumberTable()
+        .noTreeShaking()
+        .noMinification()
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatMatches(containsString("Hello World!"))
+        .inspectFailure(
+            inspector -> {
+              Collection<ClassReference> inputs =
+                  ImmutableList.of(classFromClass(MyRunner.class), classFromClass(Main.class));
+              for (FoundClassSubject clazz : inspector.allClasses()) {
+                if (inputs.contains(clazz.getFinalReference())) {
+                  assertThat(clazz, not(isCompilerSynthesized()));
+                } else {
+                  assertThat(clazz, isCompilerSynthesized());
+                }
+              }
+              assertEquals(inputs.size() + 1, inspector.allClasses().size());
             });
   }
 

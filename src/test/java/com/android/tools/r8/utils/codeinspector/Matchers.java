@@ -218,6 +218,28 @@ public class Matchers {
     };
   }
 
+  public static Matcher<Subject> isCompilerSynthesized() {
+    return new TypeSafeMatcher<Subject>() {
+      @Override
+      protected boolean matchesSafely(Subject subject) {
+        return subject.isPresent() && subject.isCompilerSynthesized();
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(" compiler synthesized");
+      }
+
+      @Override
+      public void describeMismatchSafely(final Subject subject, Description description) {
+        description
+            .appendText(type(subject) + " ")
+            .appendValue(name(subject))
+            .appendText(" was not");
+      }
+    };
+  }
+
   public static Matcher<ClassSubject> hasDefaultConstructor() {
     return new TypeSafeMatcher<ClassSubject>() {
       @Override

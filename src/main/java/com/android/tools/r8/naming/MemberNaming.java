@@ -172,7 +172,7 @@ public class MemberNaming {
 
     public static final NoSignature NO_SIGNATURE = new NoSignature();
 
-    public NoSignature() {
+    private NoSignature() {
       super("NO SIGNATURE");
     }
 

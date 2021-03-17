@@ -26,7 +26,9 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.naming.MemberNaming.NoSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
@@ -44,6 +46,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -409,6 +412,27 @@ public class FoundClassSubject extends ClassSubject {
   @Override
   public boolean isRenamed() {
     return naming != null && !getFinalDescriptor().equals(getOriginalDescriptor());
+  }
+
+  @Override
+  public boolean isCompilerSynthesized() {
+    if (naming == null) {
+      return false;
+    }
+    Map<Signature, List<MappingInformation>> additionalMappings = naming.getAdditionalMappings();
+    if (additionalMappings == null) {
+      return false;
+    }
+    List<MappingInformation> infos = additionalMappings.get(NoSignature.NO_SIGNATURE);
+    if (infos == null) {
+      return false;
+    }
+    for (MappingInformation info : infos) {
+      if (info.isCompilerSynthesizedMappingInformation()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

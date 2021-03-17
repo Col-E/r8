@@ -50,6 +50,14 @@ public abstract class MappingInformation {
     return null;
   }
 
+  public boolean isCompilerSynthesizedMappingInformation() {
+    return false;
+  }
+
+  public CompilerSynthesizedMappingInformation asCompilerSynthesizedMappingInformation() {
+    return null;
+  }
+
   public abstract boolean allowOther(MappingInformation information);
 
   public static MappingInformation fromJsonObject(
@@ -75,6 +83,9 @@ public abstract class MappingInformation {
         return MethodSignatureChangedInformation.build(object, diagnosticsHandler, lineNumber);
       case FileNameInformation.ID:
         return FileNameInformation.build(object, diagnosticsHandler, lineNumber);
+      case CompilerSynthesizedMappingInformation.ID:
+        return CompilerSynthesizedMappingInformation.deserialize(
+            object, diagnosticsHandler, lineNumber);
       default:
         diagnosticsHandler.info(MappingInformationDiagnostics.noHandlerFor(lineNumber, idString));
         return null;
