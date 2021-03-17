@@ -106,7 +106,7 @@ public class MergingJ$Test extends Jdk11DesugaredLibraryTestBase {
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
             .setOutput(outputDex, OutputMode.DexIndexed)
             .build());
@@ -121,7 +121,7 @@ public class MergingJ$Test extends Jdk11DesugaredLibraryTestBase {
             .addProgramFiles(JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES)
             .addClasspathFiles(ToolHelper.getDesugarJDKLibs())
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
             .setOutput(outputDex, OutputMode.DexIndexed)
             .build());

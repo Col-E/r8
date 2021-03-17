@@ -133,9 +133,6 @@ public class ToolHelper {
   public static final String DEFAULT_PROGUARD_MAP_FILE = "proguard.map";
 
   public static final String JAVA_8_RUNTIME = "third_party/openjdk/openjdk-rt-1.8/rt.jar";
-  public static final String DESUGAR_JDK_LIBS =
-      System.getProperty(
-          "desugar_jdk_libs", "third_party/openjdk/desugar_jdk_libs/desugar_jdk_libs.jar");
   public static final String CORE_LAMBDA_STUBS =
       "third_party/core-lambda-stubs/core-lambda-stubs.jar";
   public static final String JSR223_RI_JAR = "third_party/jsr223-api-1.0/jsr223-api-1.0.jar";
@@ -180,12 +177,24 @@ public class ToolHelper {
 
   public static final Path DESUGAR_LIB_CONVERSIONS =
       Paths.get(LIBS_DIR, "library_desugar_conversions.zip");
-  public static final String DESUGAR_LIB_JSON_DIR =
-      System.getProperty("desugar_jdk_json_dir", "src/library_desugar");
-  public static final Path DESUGAR_LIB_JSON_FOR_TESTING =
-      Paths.get(DESUGAR_LIB_JSON_DIR, "desugar_jdk_libs.json");
-  public static final Path DESUGAR_LIB_JSON_FOR_TESTING_ALTERNATIVE_3 =
-      Paths.get(DESUGAR_LIB_JSON_DIR, "desugar_jdk_libs_alternative_3.json");
+
+  public static Path getDesugarJDKLibs() {
+    return Paths.get(
+        System.getProperty(
+            "desugar_jdk_libs", "third_party/openjdk/desugar_jdk_libs/desugar_jdk_libs.jar"));
+  }
+
+  private static String getDesugarLibraryJsonDir() {
+    return System.getProperty("desugar_jdk_json_dir", "src/library_desugar");
+  }
+
+  public static Path getDesugarLibJsonForTesting() {
+    return Paths.get(getDesugarLibraryJsonDir(), "desugar_jdk_libs.json");
+  }
+
+  public static Path getDesugarLibJsonForTestingAlternative3() {
+    return Paths.get(getDesugarLibraryJsonDir(), "desugar_jdk_libs_alternative_3.json");
+  }
 
   public static boolean isLocalDevelopment() {
     return System.getProperty("local_development", "0").equals("1");
@@ -756,10 +765,6 @@ public class ToolHelper {
 
   public static Path getJava8RuntimeJar() {
     return Paths.get(JAVA_8_RUNTIME);
-  }
-
-  public static Path getDesugarJDKLibs() {
-    return Paths.get(DESUGAR_JDK_LIBS);
   }
 
   public static Path getCoreLambdaStubs() {

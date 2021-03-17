@@ -44,7 +44,7 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addProgramFiles(ToolHelper.getDesugarJDKLibs())
         .addDesugaredLibraryConfiguration(
-            StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
         .setMinApiLevel(minApiLevel.getLevel());
   }
 

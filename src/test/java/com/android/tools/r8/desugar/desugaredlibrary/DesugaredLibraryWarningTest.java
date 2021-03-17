@@ -58,7 +58,7 @@ public class DesugaredLibraryWarningTest extends DesugaredLibraryTestBase {
             .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
             .setMode(shrinkDesugaredLibrary ? CompilationMode.RELEASE : CompilationMode.DEBUG)
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .setMinApiLevel(parameters.getApiLevel().getLevel())
             .setOutput(desugaredLib, OutputMode.DexIndexed);
     if (shrinkDesugaredLibrary) {

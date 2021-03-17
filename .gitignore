@@ -111,6 +111,8 @@ third_party/kotlinx-coroutines-1.3.6
 third_party/nest/*
 third_party/openjdk/desugar_jdk_libs
 third_party/openjdk/desugar_jdk_libs.tar.gz
+third_party/openjdk/desugar_jdk_libs_11
+third_party/openjdk/desugar_jdk_libs_11.tar.gz
 third_party/openjdk/jdk-15/linux
 third_party/openjdk/jdk-15/linux.tar.gz
 third_party/openjdk/jdk-15/osx

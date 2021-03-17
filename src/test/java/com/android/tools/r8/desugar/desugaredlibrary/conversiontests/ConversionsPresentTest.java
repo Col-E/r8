@@ -48,7 +48,7 @@ public class ConversionsPresentTest extends DesugaredLibraryTestBase {
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .setMinApiLevel(parameters.getApiLevel().getLevel())
             .setOutput(desugaredLib, OutputMode.DexIndexed);
     ToolHelper.runL8(l8Builder.build(), x -> {});

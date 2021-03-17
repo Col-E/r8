@@ -115,7 +115,7 @@ public class DesugaredLibraryConfigurationParsingTest extends TestBase {
   public void testReference() throws Exception {
     // Just test that the reference file parses without issues.
     DesugaredLibraryConfiguration config =
-        runPassing(StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING));
+        runPassing(StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
     assertEquals(libraryCompilation, config.isLibraryCompilation());
   }
 

@@ -69,7 +69,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
             options.reporter,
             libraryCompilation,
             parameters.getApiLevel().getLevel())
-        .parse(StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING_ALTERNATIVE_3));
+        .parse(StringResource.fromFile(ToolHelper.getDesugarLibJsonForTestingAlternative3()));
   }
 
   private void configurationForProgramCompilation(InternalOptions options) {

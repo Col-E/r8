@@ -43,7 +43,7 @@ public class DesugaredLibraryChecksumsTest extends TestBase {
             .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
             .setMode(CompilationMode.DEBUG)
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
             .setOutput(out, OutputMode.DexIndexed)
             .build());

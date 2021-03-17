@@ -195,7 +195,7 @@ public class ExtractWrapperTypesTest extends TestBase {
     DesugaredLibraryConfigurationParser parser =
         new DesugaredLibraryConfigurationParser(
             new DexItemFactory(), null, true, minApi.getLevel());
-    return parser.parse(StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING));
+    return parser.parse(StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
   }
 
   private Map<ClassReference, Set<MethodReference>> getDirectlyReferencedWrapperTypes(
@@ -275,8 +275,8 @@ public class ExtractWrapperTypesTest extends TestBase {
     Path out = temp.newFolder().toPath();
     GenerateLintFiles desugaredApi =
         new GenerateLintFiles(
-            ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
-            ToolHelper.DESUGAR_JDK_LIBS,
+            ToolHelper.getDesugarLibJsonForTesting().toString(),
+            ToolHelper.getDesugarJDKLibs().toString(),
             out.toString());
     desugaredApi.run(targetApi.getLevel());
     return new CodeInspector(

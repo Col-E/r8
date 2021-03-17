@@ -76,7 +76,7 @@ public class InvokeSuperToRewrittenDefaultMethodTest extends DesugaredLibraryTes
                   // TODO(b/158543446): Remove this once enableCoreLibraryDesugaring is fixed.
                   b.getBuilder()
                       .addDesugaredLibraryConfiguration(
-                          StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING));
+                          StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
                 } else {
                   // TODO(b/158543446): Move this out to the shared builder once
                   //  enableCoreLibraryDesugaring is fixed.

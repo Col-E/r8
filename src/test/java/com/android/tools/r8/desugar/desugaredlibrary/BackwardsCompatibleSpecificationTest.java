@@ -28,7 +28,7 @@ public class BackwardsCompatibleSpecificationTest extends TestBase {
   }
 
   private final Path desugaredLib = ToolHelper.getDesugarJDKLibs();
-  private final Path desugaredSpec = ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING;
+  private final Path desugaredSpec = ToolHelper.getDesugarLibJsonForTesting();
   private final String release;
 
   public BackwardsCompatibleSpecificationTest(TestParameters parameters, String release) {

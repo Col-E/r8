@@ -66,7 +66,7 @@ public class MarkersTest extends TestBase {
             .setMinApiLevel(apiLevel.getLevel())
             .setMode(compilationMode)
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .setOutput(output, OutputMode.DexIndexed);
     if (shrinkDesugaredLibrary) {
       builder.addProguardConfiguration(ImmutableList.of("-keep class * { *; }"), Origin.unknown());
@@ -75,7 +75,7 @@ public class MarkersTest extends TestBase {
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
     String version =
         new JsonParser()
-            .parse(FileUtils.readTextFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING, Charsets.UTF_8))
+            .parse(FileUtils.readTextFile(ToolHelper.getDesugarLibJsonForTesting(), Charsets.UTF_8))
             .getAsJsonObject()
             .get("version")
             .getAsString();

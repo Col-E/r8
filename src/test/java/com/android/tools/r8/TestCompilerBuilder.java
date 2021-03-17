@@ -429,7 +429,7 @@ public abstract class TestCompilerBuilder<
       AndroidApiLevel minApiLevel, KeepRuleConsumer keepRuleConsumer) {
     assert minApiLevel.getLevel() < AndroidApiLevel.O.getLevel();
     builder.addDesugaredLibraryConfiguration(
-        StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING));
+        StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
     // TODO(b/158543446): This should not be setting an implicit library file. Doing so causes
     //  inconsistent library setup depending on the api level and makes tests hard to read and
     //  reason about.

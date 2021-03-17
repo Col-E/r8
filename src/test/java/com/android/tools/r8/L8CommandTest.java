@@ -58,7 +58,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
         L8Command.builder()
             .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .build());
   }
 
@@ -79,7 +79,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .setMinApiLevel(20)
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .setOutput(output, OutputMode.DexIndexed)
             .build());
     assertMarkersMatch(
@@ -96,7 +96,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .setMinApiLevel(20)
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .setOutput(output, OutputMode.ClassFile)
             .build());
     assertMarkersMatch(ExtractMarker.extractMarkerFromDexFile(output), markerTool(Tool.L8));
@@ -113,7 +113,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
             "--min-api",
             "20",
             "--desugared-lib",
-            ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
+            ToolHelper.getDesugarLibJsonForTesting().toString(),
             "--output",
             output.toString());
     L8.run(l8Command);
@@ -134,7 +134,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
             "--min-api",
             "20",
             "--desugared-lib",
-            ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
+            ToolHelper.getDesugarLibJsonForTesting().toString(),
             "--output",
             output.toString(),
             "--classfile");
@@ -150,7 +150,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
     parse(
         diagnostics,
         "--desugared-lib",
-        ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
+        ToolHelper.getDesugarLibJsonForTesting().toString(),
         "--pg-conf",
         pgconf.toString());
   }
@@ -164,7 +164,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
       parse(
           diagnostics,
           "--desugared-lib",
-          ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
+          ToolHelper.getDesugarLibJsonForTesting().toString(),
           "--pg-conf",
           pgconf.toString(),
           "--classfile");
@@ -182,7 +182,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
       parse(
           diagnostics,
           "--desugared-lib",
-          ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
+          ToolHelper.getDesugarLibJsonForTesting().toString(),
           "--pg-conf");
       fail("Expected parse error");
     } catch (CompilationFailedException e) {
@@ -236,7 +236,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
         prepareBuilder(diagnostics)
             .setProgramConsumer(programConsumer)
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .addProguardConfiguration(keepRules, Origin.unknown());
     assertTrue(builder.isShrinking());
     assertNotNull(builder.build().getR8Command());
@@ -270,7 +270,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
         prepareBuilder(diagnostics)
             .setProgramConsumer(programConsumer)
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .addProguardConfigurationFiles(keepRuleFile);
     assertTrue(builder1.isShrinking());
     assertNotNull(builder1.build().getR8Command());
@@ -281,7 +281,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
         prepareBuilder(new TestDiagnosticMessagesImpl())
             .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .addProguardConfigurationFiles(keepRuleFiles);
     assertTrue(builder2.isShrinking());
     assertNotNull(builder2.build().getR8Command());
@@ -308,7 +308,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
   @Test
   public void desugaredLibrary() throws CompilationFailedException {
     L8Command l8Command =
-        parse("--desugared-lib", ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString());
+        parse("--desugared-lib", ToolHelper.getDesugarLibJsonForTesting().toString());
     assertFalse(
         l8Command.getInternalOptions().desugaredLibraryConfiguration.getRewritePrefix().isEmpty());
   }
@@ -337,21 +337,21 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
         parse(
                 "--force-enable-assertions",
                 "--desugared-lib",
-                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+                ToolHelper.getDesugarLibJsonForTesting().toString())
             .getAssertionsConfiguration(),
         AssertionTransformation.ENABLE);
     checkSingleForceAllAssertion(
         parse(
                 "--force-disable-assertions",
                 "--desugared-lib",
-                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+                ToolHelper.getDesugarLibJsonForTesting().toString())
             .getAssertionsConfiguration(),
         AssertionTransformation.DISABLE);
     checkSingleForceAllAssertion(
         parse(
                 "--force-passthrough-assertions",
                 "--desugared-lib",
-                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+                ToolHelper.getDesugarLibJsonForTesting().toString())
             .getAssertionsConfiguration(),
         AssertionTransformation.PASSTHROUGH);
     checkSingleForceClassAndPackageAssertion(
@@ -359,7 +359,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
                 "--force-enable-assertions:ClassName",
                 "--force-enable-assertions:PackageName...",
                 "--desugared-lib",
-                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+                ToolHelper.getDesugarLibJsonForTesting().toString())
             .getAssertionsConfiguration(),
         AssertionTransformation.ENABLE);
     checkSingleForceClassAndPackageAssertion(
@@ -367,7 +367,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
                 "--force-disable-assertions:ClassName",
                 "--force-disable-assertions:PackageName...",
                 "--desugared-lib",
-                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+                ToolHelper.getDesugarLibJsonForTesting().toString())
             .getAssertionsConfiguration(),
         AssertionTransformation.DISABLE);
     checkSingleForceClassAndPackageAssertion(
@@ -375,7 +375,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
                 "--force-passthrough-assertions:ClassName",
                 "--force-passthrough-assertions:PackageName...",
                 "--desugared-lib",
-                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+                ToolHelper.getDesugarLibJsonForTesting().toString())
             .getAssertionsConfiguration(),
         AssertionTransformation.PASSTHROUGH);
   }
@@ -384,7 +384,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
   public void numThreadsOption() throws Exception {
     assertEquals(
         ThreadUtils.NOT_SPECIFIED,
-        parse("--desugared-lib", ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+        parse("--desugared-lib", ToolHelper.getDesugarLibJsonForTesting().toString())
             .getThreadCount());
     assertEquals(
         1,
@@ -392,7 +392,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
                 "--thread-count",
                 "1",
                 "--desugared-lib",
-                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+                ToolHelper.getDesugarLibJsonForTesting().toString())
             .getThreadCount());
     assertEquals(
         2,
@@ -400,7 +400,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
                 "--thread-count",
                 "2",
                 "--desugared-lib",
-                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+                ToolHelper.getDesugarLibJsonForTesting().toString())
             .getThreadCount());
     assertEquals(
         10,
@@ -408,7 +408,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
                 "--thread-count",
                 "10",
                 "--desugared-lib",
-                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+                ToolHelper.getDesugarLibJsonForTesting().toString())
             .getThreadCount());
   }
 
@@ -423,7 +423,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
                   "--thread-count",
                   value,
                   "--desugared-lib",
-                  ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString()));
+                  ToolHelper.getDesugarLibJsonForTesting().toString()));
       fail("Expected failure");
     } catch (CompilationFailedException e) {
       // Expected.
@@ -439,7 +439,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
 
   @Override
   String[] requiredArgsForTest() {
-    return new String[] {"--desugared-lib", ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString()};
+    return new String[] {"--desugared-lib", ToolHelper.getDesugarLibJsonForTesting().toString()};
   }
 
   @Override

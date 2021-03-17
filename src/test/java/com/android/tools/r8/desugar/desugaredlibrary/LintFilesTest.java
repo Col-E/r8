@@ -120,15 +120,15 @@ public class LintFilesTest extends TestBase {
     Path directory = temp.newFolder().toPath();
     GenerateLintFiles.main(
         new String[] {
-          ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
-          ToolHelper.DESUGAR_JDK_LIBS,
+          ToolHelper.getDesugarLibJsonForTesting().toString(),
+          ToolHelper.getDesugarJDKLibs().toString(),
           directory.toString()
         });
     InternalOptions options = new InternalOptions(new DexItemFactory(), new Reporter());
     DesugaredLibraryConfiguration desugaredLibraryConfiguration =
         new DesugaredLibraryConfigurationParser(
                 options.itemFactory, options.reporter, false, AndroidApiLevel.B.getLevel())
-            .parse(StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING));
+            .parse(StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
 
     for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
       Path compileApiLevelDirectory = directory.resolve("compile_api_level_" + apiLevel.getLevel());

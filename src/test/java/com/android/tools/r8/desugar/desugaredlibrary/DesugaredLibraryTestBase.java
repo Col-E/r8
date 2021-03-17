@@ -41,11 +41,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import org.junit.BeforeClass;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 
 public class DesugaredLibraryTestBase extends TestBase {
+
+  private static final boolean FORCE_JDK11_DESUGARED_LIB = false;
+
+  @BeforeClass
+  public static void setUpDesugaredLibrary() {
+    if (!FORCE_JDK11_DESUGARED_LIB) {
+      return;
+    }
+    System.setProperty("desugar_jdk_json_dir", "src/library_desugar/jdk11");
+    System.setProperty(
+        "desugar_jdk_libs", "third_party/openjdk/desugar_jdk_libs_11/desugar_jdk_libs.jar");
+    System.out.println("Forcing the usage of JDK11 desugared library.");
+  }
 
   // For conversions tests, we need DexRuntimes where classes to convert are present (DexRuntimes
   // above N and O depending if Stream or Time APIs are used), but we need to compile the program
@@ -124,7 +138,7 @@ public class DesugaredLibraryTestBase extends TestBase {
               .setMode(shrink ? CompilationMode.RELEASE : CompilationMode.DEBUG)
               .addProgramFiles(extraPaths)
               .addDesugaredLibraryConfiguration(
-                  StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                  StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
               .setMinApiLevel(apiLevel.getLevel())
               .setOutput(desugaredLib, OutputMode.DexIndexed);
       Path mapping = null;
@@ -201,7 +215,7 @@ public class DesugaredLibraryTestBase extends TestBase {
             .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
             .setMode(CompilationMode.DEBUG)
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .setMinApiLevel(parameters.getApiLevel().getLevel())
             .setOutput(desugaredLib, OutputMode.ClassFile);
 
@@ -220,7 +234,7 @@ public class DesugaredLibraryTestBase extends TestBase {
             libraryCompilation,
             parameters.getApiLevel().getLevel())
         .parse(
-            StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING),
+            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()),
             builder -> builder.setSupportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary));
   }
 
@@ -240,7 +254,7 @@ public class DesugaredLibraryTestBase extends TestBase {
             .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
             .setMode(CompilationMode.DEBUG)
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .setMinApiLevel(apiLevel.getLevel())
             .setOutput(desugaredLib, OutputMode.ClassFile);
     ToolHelper.runL8(l8Builder.build());

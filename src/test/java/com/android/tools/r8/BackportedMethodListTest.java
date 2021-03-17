@@ -88,7 +88,7 @@ public class BackportedMethodListTest {
   private void addLibraryDesugaring(BackportedMethodListCommand.Builder builder) {
     builder
         .addDesugaredLibraryConfiguration(
-            StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P.getLevel()));
   }
 
@@ -143,7 +143,7 @@ public class BackportedMethodListTest {
       BackportedMethodList.run(
           BackportedMethodListCommand.builder()
               .addDesugaredLibraryConfiguration(
-                  StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                  StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
               .setConsumer(new ListStringConsumer())
               .build());
       fail("Expected failure");

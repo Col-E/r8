@@ -70,7 +70,7 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
             .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
             .addLibraryFiles(ToolHelper.getCoreLambdaStubs())
             .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+                StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .setMinApiLevel(parameters.getApiLevel().getLevel())
             .setOutput(desugaredLib, OutputMode.DexIndexed);
     ToolHelper.runL8(l8Builder.build(), options -> {});

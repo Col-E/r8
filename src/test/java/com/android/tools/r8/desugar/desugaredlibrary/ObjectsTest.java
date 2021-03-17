@@ -75,8 +75,8 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
         .parse(
             StringResource.fromFile(
                 libraryDesugarJavaUtilObjects
-                    ? ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING_ALTERNATIVE_3
-                    : ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING));
+                    ? ToolHelper.getDesugarLibJsonForTestingAlternative3()
+                    : ToolHelper.getDesugarLibJsonForTesting()));
   }
 
   private void configurationForProgramCompilation(InternalOptions options) {
