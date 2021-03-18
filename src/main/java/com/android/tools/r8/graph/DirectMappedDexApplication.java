@@ -143,7 +143,8 @@ public class DirectMappedDexApplication extends DexApplication {
         if (definitionFor(type) == null && definitionFor(renamed) != null) {
           continue;
         }
-        assert definitionFor(type).type == renamed || definitionFor(renamed) != null;
+        assert definitionFor(type).type == renamed || definitionFor(renamed) != null
+            : "The lens and app is inconsistent";
       }
     }
     return true;

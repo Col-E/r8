@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import static com.android.tools.r8.TestBase.toDexType;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -72,8 +71,17 @@ public class HorizontallyMergedClassesInspector {
     return this;
   }
 
+  public HorizontallyMergedClassesInspector assertClassesMerged(Class<?>... classes) {
+    return assertClassesMerged(Arrays.asList(classes));
+  }
+
   public HorizontallyMergedClassesInspector assertClassesMerged(Collection<Class<?>> classes) {
     return assertTypesMerged(classes.stream().map(this::toDexType).collect(Collectors.toList()));
+  }
+
+  public HorizontallyMergedClassesInspector assertClassReferencesMerged(
+      ClassReference... classReferences) {
+    return assertClassReferencesMerged(Arrays.asList(classReferences));
   }
 
   public HorizontallyMergedClassesInspector assertClassReferencesMerged(
