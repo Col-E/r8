@@ -143,7 +143,7 @@ public class DumpOptions {
   }
 
   public boolean hasMainDexKeepRules() {
-    return mainDexKeepRules != null;
+    return mainDexKeepRules != null && !mainDexKeepRules.isEmpty();
   }
 
   public List<ProguardConfigurationRule> getMainDexKeepRules() {
