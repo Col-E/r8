@@ -82,8 +82,12 @@ public class DuplicateAPIDesugaredLibTest extends DesugaredLibraryTestBase {
 
   private void assertDupMethod(CodeInspector inspector, boolean supportAllCallbacksFromLibrary) {
     ClassSubject clazz = inspector.clazz("j$.util.concurrent.ConcurrentHashMap");
+    int numForEachMethods =
+        isJDK11DesugaredLibrary()
+            ? supportAllCallbacksFromLibrary ? 4 : 3
+            : supportAllCallbacksFromLibrary ? 2 : 1;
     assertEquals(
-        supportAllCallbacksFromLibrary ? 2 : 1,
+        numForEachMethods,
         clazz.virtualMethods().stream().filter(m -> m.getOriginalName().equals("forEach")).count());
   }
 

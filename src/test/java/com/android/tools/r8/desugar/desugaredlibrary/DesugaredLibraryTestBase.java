@@ -61,6 +61,11 @@ public class DesugaredLibraryTestBase extends TestBase {
     System.out.println("Forcing the usage of JDK11 desugared library.");
   }
 
+  public static boolean isJDK11DesugaredLibrary() {
+    String property = System.getProperty("desugar_jdk_json_dir", "");
+    return property.contains("jdk11");
+  }
+
   // For conversions tests, we need DexRuntimes where classes to convert are present (DexRuntimes
   // above N and O depending if Stream or Time APIs are used), but we need to compile the program
   // with a minAPI below to force the use of conversions.

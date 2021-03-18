@@ -223,8 +223,9 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
 
       System.out.println(ccollection.spliterator().getClass().getName());
       System.out.println("j$.util.Spliterators$IteratorSpliterator");
+      // See SpliteratorTest for the concrete class name.
       System.out.println(cArrayList.spliterator().getClass().getName());
-      System.out.println("j$.util.Spliterators$IteratorSpliterator");
+      System.out.println(new ArrayList<>().spliterator().getClass().getName());
       System.out.println(cSortedSet.spliterator().getClass().getName());
       System.out.println("j$.util.SortedSet$1");
       System.out.println(customSortedSetWithReverseChain.spliterator().getClass().getName());
@@ -264,7 +265,8 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
       System.out.println(ccollection.spliterator().getClass().getName());
       System.out.println("j$.util.Spliterators$IteratorSpliterator");
       System.out.println(cArrayList.spliterator().getClass().getName());
-      System.out.println("j$.util.Spliterators$IteratorSpliterator");
+      // See SpliteratorTest for the concrete class name.
+      System.out.println(new ArrayList<>().spliterator().getClass().getName());
       System.out.println(cSortedSet.spliterator().getClass().getName());
       System.out.println("j$.util.SortedSet$1");
       System.out.println(customSortedSetWithReverseChain.spliterator().getClass().getName());

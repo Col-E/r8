@@ -27,10 +27,8 @@ public class ProgramRewritingTestClass {
     ArrayList<Object> aList = new ArrayList<>();
     Queue<Object> queue = new LinkedList<>();
     LinkedHashSet<Object> lhs = new LinkedHashSet<>();
-    // They both should be rewritten to invokeStatic to the dispatch class.
+    // Following should be rewritten to invokeStatic to the dispatch class.
     System.out.println(set.spliterator().getClass().getName());
-    System.out.println("j$.util.Spliterators$IteratorSpliterator");
-    System.out.println(list.spliterator().getClass().getName());
     System.out.println("j$.util.Spliterators$IteratorSpliterator");
     // Following should be rewritten to invokeStatic to Collection dispatch class.
     System.out.println(set.stream().getClass().getName());

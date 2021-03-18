@@ -73,23 +73,31 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
     return files;
   }
 
-  private static String[] FAILING_RUNNABLE_TESTS =
-      new String[] {
-        // J9 failure.
-        "org/openjdk/tests/java/util/stream/SpliteratorTest.java",
-        "org/openjdk/tests/java/util/stream/WhileOpStatefulTest.java",
-        "org/openjdk/tests/java/util/stream/IterateTest.java",
-        "org/openjdk/tests/java/util/stream/WhileOpTest.java",
-        // Assertion error
-        "org/openjdk/tests/java/util/stream/StreamCloseTest.java",
-        "org/openjdk/tests/java/util/stream/CollectAndSummaryStatisticsTest.java",
-        "org/openjdk/tests/java/util/stream/CountTest.java",
-        // J9 Random problem
-        "org/openjdk/tests/java/util/stream/LongPrimitiveOpsTests.java",
-        "org/openjdk/tests/java/util/stream/IntPrimitiveOpsTests.java",
-        "org/openjdk/tests/java/util/stream/DoublePrimitiveOpsTests.java"
+  private static final String[] FAILING_RUNNABLE_TESTS = new String[] {
+        // Disabled, D8 generated code raises AbstractMethodError instead of NPE because of API
+        // unsupported in the desugared library.
+        // "org/openjdk/tests/java/util/stream/SpliteratorTest.java",
+        // Disabled because both the stream close issue and the Random issue (See below).
+        // "org/openjdk/tests/java/util/stream/LongPrimitiveOpsTests.java",
         // Disabled because explicit cast done on a wrapped value.
         // "org/openjdk/tests/java/util/SplittableRandomTest.java",
+        // Disabled due to a desugaring failure due to the extended library used for the test.
+        // "org/openjdk/tests/java/util/stream/IterateTest.java",
+      };
+
+  // Cannot succeed with JDK 8 desugared library because use J9 features.
+  // Stream close issue with try with resource desugaring mixed with partial library desugaring.
+  public static final String[] STREAM_CLOSE_TESTS =
+      new String[] {"org/openjdk/tests/java/util/stream/StreamCloseTest.java"};
+
+  // Cannot succeed with JDK 8 desugared library because use J9 features.
+  public static final String[] SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_AND_V7 =
+      new String[] {
+        // Require the virtual method isDefault() in class java/lang/reflect/Method.
+        "org/openjdk/tests/java/util/stream/WhileOpTest.java",
+        "org/openjdk/tests/java/util/stream/WhileOpStatefulTest.java",
+        // Require a Random method not present before Android 7 and not desugared.
+        "org/openjdk/tests/java/util/stream/IntPrimitiveOpsTests.java"
       };
 
   // Disabled because time to run > 1 min for each test.
@@ -106,6 +114,15 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
         "org/openjdk/tests/java/util/stream/StreamBuilderTest.java",
         "org/openjdk/tests/java/util/stream/SliceOpTest.java",
         "org/openjdk/tests/java/util/stream/ToArrayOpTest.java"
+      };
+
+  private static final String[] SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_ONLY =
+      new String[] {
+        // Assertion error
+        "org/openjdk/tests/java/util/stream/CollectAndSummaryStatisticsTest.java",
+        "org/openjdk/tests/java/util/stream/CountTest.java",
+        // J9 Random problem
+        "org/openjdk/tests/java/util/stream/DoublePrimitiveOpsTests.java",
       };
 
   private static String[] SUCCESSFUL_RUNNABLE_TESTS =
@@ -136,6 +153,37 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
         "org/openjdk/tests/java/util/stream/FindAnyOpTest.java"
       };
 
+  private Map<String, String> getSuccessfulTests() {
+    Map<String, String> runnableTests = getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS);
+    if (isJDK11DesugaredLibrary()) {
+      runnableTests.putAll(getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_ONLY));
+      if (parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V7_0_0)) {
+        runnableTests.putAll(getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_AND_V7));
+      }
+      if (!parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.K)) {
+        runnableTests.putAll(getRunnableTests(STREAM_CLOSE_TESTS));
+      }
+    }
+    return runnableTests;
+  }
+
+  private Map<String, String> getFailingTests() {
+    Map<String, String> runnableTests = getRunnableTests(FAILING_RUNNABLE_TESTS);
+    if (!isJDK11DesugaredLibrary()) {
+      runnableTests.putAll(getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_ONLY));
+      runnableTests.putAll(getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_AND_V7));
+      runnableTests.putAll(getRunnableTests(STREAM_CLOSE_TESTS));
+    } else {
+      if (parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.K)) {
+        runnableTests.putAll(getRunnableTests(STREAM_CLOSE_TESTS));
+      }
+      if (!parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V7_0_0)) {
+        runnableTests.putAll(getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_AND_V7));
+      }
+    }
+    return runnableTests;
+  }
+
   private static Map<String, String> getRunnableTests(String[] tests) {
     IdentityHashMap<String, String> pathToName = new IdentityHashMap<>();
     int javaExtSize = JAVA_EXTENSION.length();
@@ -150,16 +198,18 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
 
   private static String[] missingDesugaredMethods() {
     // These methods are from Java 9 and not supported in the current desugared libraries.
-    return new String[]{
-        // Stream
-        "takeWhile(",
-        "dropWhile(",
-        "iterate(",
-        "range(",
-        "doubles(",
-        // Collectors
-        "filtering(",
-        "flatMapping(",
+    return new String[] {
+      // Stream
+      "takeWhile(",
+      "dropWhile(",
+      "iterate(",
+      "range(",
+      "doubles(",
+      // Collectors
+      "filtering(",
+      "flatMapping(",
+      // isDefault()Z in class Ljava/lang/reflect/Method
+      "isDefault("
     };
   }
 
@@ -262,7 +312,7 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
 
   private void runSuccessfulTests(D8TestCompileResult compileResult) throws Exception {
     String verbosity = "2"; // Increase verbosity for debugging.
-    Map<String, String> runnableTests = getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS);
+    Map<String, String> runnableTests = getSuccessfulTests();
     for (String path : runnableTests.keySet()) {
       assert runnableTests.get(path) != null;
       D8TestRunResult result =
@@ -281,7 +331,7 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
     // For failing runnable tests, we just ensure that they do not fail due to desugaring, but
     // due to an expected failure (missing API, etc.).
     String verbosity = "2"; // Increase verbosity for debugging.
-    Map<String, String> runnableTests = getRunnableTests(FAILING_RUNNABLE_TESTS);
+    Map<String, String> runnableTests = getFailingTests();
     for (String path : runnableTests.keySet()) {
       assert runnableTests.get(path) != null;
       D8TestRunResult result =
@@ -290,9 +340,6 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
       String stdout = result.getStdOut();
       if (stdout.contains("java.lang.NoSuchMethodError")
           && Arrays.stream(missingDesugaredMethods()).anyMatch(stdout::contains)) {
-        // TODO(b/134732760): support Java 9 APIs.
-      } else if (stdout.contains("java.lang.NoSuchMethodError")
-          && stdout.contains("org.openjdk.tests.java.util.stream.IterateTest.testIterate")) {
         // TODO(b/134732760): support Java 9 APIs.
       } else if (stdout.contains("in class Ljava/util/Random")
           && stdout.contains("java.lang.NoSuchMethodError")) {

@@ -14,7 +14,6 @@ import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -154,28 +153,24 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
             .streamInstructions()
             .filter(instr -> instr.isInvokeInterface() || instr.isInvokeStatic())
             .collect(Collectors.toList());
-    assertEquals(23, invokes.size());
+    assertEquals(22, invokes.size());
     assertInvokeStaticMatching(invokes, 0, "Set$-EL;->spliterator");
-    assertInvokeStaticMatching(invokes, 1, "List$-EL;->spliterator");
-    assertInvokeStaticMatching(invokes, 2, "Collection$-EL;->stream");
-    assertInvokeInterfaceMatching(invokes, 3, "Set;->iterator");
-    assertInvokeStaticMatching(invokes, 4, "Collection$-EL;->stream");
-    assertInvokeStaticMatching(invokes, 5, "Set$-EL;->spliterator");
-    assertInvokeInterfaceMatching(invokes, 9, "Iterator;->remove");
+    assertInvokeStaticMatching(invokes, 1, "Collection$-EL;->stream");
+    assertInvokeInterfaceMatching(invokes, 2, "Set;->iterator");
+    assertInvokeStaticMatching(invokes, 3, "Collection$-EL;->stream");
+    assertInvokeStaticMatching(invokes, 4, "Set$-EL;->spliterator");
+    assertInvokeInterfaceMatching(invokes, 8, "Iterator;->remove");
+    assertInvokeStaticMatching(invokes, 9, "DesugarArrays;->spliterator");
     assertInvokeStaticMatching(invokes, 10, "DesugarArrays;->spliterator");
-    assertInvokeStaticMatching(invokes, 11, "DesugarArrays;->spliterator");
+    assertInvokeStaticMatching(invokes, 11, "DesugarArrays;->stream");
     assertInvokeStaticMatching(invokes, 12, "DesugarArrays;->stream");
-    assertInvokeStaticMatching(invokes, 13, "DesugarArrays;->stream");
-    assertInvokeStaticMatching(invokes, 14, "Collection$-EL;->stream");
-    assertInvokeStaticMatching(invokes, 15, "IntStream$-CC;->range");
-    assertInvokeStaticMatching(invokes, 17, "Comparator$-CC;->comparingInt");
-    assertInvokeStaticMatching(invokes, 18, "List$-EL;->sort");
-    assertInvokeStaticMatching(invokes, 20, "Comparator$-CC;->comparingInt");
-    assertInvokeStaticMatching(invokes, 21, "List$-EL;->sort");
-    assertInvokeStaticMatching(invokes, 22, "Collection$-EL;->stream");
-    // TODO (b/134732760): Support Java 9 Stream APIs
-    // assertTrue(invokes.get(17).isInvokeStatic());
-    // assertTrue(invokes.get(17).toString().contains("Stream$-CC;->iterate"));
+    assertInvokeStaticMatching(invokes, 13, "Collection$-EL;->stream");
+    assertInvokeStaticMatching(invokes, 14, "IntStream$-CC;->range");
+    assertInvokeStaticMatching(invokes, 16, "Comparator$-CC;->comparingInt");
+    assertInvokeStaticMatching(invokes, 17, "List$-EL;->sort");
+    assertInvokeStaticMatching(invokes, 19, "Comparator$-CC;->comparingInt");
+    assertInvokeStaticMatching(invokes, 20, "List$-EL;->sort");
+    assertInvokeStaticMatching(invokes, 21, "Collection$-EL;->stream");
   }
 
   private void assertInvokeInterfaceMatching(List<InstructionSubject> invokes, int i, String s) {
@@ -193,7 +188,6 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
         StringUtils.lines(
             "-keep class j$.util.List$-EL {",
             "    void sort(java.util.List, java.util.Comparator);",
-            "    j$.util.Spliterator spliterator(java.util.List);",
             "}",
             "-keep class j$.util.Collection$-EL {",
             "    j$.util.stream.Stream stream(java.util.Collection);",
