@@ -164,7 +164,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
         parse(
             diagnostics,
             "--desugared-lib",
-            ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
+            ToolHelper.getDesugarLibJsonForTesting().toString(),
             "--pg-conf",
             pgconf.toString(),
             "--pg-map-output",
