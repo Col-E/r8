@@ -98,9 +98,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
   @Override
   public void scan(ProgramMethod method, CfInstructionDesugaringEventConsumer eventConsumer) {
     ensureCfCode(method);
-    if (recordRewriter != null) {
-      recordRewriter.scan(method, eventConsumer);
-    }
+    desugarings.forEach(d -> d.scan(method, eventConsumer));
   }
 
   @Override

@@ -78,6 +78,7 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
     recordHashCodeHelperProto = factory.createProto(factory.intType, factory.recordType);
   }
 
+  @Override
   public void scan(
       ProgramMethod programMethod, CfInstructionDesugaringEventConsumer eventConsumer) {
     CfCode cfCode = programMethod.getDefinition().getCode().asCfCode();

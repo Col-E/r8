@@ -15,6 +15,9 @@ import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -28,17 +31,39 @@ import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.Box;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.Set;
 import org.objectweb.asm.Opcodes;
 
 public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
 
   private final AppView<?> appView;
+  private final Set<DexMethod> directTargetedLambdaImplementationMethods =
+      Sets.newIdentityHashSet();
+
+  public boolean isDirectTargetedLambdaImplementationMethod(DexMethodHandle implMethod) {
+    return implMethod.type.isInvokeDirect()
+        && directTargetedLambdaImplementationMethods.contains(implMethod.asMethod());
+  }
 
   public LambdaInstructionDesugaring(AppView<?> appView) {
     this.appView = appView;
+  }
+
+  @Override
+  public void scan(ProgramMethod method, CfInstructionDesugaringEventConsumer eventConsumer) {
+    CfCode code = method.getDefinition().getCode().asCfCode();
+    for (CfInstruction instruction : code.getInstructions()) {
+      if (instruction.isInvokeSpecial()) {
+        DexMethod target = instruction.asInvoke().getMethod();
+        if (target.getName().startsWith(appView.dexItemFactory().javacLambdaMethodPrefix)) {
+          directTargetedLambdaImplementationMethods.add(target);
+        }
+      }
+    }
   }
 
   @Override

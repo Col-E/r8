@@ -4,11 +4,8 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import static com.android.tools.r8.ir.desugar.LambdaClass.JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX;
-
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -180,14 +177,9 @@ public final class LambdaDescriptor {
     return targetHolder == type;
   }
 
-  public boolean canAccessModifyLambdaImplementationMethods(AppView<?> appView) {
-    return appView.enableWholeProgramOptimizations();
-  }
-
   /** If the lambda delegates to lambda$ method. */
-  public boolean delegatesToLambdaImplMethod() {
-    String methodName = implHandle.asMethod().getName().toString();
-    return methodName.startsWith(JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX);
+  public boolean delegatesToLambdaImplMethod(DexItemFactory factory) {
+    return implHandle.asMethod().getName().startsWith(factory.javacLambdaMethodPrefix);
   }
 
   /** Is a stateless lambda, i.e. lambda does not capture any values */
@@ -196,12 +188,7 @@ public final class LambdaDescriptor {
   }
 
   /** Checks if call site needs a accessor when referenced from `accessedFrom`. */
-  boolean needsAccessor(AppView<?> appView, ProgramMethod accessedFrom) {
-    if (appView.options().canAccessModifyLambdaImplementationMethods(appView)
-        && delegatesToLambdaImplMethod()) {
-      return false;
-    }
-
+  boolean needsAccessor(ProgramMethod accessedFrom) {
     if (implHandle.type.isInvokeInterface()) {
       // Interface methods must be public.
       return false;

@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
+import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
@@ -272,12 +273,6 @@ public final class LambdaClass {
   // Creates a delegation target for this particular lambda class. Note that we
   // should always be able to create targets for the lambdas we support.
   private Target createTarget(ProgramMethod accessedFrom) {
-    if (appView.options().canAccessModifyLambdaImplementationMethods(appView)
-        && descriptor.delegatesToLambdaImplMethod()) {
-      return createLambdaImplMethodTarget(accessedFrom);
-    }
-
-    // Method referenced directly, without lambda$ method.
     switch (descriptor.implHandle.type) {
       case INVOKE_SUPER:
         throw new Unimplemented("Method references to super methods are not yet supported");
@@ -286,13 +281,30 @@ public final class LambdaClass {
       case INVOKE_CONSTRUCTOR:
         return createConstructorTarget(accessedFrom);
       case INVOKE_STATIC:
-        return createStaticMethodTarget(accessedFrom);
+        return canAccessModifyLambdaImplMethod()
+            ? createLambdaImplMethodTarget(accessedFrom)
+            : createStaticMethodTarget(accessedFrom);
       case INVOKE_DIRECT:
+        return canAccessModifyLambdaImplMethod()
+            ? createLambdaImplMethodTarget(accessedFrom)
+            : createInstanceMethodTarget(accessedFrom);
       case INVOKE_INSTANCE:
         return createInstanceMethodTarget(accessedFrom);
       default:
         throw new Unreachable("Unexpected method handle type in " + descriptor.implHandle);
     }
+  }
+
+  private boolean doesNotNeedAccessor(ProgramMethod accessedFrom) {
+    return canAccessModifyLambdaImplMethod() || !descriptor.needsAccessor(accessedFrom);
+  }
+
+  private boolean canAccessModifyLambdaImplMethod() {
+    MethodHandleType invokeType = descriptor.implHandle.type;
+    return appView.options().canAccessModifyLambdaImplementationMethods(appView)
+        && (invokeType.isInvokeDirect() || invokeType.isInvokeStatic())
+        && descriptor.delegatesToLambdaImplMethod(appView.dexItemFactory())
+        && !desugaring.isDirectTargetedLambdaImplementationMethod(descriptor.implHandle);
   }
 
   private Target createLambdaImplMethodTarget(ProgramMethod accessedFrom) {
@@ -301,6 +313,7 @@ public final class LambdaClass {
     DexMethod implMethod = implHandle.asMethod();
 
     // Lambda$ method. We should always find it. If not found an ICCE can be expected to be thrown.
+    assert descriptor.delegatesToLambdaImplMethod(appView.dexItemFactory());
     assert implMethod.holder == accessedFrom.getHolderType();
     assert descriptor.verifyTargetFoundInClass(accessedFrom.getHolderType());
     if (implHandle.type.isInvokeStatic()) {
@@ -318,12 +331,10 @@ public final class LambdaClass {
               result.getResolvedHolder().asProgramClass(), result.getResolvedMethod()));
     }
 
-    assert implHandle.type.isInvokeInstance() || implHandle.type.isInvokeDirect();
-
+    assert implHandle.type.isInvokeDirect();
     // If the lambda$ method is an instance-private method on an interface we convert it into a
     // public static method as it will be placed on the companion class.
-    if (implHandle.type.isInvokeDirect()
-        && appView.definitionFor(implMethod.holder).isInterface()) {
+    if (appView.definitionFor(implMethod.holder).isInterface()) {
       DexProto implProto = implMethod.proto;
       DexType[] implParams = implProto.parameters.values;
       DexType[] newParams = new DexType[implParams.length + 1];
@@ -356,7 +367,7 @@ public final class LambdaClass {
     assert descriptor.implHandle.type.isInvokeInstance() ||
         descriptor.implHandle.type.isInvokeDirect();
 
-    if (!descriptor.needsAccessor(appView, accessedFrom)) {
+    if (doesNotNeedAccessor(accessedFrom)) {
       return new NoAccessorMethodTarget(Invoke.Type.VIRTUAL);
     }
     // We need to generate an accessor method in `accessedFrom` class/interface
@@ -388,7 +399,7 @@ public final class LambdaClass {
   private Target createStaticMethodTarget(ProgramMethod accessedFrom) {
     assert descriptor.implHandle.type.isInvokeStatic();
 
-    if (!descriptor.needsAccessor(appView, accessedFrom)) {
+    if (doesNotNeedAccessor(accessedFrom)) {
       return new NoAccessorMethodTarget(Invoke.Type.STATIC);
     }
 
@@ -412,7 +423,7 @@ public final class LambdaClass {
     assert implHandle != null;
     assert implHandle.type.isInvokeConstructor();
 
-    if (!descriptor.needsAccessor(appView, accessedFrom)) {
+    if (doesNotNeedAccessor(accessedFrom)) {
       return new NoAccessorMethodTarget(Invoke.Type.DIRECT);
     }
 
@@ -435,7 +446,7 @@ public final class LambdaClass {
   // Create targets for interface methods.
   private Target createInterfaceMethodTarget(ProgramMethod accessedFrom) {
     assert descriptor.implHandle.type.isInvokeInterface();
-    assert !descriptor.needsAccessor(appView, accessedFrom);
+    assert doesNotNeedAccessor(accessedFrom);
     return new NoAccessorMethodTarget(Invoke.Type.INTERFACE);
   }
 

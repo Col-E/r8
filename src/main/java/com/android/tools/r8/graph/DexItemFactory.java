@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -299,6 +300,8 @@ public class DexItemFactory {
 
   public final DexString thisName = createString("this");
   public final DexString lambdaInstanceFieldName = createString(LAMBDA_INSTANCE_FIELD_NAME);
+  public final DexString javacLambdaMethodPrefix =
+      createString(LambdaClass.JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX);
 
   // As much as possible, R8 should rely on the content of the static enum field, using
   // enumMembers.isValuesFieldCandidate or checking the object state in the optimization info.

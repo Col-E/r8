@@ -43,10 +43,7 @@ public class ExplicitCallToJavacGeneratedInstanceLambdaMethodTest extends TestBa
         .addProgramClasses(Main.class, A.class, FunctionalInterface.class)
         .addProgramClassFileData(getProgramClassFileData())
         .run(parameters.getRuntime(), Main.class)
-        .applyIf(
-            parameters.isCfRuntime(),
-            result -> result.assertSuccessWithOutputLines("Hello world!", "Hello world!"),
-            result -> result.assertFailureWithErrorThatThrows(NoSuchMethodError.class));
+        .assertSuccessWithOutputLines("Hello world!", "Hello world!");
   }
 
   @Test

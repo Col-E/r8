@@ -12,6 +12,10 @@ import java.util.Collection;
 /** Interface for desugaring a single class-file instruction. */
 public interface CfInstructionDesugaring {
 
+  default void scan(ProgramMethod method, CfInstructionDesugaringEventConsumer eventConsumer) {
+    // Default scan is to do nothing.
+  }
+
   /**
    * Given an instruction, returns the list of instructions that the instruction should be desugared
    * to. If no desugaring is needed, {@code null} should be returned (for efficiency).
