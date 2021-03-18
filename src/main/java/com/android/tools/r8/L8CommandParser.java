@@ -18,8 +18,15 @@ import java.util.Set;
 
 public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Command.Builder> {
 
-  private static final Set<String> OPTIONS_WITH_PARAMETER = ImmutableSet.of(
-      "--output", "--lib", MIN_API_FLAG, "--desugared-lib", THREAD_COUNT_FLAG, "--pg-conf");
+  private static final Set<String> OPTIONS_WITH_PARAMETER =
+      ImmutableSet.of(
+          "--output",
+          "--lib",
+          MIN_API_FLAG,
+          "--desugared-lib",
+          THREAD_COUNT_FLAG,
+          "--pg-conf",
+          "--pg-map-output");
 
   public static void main(String[] args) throws CompilationFailedException {
     L8Command command = parse(args, Origin.root()).build();
@@ -50,6 +57,8 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
                       + AndroidApiLevel.getDefault().getLevel()
                       + ".",
                   "  --pg-conf <file>        # Proguard configuration <file>.",
+                  "  --pg-map-output <file>  # Output the resulting name and line mapping to"
+                      + " <file>.",
                   "  --desugared-lib <file>  # Specify desugared library configuration.",
                   "                          # <file> is a desugared library configuration"
                       + " (json)."),
@@ -149,6 +158,8 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
         addLibraryArgument(builder, origin, nextArg);
       } else if (arg.equals("--pg-conf")) {
         builder.addProguardConfigurationFiles(Paths.get(nextArg));
+      } else if (arg.equals("--pg-map-output")) {
+        builder.setProguardMapOutputPath(Paths.get(nextArg));
       } else if (arg.equals("--desugared-lib")) {
         builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
       } else if (arg.equals("--classfile")) {

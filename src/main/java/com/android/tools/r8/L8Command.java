@@ -253,6 +253,33 @@ public final class L8Command extends BaseCompilerCommand {
       return self();
     }
 
+    /**
+     * Set an output destination to which proguard-map content should be written.
+     *
+     * <p>This is a short-hand for setting a {@link StringConsumer.FileConsumer} using {@link
+     * #setProguardMapConsumer}. Note that any subsequent call to this method or {@link
+     * #setProguardMapConsumer} will override the previous setting.
+     *
+     * @param proguardMapOutput File-system path to write output at.
+     */
+    @Override
+    public L8Command.Builder setProguardMapOutputPath(Path proguardMapOutput) {
+      return super.setProguardMapOutputPath(proguardMapOutput);
+    }
+
+    /**
+     * Set a consumer for receiving the proguard-map content.
+     *
+     * <p>Note that any subsequent call to this method or {@link #setProguardMapOutputPath} will
+     * override the previous setting.
+     *
+     * @param proguardMapConsumer Consumer to receive the content once produced.
+     */
+    @Override
+    public L8Command.Builder setProguardMapConsumer(StringConsumer proguardMapConsumer) {
+      return super.setProguardMapConsumer(proguardMapConsumer);
+    }
+
     @Override
     void validate() {
       if (isPrintHelp()) {
@@ -272,6 +299,9 @@ public final class L8Command extends BaseCompilerCommand {
       }
       if (isShrinking() && getProgramConsumer() instanceof ClassFileConsumer) {
         reporter.error("L8 does not support shrinking when generating class files");
+      }
+      if (!isShrinking() && proguardMapConsumer != null) {
+        reporter.error("L8 does not support defining a map consumer when not shrinking");
       }
       super.validate();
     }
@@ -294,7 +324,7 @@ public final class L8Command extends BaseCompilerCommand {
       D8Command d8Command = null;
 
       AndroidApp inputs = getAppBuilder().build();
-      ProgramConsumer l8CfConsumer = null;
+      ProgramConsumer l8CfConsumer;
       if (isShrinking()) {
         l8CfConsumer = new InMemoryJarContent();
         R8Command.Builder r8Builder =
@@ -313,6 +343,9 @@ public final class L8Command extends BaseCompilerCommand {
         }
         for (Pair<List<String>, Origin> proguardConfig : proguardConfigStrings) {
           r8Builder.addProguardConfiguration(proguardConfig.getFirst(), proguardConfig.getSecond());
+        }
+        if (proguardMapConsumer != null) {
+          r8Builder.setProguardMapConsumer(proguardMapConsumer);
         }
         r8Builder.addProguardConfiguration(
             libraryConfiguration.getExtraKeepRules(), Origin.unknown());

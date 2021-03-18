@@ -206,6 +206,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
     private List<AssertionsConfiguration> assertionsConfiguration = new ArrayList<>();
     private List<Consumer<Inspector>> outputInspections = new ArrayList<>();
+    protected StringConsumer proguardMapConsumer = null;
 
     abstract CompilationMode defaultCompilationMode();
 
@@ -275,6 +276,33 @@ public abstract class BaseCompilerCommand extends BaseCommand {
      */
     public ProgramConsumer getProgramConsumer() {
       return programConsumer;
+    }
+
+    /**
+     * Set an output destination to which proguard-map content should be written.
+     *
+     * <p>This is a short-hand for setting a {@link StringConsumer.FileConsumer} using {@link
+     * #setProguardMapConsumer}. Note that any subsequent call to this method or {@link
+     * #setProguardMapConsumer} will override the previous setting.
+     *
+     * @param proguardMapOutput File-system path to write output at.
+     */
+    B setProguardMapOutputPath(Path proguardMapOutput) {
+      assert proguardMapOutput != null;
+      return setProguardMapConsumer(new StringConsumer.FileConsumer(proguardMapOutput));
+    }
+
+    /**
+     * Set a consumer for receiving the proguard-map content.
+     *
+     * <p>Note that any subsequent call to this method or {@link #setProguardMapOutputPath} will
+     * override the previous setting.
+     *
+     * @param proguardMapConsumer Consumer to receive the content once produced.
+     */
+    B setProguardMapConsumer(StringConsumer proguardMapConsumer) {
+      this.proguardMapConsumer = proguardMapConsumer;
+      return self();
     }
 
     /**

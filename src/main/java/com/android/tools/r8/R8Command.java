@@ -102,7 +102,6 @@ public final class R8Command extends BaseCompilerCommand {
     private boolean disableVerticalClassMerging = false;
     private boolean forceProguardCompatibility = false;
     private Optional<Boolean> includeDataResources = Optional.empty();
-    private StringConsumer proguardMapConsumer = null;
     private StringConsumer proguardUsageConsumer = null;
     private StringConsumer proguardSeedsConsumer = null;
     private StringConsumer proguardConfigurationConsumer = null;
@@ -237,10 +236,9 @@ public final class R8Command extends BaseCompilerCommand {
      *
      * @param proguardMapOutput File-system path to write output at.
      */
+    @Override
     public Builder setProguardMapOutputPath(Path proguardMapOutput) {
-      assert proguardMapOutput != null;
-      this.proguardMapConsumer = new StringConsumer.FileConsumer(proguardMapOutput);
-      return self();
+      return super.setProguardMapOutputPath(proguardMapOutput);
     }
 
     /**
@@ -251,9 +249,9 @@ public final class R8Command extends BaseCompilerCommand {
      *
      * @param proguardMapConsumer Consumer to receive the content once produced.
      */
+    @Override
     public Builder setProguardMapConsumer(StringConsumer proguardMapConsumer) {
-      this.proguardMapConsumer = proguardMapConsumer;
-      return self();
+      return super.setProguardMapConsumer(proguardMapConsumer);
     }
 
     /**

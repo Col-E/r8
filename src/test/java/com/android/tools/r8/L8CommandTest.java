@@ -15,19 +15,19 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformationScope;
-import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
@@ -117,7 +117,6 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
             "--output",
             output.toString());
     L8.run(l8Command);
-    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
     assertMarkersMatch(
         ExtractMarker.extractMarkerFromDexFile(output),
         ImmutableList.of(markerTool(Tool.L8), markerTool(Tool.D8)));
@@ -153,6 +152,29 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
         ToolHelper.getDesugarLibJsonForTesting().toString(),
         "--pg-conf",
         pgconf.toString());
+  }
+
+  @Test
+  public void testFlagPgConfWithConsumer() throws Exception {
+    TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
+    Path pgconf = temp.newFolder().toPath().resolve("pg.conf");
+    Path pgMap = temp.newFolder().toPath().resolve("pg-map.txt");
+    FileUtils.writeTextFile(pgconf, "");
+    L8Command parsedCommand =
+        parse(
+            diagnostics,
+            "--desugared-lib",
+            ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
+            "--pg-conf",
+            pgconf.toString(),
+            "--pg-map-output",
+            pgMap.toString());
+    assertNotNull(parsedCommand.getR8Command());
+    InternalOptions internalOptions = parsedCommand.getR8Command().getInternalOptions();
+    assertNotNull(internalOptions);
+    assertTrue(internalOptions.proguardMapConsumer instanceof StringConsumer.FileConsumer);
+    FileConsumer proguardMapConsumer = (FileConsumer) internalOptions.proguardMapConsumer;
+    assertEquals(pgMap, proguardMapConsumer.getOutputPath());
   }
 
   @Test
@@ -225,6 +247,29 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
         "L8 requires a desugared library configuration",
         (handler) ->
             prepareBuilder(handler).setProgramConsumer(ClassFileConsumer.emptyConsumer()).build());
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void proguardMapConsumerNotShrinking() throws Throwable {
+    DiagnosticsChecker.checkErrorsContains(
+        "L8 does not support defining a map consumer when not shrinking",
+        (handler) ->
+            prepareBuilder(handler)
+                .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+                .setProguardMapConsumer(StringConsumer.emptyConsumer())
+                .build());
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void proguardMapOutputNotShrinking() throws Throwable {
+    Path pgMapOut = temp.newFile("pg-out.txt").toPath();
+    DiagnosticsChecker.checkErrorsContains(
+        "L8 does not support defining a map consumer when not shrinking",
+        (handler) ->
+            prepareBuilder(handler)
+                .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+                .setProguardMapOutputPath(pgMapOut)
+                .build());
   }
 
   private void addProguardConfigurationString(
