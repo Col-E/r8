@@ -427,13 +427,19 @@ public class Repackaging {
       }
       // Ensure that the generated name is unique.
       DexType finalRepackagedDexType = repackagedDexType;
-      for (int i = 1; mappings.inverse().containsKey(finalRepackagedDexType); i++) {
+      for (int i = 1; isRepackageTypeUsed(finalRepackagedDexType, mappings, appView); i++) {
         finalRepackagedDexType =
             repackagedDexType.addSuffix(
                 Character.toString(INNER_CLASS_SEPARATOR) + i, dexItemFactory);
       }
       return finalRepackagedDexType;
     }
+  }
+
+  private static boolean isRepackageTypeUsed(
+      DexType type, BiMap<DexType, DexType> mappings, AppView<?> appView) {
+    return mappings.inverse().containsKey(type)
+        || (appView.hasLiveness() && appView.withLiveness().appInfo().wasPruned(type));
   }
 
   /** Testing only. */

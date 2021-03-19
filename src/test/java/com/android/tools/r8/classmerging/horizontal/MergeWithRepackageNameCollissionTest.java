@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
-import static org.hamcrest.CoreMatchers.containsString;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestParameters;
@@ -27,7 +24,7 @@ public class MergeWithRepackageNameCollissionTest extends HorizontalClassMerging
     super(parameters);
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getProgramFileData())
@@ -37,12 +34,8 @@ public class MergeWithRepackageNameCollissionTest extends HorizontalClassMerging
         .setMinApi(parameters.getApiLevel())
         .enableNoHorizontalClassMergingAnnotations()
         .enableInliningAnnotations()
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              // TODO(b/183111898): Should not fail.
-              diagnostics.assertErrorMessageThatMatches(
-                  containsString("The lens and app is inconsistent"));
-            });
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("C::baz", "Hello World");
   }
 
   private Collection<byte[]> getProgramFileData() throws Exception {
