@@ -8,8 +8,8 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class CompilationContext {
@@ -35,7 +35,7 @@ public class CompilationContext {
   }
 
   private final Consumer<String> testingConsumer;
-  private final Set<String> seenSetForTesting = new HashSet<>();
+  private final Map<String, String> seenSetForTesting = new ConcurrentHashMap<>();
   private int nextProcessorId = 0;
 
   private CompilationContext(InternalOptions options) {
@@ -49,7 +49,7 @@ public class CompilationContext {
     if (testingConsumer != null) {
       testingConsumer.accept(descriptor);
     }
-    assert seenSetForTesting.add(descriptor)
+    assert seenSetForTesting.put(descriptor, descriptor) == null
         : "Duplicated use of context descriptor: " + descriptor;
     return true;
   }
