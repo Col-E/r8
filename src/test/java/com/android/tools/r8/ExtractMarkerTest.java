@@ -129,7 +129,7 @@ public class ExtractMarkerTest extends TestBase {
     DexString markerString =
         factory.createString(
             "~~D8{\"compilation-mode\":\"debug\",\"has-checksums\":false,"
-                + "\"min-api\":21,\"sha-1\":\"engineering\",\"version\":\"master\" }");
+                + "\"min-api\":21,\"sha-1\":\"engineering\",\"version\":\"main\" }");
     assertEquals("dex", Marker.parse(markerString).getBackend());
   }
 
@@ -139,7 +139,7 @@ public class ExtractMarkerTest extends TestBase {
     DexString markerString =
         factory.createString(
             "~~R8{\"compilation-mode\":\"release\",\"has-checksums\":true,"
-                + "\"sha-1\":\"engineering\",\"version\":\"master\" }");
+                + "\"sha-1\":\"engineering\",\"version\":\"main\" }");
     assertEquals("cf", Marker.parse(markerString).getBackend());
   }
 }

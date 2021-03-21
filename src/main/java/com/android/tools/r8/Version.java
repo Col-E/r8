@@ -11,7 +11,7 @@ public final class Version {
 
   // This field is accessed from release scripts using simple pattern matching.
   // Therefore, changing this field could break our release scripts.
-  public static final String LABEL = "master";
+  public static final String LABEL = "main";
 
   private Version() {
   }
@@ -31,7 +31,7 @@ public final class Version {
   }
 
   static int getMajorVersion(String label) {
-    if (label.equals("master")) {
+    if (label.equals("main")) {
       return -1;
     }
     int start = 0;
@@ -49,7 +49,7 @@ public final class Version {
   }
 
   static int getMinorVersion(String label) {
-    if (label.equals("master")) {
+    if (label.equals("main")) {
       return -1;
     }
     int start = label.indexOf('.') + 1;
@@ -67,7 +67,7 @@ public final class Version {
   }
 
   static int getPatchVersion(String label) {
-    if (label.equals("master")) {
+    if (label.equals("main")) {
       return -1;
     }
     int skip = label.indexOf('.') + 1;
@@ -87,7 +87,7 @@ public final class Version {
   }
 
   static String getPreReleaseString(String label) {
-    if (label.equals("master")) {
+    if (label.equals("main")) {
       return null;
     }
     int start = label.indexOf('-') + 1;
@@ -107,6 +107,6 @@ public final class Version {
   }
 
   static boolean isDevelopmentVersion(String label, boolean isEngineering) {
-    return label.equals("master") || label.endsWith("-dev") || isEngineering;
+    return label.equals("main") || label.endsWith("-dev") || isEngineering;
   }
 }

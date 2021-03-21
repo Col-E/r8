@@ -56,51 +56,51 @@ def GetGitBranches():
 def GetGitHash():
   return subprocess.check_output(['git', 'rev-parse', 'HEAD']).strip()
 
-def IsMaster(version):
+def IsMain(version):
   branches = subprocess.check_output(['git', 'branch', '-r', '--contains',
                                       'HEAD'])
-  # CL runs from gerrit does not have a branch, we always treat them as master
+  # CL runs from gerrit does not have a branch, we always treat them as main
   # commits to archive these to the hash based location
   if len(branches) == 0:
     return True
-  if not version == 'master':
+  if not version == 'main':
     # Sanity check, we don't want to archive on top of release builds EVER
     # Note that even though we branch, we never push the bots to build the same
-    # commit as master on a branch since we always change the version to
-    # not be just 'master' (or we crash here :-)).
-    if 'origin/master' in branches:
-      raise Exception('We are seeing origin/master in a commit that '
-                      'don\'t have \'master\' as version')
+    # commit as main on a branch since we always change the version to
+    # not be just 'main' (or we crash here :-)).
+    if 'origin/main' in branches:
+      raise Exception('We are seeing origin/main in a commit that '
+                      'don\'t have \'main\' as version')
     return False
-  if not 'origin/master' in branches:
-      raise Exception('We are not seeing origin/master '
-                      'in a commit that have \'master\' as version')
+  if not 'origin/main' in branches:
+      raise Exception('We are not seeing origin/main '
+                      'in a commit that have \'main\' as version')
   return True
 
 def GetStorageDestination(storage_prefix,
                           version_or_path,
                           file_name,
-                          is_master):
-  # We archive master commits under raw/master instead of directly under raw
+                          is_main):
+  # We archive main commits under raw/main instead of directly under raw
   version_dir = GetVersionDestination(storage_prefix,
                                       version_or_path,
-                                      is_master)
+                                      is_main)
   return '%s/%s' % (version_dir, file_name)
 
-def GetVersionDestination(storage_prefix, version_or_path, is_master):
-  archive_dir = 'raw/master' if is_master else 'raw'
+def GetVersionDestination(storage_prefix, version_or_path, is_main):
+  archive_dir = 'raw/main' if is_main else 'raw'
   return '%s%s/%s/%s' % (storage_prefix, ARCHIVE_BUCKET,
                          archive_dir, version_or_path)
 
-def GetUploadDestination(version_or_path, file_name, is_master):
-  return GetStorageDestination('gs://', version_or_path, file_name, is_master)
+def GetUploadDestination(version_or_path, file_name, is_main):
+  return GetStorageDestination('gs://', version_or_path, file_name, is_main)
 
-def GetUrl(version_or_path, file_name, is_master):
+def GetUrl(version_or_path, file_name, is_main):
   return GetStorageDestination('https://storage.googleapis.com/',
-                               version_or_path, file_name, is_master)
+                               version_or_path, file_name, is_main)
 
-def GetMavenUrl(is_master):
-  return GetVersionDestination('https://storage.googleapis.com/', '', is_master)
+def GetMavenUrl(is_main):
+  return GetVersionDestination('https://storage.googleapis.com/', '', is_main)
 
 def SetRLimitToMax():
   (soft, hard) = resource.getrlimit(resource.RLIMIT_NOFILE)
@@ -157,13 +157,13 @@ def Main():
       utils.DESUGAR_CONFIGURATION_MAVEN_ZIP)
 
   version = GetVersion()
-  is_master = IsMaster(version)
-  if is_master:
-    # On master we use the git hash to archive with
-    print('On master, using git hash for archiving')
+  is_main = IsMain(version)
+  if is_main:
+    # On main we use the git hash to archive with
+    print('On main, using git hash for archiving')
     version = GetGitHash()
 
-  destination = GetVersionDestination('gs://', version, is_master)
+  destination = GetVersionDestination('gs://', version, is_main)
   if utils.cloud_storage_exists(destination) and not options.dry_run:
     raise Exception('Target archive directory %s already exists' % destination)
   with utils.TempDir() as temp:
@@ -207,7 +207,7 @@ def Main():
       if file_name.endswith('.jar') and not file_name.endswith('-src.jar'):
         with zipfile.ZipFile(tagged_jar, 'a') as zip:
           zip.write(version_file, os.path.basename(version_file))
-      destination = GetUploadDestination(version, file_name, is_master)
+      destination = GetUploadDestination(version, file_name, is_main)
       print('Uploading %s to %s' % (tagged_jar, destination))
       if options.dry_run:
         if options.dry_run_output:
@@ -219,21 +219,21 @@ def Main():
           print('Dry run, not actually uploading')
       else:
         utils.upload_file_to_cloud_storage(tagged_jar, destination)
-        print('File available at: %s' % GetUrl(version, file_name, is_master))
+        print('File available at: %s' % GetUrl(version, file_name, is_main))
 
       # Upload R8 to a maven compatible location.
       if file == utils.R8_JAR:
         maven_dst = GetUploadDestination(utils.get_maven_path('r8', version),
-                                         'r8-%s.jar' % version, is_master)
+                                         'r8-%s.jar' % version, is_main)
         maven_pom_dst = GetUploadDestination(
             utils.get_maven_path('r8', version),
-            'r8-%s.pom' % version, is_master)
+            'r8-%s.pom' % version, is_main)
         if options.dry_run:
           print('Dry run, not actually creating maven repo for R8')
         else:
           utils.upload_file_to_cloud_storage(tagged_jar, maven_dst)
           utils.upload_file_to_cloud_storage(default_pom_file, maven_pom_dst)
-          print('Maven repo root available at: %s' % GetMavenUrl(is_master))
+          print('Maven repo root available at: %s' % GetMavenUrl(is_main))
 
       # Upload desugar_jdk_libs configuration to a maven compatible location.
       if file == utils.DESUGAR_CONFIGURATION:
@@ -241,7 +241,7 @@ def Main():
         jar_version_name = 'desugar_jdk_libs_configuration-%s.jar' % version
         maven_dst = GetUploadDestination(
             utils.get_maven_path('desugar_jdk_libs_configuration', version),
-                                 jar_version_name, is_master)
+                                 jar_version_name, is_main)
 
         with utils.TempDir() as tmp_dir:
           desugar_jdk_libs_configuration_jar = os.path.join(tmp_dir,
@@ -262,10 +262,10 @@ def Main():
           else:
             utils.upload_file_to_cloud_storage(
                 desugar_jdk_libs_configuration_jar, maven_dst)
-            print('Maven repo root available at: %s' % GetMavenUrl(is_master))
+            print('Maven repo root available at: %s' % GetMavenUrl(is_main))
             # Also archive the jar as non maven destination for Google3
             jar_destination = GetUploadDestination(
-                version, jar_basename, is_master)
+                version, jar_basename, is_main)
             utils.upload_file_to_cloud_storage(
                 desugar_jdk_libs_configuration_jar, jar_destination)
 

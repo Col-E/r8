@@ -180,7 +180,7 @@ def get_own_file_content():
 def restart_if_new_version(original_content):
   new_content = get_own_file_content()
   log('Lengths %s %s' % (len(original_content), len(new_content)))
-  log('is master %s ' % utils.is_master())
+  log('is main %s ' % utils.is_main())
   # Restart if the script got updated.
   if new_content != original_content:
     log('Restarting tools/internal_test.py, content changed')
@@ -195,7 +195,7 @@ def ensure_git_clean():
 
 def git_pull():
   ensure_git_clean()
-  subprocess.check_call(['git', 'checkout', 'master'])
+  subprocess.check_call(['git', 'checkout', 'main'])
   subprocess.check_call(['git', 'pull'])
   return utils.get_HEAD_sha1()
 

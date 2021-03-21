@@ -64,7 +64,7 @@ def GetVersion(version_file_name):
     return version
 
 
-def Upload(options, file_name, storage_path, destination, is_master):
+def Upload(options, file_name, storage_path, destination, is_main):
   print('Uploading %s to %s' % (file_name, destination))
   if options.dry_run:
     if options.dry_run_output:
@@ -148,14 +148,14 @@ def Main(argv):
       return
 
   # Only handling versioned desugar_jdk_libs.
-  is_master = False
+  is_main = False
 
   with utils.TempDir() as checkout_dir:
     CloneDesugaredLibrary(options.github_account, checkout_dir)
     version = GetVersion(os.path.join(checkout_dir, VERSION_FILE))
 
     destination = archive.GetVersionDestination(
-        'gs://', LIBRARY_NAME + '/' + version, is_master)
+        'gs://', LIBRARY_NAME + '/' + version, is_main)
     if utils.cloud_storage_exists(destination) and not options.dry_run:
       raise Exception(
           'Target archive directory %s already exists' % destination)
@@ -165,24 +165,24 @@ def Main(argv):
     storage_path = LIBRARY_NAME + '/' + version
     # Upload the jar file with the library.
     destination = archive.GetUploadDestination(
-        storage_path, LIBRARY_NAME + '.jar', is_master)
-    Upload(options, library_jar, storage_path, destination, is_master)
+        storage_path, LIBRARY_NAME + '.jar', is_main)
+    Upload(options, library_jar, storage_path, destination, is_main)
 
     # Upload the maven zip file with the library.
     destination = archive.GetUploadDestination(
-        storage_path, LIBRARY_NAME + '.zip', is_master)
-    Upload(options, maven_zip, storage_path, destination, is_master)
+        storage_path, LIBRARY_NAME + '.zip', is_main)
+    Upload(options, maven_zip, storage_path, destination, is_main)
 
     # Upload the jar file for accessing GCS as a maven repro.
     maven_destination = archive.GetUploadDestination(
         utils.get_maven_path('desugar_jdk_libs', version),
         'desugar_jdk_libs-%s.jar' % version,
-        is_master)
+        is_main)
     if options.dry_run:
       print('Dry run, not actually creating maven repo')
     else:
       utils.upload_file_to_cloud_storage(library_jar, maven_destination)
-      print('Maven repo root available at: %s' % archive.GetMavenUrl(is_master))
+      print('Maven repo root available at: %s' % archive.GetMavenUrl(is_main))
 
 
 if __name__ == '__main__':

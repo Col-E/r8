@@ -474,7 +474,7 @@ def is_full_r8(shrinker):
 
 
 def version_is_built_jar(version):
-  return version != 'master' and version != 'source'
+  return version != 'main' and version != 'source'
 
 
 def compute_size_of_dex_files_in_package(path):
@@ -931,7 +931,7 @@ def parse_options(argv):
                     help='The shrinkers to use (by default, all are run)',
                     action='append')
   result.add_option('--version',
-                    default='master',
+                    default='main',
                     help='The version of R8 to use (e.g., 1.4.51)')
   (options, args) = result.parse_args(argv)
 
@@ -1083,7 +1083,7 @@ def main(argv):
         as_utils.MoveFile(
           os.path.join(temp_dir, target), os.path.join(temp_dir, 'r8lib.jar'),
           quiet=options.quiet)
-    elif options.version == 'master':
+    elif options.version == 'main':
       if not (options.no_build or options.golem):
         gradle.RunGradle(['r8', '-Pno_internal'])
         build_r8lib = False

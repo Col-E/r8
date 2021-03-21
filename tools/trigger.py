@@ -42,7 +42,7 @@ def ParseOptions():
 def get_builders():
 
   is_release = False
-  master_builders = []
+  main_builders = []
   release_builders = []
   with open(LUCI_SCHEDULE, 'r') as fp:
     lines = fp.readlines()
@@ -57,13 +57,13 @@ def get_builders():
           release_builders.append(builder)
         else:
           assert 'release' not in builder
-          master_builders.append(builder)
-  assert DESUGAR_BOT in master_builders
+          main_builders.append(builder)
+  assert DESUGAR_BOT in main_builders
   print 'Desugar builder:\n  ' + DESUGAR_BOT
-  master_builders.remove(DESUGAR_BOT)
-  print 'Master builders:\n  ' + '\n  '.join(master_builders)
+  main_builders.remove(DESUGAR_BOT)
+  print 'Main builders:\n  ' + '\n  '.join(main_builders)
   print 'Release builders:\n  ' + '\n  '.join(release_builders)
-  return (master_builders, release_builders)
+  return (main_builders, release_builders)
 
 def sanity_check_url(url):
   a = urllib.urlopen(url)
@@ -97,15 +97,15 @@ def Main():
     return 1
 
   commit = None if (options.cl or options.desugar)  else args[0]
-  (master_builders, release_builders) = get_builders()
-  builders = release_builders if options.release else master_builders
+  (main_builders, release_builders) = get_builders()
+  builders = release_builders if options.release else main_builders
   if options.builder:
     builder = options.builder
-    assert builder in master_builders or builder in release_builders
+    assert builder in main_builders or builder in release_builders
     builders = [options.builder]
   if options.desugar:
     builders = [DESUGAR_BOT]
-    commit = git_utils.GetHeadRevision(utils.REPO_ROOT, use_master=True)
+    commit = git_utils.GetHeadRevision(utils.REPO_ROOT, use_main=True)
   if options.cl:
     trigger_cl(builders, options.cl)
   else:

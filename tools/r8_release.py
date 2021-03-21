@@ -68,13 +68,13 @@ def prepare_release(args):
         old_version = '%s.%s-dev' % (R8_DEV_BRANCH, patch_version)
         version = '%s.%s-dev' % (R8_DEV_BRANCH, patch_version + 1)
 
-        # Verify that the merge point from master is not empty.
+        # Verify that the merge point from main is not empty.
         merge_diff_output = subprocess.check_output([
           'git', 'diff', 'HEAD..%s' % commithash]).decode('utf-8')
         other_diff = version_change_diff(
-            merge_diff_output, old_version, "master")
+            merge_diff_output, old_version, "main")
         if not other_diff:
-          print('Merge point from master (%s)' % commithash, \
+          print('Merge point from main (%s)' % commithash, \
             'is the same as exiting release (%s).' % old_version)
           sys.exit(1)
 
@@ -83,7 +83,7 @@ def prepare_release(args):
             subprocess.check_call([
                 'git', 'cherry-pick', '--no-edit', pre_commit])
 
-        # Merge the desired commit from master on to the branch.
+        # Merge the desired commit from main on to the branch.
         subprocess.check_call([
           'git', 'merge', '--no-ff', '--no-edit', commithash])
 
@@ -96,7 +96,7 @@ def prepare_release(args):
         version_diff_output = subprocess.check_output([
           'git', 'diff', '%s..HEAD' % commithash]).decode('utf-8')
 
-        validate_version_change_diff(version_diff_output, "master", version)
+        validate_version_change_diff(version_diff_output, "main", version)
 
         # Double check that we want to push the release.
         if not args.dry_run:
@@ -488,7 +488,7 @@ def prepare_desugar_library(args):
       with utils.ChangedWorkingDirectory(temp):
         library_gfile = ('/bigstore/r8-releases/raw/%s/%s/%s'
               % (DESUGAR_JDK_LIBS, library_version, library_archive))
-        configuration_gfile = ('/bigstore/r8-releases/raw/master/%s/%s'
+        configuration_gfile = ('/bigstore/r8-releases/raw/main/%s/%s'
               % (configuration_version, configuration_archive))
 
         download_gfile(library_gfile, library_archive)
@@ -685,7 +685,7 @@ def prepare_branch(args):
         subprocess.check_call(['git', 'checkout', branch_version])
 
         # Rewrite the version, commit and validate.
-        old_version = 'master'
+        old_version = 'main'
         full_version = branch_version + '.0-dev'
         version_prefix = 'LABEL = "'
         sed(version_prefix + old_version,
@@ -754,7 +754,7 @@ def parse_options():
   result = argparse.ArgumentParser(description='Release r8')
   group = result.add_mutually_exclusive_group()
   group.add_argument('--dev-release',
-                      metavar=('<master hash>'),
+                      metavar=('<main hash>'),
                       help='The hash to use for the new dev version of R8')
   group.add_argument('--version',
                       metavar=('<version>'),
@@ -769,10 +769,10 @@ def parse_options():
                       help='Update studio mirror of com.android.tools:desugar_jdk_libs')
   group.add_argument('--new-dev-branch',
                       nargs=2,
-                      metavar=('<version>', '<master hash>'),
+                      metavar=('<version>', '<main hash>'),
                       help='Create a new branch starting a version line (e.g. 2.0)')
   result.add_argument('--dev-pre-cherry-pick',
-                      metavar=('<master hash(s)>'),
+                      metavar=('<main hash(s)>'),
                       default=[],
                       action='append',
                       help='List of commits to cherry pick before doing full '

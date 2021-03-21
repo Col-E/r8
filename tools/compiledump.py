@@ -37,10 +37,10 @@ def make_parser():
     '--version',
     help='Compiler version to use (default read from dump version file).'
       'Valid arguments are:'
-      '  "master" to run from your own tree,'
+      '  "main" to run from your own tree,'
       '  "source" to run from build classes directly,'
       '  "X.Y.Z" to run a specific version, or'
-      '  <hash> to run that hash from master.',
+      '  <hash> to run that hash from main.',
     default=None)
   parser.add_argument(
     '--r8-jar',
@@ -236,7 +236,7 @@ def determine_class_file(args, build_properties):
   return None
 
 def download_distribution(args, version, temp):
-  if version == 'master':
+  if version == 'main':
     return utils.R8_JAR if args.nolib else utils.R8LIB_JAR
   if version == 'source':
     return '%s:%s' % (utils.BUILD_JAVA_MAIN_DIR, utils.ALL_DEPS_JAR)
@@ -340,8 +340,8 @@ def run1(out, args, otherargs):
       if not args.nolib and version != 'source':
         stacktrace = os.path.join(temp, 'stacktrace')
         open(stacktrace, 'w+').write(e.output.decode('UTF-8'))
-        local_map = utils.R8LIB_MAP if version == 'master' else None
-        hash_or_version = None if version == 'master' else version
+        local_map = utils.R8LIB_MAP if version == 'main' else None
+        hash_or_version = None if version == 'main' else version
         print("=" * 80)
         print(" RETRACED OUTPUT")
         print("=" * 80)

@@ -263,10 +263,10 @@ def get_sha1(filename):
       sha1.update(chunk)
   return sha1.hexdigest()
 
-def is_master():
+def is_main():
   remotes = subprocess.check_output(['git', 'branch', '-r', '--contains',
                                      'HEAD'])
-  return 'origin/master' in remotes
+  return 'origin/main' in remotes
 
 def get_HEAD_sha1():
   return get_HEAD_sha1_for_checkout(REPO_ROOT)

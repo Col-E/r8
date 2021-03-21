@@ -12,8 +12,8 @@
 #   * feature_final    xxxxxxxxx [feature_prereq_c: ...] ...
 #     feature_prereq_c xxxxxxxxx [feature_prereq_b: ...] ...
 #     feature_prereq_b xxxxxxxxx [feature_prereq_a: ...] ...
-#     feature_prereq_a xxxxxxxxx [master: ...] ...
-#     master           xxxxxxxxx [origin/master] ...
+#     feature_prereq_a xxxxxxxxx [main: ...] ...
+#     main             xxxxxxxxx [origin/main] ...
 #
 # Executing `git_sync_cl_chain.py -m <message>` causes the following chain of
 # commands to be executed:
@@ -54,8 +54,8 @@ def ParseOptions(argv):
                     action='store_true')
   result.add_option('--no_upload', '--no-upload',
                     help='Disable uploading to Gerrit', action='store_true')
-  result.add_option('--skip_master', '--skip-master',
-                    help='Disable syncing for master',
+  result.add_option('--skip_main', '--skip-main',
+                    help='Disable syncing for main',
                     action='store_true')
   (options, args) = result.parse_args(argv)
   options.upload = not options.no_upload
@@ -105,7 +105,7 @@ def main(argv):
 
       pull_for_current_branch(branch, options)
 
-      if branch.name == 'master':
+      if branch.name == 'main':
         continue
 
       if status == 'closed':
@@ -119,9 +119,9 @@ def main(argv):
       if not options.leave_upstream:
         if not has_seen_open_branch and len(closed_branches) > 0:
           print(
-              'Setting upstream for first open branch %s to master'
+              'Setting upstream for first open branch %s to main'
                   % branch.name)
-          set_upstream_for_current_branch_to_master()
+          set_upstream_for_current_branch_to_main()
 
       has_seen_open_branch = True
       has_seen_local_branch = has_seen_local_branch or (status == 'None')
@@ -170,14 +170,14 @@ def get_status_for_current_branch():
   return utils.RunCmd(['git', 'cl', 'status', '--field', 'status'], quiet=True)[0].strip()
 
 def pull_for_current_branch(branch, options):
-  if branch.name == 'master' and options.skip_master:
+  if branch.name == 'main' and options.skip_main:
     return
   rebase_args = ['--rebase'] if options.rebase else []
   utils.RunCmd(['git', 'pull'] + rebase_args, quiet=True)
 
 
-def set_upstream_for_current_branch_to_master():
-  utils.RunCmd(['git', 'cl', 'upstream', 'master'], quiet=True)
+def set_upstream_for_current_branch_to_main():
+  utils.RunCmd(['git', 'cl', 'upstream', 'main'], quiet=True)
 
 # Parses a line from the output of `git branch -vv`.
 #
@@ -187,8 +187,8 @@ def set_upstream_for_current_branch_to_master():
 #   * feature_final    xxxxxxxxx [feature_prereq_c: ...] ...
 #     feature_prereq_c xxxxxxxxx [feature_prereq_b: ...] ...
 #     feature_prereq_b xxxxxxxxx [feature_prereq_a: ...] ...
-#     feature_prereq_a xxxxxxxxx [master: ...] ...
-#     master           xxxxxxxxx [origin/master] ...
+#     feature_prereq_a xxxxxxxxx [main: ...] ...
+#     main             xxxxxxxxx [origin/main] ...
 def parse(line):
   is_current = False
   if line.startswith('*'):

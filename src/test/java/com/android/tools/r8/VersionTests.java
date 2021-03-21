@@ -33,12 +33,12 @@ public class VersionTests extends TestBase {
     int minorVersion = Version.getMinorVersion();
     int patchVersion = Version.getPatchVersion();
     String preReleaseString = Version.getPreReleaseString();
-    if (LABEL.equals("master")) {
+    if (LABEL.equals("main")) {
       assertEquals(-1, majorVersion);
       assertEquals(-1, minorVersion);
       assertEquals(-1, patchVersion);
       assertNull(preReleaseString);
-      assertTrue(Version.getVersionString().startsWith("master"));
+      assertTrue(Version.getVersionString().startsWith("main"));
     } else {
       assertTrue(majorVersion > 0);
       assertTrue(minorVersion >= 0);
@@ -59,7 +59,7 @@ public class VersionTests extends TestBase {
 
   @Test
   public void testDevelopmentPredicate() {
-   if (LABEL.equals("master") || LABEL.contains("-dev")) {
+    if (LABEL.equals("main") || LABEL.contains("-dev")) {
       assertTrue(Version.isDevelopmentVersion());
     } else {
       // This is a release branch, but Version.isDevelopmentVersion will still return true
@@ -70,13 +70,13 @@ public class VersionTests extends TestBase {
 
   @Test
   public void testLabelParsing() {
-    assertEquals(-1, Version.getMajorVersion("master"));
-    assertEquals(-1, Version.getMinorVersion("master"));
-    assertEquals(-1, Version.getPatchVersion("master"));
-    assertNull(Version.getPreReleaseString("master"));
-    // 'master' is checked before 'isEngineering'.
-    assertTrue(Version.isDevelopmentVersion("master", false));
-    assertTrue(Version.isDevelopmentVersion("master", true));
+    assertEquals(-1, Version.getMajorVersion("main"));
+    assertEquals(-1, Version.getMinorVersion("main"));
+    assertEquals(-1, Version.getPatchVersion("main"));
+    assertNull(Version.getPreReleaseString("main"));
+    // 'main' is checked before 'isEngineering'.
+    assertTrue(Version.isDevelopmentVersion("main", false));
+    assertTrue(Version.isDevelopmentVersion("main", true));
 
     assertEquals(1, Version.getMajorVersion("1.2.3-dev"));
     assertEquals(2, Version.getMinorVersion("1.2.3-dev"));
