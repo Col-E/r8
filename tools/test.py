@@ -162,7 +162,8 @@ def ParseOptions():
       help='Enable Java debug agent and suspend compilation (default disabled)',
       default=False,
       action='store_true')
-  result.add_option('--desugared-library-configuration', '--desugared_library-configuration',
+  result.add_option('--desugared-library-configuration',
+      '--desugared_library-configuration',
       help='Use alternative desugared library configuration.')
   result.add_option('--desugared-library', '--desugared_library',
       help='Build and use desugared library from GitHub.')
