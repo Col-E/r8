@@ -265,10 +265,7 @@ public class LineNumberOptimizer {
   }
 
   public static ClassNameMapper run(
-      AppView<AppInfoWithClassHierarchy> appView,
-      DexApplication application,
-      AndroidApp inputApp,
-      NamingLens namingLens) {
+      AppView<?> appView, DexApplication application, AndroidApp inputApp, NamingLens namingLens) {
     // For finding methods in kotlin files based on SourceDebugExtensions, we use a line method map.
     // We create it here to ensure it is only reading class files once.
     CfLineToMethodMapper cfLineToMethodMapper = new CfLineToMethodMapper(inputApp);
@@ -462,10 +459,11 @@ public class LineNumberOptimizer {
   }
 
   private static boolean verifyMethodsAreKeptDirectlyOrIndirectly(
-      AppView<AppInfoWithClassHierarchy> appView, List<DexEncodedMethod> methods) {
-    if (appView.options().isGeneratingClassFiles()) {
+      AppView<?> appView, List<DexEncodedMethod> methods) {
+    if (appView.options().isGeneratingClassFiles() || !appView.appInfo().hasClassHierarchy()) {
       return true;
     }
+    AppInfoWithClassHierarchy appInfo = appView.appInfo().withClassHierarchy();
     KeepInfoCollection keepInfo = appView.getKeepInfo();
     boolean allSeenAreInstanceInitializers = true;
     DexString originalName = null;
@@ -487,7 +485,7 @@ public class LineNumberOptimizer {
       // We use the same name for interface names even if it has different types.
       DexProgramClass clazz = appView.definitionForProgramType(method.getHolderType());
       DexClassAndMethod lookupResult =
-          appView.appInfo().lookupMaximallySpecificMethod(clazz, method.getReference());
+          appInfo.lookupMaximallySpecificMethod(clazz, method.getReference());
       if (lookupResult == null) {
         // We cannot rename methods we cannot look up.
         continue;

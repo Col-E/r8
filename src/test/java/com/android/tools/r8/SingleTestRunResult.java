@@ -90,12 +90,16 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
     return self();
   }
 
+  protected CodeInspector internalGetCodeInspector() throws IOException {
+    assertNotNull(app);
+    return new CodeInspector(app);
+  }
+
   public CodeInspector inspector() throws IOException, ExecutionException {
     // Inspection post run implies success. If inspection of an invalid program is needed it should
     // be done on the compilation result or on the input.
     assertSuccess();
-    assertNotNull(app);
-    return new CodeInspector(app);
+    return internalGetCodeInspector();
   }
 
   @Override
@@ -107,10 +111,9 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
   }
 
   public <E extends Throwable> RR inspectFailure(ThrowingConsumer<CodeInspector, E> consumer)
-      throws IOException, ExecutionException, E {
+      throws IOException, E {
     assertFailure();
-    assertNotNull(app);
-    CodeInspector inspector = new CodeInspector(app);
+    CodeInspector inspector = internalGetCodeInspector();
     consumer.accept(inspector);
     return self();
   }

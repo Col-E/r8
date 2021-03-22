@@ -57,21 +57,9 @@ public class R8TestRunResult extends SingleTestRunResult<R8TestRunResult> {
   }
 
   @Override
-  public CodeInspector inspector() throws IOException, ExecutionException {
-    // See comment in base class.
-    assertSuccess();
+  protected CodeInspector internalGetCodeInspector() throws IOException {
     assertNotNull(app);
     return new CodeInspector(app, proguardMap);
-  }
-
-  @Override
-  public <E extends Throwable> R8TestRunResult inspectFailure(
-      ThrowingConsumer<CodeInspector, E> consumer) throws IOException, ExecutionException, E {
-    assertFailure();
-    assertNotNull(app);
-    CodeInspector codeInspector = new CodeInspector(app, proguardMap);
-    consumer.accept(codeInspector);
-    return self();
   }
 
   public <E extends Throwable> R8TestRunResult inspectOriginalStackTrace(
@@ -81,9 +69,8 @@ public class R8TestRunResult extends SingleTestRunResult<R8TestRunResult> {
   }
 
   public <E extends Throwable> R8TestRunResult inspectOriginalStackTrace(
-      ThrowingBiConsumer<StackTrace, CodeInspector, E> consumer)
-      throws E, IOException, ExecutionException {
-    consumer.accept(getOriginalStackTrace(), new CodeInspector(app, proguardMap));
+      ThrowingBiConsumer<StackTrace, CodeInspector, E> consumer) throws E, IOException {
+    consumer.accept(getOriginalStackTrace(), internalGetCodeInspector());
     return self();
   }
 
@@ -100,7 +87,7 @@ public class R8TestRunResult extends SingleTestRunResult<R8TestRunResult> {
 
   public <E extends Throwable> R8TestRunResult inspectStackTrace(
       ThrowingBiConsumer<StackTrace, CodeInspector, E> consumer) throws E, IOException {
-    consumer.accept(getStackTrace(), new CodeInspector(app, proguardMap));
+    consumer.accept(getStackTrace(), internalGetCodeInspector());
     return self();
   }
 

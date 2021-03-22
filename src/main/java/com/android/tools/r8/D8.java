@@ -27,8 +27,10 @@ import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
+import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
+import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.origin.CommandLineOrigin;
@@ -41,6 +43,8 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
+import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
+import com.android.tools.r8.utils.LineNumberOptimizer;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -268,9 +272,10 @@ public final class D8 {
         namingLens = RecordRewritingNamingLens.createRecordRewritingNamingLens(appView, namingLens);
       }
       if (options.isGeneratingClassFiles()) {
-        // TODO(b/158159959): Move this out so it is shared for both CF and DEX pipelines.
-        SyntheticFinalization.finalize(appView);
-        new CfApplicationWriter(appView, marker, GraphLens.getIdentityLens(), namingLens, null)
+        ProguardMapSupplier proguardMapSupplier =
+            finalizeApplication(inputApp, appView, namingLens);
+        new CfApplicationWriter(
+                appView, marker, GraphLens.getIdentityLens(), namingLens, proguardMapSupplier)
             .write(options.getClassFileConsumer());
       } else {
         if (!hasDexResources || !hasClassResources || !appView.rewritePrefix.isRewriting()) {
@@ -311,9 +316,8 @@ public final class D8 {
                       executor, appView.appInfo().app(), appView.appInfo().getMainDexInfo());
           appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(mainDexInfo));
         }
-
-        // TODO(b/158159959): Move this out so it is shared for both CF and DEX pipelines.
-        SyntheticFinalization.finalize(appView);
+        ProguardMapSupplier proguardMapSupplier =
+            finalizeApplication(inputApp, appView, namingLens);
 
         new ApplicationWriter(
                 appView,
@@ -321,7 +325,7 @@ public final class D8 {
                 appView.graphLens(),
                 InitClassLens.getDefault(),
                 namingLens,
-                null)
+                proguardMapSupplier)
             .write(executor);
       }
       options.printWarnings();
@@ -334,6 +338,19 @@ public final class D8 {
         timing.report();
       }
     }
+  }
+
+  private static ProguardMapSupplier finalizeApplication(
+      AndroidApp inputApp, AppView<AppInfo> appView, NamingLens namingLens) {
+    SyntheticFinalization.finalize(appView);
+    // TODO(b/37830524): Once D8 supports PC mapping this will need to be run for that too.
+    assert appView.options().lineNumberOptimization == LineNumberOptimization.OFF;
+    if (appView.options().proguardMapConsumer == null) {
+      return null;
+    }
+    ClassNameMapper classNameMapper =
+        LineNumberOptimizer.run(appView, appView.appInfo().app(), inputApp, namingLens);
+    return ProguardMapSupplier.create(classNameMapper, appView.options());
   }
 
   private static DexApplication rewriteNonDexInputs(

@@ -28,6 +28,8 @@ public class D8TestBuilder
     return new D8TestBuilder(state, D8Command.builder(state.getDiagnosticsHandler()), backend);
   }
 
+  private StringBuilder proguardMapOutputBuilder = null;
+
   @Override
   D8TestBuilder self() {
     return this;
@@ -65,7 +67,12 @@ public class D8TestBuilder
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
     ToolHelper.runD8(builder, optionsConsumer);
-    return new D8TestCompileResult(getState(), app.get(), minApiLevel, getOutputMode());
+    return new D8TestCompileResult(
+        getState(), app.get(), minApiLevel, getOutputMode(), getMapContent());
+  }
+
+  private String getMapContent() {
+    return proguardMapOutputBuilder == null ? null : proguardMapOutputBuilder.toString();
   }
 
   public D8TestBuilder setIntermediate(boolean intermediate) {
@@ -104,6 +111,16 @@ public class D8TestBuilder
     for (Class<?> clazz : classes) {
       addMainDexRules("-keep class " + clazz.getTypeName() + " { *; }");
     }
+    return self();
+  }
+
+  // TODO(b/183125319): Make this the default as part of API support in D8.
+  public D8TestBuilder internalEnableMappingOutput() {
+    assert proguardMapOutputBuilder == null;
+    proguardMapOutputBuilder = new StringBuilder();
+    // TODO(b/183125319): Use the API once supported in D8.
+    addOptionsModification(
+        o -> o.proguardMapConsumer = (s, h) -> proguardMapOutputBuilder.append(s));
     return self();
   }
 }

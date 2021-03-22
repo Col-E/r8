@@ -23,6 +23,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
+import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -459,6 +460,7 @@ public final class D8Command extends BaseCompilerCommand {
     internal.readCompileTimeAnnotations = intermediate;
     internal.desugarGraphConsumer = desugarGraphConsumer;
     internal.mainDexKeepRules = mainDexKeepRules;
+    internal.lineNumberOptimization = LineNumberOptimization.OFF;
 
     // Assert and fixup defaults.
     assert !internal.isShrinking();

@@ -13,14 +13,17 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,10 +54,33 @@ public class RetraceLambdaTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    testForRuntime(parameters)
+    assumeTrue(parameters.isCfRuntime());
+    testForJvm()
         .addInnerClasses(getClass())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(containsString("Hello World!"))
+        .apply(this::checkRunResult)
+        .apply(this::checkNoOutputSynthetics)
+        .inspectStackTrace(
+            stackTrace ->
+                assertThat(
+                    stackTrace,
+                    isSameExceptForFileNameAndLineNumber(
+                        StackTrace.builder()
+                            .addWithoutFileNameAndLineNumber(Main.class, JAVAC_LAMBDA_METHOD)
+                            .addWithoutFileNameAndLineNumber(Main.class, "runIt")
+                            .addWithoutFileNameAndLineNumber(Main.class, "main")
+                            .build())));
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    testForD8(parameters.getBackend())
+        .internalEnableMappingOutput()
+        .addInnerClasses(getClass())
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkRunResult)
+        .apply(this::checkOneOutputSynthetic)
         .inspectStackTrace(
             stackTrace ->
                 assertThat(
@@ -63,42 +89,11 @@ public class RetraceLambdaTest extends TestBase {
                         StackTrace.builder()
                             .addWithoutFileNameAndLineNumber(Main.class, JAVAC_LAMBDA_METHOD)
                             // TODO(b/172014416): Support a D8 mapping and prune the synthetic.
-                            .applyIf(
-                                parameters.isDexRuntime(),
-                                b ->
-                                    b.addWithoutFileNameAndLineNumber(
-                                        SyntheticItemsTestUtils.syntheticLambdaClass(Main.class, 0),
-                                        "run"))
+                            .addWithoutFileNameAndLineNumber(
+                                SyntheticItemsTestUtils.syntheticLambdaClass(Main.class, 0), "run")
                             .addWithoutFileNameAndLineNumber(Main.class, "runIt")
                             .addWithoutFileNameAndLineNumber(Main.class, "main")
                             .build())));
-  }
-
-  @Test
-  public void testMappingInformation() throws Exception {
-    assumeTrue("R8/CF does not desugar", parameters.isDexRuntime());
-    testForR8(parameters.getBackend())
-        .addInnerClasses(getClass())
-        .addKeepAttributeSourceFile()
-        .addKeepAttributeLineNumberTable()
-        .noTreeShaking()
-        .noMinification()
-        .setMinApi(parameters.getApiLevel())
-        .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(containsString("Hello World!"))
-        .inspectFailure(
-            inspector -> {
-              Collection<ClassReference> inputs =
-                  ImmutableList.of(classFromClass(MyRunner.class), classFromClass(Main.class));
-              for (FoundClassSubject clazz : inspector.allClasses()) {
-                if (inputs.contains(clazz.getFinalReference())) {
-                  assertThat(clazz, not(isCompilerSynthesized()));
-                } else {
-                  assertThat(clazz, isCompilerSynthesized());
-                }
-              }
-              assertEquals(inputs.size() + 1, inspector.allClasses().size());
-            });
   }
 
   @Test
@@ -110,17 +105,23 @@ public class RetraceLambdaTest extends TestBase {
         .addKeepAttributeLineNumberTable()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(containsString("Hello World!"))
+        .apply(this::checkRunResult)
+        .inspectFailure(
+            inspector ->
+                assertEquals(parameters.isCfRuntime() ? 2 : 1, inspector.allClasses().size()))
         .inspectStackTrace(
             stackTrace -> {
               int frames = parameters.isCfRuntime() ? 2 : 1;
               checkRawStackTraceFrameCount(stackTrace, frames, "Expected everything to be inlined");
-              checkCurrentlyIncorrectStackTrace(stackTrace, JAVAC_LAMBDA_METHOD);
+              checkCurrentlyIncorrectStackTrace(stackTrace);
             });
   }
 
   @Test
   public void testNothingInlined() throws Exception {
+    assumeTrue(
+        "Skip R8/CF for min-api > 1 (R8/CF does not desugar)",
+        parameters.isDexRuntime() || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
@@ -130,13 +131,44 @@ public class RetraceLambdaTest extends TestBase {
         .addKeepAttributeLineNumberTable()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(containsString("Hello World!"))
+        .apply(this::checkRunResult)
+        .applyIf(
+            parameters.isCfRuntime(), this::checkNoOutputSynthetics, this::checkOneOutputSynthetic)
         .inspectStackTrace(
             stackTrace -> {
               int frames = parameters.isCfRuntime() ? 3 : 5;
               checkRawStackTraceFrameCount(stackTrace, frames, "Expected nothing to be inlined");
-              checkCurrentlyIncorrectStackTrace(stackTrace, "lambda$main$0");
+              checkCurrentlyIncorrectStackTrace(stackTrace);
             });
+  }
+
+  private void checkRunResult(SingleTestRunResult<?> runResult) {
+    runResult.assertFailureWithErrorThatMatches(containsString("Hello World!"));
+  }
+
+  private void checkNoOutputSynthetics(SingleTestRunResult<?> runResult) throws IOException {
+    checkOutputSynthetics(runResult, 0);
+  }
+
+  private void checkOneOutputSynthetic(SingleTestRunResult<?> runResult) throws IOException {
+    checkOutputSynthetics(runResult, 1);
+  }
+
+  private void checkOutputSynthetics(SingleTestRunResult<?> runResult, int expectedSyntheticsCount)
+      throws IOException {
+    runResult.inspectFailure(
+        inspector -> {
+          Collection<ClassReference> inputs =
+              ImmutableList.of(classFromClass(MyRunner.class), classFromClass(Main.class));
+          for (FoundClassSubject clazz : inspector.allClasses()) {
+            if (inputs.contains(clazz.getOriginalReference())) {
+              assertThat(clazz, not(isCompilerSynthesized()));
+            } else {
+              assertThat(clazz, isCompilerSynthesized());
+            }
+          }
+          assertEquals(inputs.size() + expectedSyntheticsCount, inspector.allClasses().size());
+        });
   }
 
   private void checkRawStackTraceFrameCount(
@@ -150,12 +182,12 @@ public class RetraceLambdaTest extends TestBase {
     assertEquals(message + stackTrace.getOriginalStderr(), expectedFrames, linesFromTest);
   }
 
-  private void checkCurrentlyIncorrectStackTrace(StackTrace stackTrace, String javacLambdaMethod) {
+  private void checkCurrentlyIncorrectStackTrace(StackTrace stackTrace) {
     assertThat(
         stackTrace,
         isSameExceptForFileNameAndLineNumber(
             StackTrace.builder()
-                .addWithoutFileNameAndLineNumber(Main.class, javacLambdaMethod)
+                .addWithoutFileNameAndLineNumber(Main.class, RetraceLambdaTest.JAVAC_LAMBDA_METHOD)
                 .applyIf(
                     parameters.isDexRuntime(),
                     b ->

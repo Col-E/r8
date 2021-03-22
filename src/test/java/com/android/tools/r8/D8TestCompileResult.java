@@ -9,8 +9,12 @@ import com.android.tools.r8.utils.AndroidApp;
 import java.util.Set;
 
 public class D8TestCompileResult extends TestCompileResult<D8TestCompileResult, D8TestRunResult> {
-  D8TestCompileResult(TestState state, AndroidApp app, int minApiLevel, OutputMode outputMode) {
+  private final String proguardMap;
+
+  D8TestCompileResult(
+      TestState state, AndroidApp app, int minApiLevel, OutputMode outputMode, String proguardMap) {
     super(state, app, minApiLevel, outputMode);
+    this.proguardMap = proguardMap;
   }
 
   @Override
@@ -38,8 +42,12 @@ public class D8TestCompileResult extends TestCompileResult<D8TestCompileResult, 
     return state.getStderr();
   }
 
+  public String getProguardMap() {
+    return proguardMap;
+  }
+
   @Override
   public D8TestRunResult createRunResult(TestRuntime runtime, ProcessResult result) {
-    return new D8TestRunResult(app, runtime, result);
+    return new D8TestRunResult(app, runtime, result, proguardMap);
   }
 }

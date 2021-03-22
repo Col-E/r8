@@ -4,17 +4,31 @@
 
 package com.android.tools.r8;
 
+import static org.junit.Assert.assertNotNull;
+
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import java.io.IOException;
 
 public class D8TestRunResult extends SingleTestRunResult<D8TestRunResult> {
 
-  public D8TestRunResult(AndroidApp app, TestRuntime runtime, ProcessResult result) {
+  private final String proguardMap;
+
+  public D8TestRunResult(
+      AndroidApp app, TestRuntime runtime, ProcessResult result, String proguardMap) {
     super(app, runtime, result);
+    this.proguardMap = proguardMap;
   }
 
   @Override
   protected D8TestRunResult self() {
     return this;
+  }
+
+  @Override
+  protected CodeInspector internalGetCodeInspector() throws IOException {
+    assertNotNull(app);
+    return proguardMap == null ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
   }
 }
