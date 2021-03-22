@@ -428,9 +428,7 @@ public class Repackaging {
       // Ensure that the generated name is unique.
       DexType finalRepackagedDexType = repackagedDexType;
       for (int i = 1; isRepackageTypeUsed(finalRepackagedDexType, mappings, appView); i++) {
-        finalRepackagedDexType =
-            repackagedDexType.addSuffix(
-                Character.toString(INNER_CLASS_SEPARATOR) + i, dexItemFactory);
+        finalRepackagedDexType = repackagedDexType.addSuffix(i + "", dexItemFactory);
       }
       return finalRepackagedDexType;
     }
