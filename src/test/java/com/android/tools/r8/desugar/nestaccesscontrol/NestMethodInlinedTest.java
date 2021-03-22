@@ -36,7 +36,10 @@ public class NestMethodInlinedTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntimesStartingFromIncluding(CfVm.JDK11).build();
+    return getTestParameters()
+        .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
+        .withAllApiLevelsAlsoForCf()
+        .build();
   }
 
   @Test

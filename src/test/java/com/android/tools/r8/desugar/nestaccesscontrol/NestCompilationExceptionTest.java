@@ -32,7 +32,6 @@ import com.android.tools.r8.references.Reference;
 import java.nio.file.Path;
 import java.util.List;
 import org.hamcrest.Matcher;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -54,12 +53,12 @@ public class NestCompilationExceptionTest extends TestBase {
         .withDexRuntime(DexVm.Version.first())
         .withDexRuntime(DexVm.Version.last())
         .withApiLevelsStartingAtIncluding(apiLevelWithInvokeCustomSupport())
+        .enableApiLevelsForCf()
         .build();
   }
 
   @Test
   public void testD8() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
     testMissingNestHostError(true);
     testIncompleteNestError(true);
   }
@@ -87,7 +86,9 @@ public class NestCompilationExceptionTest extends TestBase {
             .map(name -> CLASSES_PATH.resolve(name + CLASS_EXTENSION))
             .collect(toList());
     if (d8) {
-      return testForD8().setMinApi(parameters.getApiLevel()).addProgramFiles(matchingClasses);
+      return testForD8(parameters.getBackend())
+          .setMinApi(parameters.getApiLevel())
+          .addProgramFiles(matchingClasses);
     } else {
       return testForR8(parameters.getBackend())
           .noTreeShaking()
@@ -109,10 +110,11 @@ public class NestCompilationExceptionTest extends TestBase {
           .compileWithExpectedDiagnostics(
               diagnostics -> {
                 if (d8) {
-                  diagnostics
-                      .assertOnlyErrors()
-                      .assertErrorsMatch(
-                          diagnosticType(MissingNestHostNestDesugarDiagnostic.class));
+                  if (parameters.getBackend().isDex()) {
+                    diagnostics.assertOnlyErrors();
+                  }
+                  diagnostics.assertErrorsMatch(
+                      diagnosticType(MissingNestHostNestDesugarDiagnostic.class));
 
                   MissingNestHostNestDesugarDiagnostic diagnostic =
                       (MissingNestHostNestDesugarDiagnostic) diagnostics.getErrors().get(0);
@@ -148,9 +150,11 @@ public class NestCompilationExceptionTest extends TestBase {
           .compileWithExpectedDiagnostics(
               diagnostics -> {
                 if (d8) {
-                  diagnostics
-                      .assertOnlyErrors()
-                      .assertErrorsMatch(diagnosticType(IncompleteNestNestDesugarDiagnosic.class));
+                  if (parameters.getBackend().isDex()) {
+                    diagnostics.assertOnlyErrors();
+                  }
+                  diagnostics.assertErrorsMatch(
+                      diagnosticType(IncompleteNestNestDesugarDiagnosic.class));
 
                   IncompleteNestNestDesugarDiagnosic diagnostic =
                       (IncompleteNestNestDesugarDiagnosic) diagnostics.getErrors().get(0);

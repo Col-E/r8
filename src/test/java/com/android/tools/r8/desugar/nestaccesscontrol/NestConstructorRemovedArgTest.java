@@ -35,6 +35,7 @@ public class NestConstructorRemovedArgTest extends TestBase {
         .withDexRuntime(DexVm.Version.first())
         .withDexRuntime(DexVm.Version.last())
         .withApiLevelsStartingAtIncluding(apiLevelWithInvokeCustomSupport())
+        .enableApiLevelsForCf()
         .build();
   }
 

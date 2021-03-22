@@ -44,6 +44,7 @@ public class NestClassMergingTest extends TestBase {
   public static TestParametersCollection data() {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
+        .withAllApiLevelsAlsoForCf()
         .build();
   }
 

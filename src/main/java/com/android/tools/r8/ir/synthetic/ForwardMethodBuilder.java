@@ -171,15 +171,17 @@ public class ForwardMethodBuilder {
       maxLocals += 1;
     }
     DexType[] sourceParameters = getSourceParameters();
-    for (int i = 0;
-        i < sourceParameters.length - BooleanUtils.intValue(sourceMethodHasExtraUnusedParameter);
-        i++) {
+    for (int i = 0; i < sourceParameters.length; i++) {
       DexType parameter = sourceParameters[i];
       ValueType parameterType = ValueType.fromDexType(parameter);
-      instructions.add(new CfLoad(parameterType, maxLocals));
+      if (!(sourceMethodHasExtraUnusedParameter && i == sourceParameters.length - 1)) {
+        // We do not need to load the last parameter if it is unused.
+        // We still need to increase the maxStack/maxLocals values for the method to verify.
+        instructions.add(new CfLoad(parameterType, maxLocals));
+        maybeInsertArgumentCast(i, parameter, instructions);
+      }
       maxStack += parameterType.requiredRegisters();
       maxLocals += parameterType.requiredRegisters();
-      maybeInsertArgumentCast(i, parameter, instructions);
     }
     instructions.add(new CfInvoke(getInvokeOpcode(), targetMethod, isInterface));
     if (!targetMethod.getReturnType().isVoidType()) {

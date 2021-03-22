@@ -32,7 +32,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,6 +53,7 @@ public class FullNestOnProgramPathTest extends TestBase {
         .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
         .withDexRuntimes()
         .withApiLevelsStartingAtIncluding(apiLevelWithInvokeCustomSupport())
+        .enableApiLevelsForCf()
         .build();
   }
 
@@ -120,9 +120,8 @@ public class FullNestOnProgramPathTest extends TestBase {
 
   @Test
   public void testSingleNestD8() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
     for (String nestID : NEST_IDS) {
-      testForD8()
+      testForD8(parameters.getBackend())
           .setMinApi(parameters.getApiLevel())
           .addProgramFiles(classesOfNest(nestID))
           .compile()

@@ -42,6 +42,7 @@ public class MinimumNumberOfBridgesGenerated extends TestBase {
         .withDexRuntime(DexVm.Version.first())
         .withDexRuntime(DexVm.Version.last())
         .withApiLevelsStartingAtIncluding(apiLevelWithInvokeCustomSupport())
+        .enableApiLevelsForCf()
         .build();
   }
 
