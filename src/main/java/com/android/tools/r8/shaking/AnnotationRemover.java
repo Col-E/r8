@@ -72,6 +72,10 @@ public class AnnotationRemover {
       DexDefinition holder,
       DexAnnotation annotation,
       boolean isAnnotationTypeLive) {
+    // If we cannot run the AnnotationRemover we are keeping the annotation.
+    if (!appView.options().isShrinking()) {
+      return true;
+    }
     ProguardKeepAttributes config =
         appView.options().getProguardConfiguration() != null
             ? appView.options().getProguardConfiguration().getKeepAttributes()
