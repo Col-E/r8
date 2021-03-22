@@ -825,8 +825,6 @@ public class ToolHelper {
       case J_MR1:
       case J_MR2:
       case K_WATCH:
-        // TODO(b/1813562600): Add android jar for S.
-      case S:
         return false;
       default:
         return true;

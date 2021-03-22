@@ -42,7 +42,7 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   R(30),
   S(31);
 
-  public static final AndroidApiLevel LATEST = R;
+  public static final AndroidApiLevel LATEST = S;
 
   public static final int magicApiLevelUsedByAndroidPlatformBuild = 10000;
 
@@ -150,6 +150,8 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
         return P;
       case 29:
         return Q;
+      case 30:
+        return R;
       default:
         return LATEST;
     }

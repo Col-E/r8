@@ -30,9 +30,7 @@ public class ToolHelperTest extends TestBase {
         ToolHelper.getFirstSupportedAndroidJar(AndroidApiLevel.K_WATCH), AndroidApiLevel.L);
     // All android.jar's for API level L are present.
     for (AndroidApiLevel androidApiLevel : AndroidApiLevel.values()) {
-      // TODO(b/181356260): Add AndroidJar for S.
-      if (androidApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.L)
-          && androidApiLevel.isLessThan(AndroidApiLevel.S)) {
+      if (androidApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.L)) {
         checkExpectedAndroidJar(
             ToolHelper.getFirstSupportedAndroidJar(androidApiLevel), androidApiLevel);
       }
