@@ -5,6 +5,7 @@
 package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.naming.MapVersion;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -53,7 +54,11 @@ public class FileNameInformation extends MappingInformation {
   }
 
   public static FileNameInformation build(
-      JsonObject object, DiagnosticsHandler diagnosticsHandler, int lineNumber) {
+      MapVersion version,
+      JsonObject object,
+      DiagnosticsHandler diagnosticsHandler,
+      int lineNumber) {
+    // Source file information is valid for all map file versions.
     try {
       JsonElement fileName =
           getJsonElementFromObject(object, diagnosticsHandler, lineNumber, FILE_NAME_KEY, ID);

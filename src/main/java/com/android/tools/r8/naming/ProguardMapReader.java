@@ -8,6 +8,7 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.MetaInfMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.SignatureMappingInformation;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.utils.IdentifierUtils;
@@ -85,6 +86,7 @@ public class ProguardMapReader implements AutoCloseable {
   private int lineNo = 0;
   private int lineOffset = 0;
   private String line;
+  private MapVersion version = MapVersion.MapVersionNone;
 
   private int peekCodePoint() {
     return lineOffset < line.length() ? line.codePointAt(lineOffset) : '\n';
@@ -225,7 +227,7 @@ public class ProguardMapReader implements AutoCloseable {
       if (isCommentLineWithJsonBrace()) {
         // TODO(b/179665169): Parse the mapping information without doing anything with it, since we
         //  at this point do not have a global context.
-        MappingInformation.fromJsonObject(parseJsonInComment(), diagnosticsHandler, lineNo);
+        parseMappingInformation();
         // Skip reading the rest of the line.
         lineOffset = line.length();
         nextLine();
@@ -255,6 +257,20 @@ public class ProguardMapReader implements AutoCloseable {
     }
   }
 
+  private MappingInformation parseMappingInformation() {
+    MappingInformation info =
+        MappingInformation.fromJsonObject(
+            version, parseJsonInComment(), diagnosticsHandler, lineNo);
+    if (info == null) {
+      return null;
+    }
+    MetaInfMappingInformation generatorInfo = info.asMetaInfMappingInformation();
+    if (generatorInfo != null) {
+      version = generatorInfo.getMapVersion();
+    }
+    return info;
+  }
+
   private void parseMemberMappings(ClassNaming.Builder classNamingBuilder) throws IOException {
     MemberNaming lastAddedNaming = null;
     MemberNaming activeMemberNaming = null;
@@ -265,8 +281,7 @@ public class ProguardMapReader implements AutoCloseable {
       Range mappedRange = null;
       // Try to parse any information added in comments above member namings
       if (isCommentLineWithJsonBrace()) {
-        MappingInformation mappingInfo =
-            MappingInformation.fromJsonObject(parseJsonInComment(), diagnosticsHandler, lineNo);
+        MappingInformation mappingInfo = parseMappingInformation();
         if (mappingInfo != null) {
           if (mappingInfo.isSignatureMappingInformation()) {
             SignatureMappingInformation sigMapInfo = mappingInfo.asSignatureMappingInformation();

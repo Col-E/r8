@@ -224,6 +224,11 @@ public abstract class TestCompilerBuilder<
     }
   }
 
+  public T enableExperimentalMapFileVersion() {
+    addOptionsModification(o -> o.testing.enableExperimentalMapFileVersion = true);
+    return self();
+  }
+
   @FunctionalInterface
   public interface DiagnosticsConsumer {
     void accept(TestDiagnosticMessages diagnostics);

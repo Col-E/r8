@@ -1380,6 +1380,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public Consumer<ProgramMethod> callSiteOptimizationInfoInspector = null;
 
     public Predicate<DexMethod> cfByteCodePassThrough = null;
+
+    public boolean enableExperimentalMapFileVersion = false;
   }
 
   @VisibleForTesting

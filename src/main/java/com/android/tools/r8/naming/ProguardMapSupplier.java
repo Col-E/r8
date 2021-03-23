@@ -7,6 +7,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.naming.mappinginformation.MetaInfMappingInformation;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -101,6 +102,17 @@ public class ProguardMapSupplier {
     builder.append("# " + MARKER_KEY_PG_MAP_ID + ": " + id.get() + "\n");
     // Turn off linting of the mapping file in some build systems.
     builder.append("# common_typos_disable" + "\n");
+    // Emit the R8 specific map-file version.
+    MapVersion mapVersion =
+        options.testing.enableExperimentalMapFileVersion
+            ? MapVersion.MapVersionExperimental
+            : MapVersion.STABLE;
+    if (mapVersion.isGreaterThan(MapVersion.MapVersionNone)) {
+      builder
+          .append("# ")
+          .append(new MetaInfMappingInformation(mapVersion).serialize())
+          .append("\n");
+    }
     consumer.accept(builder.toString(), reporter);
   }
 

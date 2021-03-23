@@ -10,6 +10,7 @@ import static com.android.tools.r8.naming.mappinginformation.MappingInformationD
 import static com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics.tooManyInformationalParameters;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.google.gson.JsonArray;
@@ -163,7 +164,13 @@ public class MethodSignatureChangedInformation extends SignatureMappingInformati
   }
 
   public static MappingInformation build(
-      JsonObject object, DiagnosticsHandler diagnosticsHandler, int lineNumber) {
+      MapVersion version,
+      JsonObject object,
+      DiagnosticsHandler diagnosticsHandler,
+      int lineNumber) {
+    if (version.isLessThan(MapVersion.MapVersionExperimental)) {
+      return null;
+    }
     try {
       JsonElement returnTypeElement =
           getJsonElementFromObject(object, diagnosticsHandler, lineNumber, RETURN_TYPE_KEY, ID);

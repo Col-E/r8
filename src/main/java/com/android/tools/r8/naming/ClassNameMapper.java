@@ -60,7 +60,12 @@ public class ClassNameMapper implements ProguardMap {
 
     @Override
     public ClassNameMapper build() {
-      return new ClassNameMapper(mapBuilder.build());
+      ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
+      for (Map.Entry<String, ClassNamingForNameMapper.Builder> entry :
+          mapBuilder.build().entrySet()) {
+        builder.put(entry.getKey(), entry.getValue().build());
+      }
+      return new ClassNameMapper(builder.build());
     }
   }
 
@@ -128,14 +133,6 @@ public class ClassNameMapper implements ProguardMap {
   private BiMapContainer<String, String> nameMapping;
 
   private final Map<Signature, Signature> signatureMap = new HashMap<>();
-
-  private ClassNameMapper(Map<String, ClassNamingForNameMapper.Builder> classNameMappings) {
-    ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
-    for(Map.Entry<String, ClassNamingForNameMapper.Builder> entry : classNameMappings.entrySet()) {
-      builder.put(entry.getKey(), entry.getValue().build());
-    }
-    this.classNameMappings = builder.build();
-  }
 
   private ClassNameMapper(ImmutableMap<String, ClassNamingForNameMapper> classNameMappings) {
     this.classNameMappings = classNameMappings;

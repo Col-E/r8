@@ -5,6 +5,7 @@
 package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.naming.MapVersion;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
@@ -39,7 +40,13 @@ public class CompilerSynthesizedMappingInformation extends MappingInformation {
   }
 
   public static CompilerSynthesizedMappingInformation deserialize(
-      JsonObject object, DiagnosticsHandler diagnosticsHandler, int lineNumber) {
+      MapVersion version,
+      JsonObject object,
+      DiagnosticsHandler diagnosticsHandler,
+      int lineNumber) {
+    if (version.isLessThan(MapVersion.MapVersionExperimental)) {
+      return null;
+    }
     return new CompilerSynthesizedMappingInformation();
   }
 }

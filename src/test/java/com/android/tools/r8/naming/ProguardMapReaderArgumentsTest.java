@@ -14,7 +14,10 @@ import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.core.StringContains.containsString;
 
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
 import com.android.tools.r8.utils.Reporter;
@@ -24,11 +27,24 @@ import java.io.IOException;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class ProguardMapReaderArgumentsTest {
+@RunWith(Parameterized.class)
+public class ProguardMapReaderArgumentsTest extends TestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
 
   private Reporter reporter;
   private TestDiagnosticMessagesImpl testDiagnosticMessages;
+
+  public ProguardMapReaderArgumentsTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Before
   public void setUp() {
@@ -73,8 +89,8 @@ public class ProguardMapReaderArgumentsTest {
   @Test
   public void testMethodWillReportWhenParsingArgumentsChangedMemberComments() throws IOException {
     String mapWithArgumentRemovalInformation =
-        StringUtils.join(
-                "\n",
+        StringUtils.joinLines(
+                "# {'id':'com.android.tools.r8.metainf', 'map-version': 'experimental' }",
                 "android.constraint.Placeholder -> a.b.b.f:",
                 "# Just a comment", // Regular comment
                 "    int mContentId -> b",
@@ -104,13 +120,13 @@ public class ProguardMapReaderArgumentsTest {
             ImmutableList.of(
                 allOf(
                     diagnosticMessage(containsString("Could not decode")),
-                    diagnosticPosition(positionLine(4))),
+                    diagnosticPosition(positionLine(5))),
                 allOf(
                     diagnosticMessage(containsString("Could not decode")),
-                    diagnosticPosition(positionLine(6))),
+                    diagnosticPosition(positionLine(7))),
                 allOf(
                     diagnosticMessage(containsString("Could not decode")),
-                    diagnosticPosition(positionLine(8)))))
+                    diagnosticPosition(positionLine(9)))))
         .assertAllInfosMatch(diagnosticType(MappingInformationDiagnostics.class));
   }
 
@@ -118,6 +134,7 @@ public class ProguardMapReaderArgumentsTest {
   public void testMethodCanParseArgumentRemoval() throws IOException {
     String mapWithArgumentRemovalInformation =
         StringUtils.lines(
+            "# { 'id': 'com.android.tools.r8.metainf', 'map-version': 'experimental' }",
             "android.constraint.Placeholder -> a.b.b.f:",
             "    int mContentId -> b",
             "# { 'id': 'methodSignatureChanged',"
@@ -172,8 +189,8 @@ public class ProguardMapReaderArgumentsTest {
   @Test
   public void testMethodCanParseArgumentChanged() throws IOException {
     String mapWithArgumentRemovalInformation =
-        StringUtils.join(
-            "\n",
+        StringUtils.joinLines(
+            "# {'id':'com.android.tools.r8.metainf', 'map-version': 'experimental' }",
             "android.constraint.Placeholder -> a.b.b.f:",
             "# {'id':'methodSignatureChanged',"
                 + "'signature':["

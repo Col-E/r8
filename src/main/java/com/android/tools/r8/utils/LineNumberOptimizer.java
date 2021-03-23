@@ -299,7 +299,7 @@ public class LineNumberOptimizer {
         }
       }
 
-      if (isSyntheticClass) {
+      if (isSyntheticClass && appView.options().testing.enableExperimentalMapFileVersion) {
         onDemandClassNamingBuilder
             .get()
             .addMappingInformation(new CompilerSynthesizedMappingInformation());

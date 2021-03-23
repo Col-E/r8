@@ -5,6 +5,7 @@
 package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.naming.MapVersion;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -25,6 +26,14 @@ public abstract class MappingInformation {
   }
 
   public abstract String serialize();
+
+  public boolean isMetaInfMappingInformation() {
+    return false;
+  }
+
+  public MetaInfMappingInformation asMetaInfMappingInformation() {
+    return null;
+  }
 
   public boolean isSignatureMappingInformation() {
     return false;
@@ -61,7 +70,10 @@ public abstract class MappingInformation {
   public abstract boolean allowOther(MappingInformation information);
 
   public static MappingInformation fromJsonObject(
-      JsonObject object, DiagnosticsHandler diagnosticsHandler, int lineNumber) {
+      MapVersion version,
+      JsonObject object,
+      DiagnosticsHandler diagnosticsHandler,
+      int lineNumber) {
     if (object == null) {
       diagnosticsHandler.info(MappingInformationDiagnostics.notValidJson(lineNumber));
       return null;
@@ -78,16 +90,29 @@ public abstract class MappingInformation {
           MappingInformationDiagnostics.notValidString(lineNumber, MAPPING_ID_KEY));
       return null;
     }
-    switch (idString) {
+    return deserialize(idString, version, object, diagnosticsHandler, lineNumber);
+  }
+
+  private static MappingInformation deserialize(
+      String id,
+      MapVersion version,
+      JsonObject object,
+      DiagnosticsHandler diagnosticsHandler,
+      int lineNumber) {
+    switch (id) {
+      case MetaInfMappingInformation.ID:
+        return MetaInfMappingInformation.deserialize(
+            version, object, diagnosticsHandler, lineNumber);
       case MethodSignatureChangedInformation.ID:
-        return MethodSignatureChangedInformation.build(object, diagnosticsHandler, lineNumber);
+        return MethodSignatureChangedInformation.build(
+            version, object, diagnosticsHandler, lineNumber);
       case FileNameInformation.ID:
-        return FileNameInformation.build(object, diagnosticsHandler, lineNumber);
+        return FileNameInformation.build(version, object, diagnosticsHandler, lineNumber);
       case CompilerSynthesizedMappingInformation.ID:
         return CompilerSynthesizedMappingInformation.deserialize(
-            object, diagnosticsHandler, lineNumber);
+            version, object, diagnosticsHandler, lineNumber);
       default:
-        diagnosticsHandler.info(MappingInformationDiagnostics.noHandlerFor(lineNumber, idString));
+        diagnosticsHandler.info(MappingInformationDiagnostics.noHandlerFor(lineNumber, id));
         return null;
     }
   }
