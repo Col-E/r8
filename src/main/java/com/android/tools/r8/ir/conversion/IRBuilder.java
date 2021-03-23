@@ -2211,6 +2211,14 @@ public class IRBuilder {
                     TypeElement.fromDexType(phiTypeForBlock, Nullability.maybeNull(), appView),
                     local,
                     readType);
+          } else if (readType == RegisterReadType.DEBUG) {
+            throw new InvalidDebugInfoException(
+                "Information in locals-table is invalid with respect to the stack map table. "
+                    + "Local refers to non-present stack map type for register: "
+                    + register
+                    + " with constraint "
+                    + constraint
+                    + ".");
           } else {
             assert method.getDefinition().getClassFileVersion().isLessThan(CfVersion.V1_8);
             hasIncorrectStackMapTypes = true;
