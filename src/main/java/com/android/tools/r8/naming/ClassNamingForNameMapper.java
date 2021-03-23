@@ -85,10 +85,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     private ClassNaming.Builder addMappingInformation(
         MappingInformation mappingInformation, Consumer<MappingInformation> notAllowedCombination) {
-      Signature signature =
-          mappingInformation.isSignatureMappingInformation()
-              ? mappingInformation.asSignatureMappingInformation().getSignature()
-              : NO_SIGNATURE;
+      Signature signature = NO_SIGNATURE;
       List<MappingInformation> additionalMappingForSignature =
           additionalMappings.computeIfAbsent(signature, ignored -> new ArrayList<>());
       for (MappingInformation information : additionalMappingForSignature) {

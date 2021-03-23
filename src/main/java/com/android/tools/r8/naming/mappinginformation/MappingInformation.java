@@ -44,27 +44,11 @@ public abstract class MappingInformation {
     return null;
   }
 
-  public boolean isSignatureMappingInformation() {
-    return false;
-  }
-
-  public SignatureMappingInformation asSignatureMappingInformation() {
-    return null;
-  }
-
   public boolean isFileNameInformation() {
     return false;
   }
 
   public FileNameInformation asFileNameInformation() {
-    return null;
-  }
-
-  public boolean isMethodSignatureChangedInformation() {
-    return false;
-  }
-
-  public MethodSignatureChangedInformation asMethodSignatureChangedInformation() {
     return null;
   }
 
@@ -114,9 +98,6 @@ public abstract class MappingInformation {
     switch (id) {
       case MetaInfMappingInformation.ID:
         return MetaInfMappingInformation.deserialize(
-            version, object, diagnosticsHandler, lineNumber);
-      case MethodSignatureChangedInformation.ID:
-        return MethodSignatureChangedInformation.build(
             version, object, diagnosticsHandler, lineNumber);
       case FileNameInformation.ID:
         return FileNameInformation.build(version, object, diagnosticsHandler, lineNumber);
