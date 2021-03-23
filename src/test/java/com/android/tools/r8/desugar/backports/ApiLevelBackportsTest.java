@@ -80,7 +80,9 @@ public class ApiLevelBackportsTest extends TestBase {
         .assertWarningMessageThatMatches(containsString("is not supported by this compiler"))
         .run(parameters.getRuntime(), TestMathMultiplyExactLongInt.class)
         .assertFailureWithErrorThatMatches(
-            containsString("java.lang.NoSuchMethodError: No static method multiplyExact(JI)J"));
+            containsString(
+                "java.lang.NoSuchMethodError: No static method"
+                    + " parseInt(Ljava/lang/CharSequence;III)I"));
   }
 
   @Test
@@ -90,7 +92,9 @@ public class ApiLevelBackportsTest extends TestBase {
         .setMinApi(AndroidApiLevel.magicApiLevelUsedByAndroidPlatformBuild)
         .run(parameters.getRuntime(), TestMathMultiplyExactLongInt.class)
         .assertFailureWithErrorThatMatches(
-            containsString("java.lang.NoSuchMethodError: No static method multiplyExact(JI)J"));
+            containsString(
+                "java.lang.NoSuchMethodError: No static method"
+                    + " parseInt(Ljava/lang/CharSequence;III)I"));
   }
 
   // Test class for using: List List.of()
@@ -141,9 +145,9 @@ public class ApiLevelBackportsTest extends TestBase {
         .transformMethodInsnInMethod(
             "main",
             (opcode, owner, name, descriptor, isInterface, visitor) -> {
-              if (name.equals("Math_multiplyExact")) {
+              if (name.equals("Integer_parseInt")) {
                 visitor.visitMethodInsn(
-                    opcode, "java/lang/Math", "multiplyExact", descriptor, isInterface);
+                    opcode, "java/lang/Integer", "parseInt", descriptor, isInterface);
               } else {
                 visitor.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
               }
@@ -152,12 +156,12 @@ public class ApiLevelBackportsTest extends TestBase {
   }
 
   static class TestMathMultiplyExactLongInt {
-    public static long Math_multiplyExact(long l, int i) {
+    public static int Integer_parseInt(CharSequence s, int beginIndex, int endIndex, int radix) {
       throw null;
     }
 
     public static void main(String[] args) {
-      System.out.println(Math_multiplyExact(2L, 2));
+      System.out.println(Integer_parseInt("4", 0, 1, 10));
     }
   }
 }

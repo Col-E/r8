@@ -1059,7 +1059,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     private void initializeJava9MethodProviders(DexItemFactory factory) {
       // Integer
       DexType type = factory.boxedIntType;
-      // long Long.parseLong(CharSequence s, int beginIndex, int endIndex, int radix)
+      // int Integer.parseInt(CharSequence s, int beginIndex, int endIndex, int radix)
       DexString name = factory.createString("parseInt");
       DexProto proto =
           factory.createProto(
