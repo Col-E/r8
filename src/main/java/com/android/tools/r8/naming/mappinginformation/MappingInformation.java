@@ -6,6 +6,7 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -26,6 +27,14 @@ public abstract class MappingInformation {
   }
 
   public abstract String serialize();
+
+  public boolean isScopedMappingInformation() {
+    return false;
+  }
+
+  public ScopedMappingInformation asScopedMappingInformation() {
+    return null;
+  }
 
   public boolean isMetaInfMappingInformation() {
     return false;
@@ -73,7 +82,8 @@ public abstract class MappingInformation {
       MapVersion version,
       JsonObject object,
       DiagnosticsHandler diagnosticsHandler,
-      int lineNumber) {
+      int lineNumber,
+      ScopeReference implicitSingletonScope) {
     if (object == null) {
       diagnosticsHandler.info(MappingInformationDiagnostics.notValidJson(lineNumber));
       return null;
@@ -90,7 +100,8 @@ public abstract class MappingInformation {
           MappingInformationDiagnostics.notValidString(lineNumber, MAPPING_ID_KEY));
       return null;
     }
-    return deserialize(idString, version, object, diagnosticsHandler, lineNumber);
+    return deserialize(
+        idString, version, object, diagnosticsHandler, lineNumber, implicitSingletonScope);
   }
 
   private static MappingInformation deserialize(
@@ -98,7 +109,8 @@ public abstract class MappingInformation {
       MapVersion version,
       JsonObject object,
       DiagnosticsHandler diagnosticsHandler,
-      int lineNumber) {
+      int lineNumber,
+      ScopeReference implicitSingletonScope) {
     switch (id) {
       case MetaInfMappingInformation.ID:
         return MetaInfMappingInformation.deserialize(
@@ -110,7 +122,7 @@ public abstract class MappingInformation {
         return FileNameInformation.build(version, object, diagnosticsHandler, lineNumber);
       case CompilerSynthesizedMappingInformation.ID:
         return CompilerSynthesizedMappingInformation.deserialize(
-            version, object, diagnosticsHandler, lineNumber);
+            version, object, diagnosticsHandler, lineNumber, implicitSingletonScope);
       default:
         diagnosticsHandler.info(MappingInformationDiagnostics.noHandlerFor(lineNumber, id));
         return null;

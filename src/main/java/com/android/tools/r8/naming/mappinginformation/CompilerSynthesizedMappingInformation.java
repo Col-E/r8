@@ -6,15 +6,37 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
+import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
-public class CompilerSynthesizedMappingInformation extends MappingInformation {
+public class CompilerSynthesizedMappingInformation extends ScopedMappingInformation {
 
   public static final String ID = "com.android.tools.r8.synthesized";
 
-  public CompilerSynthesizedMappingInformation() {
-    super(NO_LINE_NUMBER);
+  public static class Builder extends ScopedMappingInformation.Builder<Builder> {
+
+    @Override
+    public String getId() {
+      return ID;
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
+
+    public CompilerSynthesizedMappingInformation build() {
+      return new CompilerSynthesizedMappingInformation(buildScope());
+    }
+  }
+
+  private CompilerSynthesizedMappingInformation(ImmutableList<ScopeReference> scope) {
+    super(scope);
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   @Override
@@ -33,20 +55,22 @@ public class CompilerSynthesizedMappingInformation extends MappingInformation {
   }
 
   @Override
-  public String serialize() {
-    JsonObject result = new JsonObject();
-    result.add(MAPPING_ID_KEY, new JsonPrimitive(ID));
-    return result.toString();
+  protected JsonObject serializeToJsonObject(JsonObject object) {
+    object.add(MAPPING_ID_KEY, new JsonPrimitive(ID));
+    return object;
   }
 
   public static CompilerSynthesizedMappingInformation deserialize(
       MapVersion version,
       JsonObject object,
       DiagnosticsHandler diagnosticsHandler,
-      int lineNumber) {
+      int lineNumber,
+      ScopeReference implicitSingletonScope) {
     if (version.isLessThan(MapVersion.MapVersionExperimental)) {
       return null;
     }
-    return new CompilerSynthesizedMappingInformation();
+    return builder()
+        .deserializeFromJsonObject(object, implicitSingletonScope, diagnosticsHandler, lineNumber)
+        .build();
   }
 }

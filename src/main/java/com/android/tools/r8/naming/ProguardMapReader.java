@@ -7,10 +7,14 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.naming.ProguardMap.Builder;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MetaInfMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ClassScopeReference;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.android.tools.r8.naming.mappinginformation.SignatureMappingInformation;
 import com.android.tools.r8.position.TextPosition;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Maps;
@@ -87,6 +91,7 @@ public class ProguardMapReader implements AutoCloseable {
   private int lineOffset = 0;
   private String line;
   private MapVersion version = MapVersion.MapVersionNone;
+  private ScopeReference implicitSingletonScope = null;
 
   private int peekCodePoint() {
     return lineOffset < line.length() ? line.codePointAt(lineOffset) : '\n';
@@ -250,9 +255,10 @@ public class ProguardMapReader implements AutoCloseable {
       expect(':');
       ClassNaming.Builder currentClassBuilder =
           mapBuilder.classNamingBuilder(after, before, getPosition());
+      implicitSingletonScope = new ClassScopeReference(Reference.classFromTypeName(after));
       skipWhitespace();
       if (nextLine()) {
-        parseMemberMappings(currentClassBuilder);
+        parseMemberMappings(mapBuilder, currentClassBuilder);
       }
     }
   }
@@ -260,7 +266,7 @@ public class ProguardMapReader implements AutoCloseable {
   private MappingInformation parseMappingInformation() {
     MappingInformation info =
         MappingInformation.fromJsonObject(
-            version, parseJsonInComment(), diagnosticsHandler, lineNo);
+            version, parseJsonInComment(), diagnosticsHandler, lineNo, implicitSingletonScope);
     if (info == null) {
       return null;
     }
@@ -271,7 +277,8 @@ public class ProguardMapReader implements AutoCloseable {
     return info;
   }
 
-  private void parseMemberMappings(ClassNaming.Builder classNamingBuilder) throws IOException {
+  private void parseMemberMappings(Builder mapBuilder, ClassNaming.Builder classNamingBuilder)
+      throws IOException {
     MemberNaming lastAddedNaming = null;
     MemberNaming activeMemberNaming = null;
     Range previousMappedRange = null;
@@ -286,6 +293,8 @@ public class ProguardMapReader implements AutoCloseable {
           if (mappingInfo.isSignatureMappingInformation()) {
             SignatureMappingInformation sigMapInfo = mappingInfo.asSignatureMappingInformation();
             mappingInformation.put(sigMapInfo.getSignature(), sigMapInfo);
+          } else if (mappingInfo.isScopedMappingInformation()) {
+            mapBuilder.addScopedMappingInformation(mappingInfo.asScopedMappingInformation());
           } else {
             classNamingBuilder.addMappingInformation(mappingInfo, diagnosticsHandler, lineNo);
           }

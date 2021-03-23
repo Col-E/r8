@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableMap;
@@ -58,6 +59,11 @@ public class SeedMapper implements ProguardMap {
         reporter.error(ProguardMapError.duplicateSourceClass(originalName, position));
       }
       return classNamingBuilder;
+    }
+
+    @Override
+    void addScopedMappingInformation(ScopedMappingInformation scopedMappingInformation) {
+      // Not needed.
     }
 
     @Override

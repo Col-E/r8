@@ -49,6 +49,8 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.naming.mappinginformation.CompilerSynthesizedMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ClassScopeReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
@@ -281,12 +283,12 @@ public class LineNumberOptimizer {
       // It depends on whether any methods/fields are renamed or some methods contain positions.
       // Create a supplier which creates a new, cached ClassNaming.Builder on-demand.
       DexType originalType = appView.graphLens().getOriginalType(clazz.type);
-      DexString renamedClassName = namingLens.lookupDescriptor(clazz.getType());
+      DexString renamedDescriptor = namingLens.lookupDescriptor(clazz.getType());
       Supplier<ClassNaming.Builder> onDemandClassNamingBuilder =
           Suppliers.memoize(
               () ->
                   classNameMapperBuilder.classNamingBuilder(
-                      DescriptorUtils.descriptorToJavaType(renamedClassName.toString()),
+                      DescriptorUtils.descriptorToJavaType(renamedDescriptor.toString()),
                       originalType.toSourceString(),
                       com.android.tools.r8.position.Position.UNKNOWN));
 
@@ -302,11 +304,16 @@ public class LineNumberOptimizer {
       if (isSyntheticClass && appView.options().testing.enableExperimentalMapFileVersion) {
         onDemandClassNamingBuilder
             .get()
-            .addMappingInformation(new CompilerSynthesizedMappingInformation());
+            .addMappingInformation(
+                CompilerSynthesizedMappingInformation.builder()
+                    .addScopeReference(
+                        new ClassScopeReference(
+                            Reference.classFromDescriptor(renamedDescriptor.toString())))
+                    .build());
       }
 
       // If the class is renamed add it to the classNamingBuilder.
-      addClassToClassNaming(originalType, renamedClassName, onDemandClassNamingBuilder);
+      addClassToClassNaming(originalType, renamedDescriptor, onDemandClassNamingBuilder);
 
       // First transfer renamed fields to classNamingBuilder.
       addFieldsToClassNaming(
