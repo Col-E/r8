@@ -8,11 +8,9 @@ import static junit.framework.TestCase.assertEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.naming.MemberNaming.NoSignature;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
-import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,10 +79,7 @@ public class MapReaderVersionTest extends TestBase {
   }
 
   private boolean isCompilerSynthesized(ClassNamingForNameMapper naming) {
-    List<MappingInformation> infos = naming.getAdditionalMappings().get(NoSignature.NO_SIGNATURE);
-    if (infos == null || infos.isEmpty()) {
-      return false;
-    }
-    return infos.stream().anyMatch(MappingInformation::isCompilerSynthesizedMappingInformation);
+    return naming.getAdditionalMappings().stream()
+        .anyMatch(MappingInformation::isCompilerSynthesizedMappingInformation);
   }
 }

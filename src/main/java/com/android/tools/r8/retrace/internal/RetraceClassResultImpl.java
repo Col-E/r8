@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import static com.android.tools.r8.naming.MemberNaming.NoSignature.NO_SIGNATURE;
 import static com.android.tools.r8.retrace.internal.RetraceUtils.synthesizeFileName;
 
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
@@ -234,15 +233,11 @@ public class RetraceClassResultImpl implements RetraceClassResult {
 
     @Override
     public RetraceSourceFileResultImpl retraceSourceFile(String sourceFile) {
-      if (mapper != null && mapper.getAdditionalMappings().size() > 0) {
-        List<MappingInformation> mappingInformations =
-            mapper.getAdditionalMappings().get(NO_SIGNATURE);
-        if (mappingInformations != null) {
-          for (MappingInformation mappingInformation : mappingInformations) {
-            if (mappingInformation.isFileNameInformation()) {
-              return new RetraceSourceFileResultImpl(
-                  mappingInformation.asFileNameInformation().getFileName(), false);
-            }
+      if (mapper != null) {
+        for (MappingInformation mappingInformation : mapper.getAdditionalMappings()) {
+          if (mappingInformation.isFileNameInformation()) {
+            return new RetraceSourceFileResultImpl(
+                mappingInformation.asFileNameInformation().getFileName(), false);
           }
         }
       }

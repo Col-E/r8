@@ -168,40 +168,6 @@ public class MemberNaming {
     }
   }
 
-  public static class NoSignature extends Signature {
-
-    public static final NoSignature NO_SIGNATURE = new NoSignature();
-
-    private NoSignature() {
-      super("NO SIGNATURE");
-    }
-
-    @Override
-    Signature asRenamed(String renamedName) {
-      throw new Unreachable("Should not be called on NoSignature");
-    }
-
-    @Override
-    public SignatureKind kind() {
-      throw new Unreachable("Should not be called on NoSignature");
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      return o == this;
-    }
-
-    @Override
-    public int hashCode() {
-      return 7;
-    }
-
-    @Override
-    void write(Writer builder) throws IOException {
-      throw new Unreachable("Should not be called on NoSignature");
-    }
-  }
-
   public static class FieldSignature extends Signature {
 
     public final String type;

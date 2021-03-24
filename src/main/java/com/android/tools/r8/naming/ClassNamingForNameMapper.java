@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.naming.MemberNaming.NoSignature.NO_SIGNATURE;
-
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -14,6 +12,7 @@ import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
@@ -41,7 +40,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     private final Map<FieldSignature, MemberNaming> fieldMembers = Maps.newHashMap();
     private final Map<String, List<MappedRange>> mappedRangesByName = Maps.newHashMap();
     private final Map<String, List<MemberNaming>> mappedFieldNamingsByName = Maps.newHashMap();
-    private final Map<Signature, List<MappingInformation>> additionalMappings = Maps.newHashMap();
+    private final List<MappingInformation> additionalMappings = new ArrayList<>();
 
     private Builder(String renamedName, String originalName) {
       this.originalName = originalName;
@@ -85,15 +84,12 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     private ClassNaming.Builder addMappingInformation(
         MappingInformation mappingInformation, Consumer<MappingInformation> notAllowedCombination) {
-      Signature signature = NO_SIGNATURE;
-      List<MappingInformation> additionalMappingForSignature =
-          additionalMappings.computeIfAbsent(signature, ignored -> new ArrayList<>());
-      for (MappingInformation information : additionalMappingForSignature) {
+      for (MappingInformation information : additionalMappings) {
         if (!information.allowOther(mappingInformation)) {
           notAllowedCombination.accept(information);
         }
       }
-      additionalMappingForSignature.add(mappingInformation);
+      additionalMappings.add(mappingInformation);
       return this;
     }
 
@@ -117,7 +113,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
           fieldMembers,
           map,
           mappedFieldNamingsByName,
-          additionalMappings);
+          ImmutableList.copyOf(additionalMappings));
     }
 
     /** The parameters are forwarded to MappedRange constructor, see explanation there. */
@@ -248,7 +244,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
   public final Map<String, List<MemberNaming>> mappedFieldNamingsByName;
 
-  private final Map<Signature, List<MappingInformation>> additionalMappings;
+  private final ImmutableList<MappingInformation> additionalMappings;
 
   private ClassNamingForNameMapper(
       String renamedName,
@@ -257,13 +253,14 @@ public class ClassNamingForNameMapper implements ClassNaming {
       Map<FieldSignature, MemberNaming> fieldMembers,
       Map<String, MappedRangesOfName> mappedRangesByRenamedName,
       Map<String, List<MemberNaming>> mappedFieldNamingsByName,
-      Map<Signature, List<MappingInformation>> additionalMappings) {
+      ImmutableList<MappingInformation> additionalMappings) {
     this.renamedName = renamedName;
     this.originalName = originalName;
     this.methodMembers = ImmutableMap.copyOf(methodMembers);
     this.fieldMembers = ImmutableMap.copyOf(fieldMembers);
     this.mappedRangesByRenamedName = mappedRangesByRenamedName;
     this.mappedFieldNamingsByName = mappedFieldNamingsByName;
+    assert additionalMappings != null;
     this.additionalMappings = additionalMappings;
   }
 
@@ -353,13 +350,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     consumer.accept(originalName).accept(" -> ").accept(renamedName).accept(":\n");
 
     // Print all additional mapping information.
-    additionalMappings.forEach(
-        (signature, mappingInformations) -> {
-          assert !mappingInformations.isEmpty();
-          for (MappingInformation mappingInformation : mappingInformations) {
-            consumer.accept("# " + mappingInformation.serialize()).accept("\n");
-          }
-        });
+    additionalMappings.forEach(info -> consumer.accept("# " + info.serialize()).accept("\n"));
 
     // Print field member namings.
     forAllFieldNaming(m -> consumer.accept("    ").accept(m.toString()).accept("\n"));
@@ -376,7 +367,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
   }
 
-  public Map<Signature, List<MappingInformation>> getAdditionalMappings() {
+  public List<MappingInformation> getAdditionalMappings() {
     return additionalMappings;
   }
 
