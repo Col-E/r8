@@ -117,7 +117,7 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionInvokeVir
     if (isR8
         && parameters.isDexRuntime()
         && parameters.getDexRuntimeVersion().isNewerThan(Version.V6_0_1)) {
-      // TODO(b/1822553980: This should be EXPECTED.
+      // TODO(b/182255398): This should be EXPECTED.
       result.assertSuccessWithOutput(EXPECTED_R8);
       return;
     }
