@@ -5,17 +5,10 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
+import com.android.tools.r8.retrace.RetraceFieldResult.Element;
 
 @Keep
-public interface RetraceFieldResult {
-
-  Stream<Element> stream();
-
-  RetraceFieldResult forEach(Consumer<Element> resultConsumer);
-
-  boolean isAmbiguous();
+public interface RetraceFieldResult extends RetraceResult<Element> {
 
   @Keep
   interface Element {

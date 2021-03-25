@@ -5,19 +5,12 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.retrace.RetraceFrameResult.Element;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 @Keep
-public interface RetraceFrameResult {
-
-  Stream<Element> stream();
-
-  RetraceFrameResult forEach(Consumer<Element> resultConsumer);
-
-  boolean isAmbiguous();
+public interface RetraceFrameResult extends RetraceResult<Element> {
 
   @Keep
   interface Element {

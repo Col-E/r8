@@ -13,7 +13,6 @@ import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class RetraceMethodResultImpl implements RetraceMethodResult {
@@ -120,12 +119,6 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
                             this, classElement, RetracedMethodImpl.create(methodReference));
                       });
             });
-  }
-
-  @Override
-  public RetraceMethodResultImpl forEach(Consumer<Element> resultConsumer) {
-    stream().forEach(resultConsumer);
-    return this;
   }
 
   public static class ElementImpl implements RetraceMethodResult.Element {

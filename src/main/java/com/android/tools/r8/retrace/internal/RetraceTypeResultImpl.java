@@ -6,6 +6,7 @@ package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceTypeResult;
+import com.android.tools.r8.retrace.RetracedType;
 import com.android.tools.r8.retrace.Retracer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -55,14 +56,14 @@ public class RetraceTypeResultImpl implements RetraceTypeResult {
 
   public static class ElementImpl implements RetraceTypeResult.Element {
 
-    private final RetracedTypeImpl retracedType;
+    private final RetracedType retracedType;
 
-    public ElementImpl(RetracedTypeImpl retracedType) {
+    public ElementImpl(RetracedType retracedType) {
       this.retracedType = retracedType;
     }
 
     @Override
-    public RetracedTypeImpl getType() {
+    public RetracedType getType() {
       return retracedType;
     }
   }

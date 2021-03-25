@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class RetraceFrameResultImpl implements RetraceFrameResult {
@@ -114,12 +113,6 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
         getRetracedMethod(methodReference, topFrame, obfuscatedPosition),
         mappedRangesForElement,
         obfuscatedPosition);
-  }
-
-  @Override
-  public RetraceFrameResultImpl forEach(Consumer<Element> resultConsumer) {
-    stream().forEach(resultConsumer);
-    return this;
   }
 
   private RetracedMethodImpl getRetracedMethod(

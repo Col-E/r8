@@ -6,6 +6,7 @@ package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
 
+// TODO: This does not seem to be a "result" per say, should this rather be a RetracedSourceFile?
 @Keep
 public interface RetraceSourceFileResult {
 

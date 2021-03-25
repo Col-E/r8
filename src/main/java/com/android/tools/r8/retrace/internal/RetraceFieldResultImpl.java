@@ -13,7 +13,6 @@ import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class RetraceFieldResultImpl implements RetraceFieldResult {
@@ -76,12 +75,6 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
                                     Reference.typeFromTypeName(fieldSignature.type))));
                       });
             });
-  }
-
-  @Override
-  public RetraceFieldResultImpl forEach(Consumer<Element> resultConsumer) {
-    stream().forEach(resultConsumer);
-    return this;
   }
 
   @Override

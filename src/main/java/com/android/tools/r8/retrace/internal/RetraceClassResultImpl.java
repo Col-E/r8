@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class RetraceClassResultImpl implements RetraceClassResult {
@@ -186,24 +185,12 @@ public class RetraceClassResultImpl implements RetraceClassResult {
         mapper);
   }
 
-  @Override
-  public RetraceClassResultImpl forEach(Consumer<Element> resultConsumer) {
-    stream().forEach(resultConsumer);
-    return this;
-  }
-
   private interface ResultConstructor<T, R, D> {
     R create(
         RetraceClassResultImpl classResult,
         List<Pair<ElementImpl, T>> mappings,
         D definition,
         Retracer retracer);
-  }
-
-  @Override
-  public boolean isAmbiguous() {
-    // Currently we have no way of producing ambiguous class results.
-    return false;
   }
 
   public static class ElementImpl implements Element {
