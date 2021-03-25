@@ -4,9 +4,10 @@
 
 package com.android.tools.r8.retrace;
 
+import static com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
+
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser;
 
 /**
  * The base options for running retrace with support for continuously retrace strings without
@@ -60,13 +61,17 @@ public class RetraceOptions {
     return new Builder(diagnosticsHandler);
   }
 
+  public static String defaultRegularExpression() {
+    return DEFAULT_REGULAR_EXPRESSION;
+  }
+
   @Keep
   public static class Builder {
 
     private boolean isVerbose;
     private final DiagnosticsHandler diagnosticsHandler;
     private ProguardMapProducer proguardMapProducer;
-    private String regularExpression = StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
+    private String regularExpression = defaultRegularExpression();
 
     Builder(DiagnosticsHandler diagnosticsHandler) {
       this.diagnosticsHandler = diagnosticsHandler;
