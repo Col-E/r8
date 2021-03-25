@@ -735,7 +735,7 @@ final class InlineCandidateProcessor {
     Set<Instruction> users = eligibleInstance.uniqueUsers();
     for (Instruction user : users) {
       BasicBlock block = user.getBlock();
-      if (!seen.add(block)) {
+      if (block == null || !seen.add(block)) {
         continue;
       }
 
@@ -746,8 +746,8 @@ final class InlineCandidateProcessor {
           continue;
         }
 
-        if (user.isInstanceGet()) {
-          if (user.hasUsedOutValue()) {
+        if (instruction.isInstanceGet()) {
+          if (instruction.hasUsedOutValue()) {
             replaceFieldReadFromStaticGet(
                 code, instructionIterator, user.asInstanceGet(), affectedValues);
           } else {
@@ -756,7 +756,7 @@ final class InlineCandidateProcessor {
           continue;
         }
 
-        if (user.isInstancePut()) {
+        if (instruction.isInstancePut()) {
           instructionIterator.removeOrReplaceByDebugLocalRead();
           continue;
         }
