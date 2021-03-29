@@ -209,10 +209,17 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
 
   private void verifyUnusedExtensionsAreRemoved(
       CodeInspector inputInspector, CodeInspector outputInspector) {
+    verifyUnusedExtensionsAreRemoved(
+        inputInspector,
+        outputInspector,
+        "com.google.protobuf.proto2_registryGeneratedExtensionRegistryLite");
+  }
+
+  private void verifyUnusedExtensionsAreRemoved(
+      CodeInspector inputInspector, CodeInspector outputInspector, String extensionRegistryName) {
     // Verify that the registry was split across multiple methods in the input.
     {
-      ClassSubject generatedExtensionRegistryLoader =
-          inputInspector.clazz("com.google.protobuf.proto2_registryGeneratedExtensionRegistryLite");
+      ClassSubject generatedExtensionRegistryLoader = inputInspector.clazz(extensionRegistryName);
       assertThat(generatedExtensionRegistryLoader, isPresent());
       assertThat(
           generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber"),
@@ -228,9 +235,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
     // Verify that the registry methods are still present in the output.
     // TODO(b/112437944): Should they be optimized into a single findLiteExtensionByNumber() method?
     {
-      ClassSubject generatedExtensionRegistryLoader =
-          outputInspector.clazz(
-              "com.google.protobuf.proto2_registryGeneratedExtensionRegistryLite");
+      ClassSubject generatedExtensionRegistryLoader = outputInspector.clazz(extensionRegistryName);
       assertThat(generatedExtensionRegistryLoader, isPresent());
       assertThat(
           generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber"),
@@ -372,5 +377,41 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         .inspect(
             inspector ->
                 assertRewrittenProtoSchemasMatch(new CodeInspector(PROGRAM_FILES), inspector));
+  }
+
+  @Test
+  public void testTwoExtensionRegistrys() throws Exception {
+    CodeInspector inputInspector = new CodeInspector(PROGRAM_FILES);
+    testForR8(parameters.getBackend())
+        .addProgramFiles(PROGRAM_FILES)
+        .addKeepMainRule("proto2.TestClass")
+        .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
+        .addKeepRules(findLiteExtensionByNumberInDuplicateCalledRule())
+        .addKeepRules(allGeneratedMessageLiteSubtypesAreInstantiatedRule())
+        // TODO(b/173340579): This rule should not be needed to allow shrinking of
+        //  PartiallyUsed$Enum.
+        .addNoHorizontalClassMergingRule(PARTIALLY_USED + "$Enum$1")
+        .allowAccessModification(allowAccessModification)
+        .allowDiagnosticMessages()
+        .allowUnusedDontWarnPatterns()
+        .allowUnusedProguardConfigurationRules()
+        .enableProtoShrinking()
+        .minification(enableMinification)
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .assertAllInfoMessagesMatch(
+            containsString("Proguard configuration rule does not match anything"))
+        .assertAllWarningMessagesMatch(
+            anyOf(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."),
+                containsString("required for default or static interface methods desugaring")))
+        .inspect(
+            outputInspector -> {
+              verifyUnusedExtensionsAreRemoved(inputInspector, outputInspector);
+              verifyUnusedExtensionsAreRemoved(
+                  inputInspector,
+                  outputInspector,
+                  "com.google.protobuf.proto2_registryGeneratedExtensionRegistryLiteDuplicate");
+            });
   }
 }

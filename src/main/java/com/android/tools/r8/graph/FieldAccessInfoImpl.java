@@ -243,6 +243,14 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   }
 
   /**
+   * Returns true if this field is only read by methods for which {@param predicate} returns true.
+   */
+  @Override
+  public boolean isReadOnlyInMethodSatisfying(Predicate<ProgramMethod> predicate) {
+    return readsWithContexts.isAccessedOnlyInMethodSatisfying(predicate);
+  }
+
+  /**
    * Returns true if this field is written by a method in the program other than {@param method}.
    */
   @Override

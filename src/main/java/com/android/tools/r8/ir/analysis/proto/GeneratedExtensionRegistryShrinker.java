@@ -219,9 +219,9 @@ public class GeneratedExtensionRegistryShrinker {
       return false;
     }
 
-    ProgramMethod uniqueReadContext = fieldAccessInfo.getUniqueReadContext();
-    return uniqueReadContext != null
-        && references.isFindLiteExtensionByNumberMethod(uniqueReadContext);
+    // Multiple GeneratedExtensionRegistries exist in Chrome; 1 per feature split.
+    return fieldAccessInfo.isReadOnlyInMethodSatisfying(
+        method -> references.isFindLiteExtensionByNumberMethod(method));
   }
 
   private void forEachDeadProtoExtensionField(Consumer<DexField> consumer) {
