@@ -1,8 +1,8 @@
-// Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.desugar;
+package com.android.tools.r8.ir.desugar.itf;
 
 import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
@@ -65,8 +65,9 @@ import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
-import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.Collection;
-import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.itf.DefaultMethodsHelper.Collection;
+import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.MethodSynthesizerConsumer;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
@@ -151,17 +152,11 @@ public final class InterfaceMethodRewriter {
   private final Map<DexType, DefaultMethodsHelper.Collection> cache = new ConcurrentHashMap<>();
 
   private final Predicate<DexType> shouldIgnoreFromReportsPredicate;
-  /**
-   * Defines a minor variation in desugaring.
-   */
+  /** Defines a minor variation in desugaring. */
   public enum Flavor {
-    /**
-     * Process all application resources.
-     */
+    /** Process all application resources. */
     IncludeAllResources,
-    /**
-     * Process all but DEX application resources.
-     */
+    /** Process all but DEX application resources. */
     ExcludeDexResources
   }
 
@@ -1049,8 +1044,9 @@ public final class InterfaceMethodRewriter {
   public static DexType getInterfaceClassType(DexType type, DexItemFactory factory) {
     assert isCompanionClassType(type);
     String descriptor = type.descriptor.toString();
-    String interfaceTypeDescriptor = descriptor.substring(0,
-        descriptor.length() - 1 - COMPANION_CLASS_NAME_SUFFIX.length()) + ";";
+    String interfaceTypeDescriptor =
+        descriptor.substring(0, descriptor.length() - 1 - COMPANION_CLASS_NAME_SUFFIX.length())
+            + ";";
     return factory.createType(interfaceTypeDescriptor);
   }
 
@@ -1082,8 +1078,9 @@ public final class InterfaceMethodRewriter {
   // not define this default methods, but inherits it. We are making our best effort
   // to find an appropriate method, but still use the original one in case we fail.
   private DexMethod amendDefaultMethod(DexClass classToDesugar, DexMethod method) {
-    DexMethod singleCandidate = getOrCreateInterfaceInfo(
-        classToDesugar, classToDesugar, method.holder).getSingleCandidate(method);
+    DexMethod singleCandidate =
+        getOrCreateInterfaceInfo(classToDesugar, classToDesugar, method.holder)
+            .getSingleCandidate(method);
     return singleCandidate != null ? singleCandidate : method;
   }
 
@@ -1223,9 +1220,7 @@ public final class InterfaceMethodRewriter {
    * to moved default methods implementation.
    */
   public void desugarInterfaceMethods(
-      Builder<?> builder,
-      Flavor flavour,
-      ExecutorService executorService)
+      Builder<?> builder, Flavor flavour, ExecutorService executorService)
       throws ExecutionException {
     if (appView.options().isDesugaredLibraryCompilation()) {
       generateEmulateInterfaceLibrary(builder);
@@ -1428,9 +1423,7 @@ public final class InterfaceMethodRewriter {
   }
 
   final DefaultMethodsHelper.Collection getOrCreateInterfaceInfo(
-      DexClass classToDesugar,
-      DexClass implementing,
-      DexType iface) {
+      DexClass classToDesugar, DexClass implementing, DexType iface) {
     DefaultMethodsHelper.Collection collection = cache.get(iface);
     if (collection != null) {
       return collection;
@@ -1441,9 +1434,7 @@ public final class InterfaceMethodRewriter {
   }
 
   private DefaultMethodsHelper.Collection createInterfaceInfo(
-      DexClass classToDesugar,
-      DexClass implementing,
-      DexType iface) {
+      DexClass classToDesugar, DexClass implementing, DexType iface) {
     DefaultMethodsHelper helper = new DefaultMethodsHelper();
     DexClass definedInterface = appView.definitionFor(iface);
     if (definedInterface == null) {
@@ -1452,8 +1443,11 @@ public final class InterfaceMethodRewriter {
     }
     if (!definedInterface.isInterface()) {
       throw new CompilationError(
-          "Type " + iface.toSourceString() + " is referenced as an interface from `"
-              + implementing.toString() + "`.");
+          "Type "
+              + iface.toSourceString()
+              + " is referenced as an interface from `"
+              + implementing.toString()
+              + "`.");
     }
 
     if (isNonDesugaredLibraryClass(definedInterface)) {

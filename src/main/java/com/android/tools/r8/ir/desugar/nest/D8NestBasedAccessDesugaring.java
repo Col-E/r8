@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.nest;
 
-import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.reportDependencyEdge;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.reportDependencyEdge;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClasspathMethod;

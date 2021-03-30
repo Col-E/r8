@@ -1,8 +1,8 @@
-// Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.desugar;
+package com.android.tools.r8.ir.desugar.itf;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -25,7 +25,7 @@ final class DefaultMethodsHelper {
   // and hidden default interface methods in this interface's hierarchy.
   //
   // Note that it is assumes that these lists should never be big.
-  final static class Collection {
+  static final class Collection {
     static final Collection EMPTY =
         new Collection(Collections.emptyList(), Collections.emptyList());
 
@@ -79,7 +79,8 @@ final class DefaultMethodsHelper {
   // Create default interface collection based on collected information.
   final Collection wrapInCollection() {
     candidates.removeAll(hidden);
-    return (candidates.isEmpty() && hidden.isEmpty()) ? Collection.EMPTY
+    return (candidates.isEmpty() && hidden.isEmpty())
+        ? Collection.EMPTY
         : new Collection(Lists.newArrayList(candidates), Lists.newArrayList(hidden));
   }
 }

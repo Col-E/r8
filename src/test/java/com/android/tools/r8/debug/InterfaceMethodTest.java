@@ -7,7 +7,7 @@ package com.android.tools.r8.debug;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
-import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
+import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.shaking.ifrule.interfacemethoddesugaring;
 
-import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;

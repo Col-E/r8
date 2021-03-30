@@ -1,8 +1,8 @@
-// Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.desugar;
+package com.android.tools.r8.ir.desugar.itf;
 
 import static com.android.tools.r8.utils.PredicateUtils.not;
 
@@ -77,8 +77,7 @@ public final class InterfaceProcessor {
   // All created companion and dispatch classes indexed by interface type.
   final Map<DexClass, DexProgramClass> syntheticClasses = new IdentityHashMap<>();
 
-  InterfaceProcessor(
-      AppView<?> appView, InterfaceMethodRewriter rewriter) {
+  InterfaceProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
     this.rewriter = rewriter;
   }
