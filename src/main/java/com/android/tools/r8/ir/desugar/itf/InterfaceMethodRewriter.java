@@ -62,7 +62,6 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.itf.DefaultMethodsHelper.Collection;
-import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.MethodSynthesizerConsumer;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
@@ -205,7 +204,7 @@ public final class InterfaceMethodRewriter {
     }
   }
 
-  public void addRewritePrefix(DexType interfaceType, String rewrittenType) {
+  void addRewritePrefix(DexType interfaceType, String rewrittenType) {
     appView.rewritePrefix.rewriteType(
         getCompanionClassType(interfaceType),
         factory.createType(
@@ -217,7 +216,7 @@ public final class InterfaceMethodRewriter {
                 rewrittenType + EMULATE_LIBRARY_CLASS_NAME_SUFFIX)));
   }
 
-  public boolean isEmulatedInterface(DexType itf) {
+  boolean isEmulatedInterface(DexType itf) {
     return emulatedInterfaces.containsKey(itf);
   }
 
@@ -769,7 +768,7 @@ public final class InterfaceMethodRewriter {
     return false;
   }
 
-  public DexMethod emulateInterfaceLibraryMethod(DexClassAndMethod method) {
+  DexMethod emulateInterfaceLibraryMethod(DexClassAndMethod method) {
     return factory.createMethod(
         getEmulateLibraryInterfaceClassType(method.getHolderType(), factory),
         factory.prependTypeToProto(method.getHolderType(), method.getProto()),
@@ -782,7 +781,7 @@ public final class InterfaceMethodRewriter {
         + ";";
   }
 
-  public static DexType getEmulateLibraryInterfaceClassType(DexType type, DexItemFactory factory) {
+  static DexType getEmulateLibraryInterfaceClassType(DexType type, DexItemFactory factory) {
     assert type.isClassType();
     String descriptor = type.descriptor.toString();
     String elTypeDescriptor = getEmulateLibraryInterfaceClassDescriptor(descriptor);
@@ -846,7 +845,7 @@ public final class InterfaceMethodRewriter {
   }
 
   // Represent a static interface method as a method of companion class.
-  public final DexMethod staticAsMethodOfCompanionClass(DexClassAndMethod method) {
+  final DexMethod staticAsMethodOfCompanionClass(DexClassAndMethod method) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexType companionClassType = getCompanionClassType(method.getHolderType(), dexItemFactory);
     DexMethod rewritten = method.getReference().withHolder(companionClassType, dexItemFactory);
@@ -958,14 +957,18 @@ public final class InterfaceMethodRewriter {
   public void desugarInterfaceMethods(
       Builder<?> builder, Flavor flavour, ExecutorService executorService)
       throws ExecutionException {
+    // TODO(b/183998768): Merge the following five sequential loops into a single one.
+
     EmulatedInterfaceProcessor emulatedInterfaceProcessor =
         new EmulatedInterfaceProcessor(appView, this);
+    // TODO(b/183998768): Move this to emulatedInterfaceProcessor#process
     forEachProgramEmulatedInterface(emulatedInterfaceProcessor::generateEmulateInterfaceLibrary);
 
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
-    processClasses(builder, flavour, synthesizedMethods::add);
+    process(new ClassProcessor(appView, this), builder, flavour);
 
+    // TODO(b/183998768): Move this to emulatedInterfaceProcessor#process
     forEachProgramEmulatedInterface(
         emulatedInterfaceProcessor::replaceInterfacesInEmulatedInterface);
 
@@ -973,26 +976,11 @@ public final class InterfaceMethodRewriter {
     // methods to companion class, copy default interface methods to companion classes,
     // make original default methods abstract, remove bridge methods, create dispatch
     // classes if needed.
-    AppInfo appInfo = appView.appInfo();
-    InterfaceProcessorNestedGraphLens.Builder graphLensBuilder =
-        InterfaceProcessorNestedGraphLens.builder();
-    Map<DexClass, DexProgramClass> classMapping =
-        processInterfaces(builder, flavour, graphLensBuilder, synthesizedMethods::add);
-    InterfaceProcessorNestedGraphLens graphLens = graphLensBuilder.build(appView);
-    if (appView.enableWholeProgramOptimizations() && graphLens != null) {
-      appView.setGraphLens(graphLens);
-    }
-    classMapping.forEach(
-        (interfaceClass, synthesizedClass) -> {
-          // Don't need to optimize synthesized class since all of its methods
-          // are just moved from interfaces and don't need to be re-processed.
-          builder.addSynthesizedClass(synthesizedClass);
-          appInfo.addSynthesizedClass(synthesizedClass, interfaceClass.asProgramClass());
-        });
-    new InterfaceMethodRewriterFixup(appView, graphLens).run();
+    process(new InterfaceProcessor(appView, this), builder, flavour);
 
-    forEachProgramEmulatedInterface(emulatedInterfaceProcessor::renameEmulatedInterface);
-    emulatedInterfaceProcessor.finalizeProcessing(builder, synthesizedMethods);
+    // During L8 compilation, emulated interfaces are processed to be renamed, to have
+    // their interfaces fixed-up and to generate the emulated dispatch code.
+    process(emulatedInterfaceProcessor, builder, flavour);
 
     converter.processMethodsConcurrently(synthesizedMethods, executorService);
 
@@ -1017,41 +1005,20 @@ public final class InterfaceMethodRewriter {
     this.synthesizedMethods.clear();
   }
 
-  private static boolean shouldProcess(
-      DexProgramClass clazz, Flavor flavour, boolean mustBeInterface) {
-    return (!clazz.originatesFromDexResource() || flavour == Flavor.IncludeAllResources)
-        && clazz.isInterface() == mustBeInterface;
+  private boolean shouldProcess(DexProgramClass clazz, Flavor flavour) {
+    if (appView.isAlreadyLibraryDesugared(clazz)) {
+      return false;
+    }
+    return (!clazz.originatesFromDexResource() || flavour == Flavor.IncludeAllResources);
   }
 
-  private Map<DexClass, DexProgramClass> processInterfaces(
-      Builder<?> builder,
-      Flavor flavour,
-      InterfaceProcessorNestedGraphLens.Builder graphLensBuilder,
-      Consumer<ProgramMethod> newSynthesizedMethodConsumer) {
-    InterfaceProcessor processor = new InterfaceProcessor(appView, this);
+  private void process(InterfaceDesugaringProcessor processor, Builder<?> builder, Flavor flavour) {
     for (DexProgramClass clazz : builder.getProgramClasses()) {
-      if (shouldProcess(clazz, flavour, true)) {
-        processor.process(clazz, graphLensBuilder, newSynthesizedMethodConsumer);
+      if (shouldProcess(clazz, flavour) && processor.shouldProcess(clazz)) {
+        processor.process(clazz, synthesizedMethods);
       }
     }
-    return processor.syntheticClasses;
-  }
-
-  private void processClasses(
-      Builder<?> builder, Flavor flavour, Consumer<ProgramMethod> newSynthesizedMethodConsumer) {
-    ClassProcessor processor = new ClassProcessor(appView, this, newSynthesizedMethodConsumer);
-    // First we compute all desugaring *without* introducing forwarding methods.
-    assert appView.getSyntheticItems().verifyNonLegacySyntheticsAreCommitted();
-    for (DexProgramClass clazz : builder.getProgramClasses()) {
-      if (shouldProcess(clazz, flavour, false)) {
-        if (appView.isAlreadyLibraryDesugared(clazz)) {
-          continue;
-        }
-        processor.processClass(clazz);
-      }
-    }
-    // Then we introduce forwarding methods.
-    processor.addSyntheticMethods();
+    processor.finalizeProcessing(builder, synthesizedMethods);
   }
 
   final boolean isDefaultMethod(DexEncodedMethod method) {

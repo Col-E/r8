@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public final class EmulatedInterfaceProcessor {
+public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProcessor {
   private final AppView<?> appView;
   private final InterfaceMethodRewriter rewriter;
   private final Map<DexType, DexType> emulatedInterfaces;
@@ -268,6 +268,23 @@ public final class EmulatedInterfaceProcessor {
     return false;
   }
 
+  @Override
+  public boolean shouldProcess(DexProgramClass clazz) {
+    return appView.options().isDesugaredLibraryCompilation()
+        && rewriter.isEmulatedInterface(clazz.type);
+  }
+
+  @Override
+  public void process(DexProgramClass clazz, ProgramMethodSet synthesizedMethods) {
+    // TODO(b/183998768): Due to sequential dependencies we cannot generateEmulateInterfaceLibrary
+    // and replaceInterfacesInEmulatedInterface here. We need to merge this into a single loop.
+    // Uncomment these two lines instead of running them separately.
+    // generateEmulateInterfaceLibrary(clazz);
+    // replaceInterfacesInEmulatedInterface(clazz);
+    renameEmulatedInterface(clazz);
+  }
+
+  @Override
   public void finalizeProcessing(
       DexApplication.Builder<?> builder, ProgramMethodSet synthesizedMethods) {
     warnMissingEmulatedInterfaces();

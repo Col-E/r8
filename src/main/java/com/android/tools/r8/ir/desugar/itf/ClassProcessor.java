@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -22,7 +23,6 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.synthetic.ExceptionThrowingSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
@@ -55,7 +55,7 @@ import org.objectweb.asm.Opcodes;
  * In other words, the traversal is in top-down (edges from type to its subtypes) topological order.
  * The traversal is lazy, starting from the unordered set of program classes.
  */
-final class ClassProcessor {
+final class ClassProcessor implements InterfaceDesugaringProcessor {
 
   // Collection for method signatures that may cause forwarding methods to be created.
   private static class MethodSignatures {
@@ -336,7 +336,6 @@ final class ClassProcessor {
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
   private final InterfaceMethodRewriter rewriter;
-  private final Consumer<ProgramMethod> newSynthesizedMethodConsumer;
   private final MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
   private final boolean needsLibraryInfo;
 
@@ -353,14 +352,10 @@ final class ClassProcessor {
   private final Map<DexProgramClass, ProgramMethodSet> newSyntheticMethods =
       new IdentityHashMap<>();
 
-  ClassProcessor(
-      AppView<?> appView,
-      InterfaceMethodRewriter rewriter,
-      Consumer<ProgramMethod> newSynthesizedMethodConsumer) {
+  ClassProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.rewriter = rewriter;
-    this.newSynthesizedMethodConsumer = newSynthesizedMethodConsumer;
     needsLibraryInfo =
         !appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty()
             || !appView
@@ -378,15 +373,25 @@ final class ClassProcessor {
     return !needsLibraryInfo;
   }
 
-  public void processClass(DexProgramClass clazz) {
+  @Override
+  public void process(DexProgramClass clazz, ProgramMethodSet synthesizedMethods) {
     visitClassInfo(clazz, new ReportingContext(clazz, clazz));
   }
 
-  final void addSyntheticMethods() {
+  @Override
+  public boolean shouldProcess(DexProgramClass clazz) {
+    return !clazz.isInterface();
+  }
+
+  // We introduce forwarding methods only once all desugaring has been performed to avoid
+  // confusing the look-up with inserted forwarding methods.
+  @Override
+  public final void finalizeProcessing(
+      DexApplication.Builder<?> builder, ProgramMethodSet synthesizedMethods) {
     newSyntheticMethods.forEach(
         (clazz, newForwardingMethods) -> {
           clazz.addVirtualMethods(newForwardingMethods.toDefinitionSet());
-          newForwardingMethods.forEach(newSynthesizedMethodConsumer);
+          newForwardingMethods.forEach(synthesizedMethods::add);
         });
   }
 

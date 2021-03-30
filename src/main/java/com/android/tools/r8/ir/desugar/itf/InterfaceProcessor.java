@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -50,6 +51,7 @@ import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentati
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -60,7 +62,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import org.objectweb.asm.Opcodes;
 
 // Default and static method interface desugaring processor for interfaces.
@@ -69,23 +70,28 @@ import org.objectweb.asm.Opcodes;
 // a companion class. Removes bridge default methods.
 //
 // Also moves static interface methods into a companion class.
-public final class InterfaceProcessor {
+public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
 
   private final AppView<?> appView;
   private final InterfaceMethodRewriter rewriter;
+  private final InterfaceProcessorNestedGraphLens.Builder graphLensBuilder;
 
-  // All created companion and dispatch classes indexed by interface type.
+  // All created companion classes indexed by interface type.
   final Map<DexClass, DexProgramClass> syntheticClasses = new IdentityHashMap<>();
 
   InterfaceProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
     this.rewriter = rewriter;
+    graphLensBuilder = InterfaceProcessorNestedGraphLens.builder();
   }
 
-  void process(
-      DexProgramClass iface,
-      InterfaceProcessorNestedGraphLens.Builder graphLensBuilder,
-      Consumer<ProgramMethod> newSynthesizedMethodConsumer) {
+  @Override
+  public boolean shouldProcess(DexProgramClass clazz) {
+    return clazz.isInterface();
+  }
+
+  @Override
+  public void process(DexProgramClass iface, ProgramMethodSet synthesizedMethods) {
     assert iface.isInterface();
     // The list of methods to be created in companion class.
     List<DexEncodedMethod> companionMethods = new ArrayList<>();
@@ -137,7 +143,7 @@ public final class InterfaceProcessor {
             getChecksumSupplier(iface));
     syntheticClasses.put(iface, companionClass);
     if (companionClass.hasClassInitializer()) {
-      newSynthesizedMethodConsumer.accept(companionClass.getProgramClassInitializer());
+      synthesizedMethods.add(companionClass.getProgramClassInitializer());
     }
   }
 
@@ -436,6 +442,22 @@ public final class InterfaceProcessor {
     }
     return method.accessFlags.isStatic()
         && !rewriter.factory.isClassConstructor(method.getReference());
+  }
+
+  @Override
+  public void finalizeProcessing(Builder<?> builder, ProgramMethodSet synthesizedMethods) {
+    InterfaceProcessorNestedGraphLens graphLens = graphLensBuilder.build(appView);
+    if (appView.enableWholeProgramOptimizations() && graphLens != null) {
+      appView.setGraphLens(graphLens);
+    }
+    syntheticClasses.forEach(
+        (interfaceClass, synthesizedClass) -> {
+          // Don't need to optimize synthesized class since all of its methods
+          // are just moved from interfaces and don't need to be re-processed.
+          builder.addSynthesizedClass(synthesizedClass);
+          appView.appInfo().addSynthesizedClass(synthesizedClass, interfaceClass.asProgramClass());
+        });
+    new InterfaceMethodRewriterFixup(appView, graphLens).run();
   }
 
   // Specific lens which remaps invocation types to static since all rewrites performed here
