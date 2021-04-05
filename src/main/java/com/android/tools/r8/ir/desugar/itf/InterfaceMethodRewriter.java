@@ -963,7 +963,7 @@ public final class InterfaceMethodRewriter {
   public void desugarInterfaceMethods(
       Builder<?> builder, Flavor flavour, ExecutorService executorService)
       throws ExecutionException {
-    // TODO(b/183998768): Merge the following five sequential loops into a single one.
+    // TODO(b/183998768): Merge the following four sequential loops into a single one.
 
     EmulatedInterfaceProcessor emulatedInterfaceProcessor =
         new EmulatedInterfaceProcessor(appView, this);
@@ -973,10 +973,6 @@ public final class InterfaceMethodRewriter {
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
     process(new ClassProcessor(appView, this), builder, flavour);
-
-    // TODO(b/183998768): Move this to emulatedInterfaceProcessor#process
-    forEachProgramEmulatedInterface(
-        emulatedInterfaceProcessor::replaceInterfacesInEmulatedInterface);
 
     // Process interfaces, create companion or dispatch class if needed, move static
     // methods to companion class, copy default interface methods to companion classes,

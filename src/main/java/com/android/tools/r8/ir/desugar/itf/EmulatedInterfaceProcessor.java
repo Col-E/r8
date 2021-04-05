@@ -95,11 +95,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
   // of each emulated interface they implement. Such change should have no effect on the look-up
   // results, since each class implementing an emulated interface should also implement the
   // rewritten one.
-  void replaceInterfacesInEmulatedInterface(DexProgramClass emulatedInterface) {
-    assert rewriter.isEmulatedInterface(emulatedInterface.type);
-    if (appView.isAlreadyLibraryDesugared(emulatedInterface)) {
-      return;
-    }
+  private void replaceInterfacesInEmulatedInterface(DexProgramClass emulatedInterface) {
     List<GenericSignature.ClassTypeSignature> newInterfaces = new ArrayList<>();
     ClassSignature classSignature = emulatedInterface.getClassSignature();
     for (int i = 0; i < emulatedInterface.interfaces.size(); i++) {
@@ -121,8 +117,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
     emulatedInterface.replaceInterfaces(newInterfaces);
   }
 
-  void renameEmulatedInterface(DexProgramClass emulatedInterface) {
-    assert rewriter.isEmulatedInterface(emulatedInterface.type);
+  private void renameEmulatedInterface(DexProgramClass emulatedInterface) {
     DexType newType = emulatedInterfaces.get(emulatedInterface.type);
     assert newType != null;
     emulatedInterface.type = newType;
@@ -285,13 +280,17 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
   }
 
   @Override
-  public void process(DexProgramClass clazz, ProgramMethodSet synthesizedMethods) {
-    // TODO(b/183998768): Due to sequential dependencies we cannot generateEmulateInterfaceLibrary
-    // and replaceInterfacesInEmulatedInterface here. We need to merge this into a single loop.
-    // Uncomment these two lines instead of running them separately.
-    // generateEmulateInterfaceLibrary(clazz);
-    // replaceInterfacesInEmulatedInterface(clazz);
-    renameEmulatedInterface(clazz);
+  public void process(DexProgramClass emulatedInterface, ProgramMethodSet synthesizedMethods) {
+    assert rewriter.isEmulatedInterface(emulatedInterface.type);
+    if (appView.isAlreadyLibraryDesugared(emulatedInterface)) {
+      return;
+    }
+    // TODO(b/183998768): Due to sequential dependencies we cannot generateEmulateInterfaceLibrary.
+    //  We need to merge this into a single loop. Uncomment the following line instead of running
+    //  it separately.
+    //  generateEmulateInterfaceLibrary(emulatedInterface);
+    replaceInterfacesInEmulatedInterface(emulatedInterface);
+    renameEmulatedInterface(emulatedInterface);
   }
 
   @Override
