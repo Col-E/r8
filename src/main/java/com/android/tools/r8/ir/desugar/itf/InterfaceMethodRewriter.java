@@ -193,7 +193,8 @@ public final class InterfaceMethodRewriter {
     Map<DexType, DexType> emulateLibraryInterface =
         options.desugaredLibraryConfiguration.getEmulateLibraryInterface();
     for (DexType interfaceType : emulateLibraryInterface.keySet()) {
-      addRewritePrefix(interfaceType, emulateLibraryInterface.get(interfaceType).toSourceString());
+      addRewriteRulesForEmulatedInterface(
+          interfaceType, emulateLibraryInterface.get(interfaceType).toSourceString());
       DexClass emulatedInterfaceClass = appView.definitionFor(interfaceType);
       if (emulatedInterfaceClass != null) {
         for (DexEncodedMethod encodedMethod :
@@ -204,16 +205,21 @@ public final class InterfaceMethodRewriter {
     }
   }
 
-  void addRewritePrefix(DexType interfaceType, String rewrittenType) {
+  void addRewriteRulesForEmulatedInterface(
+      DexType emulatedInterface, String rewrittenEmulatedInterface) {
+    addCompanionClassRewriteRule(emulatedInterface, rewrittenEmulatedInterface);
+    appView.rewritePrefix.rewriteType(
+        getEmulateLibraryInterfaceClassType(emulatedInterface, factory),
+        factory.createType(
+            DescriptorUtils.javaTypeToDescriptor(
+                rewrittenEmulatedInterface + EMULATE_LIBRARY_CLASS_NAME_SUFFIX)));
+  }
+
+  void addCompanionClassRewriteRule(DexType interfaceType, String rewrittenType) {
     appView.rewritePrefix.rewriteType(
         getCompanionClassType(interfaceType),
         factory.createType(
             DescriptorUtils.javaTypeToDescriptor(rewrittenType + COMPANION_CLASS_NAME_SUFFIX)));
-    appView.rewritePrefix.rewriteType(
-        getEmulateLibraryInterfaceClassType(interfaceType, factory),
-        factory.createType(
-            DescriptorUtils.javaTypeToDescriptor(
-                rewrittenType + EMULATE_LIBRARY_CLASS_NAME_SUFFIX)));
   }
 
   boolean isEmulatedInterface(DexType itf) {

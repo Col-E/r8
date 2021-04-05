@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.desugar.itf;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -125,8 +125,18 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
     assert rewriter.isEmulatedInterface(emulatedInterface.type);
     DexType newType = emulatedInterfaces.get(emulatedInterface.type);
     assert newType != null;
-    rewriter.addRewritePrefix(emulatedInterface.type, newType.toString());
-    renameEmulatedInterface(emulatedInterface, newType);
+    emulatedInterface.type = newType;
+    emulatedInterface.setVirtualMethods(renameHolder(emulatedInterface.virtualMethods(), newType));
+    emulatedInterface.setDirectMethods(renameHolder(emulatedInterface.directMethods(), newType));
+  }
+
+  private DexEncodedMethod[] renameHolder(Iterable<DexEncodedMethod> methods, DexType newName) {
+    List<DexEncodedMethod> methods1 = IterableUtils.toNewArrayList(methods);
+    DexEncodedMethod[] newMethods = new DexEncodedMethod[methods1.size()];
+    for (int i = 0; i < newMethods.length; i++) {
+      newMethods[i] = methods1.get(i).toRenamedHolderMethod(newName, appView.dexItemFactory());
+    }
+    return newMethods;
   }
 
   void generateEmulateInterfaceLibrary(DexProgramClass emulatedInterface) {
@@ -285,8 +295,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
   }
 
   @Override
-  public void finalizeProcessing(
-      DexApplication.Builder<?> builder, ProgramMethodSet synthesizedMethods) {
+  public void finalizeProcessing(Builder<?> builder, ProgramMethodSet synthesizedMethods) {
     warnMissingEmulatedInterfaces();
     if (!appView.options().isDesugaredLibraryCompilation()) {
       assert syntheticClasses.isEmpty();
@@ -298,67 +307,53 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
           appView.appInfo().addSynthesizedClass(synthesizedClass, interfaceClass);
           synthesizedClass.forEachProgramMethod(synthesizedMethods::add);
         });
-    // TODO(b/183918843): renameEmulatedInterfaceHierarchies should be removed.
-    // The desugared library configuration does not include rewritings for the subtypes of
-    // emulated interfaces while they need to be rewritten.
-    // Here we iterate here over all interfaces, and if they inherit from an emulated interface,
-    // we auto-magically apply the package renaming of the emulated interface to the interface.
-    renameEmulatedInterfaceHierarchies();
+    // TODO(b/183918843): Investigate what to do for the filtering, the minimum would be to make
+    // the rewriting rule explicit instead of using the synthesized class prefix.
+    filterEmulatedInterfaceSubInterfaces(builder);
   }
 
-  private void renameEmulatedInterfaceHierarchies() {
-    for (DexClass clazz : appView.appInfo().classes()) {
-      if (clazz.isInterface() && !rewriter.isEmulatedInterface(clazz.type)) {
-        DexType newType = inferEmulatedInterfaceName(clazz);
-        if (newType != null && !appView.rewritePrefix.hasRewrittenType(clazz.type, appView)) {
-          rewriter.addRewritePrefix(clazz.type, newType.toString());
-          renameEmulatedInterface(clazz, newType);
-        }
+  private void filterEmulatedInterfaceSubInterfaces(Builder<?> builder) {
+    ArrayList<DexProgramClass> filteredProgramClasses = new ArrayList<>();
+    for (DexProgramClass clazz : builder.getProgramClasses()) {
+      if (clazz.isInterface()
+          && !rewriter.isEmulatedInterface(clazz.type)
+          && !appView.rewritePrefix.hasRewrittenType(clazz.type, appView)
+          && isEmulatedInterfaceSubInterface(clazz)) {
+        String prefix =
+            DescriptorUtils.getJavaTypeFromBinaryName(
+                appView
+                    .options()
+                    .desugaredLibraryConfiguration
+                    .getSynthesizedLibraryClassesPackagePrefix());
+        String interfaceType = clazz.type.toString();
+        // TODO(b/183918843): We are currently computing a new name for the companion class
+        // by replacing the initial package prefix by the synthesized library class package
+        // prefix, it would be better to make the rewriting explicit in the desugared library
+        // json file.
+        int firstPackage = interfaceType.indexOf('.');
+        String newName = prefix + interfaceType.substring(firstPackage + 1);
+        rewriter.addCompanionClassRewriteRule(clazz.type, newName);
+      } else {
+        filteredProgramClasses.add(clazz);
       }
     }
+    builder.replaceProgramClasses(filteredProgramClasses);
   }
 
-  private DexType inferEmulatedInterfaceName(DexClass subInterface) {
+  private boolean isEmulatedInterfaceSubInterface(DexClass subInterface) {
     assert !rewriter.isEmulatedInterface(subInterface.type);
     LinkedList<DexType> workList = new LinkedList<>(Arrays.asList(subInterface.interfaces.values));
     while (!workList.isEmpty()) {
       DexType next = workList.removeFirst();
-      if (emulatedInterfaces.get(next) != null) {
-        return inferEmulatedInterfaceName(subInterface.type, next);
+      if (rewriter.isEmulatedInterface(next)) {
+        return true;
       }
       DexClass nextClass = appView.definitionFor(next);
       if (nextClass != null) {
         workList.addAll(Arrays.asList(nextClass.interfaces.values));
       }
     }
-    return null;
-  }
-
-  private DexType inferEmulatedInterfaceName(DexType subInterfaceType, DexType interfaceType) {
-    String initialPrefix = interfaceType.getPackageName();
-    String rewrittenPrefix = emulatedInterfaces.get(interfaceType).getPackageName();
-    String suffix = subInterfaceType.toString().substring(initialPrefix.length());
-    return appView
-        .dexItemFactory()
-        .createType(DescriptorUtils.javaTypeToDescriptor(rewrittenPrefix + suffix));
-  }
-
-  private void renameEmulatedInterface(DexClass theInterface, DexType renamedInterface) {
-    theInterface.type = renamedInterface;
-    theInterface.setVirtualMethods(renameHolder(theInterface.virtualMethods(), renamedInterface));
-    theInterface.setDirectMethods(renameHolder(theInterface.directMethods(), renamedInterface));
-  }
-
-  private DexEncodedMethod[] renameHolder(Iterable<DexEncodedMethod> methods, DexType newName) {
-    return renameHolder(IterableUtils.toNewArrayList(methods), newName);
-  }
-
-  private DexEncodedMethod[] renameHolder(List<DexEncodedMethod> methods, DexType newName) {
-    DexEncodedMethod[] newMethods = new DexEncodedMethod[methods.size()];
-    for (int i = 0; i < newMethods.length; i++) {
-      newMethods[i] = methods.get(i).toRenamedHolderMethod(newName, appView.dexItemFactory());
-    }
-    return newMethods;
+    return false;
   }
 
   private void warnMissingEmulatedInterfaces() {
