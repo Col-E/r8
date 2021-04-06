@@ -11,10 +11,10 @@ import com.android.tools.r8.retrace.RetraceFieldResult;
 import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.RetraceStackTraceProxy;
 import com.android.tools.r8.retrace.RetraceTypeResult;
-import com.android.tools.r8.retrace.RetracedClass;
-import com.android.tools.r8.retrace.RetracedField;
-import com.android.tools.r8.retrace.RetracedMethod;
-import com.android.tools.r8.retrace.RetracedType;
+import com.android.tools.r8.retrace.RetracedClassReference;
+import com.android.tools.r8.retrace.RetracedFieldReference;
+import com.android.tools.r8.retrace.RetracedMethodReference;
+import com.android.tools.r8.retrace.RetracedTypeReference;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.StackTraceElementProxy;
 import com.android.tools.r8.retrace.StackTraceElementProxyRetracer;
@@ -168,7 +168,8 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
     }
     String elementOrReturnType = element.getFieldOrReturnType();
     if (elementOrReturnType.equals("void")) {
-      return Stream.of(proxy -> proxy.setRetracedFieldOrReturnType(RetracedTypeImpl.createVoid()));
+      return Stream.of(
+          proxy -> proxy.setRetracedFieldOrReturnType(RetracedTypeReferenceImpl.createVoid()));
     } else {
       TypeReference typeReference = Reference.typeFromTypeName(elementOrReturnType);
       RetraceTypeResult retraceTypeResult = retracer.retraceType(typeReference);
@@ -193,10 +194,10 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
         Arrays.stream(element.getMethodArguments().split(","))
             .map(typeName -> retracer.retraceType(Reference.typeFromTypeName(typeName)))
             .collect(Collectors.toList());
-    List<List<RetracedType>> initial = new ArrayList<>();
+    List<List<RetracedTypeReference>> initial = new ArrayList<>();
     initial.add(new ArrayList<>());
     Box<Boolean> isAmbiguous = new Box<>(false);
-    List<List<RetracedType>> retracedArguments =
+    List<List<RetracedTypeReference>> retracedArguments =
         ListUtils.fold(
             retracedResults,
             initial,
@@ -204,12 +205,12 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
               if (retracedTypeResult.isAmbiguous()) {
                 isAmbiguous.set(true);
               }
-              List<List<RetracedType>> newResult = new ArrayList<>();
+              List<List<RetracedTypeReference>> newResult = new ArrayList<>();
               retracedTypeResult.forEach(
                   retracedElement -> {
                     acc.forEach(
                         oldResult -> {
-                          List<RetracedType> newList = new ArrayList<>(oldResult);
+                          List<RetracedTypeReference> newList = new ArrayList<>(oldResult);
                           newList.add(retracedElement.getType());
                           newResult.add(newList);
                         });
@@ -231,11 +232,11 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
       implements RetraceStackTraceProxy<T, ST> {
 
     private final ST originalItem;
-    private final RetracedClass retracedClass;
-    private final RetracedMethod retracedMethod;
-    private final RetracedField retracedField;
-    private final RetracedType fieldOrReturnType;
-    private final List<RetracedType> methodArguments;
+    private final RetracedClassReference retracedClass;
+    private final RetracedMethodReference retracedMethod;
+    private final RetracedFieldReference retracedField;
+    private final RetracedTypeReference fieldOrReturnType;
+    private final List<RetracedTypeReference> methodArguments;
     private final String sourceFile;
     private final int lineNumber;
     private final boolean isAmbiguous;
@@ -243,11 +244,11 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
 
     private RetraceStackTraceProxyImpl(
         ST originalItem,
-        RetracedClass retracedClass,
-        RetracedMethod retracedMethod,
-        RetracedField retracedField,
-        RetracedType fieldOrReturnType,
-        List<RetracedType> methodArguments,
+        RetracedClassReference retracedClass,
+        RetracedMethodReference retracedMethod,
+        RetracedFieldReference retracedField,
+        RetracedTypeReference fieldOrReturnType,
+        List<RetracedTypeReference> methodArguments,
         String sourceFile,
         int lineNumber,
         boolean isAmbiguous,
@@ -316,27 +317,27 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
     }
 
     @Override
-    public RetracedClass getRetracedClass() {
+    public RetracedClassReference getRetracedClass() {
       return retracedClass;
     }
 
     @Override
-    public RetracedMethod getRetracedMethod() {
+    public RetracedMethodReference getRetracedMethod() {
       return retracedMethod;
     }
 
     @Override
-    public RetracedField getRetracedField() {
+    public RetracedFieldReference getRetracedField() {
       return retracedField;
     }
 
     @Override
-    public RetracedType getRetracedFieldOrReturnType() {
+    public RetracedTypeReference getRetracedFieldOrReturnType() {
       return fieldOrReturnType;
     }
 
     @Override
-    public List<RetracedType> getMethodArguments() {
+    public List<RetracedTypeReference> getMethodArguments() {
       return methodArguments;
     }
 
@@ -401,11 +402,11 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
     private static class Builder<T, ST extends StackTraceElementProxy<T, ST>> {
 
       private final ST originalElement;
-      private RetracedClass classContext;
-      private RetracedMethod methodContext;
-      private RetracedField retracedField;
-      private RetracedType fieldOrReturnType;
-      private List<RetracedType> methodArguments;
+      private RetracedClassReference classContext;
+      private RetracedMethodReference methodContext;
+      private RetracedFieldReference retracedField;
+      private RetracedTypeReference fieldOrReturnType;
+      private List<RetracedTypeReference> methodArguments;
       private String sourceFile;
       private int lineNumber = -1;
       private boolean isAmbiguous;
@@ -415,27 +416,27 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
         this.originalElement = originalElement;
       }
 
-      private Builder<T, ST> setRetracedClass(RetracedClass retracedClass) {
+      private Builder<T, ST> setRetracedClass(RetracedClassReference retracedClass) {
         this.classContext = retracedClass;
         return this;
       }
 
-      private Builder<T, ST> setRetracedMethod(RetracedMethod methodElement) {
+      private Builder<T, ST> setRetracedMethod(RetracedMethodReference methodElement) {
         this.methodContext = methodElement;
         return this;
       }
 
-      private Builder<T, ST> setRetracedField(RetracedField retracedField) {
+      private Builder<T, ST> setRetracedField(RetracedFieldReference retracedField) {
         this.retracedField = retracedField;
         return this;
       }
 
-      private Builder<T, ST> setRetracedFieldOrReturnType(RetracedType retracedType) {
+      private Builder<T, ST> setRetracedFieldOrReturnType(RetracedTypeReference retracedType) {
         this.fieldOrReturnType = retracedType;
         return this;
       }
 
-      private Builder<T, ST> setRetracedMethodArguments(List<RetracedType> arguments) {
+      private Builder<T, ST> setRetracedMethodArguments(List<RetracedTypeReference> arguments) {
         this.methodArguments = arguments;
         return this;
       }
@@ -461,7 +462,7 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
       }
 
       private RetraceStackTraceProxy<T, ST> build() {
-        RetracedClass retracedClass = classContext;
+        RetracedClassReference retracedClass = classContext;
         if (methodContext != null) {
           retracedClass = methodContext.getHolderClass();
         }

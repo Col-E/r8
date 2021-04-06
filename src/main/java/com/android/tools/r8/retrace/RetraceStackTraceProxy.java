@@ -31,15 +31,15 @@ public interface RetraceStackTraceProxy<T, ST extends StackTraceElementProxy<T, 
 
   ST getOriginalItem();
 
-  RetracedClass getRetracedClass();
+  RetracedClassReference getRetracedClass();
 
-  RetracedMethod getRetracedMethod();
+  RetracedMethodReference getRetracedMethod();
 
-  RetracedField getRetracedField();
+  RetracedFieldReference getRetracedField();
 
-  RetracedType getRetracedFieldOrReturnType();
+  RetracedTypeReference getRetracedFieldOrReturnType();
 
-  List<RetracedType> getMethodArguments();
+  List<RetracedTypeReference> getMethodArguments();
 
   String getSourceFile();
 

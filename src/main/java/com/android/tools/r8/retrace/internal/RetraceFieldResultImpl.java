@@ -49,7 +49,7 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
                     new ElementImpl(
                         this,
                         classElement,
-                        RetracedFieldImpl.create(
+                        RetracedFieldReferenceImpl.create(
                             fieldDefinition.substituteHolder(
                                 classElement.getRetracedClass().getClassReference()))));
               }
@@ -58,9 +58,9 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
                       memberNaming -> {
                         FieldSignature fieldSignature =
                             memberNaming.getOriginalSignature().asFieldSignature();
-                        RetracedClassImpl holder =
+                        RetracedClassReferenceImpl holder =
                             fieldSignature.isQualified()
-                                ? RetracedClassImpl.create(
+                                ? RetracedClassReferenceImpl.create(
                                     Reference.classFromDescriptor(
                                         DescriptorUtils.javaTypeToDescriptor(
                                             fieldSignature.toHolderFromQualified())))
@@ -68,7 +68,7 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
                         return new ElementImpl(
                             this,
                             classElement,
-                            RetracedFieldImpl.create(
+                            RetracedFieldReferenceImpl.create(
                                 Reference.field(
                                     holder.getClassReference(),
                                     fieldSignature.isQualified()
@@ -93,14 +93,14 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
 
   public static class ElementImpl implements RetraceFieldElement {
 
-    private final RetracedFieldImpl fieldReference;
+    private final RetracedFieldReferenceImpl fieldReference;
     private final RetraceFieldResultImpl retraceFieldResult;
     private final RetraceClassElementImpl classElement;
 
     private ElementImpl(
         RetraceFieldResultImpl retraceFieldResult,
         RetraceClassElementImpl classElement,
-        RetracedFieldImpl fieldReference) {
+        RetracedFieldReferenceImpl fieldReference) {
       this.classElement = classElement;
       this.fieldReference = fieldReference;
       this.retraceFieldResult = retraceFieldResult;
@@ -112,7 +112,7 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
     }
 
     @Override
-    public RetracedFieldImpl getField() {
+    public RetracedFieldReferenceImpl getField() {
       return fieldReference;
     }
 

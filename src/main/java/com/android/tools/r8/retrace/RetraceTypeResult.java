@@ -20,6 +20,6 @@ public interface RetraceTypeResult {
   @Keep
   interface Element {
 
-    RetracedType getType();
+    RetracedTypeReference getType();
   }
 }

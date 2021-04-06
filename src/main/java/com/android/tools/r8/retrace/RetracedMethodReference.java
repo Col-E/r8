@@ -10,13 +10,14 @@ import com.android.tools.r8.references.TypeReference;
 import java.util.List;
 
 @Keep
-public interface RetracedMethod extends RetracedClassMember, Comparable<RetracedMethod> {
+public interface RetracedMethodReference
+    extends RetracedClassMemberReference, Comparable<RetracedMethodReference> {
 
   boolean isUnknown();
 
   boolean isKnown();
 
-  KnownRetracedMethod asKnown();
+  KnownRetracedMethodReference asKnown();
 
   String getMethodName();
 
@@ -25,7 +26,7 @@ public interface RetracedMethod extends RetracedClassMember, Comparable<Retraced
   int getOriginalPositionOrDefault(int defaultPosition);
 
   @Keep
-  interface KnownRetracedMethod extends RetracedMethod {
+  interface KnownRetracedMethodReference extends RetracedMethodReference {
 
     boolean isVoid();
 

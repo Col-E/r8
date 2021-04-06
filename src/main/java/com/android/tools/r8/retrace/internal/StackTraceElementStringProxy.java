@@ -11,9 +11,9 @@ import static com.android.tools.r8.retrace.internal.StackTraceElementStringProxy
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.RetraceStackTraceProxy;
-import com.android.tools.r8.retrace.RetracedClass;
-import com.android.tools.r8.retrace.RetracedField;
-import com.android.tools.r8.retrace.RetracedType;
+import com.android.tools.r8.retrace.RetracedClassReference;
+import com.android.tools.r8.retrace.RetracedFieldReference;
+import com.android.tools.r8.retrace.RetracedTypeReference;
 import com.android.tools.r8.retrace.StackTraceElementProxy;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TriFunction;
@@ -189,7 +189,7 @@ public final class StackTraceElementStringProxy
               endIndex,
               (retraced, original, verbose) -> {
                 assert retraced.hasRetracedClass();
-                RetracedClass retracedClass = retraced.getRetracedClass();
+                RetracedClassReference retracedClass = retraced.getRetracedClass();
                 return classNameType == ClassNameType.BINARY
                     ? retracedClass.getBinaryName()
                     : retracedClass.getTypeName();
@@ -248,7 +248,7 @@ public final class StackTraceElementStringProxy
                 if (!retraced.hasRetracedField()) {
                   return original.getFieldName();
                 }
-                RetracedField retracedField = retraced.getRetracedField();
+                RetracedFieldReference retracedField = retraced.getRetracedField();
                 if (!verbose || retracedField.isUnknown()) {
                   return retracedField.getFieldName();
                 }
@@ -289,7 +289,7 @@ public final class StackTraceElementStringProxy
                   return original.getMethodArguments();
                 }
                 return StringUtils.join(
-                    ",", retraced.getMethodArguments(), RetracedType::getTypeName);
+                    ",", retraced.getMethodArguments(), RetracedTypeReference::getTypeName);
               });
       orderedIndices.add(methodArguments);
       return this;

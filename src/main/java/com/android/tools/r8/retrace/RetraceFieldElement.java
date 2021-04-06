@@ -10,7 +10,7 @@ public interface RetraceFieldElement extends RetraceElement<RetraceFieldResult> 
 
   boolean isUnknown();
 
-  RetracedField getField();
+  RetracedFieldReference getField();
 
   RetraceClassElement getClassElement();
 

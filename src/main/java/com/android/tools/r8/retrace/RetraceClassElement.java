@@ -10,7 +10,7 @@ import java.util.List;
 @Keep
 public interface RetraceClassElement extends RetraceElement<RetraceClassResult> {
 
-  RetracedClass getRetracedClass();
+  RetracedClassReference getRetracedClass();
 
   RetraceSourceFileResult retraceSourceFile(String sourceFile);
 

@@ -6,7 +6,7 @@ package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceTypeResult;
-import com.android.tools.r8.retrace.RetracedType;
+import com.android.tools.r8.retrace.RetracedTypeReference;
 import com.android.tools.r8.retrace.Retracer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -29,7 +29,7 @@ public class RetraceTypeResultImpl implements RetraceTypeResult {
   public Stream<Element> stream() {
     // Handle void and primitive types as single element results.
     if (obfuscatedType == null || obfuscatedType.isPrimitive()) {
-      return Stream.of(new ElementImpl(RetracedTypeImpl.create(obfuscatedType)));
+      return Stream.of(new ElementImpl(RetracedTypeReferenceImpl.create(obfuscatedType)));
     }
     if (obfuscatedType.isArray()) {
       int dimensions = obfuscatedType.asArray().getDimensions();
@@ -37,7 +37,7 @@ public class RetraceTypeResultImpl implements RetraceTypeResult {
           .map(
               baseElement ->
                   new ElementImpl(
-                      RetracedTypeImpl.create(baseElement.getType().toArray(dimensions))));
+                      RetracedTypeReferenceImpl.create(baseElement.getType().toArray(dimensions))));
     }
     return retracer.retraceClass(obfuscatedType.asClass()).stream()
         .map(classElement -> new ElementImpl(classElement.getRetracedClass().getRetracedType()));
@@ -56,14 +56,14 @@ public class RetraceTypeResultImpl implements RetraceTypeResult {
 
   public static class ElementImpl implements RetraceTypeResult.Element {
 
-    private final RetracedType retracedType;
+    private final RetracedTypeReference retracedType;
 
-    public ElementImpl(RetracedType retracedType) {
+    public ElementImpl(RetracedTypeReference retracedType) {
       this.retracedType = retracedType;
     }
 
     @Override
-    public RetracedType getType() {
+    public RetracedTypeReference getType() {
       return retracedType;
     }
   }

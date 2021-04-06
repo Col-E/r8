@@ -34,7 +34,7 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceTypeResult;
-import com.android.tools.r8.retrace.RetracedField;
+import com.android.tools.r8.retrace.RetracedFieldReference;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -233,7 +233,7 @@ public class FoundClassSubject extends ClassSubject {
           .retraceField(fieldReference)
           .forEach(
               element -> {
-                RetracedField field = element.getField();
+                RetracedFieldReference field = element.getField();
                 if (!element.isUnknown() && field.getFieldName().equals(name)) {
                   candidates.add(candidate);
                   // TODO(b/169953605): There should not be a need for mapping the final type.

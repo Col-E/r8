@@ -6,18 +6,18 @@ package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.retrace.RetracedMethod;
+import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.utils.ComparatorUtils;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public abstract class RetracedMethodImpl implements RetracedMethod {
+public abstract class RetracedMethodReferenceImpl implements RetracedMethodReference {
 
   private static final int NO_POSITION = -1;
 
-  private RetracedMethodImpl() {}
+  private RetracedMethodReferenceImpl() {}
 
   @Override
   public boolean isUnknown() {
@@ -30,38 +30,38 @@ public abstract class RetracedMethodImpl implements RetracedMethod {
   }
 
   @Override
-  public KnownRetracedMethodImpl asKnown() {
+  public KnownRetracedMethodReferenceImpl asKnown() {
     return null;
   }
 
   @Override
-  public int compareTo(RetracedMethod other) {
-    return Comparator.comparing(RetracedMethod::getMethodName)
-        .thenComparing(RetracedMethod::isKnown)
+  public int compareTo(RetracedMethodReference other) {
+    return Comparator.comparing(RetracedMethodReference::getMethodName)
+        .thenComparing(RetracedMethodReference::isKnown)
         .thenComparing(
-            RetracedMethod::asKnown,
+            RetracedMethodReference::asKnown,
             Comparator.nullsFirst(
                     Comparator.comparing(
-                        (KnownRetracedMethod m) -> {
+                        (KnownRetracedMethodReference m) -> {
                           if (m == null) {
                             return null;
                           }
                           return m.isVoid() ? "void" : m.getReturnType().getTypeName();
                         }))
                 .thenComparing(
-                    KnownRetracedMethod::getFormalTypes,
+                    KnownRetracedMethodReference::getFormalTypes,
                     ComparatorUtils.listComparator(
                         Comparator.comparing(TypeReference::getTypeName))))
         .compare(this, other);
   }
 
-  public static final class KnownRetracedMethodImpl extends RetracedMethodImpl
-      implements KnownRetracedMethod {
+  public static final class KnownRetracedMethodReferenceImpl extends RetracedMethodReferenceImpl
+      implements KnownRetracedMethodReference {
 
     private final MethodReference methodReference;
     private final int position;
 
-    private KnownRetracedMethodImpl(MethodReference methodReference, int position) {
+    private KnownRetracedMethodReferenceImpl(MethodReference methodReference, int position) {
       assert methodReference != null;
       this.methodReference = methodReference;
       this.position = position;
@@ -78,13 +78,13 @@ public abstract class RetracedMethodImpl implements RetracedMethod {
     }
 
     @Override
-    public KnownRetracedMethodImpl asKnown() {
+    public KnownRetracedMethodReferenceImpl asKnown() {
       return this;
     }
 
     @Override
-    public RetracedClassImpl getHolderClass() {
-      return RetracedClassImpl.create(methodReference.getHolderClass());
+    public RetracedClassReferenceImpl getHolderClass() {
+      return RetracedClassReferenceImpl.create(methodReference.getHolderClass());
     }
 
     @Override
@@ -126,7 +126,7 @@ public abstract class RetracedMethodImpl implements RetracedMethod {
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      KnownRetracedMethodImpl that = (KnownRetracedMethodImpl) o;
+      KnownRetracedMethodReferenceImpl that = (KnownRetracedMethodReferenceImpl) o;
       return position == that.position && methodReference.equals(that.methodReference);
     }
 
@@ -136,19 +136,19 @@ public abstract class RetracedMethodImpl implements RetracedMethod {
     }
   }
 
-  public static final class UnknownRetracedMethodImpl extends RetracedMethodImpl {
+  public static final class UnknownRetracedMethodReferenceImpl extends RetracedMethodReferenceImpl {
 
     private final MethodDefinition methodDefinition;
     private final int position;
 
-    private UnknownRetracedMethodImpl(MethodDefinition methodDefinition, int position) {
+    private UnknownRetracedMethodReferenceImpl(MethodDefinition methodDefinition, int position) {
       this.methodDefinition = methodDefinition;
       this.position = position;
     }
 
     @Override
-    public RetracedClassImpl getHolderClass() {
-      return RetracedClassImpl.create(methodDefinition.getHolderClass());
+    public RetracedClassReferenceImpl getHolderClass() {
+      return RetracedClassReferenceImpl.create(methodDefinition.getHolderClass());
     }
 
     @Override
@@ -174,23 +174,23 @@ public abstract class RetracedMethodImpl implements RetracedMethod {
     }
   }
 
-  static RetracedMethodImpl create(MethodDefinition methodDefinition) {
+  static RetracedMethodReferenceImpl create(MethodDefinition methodDefinition) {
     return create(methodDefinition, NO_POSITION);
   }
 
-  static RetracedMethodImpl create(MethodDefinition methodDefinition, int position) {
+  static RetracedMethodReferenceImpl create(MethodDefinition methodDefinition, int position) {
     if (methodDefinition.isFullMethodDefinition()) {
-      return new KnownRetracedMethodImpl(
+      return new KnownRetracedMethodReferenceImpl(
           methodDefinition.asFullMethodDefinition().getMethodReference(), position);
     }
-    return new UnknownRetracedMethodImpl(methodDefinition, position);
+    return new UnknownRetracedMethodReferenceImpl(methodDefinition, position);
   }
 
-  static RetracedMethodImpl create(MethodReference methodReference) {
+  static RetracedMethodReferenceImpl create(MethodReference methodReference) {
     return create(methodReference, NO_POSITION);
   }
 
-  static RetracedMethodImpl create(MethodReference methodReference, int position) {
-    return new KnownRetracedMethodImpl(methodReference, position);
+  static RetracedMethodReferenceImpl create(MethodReference methodReference, int position) {
+    return new KnownRetracedMethodReferenceImpl(methodReference, position);
   }
 }

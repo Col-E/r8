@@ -8,13 +8,13 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.ClassReference;
 
 @Keep
-public interface RetracedClass {
+public interface RetracedClassReference {
 
   String getTypeName();
 
   String getBinaryName();
 
-  RetracedType getRetracedType();
+  RetracedTypeReference getRetracedType();
 
   ClassReference getClassReference();
 }

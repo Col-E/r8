@@ -179,7 +179,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   private RetraceClassElementImpl createElement() {
     return new RetraceClassElementImpl(
         this,
-        RetracedClassImpl.create(
+        RetracedClassReferenceImpl.create(
             mapper == null
                 ? obfuscatedReference
                 : Reference.classFromTypeName(mapper.originalName)),
@@ -197,12 +197,12 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   public static class RetraceClassElementImpl implements RetraceClassElement {
 
     private final RetraceClassResultImpl classResult;
-    private final RetracedClassImpl classReference;
+    private final RetracedClassReferenceImpl classReference;
     private final ClassNamingForNameMapper mapper;
 
     public RetraceClassElementImpl(
         RetraceClassResultImpl classResult,
-        RetracedClassImpl classReference,
+        RetracedClassReferenceImpl classReference,
         ClassNamingForNameMapper mapper) {
       this.classResult = classResult;
       this.classReference = classReference;
@@ -210,7 +210,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     }
 
     @Override
-    public RetracedClassImpl getRetracedClass() {
+    public RetracedClassReferenceImpl getRetracedClass() {
       return classReference;
     }
 

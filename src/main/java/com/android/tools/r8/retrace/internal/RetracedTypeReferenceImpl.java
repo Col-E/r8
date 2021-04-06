@@ -6,23 +6,23 @@ package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.retrace.RetracedType;
+import com.android.tools.r8.retrace.RetracedTypeReference;
 import java.util.Objects;
 
-public final class RetracedTypeImpl implements RetracedType {
+public final class RetracedTypeReferenceImpl implements RetracedTypeReference {
 
   private final TypeReference typeReference;
 
-  private RetracedTypeImpl(TypeReference typeReference) {
+  private RetracedTypeReferenceImpl(TypeReference typeReference) {
     this.typeReference = typeReference;
   }
 
-  static RetracedTypeImpl create(TypeReference typeReference) {
-    return new RetracedTypeImpl(typeReference);
+  static RetracedTypeReferenceImpl create(TypeReference typeReference) {
+    return new RetracedTypeReferenceImpl(typeReference);
   }
 
-  static RetracedType createVoid() {
-    return new RetracedTypeImpl(null);
+  static RetracedTypeReference createVoid() {
+    return new RetracedTypeReferenceImpl(null);
   }
 
   @Override
@@ -54,7 +54,7 @@ public final class RetracedTypeImpl implements RetracedType {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    return typeReference.equals(((RetracedTypeImpl) o).typeReference);
+    return typeReference.equals(((RetracedTypeReferenceImpl) o).typeReference);
   }
 
   @Override

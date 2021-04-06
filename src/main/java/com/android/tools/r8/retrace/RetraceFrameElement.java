@@ -12,13 +12,13 @@ public interface RetraceFrameElement extends RetraceElement<RetraceFrameResult> 
 
   boolean isUnknown();
 
-  RetracedMethod getTopFrame();
+  RetracedMethodReference getTopFrame();
 
   RetraceClassElement getClassElement();
 
-  void visitFrames(BiConsumer<RetracedMethod, Integer> consumer);
+  void visitFrames(BiConsumer<RetracedMethodReference, Integer> consumer);
 
-  RetraceSourceFileResult retraceSourceFile(RetracedClassMember frame, String sourceFile);
+  RetraceSourceFileResult retraceSourceFile(RetracedClassMemberReference frame, String sourceFile);
 
-  List<? extends RetracedMethod> getOuterFrames();
+  List<? extends RetracedMethodReference> getOuterFrames();
 }

@@ -5,19 +5,19 @@
 package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.retrace.RetracedClass;
+import com.android.tools.r8.retrace.RetracedClassReference;
 
-public final class RetracedClassImpl implements RetracedClass {
+public final class RetracedClassReferenceImpl implements RetracedClassReference {
 
   private final ClassReference classReference;
 
-  private RetracedClassImpl(ClassReference classReference) {
+  private RetracedClassReferenceImpl(ClassReference classReference) {
     assert classReference != null;
     this.classReference = classReference;
   }
 
-  public static RetracedClassImpl create(ClassReference classReference) {
-    return new RetracedClassImpl(classReference);
+  public static RetracedClassReferenceImpl create(ClassReference classReference) {
+    return new RetracedClassReferenceImpl(classReference);
   }
 
   @Override
@@ -31,8 +31,8 @@ public final class RetracedClassImpl implements RetracedClass {
   }
 
   @Override
-  public RetracedTypeImpl getRetracedType() {
-    return RetracedTypeImpl.create(classReference);
+  public RetracedTypeReferenceImpl getRetracedType() {
+    return RetracedTypeReferenceImpl.create(classReference);
   }
 
   @Override
@@ -48,7 +48,7 @@ public final class RetracedClassImpl implements RetracedClass {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    return classReference.equals(((RetracedClassImpl) o).classReference);
+    return classReference.equals(((RetracedClassReferenceImpl) o).classReference);
   }
 
   @Override

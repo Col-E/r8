@@ -9,18 +9,18 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.TypeReference;
 
 @Keep
-public interface RetracedField extends RetracedClassMember {
+public interface RetracedFieldReference extends RetracedClassMemberReference {
 
   boolean isUnknown();
 
   boolean isKnown();
 
-  KnownRetracedField asKnown();
+  KnownRetracedFieldReference asKnown();
 
   String getFieldName();
 
   @Keep
-  interface KnownRetracedField extends RetracedField {
+  interface KnownRetracedFieldReference extends RetracedFieldReference {
 
     TypeReference getFieldType();
 

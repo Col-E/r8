@@ -6,12 +6,12 @@ package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.retrace.RetracedField;
+import com.android.tools.r8.retrace.RetracedFieldReference;
 import java.util.Objects;
 
-public abstract class RetracedFieldImpl implements RetracedField {
+public abstract class RetracedFieldReferenceImpl implements RetracedFieldReference {
 
-  private RetracedFieldImpl() {}
+  private RetracedFieldReferenceImpl() {}
 
   @Override
   public boolean isUnknown() {
@@ -24,16 +24,16 @@ public abstract class RetracedFieldImpl implements RetracedField {
   }
 
   @Override
-  public KnownRetracedFieldImpl asKnown() {
+  public KnownRetracedFieldReferenceImpl asKnown() {
     return null;
   }
 
-  public static final class KnownRetracedFieldImpl extends RetracedFieldImpl
-      implements KnownRetracedField {
+  public static final class KnownRetracedFieldReferenceImpl extends RetracedFieldReferenceImpl
+      implements KnownRetracedFieldReference {
 
     private final FieldReference fieldReference;
 
-    private KnownRetracedFieldImpl(FieldReference fieldReference) {
+    private KnownRetracedFieldReferenceImpl(FieldReference fieldReference) {
       this.fieldReference = fieldReference;
     }
 
@@ -43,13 +43,13 @@ public abstract class RetracedFieldImpl implements RetracedField {
     }
 
     @Override
-    public KnownRetracedFieldImpl asKnown() {
+    public KnownRetracedFieldReferenceImpl asKnown() {
       return this;
     }
 
     @Override
-    public RetracedClassImpl getHolderClass() {
-      return RetracedClassImpl.create(fieldReference.getHolderClass());
+    public RetracedClassReferenceImpl getHolderClass() {
+      return RetracedClassReferenceImpl.create(fieldReference.getHolderClass());
     }
 
     @Override
@@ -75,7 +75,7 @@ public abstract class RetracedFieldImpl implements RetracedField {
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      KnownRetracedFieldImpl that = (KnownRetracedFieldImpl) o;
+      KnownRetracedFieldReferenceImpl that = (KnownRetracedFieldReferenceImpl) o;
       return fieldReference.equals(that.fieldReference);
     }
 
@@ -85,17 +85,17 @@ public abstract class RetracedFieldImpl implements RetracedField {
     }
   }
 
-  public static final class UnknownRetracedField extends RetracedFieldImpl {
+  public static final class UnknownRetracedFieldReferenceImpl extends RetracedFieldReferenceImpl {
 
     private final FieldDefinition fieldDefinition;
 
-    private UnknownRetracedField(FieldDefinition fieldDefinition) {
+    private UnknownRetracedFieldReferenceImpl(FieldDefinition fieldDefinition) {
       this.fieldDefinition = fieldDefinition;
     }
 
     @Override
-    public RetracedClassImpl getHolderClass() {
-      return RetracedClassImpl.create(fieldDefinition.getHolderClass());
+    public RetracedClassReferenceImpl getHolderClass() {
+      return RetracedClassReferenceImpl.create(fieldDefinition.getHolderClass());
     }
 
     @Override
@@ -111,7 +111,7 @@ public abstract class RetracedFieldImpl implements RetracedField {
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      UnknownRetracedField that = (UnknownRetracedField) o;
+      UnknownRetracedFieldReferenceImpl that = (UnknownRetracedFieldReferenceImpl) o;
       return fieldDefinition.equals(that.fieldDefinition);
     }
 
@@ -121,11 +121,11 @@ public abstract class RetracedFieldImpl implements RetracedField {
     }
   }
 
-  static RetracedFieldImpl create(FieldReference fieldReference) {
-    return new KnownRetracedFieldImpl(fieldReference);
+  static RetracedFieldReferenceImpl create(FieldReference fieldReference) {
+    return new KnownRetracedFieldReferenceImpl(fieldReference);
   }
 
-  static RetracedFieldImpl create(FieldDefinition fieldDefinition) {
-    return new UnknownRetracedField(fieldDefinition);
+  static RetracedFieldReferenceImpl create(FieldDefinition fieldDefinition) {
+    return new UnknownRetracedFieldReferenceImpl(fieldDefinition);
   }
 }

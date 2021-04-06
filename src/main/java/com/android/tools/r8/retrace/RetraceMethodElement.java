@@ -10,7 +10,7 @@ public interface RetraceMethodElement extends RetraceElement<RetraceMethodResult
 
   boolean isUnknown();
 
-  RetracedMethod getRetracedMethod();
+  RetracedMethodReference getRetracedMethod();
 
   RetraceClassElement getClassElement();
 

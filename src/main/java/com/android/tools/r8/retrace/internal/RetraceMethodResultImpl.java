@@ -9,6 +9,7 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceMethodElement;
 import com.android.tools.r8.retrace.RetraceMethodResult;
+import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
 import com.android.tools.r8.utils.Pair;
@@ -105,7 +106,7 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
                     new ElementImpl(
                         this,
                         classElement,
-                        RetracedMethodImpl.create(
+                        RetracedMethodReferenceImpl.create(
                             methodDefinition.substituteHolder(
                                 classElement.getRetracedClass().getClassReference()))));
               }
@@ -116,21 +117,23 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
                             RetraceUtils.methodReferenceFromMappedRange(
                                 mappedRange, classElement.getRetracedClass().getClassReference());
                         return new ElementImpl(
-                            this, classElement, RetracedMethodImpl.create(methodReference));
+                            this,
+                            classElement,
+                            RetracedMethodReferenceImpl.create(methodReference));
                       });
             });
   }
 
   public static class ElementImpl implements RetraceMethodElement {
 
-    private final RetracedMethodImpl methodReference;
+    private final RetracedMethodReferenceImpl methodReference;
     private final RetraceMethodResultImpl retraceMethodResult;
     private final RetraceClassElementImpl classElement;
 
     private ElementImpl(
         RetraceMethodResultImpl retraceMethodResult,
         RetraceClassElementImpl classElement,
-        RetracedMethodImpl methodReference) {
+        RetracedMethodReferenceImpl methodReference) {
       this.classElement = classElement;
       this.retraceMethodResult = retraceMethodResult;
       this.methodReference = methodReference;
@@ -142,7 +145,7 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
     }
 
     @Override
-    public com.android.tools.r8.retrace.RetracedMethod getRetracedMethod() {
+    public RetracedMethodReference getRetracedMethod() {
       return null;
     }
 
