@@ -13,7 +13,7 @@ import java.util.function.BiConsumer;
 public interface RetraceFrameResult extends RetraceResult<Element> {
 
   @Keep
-  interface Element {
+  interface Element extends RetraceElement<RetraceFrameResult> {
 
     boolean isUnknown();
 

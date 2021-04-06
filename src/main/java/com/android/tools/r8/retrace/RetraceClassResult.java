@@ -31,11 +31,9 @@ public interface RetraceClassResult extends RetraceResult<Element> {
       String methodName, int position, List<TypeReference> formalTypes, TypeReference returnType);
 
   @Keep
-  interface Element {
+  interface Element extends RetraceElement<RetraceClassResult> {
 
     RetracedClass getRetracedClass();
-
-    RetraceClassResult getRetraceClassResult();
 
     RetraceSourceFileResult retraceSourceFile(String sourceFile);
 

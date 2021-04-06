@@ -17,7 +17,7 @@ import java.util.stream.Stream;
  * the result.
  */
 @Keep
-public interface RetraceResult<E> {
+public interface RetraceResult<E extends RetraceElement<?>> {
 
   /** Basic operation over 'elements' which represent a possible non-ambiguous retracing. */
   Stream<E> stream();

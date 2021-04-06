@@ -147,7 +147,7 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
     }
 
     @Override
-    public RetraceMethodResultImpl getRetraceMethodResult() {
+    public RetraceMethodResult getRetraceResultContext() {
       return retraceMethodResult;
     }
 

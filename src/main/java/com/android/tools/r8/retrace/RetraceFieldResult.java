@@ -11,13 +11,11 @@ import com.android.tools.r8.retrace.RetraceFieldResult.Element;
 public interface RetraceFieldResult extends RetraceResult<Element> {
 
   @Keep
-  interface Element {
+  interface Element extends RetraceElement<RetraceFieldResult> {
 
     boolean isUnknown();
 
     RetracedField getField();
-
-    RetraceFieldResult getRetraceFieldResult();
 
     RetraceClassResult.Element getClassElement();
 

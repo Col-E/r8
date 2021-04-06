@@ -13,13 +13,11 @@ public interface RetraceMethodResult extends RetraceResult<Element> {
   RetraceFrameResult narrowByPosition(int position);
 
   @Keep
-  interface Element {
+  interface Element extends RetraceElement<RetraceMethodResult> {
 
     boolean isUnknown();
 
     RetracedMethod getRetracedMethod();
-
-    RetraceMethodResult getRetraceMethodResult();
 
     RetraceClassResult.Element getClassElement();
 

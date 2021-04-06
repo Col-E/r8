@@ -151,6 +151,11 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
+    public RetraceFrameResult getRetraceResultContext() {
+      return retraceFrameResult;
+    }
+
+    @Override
     public boolean isUnknown() {
       return methodReference.isUnknown();
     }

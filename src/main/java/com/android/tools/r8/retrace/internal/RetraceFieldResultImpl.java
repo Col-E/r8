@@ -115,7 +115,7 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
     }
 
     @Override
-    public RetraceFieldResultImpl getRetraceFieldResult() {
+    public RetraceFieldResult getRetraceResultContext() {
       return retraceFieldResult;
     }
 

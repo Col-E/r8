@@ -214,7 +214,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     }
 
     @Override
-    public RetraceClassResultImpl getRetraceClassResult() {
+    public RetraceClassResultImpl getRetraceResultContext() {
       return classResult;
     }
 
