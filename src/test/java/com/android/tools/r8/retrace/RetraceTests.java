@@ -120,7 +120,7 @@ public class RetraceTests extends TestBase {
     NullStackTrace nullStackTrace = new NullStackTrace();
     RetraceCommand retraceCommand =
         RetraceCommand.builder(diagnosticsHandler)
-            .setProguardMapProducer(nullStackTrace::mapping)
+            .setProguardMapProducer(ProguardMapProducer.fromString(nullStackTrace.mapping()))
             .setStackTrace(nullStackTrace.obfuscatedStackTrace())
             .setRetracedStackTraceConsumer(retraced -> fail())
             .build();
@@ -257,7 +257,9 @@ public class RetraceTests extends TestBase {
   private void inspectRetraceTest(
       StackTraceForTest stackTraceForTest, Consumer<Retracer> inspection) {
     inspection.accept(
-        Retracer.createDefault(stackTraceForTest::mapping, new TestDiagnosticMessagesImpl()));
+        Retracer.createDefault(
+            ProguardMapProducer.fromString(stackTraceForTest.mapping()),
+            new TestDiagnosticMessagesImpl()));
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest)
@@ -298,7 +300,7 @@ public class RetraceTests extends TestBase {
       TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
       RetraceCommand retraceCommand =
           RetraceCommand.builder(diagnosticsHandler)
-              .setProguardMapProducer(stackTraceForTest::mapping)
+              .setProguardMapProducer(ProguardMapProducer.fromString(stackTraceForTest.mapping()))
               .setStackTrace(stackTraceForTest.obfuscatedStackTrace())
               .setRegularExpression(useRegExpParsing ? DEFAULT_REGULAR_EXPRESSION : null)
               .setRetracedStackTraceConsumer(

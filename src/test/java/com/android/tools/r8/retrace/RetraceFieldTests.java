@@ -20,6 +20,8 @@ public class RetraceFieldTests {
 
   private void runRetraceTest(MappingForTest mappingForTest, Consumer<Retracer> inspection) {
     inspection.accept(
-        Retracer.createDefault(mappingForTest::mapping, new TestDiagnosticMessagesImpl()));
+        Retracer.createDefault(
+            ProguardMapProducer.fromString(mappingForTest.mapping()),
+            new TestDiagnosticMessagesImpl()));
   }
 }

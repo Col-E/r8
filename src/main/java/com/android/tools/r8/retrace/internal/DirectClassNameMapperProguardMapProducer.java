@@ -6,13 +6,14 @@ package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import java.io.BufferedReader;
 
 public interface DirectClassNameMapperProguardMapProducer extends ProguardMapProducer {
 
   ClassNameMapper getClassNameMapper();
 
   @Override
-  default String get() {
+  default BufferedReader get() {
     throw new RuntimeException("Should not be called for DirectClassNameMapperProguardMapProducer");
   }
 }

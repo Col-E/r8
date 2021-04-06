@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceCommand;
 import com.android.tools.r8.utils.StringUtils;
@@ -311,7 +312,7 @@ public class StackTrace {
     Box box = new Box();
     Retrace.run(
         RetraceCommand.builder()
-            .setProguardMapProducer(() -> map)
+            .setProguardMapProducer(ProguardMapProducer.fromString(map))
             .setStackTrace(
                 stackTraceLines.stream()
                     .map(line -> line.originalLine)

@@ -27,8 +27,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharSource;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -102,11 +100,6 @@ public class ClassNameMapper implements ProguardMap {
     return new Builder();
   }
 
-  public static ClassNameMapper mapperFromInputStream(InputStream in) throws IOException {
-    return mapperFromBufferedReader(
-        new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8)), null);
-  }
-
   public static ClassNameMapper mapperFromFile(Path path) throws IOException {
     return mapperFromFile(path, MISSING_FILE_IS_ERROR);
   }
@@ -119,7 +112,7 @@ public class ClassNameMapper implements ProguardMap {
         && !path.toFile().exists()) {
       return mapperFromString("");
     }
-    return mapperFromInputStream(Files.newInputStream(path));
+    return mapperFromBufferedReader(Files.newBufferedReader(path, StandardCharsets.UTF_8), null);
   }
 
   public static ClassNameMapper mapperFromString(String contents) throws IOException {
@@ -144,7 +137,7 @@ public class ClassNameMapper implements ProguardMap {
     return mapperFromBufferedReader(reader, diagnosticsHandler, false);
   }
 
-  private static ClassNameMapper mapperFromBufferedReader(
+  public static ClassNameMapper mapperFromBufferedReader(
       BufferedReader reader, DiagnosticsHandler diagnosticsHandler, boolean allowEmptyMappedRanges)
       throws IOException {
     try (ProguardMapReader proguardReader =

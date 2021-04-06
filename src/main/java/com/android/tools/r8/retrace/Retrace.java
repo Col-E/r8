@@ -123,15 +123,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
           new StringDiagnostic(String.format("Could not find mapping file '%s'.", mappingPath)));
       throw new RetraceAbortException();
     }
-    return () -> {
-      try {
-        return new String(Files.readAllBytes(path));
-      } catch (IOException e) {
-        diagnosticsHandler.error(
-            new StringDiagnostic(String.format("Could not open mapping file '%s'.", mappingPath)));
-        throw new RuntimeException(e);
-      }
-    };
+    return ProguardMapProducer.fromPath(Paths.get(mappingPath));
   }
 
   private static List<String> getStackTraceFromFile(

@@ -63,7 +63,7 @@ public class RetraceVerboseTests extends TestBase {
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
     RetraceCommand retraceCommand =
         RetraceCommand.builder(diagnosticsHandler)
-            .setProguardMapProducer(stackTraceForTest::mapping)
+            .setProguardMapProducer(ProguardMapProducer.fromString(stackTraceForTest.mapping()))
             .setStackTrace(stackTraceForTest.obfuscatedStackTrace())
             .setRegularExpression(useRegExpParsing ? DEFAULT_REGULAR_EXPRESSION : null)
             .setVerbose(true)
