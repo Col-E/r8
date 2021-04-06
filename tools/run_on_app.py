@@ -8,6 +8,7 @@ from glob import glob
 import copy
 import optparse
 import os
+import shutil
 import sys
 import time
 
@@ -450,6 +451,79 @@ def check_no_injars_and_no_libraryjars(pgconfs):
         elif trimmed.startswith('-libraryjars'):
           raise Exception("Unexpected -libraryjars found in " + pgconf)
 
+def should_build(options):
+  return not options.no_build and not options.golem
+
+def build_desugared_library_dex(options, quiet, temp, android_java8_libs, inputs, outdir):
+  if not input:
+    raise Exception("If 'android_java8_libs' is specified the inputs must be explicit"
+       + "(not defined using '-injars' in Proguard configuration files)")
+  if outdir.endswith('.zip') or outdir.endswith('.jar'):
+    raise Exception("If 'android_java8_libs' is specified the output must be a directory")
+
+  jar = None
+  main = None
+  if options.hash:
+    jar = os.path.join(utils.LIBS, 'r8-' + options.hash + '.jar')
+
+  assert(options.compiler_build in ['full', 'lib'])
+  lib_prefix = 'r8lib-' if options.compiler_build == 'lib' else ''
+
+  # Determine the tracereferences tool.
+  tool = lib_prefix + 'tracereferences'
+  if options.hash:
+    main = 'com.android.tools.r8.TraceReferences'
+  tracereferences_output = os.path.join(outdir, 'tracereferences.pgcfg')
+  args = [
+    '--map-diagnostics:MissingDefinitionsDiagnostic', 'error', 'warning',
+    '--keep-rules',
+    '--lib', 'third_party/android_jar/lib-v30/android.jar',
+    '--target', android_java8_libs['library'],
+    '--output', tracereferences_output,
+  ]
+  for source in inputs:
+    args.extend(['--source', source])
+  exit_code = toolhelper.run(tool, args,
+      build=should_build(options),
+      debug=not options.no_debug,
+      quiet=quiet,
+      jar=jar,
+      main=main)
+  if exit_code != 0:
+    raise Exception("tracereferences failed")
+
+  # Determine the r8 tool.
+  tool = lib_prefix + 'r8'
+  if options.compiler_build == 'full':
+    tool = ''
+  else:
+    assert(options.compiler_build == 'lib')
+    tool = 'r8lib-r8'
+  if options.hash:
+    main = 'com.android.tools.r8.R8'
+  android_java8_libs_output = os.path.join(temp, 'android_java8_libs')
+  os.makedirs(android_java8_libs_output)
+  args = [
+    '--no-desugaring',
+    '--lib', '%s/android_jar/lib-v30/android.jar' % utils.THIRD_PARTY,
+    '--output', android_java8_libs_output,
+    '--pg-conf', tracereferences_output,
+    android_java8_libs['library']
+  ]
+  for pgconf in android_java8_libs['pgconf']:
+    args.extend(['--pg-conf', pgconf])
+  exit_code = toolhelper.run(tool, args,
+      build=should_build(options),
+      debug=not options.no_debug,
+      quiet=quiet,
+      jar=jar,
+      main=main)
+  # Copy the desugared library DEX to the output.
+  dex_file_name = 'classes' + str(len(glob(os.path.join(outdir, '*.dex'))) + 1) + '.dex'
+  shutil.copyfile(
+      os.path.join(android_java8_libs_output, 'classes.dex'),
+      os.path.join(outdir, dex_file_name))
+
 def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
   if extra_args is None:
     extra_args = []
@@ -495,18 +569,6 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
     print('Valid types are {}'.format(version.keys()))
     return 1
   values = version[type]
-  inputs = []
-  # For R8 'deploy' the JAR is located using the Proguard configuration
-  # -injars option. For chrome and nest we don't have the injars in the
-  # proguard files.
-  if 'inputs' in values and (options.compiler != 'r8'
-                             or type != 'deploy'
-                             or options.app == 'chrome'
-                             or options.app == 'nest'
-                             or options.app == 'r8'
-                             or options.app == 'iosched'
-                             or options.app == 'tachiyomi'):
-    inputs = values['inputs']
 
   args.extend(['--output', outdir])
   if 'min-api' in values:
@@ -527,6 +589,7 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
             sanitized_lib_path, sanitized_pgconf_path, values['pgconf'])
         libraries = [sanitized_lib_path]
         args.extend(['--pg-conf', sanitized_pgconf_path])
+        inputs = []
       else:
         # -injars without -libraryjars or vice versa is not supported.
         check_no_injars_and_no_libraryjars(values['pgconf'])
@@ -538,7 +601,7 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
           SanitizeLibraries(
             sanitized_lib_path, values['libraries'], values['inputs'])
           libraries = [sanitized_lib_path]
-          inputs = values['inputs']
+        inputs = values['inputs']
       app_provided_pg_conf = True
     if options.k:
       args.extend(['--pg-conf', options.k])
@@ -616,7 +679,6 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
           additional_pg_conf = GenerateAdditionalProguardConfiguration(
               temp, os.path.abspath(pg_outdir))
           args.extend(['--pg-conf', additional_pg_conf])
-      build = not options.no_build and not options.golem
       stderr_path = os.path.join(temp, 'stderr')
       with open(stderr_path, 'w') as stderr:
         jar = None
@@ -630,7 +692,7 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
           jar = os.path.join(utils.LIBS, 'r8-' + options.hash + '.jar')
           main = 'com.android.tools.r8.' + options.compiler.upper()
         exit_code = toolhelper.run(tool, args,
-            build=build,
+            build=should_build(options),
             debug=not options.no_debug,
             profile=options.profile,
             track_memory_file=options.track_memory_to_file,
@@ -658,6 +720,11 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
         print('{}(MemoryUse): {}'
             .format(options.print_memoryuse,
                 utils.grep_memoryuse(options.track_memory_to_file)))
+
+      if 'android_java8_libs' in values:
+        android_java8_libs = values['android_java8_libs']
+        build_desugared_library_dex(options, quiet, temp, android_java8_libs, inputs, outdir)
+
 
   if options.print_runtimeraw:
     print('{}(RunTimeRaw): {} ms'

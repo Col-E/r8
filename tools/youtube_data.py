@@ -37,6 +37,9 @@ V15_09_PREFIX = os.path.join(V15_09_BASE, 'YouTubeRelease')
 V15_33_BASE = os.path.join(BASE, 'youtube.android_15.33')
 V15_33_PREFIX = os.path.join(V15_33_BASE, 'YouTubeRelease')
 
+V16_10_BASE = os.path.join(BASE, 'youtube.android_16.10')
+V16_10_PREFIX = os.path.join(V16_10_BASE, 'YouTubeRelease')
+
 # NOTE: we always use android.jar for SDK v25, later we might want to revise it
 #       to use proper android.jar version for each of youtube version separately.
 ANDROID_JAR = utils.get_android_jar(25)
@@ -280,6 +283,36 @@ VERSIONS = {
     'proguarded' : {
       'inputs': ['%s_proguard.jar' % V15_33_PREFIX],
       'pgmap': '%s_proguard.map' % V15_33_PREFIX,
+      'min-api' : ANDROID_L_API,
+    }
+  },
+  '16.10': {
+    'dex' : {
+      'inputs': [os.path.join(V16_10_BASE, 'YouTubeRelease_unsigned.apk')],
+      'pgmap': '%s_proguard.map' % V16_10_PREFIX,
+      'libraries' : [ANDROID_JAR],
+      'min-api' : ANDROID_L_API,
+    },
+    'deploy' : {
+      'sanitize_libraries': False,
+      'inputs': ['%s_deploy.jar' % V16_10_PREFIX],
+      'libraries' : [os.path.join(V16_10_BASE, 'legacy_YouTubeRelease_combined_library_jars_filtered.jar')],
+      'pgconf': [
+          '%s_proguard.config' % V16_10_PREFIX,
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY,
+          utils.IGNORE_WARNINGS_RULES],
+      'min-api' : ANDROID_L_API,
+      'android_java8_libs': {
+        'library': '%s/desugar_jdk_libs/desugared_jdk_libs.jar' % V16_10_BASE,
+        'pgconf': [
+          '%s/desugar_jdk_libs/base.pgcfg' % V16_10_BASE,
+          '%s/desugar_jdk_libs/minify_desugar_jdk_libs.pgcfg' % V16_10_BASE
+        ]
+      }
+    },
+    'proguarded' : {
+      'inputs': ['%s_proguard.jar' % V16_10_PREFIX],
+      'pgmap': '%s_proguard.map' % V16_10_PREFIX,
       'min-api' : ANDROID_L_API,
     }
   },

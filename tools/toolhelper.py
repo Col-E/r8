@@ -41,6 +41,8 @@ def run(tool, args, build=None, debug=True,
     cmd.extend(['-cp', utils.R8LIB_JAR, 'com.android.tools.r8.D8'])
   elif tool == 'r8lib-r8':
     cmd.extend(['-cp', utils.R8LIB_JAR, 'com.android.tools.r8.R8'])
+  elif tool == 'r8lib-tracereferences':
+    cmd.extend(['-cp', utils.R8LIB_JAR, 'com.android.tools.r8.tracereferences.TraceReferences'])
   else:
     cmd.extend(['-jar', utils.R8_JAR, tool])
   lib, args = extract_lib_from_args(args)
