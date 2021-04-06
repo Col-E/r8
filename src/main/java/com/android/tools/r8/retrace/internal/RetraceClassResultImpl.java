@@ -14,6 +14,7 @@ import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.retrace.RetraceClassElement;
 import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.Retracer;
@@ -96,7 +97,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
       D definition,
       BiFunction<ClassNamingForNameMapper, String, T> lookupFunction,
       ResultConstructor<T, R, D> constructor) {
-    List<Pair<ElementImpl, T>> mappings = new ArrayList<>();
+    List<Pair<RetraceClassElementImpl, T>> mappings = new ArrayList<>();
     internalStream()
         .forEach(
             element -> {
@@ -133,7 +134,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   }
 
   private RetraceFrameResultImpl lookupFrame(MethodDefinition definition, int position) {
-    List<Pair<ElementImpl, List<MappedRange>>> mappings = new ArrayList<>();
+    List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappings = new ArrayList<>();
     internalStream()
         .forEach(
             element ->
@@ -143,7 +144,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   }
 
   private List<MappedRange> getMappedRangesForFrame(
-      ElementImpl element, MethodDefinition definition, int position) {
+      RetraceClassElementImpl element, MethodDefinition definition, int position) {
     if (mapper == null) {
       return null;
     }
@@ -167,16 +168,16 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   }
 
   @Override
-  public Stream<Element> stream() {
+  public Stream<RetraceClassElement> stream() {
     return Stream.of(createElement());
   }
 
-  private Stream<ElementImpl> internalStream() {
+  private Stream<RetraceClassElementImpl> internalStream() {
     return Stream.of(createElement());
   }
 
-  private ElementImpl createElement() {
-    return new ElementImpl(
+  private RetraceClassElementImpl createElement() {
+    return new RetraceClassElementImpl(
         this,
         RetracedClassImpl.create(
             mapper == null
@@ -188,18 +189,18 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   private interface ResultConstructor<T, R, D> {
     R create(
         RetraceClassResultImpl classResult,
-        List<Pair<ElementImpl, T>> mappings,
+        List<Pair<RetraceClassElementImpl, T>> mappings,
         D definition,
         Retracer retracer);
   }
 
-  public static class ElementImpl implements Element {
+  public static class RetraceClassElementImpl implements RetraceClassElement {
 
     private final RetraceClassResultImpl classResult;
     private final RetracedClassImpl classReference;
     private final ClassNamingForNameMapper mapper;
 
-    public ElementImpl(
+    public RetraceClassElementImpl(
         RetraceClassResultImpl classResult,
         RetracedClassImpl classReference,
         ClassNamingForNameMapper mapper) {
@@ -277,7 +278,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
         D definition,
         BiFunction<ClassNamingForNameMapper, String, T> lookupFunction,
         ResultConstructor<T, R, D> constructor) {
-      List<Pair<ElementImpl, T>> mappings = ImmutableList.of();
+      List<Pair<RetraceClassElementImpl, T>> mappings = ImmutableList.of();
       if (mapper != null) {
         T result = lookupFunction.apply(mapper, definition.getName());
         if (result != null) {

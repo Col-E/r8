@@ -5,20 +5,6 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.retrace.RetraceFieldResult.Element;
 
 @Keep
-public interface RetraceFieldResult extends RetraceResult<Element> {
-
-  @Keep
-  interface Element extends RetraceElement<RetraceFieldResult> {
-
-    boolean isUnknown();
-
-    RetracedField getField();
-
-    RetraceClassResult.Element getClassElement();
-
-    RetraceSourceFileResult retraceSourceFile(String sourceFile);
-  }
-}
+public interface RetraceFieldResult extends RetraceResult<RetraceFieldElement> {}

@@ -9,8 +9,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.retrace.RetraceFieldElement;
 import com.android.tools.r8.retrace.RetraceFieldResult;
-import com.android.tools.r8.retrace.RetraceFieldResult.Element;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
@@ -47,7 +47,7 @@ public class MemberFieldOverlapStackTrace implements StackTraceForTest {
         retracer.retraceClass(Reference.classFromTypeName("a.A")).lookupField("a");
     assertFalse(result.isAmbiguous());
     assertEquals(1, result.stream().count());
-    Optional<? extends Element> field = result.stream().findFirst();
+    Optional<? extends RetraceFieldElement> field = result.stream().findFirst();
     assertTrue(field.isPresent());
     assertEquals("field", field.get().getField().getFieldName());
   }

@@ -5,22 +5,10 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.retrace.RetraceMethodResult.Element;
 
 @Keep
-public interface RetraceMethodResult extends RetraceResult<Element> {
+public interface RetraceMethodResult extends RetraceResult<RetraceMethodElement> {
 
   RetraceFrameResult narrowByPosition(int position);
 
-  @Keep
-  interface Element extends RetraceElement<RetraceMethodResult> {
-
-    boolean isUnknown();
-
-    RetracedMethod getRetracedMethod();
-
-    RetraceClassResult.Element getClassElement();
-
-    RetraceSourceFileResult retraceSourceFile(String sourceFile);
-  }
 }

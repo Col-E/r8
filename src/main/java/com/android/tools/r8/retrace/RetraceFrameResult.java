@@ -5,26 +5,6 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.retrace.RetraceFrameResult.Element;
-import java.util.List;
-import java.util.function.BiConsumer;
 
 @Keep
-public interface RetraceFrameResult extends RetraceResult<Element> {
-
-  @Keep
-  interface Element extends RetraceElement<RetraceFrameResult> {
-
-    boolean isUnknown();
-
-    RetracedMethod getTopFrame();
-
-    RetraceClassResult.Element getClassElement();
-
-    void visitFrames(BiConsumer<RetracedMethod, Integer> consumer);
-
-    RetraceSourceFileResult retraceSourceFile(RetracedClassMember frame, String sourceFile);
-
-    List<? extends RetracedMethod> getOuterFrames();
-  }
-}
+public interface RetraceFrameResult extends RetraceResult<RetraceFrameElement> {}

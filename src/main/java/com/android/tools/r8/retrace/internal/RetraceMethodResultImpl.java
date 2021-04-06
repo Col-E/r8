@@ -7,8 +7,10 @@ package com.android.tools.r8.retrace.internal;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.retrace.RetraceMethodElement;
 import com.android.tools.r8.retrace.RetraceMethodResult;
 import com.android.tools.r8.retrace.Retracer;
+import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -19,12 +21,12 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
 
   private final MethodDefinition methodDefinition;
   private final RetraceClassResultImpl classResult;
-  private final List<Pair<RetraceClassResultImpl.ElementImpl, List<MappedRange>>> mappedRanges;
+  private final List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges;
   private final Retracer retracer;
 
   RetraceMethodResultImpl(
       RetraceClassResultImpl classResult,
-      List<Pair<RetraceClassResultImpl.ElementImpl, List<MappedRange>>> mappedRanges,
+      List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges,
       MethodDefinition methodDefinition,
       Retracer retracer) {
     this.classResult = classResult;
@@ -57,11 +59,9 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
 
   @Override
   public RetraceFrameResultImpl narrowByPosition(int position) {
-    List<Pair<RetraceClassResultImpl.ElementImpl, List<MappedRange>>> narrowedRanges =
-        new ArrayList<>();
-    List<Pair<RetraceClassResultImpl.ElementImpl, List<MappedRange>>> noMappingRanges =
-        new ArrayList<>();
-    for (Pair<RetraceClassResultImpl.ElementImpl, List<MappedRange>> mappedRange : mappedRanges) {
+    List<Pair<RetraceClassElementImpl, List<MappedRange>>> narrowedRanges = new ArrayList<>();
+    List<Pair<RetraceClassElementImpl, List<MappedRange>>> noMappingRanges = new ArrayList<>();
+    for (Pair<RetraceClassElementImpl, List<MappedRange>> mappedRange : mappedRanges) {
       if (mappedRange.getSecond() == null) {
         noMappingRanges.add(new Pair<>(mappedRange.getFirst(), null));
         continue;
@@ -94,11 +94,11 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
   }
 
   @Override
-  public Stream<Element> stream() {
+  public Stream<RetraceMethodElement> stream() {
     return mappedRanges.stream()
         .flatMap(
             mappedRangePair -> {
-              RetraceClassResultImpl.ElementImpl classElement = mappedRangePair.getFirst();
+              RetraceClassElementImpl classElement = mappedRangePair.getFirst();
               List<MappedRange> mappedRanges = mappedRangePair.getSecond();
               if (mappedRanges == null || mappedRanges.isEmpty()) {
                 return Stream.of(
@@ -121,15 +121,15 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
             });
   }
 
-  public static class ElementImpl implements RetraceMethodResult.Element {
+  public static class ElementImpl implements RetraceMethodElement {
 
     private final RetracedMethodImpl methodReference;
     private final RetraceMethodResultImpl retraceMethodResult;
-    private final RetraceClassResultImpl.ElementImpl classElement;
+    private final RetraceClassElementImpl classElement;
 
     private ElementImpl(
         RetraceMethodResultImpl retraceMethodResult,
-        RetraceClassResultImpl.ElementImpl classElement,
+        RetraceClassElementImpl classElement,
         RetracedMethodImpl methodReference) {
       this.classElement = classElement;
       this.retraceMethodResult = retraceMethodResult;
@@ -152,7 +152,7 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
     }
 
     @Override
-    public RetraceClassResultImpl.ElementImpl getClassElement() {
+    public RetraceClassElementImpl getClassElement() {
       return classElement;
     }
 

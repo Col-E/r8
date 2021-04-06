@@ -7,9 +7,11 @@ package com.android.tools.r8.retrace.internal;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.retrace.RetraceFieldElement;
 import com.android.tools.r8.retrace.RetraceFieldResult;
 import com.android.tools.r8.retrace.RetraceSourceFileResult;
 import com.android.tools.r8.retrace.Retracer;
+import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import java.util.List;
@@ -18,13 +20,13 @@ import java.util.stream.Stream;
 public class RetraceFieldResultImpl implements RetraceFieldResult {
 
   private final RetraceClassResultImpl classResult;
-  private final List<Pair<RetraceClassResultImpl.ElementImpl, List<MemberNaming>>> memberNamings;
+  private final List<Pair<RetraceClassElementImpl, List<MemberNaming>>> memberNamings;
   private final FieldDefinition fieldDefinition;
   private final Retracer retracer;
 
   RetraceFieldResultImpl(
       RetraceClassResultImpl classResult,
-      List<Pair<RetraceClassResultImpl.ElementImpl, List<MemberNaming>>> memberNamings,
+      List<Pair<RetraceClassElementImpl, List<MemberNaming>>> memberNamings,
       FieldDefinition fieldDefinition,
       Retracer retracer) {
     this.classResult = classResult;
@@ -36,11 +38,11 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
   }
 
   @Override
-  public Stream<Element> stream() {
+  public Stream<RetraceFieldElement> stream() {
     return memberNamings.stream()
         .flatMap(
             mappedNamePair -> {
-              RetraceClassResultImpl.ElementImpl classElement = mappedNamePair.getFirst();
+              RetraceClassElementImpl classElement = mappedNamePair.getFirst();
               List<MemberNaming> memberNamings = mappedNamePair.getSecond();
               if (memberNamings == null) {
                 return Stream.of(
@@ -89,15 +91,15 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
     return mappings.size() > 1;
   }
 
-  public static class ElementImpl implements RetraceFieldResult.Element {
+  public static class ElementImpl implements RetraceFieldElement {
 
     private final RetracedFieldImpl fieldReference;
     private final RetraceFieldResultImpl retraceFieldResult;
-    private final RetraceClassResultImpl.ElementImpl classElement;
+    private final RetraceClassElementImpl classElement;
 
     private ElementImpl(
         RetraceFieldResultImpl retraceFieldResult,
-        RetraceClassResultImpl.ElementImpl classElement,
+        RetraceClassElementImpl classElement,
         RetracedFieldImpl fieldReference) {
       this.classElement = classElement;
       this.fieldReference = fieldReference;
@@ -120,7 +122,7 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
     }
 
     @Override
-    public RetraceClassResultImpl.ElementImpl getClassElement() {
+    public RetraceClassElementImpl getClassElement() {
       return classElement;
     }
 

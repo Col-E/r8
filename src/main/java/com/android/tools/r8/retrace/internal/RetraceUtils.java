@@ -12,8 +12,8 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.retrace.RetraceClassElement;
 import com.android.tools.r8.retrace.RetraceClassResult;
-import com.android.tools.r8.retrace.RetraceClassResult.Element;
 import com.android.tools.r8.retrace.RetraceSourceFileResult;
 import com.android.tools.r8.retrace.RetracedClass;
 import com.android.tools.r8.retrace.RetracedMethod;
@@ -76,7 +76,10 @@ public class RetraceUtils {
   }
 
   static RetraceSourceFileResult getSourceFile(
-      Element classElement, RetracedClass context, String sourceFile, Retracer retracer) {
+      RetraceClassElement classElement,
+      RetracedClass context,
+      String sourceFile,
+      Retracer retracer) {
     // If no context is specified always retrace using the found class element.
     if (context == null) {
       return classElement.retraceSourceFile(sourceFile);

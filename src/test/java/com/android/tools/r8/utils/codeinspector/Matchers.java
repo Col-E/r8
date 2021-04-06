@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.retrace.RetraceFrameElement;
 import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.Visibility;
@@ -517,7 +518,7 @@ public class Matchers {
     return new TypeSafeMatcher<RetraceFrameResult>() {
       @Override
       protected boolean matchesSafely(RetraceFrameResult item) {
-        RetraceFrameResult.Element single = item.stream().collect(Collectors.toSingle());
+        RetraceFrameElement single = item.stream().collect(Collectors.toSingle());
         Box<LinePosition> currentPosition = new Box<>(startPosition);
         Box<Boolean> returnValue = new Box<>();
         single.visitFrames(
@@ -557,7 +558,7 @@ public class Matchers {
     return new TypeSafeMatcher<RetraceFrameResult>() {
       @Override
       protected boolean matchesSafely(RetraceFrameResult item) {
-        RetraceFrameResult.Element single = item.stream().collect(Collectors.toSingle());
+        RetraceFrameElement single = item.stream().collect(Collectors.toSingle());
         Box<Boolean> matches = new Box<>(true);
         single.visitFrames(
             (method, index) -> {
