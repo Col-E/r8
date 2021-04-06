@@ -45,7 +45,6 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.StackValues;
-import com.android.tools.r8.ir.code.UninitializedThisLocalRead;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
@@ -53,8 +52,6 @@ import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.PhiOptimizations;
 import com.android.tools.r8.ir.optimize.peepholes.BasicBlockMuncher;
-import com.android.tools.r8.utils.WorkList;
-import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
@@ -62,11 +59,9 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -153,19 +148,8 @@ public class CfBuilder {
       }
     }
     assert code.isConsistentSSA();
-    // Insert reads for uninitialized read blocks to ensure correct stack maps.
-    Set<UninitializedThisLocalRead> uninitializedThisLocalReads =
-        insertUninitializedThisLocalReads();
     registerAllocator = new CfRegisterAllocator(appView, code, typeVerificationHelper);
     registerAllocator.allocateRegisters();
-    // Remove any uninitializedThisLocalRead now that the register allocation will preserve this
-    // for instance initializers.
-    if (!uninitializedThisLocalReads.isEmpty()) {
-      for (UninitializedThisLocalRead uninitializedThisLocalRead : uninitializedThisLocalReads) {
-        uninitializedThisLocalRead.getBlock().removeInstruction(uninitializedThisLocalRead);
-      }
-    }
-
     loadStoreHelper.insertPhiMoves(registerAllocator);
 
     for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
@@ -182,27 +166,6 @@ public class CfBuilder {
     assert verifyInvokeInterface(code, appView);
     assert code.verifyFrames(method, appView, this.code.origin, false).isValid();
     return code;
-  }
-
-  private Set<UninitializedThisLocalRead> insertUninitializedThisLocalReads() {
-    if (!method.isInstanceInitializer()) {
-      return Collections.emptySet();
-    }
-    // Find all non-normal exit blocks.
-    Set<UninitializedThisLocalRead> uninitializedThisLocalReads = Sets.newIdentityHashSet();
-    for (BasicBlock exitBlock : code.blocks) {
-      if (exitBlock.exit().isThrow() && !exitBlock.hasCatchHandlers()) {
-        LinkedList<Instruction> instructions = exitBlock.getInstructions();
-        Instruction throwing = instructions.removeLast();
-        assert throwing.isThrow();
-        UninitializedThisLocalRead read = new UninitializedThisLocalRead(code.getThis());
-        uninitializedThisLocalReads.add(read);
-        read.setBlock(exitBlock);
-        instructions.addLast(read);
-        instructions.addLast(throwing);
-      }
-    }
-    return uninitializedThisLocalReads;
   }
 
   private static boolean verifyInvokeInterface(CfCode code, AppView<?> appView) {
@@ -627,32 +590,31 @@ public class CfBuilder {
       throw new Unreachable("Unexpected type info: " + typeInfo);
     }
     BasicBlock definitionBlock = definition.getBlock();
-    assert definitionBlock != liveBlock;
-    Set<BasicBlock> initializerBlocks = new HashSet<>();
+    Set<BasicBlock> visited = new HashSet<>();
+    Deque<BasicBlock> toVisit = new ArrayDeque<>();
     List<InvokeDirect> valueInitializers =
         definition.isArgument() ? thisInitializers : initializers.get(definition.asNewInstance());
     for (InvokeDirect initializer : valueInitializers) {
       BasicBlock initializerBlock = initializer.getBlock();
       if (initializerBlock == liveBlock) {
-        // We assume that we are not initializing an object twice.
         return res;
       }
-      initializerBlocks.add(initializerBlock);
-    }
-    // If the live-block has a predecessor that is an initializer-block the value is initialized,
-    // otherwise it is not.
-    WorkList<BasicBlock> findInitWorkList =
-        WorkList.newEqualityWorkList(liveBlock.getPredecessors());
-    while (findInitWorkList.hasNext()) {
-      BasicBlock predecessor = findInitWorkList.next();
-      if (initializerBlocks.contains(predecessor)) {
-        return null;
-      }
-      if (predecessor != definitionBlock) {
-        findInitWorkList.addIfNotSeen(predecessor.getPredecessors());
+      if (initializerBlock != definitionBlock && visited.add(initializerBlock)) {
+        toVisit.addLast(initializerBlock);
       }
     }
-    return res;
+    while (!toVisit.isEmpty()) {
+      BasicBlock block = toVisit.removeLast();
+      for (BasicBlock predecessor : block.getPredecessors()) {
+        if (predecessor == liveBlock) {
+          return res;
+        }
+        if (predecessor != definitionBlock && visited.add(predecessor)) {
+          toVisit.addLast(predecessor);
+        }
+      }
+    }
+    return null;
   }
 
   private void emitLabel(CfLabel label) {

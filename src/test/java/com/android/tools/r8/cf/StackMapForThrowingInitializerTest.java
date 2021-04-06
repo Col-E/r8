@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.cf;
 
+import static org.hamcrest.CoreMatchers.containsString;
+
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -63,7 +65,9 @@ public class StackMapForThrowingInitializerTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class, EXPECTED)
-        .assertSuccessWithOutputLines(EXPECTED);
+        // TODO(b/183285081): Should not have verification errors.
+        .assertFailureWithErrorThatMatches(
+            containsString("java.lang.VerifyError: Inconsistent stackmap frames at branch target"));
   }
 
   @NeverClassInline
