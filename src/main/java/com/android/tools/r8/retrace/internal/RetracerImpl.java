@@ -13,6 +13,7 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.InvalidMappingFileException;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.Retracer;
+import java.io.BufferedReader;
 
 /** A default implementation for the retrace api using the ClassNameMapper defined in R8. */
 public class RetracerImpl implements Retracer {
@@ -33,7 +34,7 @@ public class RetracerImpl implements Retracer {
     try {
       ClassNameMapper classNameMapper =
           ClassNameMapper.mapperFromBufferedReader(
-              proguardMapProducer.get(), diagnosticsHandler, true);
+              new BufferedReader(proguardMapProducer.get()), diagnosticsHandler, true);
       return new RetracerImpl(classNameMapper);
     } catch (Throwable throwable) {
       throw new InvalidMappingFileException(throwable);

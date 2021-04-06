@@ -5,10 +5,9 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
-import com.google.common.io.CharSource;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,14 +16,10 @@ import java.nio.file.Path;
 @Keep
 public interface ProguardMapProducer {
 
-  BufferedReader get() throws IOException;
+  Reader get() throws IOException;
 
   static ProguardMapProducer fromString(String proguardMapString) {
-    return () -> CharSource.wrap(proguardMapString).openBufferedStream();
-  }
-
-  static ProguardMapProducer fromReader(Reader reader) {
-    return () -> new BufferedReader(reader);
+    return () -> new StringReader(proguardMapString);
   }
 
   static ProguardMapProducer fromPath(Path path) {
