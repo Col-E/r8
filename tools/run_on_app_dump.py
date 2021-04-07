@@ -643,7 +643,7 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
       break
 
 def get_jdk_home(options, app):
-  if options.golem or True:
+  if options.golem:
     return os.path.join('benchmarks', app.name, 'linux')
   return None
 
