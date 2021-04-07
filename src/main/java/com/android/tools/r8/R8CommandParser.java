@@ -271,6 +271,11 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
           i += argsConsumed;
           continue;
         }
+        argsConsumed = tryParseDump(builder, arg, expandedArgs, i, argsOrigin);
+        if (argsConsumed >= 0) {
+          i += argsConsumed;
+          continue;
+        }
         builder.error(new StringDiagnostic("Unknown option: " + arg, argsOrigin));
       } else if (arg.startsWith("@")) {
         builder.error(new StringDiagnostic("Recursive @argfiles are not supported: ", argsOrigin));

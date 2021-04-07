@@ -290,6 +290,11 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
           i += argsConsumed;
           continue;
         }
+        argsConsumed = tryParseDump(builder, arg, expandedArgs, i, origin);
+        if (argsConsumed >= 0) {
+          i += argsConsumed;
+          continue;
+        }
         builder.error(new StringDiagnostic("Unknown option: " + arg, origin));
       } else if (arg.startsWith("@")) {
         builder.error(new StringDiagnostic("Recursive @argfiles are not supported: ", origin));

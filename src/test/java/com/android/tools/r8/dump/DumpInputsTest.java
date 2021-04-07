@@ -40,7 +40,7 @@ public class DumpInputsTest extends TestBase {
   }
 
   @Test
-  public void testDumpToFile() throws Exception {
+  public void testDumpToFileSystemProperty() throws Exception {
     Path dump = temp.newFolder().toPath().resolve("dump.zip");
     try {
       testForExternalR8(parameters.getBackend(), parameters.getRuntime())
@@ -55,7 +55,22 @@ public class DumpInputsTest extends TestBase {
   }
 
   @Test
-  public void testDumpToDirectory() throws Exception {
+  public void testDumpToFileCLI() throws Exception {
+    Path dump = temp.newFolder().toPath().resolve("dump.zip");
+    try {
+      testForExternalR8(parameters.getBackend(), parameters.getRuntime())
+          .dumpInputToFile(dump.toString())
+          .addProgramClasses(TestClass.class)
+          .compile();
+    } catch (AssertionError e) {
+      verifyDump(dump, false, true);
+      return;
+    }
+    fail("Expected external compilation to exit");
+  }
+
+  @Test
+  public void testDumpToDirectorySystemProperty() throws Exception {
     Path dumpDir = temp.newFolder().toPath();
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
@@ -69,17 +84,19 @@ public class DumpInputsTest extends TestBase {
         .assertAllInfoMessagesMatch(containsString("Dumped compilation inputs to:"))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello, world");
-    assertTrue(Files.isDirectory(dumpDir));
-    List<Path> paths = Files.walk(dumpDir, 1).collect(Collectors.toList());
-    boolean hasVerified = false;
-    for (Path path : paths) {
-      if (!path.equals(dumpDir)) {
-        // The non-external run here results in assert code calling application read.
-        verifyDump(path, false, false);
-        hasVerified = true;
-      }
-    }
-    assertTrue(hasVerified);
+
+    verifyDumpDirectory(dumpDir, false, false);
+  }
+
+  @Test
+  public void testDumpToDirectoryCLI() throws Exception {
+    Path dumpDir = temp.newFolder().toPath();
+    testForExternalR8(parameters.getBackend(), parameters.getRuntime())
+        .dumpInputToDirectory(dumpDir.toString())
+        .addProgramClasses(TestClass.class)
+        .compile();
+
+    verifyDumpDirectory(dumpDir, false, false);
   }
 
   private void verifyDump(Path dumpFile, boolean hasClasspath, boolean hasProguardConfig)
@@ -103,6 +120,21 @@ public class DumpInputsTest extends TestBase {
         entries.contains(
             DescriptorUtils.getClassFileName(
                 DescriptorUtils.javaTypeToDescriptor(TestClass.class.getTypeName()))));
+  }
+
+  private void verifyDumpDirectory(Path dumpDir, boolean hasClasspath, boolean hasProguardConfig)
+      throws IOException {
+    assertTrue(Files.isDirectory(dumpDir));
+    List<Path> paths = Files.walk(dumpDir, 1).collect(Collectors.toList());
+    boolean hasVerified = false;
+    for (Path path : paths) {
+      if (!path.equals(dumpDir)) {
+        // The non-external run here results in assert code calling application read.
+        verifyDump(path, hasClasspath, hasProguardConfig);
+        hasVerified = true;
+      }
+    }
+    assertTrue(hasVerified);
   }
 
   static class TestClass {

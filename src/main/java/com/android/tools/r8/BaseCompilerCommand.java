@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.Reporter;
@@ -47,7 +48,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final BiPredicate<String, Long> dexClassChecksumFilter;
   private final List<AssertionsConfiguration> assertionsConfiguration;
   private final List<Consumer<Inspector>> outputInspections;
-  private int threadCount;
+  private final int threadCount;
+  private final DumpInputFlags dumpInputFlags;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -63,6 +65,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     assertionsConfiguration = new ArrayList<>();
     outputInspections = null;
     threadCount = ThreadUtils.NOT_SPECIFIED;
+    dumpInputFlags = DumpInputFlags.noDump();
   }
 
   BaseCompilerCommand(
@@ -78,7 +81,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       BiPredicate<String, Long> dexClassChecksumFilter,
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
-      int threadCount) {
+      int threadCount,
+      DumpInputFlags dumpInputFlags) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -94,6 +98,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.assertionsConfiguration = assertionsConfiguration;
     this.outputInspections = outputInspections;
     this.threadCount = threadCount;
+    this.dumpInputFlags = dumpInputFlags;
   }
 
   /**
@@ -174,6 +179,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return threadCount;
   }
 
+  DumpInputFlags getDumpInputFlags() {
+    return dumpInputFlags;
+  }
+
   Reporter getReporter() {
     return reporter;
   }
@@ -207,6 +216,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private List<AssertionsConfiguration> assertionsConfiguration = new ArrayList<>();
     private List<Consumer<Inspector>> outputInspections = new ArrayList<>();
     protected StringConsumer proguardMapConsumer = null;
+    private DumpInputFlags dumpInputFlags = DumpInputFlags.noDump();
 
     abstract CompilationMode defaultCompilationMode();
 
@@ -581,6 +591,20 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       assertionsConfiguration.add(
           assertionsConfigurationGenerator.apply(AssertionsConfiguration.builder(getReporter())));
       return self();
+    }
+
+    B dumpInputToFile(Path file) {
+      dumpInputFlags = DumpInputFlags.dumpToFile(file);
+      return self();
+    }
+
+    B dumpInputToDirectory(Path directory) {
+      dumpInputFlags = DumpInputFlags.dumpToDirectory(directory);
+      return self();
+    }
+
+    DumpInputFlags getDumpInputFlags() {
+      return dumpInputFlags;
     }
 
     @Override

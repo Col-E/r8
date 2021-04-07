@@ -176,6 +176,11 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
           i += argsConsumed;
           continue;
         }
+        argsConsumed = tryParseDump(builder, arg, expandedArgs, i, origin);
+        if (argsConsumed >= 0) {
+          i += argsConsumed;
+          continue;
+        }
         builder.error(new StringDiagnostic("Unknown option: " + arg, origin));
       } else {
         builder.addProgramFiles(Paths.get(arg));

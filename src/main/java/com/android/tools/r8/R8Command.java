@@ -27,6 +27,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
+import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -585,7 +586,8 @@ public final class R8Command extends BaseCompilerCommand {
               getOutputInspections(),
               synthesizedClassPrefix,
               skipDump,
-              getThreadCount());
+              getThreadCount(),
+              getDumpInputFlags());
 
       return command;
     }
@@ -750,7 +752,8 @@ public final class R8Command extends BaseCompilerCommand {
       List<Consumer<Inspector>> outputInspections,
       String synthesizedClassPrefix,
       boolean skipDump,
-      int threadCount) {
+      int threadCount,
+      DumpInputFlags dumpInputFlags) {
     super(
         inputApp,
         mode,
@@ -764,7 +767,8 @@ public final class R8Command extends BaseCompilerCommand {
         dexClassChecksumFilter,
         assertionsConfiguration,
         outputInspections,
-        threadCount);
+        threadCount,
+        dumpInputFlags);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;
@@ -956,10 +960,7 @@ public final class R8Command extends BaseCompilerCommand {
       internal.threadCount = getThreadCount();
     }
 
-    if (skipDump) {
-      internal.dumpInputToDirectory = null;
-      internal.dumpInputToFile = null;
-    }
+    internal.setDumpInputFlags(getDumpInputFlags(), skipDump);
     internal.dumpOptions = dumpOptions();
 
     return internal;

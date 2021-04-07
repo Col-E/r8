@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DataResourceConsumer;
@@ -389,6 +388,21 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       marker.setR8Mode(forceProguardCompatibility ? "compatibility" : "full");
     }
     return marker;
+  }
+
+  public void setDumpInputFlags(DumpInputFlags dumpInputFlags, boolean skipDump) {
+    if (skipDump) {
+      dumpInputToDirectory = null;
+      dumpInputToFile = null;
+      return;
+    }
+
+    if (dumpInputFlags.getDumpInputToFile() != null) {
+      dumpInputToFile = dumpInputFlags.getDumpInputToFile().toString();
+    }
+    if (dumpInputFlags.getDumpInputToDirectory() != null) {
+      dumpInputToDirectory = dumpInputFlags.getDumpInputToDirectory().toString();
+    }
   }
 
   public boolean hasConsumer() {

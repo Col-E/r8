@@ -21,6 +21,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
+import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
@@ -317,6 +318,7 @@ public final class D8Command extends BaseCompilerCommand {
           minimalMainDex,
           mainDexKeepRules,
           getThreadCount(),
+          getDumpInputFlags(),
           factory);
     }
   }
@@ -397,6 +399,7 @@ public final class D8Command extends BaseCompilerCommand {
       boolean minimalMainDex,
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules,
       int threadCount,
+      DumpInputFlags dumpInputFlags,
       DexItemFactory factory) {
     super(
         inputApp,
@@ -411,7 +414,8 @@ public final class D8Command extends BaseCompilerCommand {
         dexClassChecksumFilter,
         assertionsConfiguration,
         outputInspections,
-        threadCount);
+        threadCount,
+        dumpInputFlags);
     this.intermediate = intermediate;
     this.desugarGraphConsumer = desugarGraphConsumer;
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
@@ -502,10 +506,7 @@ public final class D8Command extends BaseCompilerCommand {
       internal.threadCount = getThreadCount();
     }
 
-    if (skipDump) {
-      internal.dumpInputToDirectory = null;
-      internal.dumpInputToFile = null;
-    }
+    internal.setDumpInputFlags(getDumpInputFlags(), skipDump);
     internal.dumpOptions = dumpOptions();
 
     return internal;

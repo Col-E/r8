@@ -21,6 +21,8 @@ public class BaseCompilerCommandParser<
   protected static final String MIN_API_FLAG = "--min-api";
   protected static final String THREAD_COUNT_FLAG = "--thread-count";
   protected static final String MAP_DIAGNOSTICS = "--map-diagnostics";
+  protected static final String DUMP_INPUT_TO_FILE = "--dumpinputtofile";
+  protected static final String DUMP_INPUT_TO_DIRECTORY = "--dumpinputtodirectory";
 
   static final Iterable<String> ASSERTIONS_USAGE_MESSAGE =
       Arrays.asList(
@@ -209,6 +211,23 @@ public class BaseCompilerCommandParser<
       reporter.addDiagnosticsLevelMapping(from, diagnosticsClassName, to);
     }
     return 2;
+  }
+
+  int tryParseDump(B builder, String arg, String[] args, int argsIndex, Origin origin) {
+    if (!arg.equals(DUMP_INPUT_TO_FILE) && !arg.equals(DUMP_INPUT_TO_DIRECTORY)) {
+      return -1;
+    }
+    if (args.length <= argsIndex + 1) {
+      builder.error(new StringDiagnostic("Missing argument(s) for " + arg + ".", origin));
+      return args.length - argsIndex;
+    }
+    if (arg.equals(DUMP_INPUT_TO_FILE)) {
+      builder.dumpInputToFile(Paths.get(args[argsIndex + 1]));
+    } else {
+      assert arg.equals(DUMP_INPUT_TO_DIRECTORY);
+      builder.dumpInputToDirectory(Paths.get(args[argsIndex + 1]));
+    }
+    return 1;
   }
 
   /**

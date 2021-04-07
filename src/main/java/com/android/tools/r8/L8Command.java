@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
+import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.Pair;
@@ -95,6 +96,7 @@ public final class L8Command extends BaseCompilerCommand {
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
       int threadCount,
+      DumpInputFlags dumpInputFlags,
       DexItemFactory factory) {
     super(
         inputApp,
@@ -109,7 +111,8 @@ public final class L8Command extends BaseCompilerCommand {
         dexClassChecksumFilter,
         assertionsConfiguration,
         outputInspections,
-        threadCount);
+        threadCount,
+        dumpInputFlags);
     this.d8Command = d8Command;
     this.r8Command = r8Command;
     this.libraryConfiguration = libraryConfiguration;
@@ -196,6 +199,8 @@ public final class L8Command extends BaseCompilerCommand {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
       internal.threadCount = getThreadCount();
     }
+
+    internal.setDumpInputFlags(getDumpInputFlags(), false);
     internal.dumpOptions = dumpOptions();
 
     return internal;
@@ -395,6 +400,7 @@ public final class L8Command extends BaseCompilerCommand {
           getAssertionsConfiguration(),
           getOutputInspections(),
           getThreadCount(),
+          getDumpInputFlags(),
           factory);
     }
   }

@@ -59,6 +59,9 @@ public class ExternalR8TestBuilder
   // Allow test proguard options
   private boolean allowTestProguardOptions = false;
 
+  private String dumpInputToFile = null;
+  private String dumpInputToDirectory = null;
+
   private boolean addR8ExternalDeps = false;
 
   private List<String> jvmFlags = new ArrayList<>();
@@ -92,6 +95,16 @@ public class ExternalR8TestBuilder
 
   public ExternalR8TestBuilder allowTestProguardOptions(boolean allow) {
     allowTestProguardOptions = allow;
+    return self();
+  }
+
+  public ExternalR8TestBuilder dumpInputToFile(String arg) {
+    dumpInputToFile = arg;
+    return self();
+  }
+
+  public ExternalR8TestBuilder dumpInputToDirectory(String arg) {
+    dumpInputToDirectory = arg;
     return self();
   }
 
@@ -154,6 +167,14 @@ public class ExternalR8TestBuilder
           command.add("--lib");
           command.add(libJar.toAbsolutePath().toString());
         }
+      }
+      if (dumpInputToFile != null) {
+        command.add("--dumpinputtofile");
+        command.add(dumpInputToFile);
+      }
+      if (dumpInputToDirectory != null) {
+        command.add("--dumpinputtodirectory");
+        command.add(dumpInputToDirectory);
       }
       command.addAll(programJars.stream().map(Path::toString).collect(Collectors.toList()));
 
