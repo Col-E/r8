@@ -78,7 +78,8 @@ public class FoundMethodSubject extends MethodSubject {
 
   @Override
   public boolean isRenamed() {
-    return clazz.naming != null && !getFinalSignature().name.equals(getOriginalSignature().name);
+    return clazz.getNaming() != null
+        && !getFinalSignature().name.equals(getOriginalSignature().name);
   }
 
   @Override
@@ -129,7 +130,7 @@ public class FoundMethodSubject extends MethodSubject {
   @Override
   public MethodSignature getOriginalSignature() {
     MethodSignature signature = getFinalSignature();
-    if (clazz.naming == null) {
+    if (clazz.getNaming() == null) {
       return signature;
     }
 
@@ -149,7 +150,7 @@ public class FoundMethodSubject extends MethodSubject {
     MethodSignature lookupSignature =
         new MethodSignature(signature.name, returnType, originalParameters);
 
-    MemberNaming memberNaming = clazz.naming.lookup(lookupSignature);
+    MemberNaming memberNaming = clazz.getNaming().lookup(lookupSignature);
     return memberNaming != null ? (MethodSignature) memberNaming.getOriginalSignature() : signature;
   }
 

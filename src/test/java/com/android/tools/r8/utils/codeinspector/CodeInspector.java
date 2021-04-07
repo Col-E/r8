@@ -28,6 +28,8 @@ import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.android.tools.r8.naming.signature.GenericSignatureAction;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.origin.Origin;
@@ -248,6 +250,49 @@ public class CodeInspector {
     return clazz(Reference.classFromTypeName(name));
   }
 
+  // Simple wrapper to more easily change the implementation for retracing subjects.
+  // This should in time be replaced by use of the Retrace API.
+  public static class MappingWrapper {
+
+    private static final MappingWrapper EMPTY =
+        new MappingWrapper(null, null) {
+          @Override
+          public Collection<MappingInformation> getAdditionalMappings() {
+            return Collections.emptyList();
+          }
+
+          @Override
+          public ClassNamingForNameMapper getNaming() {
+            return null;
+          }
+        };
+
+    static MappingWrapper create(ClassNameMapper mapper, ClassNamingForNameMapper naming) {
+      if (mapper == null || naming == null) {
+        return EMPTY;
+      }
+      return new MappingWrapper(mapper, naming);
+    }
+
+    private final ClassNameMapper mapper;
+    private final ClassNamingForNameMapper naming;
+
+    private MappingWrapper(ClassNameMapper mapper, ClassNamingForNameMapper naming) {
+      this.mapper = mapper;
+      this.naming = naming;
+    }
+
+    public Collection<MappingInformation> getAdditionalMappings() {
+      return mapper.getAdditionalMappingInfo(
+          ScopeReference.fromClassReference(Reference.classFromTypeName(naming.renamedName)));
+    }
+
+    public ClassNamingForNameMapper getNaming() {
+      assert naming != null;
+      return naming;
+    }
+  }
+
   public ClassSubject clazz(ClassReference reference) {
     String descriptor = reference.getDescriptor();
     String name = DescriptorUtils.descriptorToJavaType(descriptor);
@@ -269,7 +314,7 @@ public class CodeInspector {
     if (clazz == null) {
       return new AbsentClassSubject(this, reference);
     }
-    return new FoundClassSubject(this, clazz, naming, reference);
+    return new FoundClassSubject(this, clazz, MappingWrapper.create(mapping, naming), reference);
   }
 
   public ClassSubject companionClassFor(Class<?> clazz) {

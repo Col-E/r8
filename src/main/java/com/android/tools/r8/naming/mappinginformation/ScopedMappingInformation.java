@@ -22,14 +22,27 @@ public abstract class ScopedMappingInformation extends MappingInformation {
   // to map to java.lang.String with the post-minification names.
   public abstract static class ScopeReference {
 
+    public static ScopeReference fromClassReference(ClassReference reference) {
+      return new ClassScopeReference(reference);
+    }
+
+    // Method for reading in the serialized reference format.
     public static ScopeReference fromReferenceString(String referenceString) {
       if (DescriptorUtils.isClassDescriptor(referenceString)) {
-        return new ClassScopeReference(Reference.classFromDescriptor(referenceString));
+        return fromClassReference(Reference.classFromDescriptor(referenceString));
       }
       throw new Unimplemented("No support for reference: " + referenceString);
     }
 
     public abstract String toReferenceString();
+
+    public abstract ClassReference getHolderReference();
+
+    @Override
+    public abstract boolean equals(Object other);
+
+    @Override
+    public abstract int hashCode();
 
     @Override
     public String toString() {
@@ -38,15 +51,32 @@ public abstract class ScopedMappingInformation extends MappingInformation {
   }
 
   public static class ClassScopeReference extends ScopeReference {
-    final ClassReference reference;
+    private final ClassReference reference;
 
     public ClassScopeReference(ClassReference reference) {
+      assert reference != null;
       this.reference = reference;
     }
 
     @Override
     public String toReferenceString() {
       return reference.getDescriptor();
+    }
+
+    @Override
+    public ClassReference getHolderReference() {
+      return reference;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      return other instanceof ClassScopeReference
+          && reference.equals(((ClassScopeReference) other).reference);
+    }
+
+    @Override
+    public int hashCode() {
+      return reference.hashCode();
     }
   }
 
@@ -109,9 +139,9 @@ public abstract class ScopedMappingInformation extends MappingInformation {
     return this;
   }
 
-  public void forEach(BiConsumer<String, ScopedMappingInformation> fn) {
+  public void forEach(BiConsumer<ScopeReference, MappingInformation> fn) {
     for (ScopeReference reference : scopeReferences) {
-      fn.accept(reference.toReferenceString(), this);
+      fn.accept(reference, this);
     }
   }
 

@@ -15,14 +15,16 @@ import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.BiMapContainer;
 import com.android.tools.r8.utils.ChainableStringConsumer;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharSource;
 import java.io.BufferedReader;
@@ -31,7 +33,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -48,7 +49,7 @@ public class ClassNameMapper implements ProguardMap {
 
   public static class Builder extends ProguardMap.Builder {
     private final Map<String, ClassNamingForNameMapper.Builder> mapping = new HashMap<>();
-    private final Map<String, List<ScopedMappingInformation>> scopedMappingInfo = new HashMap<>();
+    private final Map<ScopeReference, List<MappingInformation>> scopedMappingInfo = new HashMap<>();
 
     private Builder() {
 
@@ -72,26 +73,28 @@ public class ClassNameMapper implements ProguardMap {
 
     @Override
     public ClassNameMapper build() {
-      return new ClassNameMapper(buildClassNameMappings());
+      return new ClassNameMapper(buildClassNameMappings(), buildScopedMappingInfo());
+    }
+
+    private ImmutableMap<ScopeReference, ImmutableList<MappingInformation>>
+        buildScopedMappingInfo() {
+      ImmutableMap.Builder<ScopeReference, ImmutableList<MappingInformation>> builder =
+          ImmutableMap.builder();
+      scopedMappingInfo.forEach((ref, infos) -> builder.put(ref, ImmutableList.copyOf(infos)));
+      return builder.build();
     }
 
     private ImmutableMap<String, ClassNamingForNameMapper> buildClassNameMappings() {
       // Ensure that all scoped references have at least the identity in the final mapping.
-      for (String descriptor : scopedMappingInfo.keySet()) {
-        String typename = DescriptorUtils.descriptorToJavaType(descriptor);
-        mapping.computeIfAbsent(typename, t -> ClassNamingForNameMapper.builder(t, t));
+      for (ScopeReference reference : scopedMappingInfo.keySet()) {
+        mapping.computeIfAbsent(
+            reference.getHolderReference().getTypeName(),
+            t -> ClassNamingForNameMapper.builder(t, t));
       }
-      // Build the final mapping while amending any entries with the scoped info.
       ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
       builder.orderEntriesByValue(Comparator.comparing(x -> x.originalName));
       mapping.forEach(
-          (renamedName, valueBuilder) -> {
-            String descriptor = DescriptorUtils.javaTypeToDescriptor(renamedName);
-            scopedMappingInfo
-                .getOrDefault(descriptor, Collections.emptyList())
-                .forEach(valueBuilder::addMappingInformation);
-            builder.put(renamedName, valueBuilder.build());
-          });
+          (renamedName, valueBuilder) -> builder.put(renamedName, valueBuilder.build()));
       return builder.build();
     }
   }
@@ -152,15 +155,24 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   private final ImmutableMap<String, ClassNamingForNameMapper> classNameMappings;
+  private final ImmutableMap<ScopeReference, ImmutableList<MappingInformation>>
+      additionalMappingInfo;
   private BiMapContainer<String, String> nameMapping;
   private final Map<Signature, Signature> signatureMap = new HashMap<>();
 
-  private ClassNameMapper(ImmutableMap<String, ClassNamingForNameMapper> classNameMappings) {
+  private ClassNameMapper(
+      ImmutableMap<String, ClassNamingForNameMapper> classNameMappings,
+      ImmutableMap<ScopeReference, ImmutableList<MappingInformation>> additionalMappingInfo) {
     this.classNameMappings = classNameMappings;
+    this.additionalMappingInfo = additionalMappingInfo;
   }
 
   public Map<String, ClassNamingForNameMapper> getClassNameMappings() {
     return classNameMappings;
+  }
+
+  public List<MappingInformation> getAdditionalMappingInfo(ScopeReference reference) {
+    return additionalMappingInfo.getOrDefault(reference, ImmutableList.of());
   }
 
   private Signature canonicalizeSignature(Signature signature) {
@@ -232,7 +244,7 @@ public class ClassNameMapper implements ProguardMap {
     ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
     builder.orderEntriesByValue(Comparator.comparing(x -> x.originalName));
     classNameMappings.forEach(builder::put);
-    return new ClassNameMapper(builder.build());
+    return new ClassNameMapper(builder.build(), additionalMappingInfo);
   }
 
   public boolean verifyIsSorted() {

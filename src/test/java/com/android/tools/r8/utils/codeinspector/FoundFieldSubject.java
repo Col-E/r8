@@ -39,7 +39,8 @@ public class FoundFieldSubject extends FieldSubject {
 
   @Override
   public boolean isRenamed() {
-    return clazz.naming != null && !getFinalSignature().name.equals(getOriginalSignature().name);
+    return clazz.getNaming() != null
+        && !getFinalSignature().name.equals(getOriginalSignature().name);
   }
 
   public TypeSubject type() {
@@ -49,7 +50,7 @@ public class FoundFieldSubject extends FieldSubject {
   @Override
   public FieldSignature getOriginalSignature() {
     FieldSignature signature = getFinalSignature();
-    if (clazz.naming == null) {
+    if (clazz.getNaming() == null) {
       return signature;
     }
 
@@ -66,7 +67,7 @@ public class FoundFieldSubject extends FieldSubject {
     String fieldType = originalType != null ? originalType : obfuscatedType;
     FieldSignature lookupSignature = new FieldSignature(signature.name, fieldType);
 
-    MemberNaming memberNaming = clazz.naming.lookup(lookupSignature);
+    MemberNaming memberNaming = clazz.getNaming().lookup(lookupSignature);
     return memberNaming != null
         ? (FieldSignature) memberNaming.getOriginalSignature()
         : lookupSignature;
