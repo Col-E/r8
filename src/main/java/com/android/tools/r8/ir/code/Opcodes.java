@@ -73,4 +73,5 @@ public interface Opcodes {
   int THROW = 64;
   int USHR = 65;
   int XOR = 66;
+  int UNINITIALIZED_THIS_LOCAL_READ = 67;
 }
