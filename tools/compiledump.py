@@ -246,12 +246,12 @@ def download_distribution(args, version, temp):
   utils.download_file_from_cloud_storage(source, dest)
   return dest
 
-def prepare_wrapper(dist, temp):
+def prepare_wrapper(dist, temp, jdkhome):
   wrapper_file = os.path.join(
       utils.REPO_ROOT,
       'src/main/java/com/android/tools/r8/utils/CompileDumpCompatR8.java')
   cmd = [
-    jdk.GetJavacExecutable(),
+    jdk.GetJavacExecutable(jdkhome),
     wrapper_file,
     '-d', temp,
     '-cp', dist,
@@ -263,7 +263,7 @@ def prepare_wrapper(dist, temp):
 def is_hash(version):
   return len(version) == 40
 
-def run1(out, args, otherargs):
+def run1(out, args, otherargs, jdkhome=None):
   with utils.TempDir() as temp:
     if out:
       temp = out
@@ -283,8 +283,8 @@ def run1(out, args, otherargs):
     jar = args.r8_jar if args.r8_jar else download_distribution(args, version, temp)
     if ':' not in jar and not os.path.exists(jar):
       error("Distribution does not exist: " + jar)
-    wrapper_dir = prepare_wrapper(jar, temp)
-    cmd = [jdk.GetJavaExecutable()]
+    wrapper_dir = prepare_wrapper(jar, temp, jdkhome)
+    cmd = [jdk.GetJavaExecutable(jdkhome)]
     if args.debug_agent:
       if not args.nolib:
         print("WARNING: Running debugging agent on r8lib is questionable...")

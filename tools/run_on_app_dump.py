@@ -642,11 +642,14 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     if result.get('recompilation_status') != 'success':
       break
 
+def get_jdk_home(options, app):
+  if options.golem or True:
+    return os.path.join('benchmarks', app.name, 'linux')
+  return None
 
 def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
                             compilation_step_index, compilation_steps,
                             prev_recomp_jar):
-
   args = AttrDict({
     'dump': dump_for_app(app_dir, app),
     'r8_jar': get_r8_jar(options, temp_dir, shrinker),
@@ -668,9 +671,9 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     temp_dir, '{}_{}_{}_dex_out.jar.map'.format(
       app.name, shrinker, compilation_step_index))
   recomp_jar = None
-
+  jdkhome = get_jdk_home(options, app)
   with utils.TempDir() as compile_temp_dir:
-    compile_result = compiledump.run1(compile_temp_dir, args, [])
+    compile_result = compiledump.run1(compile_temp_dir, args, [], jdkhome)
     out_jar = os.path.join(compile_temp_dir, "out.jar")
     out_mapping = os.path.join(compile_temp_dir, "out.jar.map")
 
@@ -683,7 +686,7 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
       args['classfile'] = True
       args['min_api'] = "10000"
       args['disable_desugared_lib'] = True
-      compile_result = compiledump.run1(compile_temp_dir, args, [])
+      compile_result = compiledump.run1(compile_temp_dir, args, [], jdkhome)
       if compile_result == 0:
         recomp_jar = os.path.join(
           temp_dir, '{}_{}_{}_cf_out.jar'.format(
@@ -724,7 +727,8 @@ def build_test_with_shrinker(app, options, temp_dir, app_dir, shrinker,
       app.name, shrinker, compilation_step_index))
 
   with utils.TempDir() as compile_temp_dir:
-    compile_result = compiledump.run1(compile_temp_dir, args, [])
+    jdkhome = get_jdk_home(options, app)
+    compile_result = compiledump.run1(compile_temp_dir, args, [], jdkhome)
     out_jar = os.path.join(compile_temp_dir, "out.jar")
     if compile_result != 0 or not os.path.isfile(out_jar):
       return None
