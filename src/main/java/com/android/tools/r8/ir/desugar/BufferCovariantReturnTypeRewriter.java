@@ -30,6 +30,7 @@ public class BufferCovariantReturnTypeRewriter implements CfInstructionDesugarin
     this.factory = appView.dexItemFactory();
   }
 
+  @Override
   public Collection<CfInstruction> desugarInstruction(
       CfInstruction instruction,
       FreshLocalProvider freshLocalProvider,
