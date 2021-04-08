@@ -84,7 +84,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 //
@@ -963,43 +962,34 @@ public final class InterfaceMethodRewriter {
   public void desugarInterfaceMethods(
       Builder<?> builder, Flavor flavour, ExecutorService executorService)
       throws ExecutionException {
-    // TODO(b/183998768): Merge the following four sequential loops into a single one.
-
+    // During L8 compilation, emulated interfaces are processed to be renamed, to have
+    // their interfaces fixed-up and to generate the emulated dispatch code.
     EmulatedInterfaceProcessor emulatedInterfaceProcessor =
         new EmulatedInterfaceProcessor(appView, this);
-    // TODO(b/183998768): Move this to emulatedInterfaceProcessor#process
-    forEachProgramEmulatedInterface(emulatedInterfaceProcessor::generateEmulateInterfaceLibrary);
 
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
-    process(new ClassProcessor(appView, this), builder, flavour);
+    ClassProcessor classProcessor = new ClassProcessor(appView, this);
 
     // Process interfaces, create companion or dispatch class if needed, move static
     // methods to companion class, copy default interface methods to companion classes,
     // make original default methods abstract, remove bridge methods, create dispatch
     // classes if needed.
-    process(new InterfaceProcessor(appView, this), builder, flavour);
+    InterfaceProcessor interfaceProcessor = new InterfaceProcessor(appView, this);
 
-    // During L8 compilation, emulated interfaces are processed to be renamed, to have
-    // their interfaces fixed-up and to generate the emulated dispatch code.
+    // TODO(b/183998768): Merge the following loops into a single one.
     process(emulatedInterfaceProcessor, builder, flavour);
+    process(classProcessor, builder, flavour);
+    process(interfaceProcessor, builder, flavour);
+
+    classProcessor.finalizeProcessing(builder, synthesizedMethods);
+    interfaceProcessor.finalizeProcessing(builder, synthesizedMethods);
+    emulatedInterfaceProcessor.finalizeProcessing(builder, synthesizedMethods);
 
     converter.processMethodsConcurrently(synthesizedMethods, executorService);
 
     // Cached data is not needed any more.
     clear();
-  }
-
-  private void forEachProgramEmulatedInterface(Consumer<DexProgramClass> consumer) {
-    if (!appView.options().isDesugaredLibraryCompilation()) {
-      return;
-    }
-    for (DexType interfaceType : emulatedInterfaces.keySet()) {
-      DexClass theInterface = appView.definitionFor(interfaceType);
-      if (theInterface != null && theInterface.isProgramClass()) {
-        consumer.accept(theInterface.asProgramClass());
-      }
-    }
   }
 
   private void clear() {
@@ -1020,7 +1010,6 @@ public final class InterfaceMethodRewriter {
         processor.process(clazz, synthesizedMethods);
       }
     }
-    processor.finalizeProcessing(builder, synthesizedMethods);
   }
 
   final boolean isDefaultMethod(DexEncodedMethod method) {

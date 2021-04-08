@@ -285,12 +285,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
     if (appView.isAlreadyLibraryDesugared(emulatedInterface)) {
       return;
     }
-    // TODO(b/183998768): Due to sequential dependencies we cannot generateEmulateInterfaceLibrary.
-    //  We need to merge this into a single loop. Uncomment the following line instead of running
-    //  it separately.
-    //  generateEmulateInterfaceLibrary(emulatedInterface);
-    replaceInterfacesInEmulatedInterface(emulatedInterface);
-    renameEmulatedInterface(emulatedInterface);
+    generateEmulateInterfaceLibrary(emulatedInterface);
   }
 
   @Override
@@ -299,6 +294,16 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
     if (!appView.options().isDesugaredLibraryCompilation()) {
       assert syntheticClasses.isEmpty();
       return;
+    }
+    for (DexType interfaceType : emulatedInterfaces.keySet()) {
+      DexClass theInterface = appView.definitionFor(interfaceType);
+      if (theInterface != null && theInterface.isProgramClass()) {
+        DexProgramClass emulatedInterface = theInterface.asProgramClass();
+        if (!appView.isAlreadyLibraryDesugared(emulatedInterface)) {
+          replaceInterfacesInEmulatedInterface(emulatedInterface);
+          renameEmulatedInterface(emulatedInterface);
+        }
+      }
     }
     syntheticClasses.forEach(
         (interfaceClass, synthesizedClass) -> {
