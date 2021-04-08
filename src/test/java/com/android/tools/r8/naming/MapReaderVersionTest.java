@@ -9,6 +9,8 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import org.junit.Assert;
@@ -75,11 +77,13 @@ public class MapReaderVersionTest extends TestBase {
       String finalName, String originalName, boolean isSynthesized, ClassNameMapper mapper) {
     ClassNamingForNameMapper naming = mapper.getClassNaming(finalName);
     assertEquals(originalName, naming.originalName);
-    Assert.assertEquals(isSynthesized, isCompilerSynthesized(naming));
+    Assert.assertEquals(isSynthesized, isCompilerSynthesized(mapper, finalName));
   }
 
-  private boolean isCompilerSynthesized(ClassNamingForNameMapper naming) {
-    return naming.getAdditionalMappings().stream()
+  private boolean isCompilerSynthesized(ClassNameMapper mapper, String finalName) {
+    ScopeReference reference =
+        ScopeReference.fromClassReference(Reference.classFromTypeName(finalName));
+    return mapper.getAdditionalMappingInfo(reference).stream()
         .anyMatch(MappingInformation::isCompilerSynthesizedMappingInformation);
   }
 }
