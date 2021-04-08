@@ -189,6 +189,10 @@ public class CfInvoke extends CfInstruction {
     return opcode == Opcodes.INVOKEVIRTUAL;
   }
 
+  public boolean isInvokeInterface() {
+    return opcode == Opcodes.INVOKEINTERFACE;
+  }
+
   @Override
   public boolean canThrow() {
     return true;

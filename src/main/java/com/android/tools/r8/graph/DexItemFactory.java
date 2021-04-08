@@ -239,6 +239,16 @@ public class DexItemFactory {
   public final DexString closeableDescriptor = createString("Ljava/io/Closeable;");
   public final DexString zipFileDescriptor = createString("Ljava/util/zip/ZipFile;");
 
+  public final DexString bufferDescriptor = createString("Ljava/nio/Buffer;");
+  public final DexString byteBufferDescriptor = createString("Ljava/nio/ByteBuffer;");
+  public final DexString mappedByteBufferDescriptor = createString("Ljava/nio/MappedByteBuffer;");
+  public final DexString charBufferDescriptor = createString("Ljava/nio/CharBuffer;");
+  public final DexString shortBufferDescriptor = createString("Ljava/nio/ShortBuffer;");
+  public final DexString intBufferDescriptor = createString("Ljava/nio/IntBuffer;");
+  public final DexString longBufferDescriptor = createString("Ljava/nio/LongBuffer;");
+  public final DexString floatBufferDescriptor = createString("Ljava/nio/FloatBuffer;");
+  public final DexString doubleBufferDescriptor = createString("Ljava/nio/DoubleBuffer;");
+
   public final DexString stringBuilderDescriptor = createString("Ljava/lang/StringBuilder;");
   public final DexString stringBufferDescriptor = createString("Ljava/lang/StringBuffer;");
 
@@ -410,6 +420,26 @@ public class DexItemFactory {
   public final DexType optionalLongType = createStaticallyKnownType(optionalLongDescriptor);
   public final DexType streamType = createStaticallyKnownType(streamDescriptor);
 
+  public final DexType bufferType = createStaticallyKnownType(bufferDescriptor);
+  public final DexType byteBufferType = createStaticallyKnownType(byteBufferDescriptor);
+  public final DexType mappedByteBufferType = createStaticallyKnownType(mappedByteBufferDescriptor);
+  public final DexType charBufferType = createStaticallyKnownType(charBufferDescriptor);
+  public final DexType shortBufferType = createStaticallyKnownType(shortBufferDescriptor);
+  public final DexType intBufferType = createStaticallyKnownType(intBufferDescriptor);
+  public final DexType longBufferType = createStaticallyKnownType(longBufferDescriptor);
+  public final DexType floatBufferType = createStaticallyKnownType(floatBufferDescriptor);
+  public final DexType doubleBufferType = createStaticallyKnownType(doubleBufferDescriptor);
+  public final List<DexType> typeSpecificBuffers =
+      ImmutableList.of(
+          byteBufferType,
+          mappedByteBufferType,
+          charBufferType,
+          shortBufferType,
+          intBufferType,
+          longBufferType,
+          floatBufferType,
+          doubleBufferType);
+
   public final DexType doubleConsumer =
       createStaticallyKnownType("Ljava/util/function/DoubleConsumer;");
   public final DexType longConsumer =
@@ -517,6 +547,7 @@ public class DexItemFactory {
   public final LongMembers longMembers = new LongMembers();
   public final ObjectsMethods objectsMethods = new ObjectsMethods();
   public final ObjectMembers objectMembers = new ObjectMembers();
+  public final BufferMembers bufferMembers = new BufferMembers();
   public final RecordMembers recordMembers = new RecordMembers();
   public final ShortMembers shortMembers = new ShortMembers();
   public final StringMembers stringMembers = new StringMembers();
@@ -1276,6 +1307,20 @@ public class DexItemFactory {
       toString = createMethod(objectDescriptor,
           toStringMethodName, stringDescriptor, DexString.EMPTY_ARRAY);
     }
+  }
+
+  public class BufferMembers {
+    public final DexMethod positionArg =
+        createMethod(bufferType, createProto(bufferType, intType), "position");
+    public final DexMethod limitArg =
+        createMethod(bufferType, createProto(bufferType, intType), "limit");
+    public final DexMethod mark = createMethod(bufferType, createProto(bufferType), "mark");
+    public final DexMethod reset = createMethod(bufferType, createProto(bufferType), "reset");
+    public final DexMethod clear = createMethod(bufferType, createProto(bufferType), "clear");
+    public final DexMethod flip = createMethod(bufferType, createProto(bufferType), "flip");
+    public final DexMethod rewind = createMethod(bufferType, createProto(bufferType), "rewind");
+    public final List<DexMethod> bufferCovariantMethods =
+        ImmutableList.of(positionArg, limitArg, mark, reset, clear, flip, rewind);
   }
 
   public class ObjectsMethods {

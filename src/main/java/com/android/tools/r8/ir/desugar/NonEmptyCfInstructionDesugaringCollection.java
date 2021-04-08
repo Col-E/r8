@@ -46,6 +46,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     desugarings.add(new LambdaInstructionDesugaring(appView));
     desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
     desugarings.add(new StringConcatInstructionDesugaring(appView));
+    desugarings.add(new BufferCovariantReturnTypeRewriter(appView));
     if (appView.options().enableBackportedMethodRewriting()) {
       BackportedMethodRewriter backportedMethodRewriter = new BackportedMethodRewriter(appView);
       if (backportedMethodRewriter.hasBackports()) {
