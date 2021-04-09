@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -11,7 +10,6 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
-import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -74,21 +72,6 @@ public class ClassNamingForMapApplier implements ClassNaming {
                   signature.toString(), this.originalName, entry.position));
         }
       }
-      return this;
-    }
-
-    @Override
-    public ClassNaming.Builder addMappingInformation(MappingInformation mappingInformation) {
-      // Intentionally kept empty until we support additional information with -applymapping.
-      return this;
-    }
-
-    @Override
-    public ClassNaming.Builder addMappingInformation(
-        MappingInformation mappingInformation,
-        DiagnosticsHandler diagnosticsHandler,
-        int lineNumber) {
-      // Intentionally kept empty until we support additional information with -applymapping.
       return this;
     }
 

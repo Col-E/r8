@@ -23,15 +23,13 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class DuplicateMappingsTest extends TestBase {
 
-  private final TestParameters parameters;
-
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   public DuplicateMappingsTest(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @Test

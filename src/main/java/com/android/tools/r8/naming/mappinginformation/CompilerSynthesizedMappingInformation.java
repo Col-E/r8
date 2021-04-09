@@ -40,6 +40,11 @@ public class CompilerSynthesizedMappingInformation extends ScopedMappingInformat
   }
 
   @Override
+  public String getId() {
+    return ID;
+  }
+
+  @Override
   public boolean isCompilerSynthesizedMappingInformation() {
     return true;
   }

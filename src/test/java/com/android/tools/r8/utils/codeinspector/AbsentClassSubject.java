@@ -10,6 +10,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.retrace.RetraceClassElement;
+import com.android.tools.r8.retrace.RetraceClassResult;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -210,6 +212,16 @@ public class AbsentClassSubject extends ClassSubject {
   @Override
   public KotlinClassMetadata getKotlinClassMetadata() {
     return null;
+  }
+
+  @Override
+  public RetraceClassResult retrace() {
+    throw new Unreachable("Cannot retrace an absent class");
+  }
+
+  @Override
+  public RetraceClassElement retraceUnique() {
+    throw new Unreachable("Cannot retrace an absent class");
   }
 
   @Override

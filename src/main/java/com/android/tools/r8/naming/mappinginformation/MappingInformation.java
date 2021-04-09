@@ -22,6 +22,8 @@ public abstract class MappingInformation {
     this.lineNumber = lineNumber;
   }
 
+  public abstract String getId();
+
   public int getLineNumber() {
     return lineNumber;
   }
@@ -100,7 +102,8 @@ public abstract class MappingInformation {
         return MetaInfMappingInformation.deserialize(
             version, object, diagnosticsHandler, lineNumber);
       case FileNameInformation.ID:
-        return FileNameInformation.build(version, object, diagnosticsHandler, lineNumber);
+        return FileNameInformation.deserialize(
+            version, object, diagnosticsHandler, lineNumber, implicitSingletonScope);
       case CompilerSynthesizedMappingInformation.ID:
         return CompilerSynthesizedMappingInformation.deserialize(
             version, object, diagnosticsHandler, lineNumber, implicitSingletonScope);

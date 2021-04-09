@@ -16,9 +16,9 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
-import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BiMapContainer;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.Reporter;
@@ -39,6 +39,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Consumer;
 
 public class ClassNameMapper implements ProguardMap {
 
@@ -65,10 +66,18 @@ public class ClassNameMapper implements ProguardMap {
     }
 
     @Override
-    void addScopedMappingInformation(ScopedMappingInformation scopedMappingInformation) {
-      scopedMappingInformation.forEach(
-          (ref, info) ->
-              scopedMappingInfo.computeIfAbsent(ref, ignoreArgument(ArrayList::new)).add(info));
+    public void addMappingInformation(
+        ScopeReference reference,
+        MappingInformation info,
+        Consumer<MappingInformation> onProhibitedAddition) {
+      List<MappingInformation> additionalMappings =
+          scopedMappingInfo.computeIfAbsent(reference, ignoreArgument(ArrayList::new));
+      for (MappingInformation existing : additionalMappings) {
+        if (!existing.allowOther(info)) {
+          onProhibitedAddition.accept(existing);
+        }
+      }
+      additionalMappings.add(info);
     }
 
     @Override
@@ -87,9 +96,11 @@ public class ClassNameMapper implements ProguardMap {
     private ImmutableMap<String, ClassNamingForNameMapper> buildClassNameMappings() {
       // Ensure that all scoped references have at least the identity in the final mapping.
       for (ScopeReference reference : scopedMappingInfo.keySet()) {
-        mapping.computeIfAbsent(
-            reference.getHolderReference().getTypeName(),
-            t -> ClassNamingForNameMapper.builder(t, t));
+        if (!reference.isGlobalScope()) {
+          mapping.computeIfAbsent(
+              reference.getHolderReference().getTypeName(),
+              t -> ClassNamingForNameMapper.builder(t, t));
+        }
       }
       ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
       builder.orderEntriesByValue(Comparator.comparing(x -> x.originalName));
@@ -266,7 +277,10 @@ public class ClassNameMapper implements ProguardMap {
     // deterministic (and easy to navigate manually).
     assert verifyIsSorted();
     for (ClassNamingForNameMapper naming : getClassNameMappings().values()) {
-      naming.write(consumer);
+      List<MappingInformation> additionalMappingInfo =
+          getAdditionalMappingInfo(
+              ScopeReference.fromClassReference(Reference.classFromTypeName(naming.renamedName)));
+      naming.write(consumer, additionalMappingInfo);
     }
   }
 

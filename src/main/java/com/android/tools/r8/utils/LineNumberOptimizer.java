@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -49,7 +50,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.naming.mappinginformation.CompilerSynthesizedMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
-import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ClassScopeReference;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -293,23 +294,28 @@ public class LineNumberOptimizer {
                       com.android.tools.r8.position.Position.UNKNOWN));
 
       // Check if source file should be added to the map
+      ScopeReference classScope =
+          ScopeReference.fromClassReference(
+              Reference.classFromDescriptor(renamedDescriptor.toString()));
       if (clazz.sourceFile != null) {
         String sourceFile = clazz.sourceFile.toString();
         if (!RetraceUtils.hasPredictableSourceFileName(clazz.toSourceString(), sourceFile)) {
-          Builder builder = onDemandClassNamingBuilder.get();
-          builder.addMappingInformation(FileNameInformation.build(sourceFile));
+          classNameMapperBuilder.addMappingInformation(
+              classScope,
+              FileNameInformation.build(classScope, sourceFile),
+              conflictingInfo -> {
+                throw new Unreachable();
+              });
         }
       }
 
       if (isSyntheticClass && appView.options().testing.enableExperimentalMapFileVersion) {
-        onDemandClassNamingBuilder
-            .get()
-            .addMappingInformation(
-                CompilerSynthesizedMappingInformation.builder()
-                    .addScopeReference(
-                        new ClassScopeReference(
-                            Reference.classFromDescriptor(renamedDescriptor.toString())))
-                    .build());
+        classNameMapperBuilder.addMappingInformation(
+            classScope,
+            CompilerSynthesizedMappingInformation.builder().addScopeReference(classScope).build(),
+            conflictingInfo -> {
+              throw new Unreachable();
+            });
       }
 
       // If the class is renamed add it to the classNamingBuilder.

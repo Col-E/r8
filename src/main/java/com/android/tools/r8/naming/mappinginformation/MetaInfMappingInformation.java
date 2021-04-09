@@ -24,6 +24,11 @@ public class MetaInfMappingInformation extends MappingInformation {
   }
 
   @Override
+  public String getId() {
+    return ID;
+  }
+
+  @Override
   public boolean isMetaInfMappingInformation() {
     return true;
   }
@@ -35,7 +40,7 @@ public class MetaInfMappingInformation extends MappingInformation {
 
   @Override
   public boolean allowOther(MappingInformation information) {
-    return !information.isMetaInfMappingInformation();
+    return true;
   }
 
   public MapVersion getMapVersion() {

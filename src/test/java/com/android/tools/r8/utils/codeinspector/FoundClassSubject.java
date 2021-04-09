@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import static com.android.tools.r8.KotlinTestBase.METADATA_TYPE;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
@@ -33,6 +34,8 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.retrace.RetraceClassElement;
+import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.retrace.RetraceTypeResult;
 import com.android.tools.r8.retrace.RetracedFieldReference;
 import com.android.tools.r8.retrace.Retracer;
@@ -46,6 +49,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -532,6 +536,25 @@ public class FoundClassSubject extends ClassSubject {
     }
     return KotlinClassMetadataReader.toKotlinClassMetadata(
         codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
+  }
+
+  public RetraceClassResult retrace() {
+    assertTrue(mapping.getNaming() != null);
+    return codeInspector
+        .getRetracer()
+        .retraceClass(Reference.classFromTypeName(mapping.getNaming().renamedName));
+  }
+
+  public RetraceClassElement retraceUnique() {
+    RetraceClassResult result = retrace();
+    if (result.isAmbiguous()) {
+      fail("Expected unique retrace of " + this + ", got ambiguous: " + result);
+    }
+    Optional<RetraceClassElement> first = result.stream().findFirst();
+    if (!first.isPresent()) {
+      fail("Expected unique retrace of " + this + ", got empty result");
+    }
+    return first.get();
   }
 
   @Override

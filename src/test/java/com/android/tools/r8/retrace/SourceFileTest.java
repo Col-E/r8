@@ -62,12 +62,12 @@ public class SourceFileTest extends TestBase {
         ((stackTrace, inspector) -> {
           assertEquals(FILE_NAME, stackTrace.getStackTraceLines().get(0).fileName);
           assertEquals(
-              1,
+              FILE_NAME,
               inspector
                   .clazz(ClassWithCustomFileName.class)
-                  .getNaming()
-                  .getAdditionalMappings()
-                  .size());
+                  .retraceUnique()
+                  .retraceSourceFile("nofile.java")
+                  .getFilename());
         }));
   }
 
@@ -76,14 +76,15 @@ public class SourceFileTest extends TestBase {
     runTest(
         true,
         ((stackTrace, inspector) -> {
+          // Since the type has a mapping, the file is inferred from the class name.
           assertEquals("SourceFileTest.java", stackTrace.getStackTraceLines().get(0).fileName);
           assertEquals(
-              0,
+              "SourceFileTest.java",
               inspector
                   .clazz(ClassWithoutCustomFileName.class)
-                  .getNaming()
-                  .getAdditionalMappings()
-                  .size());
+                  .retraceUnique()
+                  .retraceSourceFile("nofile.java")
+                  .getFilename());
         }));
   }
 

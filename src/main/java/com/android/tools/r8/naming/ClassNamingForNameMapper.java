@@ -3,16 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
-import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ThrowingConsumer;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
@@ -23,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * Stores name information for a class.
@@ -40,7 +36,6 @@ public class ClassNamingForNameMapper implements ClassNaming {
     private final Map<FieldSignature, MemberNaming> fieldMembers = Maps.newHashMap();
     private final Map<String, List<MappedRange>> mappedRangesByName = Maps.newHashMap();
     private final Map<String, List<MemberNaming>> mappedFieldNamingsByName = Maps.newHashMap();
-    private final List<MappingInformation> additionalMappings = new ArrayList<>();
 
     private Builder(String renamedName, String originalName) {
       this.originalName = originalName;
@@ -61,39 +56,6 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
 
     @Override
-    public ClassNaming.Builder addMappingInformation(MappingInformation mappingInformation) {
-      return addMappingInformation(
-          mappingInformation,
-          other -> {
-            assert false;
-          });
-    }
-
-    @Override
-    public ClassNaming.Builder addMappingInformation(
-        MappingInformation mappingInformation,
-        DiagnosticsHandler diagnosticsHandler,
-        int lineNumber) {
-      return addMappingInformation(
-          mappingInformation,
-          other ->
-              diagnosticsHandler.warning(
-                  MappingInformationDiagnostics.notAllowedCombination(
-                      originalName, renamedName, mappingInformation, other, lineNumber)));
-    }
-
-    private ClassNaming.Builder addMappingInformation(
-        MappingInformation mappingInformation, Consumer<MappingInformation> notAllowedCombination) {
-      for (MappingInformation information : additionalMappings) {
-        if (!information.allowOther(mappingInformation)) {
-          notAllowedCombination.accept(information);
-        }
-      }
-      additionalMappings.add(mappingInformation);
-      return this;
-    }
-
-    @Override
     public ClassNamingForNameMapper build() {
       Map<String, MappedRangesOfName> map;
 
@@ -107,13 +69,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
       }
 
       return new ClassNamingForNameMapper(
-          renamedName,
-          originalName,
-          methodMembers,
-          fieldMembers,
-          map,
-          mappedFieldNamingsByName,
-          ImmutableList.copyOf(additionalMappings));
+          renamedName, originalName, methodMembers, fieldMembers, map, mappedFieldNamingsByName);
     }
 
     /** The parameters are forwarded to MappedRange constructor, see explanation there. */
@@ -244,24 +200,19 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
   public final Map<String, List<MemberNaming>> mappedFieldNamingsByName;
 
-  private final ImmutableList<MappingInformation> additionalMappings;
-
   private ClassNamingForNameMapper(
       String renamedName,
       String originalName,
       Map<MethodSignature, MemberNaming> methodMembers,
       Map<FieldSignature, MemberNaming> fieldMembers,
       Map<String, MappedRangesOfName> mappedRangesByRenamedName,
-      Map<String, List<MemberNaming>> mappedFieldNamingsByName,
-      ImmutableList<MappingInformation> additionalMappings) {
+      Map<String, List<MemberNaming>> mappedFieldNamingsByName) {
     this.renamedName = renamedName;
     this.originalName = originalName;
     this.methodMembers = ImmutableMap.copyOf(methodMembers);
     this.fieldMembers = ImmutableMap.copyOf(fieldMembers);
     this.mappedRangesByRenamedName = mappedRangesByRenamedName;
     this.mappedFieldNamingsByName = mappedFieldNamingsByName;
-    assert additionalMappings != null;
-    this.additionalMappings = additionalMappings;
   }
 
   public MappedRangesOfName getMappedRangesForRenamedName(String renamedName) {
@@ -346,11 +297,11 @@ public class ClassNamingForNameMapper implements ClassNaming {
     return methodMembers.values();
   }
 
-  void write(ChainableStringConsumer consumer) {
+  void write(ChainableStringConsumer consumer, List<MappingInformation> additionalMappingInfo) {
     consumer.accept(originalName).accept(" -> ").accept(renamedName).accept(":\n");
 
     // Print all additional mapping information.
-    additionalMappings.forEach(info -> consumer.accept("# " + info.serialize()).accept("\n"));
+    additionalMappingInfo.forEach(info -> consumer.accept("# " + info.serialize()).accept("\n"));
 
     // Print field member namings.
     forAllFieldNaming(m -> consumer.accept("    ").accept(m.toString()).accept("\n"));
@@ -367,14 +318,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
   }
 
-  public List<MappingInformation> getAdditionalMappings() {
-    return additionalMappings;
-  }
-
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    write(ChainableStringConsumer.wrap(builder::append));
+    write(ChainableStringConsumer.wrap(builder::append), Collections.emptyList());
     return builder.toString();
   }
 

@@ -14,6 +14,8 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.retrace.RetraceClassElement;
+import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.base.Predicates;
@@ -229,6 +231,10 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
         Reference.classFromDescriptor(
             descriptor.substring(0, descriptor.length() - 1) + COMPANION_CLASS_NAME_SUFFIX + ";"));
   }
+
+  public abstract RetraceClassResult retrace();
+
+  public abstract RetraceClassElement retraceUnique();
 
   public abstract ClassNamingForNameMapper getNaming();
 

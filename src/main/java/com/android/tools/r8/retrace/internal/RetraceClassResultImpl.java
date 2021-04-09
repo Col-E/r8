@@ -11,6 +11,7 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
@@ -29,18 +30,22 @@ public class RetraceClassResultImpl implements RetraceClassResult {
 
   private final ClassReference obfuscatedReference;
   private final ClassNamingForNameMapper mapper;
-  private final Retracer retracer;
+  private final RetracerImpl retracer;
 
   private RetraceClassResultImpl(
-      ClassReference obfuscatedReference, ClassNamingForNameMapper mapper, Retracer retracer) {
+      ClassReference obfuscatedReference, ClassNamingForNameMapper mapper, RetracerImpl retracer) {
     this.obfuscatedReference = obfuscatedReference;
     this.mapper = mapper;
     this.retracer = retracer;
   }
 
   static RetraceClassResultImpl create(
-      ClassReference obfuscatedReference, ClassNamingForNameMapper mapper, Retracer retracer) {
+      ClassReference obfuscatedReference, ClassNamingForNameMapper mapper, RetracerImpl retracer) {
     return new RetraceClassResultImpl(obfuscatedReference, mapper, retracer);
+  }
+
+  RetracerImpl getRetracerImpl() {
+    return retracer;
   }
 
   @Override
@@ -221,12 +226,13 @@ public class RetraceClassResultImpl implements RetraceClassResult {
 
     @Override
     public RetraceSourceFileResultImpl retraceSourceFile(String sourceFile) {
-      if (mapper != null) {
-        for (MappingInformation mappingInformation : mapper.getAdditionalMappings()) {
-          if (mappingInformation.isFileNameInformation()) {
-            return new RetraceSourceFileResultImpl(
-                mappingInformation.asFileNameInformation().getFileName(), false);
-          }
+      for (MappingInformation info :
+          classResult
+              .getRetracerImpl()
+              .getAdditionalMappingInfo(
+                  ScopeReference.fromClassReference(classResult.obfuscatedReference))) {
+        if (info.isFileNameInformation()) {
+          return new RetraceSourceFileResultImpl(info.asFileNameInformation().getFileName(), false);
         }
       }
       return new RetraceSourceFileResultImpl(

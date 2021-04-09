@@ -6,6 +6,7 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;
@@ -34,6 +35,14 @@ public class MappingInformationDiagnostics implements Diagnostic {
   private MappingInformationDiagnostics(String message, Position position) {
     this.message = message;
     this.position = position;
+  }
+
+  public static MappingInformationDiagnostics invalidScopeFor(
+      int lineNumber, ScopeReference reference, MappingInformation info) {
+    return new MappingInformationDiagnostics(
+        String.format(
+            "Cannot use scope %s for mapping information %s", reference.toString(), info.getId()),
+        new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
   }
 
   static MappingInformationDiagnostics noHandlerFor(int lineNumber, String value) {
@@ -94,20 +103,14 @@ public class MappingInformationDiagnostics implements Diagnostic {
   }
 
   public static MappingInformationDiagnostics notAllowedCombination(
-      String className,
-      String renamedClassName,
-      MappingInformation one,
-      MappingInformation other,
-      int lineNumber) {
+      ScopeReference reference, MappingInformation one, MappingInformation other, int lineNumber) {
     return new MappingInformationDiagnostics(
         "The mapping '"
             + one.serialize()
             + "' is not allowed in combination with '"
             + other.serialize()
             + "' in the mapping for "
-            + className
-            + " -> "
-            + renamedClassName,
+            + reference.toString(),
         new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
   }
 }

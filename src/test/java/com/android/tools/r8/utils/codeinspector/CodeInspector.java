@@ -39,6 +39,7 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.internal.DirectClassNameMapperProguardMapProducer;
+import com.android.tools.r8.retrace.internal.RetracerImpl;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BiMapContainer;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -68,6 +69,7 @@ public class CodeInspector {
   private final ClassNameMapper mapping;
   final Map<String, String> originalToObfuscatedMapping;
   final Map<String, String> obfuscatedToOriginalMapping;
+  private Retracer lazyRetracer = null;
 
   public static MethodSignature MAIN =
       new MethodSignature("main", "void", new String[] {"java.lang.String[]"});
@@ -170,6 +172,13 @@ public class CodeInspector {
 
   public DexItemFactory getFactory() {
     return dexItemFactory;
+  }
+
+  public Retracer getRetracer() {
+    if (lazyRetracer == null) {
+      lazyRetracer = new RetracerImpl(mapping);
+    }
+    return lazyRetracer;
   }
 
   DexType toDexType(String string) {

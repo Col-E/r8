@@ -5,6 +5,7 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -22,6 +23,10 @@ public abstract class ScopedMappingInformation extends MappingInformation {
   // to map to java.lang.String with the post-minification names.
   public abstract static class ScopeReference {
 
+    public static ScopeReference globalScope() {
+      return GlobalScopeReference.INSTANCE;
+    }
+
     public static ScopeReference fromClassReference(ClassReference reference) {
       return new ClassScopeReference(reference);
     }
@@ -32,6 +37,10 @@ public abstract class ScopedMappingInformation extends MappingInformation {
         return fromClassReference(Reference.classFromDescriptor(referenceString));
       }
       throw new Unimplemented("No support for reference: " + referenceString);
+    }
+
+    public boolean isGlobalScope() {
+      return equals(ScopeReference.globalScope());
     }
 
     public abstract String toReferenceString();
@@ -47,6 +56,35 @@ public abstract class ScopedMappingInformation extends MappingInformation {
     @Override
     public String toString() {
       return toReferenceString();
+    }
+  }
+
+  public static class GlobalScopeReference extends ScopeReference {
+    private static final GlobalScopeReference INSTANCE = new GlobalScopeReference();
+
+    @Override
+    public String toReferenceString() {
+      throw new Unreachable();
+    }
+
+    @Override
+    public String toString() {
+      return "<global-scope>";
+    }
+
+    @Override
+    public ClassReference getHolderReference() {
+      throw new Unreachable();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      return this == other;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
     }
   }
 
@@ -146,7 +184,7 @@ public abstract class ScopedMappingInformation extends MappingInformation {
   }
 
   @Override
-  public final String serialize() {
+  public String serialize() {
     JsonObject object = serializeToJsonObject(new JsonObject());
     JsonArray scopeArray = new JsonArray();
     scopeReferences.forEach(ref -> scopeArray.add(ref.toReferenceString()));

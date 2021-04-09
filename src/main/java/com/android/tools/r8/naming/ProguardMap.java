@@ -4,8 +4,10 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.android.tools.r8.position.Position;
+import java.util.function.Consumer;
 
 public interface ProguardMap {
 
@@ -15,7 +17,10 @@ public interface ProguardMap {
 
     abstract ProguardMap build();
 
-    abstract void addScopedMappingInformation(ScopedMappingInformation scopedMappingInformation);
+    abstract void addMappingInformation(
+        ScopeReference scope,
+        MappingInformation MappingInformation,
+        Consumer<MappingInformation> onProhibitedAddition);
   }
 
   boolean hasMapping(DexType type);
