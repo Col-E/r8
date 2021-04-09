@@ -50,7 +50,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.naming.mappinginformation.CompilerSynthesizedMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
-import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
+import com.android.tools.r8.naming.mappinginformation.ScopeReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.shaking.KeepInfoCollection;

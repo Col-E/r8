@@ -10,7 +10,7 @@ import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
-import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
+import com.android.tools.r8.naming.mappinginformation.ScopeReference;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableMap;

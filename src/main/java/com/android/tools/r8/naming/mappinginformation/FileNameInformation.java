@@ -6,8 +6,7 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
-import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ClassScopeReference;
-import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
+import com.android.tools.r8.naming.mappinginformation.ScopeReference.ClassScopeReference;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;

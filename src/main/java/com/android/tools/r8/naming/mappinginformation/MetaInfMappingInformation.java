@@ -8,7 +8,6 @@ import static com.android.tools.r8.naming.mappinginformation.MappingInformationD
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
-import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.util.function.BiConsumer;

@@ -7,7 +7,7 @@ package com.android.tools.r8.retrace.internal;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
-import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
+import com.android.tools.r8.naming.mappinginformation.ScopeReference;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;

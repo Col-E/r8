@@ -6,7 +6,6 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;

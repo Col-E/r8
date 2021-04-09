@@ -5,7 +5,7 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
-import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
+import com.android.tools.r8.naming.mappinginformation.ScopeReference;
 import com.android.tools.r8.position.Position;
 import java.util.function.Consumer;
 

@@ -6,7 +6,6 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
-import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.util.function.BiConsumer;
