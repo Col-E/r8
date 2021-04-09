@@ -6,6 +6,7 @@ package com.android.tools.r8.naming.mappinginformation;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -13,9 +14,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import java.util.function.BiConsumer;
+import java.util.Collections;
+import java.util.List;
 
-public abstract class ScopedMappingInformation extends MappingInformation {
+public abstract class ScopedMappingInformation {
 
   // Abstraction for the items referenced in a scope.
   // We should consider passing in a scope reference factory.
@@ -118,77 +120,48 @@ public abstract class ScopedMappingInformation extends MappingInformation {
     }
   }
 
-  public abstract static class Builder<B extends Builder<B>> {
-    public abstract String getId();
-
-    public abstract B self();
-
-    private final ImmutableList.Builder<ScopeReference> scope = ImmutableList.builder();
-
-    public B deserializeFromJsonObject(
-        JsonObject object,
-        ScopeReference implicitSingletonScope,
-        DiagnosticsHandler diagnosticsHandler,
-        int lineNumber) {
-      JsonArray scopeArray = object.getAsJsonArray(SCOPE_KEY);
-      if (scopeArray != null) {
-        for (JsonElement element : scopeArray) {
-          addScopeReference(ScopeReference.fromReferenceString(element.getAsString()));
-        }
-      } else if (implicitSingletonScope != null) {
-        addScopeReference(implicitSingletonScope);
-      } else {
-        diagnosticsHandler.info(
-            MappingInformationDiagnostics.noKeyForObjectWithId(
-                lineNumber, SCOPE_KEY, MAPPING_ID_KEY, getId()));
-      }
-      return self();
-    }
-
-    public B addScopeReference(ScopeReference reference) {
-      scope.add(reference);
-      return self();
-    }
-
-    public ImmutableList<ScopeReference> buildScope() {
-      return scope.build();
-    }
-  }
-
+  private static final MapVersion SCOPE_SUPPORTED = MapVersion.MapVersionExperimental;
   public static final String SCOPE_KEY = "scope";
 
-  private final ImmutableList<ScopeReference> scopeReferences;
-
-  public ScopedMappingInformation(ImmutableList<ScopeReference> scopeReferences) {
-    super(NO_LINE_NUMBER);
-    this.scopeReferences = scopeReferences;
-    assert !scopeReferences.isEmpty() : "Expected a scope. Global scope not yet in use.";
-  }
-
-  protected abstract JsonObject serializeToJsonObject(JsonObject object);
-
-  @Override
-  public final boolean isScopedMappingInformation() {
-    return true;
-  }
-
-  @Override
-  public final ScopedMappingInformation asScopedMappingInformation() {
-    return this;
-  }
-
-  public void forEach(BiConsumer<ScopeReference, MappingInformation> fn) {
-    for (ScopeReference reference : scopeReferences) {
-      fn.accept(reference, this);
+  public static List<ScopeReference> deserializeScope(
+      JsonObject object,
+      ScopeReference implicitSingletonScope,
+      DiagnosticsHandler diagnosticsHandler,
+      int lineNumber,
+      MapVersion version) {
+    // Prior to support, the scope is always the implicit scope.
+    if (version.isLessThan(SCOPE_SUPPORTED)) {
+      return Collections.singletonList(implicitSingletonScope);
     }
+    // If the scope key is absent, the implicit scope is assumed.
+    JsonArray scopeArray = object.getAsJsonArray(SCOPE_KEY);
+    if (scopeArray == null) {
+      return Collections.singletonList(implicitSingletonScope);
+    }
+    ImmutableList.Builder<ScopeReference> builder = ImmutableList.builder();
+    for (JsonElement element : scopeArray) {
+      builder.add(ScopeReference.fromReferenceString(element.getAsString()));
+    }
+    return builder.build();
   }
 
-  @Override
-  public String serialize() {
-    JsonObject object = serializeToJsonObject(new JsonObject());
+  public static void serializeScope(
+      JsonObject object,
+      ScopeReference currentImplicitScope,
+      List<ScopeReference> scopeReferences,
+      MapVersion version) {
+    assert !scopeReferences.isEmpty();
+    // If emitting a non-experimental version the scope is always implicit.
+    if (version.isLessThan(SCOPE_SUPPORTED)) {
+      assert currentImplicitScope.equals(scopeReferences.get(0));
+      return;
+    }
+    // If the scope matches the implicit scope don't add it explicitly.
+    if (scopeReferences.size() == 1 && scopeReferences.get(0).equals(currentImplicitScope)) {
+      return;
+    }
     JsonArray scopeArray = new JsonArray();
     scopeReferences.forEach(ref -> scopeArray.add(ref.toReferenceString()));
     object.add(SCOPE_KEY, scopeArray);
-    return object.toString();
   }
 }

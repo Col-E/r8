@@ -6,34 +6,23 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
-import com.google.common.collect.ImmutableList;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import java.util.function.BiConsumer;
 
-public class CompilerSynthesizedMappingInformation extends ScopedMappingInformation {
+public class CompilerSynthesizedMappingInformation extends MappingInformation {
 
   public static final String ID = "com.android.tools.r8.synthesized";
 
-  public static class Builder extends ScopedMappingInformation.Builder<Builder> {
-
-    @Override
-    public String getId() {
-      return ID;
-    }
-
-    @Override
-    public Builder self() {
-      return this;
-    }
+  public static class Builder {
 
     public CompilerSynthesizedMappingInformation build() {
-      return new CompilerSynthesizedMappingInformation(buildScope());
+      return new CompilerSynthesizedMappingInformation();
     }
   }
 
-  private CompilerSynthesizedMappingInformation(ImmutableList<ScopeReference> scope) {
-    super(scope);
-  }
+  private CompilerSynthesizedMappingInformation() {}
 
   public static Builder builder() {
     return new Builder();
@@ -60,22 +49,27 @@ public class CompilerSynthesizedMappingInformation extends ScopedMappingInformat
   }
 
   @Override
-  protected JsonObject serializeToJsonObject(JsonObject object) {
+  public String serialize() {
+    JsonObject object = new JsonObject();
     object.add(MAPPING_ID_KEY, new JsonPrimitive(ID));
-    return object;
+    return object.toString();
   }
 
-  public static CompilerSynthesizedMappingInformation deserialize(
+  public static void deserialize(
       MapVersion version,
       JsonObject object,
       DiagnosticsHandler diagnosticsHandler,
       int lineNumber,
-      ScopeReference implicitSingletonScope) {
+      ScopeReference implicitSingletonScope,
+      BiConsumer<ScopeReference, MappingInformation> onMappingInfo) {
     if (version.isLessThan(MapVersion.MapVersionExperimental)) {
-      return null;
+      return;
     }
-    return builder()
-        .deserializeFromJsonObject(object, implicitSingletonScope, diagnosticsHandler, lineNumber)
-        .build();
+    CompilerSynthesizedMappingInformation info = builder().build();
+    for (ScopeReference reference :
+        ScopedMappingInformation.deserializeScope(
+            object, implicitSingletonScope, diagnosticsHandler, lineNumber, version)) {
+      onMappingInfo.accept(reference, info);
+    }
   }
 }

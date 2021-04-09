@@ -269,21 +269,19 @@ public class ProguardMapReader implements AutoCloseable {
 
   private void parseMappingInformation(
       BiConsumer<ScopeReference, MappingInformation> onMappingInfo) {
-    MappingInformation info =
-        MappingInformation.fromJsonObject(
-            version, parseJsonInComment(), diagnosticsHandler, lineNo, implicitSingletonScope);
-    if (info == null) {
-      return;
-    }
-    MetaInfMappingInformation generatorInfo = info.asMetaInfMappingInformation();
-    if (generatorInfo != null) {
-      version = generatorInfo.getMapVersion();
-    }
-    if (info.isScopedMappingInformation()) {
-      info.asScopedMappingInformation().forEach(onMappingInfo);
-    } else {
-      onMappingInfo.accept(ScopeReference.globalScope(), info);
-    }
+    MappingInformation.fromJsonObject(
+        version,
+        parseJsonInComment(),
+        diagnosticsHandler,
+        lineNo,
+        implicitSingletonScope,
+        (reference, info) -> {
+          MetaInfMappingInformation generatorInfo = info.asMetaInfMappingInformation();
+          if (generatorInfo != null) {
+            version = generatorInfo.getMapVersion();
+          }
+          onMappingInfo.accept(reference, info);
+        });
   }
 
   private void parseMemberMappings(Builder mapBuilder, ClassNaming.Builder classNamingBuilder)

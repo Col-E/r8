@@ -6,20 +6,21 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
-import com.google.common.collect.ImmutableList;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ClassScopeReference;
+import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import java.util.function.BiConsumer;
 
-public class FileNameInformation extends ScopedMappingInformation {
+public class FileNameInformation extends MappingInformation {
 
   private final String fileName;
 
   public static final String ID = "sourceFile";
   static final String FILE_NAME_KEY = "fileName";
 
-  private FileNameInformation(String fileName, ImmutableList<ScopeReference> scopeReferences) {
-    super(scopeReferences);
+  private FileNameInformation(String fileName) {
     this.fileName = fileName;
   }
 
@@ -47,43 +48,36 @@ public class FileNameInformation extends ScopedMappingInformation {
     return !information.isFileNameInformation();
   }
 
-  public static FileNameInformation build(ScopeReference classScope, String fileName) {
-    return new FileNameInformation(fileName, ImmutableList.of(classScope));
+  public static FileNameInformation build(String fileName) {
+    return new FileNameInformation(fileName);
   }
 
-  // Hard override of serialize as there is no current support for scope in source-file info.
-  // This should be removed for experimental support of scope in the external format.
   @Override
   public String serialize() {
-    return serializeToJsonObject(new JsonObject()).toString();
-  }
-
-  @Override
-  protected JsonObject serializeToJsonObject(JsonObject object) {
+    JsonObject object = new JsonObject();
     object.add(MAPPING_ID_KEY, new JsonPrimitive(ID));
     object.add(FILE_NAME_KEY, new JsonPrimitive(fileName));
-    return object;
+    return object.toString();
   }
 
-  public static FileNameInformation deserialize(
+  public static void deserialize(
       MapVersion version,
       JsonObject object,
       DiagnosticsHandler diagnosticsHandler,
       int lineNumber,
-      ScopeReference implicitSingletonScope) {
+      ScopeReference implicitSingletonScope,
+      BiConsumer<ScopeReference, MappingInformation> onMappingInfo) {
     assert implicitSingletonScope instanceof ClassScopeReference;
     try {
       JsonElement fileName =
           getJsonElementFromObject(object, diagnosticsHandler, lineNumber, FILE_NAME_KEY, ID);
-      if (fileName == null) {
-        return null;
+      if (fileName != null) {
+        onMappingInfo.accept(
+            implicitSingletonScope, new FileNameInformation(fileName.getAsString()));
       }
-      return new FileNameInformation(
-          fileName.getAsString(), ImmutableList.of(implicitSingletonScope));
     } catch (UnsupportedOperationException | IllegalStateException ignored) {
       diagnosticsHandler.info(
           MappingInformationDiagnostics.invalidValueForObjectWithId(lineNumber, FILE_NAME_KEY, ID));
-      return null;
     }
   }
 }

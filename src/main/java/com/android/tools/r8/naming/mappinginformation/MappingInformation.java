@@ -9,34 +9,15 @@ import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.mappinginformation.ScopedMappingInformation.ScopeReference;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import java.util.function.BiConsumer;
 
 public abstract class MappingInformation {
 
-  static final int NO_LINE_NUMBER = -1;
-
   public static final String MAPPING_ID_KEY = "id";
-
-  private final int lineNumber;
-
-  MappingInformation(int lineNumber) {
-    this.lineNumber = lineNumber;
-  }
 
   public abstract String getId();
 
-  public int getLineNumber() {
-    return lineNumber;
-  }
-
   public abstract String serialize();
-
-  public boolean isScopedMappingInformation() {
-    return false;
-  }
-
-  public ScopedMappingInformation asScopedMappingInformation() {
-    return null;
-  }
 
   public boolean isMetaInfMappingInformation() {
     return false;
@@ -64,52 +45,62 @@ public abstract class MappingInformation {
 
   public abstract boolean allowOther(MappingInformation information);
 
-  public static MappingInformation fromJsonObject(
+  public static void fromJsonObject(
       MapVersion version,
       JsonObject object,
       DiagnosticsHandler diagnosticsHandler,
       int lineNumber,
-      ScopeReference implicitSingletonScope) {
+      ScopeReference implicitSingletonScope,
+      BiConsumer<ScopeReference, MappingInformation> onMappingInfo) {
     if (object == null) {
       diagnosticsHandler.info(MappingInformationDiagnostics.notValidJson(lineNumber));
-      return null;
+      return;
     }
     JsonElement id = object.get(MAPPING_ID_KEY);
     if (id == null) {
       diagnosticsHandler.info(
           MappingInformationDiagnostics.noKeyInJson(lineNumber, MAPPING_ID_KEY));
-      return null;
+      return;
     }
     String idString = id.getAsString();
     if (idString == null) {
       diagnosticsHandler.info(
           MappingInformationDiagnostics.notValidString(lineNumber, MAPPING_ID_KEY));
-      return null;
+      return;
     }
-    return deserialize(
-        idString, version, object, diagnosticsHandler, lineNumber, implicitSingletonScope);
+    deserialize(
+        idString,
+        version,
+        object,
+        diagnosticsHandler,
+        lineNumber,
+        implicitSingletonScope,
+        onMappingInfo);
   }
 
-  private static MappingInformation deserialize(
+  private static void deserialize(
       String id,
       MapVersion version,
       JsonObject object,
       DiagnosticsHandler diagnosticsHandler,
       int lineNumber,
-      ScopeReference implicitSingletonScope) {
+      ScopeReference implicitSingletonScope,
+      BiConsumer<ScopeReference, MappingInformation> onMappingInfo) {
     switch (id) {
       case MetaInfMappingInformation.ID:
-        return MetaInfMappingInformation.deserialize(
-            version, object, diagnosticsHandler, lineNumber);
+        MetaInfMappingInformation.deserialize(
+            version, object, diagnosticsHandler, lineNumber, onMappingInfo);
+        return;
       case FileNameInformation.ID:
-        return FileNameInformation.deserialize(
-            version, object, diagnosticsHandler, lineNumber, implicitSingletonScope);
+        FileNameInformation.deserialize(
+            version, object, diagnosticsHandler, lineNumber, implicitSingletonScope, onMappingInfo);
+        return;
       case CompilerSynthesizedMappingInformation.ID:
-        return CompilerSynthesizedMappingInformation.deserialize(
-            version, object, diagnosticsHandler, lineNumber, implicitSingletonScope);
+        CompilerSynthesizedMappingInformation.deserialize(
+            version, object, diagnosticsHandler, lineNumber, implicitSingletonScope, onMappingInfo);
+        return;
       default:
         diagnosticsHandler.info(MappingInformationDiagnostics.noHandlerFor(lineNumber, id));
-        return null;
     }
   }
 

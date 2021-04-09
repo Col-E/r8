@@ -302,7 +302,7 @@ public class LineNumberOptimizer {
         if (!RetraceUtils.hasPredictableSourceFileName(clazz.toSourceString(), sourceFile)) {
           classNameMapperBuilder.addMappingInformation(
               classScope,
-              FileNameInformation.build(classScope, sourceFile),
+              FileNameInformation.build(sourceFile),
               conflictingInfo -> {
                 throw new Unreachable();
               });
@@ -312,7 +312,7 @@ public class LineNumberOptimizer {
       if (isSyntheticClass && appView.options().testing.enableExperimentalMapFileVersion) {
         classNameMapperBuilder.addMappingInformation(
             classScope,
-            CompilerSynthesizedMappingInformation.builder().addScopeReference(classScope).build(),
+            CompilerSynthesizedMappingInformation.builder().build(),
             conflictingInfo -> {
               throw new Unreachable();
             });
