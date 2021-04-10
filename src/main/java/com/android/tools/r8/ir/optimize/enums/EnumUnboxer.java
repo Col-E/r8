@@ -5,6 +5,21 @@
 package com.android.tools.r8.ir.optimize.enums;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.code.Opcodes.ARRAY_GET;
+import static com.android.tools.r8.ir.code.Opcodes.ARRAY_LENGTH;
+import static com.android.tools.r8.ir.code.Opcodes.ARRAY_PUT;
+import static com.android.tools.r8.ir.code.Opcodes.ASSUME;
+import static com.android.tools.r8.ir.code.Opcodes.CHECK_CAST;
+import static com.android.tools.r8.ir.code.Opcodes.IF;
+import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_GET;
+import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_SUPER;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
+import static com.android.tools.r8.ir.code.Opcodes.RETURN;
+import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
 
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
@@ -34,7 +49,10 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.EnumValuesObjectState;
 import com.android.tools.r8.ir.analysis.value.ObjectState;
+import com.android.tools.r8.ir.code.ArrayGet;
+import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.ArrayPut;
+import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -48,6 +66,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Opcodes;
 import com.android.tools.r8.ir.code.Phi;
+import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
@@ -57,6 +76,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstance
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldMappingData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldOrdinalData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldUnknownData;
+import com.android.tools.r8.ir.optimize.enums.eligibility.Reason;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
@@ -186,13 +206,13 @@ public class EnumUnboxer {
           case Opcodes.CHECK_CAST:
             analyzeCheckCast(instruction.asCheckCast(), eligibleEnums);
             break;
-          case Opcodes.INVOKE_STATIC:
+          case INVOKE_STATIC:
             analyzeInvokeStatic(instruction.asInvokeStatic(), eligibleEnums, code.context());
             break;
           case Opcodes.STATIC_GET:
           case Opcodes.INSTANCE_GET:
           case Opcodes.STATIC_PUT:
-          case Opcodes.INSTANCE_PUT:
+          case INSTANCE_PUT:
             analyzeFieldInstruction(instruction.asFieldInstruction(), code);
             break;
           default: // Nothing to do for other instructions.
@@ -898,211 +918,280 @@ public class EnumUnboxer {
 
   private Reason instructionAllowEnumUnboxing(
       Instruction instruction, IRCode code, DexProgramClass enumClass, Value enumValue) {
+    ProgramMethod context = code.context();
+    switch (instruction.opcode()) {
+      case ASSUME:
+        return analyzeAssumeUser(instruction.asAssume(), code, context, enumClass, enumValue);
+      case ARRAY_GET:
+        return analyzeArrayGetUser(instruction.asArrayGet(), code, context, enumClass, enumValue);
+      case ARRAY_LENGTH:
+        return analyzeArrayLengthUser(
+            instruction.asArrayLength(), code, context, enumClass, enumValue);
+      case ARRAY_PUT:
+        return analyzeArrayPutUser(instruction.asArrayPut(), code, context, enumClass, enumValue);
+      case CHECK_CAST:
+        return analyzeCheckCastUser(instruction.asCheckCast(), code, context, enumClass, enumValue);
+      case IF:
+        return analyzeIfUser(instruction.asIf(), code, context, enumClass, enumValue);
+      case INSTANCE_GET:
+        return analyzeInstanceGetUser(
+            instruction.asInstanceGet(), code, context, enumClass, enumValue);
+      case INSTANCE_PUT:
+        return analyzeFieldPutUser(
+            instruction.asInstancePut(), code, context, enumClass, enumValue);
+      case INVOKE_DIRECT:
+      case INVOKE_INTERFACE:
+      case INVOKE_STATIC:
+      case INVOKE_SUPER:
+      case INVOKE_VIRTUAL:
+        return analyzeInvokeUser(instruction.asInvokeMethod(), code, context, enumClass, enumValue);
+      case RETURN:
+        return analyzeReturnUser(instruction.asReturn(), code, context, enumClass, enumValue);
+      case STATIC_PUT:
+        return analyzeFieldPutUser(instruction.asStaticPut(), code, context, enumClass, enumValue);
+      default:
+        return Reason.OTHER_UNSUPPORTED_INSTRUCTION;
+    }
+  }
 
-    // All invokes in the library are invalid, besides a few cherry picked cases such as ordinal().
-    if (instruction.isInvokeMethod()) {
-      InvokeMethod invokeMethod = instruction.asInvokeMethod();
-      if (invokeMethod.getInvokedMethod().holder.isArrayType()) {
-        // The only valid methods is clone for values() to be correct.
-        if (invokeMethod.getInvokedMethod().name == factory.cloneMethodName) {
-          return Reason.ELIGIBLE;
-        }
-        return Reason.INVALID_INVOKE_ON_ARRAY;
-      }
-      DexClassAndMethod singleTarget = invokeMethod.lookupSingleTarget(appView, code.context());
-      if (singleTarget == null) {
-        return Reason.INVALID_INVOKE;
-      }
-      DexClass dexClass = singleTarget.getHolder();
-      if (dexClass.isProgramClass()) {
-        if (dexClass.isEnum() && singleTarget.getDefinition().isInstanceInitializer()) {
-          if (code.method().getHolderType() == dexClass.type
-              && code.method().isClassInitializer()) {
-            // The enum instance initializer is allowed to be called only from the enum clinit.
-            return Reason.ELIGIBLE;
-          } else {
-            return Reason.INVALID_INIT;
-          }
-        }
-        // Check that the enum-value only flows into parameters whose type exactly matches the
-        // enum's type.
-        int offset = BooleanUtils.intValue(!singleTarget.getDefinition().isStatic());
-        for (int i = 0; i < singleTarget.getReference().getParameters().size(); i++) {
-          if (invokeMethod.getArgument(offset + i) == enumValue) {
-            if (singleTarget.getReference().getParameter(i).toBaseType(factory) != enumClass.type) {
-              return Reason.GENERIC_INVOKE;
-            }
-          }
-        }
-        if (invokeMethod.isInvokeMethodWithReceiver()) {
-          Value receiver = invokeMethod.asInvokeMethodWithReceiver().getReceiver();
-          if (receiver == enumValue && dexClass.isInterface()) {
-            return Reason.DEFAULT_METHOD_INVOKE;
-          }
-        }
+  private Reason analyzeAssumeUser(
+      Assume assume,
+      IRCode code,
+      ProgramMethod context,
+      DexProgramClass enumClass,
+      Value enumValue) {
+    return validateEnumUsages(code, assume.outValue(), enumClass);
+  }
+
+  private Reason analyzeArrayGetUser(
+      ArrayGet arrayGet,
+      IRCode code,
+      ProgramMethod context,
+      DexProgramClass enumClass,
+      Value enumValue) {
+    // MyEnum[] array = ...; array[0]; is valid.
+    return Reason.ELIGIBLE;
+  }
+
+  private Reason analyzeArrayLengthUser(
+      ArrayLength arrayLength,
+      IRCode code,
+      ProgramMethod context,
+      DexProgramClass enumClass,
+      Value enumValue) {
+    // MyEnum[] array = ...; array.length; is valid.
+    return Reason.ELIGIBLE;
+  }
+
+  private Reason analyzeArrayPutUser(
+      ArrayPut arrayPut,
+      IRCode code,
+      ProgramMethod context,
+      DexProgramClass enumClass,
+      Value enumValue) {
+    // MyEnum[] array; array[0] = MyEnum.A; is valid.
+    // MyEnum[][] array2d; MyEnum[] array; array2d[0] = array; is valid.
+    // MyEnum[]^N array; MyEnum[]^(N-1) element; array[0] = element; is valid.
+    // We need to prove that the value to put in and the array have correct types.
+    assert arrayPut.getMemberType() == MemberType.OBJECT;
+    TypeElement arrayType = arrayPut.array().getType();
+    assert arrayType.isArrayType();
+    assert arrayType.asArrayType().getBaseType().isClassType();
+    ClassTypeElement arrayBaseType = arrayType.asArrayType().getBaseType().asClassType();
+    TypeElement valueBaseType = arrayPut.value().getType();
+    if (valueBaseType.isArrayType()) {
+      assert valueBaseType.asArrayType().getBaseType().isClassType();
+      assert valueBaseType.asArrayType().getNesting() == arrayType.asArrayType().getNesting() - 1;
+      valueBaseType = valueBaseType.asArrayType().getBaseType();
+    }
+    if (arrayBaseType.equalUpToNullability(valueBaseType)
+        && arrayBaseType.getClassType() == enumClass.type) {
+      return Reason.ELIGIBLE;
+    }
+    return Reason.INVALID_ARRAY_PUT;
+  }
+
+  private Reason analyzeCheckCastUser(
+      CheckCast checkCast,
+      IRCode code,
+      ProgramMethod context,
+      DexProgramClass enumClass,
+      Value enumValue) {
+    if (allowCheckCast(checkCast)) {
+      return Reason.ELIGIBLE;
+    }
+    return Reason.DOWN_CAST;
+  }
+
+  // A field put is valid only if the field is not on an enum, and the field type and the valuePut
+  // have identical enum type.
+  private Reason analyzeFieldPutUser(
+      FieldInstruction fieldPut,
+      IRCode code,
+      ProgramMethod context,
+      DexProgramClass enumClass,
+      Value enumValue) {
+    assert fieldPut.isInstancePut() || fieldPut.isStaticPut();
+    DexEncodedField field = appView.appInfo().resolveField(fieldPut.getField()).getResolvedField();
+    if (field == null) {
+      return Reason.INVALID_FIELD_PUT;
+    }
+    DexProgramClass dexClass = appView.programDefinitionFor(field.getHolderType(), code.context());
+    if (dexClass == null) {
+      return Reason.INVALID_FIELD_PUT;
+    }
+    if (fieldPut.isInstancePut() && fieldPut.asInstancePut().object() == enumValue) {
+      return Reason.ELIGIBLE;
+    }
+    // The put value has to be of the field type.
+    if (field.getReference().type.toBaseType(factory) != enumClass.type) {
+      return Reason.TYPE_MISMATCH_FIELD_PUT;
+    }
+    return Reason.ELIGIBLE;
+  }
+
+  // An If using enum as inValue is valid if it matches e == null
+  // or e == X with X of same enum type as e. Ex: if (e == MyEnum.A).
+  private Reason analyzeIfUser(
+      If theIf, IRCode code, ProgramMethod context, DexProgramClass enumClass, Value enumValue) {
+    assert (theIf.getType() == If.Type.EQ || theIf.getType() == If.Type.NE)
+        : "Comparing a reference with " + theIf.getType().toString();
+    // e == null.
+    if (theIf.isZeroTest()) {
+      return Reason.ELIGIBLE;
+    }
+    // e == MyEnum.X
+    TypeElement leftType = theIf.lhs().getType();
+    TypeElement rightType = theIf.rhs().getType();
+    if (leftType.equalUpToNullability(rightType)) {
+      assert leftType.isClassType();
+      assert leftType.asClassType().getClassType() == enumClass.type;
+      return Reason.ELIGIBLE;
+    }
+    return Reason.INVALID_IF_TYPES;
+  }
+
+  private Reason analyzeInstanceGetUser(
+      InstanceGet instanceGet,
+      IRCode code,
+      ProgramMethod context,
+      DexProgramClass enumClass,
+      Value enumValue) {
+    assert instanceGet.getField().holder == enumClass.type;
+    DexField field = instanceGet.getField();
+    enumUnboxingCandidatesInfo.addRequiredEnumInstanceFieldData(enumClass.type, field);
+    return Reason.ELIGIBLE;
+  }
+
+  // All invokes in the library are invalid, besides a few cherry picked cases such as ordinal().
+  private Reason analyzeInvokeUser(
+      InvokeMethod invoke,
+      IRCode code,
+      ProgramMethod context,
+      DexProgramClass enumClass,
+      Value enumValue) {
+    if (invoke.getInvokedMethod().holder.isArrayType()) {
+      // The only valid methods is clone for values() to be correct.
+      if (invoke.getInvokedMethod().name == factory.cloneMethodName) {
         return Reason.ELIGIBLE;
       }
-      if (dexClass.isClasspathClass()) {
-        return Reason.INVALID_INVOKE;
+      return Reason.INVALID_INVOKE_ON_ARRAY;
+    }
+    DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
+    if (singleTarget == null) {
+      return Reason.INVALID_INVOKE;
+    }
+    DexClass dexClass = singleTarget.getHolder();
+    if (dexClass.isProgramClass()) {
+      if (dexClass.isEnum() && singleTarget.getDefinition().isInstanceInitializer()) {
+        if (code.method().getHolderType() == dexClass.type && code.method().isClassInitializer()) {
+          // The enum instance initializer is allowed to be called only from the enum clinit.
+          return Reason.ELIGIBLE;
+        } else {
+          return Reason.INVALID_INIT;
+        }
       }
-      assert dexClass.isLibraryClass();
-      DexMethod singleTargetReference = singleTarget.getReference();
-      if (dexClass.type != factory.enumType) {
-        // System.identityHashCode(Object) is supported for proto enums.
-        // Object#getClass without outValue and Objects.requireNonNull are supported since R8
-        // rewrites explicit null checks to such instructions.
-        if (singleTargetReference == factory.javaLangSystemMethods.identityHashCode) {
-          return Reason.ELIGIBLE;
+      // Check that the enum-value only flows into parameters whose type exactly matches the
+      // enum's type.
+      int offset = BooleanUtils.intValue(!singleTarget.getDefinition().isStatic());
+      for (int i = 0; i < singleTarget.getReference().getParameters().size(); i++) {
+        if (invoke.getArgument(offset + i) == enumValue) {
+          if (singleTarget.getReference().getParameter(i).toBaseType(factory) != enumClass.type) {
+            return Reason.GENERIC_INVOKE;
+          }
         }
-        if (singleTargetReference == factory.stringMembers.valueOf) {
-          addRequiredNameData(enumClass.type);
-          return Reason.ELIGIBLE;
-        }
-        if (singleTargetReference == factory.objectMembers.getClass
-            && (!invokeMethod.hasOutValue() || !invokeMethod.outValue().hasAnyUsers())) {
-          // This is a hidden null check.
-          return Reason.ELIGIBLE;
-        }
-        if (singleTargetReference == factory.objectsMethods.requireNonNull
-            || singleTargetReference == factory.objectsMethods.requireNonNullWithMessage) {
-          return Reason.ELIGIBLE;
-        }
-        return Reason.UNSUPPORTED_LIBRARY_CALL;
       }
-      // TODO(b/147860220): EnumSet and EnumMap may be interesting to model.
-      if (singleTargetReference == factory.enumMembers.compareTo) {
+      if (invoke.isInvokeMethodWithReceiver()) {
+        Value receiver = invoke.asInvokeMethodWithReceiver().getReceiver();
+        if (receiver == enumValue && dexClass.isInterface()) {
+          return Reason.DEFAULT_METHOD_INVOKE;
+        }
+      }
+      return Reason.ELIGIBLE;
+    }
+    if (dexClass.isClasspathClass()) {
+      return Reason.INVALID_INVOKE;
+    }
+    assert dexClass.isLibraryClass();
+    DexMethod singleTargetReference = singleTarget.getReference();
+    if (dexClass.type != factory.enumType) {
+      // System.identityHashCode(Object) is supported for proto enums.
+      // Object#getClass without outValue and Objects.requireNonNull are supported since R8
+      // rewrites explicit null checks to such instructions.
+      if (singleTargetReference == factory.javaLangSystemMethods.identityHashCode) {
         return Reason.ELIGIBLE;
-      } else if (singleTargetReference == factory.enumMembers.equals) {
-        return Reason.ELIGIBLE;
-      } else if (singleTargetReference == factory.enumMembers.nameMethod
-          || singleTargetReference == factory.enumMembers.toString) {
-        assert invokeMethod.asInvokeMethodWithReceiver().getReceiver() == enumValue;
+      }
+      if (singleTargetReference == factory.stringMembers.valueOf) {
         addRequiredNameData(enumClass.type);
         return Reason.ELIGIBLE;
-      } else if (singleTargetReference == factory.enumMembers.ordinalMethod) {
+      }
+      if (singleTargetReference == factory.objectMembers.getClass
+          && (!invoke.hasOutValue() || !invoke.outValue().hasAnyUsers())) {
+        // This is a hidden null check.
         return Reason.ELIGIBLE;
-      } else if (singleTargetReference == factory.enumMembers.hashCode) {
+      }
+      if (singleTargetReference == factory.objectsMethods.requireNonNull
+          || singleTargetReference == factory.objectsMethods.requireNonNullWithMessage) {
         return Reason.ELIGIBLE;
-      } else if (singleTargetReference == factory.enumMembers.constructor) {
-        // Enum constructor call is allowed only if called from an enum initializer.
-        if (code.method().isInstanceInitializer()
-            && code.method().getHolderType() == enumClass.type) {
-          return Reason.ELIGIBLE;
-        }
       }
       return Reason.UNSUPPORTED_LIBRARY_CALL;
     }
-
-    // A field put is valid only if the field is not on an enum, and the field type and the valuePut
-    // have identical enum type.
-    if (instruction.isFieldPut()) {
-      FieldInstruction fieldInstruction = instruction.asFieldInstruction();
-      DexEncodedField field =
-          appView.appInfo().resolveField(fieldInstruction.getField()).getResolvedField();
-      if (field == null) {
-        return Reason.INVALID_FIELD_PUT;
-      }
-      DexProgramClass dexClass =
-          appView.programDefinitionFor(field.getHolderType(), code.context());
-      if (dexClass == null) {
-        return Reason.INVALID_FIELD_PUT;
-      }
-      if (fieldInstruction.isInstancePut()
-          && fieldInstruction.asInstancePut().object() == enumValue) {
+    // TODO(b/147860220): EnumSet and EnumMap may be interesting to model.
+    if (singleTargetReference == factory.enumMembers.compareTo) {
+      return Reason.ELIGIBLE;
+    } else if (singleTargetReference == factory.enumMembers.equals) {
+      return Reason.ELIGIBLE;
+    } else if (singleTargetReference == factory.enumMembers.nameMethod
+        || singleTargetReference == factory.enumMembers.toString) {
+      assert invoke.asInvokeMethodWithReceiver().getReceiver() == enumValue;
+      addRequiredNameData(enumClass.type);
+      return Reason.ELIGIBLE;
+    } else if (singleTargetReference == factory.enumMembers.ordinalMethod) {
+      return Reason.ELIGIBLE;
+    } else if (singleTargetReference == factory.enumMembers.hashCode) {
+      return Reason.ELIGIBLE;
+    } else if (singleTargetReference == factory.enumMembers.constructor) {
+      // Enum constructor call is allowed only if called from an enum initializer.
+      if (code.method().isInstanceInitializer()
+          && code.method().getHolderType() == enumClass.type) {
         return Reason.ELIGIBLE;
       }
-      // The put value has to be of the field type.
-      if (field.getReference().type.toBaseType(factory) != enumClass.type) {
-        return Reason.TYPE_MISMATCH_FIELD_PUT;
-      }
-      return Reason.ELIGIBLE;
     }
+    return Reason.UNSUPPORTED_LIBRARY_CALL;
+  }
 
-    if (instruction.isInstanceGet()) {
-      InstanceGet instanceGet = instruction.asInstanceGet();
-      assert instanceGet.getField().holder == enumClass.type;
-      DexField field = instanceGet.getField();
-      enumUnboxingCandidatesInfo.addRequiredEnumInstanceFieldData(enumClass.type, field);
-      return Reason.ELIGIBLE;
+  // Return is used for valueOf methods.
+  private Reason analyzeReturnUser(
+      Return theReturn,
+      IRCode code,
+      ProgramMethod context,
+      DexProgramClass enumClass,
+      Value enumValue) {
+    DexType returnType = context.getReturnType();
+    if (returnType != enumClass.type && returnType.toBaseType(factory) != enumClass.type) {
+      return Reason.IMPLICIT_UP_CAST_IN_RETURN;
     }
-
-    // An If using enum as inValue is valid if it matches e == null
-    // or e == X with X of same enum type as e. Ex: if (e == MyEnum.A).
-    if (instruction.isIf()) {
-      If anIf = instruction.asIf();
-      assert (anIf.getType() == If.Type.EQ || anIf.getType() == If.Type.NE)
-          : "Comparing a reference with " + anIf.getType().toString();
-      // e == null.
-      if (anIf.isZeroTest()) {
-        return Reason.ELIGIBLE;
-      }
-      // e == MyEnum.X
-      TypeElement leftType = anIf.lhs().getType();
-      TypeElement rightType = anIf.rhs().getType();
-      if (leftType.equalUpToNullability(rightType)) {
-        assert leftType.isClassType();
-        assert leftType.asClassType().getClassType() == enumClass.type;
-        return Reason.ELIGIBLE;
-      }
-      return Reason.INVALID_IF_TYPES;
-    }
-
-    if (instruction.isCheckCast()) {
-      if (allowCheckCast(instruction.asCheckCast())) {
-        return Reason.ELIGIBLE;
-      }
-      return Reason.DOWN_CAST;
-    }
-
-    if (instruction.isArrayLength()) {
-      // MyEnum[] array = ...; array.length; is valid.
-      return Reason.ELIGIBLE;
-    }
-
-    if (instruction.isArrayGet()) {
-      // MyEnum[] array = ...; array[0]; is valid.
-      return Reason.ELIGIBLE;
-    }
-
-    if (instruction.isArrayPut()) {
-      // MyEnum[] array; array[0] = MyEnum.A; is valid.
-      // MyEnum[][] array2d; MyEnum[] array; array2d[0] = array; is valid.
-      // MyEnum[]^N array; MyEnum[]^(N-1) element; array[0] = element; is valid.
-      // We need to prove that the value to put in and the array have correct types.
-      ArrayPut arrayPut = instruction.asArrayPut();
-      assert arrayPut.getMemberType() == MemberType.OBJECT;
-      TypeElement arrayType = arrayPut.array().getType();
-      assert arrayType.isArrayType();
-      assert arrayType.asArrayType().getBaseType().isClassType();
-      ClassTypeElement arrayBaseType = arrayType.asArrayType().getBaseType().asClassType();
-      TypeElement valueBaseType = arrayPut.value().getType();
-      if (valueBaseType.isArrayType()) {
-        assert valueBaseType.asArrayType().getBaseType().isClassType();
-        assert valueBaseType.asArrayType().getNesting() == arrayType.asArrayType().getNesting() - 1;
-        valueBaseType = valueBaseType.asArrayType().getBaseType();
-      }
-      if (arrayBaseType.equalUpToNullability(valueBaseType)
-          && arrayBaseType.getClassType() == enumClass.type) {
-        return Reason.ELIGIBLE;
-      }
-      return Reason.INVALID_ARRAY_PUT;
-    }
-
-    if (instruction.isAssume()) {
-      Value outValue = instruction.outValue();
-      return validateEnumUsages(code, outValue, enumClass);
-    }
-
-    // Return is used for valueOf methods.
-    if (instruction.isReturn()) {
-      DexType returnType = code.method().getReference().proto.returnType;
-      if (returnType != enumClass.type && returnType.toBaseType(factory) != enumClass.type) {
-        return Reason.IMPLICIT_UP_CAST_IN_RETURN;
-      }
-      return Reason.ELIGIBLE;
-    }
-
-    return Reason.OTHER_UNSUPPORTED_INSTRUCTION;
+    return Reason.ELIGIBLE;
   }
 
   private void reportEnumsAnalysis() {
@@ -1147,42 +1236,5 @@ public class EnumUnboxer {
     if (enumUnboxerRewriter != null) {
       enumUnboxerRewriter.synthesizeEnumUnboxingUtilityMethods(converter, executorService);
     }
-  }
-
-  public enum Reason {
-    ELIGIBLE,
-    ACCESSIBILITY,
-    ANNOTATION,
-    PINNED,
-    DOWN_CAST,
-    SUBTYPES,
-    INTERFACE,
-    MANY_INSTANCE_FIELDS,
-    GENERIC_INVOKE,
-    DEFAULT_METHOD_INVOKE,
-    UNEXPECTED_STATIC_FIELD,
-    UNRESOLVABLE_FIELD,
-    CONST_CLASS,
-    INVALID_PHI,
-    NO_INIT,
-    INVALID_INIT,
-    INVALID_CLINIT,
-    INVALID_INVOKE,
-    INVALID_INVOKE_ON_ARRAY,
-    IMPLICIT_UP_CAST_IN_RETURN,
-    VALUE_OF_INVOKE,
-    VALUES_INVOKE,
-    COMPARE_TO_INVOKE,
-    UNSUPPORTED_LIBRARY_CALL,
-    MISSING_INSTANCE_FIELD_DATA,
-    INVALID_FIELD_READ,
-    INVALID_FIELD_PUT,
-    INVALID_ARRAY_PUT,
-    FIELD_PUT_ON_ENUM,
-    TYPE_MISMATCH_FIELD_PUT,
-    INVALID_IF_TYPES,
-    DYNAMIC_TYPE,
-    ENUM_METHOD_CALLED_WITH_NULL_RECEIVER,
-    OTHER_UNSUPPORTED_INSTRUCTION;
   }
 }

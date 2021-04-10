@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.optimize.enums.EnumUnboxer.Reason;
+import com.android.tools.r8.ir.optimize.enums.eligibility.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 
