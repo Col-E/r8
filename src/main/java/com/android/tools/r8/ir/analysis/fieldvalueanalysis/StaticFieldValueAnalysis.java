@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
 import static com.android.tools.r8.ir.code.Opcodes.ARRAY_PUT;
+import static com.android.tools.r8.ir.code.Opcodes.ASSUME;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
 
@@ -273,7 +274,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
 
     ObjectState[] valuesState = new ObjectState[valuesSize];
     DexEncodedField valuesField = null;
-    for (Instruction user : value.uniqueUsers()) {
+    for (Instruction user : value.aliasedUsers()) {
       switch (user.opcode()) {
         case ARRAY_PUT:
           ArrayPut arrayPut = user.asArrayPut();
@@ -299,6 +300,12 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
             return null;
           }
           valuesState[index] = objectState;
+          break;
+
+        case ASSUME:
+          if (user.outValue().hasPhiUsers()) {
+            return null;
+          }
           break;
 
         case STATIC_PUT:
