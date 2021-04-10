@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -42,12 +43,9 @@ public class ReflectionOptimizer {
     }
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     ProgramMethod context = code.context();
-    for (BasicBlock block : code.blocks) {
-      // Conservatively bail out if the containing block has catch handlers.
-      // TODO(b/118509730): unless join of all catch types is ClassNotFoundException ?
-      if (block.hasCatchHandlers()) {
-        continue;
-      }
+    BasicBlockIterator blockIterator = code.listIterator();
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
       InstructionListIterator it = block.listIterator(code);
       while (it.hasNext()) {
         InvokeMethod invoke = it.nextUntil(x -> x.isInvokeStatic() || x.isInvokeVirtual());
@@ -61,14 +59,14 @@ public class ReflectionOptimizer {
               context,
               invoke.asInvokeStatic(),
               rewriteSingleGetClassOrForNameToConstClass(
-                  appView, code, it, invoke, affectedValues));
+                  appView, code, blockIterator, it, invoke, affectedValues));
         } else {
           applyTypeForGetClassTo(
               appView,
               context,
               invoke.asInvokeVirtual(),
               rewriteSingleGetClassOrForNameToConstClass(
-                  appView, code, it, invoke, affectedValues));
+                  appView, code, blockIterator, it, invoke, affectedValues));
         }
       }
     }
@@ -82,10 +80,12 @@ public class ReflectionOptimizer {
   private static BiConsumer<DexType, DexClass> rewriteSingleGetClassOrForNameToConstClass(
       AppView<AppInfoWithLiveness> appView,
       IRCode code,
+      BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       Set<Value> affectedValues) {
     return (type, baseClass) -> {
+      InitClass initClass = null;
       if (invoke.getInvokedMethod().match(appView.dexItemFactory().classMethods.forName)) {
         // Bail-out if the optimization could increase the size of the main dex.
         if (baseClass.isProgramClass()
@@ -106,25 +106,42 @@ public class ReflectionOptimizer {
             return;
           }
 
-          instructionIterator.addBefore(
+          initClass =
               InitClass.builder()
                   .setFreshOutValue(code, TypeElement.getInt())
                   .setType(type)
                   .setPosition(invoke)
-                  .build());
+                  .build();
         }
       }
 
       // If there are no users of the const-class then simply remove the instruction.
       if (!invoke.hasOutValue() || !invoke.outValue().hasAnyUsers()) {
-        instructionIterator.removeOrReplaceByDebugLocalRead();
+        if (initClass != null) {
+          instructionIterator.replaceCurrentInstruction(initClass);
+        } else {
+          instructionIterator.removeOrReplaceByDebugLocalRead();
+        }
         return;
       }
 
       // Otherwise insert a const-class instruction.
+      BasicBlock block = invoke.getBlock();
       affectedValues.addAll(invoke.outValue().affectedValues());
       instructionIterator.replaceCurrentInstructionWithConstClass(
           appView, code, type, invoke.getLocalInfo());
+
+      if (initClass != null) {
+        if (block.hasCatchHandlers()) {
+          instructionIterator
+              .splitCopyCatchHandlers(code, blockIterator, appView.options())
+              .listIterator(code)
+              .add(initClass);
+        } else {
+          instructionIterator.add(initClass);
+        }
+      }
+
       if (appView.options().isGeneratingClassFiles()) {
         code.method()
             .upgradeClassFileVersion(
