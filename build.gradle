@@ -441,8 +441,7 @@ def x20Dependencies = [
         "youtube/youtube.android_14.44",
         "youtube/youtube.android_15.08",
         "youtube/youtube.android_15.09",
-        "youtube/youtube.android_15.33",
-        "youtube/youtube.android_16.10"
+        "youtube/youtube.android_15.33"
     ],
 ]
 
