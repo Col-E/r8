@@ -10,8 +10,6 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 
 public interface InterfaceDesugaringProcessor {
 
-  boolean shouldProcess(DexProgramClass clazz);
-
   // The process phase can be performed before, concurrently or after code desugaring. It can be
   // executed concurrently on all classes. Each processing may require to read other classes,
   // so this phase cannot modify the classes themselves (for example insertion/removal of methods).

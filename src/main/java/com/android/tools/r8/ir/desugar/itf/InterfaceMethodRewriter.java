@@ -74,9 +74,14 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
@@ -128,9 +133,8 @@ public final class InterfaceMethodRewriter {
   // The emulatedMethod set is there to avoid doing the emulated look-up too often.
   private final Set<DexString> emulatedMethods = Sets.newIdentityHashSet();
 
-  // All forwarding methods generated during desugaring. We don't synchronize access
-  // to this collection since it is only filled in ClassProcessor running synchronously.
-  private final SortedProgramMethodSet synthesizedMethods = SortedProgramMethodSet.create();
+  // All forwarding methods and all throwing methods generated during desugaring.
+  private final ProgramMethodSet synthesizedMethods = ProgramMethodSet.createConcurrent();
 
   // Caches default interface method info for already processed interfaces.
   private final Map<DexType, DefaultMethodsHelper.Collection> cache = new ConcurrentHashMap<>();
@@ -978,15 +982,21 @@ public final class InterfaceMethodRewriter {
     InterfaceProcessor interfaceProcessor = new InterfaceProcessor(appView, this);
 
     // TODO(b/183998768): Merge the following loops into a single one.
-    process(emulatedInterfaceProcessor, builder, flavour);
     process(classProcessor, builder, flavour);
-    process(interfaceProcessor, builder, flavour);
+
+    // The interface processors must be ordered so that finalization of the processing is performed
+    // in that order. The emulatedInterfaceProcessor has to be last at this point to avoid renaming
+    // emulated interfaces before the other processing.
+    ImmutableList<InterfaceDesugaringProcessor> orderedInterfaceDesugaringProcessors =
+        ImmutableList.of(interfaceProcessor, emulatedInterfaceProcessor);
+    processClassesConcurrently(
+        orderedInterfaceDesugaringProcessors, builder, flavour, executorService);
 
     classProcessor.finalizeProcessing(builder, synthesizedMethods);
-    interfaceProcessor.finalizeProcessing(builder, synthesizedMethods);
-    emulatedInterfaceProcessor.finalizeProcessing(builder, synthesizedMethods);
 
-    converter.processMethodsConcurrently(synthesizedMethods, executorService);
+    SortedProgramMethodSet sortedSynthesizedMethods = SortedProgramMethodSet.create();
+    sortedSynthesizedMethods.addAll(synthesizedMethods);
+    converter.processMethodsConcurrently(sortedSynthesizedMethods, executorService);
 
     // Cached data is not needed any more.
     clear();
@@ -1004,9 +1014,29 @@ public final class InterfaceMethodRewriter {
     return (!clazz.originatesFromDexResource() || flavour == Flavor.IncludeAllResources);
   }
 
+  private void processClassesConcurrently(
+      List<InterfaceDesugaringProcessor> processors,
+      Builder<?> builder,
+      Flavor flavour,
+      ExecutorService executorService)
+      throws ExecutionException {
+    ThreadUtils.processItems(
+        Iterables.filter(
+            builder.getProgramClasses(), (DexProgramClass clazz) -> shouldProcess(clazz, flavour)),
+        clazz -> {
+          for (InterfaceDesugaringProcessor processor : processors) {
+            processor.process(clazz, synthesizedMethods);
+          }
+        },
+        executorService);
+    for (InterfaceDesugaringProcessor processor : processors) {
+      processor.finalizeProcessing(builder, synthesizedMethods);
+    }
+  }
+
   private void process(InterfaceDesugaringProcessor processor, Builder<?> builder, Flavor flavour) {
     for (DexProgramClass clazz : builder.getProgramClasses()) {
-      if (shouldProcess(clazz, flavour) && processor.shouldProcess(clazz)) {
+      if (shouldProcess(clazz, flavour)) {
         processor.process(clazz, synthesizedMethods);
       }
     }

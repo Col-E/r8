@@ -375,12 +375,9 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
 
   @Override
   public void process(DexProgramClass clazz, ProgramMethodSet synthesizedMethods) {
-    visitClassInfo(clazz, new ReportingContext(clazz, clazz));
-  }
-
-  @Override
-  public boolean shouldProcess(DexProgramClass clazz) {
-    return !clazz.isInterface();
+    if (!clazz.isInterface()) {
+      visitClassInfo(clazz, new ReportingContext(clazz, clazz));
+    }
   }
 
   // We introduce forwarding methods only once all desugaring has been performed to avoid

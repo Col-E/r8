@@ -79,7 +79,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
       new ConcurrentHashMap<>();
 
   // All created companion classes indexed by interface type.
-  final Map<DexClass, DexProgramClass> syntheticClasses = new IdentityHashMap<>();
+  final Map<DexClass, DexProgramClass> syntheticClasses = new ConcurrentHashMap<>();
 
   InterfaceProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
@@ -87,13 +87,11 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   }
 
   @Override
-  public boolean shouldProcess(DexProgramClass clazz) {
-    return clazz.isInterface();
-  }
-
-  @Override
   public void process(DexProgramClass iface, ProgramMethodSet synthesizedMethods) {
-    assert iface.isInterface();
+    if (!iface.isInterface()) {
+      return;
+    }
+
     // The list of methods to be created in companion class.
     List<DexEncodedMethod> companionMethods = new ArrayList<>();
 
