@@ -54,105 +54,136 @@ public class GenericSignatureEnqueuerAnalysis extends EnqueuerAnalysis {
     }
 
     @Override
-    public void visitClassSignature(ClassSignature classSignature) {
+    public ClassSignature visitClassSignature(ClassSignature classSignature) {
       if (classSignature.hasNoSignature()) {
-        return;
+        return classSignature;
       }
-      classSignature.visit(this);
+      return classSignature.visit(this);
     }
 
     @Override
-    public void visitMethodSignature(MethodTypeSignature methodSignature) {
+    public MethodTypeSignature visitMethodSignature(MethodTypeSignature methodSignature) {
       if (methodSignature.hasNoSignature()) {
-        return;
+        return methodSignature;
       }
-      methodSignature.visit(this);
+      return methodSignature.visit(this);
     }
 
     @Override
-    public void visitFieldTypeSignature(FieldTypeSignature fieldSignature) {
+    public FieldTypeSignature visitFieldTypeSignature(FieldTypeSignature fieldSignature) {
       if (fieldSignature.hasNoSignature()) {
-        return;
+        return fieldSignature;
       }
       if (fieldSignature.isStar()) {
-        return;
+        return fieldSignature;
       }
       if (fieldSignature.isTypeVariableSignature()) {
-        return;
+        return fieldSignature;
       }
       if (fieldSignature.isArrayTypeSignature()) {
         fieldSignature.asArrayTypeSignature().visit(this);
-        return;
+        return fieldSignature;
       }
       assert fieldSignature.isClassTypeSignature();
-      visitClassTypeSignature(fieldSignature.asClassTypeSignature());
-    }
-
-    private void visitClassTypeSignature(ClassTypeSignature classTypeSignature) {
-      enqueuerDefinitionSupplier.definitionFor(classTypeSignature.type, context);
-      classTypeSignature.visit(this);
+      return fieldSignature.asClassTypeSignature().visit(this);
     }
 
     @Override
-    public void visitFormalTypeParameters(List<FormalTypeParameter> formalTypeParameters) {
+    public List<FormalTypeParameter> visitFormalTypeParameters(
+        List<FormalTypeParameter> formalTypeParameters) {
       formalTypeParameters.forEach(formalTypeParameter -> formalTypeParameter.visit(this));
+      return formalTypeParameters;
     }
 
     @Override
-    public void visitClassBound(FieldTypeSignature fieldSignature) {
-      visitFieldTypeSignature(fieldSignature);
+    public FieldTypeSignature visitClassBound(FieldTypeSignature fieldSignature) {
+      return visitFieldTypeSignature(fieldSignature);
     }
 
     @Override
-    public void visitInterfaceBound(FieldTypeSignature fieldSignature) {
-      visitFieldTypeSignature(fieldSignature);
+    public List<FieldTypeSignature> visitInterfaceBounds(List<FieldTypeSignature> fieldSignatures) {
+      if (fieldSignatures == null) {
+        return null;
+      }
+      fieldSignatures.forEach(this::visitInterfaceBound);
+      return fieldSignatures;
     }
 
     @Override
-    public void visitSuperClass(ClassTypeSignature classTypeSignature) {
-      visitClassTypeSignature(classTypeSignature);
+    public FieldTypeSignature visitInterfaceBound(FieldTypeSignature fieldSignature) {
+      return visitFieldTypeSignature(fieldSignature);
     }
 
     @Override
-    public void visitSuperInterface(ClassTypeSignature classTypeSignature) {
-      visitClassTypeSignature(classTypeSignature);
+    public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
+      return classTypeSignature.visit(this);
     }
 
     @Override
-    public void visitTypeSignature(TypeSignature typeSignature) {
+    public List<ClassTypeSignature> visitSuperInterfaces(
+        List<ClassTypeSignature> interfaceSignatures) {
+      if (interfaceSignatures == null) {
+        return null;
+      }
+      interfaceSignatures.forEach(this::visitSuperInterface);
+      return interfaceSignatures;
+    }
+
+    @Override
+    public ClassTypeSignature visitSuperInterface(ClassTypeSignature classTypeSignature) {
+      return classTypeSignature.visit(this);
+    }
+
+    @Override
+    public TypeSignature visitTypeSignature(TypeSignature typeSignature) {
       if (typeSignature.isBaseTypeSignature()) {
-        return;
+        return typeSignature;
       }
       assert typeSignature.isFieldTypeSignature();
-      visitFieldTypeSignature(typeSignature.asFieldTypeSignature());
+      return visitFieldTypeSignature(typeSignature.asFieldTypeSignature());
     }
 
     @Override
-    public void visitSimpleClass(ClassTypeSignature classTypeSignature) {
-      visitClassTypeSignature(classTypeSignature);
+    public ClassTypeSignature visitSimpleClass(ClassTypeSignature classTypeSignature) {
+      return classTypeSignature.visit(this);
     }
 
     @Override
-    public void visitReturnType(ReturnType returnType) {
+    public ReturnType visitReturnType(ReturnType returnType) {
       if (returnType.isVoidDescriptor()) {
-        return;
+        return returnType;
       }
       visitTypeSignature(returnType.typeSignature);
+      return returnType;
     }
 
     @Override
-    public void visitMethodTypeSignatures(List<TypeSignature> typeSignatures) {
+    public List<TypeSignature> visitMethodTypeSignatures(List<TypeSignature> typeSignatures) {
       typeSignatures.forEach(this::visitTypeSignature);
+      return typeSignatures;
     }
 
     @Override
-    public void visitThrowsSignatures(List<TypeSignature> typeSignatures) {
+    public List<TypeSignature> visitThrowsSignatures(List<TypeSignature> typeSignatures) {
       typeSignatures.forEach(this::visitTypeSignature);
+      return typeSignatures;
     }
 
     @Override
-    public void visitTypeArguments(List<FieldTypeSignature> typeArguments) {
+    public List<FieldTypeSignature> visitTypeArguments(List<FieldTypeSignature> typeArguments) {
       typeArguments.forEach(this::visitFieldTypeSignature);
+      return typeArguments;
+    }
+
+    @Override
+    public FormalTypeParameter visitFormalTypeParameter(FormalTypeParameter formalTypeParameter) {
+      return formalTypeParameter.visit(this);
+    }
+
+    @Override
+    public DexType visitType(DexType type) {
+      enqueuerDefinitionSupplier.definitionFor(type, context);
+      return type;
     }
   }
 }

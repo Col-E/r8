@@ -8,19 +8,17 @@ import static com.android.tools.r8.graph.GenericSignature.EMPTY_SUPER_INTERFACES
 import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_ARGUMENTS;
 import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_PARAMS;
 import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_SIGNATURES;
-import static com.android.tools.r8.graph.GenericSignature.FieldTypeSignature.noSignature;
-import static com.android.tools.r8.graph.GenericSignature.StarFieldTypeSignature.STAR_FIELD_TYPE_SIGNATURE;
 import static com.google.common.base.Predicates.alwaysFalse;
 
-import com.android.tools.r8.graph.GenericSignature.ArrayTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.ReturnType;
+import com.android.tools.r8.graph.GenericSignature.StarFieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
-import java.util.ArrayList;
+import com.android.tools.r8.utils.ListUtils;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -60,14 +58,15 @@ public class GenericSignatureTypeRewriter {
     if (classSignature.hasNoSignature() || classSignature.isInvalid()) {
       return classSignature;
     }
-    return new ClassSignatureRewriter().run(classSignature);
+    return new GenericSignatureRewriter().visitClassSignature(classSignature);
   }
 
   public FieldTypeSignature rewrite(FieldTypeSignature fieldTypeSignature) {
     if (fieldTypeSignature.hasNoSignature() || fieldTypeSignature.isInvalid()) {
       return fieldTypeSignature;
     }
-    FieldTypeSignature rewrittenSignature = new TypeSignatureRewriter().run(fieldTypeSignature);
+    FieldTypeSignature rewrittenSignature =
+        new GenericSignatureRewriter().visitFieldTypeSignature(fieldTypeSignature);
     return rewrittenSignature == null ? FieldTypeSignature.noSignature() : rewrittenSignature;
   }
 
@@ -75,268 +74,169 @@ public class GenericSignatureTypeRewriter {
     if (methodTypeSignature.hasNoSignature() || methodTypeSignature.isInvalid()) {
       return methodTypeSignature;
     }
-    return new MethodTypeSignatureRewriter().run(methodTypeSignature);
+    return new GenericSignatureRewriter().visitMethodSignature(methodTypeSignature);
   }
 
-  private class ClassSignatureRewriter implements GenericSignatureVisitor {
-
-    private final List<FormalTypeParameter> rewrittenTypeParameters = new ArrayList<>();
-    private ClassTypeSignature rewrittenSuperClass;
-    private final List<ClassTypeSignature> rewrittenSuperInterfaces = new ArrayList<>();
+  private class GenericSignatureRewriter implements GenericSignatureVisitor {
 
     @Override
-    public void visitClassSignature(ClassSignature classSignature) {
-      classSignature.visit(this);
-    }
-
-    @Override
-    public void visitFormalTypeParameters(List<FormalTypeParameter> formalTypeParameters) {
-      for (FormalTypeParameter formalTypeParameter : formalTypeParameters) {
-        rewrittenTypeParameters.add(new FormalTypeParameterRewriter().run(formalTypeParameter));
-      }
-    }
-
-    @Override
-    public void visitSuperClass(ClassTypeSignature classTypeSignature) {
-      rewrittenSuperClass = new ClassTypeSignatureRewriter(true).run(classTypeSignature);
-      if (rewrittenSuperClass == null) {
-        rewrittenSuperClass = new ClassTypeSignature(factory.objectType, EMPTY_TYPE_ARGUMENTS);
-      }
-    }
-
-    @Override
-    public void visitSuperInterface(ClassTypeSignature classTypeSignature) {
-      ClassTypeSignature superInterface =
-          new ClassTypeSignatureRewriter(true).run(classTypeSignature);
-      if (superInterface != null) {
-        rewrittenSuperInterfaces.add(superInterface);
-      }
-    }
-
-    private ClassSignature run(ClassSignature classSignature) {
-      classSignature.visit(this);
-      if (rewrittenTypeParameters.isEmpty()
-          && rewrittenSuperInterfaces.isEmpty()
-          && rewrittenSuperClass.hasNoSignature()
-          && rewrittenSuperClass.type == factory.objectType) {
+    public ClassSignature visitClassSignature(ClassSignature classSignature) {
+      ClassSignature rewritten = classSignature.visit(this);
+      if (rewritten.getFormalTypeParameters().isEmpty()
+          && rewritten.superInterfaceSignatures.isEmpty()
+          && rewritten.superClassSignature.type == factory.objectType) {
         return ClassSignature.noSignature();
       }
-      return new ClassSignature(
-          rewrittenTypeParameters.isEmpty() ? EMPTY_TYPE_PARAMS : rewrittenTypeParameters,
-          rewrittenSuperClass,
-          rewrittenSuperInterfaces.isEmpty() ? EMPTY_SUPER_INTERFACES : rewrittenSuperInterfaces);
-    }
-  }
-
-  private class MethodTypeSignatureRewriter implements GenericSignatureVisitor {
-
-    private final List<FormalTypeParameter> rewrittenTypeParameters = new ArrayList<>();
-    private final List<TypeSignature> rewrittenTypeSignatures = new ArrayList<>();
-
-    ReturnType rewrittenReturnType = null;
-    private final List<TypeSignature> rewrittenThrowsSignatures = new ArrayList<>();
-
-    @Override
-    public void visitFormalTypeParameters(List<FormalTypeParameter> formalTypeParameters) {
-      for (FormalTypeParameter formalTypeParameter : formalTypeParameters) {
-        rewrittenTypeParameters.add(new FormalTypeParameterRewriter().run(formalTypeParameter));
-      }
+      return rewritten;
     }
 
     @Override
-    public void visitMethodTypeSignatures(List<TypeSignature> typeSignatures) {
-      for (TypeSignature typeSignature : typeSignatures) {
-        TypeSignature rewrittenType = new TypeSignatureRewriter().run(typeSignature);
-        rewrittenTypeSignatures.add(rewrittenType == null ? objectTypeSignature : rewrittenType);
-      }
+    public MethodTypeSignature visitMethodSignature(MethodTypeSignature methodSignature) {
+      return methodSignature.visit(this);
     }
 
     @Override
-    public void visitReturnType(ReturnType returnType) {
-      if (returnType.isVoidDescriptor()) {
-        rewrittenReturnType = ReturnType.VOID;
+    public FieldTypeSignature visitFieldTypeSignature(FieldTypeSignature fieldSignature) {
+      if (fieldSignature.isStar() || fieldSignature.isTypeVariableSignature()) {
+        return fieldSignature;
+      } else if (fieldSignature.isArrayTypeSignature()) {
+        return fieldSignature.asArrayTypeSignature().visit(this);
       } else {
-        TypeSignature originalType = returnType.typeSignature();
-        TypeSignature rewrittenType = new TypeSignatureRewriter().run(originalType);
-        if (rewrittenType == null) {
-          rewrittenReturnType = ReturnType.VOID;
-        } else if (rewrittenType == originalType) {
-          rewrittenReturnType = returnType;
-        } else {
-          rewrittenReturnType = new ReturnType(rewrittenType);
-        }
+        assert fieldSignature.isClassTypeSignature();
+        return fieldSignature.asClassTypeSignature().visit(this);
       }
     }
 
     @Override
-    public void visitThrowsSignatures(List<TypeSignature> typeSignatures) {
-      for (TypeSignature typeSignature : typeSignatures) {
-        TypeSignature rewrittenType = new TypeSignatureRewriter().run(typeSignature);
-        // If a throwing type is no longer found we remove it from the signature.
-        if (rewrittenType != null) {
-          rewrittenThrowsSignatures.add(rewrittenType);
-        }
-      }
-    }
-
-    private MethodTypeSignature run(MethodTypeSignature methodTypeSignature) {
-      methodTypeSignature.visit(this);
-      assert rewrittenReturnType != null;
-      if (rewrittenTypeParameters.isEmpty()
-          && rewrittenTypeSignatures.isEmpty()
-          && rewrittenReturnType.isVoidDescriptor()
-          && rewrittenThrowsSignatures.isEmpty()) {
-        return MethodTypeSignature.noSignature();
-      }
-      return new MethodTypeSignature(
-          rewrittenTypeParameters.isEmpty() ? EMPTY_TYPE_PARAMS : rewrittenTypeParameters,
-          rewrittenTypeSignatures.isEmpty() ? EMPTY_TYPE_SIGNATURES : rewrittenTypeSignatures,
-          rewrittenReturnType,
-          rewrittenThrowsSignatures.isEmpty() ? EMPTY_TYPE_SIGNATURES : rewrittenThrowsSignatures);
-    }
-  }
-
-  private class FormalTypeParameterRewriter implements GenericSignatureVisitor {
-
-    private FieldTypeSignature rewrittenClassBound = noSignature();
-    private final List<FieldTypeSignature> rewrittenInterfaceBounds = new ArrayList<>();
-
-    @Override
-    public void visitClassBound(FieldTypeSignature fieldSignature) {
-      rewrittenClassBound = new TypeSignatureRewriter().run(fieldSignature);
-    }
-
-    @Override
-    public void visitInterfaceBound(FieldTypeSignature fieldSignature) {
-      FieldTypeSignature interfaceBound = new TypeSignatureRewriter().run(fieldSignature);
-      if (interfaceBound != null) {
-        rewrittenInterfaceBounds.add(interfaceBound);
-      }
-    }
-
-    private FormalTypeParameter run(FormalTypeParameter formalTypeParameter) {
-      formalTypeParameter.visit(this);
-      // Guard against the case where we have <T::...> that is, no class or interfaces bounds.
-      if (rewrittenInterfaceBounds.isEmpty()
-          && (rewrittenClassBound == null || !rewrittenClassBound.hasSignature())) {
-        rewrittenClassBound = objectTypeSignature;
-      }
-      return new FormalTypeParameter(
-          formalTypeParameter.name,
-          rewrittenClassBound == null ? noSignature() : rewrittenClassBound,
-          rewrittenInterfaceBounds.isEmpty() ? EMPTY_TYPE_ARGUMENTS : rewrittenInterfaceBounds);
-    }
-  }
-
-  private class TypeSignatureRewriter implements GenericSignatureVisitor {
-
-    private TypeSignature run(TypeSignature typeSignature) {
+    public TypeSignature visitTypeSignature(TypeSignature typeSignature) {
       if (typeSignature.isBaseTypeSignature()) {
         return typeSignature;
+      } else {
+        return visitFieldTypeSignature(typeSignature.asFieldTypeSignature());
       }
-      assert typeSignature.isFieldTypeSignature();
-      return run(typeSignature.asFieldTypeSignature());
     }
 
-    private FieldTypeSignature run(FieldTypeSignature fieldTypeSignature) {
-      if (fieldTypeSignature.isStar()) {
-        return fieldTypeSignature;
+    @Override
+    public List<FormalTypeParameter> visitFormalTypeParameters(
+        List<FormalTypeParameter> formalTypeParameters) {
+      if (formalTypeParameters.isEmpty()) {
+        return EMPTY_TYPE_PARAMS;
       }
-      if (fieldTypeSignature.isTypeVariableSignature()) {
-        return fieldTypeSignature;
+      return ListUtils.map(formalTypeParameters, this::visitFormalTypeParameter);
+    }
+
+    @Override
+    public FormalTypeParameter visitFormalTypeParameter(FormalTypeParameter formalTypeParameter) {
+      return formalTypeParameter.visit(this);
+    }
+
+    @Override
+    public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
+      ClassTypeSignature rewritten = classTypeSignature.visit(this);
+      return rewritten == null || rewritten.type() == context.type
+          ? new ClassTypeSignature(factory.objectType, EMPTY_TYPE_ARGUMENTS)
+          : rewritten;
+    }
+
+    @Override
+    public List<ClassTypeSignature> visitSuperInterfaces(
+        List<ClassTypeSignature> interfaceSignatures) {
+      if (interfaceSignatures.isEmpty()) {
+        return EMPTY_SUPER_INTERFACES;
       }
-      if (fieldTypeSignature.isArrayTypeSignature()) {
-        ArrayTypeSignature arrayTypeSignature = fieldTypeSignature.asArrayTypeSignature();
-        TypeSignature rewrittenElement = run(arrayTypeSignature.elementSignature);
-        if (rewrittenElement == null) {
-          return new ArrayTypeSignature(objectTypeSignature);
+      return ListUtils.mapNotNull(interfaceSignatures, this::visitSuperInterface);
+    }
+
+    @Override
+    public ClassTypeSignature visitSuperInterface(ClassTypeSignature classTypeSignature) {
+      ClassTypeSignature rewritten = classTypeSignature.visit(this);
+      return rewritten == null || rewritten.type() == context.type ? null : rewritten;
+    }
+
+    @Override
+    public List<TypeSignature> visitMethodTypeSignatures(List<TypeSignature> typeSignatures) {
+      if (typeSignatures.isEmpty()) {
+        return EMPTY_TYPE_SIGNATURES;
+      }
+      return ListUtils.map(
+          typeSignatures,
+          typeSignature -> {
+            TypeSignature rewrittenSignature = visitTypeSignature(typeSignature);
+            return rewrittenSignature == null ? objectTypeSignature : rewrittenSignature;
+          });
+    }
+
+    @Override
+    public ReturnType visitReturnType(ReturnType returnType) {
+      if (returnType.isVoidDescriptor()) {
+        return ReturnType.VOID;
+      } else {
+        TypeSignature originalType = returnType.typeSignature();
+        TypeSignature rewrittenType = visitTypeSignature(originalType);
+        if (rewrittenType == null) {
+          return ReturnType.VOID;
+        } else if (rewrittenType == originalType) {
+          return returnType;
+        } else {
+          return new ReturnType(rewrittenType);
         }
-        return rewrittenElement.toArrayTypeSignature();
       }
-      assert fieldTypeSignature.isClassTypeSignature();
-      ClassTypeSignature classTypeSignature = fieldTypeSignature.asClassTypeSignature();
-      if (classTypeSignature.hasNoSignature()) {
-        return classTypeSignature;
-      }
-      return new ClassTypeSignatureRewriter(false).run(classTypeSignature);
-    }
-  }
-
-  private class ClassTypeSignatureRewriter implements GenericSignatureVisitor {
-
-    private final boolean isSuperClassOrInterface;
-
-    // These fields are updated when iterating the modeled structure.
-    private DexType currentType;
-
-    // The following references are used to have a head and tail pointer to the classTypeSignature
-    // link we are building. The topClassSignature will have a reference to the top-most package
-    // and class-name. The parentClassSignature is a pointer pointing to the tail always and will
-    // be linked and updated when calling ClassTypeSignature.link.
-    private ClassTypeSignature topClassSignature;
-    private ClassTypeSignature parentClassSignature;
-
-    private ClassTypeSignatureRewriter(boolean isSuperClassOrInterface) {
-      this.isSuperClassOrInterface = isSuperClassOrInterface;
     }
 
     @Override
-    public void visitSimpleClass(ClassTypeSignature classTypeSignature) {
-      currentType = getTarget(classTypeSignature.type);
-      if (currentType == null) {
-        return;
+    public List<TypeSignature> visitThrowsSignatures(List<TypeSignature> typeSignatures) {
+      if (typeSignatures.isEmpty()) {
+        return EMPTY_TYPE_SIGNATURES;
       }
-      classTypeSignature.visit(this);
+      // If a throwing type is no longer found we remove it from the signature.
+      return ListUtils.mapNotNull(typeSignatures, this::visitTypeSignature);
     }
 
     @Override
-    public void visitTypeArguments(List<FieldTypeSignature> typeArguments) {
-      ClassTypeSignature newClassTypeSignature;
+    public FieldTypeSignature visitClassBound(FieldTypeSignature fieldSignature) {
+      return visitFieldTypeSignature(fieldSignature);
+    }
+
+    @Override
+    public List<FieldTypeSignature> visitInterfaceBounds(List<FieldTypeSignature> fieldSignatures) {
+      if (fieldSignatures == null) {
+        return null;
+      }
+      if (fieldSignatures.isEmpty()) {
+        return EMPTY_TYPE_ARGUMENTS;
+      }
+      return ListUtils.mapNotNull(fieldSignatures, this::visitFieldTypeSignature);
+    }
+
+    @Override
+    public FieldTypeSignature visitInterfaceBound(FieldTypeSignature fieldSignature) {
+      return visitFieldTypeSignature(fieldSignature);
+    }
+
+    @Override
+    public ClassTypeSignature visitSimpleClass(ClassTypeSignature classTypeSignature) {
+      return classTypeSignature.visit(this);
+    }
+
+    @Override
+    public List<FieldTypeSignature> visitTypeArguments(List<FieldTypeSignature> typeArguments) {
       if (typeArguments.isEmpty()) {
-        newClassTypeSignature = new ClassTypeSignature(currentType, EMPTY_TYPE_ARGUMENTS);
-      } else {
-        List<FieldTypeSignature> rewrittenTypeArguments = new ArrayList<>(typeArguments.size());
-        for (FieldTypeSignature typeArgument : typeArguments) {
-          if (typeArgument.isStar()) {
-            rewrittenTypeArguments.add(typeArgument);
-            continue;
-          }
-          FieldTypeSignature rewritten = new TypeSignatureRewriter().run(typeArgument);
-          if (rewritten != null) {
-            rewrittenTypeArguments.add(rewritten.asArgument(typeArgument.getWildcardIndicator()));
-          } else {
-            rewrittenTypeArguments.add(STAR_FIELD_TYPE_SIGNATURE);
-          }
-        }
-        newClassTypeSignature = new ClassTypeSignature(currentType, rewrittenTypeArguments);
+        return EMPTY_TYPE_ARGUMENTS;
       }
-      if (topClassSignature == null) {
-        topClassSignature = newClassTypeSignature;
-        parentClassSignature = newClassTypeSignature;
-      } else {
-        ClassTypeSignature.link(parentClassSignature, newClassTypeSignature);
-        parentClassSignature = newClassTypeSignature;
-      }
+      return ListUtils.map(
+          typeArguments,
+          fieldTypeSignature -> {
+            FieldTypeSignature rewrittenSignature = visitFieldTypeSignature(fieldTypeSignature);
+            return rewrittenSignature == null
+                ? StarFieldTypeSignature.getStarFieldTypeSignature()
+                : rewrittenSignature;
+          });
     }
 
-    private ClassTypeSignature run(ClassTypeSignature classTypeSignature) {
-      currentType = getTarget(classTypeSignature.type);
-      if (currentType == null) {
-        return null;
-      }
-      classTypeSignature.visit(this);
-      return topClassSignature;
-    }
-
-    private DexType getTarget(DexType type) {
+    @Override
+    public DexType visitType(DexType type) {
       DexType rewrittenType = lookupType.apply(type);
-      if (wasPruned.test(rewrittenType)) {
-        return null;
-      }
-      if (isSuperClassOrInterface && context.type == rewrittenType) {
-        return null;
-      }
-      return rewrittenType;
+      return wasPruned.test(rewrittenType) ? null : rewrittenType;
     }
   }
 }

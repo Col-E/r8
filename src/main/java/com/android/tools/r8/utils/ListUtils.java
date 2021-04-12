@@ -87,6 +87,17 @@ public class ListUtils {
     return result;
   }
 
+  public static <S, T> List<T> mapNotNull(Collection<S> list, Function<S, T> fn) {
+    List<T> result = new ArrayList<>(list.size());
+    for (S element : list) {
+      T mapped = fn.apply(element);
+      if (mapped != null) {
+        result.add(mapped);
+      }
+    }
+    return result;
+  }
+
   /**
    * Rewrites the input list based on the given function. Returns the mapped list if any elements
    * were rewritten, otherwise returns the original list.

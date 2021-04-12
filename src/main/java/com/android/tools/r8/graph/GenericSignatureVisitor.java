@@ -16,59 +16,77 @@ import java.util.List;
 
 public interface GenericSignatureVisitor {
 
-  default void visitClassSignature(ClassSignature classSignature) {
+  default ClassSignature visitClassSignature(ClassSignature classSignature) {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitMethodSignature(MethodTypeSignature methodSignature) {
+  default MethodTypeSignature visitMethodSignature(MethodTypeSignature methodSignature) {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitFieldTypeSignature(FieldTypeSignature fieldSignature) {
+  default FieldTypeSignature visitFieldTypeSignature(FieldTypeSignature fieldSignature) {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitFormalTypeParameters(List<FormalTypeParameter> formalTypeParameters) {
+  default List<FormalTypeParameter> visitFormalTypeParameters(
+      List<FormalTypeParameter> formalTypeParameters) {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitClassBound(FieldTypeSignature fieldSignature) {
+  default FormalTypeParameter visitFormalTypeParameter(FormalTypeParameter formalTypeParameter) {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitInterfaceBound(FieldTypeSignature fieldSignature) {
+  default FieldTypeSignature visitClassBound(FieldTypeSignature fieldSignature) {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitSuperClass(ClassTypeSignature classTypeSignature) {
+  default List<FieldTypeSignature> visitInterfaceBounds(List<FieldTypeSignature> fieldSignatures) {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitSuperInterface(ClassTypeSignature classTypeSignature) {
+  default FieldTypeSignature visitInterfaceBound(FieldTypeSignature fieldSignature) {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitTypeSignature(TypeSignature typeSignature) {
+  default ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitSimpleClass(ClassTypeSignature classTypeSignature) {
+  default List<ClassTypeSignature> visitSuperInterfaces(
+      List<ClassTypeSignature> interfaceSignatures) {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitReturnType(ReturnType returnType) {
+  default ClassTypeSignature visitSuperInterface(ClassTypeSignature classTypeSignature) {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitMethodTypeSignatures(List<TypeSignature> typeSignatures) {
+  default TypeSignature visitTypeSignature(TypeSignature typeSignature) {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitThrowsSignatures(List<TypeSignature> typeSignatures) {
+  default ClassTypeSignature visitSimpleClass(ClassTypeSignature classTypeSignature) {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitTypeArguments(List<FieldTypeSignature> typeArguments) {
+  default ReturnType visitReturnType(ReturnType returnType) {
+    throw new Unreachable("Implement if visited");
+  }
+
+  default List<TypeSignature> visitMethodTypeSignatures(List<TypeSignature> typeSignatures) {
+    throw new Unreachable("Implement if visited");
+  }
+
+  default List<TypeSignature> visitThrowsSignatures(List<TypeSignature> typeSignatures) {
+    throw new Unreachable("Implement if visited");
+  }
+
+  default List<FieldTypeSignature> visitTypeArguments(List<FieldTypeSignature> typeArguments) {
+    throw new Unreachable("Implement if visited");
+  }
+
+  default DexType visitType(DexType type) {
     throw new Unreachable("Implement if visited");
   }
 }

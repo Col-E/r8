@@ -30,98 +30,123 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
   private final StringBuilder sb = new StringBuilder();
 
   @Override
-  public void visitClassSignature(ClassSignature classSignature) {
-    classSignature.visit(this);
+  public ClassSignature visitClassSignature(ClassSignature classSignature) {
+    return classSignature.visit(this);
   }
 
   @Override
-  public void visitFieldTypeSignature(FieldTypeSignature fieldSignature) {
+  public FieldTypeSignature visitFieldTypeSignature(FieldTypeSignature fieldSignature) {
     printFieldTypeSignature(fieldSignature, false);
+    return fieldSignature;
   }
 
   @Override
-  public void visitMethodSignature(MethodTypeSignature methodSignature) {
-    methodSignature.visit(this);
+  public MethodTypeSignature visitMethodSignature(MethodTypeSignature methodSignature) {
+    return methodSignature.visit(this);
   }
 
   @Override
-  public void visitMethodTypeSignatures(List<TypeSignature> typeSignatures) {
+  public List<TypeSignature> visitMethodTypeSignatures(List<TypeSignature> typeSignatures) {
     sb.append("(");
     typeSignatures.forEach(this::visitTypeSignature);
     sb.append(")");
+    return typeSignatures;
   }
 
   @Override
-  public void visitReturnType(ReturnType returnType) {
+  public ReturnType visitReturnType(ReturnType returnType) {
     if (returnType.isVoidDescriptor()) {
       sb.append("V");
     } else {
       visitTypeSignature(returnType.typeSignature);
     }
+    return returnType;
   }
 
   @Override
-  public void visitThrowsSignatures(List<TypeSignature> typeSignatures) {
+  public List<TypeSignature> visitThrowsSignatures(List<TypeSignature> typeSignatures) {
     for (TypeSignature typeSignature : typeSignatures) {
       sb.append("^");
       visitTypeSignature(typeSignature);
     }
+    return typeSignatures;
   }
 
   @Override
-  public void visitFormalTypeParameters(List<FormalTypeParameter> formalTypeParameters) {
+  public List<FormalTypeParameter> visitFormalTypeParameters(
+      List<FormalTypeParameter> formalTypeParameters) {
     if (formalTypeParameters.isEmpty()) {
-      return;
+      return formalTypeParameters;
     }
     sb.append("<");
-    for (FormalTypeParameter formalTypeParameter : formalTypeParameters) {
-      sb.append(formalTypeParameter.name);
-      formalTypeParameter.visit(this);
-    }
+    formalTypeParameters.forEach(this::visitFormalTypeParameter);
     sb.append(">");
+    return formalTypeParameters;
   }
 
   @Override
-  public void visitClassBound(FieldTypeSignature fieldSignature) {
+  public FieldTypeSignature visitClassBound(FieldTypeSignature fieldSignature) {
     sb.append(":");
     printFieldTypeSignature(fieldSignature, false);
+    return fieldSignature;
   }
 
   @Override
-  public void visitInterfaceBound(FieldTypeSignature fieldSignature) {
+  public List<FieldTypeSignature> visitInterfaceBounds(List<FieldTypeSignature> fieldSignatures) {
+    if (fieldSignatures == null) {
+      return null;
+    }
+    fieldSignatures.forEach(this::visitInterfaceBound);
+    return fieldSignatures;
+  }
+
+  @Override
+  public FieldTypeSignature visitInterfaceBound(FieldTypeSignature fieldSignature) {
     sb.append(":");
     printFieldTypeSignature(fieldSignature, false);
+    return fieldSignature;
   }
 
   @Override
-  public void visitSuperClass(ClassTypeSignature classTypeSignature) {
+  public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
     printFieldTypeSignature(classTypeSignature, false);
+    return classTypeSignature;
   }
 
   @Override
-  public void visitSuperInterface(ClassTypeSignature classTypeSignature) {
+  public List<ClassTypeSignature> visitSuperInterfaces(
+      List<ClassTypeSignature> interfaceSignatures) {
+    interfaceSignatures.forEach(this::visitSuperInterface);
+    return interfaceSignatures;
+  }
+
+  @Override
+  public ClassTypeSignature visitSuperInterface(ClassTypeSignature classTypeSignature) {
     printFieldTypeSignature(classTypeSignature, false);
+    return classTypeSignature;
   }
 
   @Override
-  public void visitTypeSignature(TypeSignature typeSignature) {
+  public TypeSignature visitTypeSignature(TypeSignature typeSignature) {
     if (typeSignature.isBaseTypeSignature()) {
       DexType type = typeSignature.asBaseTypeSignature().type;
       sb.append(type.toDescriptorString());
     } else {
       printFieldTypeSignature(typeSignature.asFieldTypeSignature(), false);
     }
+    return typeSignature;
   }
 
   @Override
-  public void visitSimpleClass(ClassTypeSignature classTypeSignature) {
+  public ClassTypeSignature visitSimpleClass(ClassTypeSignature classTypeSignature) {
     printFieldTypeSignature(classTypeSignature, true);
+    return classTypeSignature;
   }
 
   @Override
-  public void visitTypeArguments(List<FieldTypeSignature> typeArguments) {
+  public List<FieldTypeSignature> visitTypeArguments(List<FieldTypeSignature> typeArguments) {
     if (typeArguments.isEmpty()) {
-      return;
+      return typeArguments;
     }
     sb.append("<");
     for (FieldTypeSignature typeArgument : typeArguments) {
@@ -133,10 +158,17 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
       visitTypeSignature(typeArgument);
     }
     sb.append(">");
+    return typeArguments;
+  }
+
+  @Override
+  public FormalTypeParameter visitFormalTypeParameter(FormalTypeParameter formalTypeParameter) {
+    sb.append(formalTypeParameter.name);
+    return formalTypeParameter.visit(this);
   }
 
   private void printFieldTypeSignature(
-      FieldTypeSignature fieldTypeSignature, boolean printingInner) {
+      FieldTypeSignature fieldTypeSignature, boolean printingOuter) {
     // For inner member classes we only print the inner name and the type-arguments.
     if (fieldTypeSignature.isStar()) {
       sb.append("*");
@@ -151,11 +183,14 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
       if (classTypeSignature.hasNoSignature()) {
         return;
       }
+      // Visit enclosing before printing the type name to ensure we
+      if (classTypeSignature.enclosingTypeSignature != null) {
+        visitSimpleClass(classTypeSignature.enclosingTypeSignature);
+      }
       String renamedString = namingLens.lookupDescriptor(classTypeSignature.type).toString();
-      if (!printingInner) {
+      if (classTypeSignature.enclosingTypeSignature == null) {
         sb.append("L").append(DescriptorUtils.getBinaryNameFromDescriptor(renamedString));
       } else {
-        assert classTypeSignature.enclosingTypeSignature != null;
         DexType enclosingType = classTypeSignature.enclosingTypeSignature.type;
         String outerDescriptor = namingLens.lookupDescriptor(enclosingType).toString();
         String innerClassName = DescriptorUtils.getInnerClassName(outerDescriptor, renamedString);
@@ -170,11 +205,18 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
         }
         sb.append(".").append(innerClassName);
       }
-      classTypeSignature.visit(this);
-      if (!printingInner) {
+      visitTypeArguments(classTypeSignature.typeArguments);
+      if (!printingOuter) {
         sb.append(";");
       }
     }
+  }
+
+  @Override
+  public DexType visitType(DexType type) {
+    // We need to delay printing of class type until enclosing class has been visited. We therefore
+    // only print in printFieldTypeSignature.
+    return type;
   }
 
   @Override

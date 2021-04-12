@@ -167,14 +167,15 @@ public class GenericSignature {
       return interfaceBounds;
     }
 
-    public void visit(GenericSignatureVisitor visitor) {
-      visitor.visitClassBound(classBound);
-      if (interfaceBounds == null) {
-        return;
+    public FormalTypeParameter visit(GenericSignatureVisitor visitor) {
+      FieldTypeSignature rewrittenClassBound =
+          classBound == null ? null : visitor.visitClassBound(classBound);
+      List<FieldTypeSignature> rewrittenInterfaceBounds =
+          visitor.visitInterfaceBounds(interfaceBounds);
+      if (classBound == rewrittenClassBound && interfaceBounds == rewrittenInterfaceBounds) {
+        return this;
       }
-      for (FieldTypeSignature interfaceBound : interfaceBounds) {
-        visitor.visitInterfaceBound(interfaceBound);
-      }
+      return new FormalTypeParameter(name, rewrittenClassBound, rewrittenInterfaceBounds);
     }
   }
 
@@ -232,12 +233,18 @@ public class GenericSignature {
       return formalTypeParameters;
     }
 
-    public void visit(GenericSignatureVisitor visitor) {
-      visitor.visitFormalTypeParameters(formalTypeParameters);
-      visitor.visitSuperClass(superClassSignature);
-      for (ClassTypeSignature superInterface : superInterfaceSignatures) {
-        visitor.visitSuperInterface(superInterface);
+    public ClassSignature visit(GenericSignatureVisitor visitor) {
+      List<FormalTypeParameter> rewrittenParameters =
+          visitor.visitFormalTypeParameters(formalTypeParameters);
+      ClassTypeSignature rewrittenSuperClass = visitor.visitSuperClass(superClassSignature);
+      List<ClassTypeSignature> rewrittenInterfaces =
+          visitor.visitSuperInterfaces(superInterfaceSignatures);
+      if (formalTypeParameters == rewrittenParameters
+          && superClassSignature == rewrittenSuperClass
+          && superInterfaceSignatures == rewrittenInterfaces) {
+        return this;
       }
+      return new ClassSignature(rewrittenParameters, rewrittenSuperClass, rewrittenInterfaces);
     }
 
     public String toRenamedString(NamingLens namingLens, Predicate<DexType> isTypeMissing) {
@@ -286,8 +293,9 @@ public class GenericSignature {
     }
 
     @Override
-    public void visit(GenericSignatureVisitor visitor) {
+    public ClassSignature visit(GenericSignatureVisitor visitor) {
       assert false : "Should not visit an invalid signature";
+      return this;
     }
 
     @Override
@@ -447,7 +455,8 @@ public class GenericSignature {
 
   static final class StarFieldTypeSignature extends FieldTypeSignature {
 
-    static final StarFieldTypeSignature STAR_FIELD_TYPE_SIGNATURE = new StarFieldTypeSignature();
+    private static final StarFieldTypeSignature STAR_FIELD_TYPE_SIGNATURE =
+        new StarFieldTypeSignature();
 
     private StarFieldTypeSignature() {
       super(WildcardIndicator.NONE);
@@ -462,6 +471,10 @@ public class GenericSignature {
     public boolean isStar() {
       return true;
     }
+
+    public static StarFieldTypeSignature getStarFieldTypeSignature() {
+      return STAR_FIELD_TYPE_SIGNATURE;
+    }
   }
 
   private static final ClassTypeSignature NO_FIELD_TYPE_SIGNATURE =
@@ -475,26 +488,34 @@ public class GenericSignature {
     // Note that this could be nested, e.g., Map<K, Consumer<V>>.
     final List<FieldTypeSignature> typeArguments;
 
-    // TODO(b/129925954): towards immutable structure?
-    // Double-linked enclosing-inner relations.
-    ClassTypeSignature enclosingTypeSignature;
-    ClassTypeSignature innerTypeSignature;
+    final ClassTypeSignature enclosingTypeSignature;
 
     public ClassTypeSignature(DexType type) {
-      this(type, EMPTY_TYPE_ARGUMENTS);
+      this(type, EMPTY_TYPE_ARGUMENTS, null);
     }
 
     public ClassTypeSignature(DexType type, List<FieldTypeSignature> typeArguments) {
-      this(type, typeArguments, WildcardIndicator.NOT_AN_ARGUMENT);
+      this(type, typeArguments, null, WildcardIndicator.NOT_AN_ARGUMENT);
+    }
+
+    public ClassTypeSignature(
+        DexType type,
+        List<FieldTypeSignature> typeArguments,
+        ClassTypeSignature enclosingTypeSignature) {
+      this(type, typeArguments, enclosingTypeSignature, WildcardIndicator.NOT_AN_ARGUMENT);
     }
 
     private ClassTypeSignature(
-        DexType type, List<FieldTypeSignature> typeArguments, WildcardIndicator indicator) {
+        DexType type,
+        List<FieldTypeSignature> typeArguments,
+        ClassTypeSignature enclosingTypeSignature,
+        WildcardIndicator indicator) {
       super(indicator);
       assert type != null;
       assert typeArguments != null;
       this.type = type;
       this.typeArguments = typeArguments;
+      this.enclosingTypeSignature = enclosingTypeSignature;
       assert typeArguments.stream().allMatch(FieldTypeSignature::isArgument);
     }
 
@@ -519,10 +540,7 @@ public class GenericSignature {
     @Override
     public ClassTypeSignature asArgument(WildcardIndicator indicator) {
       assert indicator != WildcardIndicator.NOT_AN_ARGUMENT;
-      ClassTypeSignature argument = new ClassTypeSignature(type, typeArguments, indicator);
-      argument.innerTypeSignature = this.innerTypeSignature;
-      argument.enclosingTypeSignature = this.enclosingTypeSignature;
-      return argument;
+      return new ClassTypeSignature(type, typeArguments, enclosingTypeSignature, indicator);
     }
 
     @Override
@@ -530,17 +548,23 @@ public class GenericSignature {
       return new ArrayTypeSignature(this);
     }
 
-    static void link(ClassTypeSignature outer, ClassTypeSignature inner) {
-      assert outer.innerTypeSignature == null && inner.enclosingTypeSignature == null;
-      outer.innerTypeSignature = inner;
-      inner.enclosingTypeSignature = outer;
-    }
-
-    public void visit(GenericSignatureVisitor visitor) {
-      visitor.visitTypeArguments(typeArguments);
-      if (innerTypeSignature != null) {
-        visitor.visitSimpleClass(innerTypeSignature);
+    public ClassTypeSignature visit(GenericSignatureVisitor visitor) {
+      DexType visitedType = visitor.visitType(type);
+      if (visitedType == null) {
+        return null;
       }
+      List<FieldTypeSignature> rewrittenArguments = visitor.visitTypeArguments(typeArguments);
+      ClassTypeSignature rewrittenOuter = null;
+      if (enclosingTypeSignature != null) {
+        rewrittenOuter = visitor.visitSimpleClass(enclosingTypeSignature);
+      }
+      if (type == visitedType
+          && typeArguments == rewrittenArguments
+          && enclosingTypeSignature == rewrittenOuter) {
+        return this;
+      }
+      return new ClassTypeSignature(
+          visitedType, rewrittenArguments, rewrittenOuter, getWildcardIndicator());
     }
 
     public boolean hasTypeVariableArguments() {
@@ -592,8 +616,15 @@ public class GenericSignature {
       return new ArrayTypeSignature(this);
     }
 
-    public void visit(GenericSignatureVisitor visitor) {
-      visitor.visitTypeSignature(elementSignature);
+    public ArrayTypeSignature visit(GenericSignatureVisitor visitor) {
+      TypeSignature rewrittenElementSignature = visitor.visitTypeSignature(elementSignature);
+      if (rewrittenElementSignature == null) {
+        return null;
+      }
+      if (elementSignature == rewrittenElementSignature) {
+        return this;
+      }
+      return new ArrayTypeSignature(elementSignature, getWildcardIndicator());
     }
   }
 
@@ -743,11 +774,20 @@ public class GenericSignature {
       return this;
     }
 
-    public void visit(GenericSignatureVisitor visitor) {
-      visitor.visitFormalTypeParameters(formalTypeParameters);
-      visitor.visitMethodTypeSignatures(typeSignatures);
-      visitor.visitReturnType(returnType);
-      visitor.visitThrowsSignatures(throwsSignatures);
+    public MethodTypeSignature visit(GenericSignatureVisitor visitor) {
+      List<FormalTypeParameter> rewrittenParameters =
+          visitor.visitFormalTypeParameters(formalTypeParameters);
+      List<TypeSignature> rewrittenSignatures = visitor.visitMethodTypeSignatures(typeSignatures);
+      ReturnType rewrittenReturnType = visitor.visitReturnType(returnType);
+      List<TypeSignature> rewrittenThrows = visitor.visitThrowsSignatures(throwsSignatures);
+      if (formalTypeParameters == rewrittenParameters
+          && typeSignatures == rewrittenSignatures
+          && returnType == rewrittenReturnType
+          && throwsSignatures == rewrittenThrows) {
+        return this;
+      }
+      return new MethodTypeSignature(
+          rewrittenParameters, rewrittenSignatures, rewrittenReturnType, rewrittenThrows);
     }
 
     public List<FormalTypeParameter> getFormalTypeParameters() {
@@ -800,8 +840,9 @@ public class GenericSignature {
     }
 
     @Override
-    public void visit(GenericSignatureVisitor visitor) {
+    public MethodTypeSignature visit(GenericSignatureVisitor visitor) {
       assert false : "Should not visit an invalid signature";
+      return this;
     }
 
     @Override
@@ -1072,12 +1113,11 @@ public class GenericSignature {
       DexType parsedEnclosingType = parsedTypeName(qualIdent.toString());
 
       List<FieldTypeSignature> typeArguments = updateOptTypeArguments();
-      ClassTypeSignature outerMostTypeSignature =
+
+      ClassTypeSignature outerTypeSignature =
           new ClassTypeSignature(
               parsedEnclosingType, typeArguments.isEmpty() ? EMPTY_TYPE_ARGUMENTS : typeArguments);
-
-      ClassTypeSignature outerTypeSignature = outerMostTypeSignature;
-      ClassTypeSignature innerTypeSignature;
+      ClassTypeSignature innerTypeSignature = null;
       while (symbol == '.') {
         // Deal with Member Classes.
         scanSymbol();
@@ -1088,13 +1128,13 @@ public class GenericSignature {
         innerTypeSignature =
             new ClassTypeSignature(
                 parsedEnclosingType,
-                typeArguments.isEmpty() ? EMPTY_TYPE_ARGUMENTS : typeArguments);
-        ClassTypeSignature.link(outerTypeSignature, innerTypeSignature);
+                typeArguments.isEmpty() ? EMPTY_TYPE_ARGUMENTS : typeArguments,
+                outerTypeSignature);
         outerTypeSignature = innerTypeSignature;
       }
 
       expect(';');
-      return outerMostTypeSignature;
+      return innerTypeSignature != null ? innerTypeSignature : outerTypeSignature;
     }
 
     private List<FieldTypeSignature> updateOptTypeArguments() {
