@@ -48,6 +48,10 @@ public class ClassInitFieldSynthesizer {
     // Use an existing static field if there is one.
     DexEncodedField encodedClinitField = null;
     for (DexEncodedField staticField : clazz.staticFields()) {
+      // Don't consider dead fields.
+      if (staticField.getOptimizationInfo().isDead()) {
+        continue;
+      }
       // We need the field to be accessible from the contexts in which it is accessed.
       if (!isMinimumRequiredVisibility(staticField, minimumRequiredVisibility)) {
         continue;

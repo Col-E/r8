@@ -93,9 +93,19 @@ public class TrivialFieldAccessReprocessor {
     timing.end(); // Clear reads from fields of interest
     timing.end(); // Trivial field accesses analysis
 
-    constantFields.forEach(OptimizationFeedbackSimple.getInstance()::markFieldAsDead);
-    readFields.keySet().forEach(OptimizationFeedbackSimple.getInstance()::markFieldAsDead);
-    writtenFields.keySet().forEach(OptimizationFeedbackSimple.getInstance()::markFieldAsDead);
+    constantFields.forEach(this::markFieldAsDead);
+    readFields.keySet().forEach(this::markFieldAsDead);
+    writtenFields.keySet().forEach(this::markFieldAsDead);
+  }
+
+  private void markFieldAsDead(DexEncodedField field) {
+    // Don't mark pinned fields as dead, since they need to remain in the app even if all reads and
+    // writes are removed.
+    if (appView.appInfo().isPinned(field)) {
+      assert field.getType().isAlwaysNull(appView);
+    } else {
+      OptimizationFeedbackSimple.getInstance().markFieldAsDead(field);
+    }
   }
 
   private void computeFieldsWithNonTrivialValue() {
@@ -236,7 +246,8 @@ public class TrivialFieldAccessReprocessor {
       DexEncodedField field,
       boolean isWrite,
       FieldAccessInfoCollection<?> fieldAccessInfoCollection) {
-    assert !appView.appInfo().isPinned(field);
+    assert !appView.appInfo().isPinned(field) || field.getType().isAlwaysNull(appView);
+
     FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(field.getReference());
     if (fieldAccessInfo == null) {
       assert false

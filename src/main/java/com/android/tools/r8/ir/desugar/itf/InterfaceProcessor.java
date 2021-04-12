@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
-import static com.android.tools.r8.utils.PredicateUtils.not;
 
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -169,7 +168,10 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
 
   private DexEncodedField findExistingStaticClinitFieldToTriggerInterfaceInitialization(
       DexProgramClass iface) {
-    for (DexEncodedField field : iface.staticFields(not(DexEncodedField::isPrivate))) {
+    // Don't select a field that has been marked dead, since we'll assert later that these fields
+    // have been dead code eliminated.
+    for (DexEncodedField field :
+        iface.staticFields(field -> !field.isPrivate() && !field.getOptimizationInfo().isDead())) {
       return field;
     }
     return null;
