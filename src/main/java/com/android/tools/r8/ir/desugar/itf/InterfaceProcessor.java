@@ -62,6 +62,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.objectweb.asm.Opcodes;
 
 // Default and static method interface desugaring processor for interfaces.
@@ -74,7 +75,8 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
 
   private final AppView<?> appView;
   private final InterfaceMethodRewriter rewriter;
-  private final InterfaceProcessorNestedGraphLens.Builder graphLensBuilder;
+  private final Map<DexProgramClass, PostProcessingInterfaceInfo> postProcessingInterfaceInfos =
+      new ConcurrentHashMap<>();
 
   // All created companion classes indexed by interface type.
   final Map<DexClass, DexProgramClass> syntheticClasses = new IdentityHashMap<>();
@@ -82,7 +84,6 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   InterfaceProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
     this.rewriter = rewriter;
-    graphLensBuilder = InterfaceProcessorNestedGraphLens.builder();
   }
 
   @Override
@@ -99,11 +100,11 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     ensureCompanionClassInitializesInterface(iface, companionMethods);
 
     // Process virtual interface methods first.
-    processVirtualInterfaceMethods(iface, companionMethods, graphLensBuilder);
+    processVirtualInterfaceMethods(iface, companionMethods);
 
     // Process static and private methods, move them into companion class as well,
     // make private instance methods public static.
-    processDirectInterfaceMethods(iface, companionMethods, graphLensBuilder);
+    processDirectInterfaceMethods(iface, companionMethods);
 
     if (companionMethods.isEmpty()) {
       return; // No methods to create, companion class not needed.
@@ -220,10 +221,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   }
 
   private void processVirtualInterfaceMethods(
-      DexProgramClass iface,
-      List<DexEncodedMethod> companionMethods,
-      InterfaceProcessorNestedGraphLens.Builder graphLensBuilder) {
-    List<DexEncodedMethod> newVirtualMethods = new ArrayList<>();
+      DexProgramClass iface, List<DexEncodedMethod> companionMethods) {
     for (ProgramMethod method : iface.virtualProgramMethods()) {
       DexEncodedMethod virtual = method.getDefinition();
       if (rewriter.isDefaultMethod(virtual)) {
@@ -259,28 +257,21 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                 code,
                 true);
         implMethod.copyMetadata(virtual);
-        virtual.setDefaultInterfaceMethodImplementation(implMethod);
+        getPostProcessingInterfaceInfo(iface)
+            .mapDefaultMethodToCompanionMethod(virtual, implMethod);
         companionMethods.add(implMethod);
-        graphLensBuilder.recordCodeMovedToCompanionClass(
-            method.getReference(), implMethod.getReference());
+        getPostProcessingInterfaceInfo(iface)
+            .moveMethod(method.getReference(), implMethod.getReference());
       }
 
-      // Remove bridge methods.
-      if (interfaceMethodRemovalChangesApi(virtual, iface)) {
-        newVirtualMethods.add(virtual);
+      if (!interfaceMethodRemovalChangesApi(virtual, iface)) {
+        getPostProcessingInterfaceInfo(iface).setHasBridgesToRemove();
       }
-    }
-
-    // If at least one bridge method was removed then update the table.
-    if (newVirtualMethods.size() < iface.getMethodCollection().numberOfVirtualMethods()) {
-      iface.setVirtualMethods(newVirtualMethods.toArray(DexEncodedMethod.EMPTY_ARRAY));
     }
   }
 
   private void processDirectInterfaceMethods(
-      DexProgramClass iface,
-      List<DexEncodedMethod> companionMethods,
-      InterfaceProcessorNestedGraphLens.Builder graphLensBuilder) {
+      DexProgramClass iface, List<DexEncodedMethod> companionMethods) {
     DexEncodedMethod clinit = null;
     for (ProgramMethod method : iface.directProgramMethods()) {
       DexEncodedMethod definition = method.getDefinition();
@@ -321,7 +312,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                 true);
         implMethod.copyMetadata(definition);
         companionMethods.add(implMethod);
-        graphLensBuilder.move(oldMethod, companionMethod);
+        getPostProcessingInterfaceInfo(iface).moveMethod(oldMethod, companionMethod);
         continue;
       }
 
@@ -353,9 +344,18 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
               true);
       implMethod.copyMetadata(definition);
       companionMethods.add(implMethod);
-      graphLensBuilder.move(oldMethod, companionMethod);
+      getPostProcessingInterfaceInfo(iface).moveMethod(oldMethod, companionMethod);
     }
 
+    boolean hasNonClinitDirectMethods =
+        iface.getMethodCollection().size() != (clinit == null ? 0 : 1);
+    if (hasNonClinitDirectMethods) {
+      getPostProcessingInterfaceInfo(iface).setHasNonClinitDirectMethods();
+    }
+  }
+
+  private void clearDirectMethods(DexProgramClass iface) {
+    DexEncodedMethod clinit = iface.getClassInitializer();
     MethodCollection methodCollection = iface.getMethodCollection();
     if (clinit != null) {
       methodCollection.setSingleDirectMethod(clinit);
@@ -444,9 +444,57 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
         && !rewriter.factory.isClassConstructor(method.getReference());
   }
 
+  private InterfaceProcessorNestedGraphLens postProcessInterfaces() {
+    InterfaceProcessorNestedGraphLens.Builder graphLensBuilder =
+        InterfaceProcessorNestedGraphLens.builder();
+    postProcessingInterfaceInfos.forEach(
+        (iface, info) -> {
+          if (info.hasNonClinitDirectMethods()) {
+            clearDirectMethods(iface);
+          }
+          if (info.hasDefaultMethodsToImplementationMap()) {
+            info.getDefaultMethodsToImplementation()
+                .forEach(
+                    (defaultMethod, companionMethod) -> {
+                      defaultMethod.setDefaultInterfaceMethodImplementation(companionMethod);
+                      graphLensBuilder.recordCodeMovedToCompanionClass(
+                          defaultMethod.getReference(), companionMethod.getReference());
+                    });
+          }
+          if (info.hasMethodsToMove()) {
+            info.getMethodsToMove().forEach(graphLensBuilder::move);
+          }
+          if (info.hasBridgesToRemove()) {
+            removeBridges(iface);
+          }
+        });
+    return graphLensBuilder.build(appView);
+  }
+
+  private void removeBridges(DexProgramClass iface) {
+    List<DexEncodedMethod> newVirtualMethods = new ArrayList<>();
+    for (ProgramMethod method : iface.virtualProgramMethods()) {
+      DexEncodedMethod virtual = method.getDefinition();
+      // Remove bridge methods.
+      if (interfaceMethodRemovalChangesApi(virtual, iface)) {
+        newVirtualMethods.add(virtual);
+      }
+    }
+
+    // If at least one bridge method was removed then update the table.
+    if (newVirtualMethods.size() < iface.getMethodCollection().numberOfVirtualMethods()) {
+      iface.setVirtualMethods(newVirtualMethods.toArray(DexEncodedMethod.EMPTY_ARRAY));
+    } else {
+      assert false
+          : "Interface "
+              + iface
+              + " was analysed as having bridges to remove, but no bridges were found.";
+    }
+  }
+
   @Override
   public void finalizeProcessing(Builder<?> builder, ProgramMethodSet synthesizedMethods) {
-    InterfaceProcessorNestedGraphLens graphLens = graphLensBuilder.build(appView);
+    InterfaceProcessorNestedGraphLens graphLens = postProcessInterfaces();
     if (appView.enableWholeProgramOptimizations() && graphLens != null) {
       appView.setGraphLens(graphLens);
     }
@@ -458,6 +506,65 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
           appView.appInfo().addSynthesizedClass(synthesizedClass, interfaceClass.asProgramClass());
         });
     new InterfaceMethodRewriterFixup(appView, graphLens).run();
+  }
+
+  private PostProcessingInterfaceInfo getPostProcessingInterfaceInfo(DexProgramClass iface) {
+    return postProcessingInterfaceInfos.computeIfAbsent(
+        iface, ignored -> new PostProcessingInterfaceInfo());
+  }
+
+  static class PostProcessingInterfaceInfo {
+    private Map<DexEncodedMethod, DexEncodedMethod> defaultMethodsToImplementation;
+    private Map<DexMethod, DexMethod> methodsToMove;
+    private boolean hasNonClinitDirectMethods;
+    private boolean hasBridgesToRemove;
+
+    public void mapDefaultMethodToCompanionMethod(
+        DexEncodedMethod defaultMethod, DexEncodedMethod companionMethod) {
+      if (defaultMethodsToImplementation == null) {
+        defaultMethodsToImplementation = new IdentityHashMap<>();
+      }
+      defaultMethodsToImplementation.put(defaultMethod, companionMethod);
+    }
+
+    public Map<DexEncodedMethod, DexEncodedMethod> getDefaultMethodsToImplementation() {
+      return defaultMethodsToImplementation;
+    }
+
+    boolean hasDefaultMethodsToImplementationMap() {
+      return defaultMethodsToImplementation != null;
+    }
+
+    public void moveMethod(DexMethod ifaceMethod, DexMethod companionMethod) {
+      if (methodsToMove == null) {
+        methodsToMove = new IdentityHashMap<>();
+      }
+      methodsToMove.put(ifaceMethod, companionMethod);
+    }
+
+    public Map<DexMethod, DexMethod> getMethodsToMove() {
+      return methodsToMove;
+    }
+
+    public boolean hasMethodsToMove() {
+      return methodsToMove != null;
+    }
+
+    boolean hasNonClinitDirectMethods() {
+      return hasNonClinitDirectMethods;
+    }
+
+    void setHasNonClinitDirectMethods() {
+      hasNonClinitDirectMethods = true;
+    }
+
+    boolean hasBridgesToRemove() {
+      return hasBridgesToRemove;
+    }
+
+    void setHasBridgesToRemove() {
+      hasBridgesToRemove = true;
+    }
   }
 
   // Specific lens which remaps invocation types to static since all rewrites performed here
