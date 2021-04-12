@@ -569,6 +569,7 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
     print('Valid types are {}'.format(version.keys()))
     return 1
   values = version[type]
+  inputs = []
 
   args.extend(['--output', outdir])
   if 'min-api' in values:
@@ -589,7 +590,6 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
             sanitized_lib_path, sanitized_pgconf_path, values['pgconf'])
         libraries = [sanitized_lib_path]
         args.extend(['--pg-conf', sanitized_pgconf_path])
-        inputs = []
       else:
         # -injars without -libraryjars or vice versa is not supported.
         check_no_injars_and_no_libraryjars(values['pgconf'])
