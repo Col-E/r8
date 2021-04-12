@@ -100,7 +100,7 @@ public class ListUtils {
 
   /**
    * Rewrites the input list based on the given function. Returns the mapped list if any elements
-   * were rewritten, otherwise returns the original list.
+   * were rewritten, otherwise returns defaultValue.
    */
   public static <T> List<T> mapOrElse(List<T> list, Function<T, T> fn, List<T> defaultValue) {
     ArrayList<T> result = null;
@@ -124,6 +124,14 @@ public class ListUtils {
       }
     }
     return result != null ? result : defaultValue;
+  }
+
+  /**
+   * Rewrites the input list based on the given function. Returns the mapped list if any elements
+   * were rewritten, otherwise returns the original list.
+   */
+  public static <T> List<T> mapOrElse(List<T> list, Function<T, T> fn) {
+    return mapOrElse(list, fn, list);
   }
 
   public static <T> ArrayList<T> newArrayList(ForEachable<T> forEachable) {

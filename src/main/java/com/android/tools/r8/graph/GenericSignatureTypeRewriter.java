@@ -122,7 +122,7 @@ public class GenericSignatureTypeRewriter {
       if (formalTypeParameters.isEmpty()) {
         return EMPTY_TYPE_PARAMS;
       }
-      return ListUtils.map(formalTypeParameters, this::visitFormalTypeParameter);
+      return ListUtils.mapOrElse(formalTypeParameters, this::visitFormalTypeParameter);
     }
 
     @Override
@@ -144,7 +144,7 @@ public class GenericSignatureTypeRewriter {
       if (interfaceSignatures.isEmpty()) {
         return EMPTY_SUPER_INTERFACES;
       }
-      return ListUtils.mapNotNull(interfaceSignatures, this::visitSuperInterface);
+      return ListUtils.mapOrElse(interfaceSignatures, this::visitSuperInterface);
     }
 
     @Override
@@ -158,7 +158,7 @@ public class GenericSignatureTypeRewriter {
       if (typeSignatures.isEmpty()) {
         return EMPTY_TYPE_SIGNATURES;
       }
-      return ListUtils.map(
+      return ListUtils.mapOrElse(
           typeSignatures,
           typeSignature -> {
             TypeSignature rewrittenSignature = visitTypeSignature(typeSignature);
@@ -189,7 +189,7 @@ public class GenericSignatureTypeRewriter {
         return EMPTY_TYPE_SIGNATURES;
       }
       // If a throwing type is no longer found we remove it from the signature.
-      return ListUtils.mapNotNull(typeSignatures, this::visitTypeSignature);
+      return ListUtils.mapOrElse(typeSignatures, this::visitTypeSignature);
     }
 
     @Override
@@ -205,7 +205,7 @@ public class GenericSignatureTypeRewriter {
       if (fieldSignatures.isEmpty()) {
         return EMPTY_TYPE_ARGUMENTS;
       }
-      return ListUtils.mapNotNull(fieldSignatures, this::visitFieldTypeSignature);
+      return ListUtils.mapOrElse(fieldSignatures, this::visitFieldTypeSignature);
     }
 
     @Override
@@ -223,7 +223,7 @@ public class GenericSignatureTypeRewriter {
       if (typeArguments.isEmpty()) {
         return EMPTY_TYPE_ARGUMENTS;
       }
-      return ListUtils.map(
+      return ListUtils.mapOrElse(
           typeArguments,
           fieldTypeSignature -> {
             FieldTypeSignature rewrittenSignature = visitFieldTypeSignature(fieldTypeSignature);
