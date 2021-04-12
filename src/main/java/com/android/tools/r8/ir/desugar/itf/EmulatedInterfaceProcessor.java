@@ -274,10 +274,15 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
   }
 
   @Override
+  public boolean shouldProcess(DexProgramClass clazz) {
+    return appView.options().isDesugaredLibraryCompilation()
+        && rewriter.isEmulatedInterface(clazz.type);
+  }
+
+  @Override
   public void process(DexProgramClass emulatedInterface, ProgramMethodSet synthesizedMethods) {
-    if (!appView.options().isDesugaredLibraryCompilation()
-        || !rewriter.isEmulatedInterface(emulatedInterface.type)
-        || appView.isAlreadyLibraryDesugared(emulatedInterface)) {
+    assert rewriter.isEmulatedInterface(emulatedInterface.type);
+    if (appView.isAlreadyLibraryDesugared(emulatedInterface)) {
       return;
     }
     generateEmulateInterfaceLibrary(emulatedInterface);
