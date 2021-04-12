@@ -43,7 +43,9 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.objectweb.asm.Opcodes;
 
 /**
@@ -340,17 +342,17 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
   private final boolean needsLibraryInfo;
 
   // Mapping from program and classpath classes to their information summary.
-  private final Map<DexClass, ClassInfo> classInfo = new IdentityHashMap<>();
+  private final Map<DexClass, ClassInfo> classInfo = new ConcurrentHashMap<>();
 
   // Mapping from library classes to their information summary.
-  private final Map<DexLibraryClass, SignaturesInfo> libraryClassInfo = new IdentityHashMap<>();
+  private final Map<DexLibraryClass, SignaturesInfo> libraryClassInfo = new ConcurrentHashMap<>();
 
   // Mapping from arbitrary interfaces to an information summary.
-  private final Map<DexClass, SignaturesInfo> interfaceInfo = new IdentityHashMap<>();
+  private final Map<DexClass, SignaturesInfo> interfaceInfo = new ConcurrentHashMap<>();
 
   // Mapping from actual program classes to the synthesized forwarding methods to be created.
   private final Map<DexProgramClass, ProgramMethodSet> newSyntheticMethods =
-      new IdentityHashMap<>();
+      new ConcurrentHashMap<>();
 
   ClassProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
@@ -375,12 +377,9 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
 
   @Override
   public void process(DexProgramClass clazz, ProgramMethodSet synthesizedMethods) {
-    visitClassInfo(clazz, new ReportingContext(clazz, clazz));
-  }
-
-  @Override
-  public boolean shouldProcess(DexProgramClass clazz) {
-    return !clazz.isInterface();
+    if (!clazz.isInterface()) {
+      visitClassInfo(clazz, new ReportingContext(clazz, clazz));
+    }
   }
 
   // We introduce forwarding methods only once all desugaring has been performed to avoid
@@ -816,6 +815,26 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
     return clazz;
   }
 
+  // We cannot use ConcurrentHashMap computeIfAbsent because the calls are recursive ending in
+  // concurrent modification of the ConcurrentHashMap while performing computeIfAbsent.
+  private <C extends DexClass, I> I reentrantComputeIfAbsent(
+      Map<C, I> infoMap, C clazz, Function<C, I> supplier) {
+    // Try to avoid the synchronization when possible.
+    I computedInfo = infoMap.get(clazz);
+    if (computedInfo != null) {
+      return computedInfo;
+    }
+    synchronized (clazz) {
+      computedInfo = infoMap.get(clazz);
+      if (computedInfo != null) {
+        return computedInfo;
+      }
+      computedInfo = supplier.apply(clazz);
+      infoMap.put(clazz, computedInfo);
+      return computedInfo;
+    }
+  }
+
   private ClassInfo visitClassInfo(DexType type, ReportingContext context) {
     DexClass clazz = definitionOrNull(type, context);
     return clazz == null ? ClassInfo.EMPTY : visitClassInfo(clazz, context);
@@ -826,7 +845,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
     if (clazz.isLibraryClass()) {
       return ClassInfo.EMPTY;
     }
-    return classInfo.computeIfAbsent(clazz, key -> visitClassInfoRaw(key, context));
+    return reentrantComputeIfAbsent(classInfo, clazz, key -> visitClassInfoRaw(key, context));
   }
 
   private ClassInfo visitClassInfoRaw(DexClass clazz, ReportingContext context) {
@@ -857,7 +876,8 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
   private SignaturesInfo visitLibraryClassInfo(DexClass clazz) {
     assert !clazz.isInterface();
     return clazz.isLibraryClass()
-        ? libraryClassInfo.computeIfAbsent(clazz.asLibraryClass(), this::visitLibraryClassInfoRaw)
+        ? reentrantComputeIfAbsent(
+            libraryClassInfo, clazz.asLibraryClass(), this::visitLibraryClassInfoRaw)
         : SignaturesInfo.EMPTY;
   }
 
@@ -879,7 +899,8 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
     if (iface.isLibraryClass() && ignoreLibraryInfo()) {
       return SignaturesInfo.EMPTY;
     }
-    return interfaceInfo.computeIfAbsent(iface, key -> visitInterfaceInfoRaw(key, context));
+    return reentrantComputeIfAbsent(
+        interfaceInfo, iface, key -> visitInterfaceInfoRaw(key, context));
   }
 
   private SignaturesInfo visitInterfaceInfoRaw(DexClass iface, ReportingContext context) {
