@@ -569,7 +569,6 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
     print('Valid types are {}'.format(version.keys()))
     return 1
   values = version[type]
-  inputs = []
 
   args.extend(['--output', outdir])
   if 'min-api' in values:
@@ -578,7 +577,9 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
   if 'main-dex-list' in values:
     args.extend(['--main-dex-list', values['main-dex-list']])
 
+  inputs = values['inputs']
   libraries = values['libraries'] if 'libraries' in values else []
+
   if options.compiler == 'r8':
     if 'pgconf' in values and not options.k:
       if has_injars_and_libraryjars(values['pgconf']):
@@ -590,6 +591,7 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
             sanitized_lib_path, sanitized_pgconf_path, values['pgconf'])
         libraries = [sanitized_lib_path]
         args.extend(['--pg-conf', sanitized_pgconf_path])
+        inputs = []
       else:
         # -injars without -libraryjars or vice versa is not supported.
         check_no_injars_and_no_libraryjars(values['pgconf'])
@@ -601,7 +603,6 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
           SanitizeLibraries(
             sanitized_lib_path, values['libraries'], values['inputs'])
           libraries = [sanitized_lib_path]
-        inputs = values['inputs']
       app_provided_pg_conf = True
     if options.k:
       args.extend(['--pg-conf', options.k])
