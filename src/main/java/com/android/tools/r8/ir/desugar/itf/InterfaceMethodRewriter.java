@@ -981,18 +981,13 @@ public final class InterfaceMethodRewriter {
     // classes if needed.
     InterfaceProcessor interfaceProcessor = new InterfaceProcessor(appView, this);
 
-    // TODO(b/183998768): Merge the following loops into a single one.
-    process(classProcessor, builder, flavour);
-
     // The interface processors must be ordered so that finalization of the processing is performed
     // in that order. The emulatedInterfaceProcessor has to be last at this point to avoid renaming
     // emulated interfaces before the other processing.
     ImmutableList<InterfaceDesugaringProcessor> orderedInterfaceDesugaringProcessors =
-        ImmutableList.of(interfaceProcessor, emulatedInterfaceProcessor);
+        ImmutableList.of(classProcessor, interfaceProcessor, emulatedInterfaceProcessor);
     processClassesConcurrently(
         orderedInterfaceDesugaringProcessors, builder, flavour, executorService);
-
-    classProcessor.finalizeProcessing(builder, synthesizedMethods);
 
     SortedProgramMethodSet sortedSynthesizedMethods = SortedProgramMethodSet.create();
     sortedSynthesizedMethods.addAll(synthesizedMethods);
