@@ -42,7 +42,6 @@ import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
@@ -633,11 +632,6 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     protected DexMethod internalGetNextMethodSignature(DexMethod method) {
       return newMethodSignatures.getRepresentativeValueOrDefault(
           method, extraNewMethodSignatures.getRepresentativeValueOrDefault(method, method));
-    }
-
-    @Override
-    protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
-      return Type.STATIC;
     }
 
     public static Builder builder() {
