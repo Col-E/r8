@@ -291,7 +291,9 @@ public class ForwardMethodBuilder {
       assert !sourceMethod.getReturnType().isVoidType();
       assert targetMethod.getReturnType().isVoidType();
       assert invokeType == InvokeType.SPECIAL;
-    } else if (castResult) {
+    } else if (castResult
+        && !sourceMethod.getReturnType().isVoidType()
+        && !targetMethod.getReturnType().isVoidType()) {
       assert ValueType.fromDexType(sourceMethod.getReturnType())
           == ValueType.fromDexType(targetMethod.getReturnType());
     } else {
