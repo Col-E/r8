@@ -72,7 +72,14 @@ public class ProtoFieldType {
   }
 
   public boolean hasAuxData(boolean isProto2) {
-    return isProto2 && isSingular();
+    if (isSingular()) {
+      return isProto2 || hasHasBit();
+    }
+    return false;
+  }
+
+  public boolean hasHasBit() {
+    return hasHasBit;
   }
 
   public int id() {

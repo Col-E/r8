@@ -94,7 +94,6 @@ public class ProtoMessageInfo {
           if (field.getType().isOneOf()) {
             usedOneOfIndices.add(field.getAuxData());
           } else {
-            assert ProtoUtils.isProto2(flags) && field.getType().isSingular();
             usedHasBitsIndices.add(field.getAuxData() / BITS_PER_HAS_BITS_WORD);
           }
         }
