@@ -70,7 +70,7 @@ public class InvokeSuperToInvokeVirtualTest extends TestBase {
 
   private boolean isInvokeSuper(InstructionSubject instruction) {
     if (parameters.isCfRuntime()) {
-      return instruction.isInvokeSpecial();
+      return instruction.asCfInstruction().isInvokeSpecial();
     } else {
       return instruction.asDexInstruction().isInvokeSuper();
     }

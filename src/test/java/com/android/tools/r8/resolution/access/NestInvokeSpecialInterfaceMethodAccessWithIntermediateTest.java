@@ -21,7 +21,6 @@ import com.android.tools.r8.graph.ResolutionResult.NoSuchMethodResult;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.transformers.ClassFileTransformer;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -131,7 +130,8 @@ public class NestInvokeSpecialInterfaceMethodAccessWithIntermediateTest extends 
     CodeInspector inspector = new CodeInspector(appInfo.app());
     MethodSubject foo = inspector.clazz(callerClass).uniqueMethodWithName("foo");
     assertTrue(
-        foo.streamInstructions().anyMatch(i -> i.isInvokeSpecial() && i.getMethod() == method));
+        foo.streamInstructions()
+            .anyMatch(i -> i.asCfInstruction().isInvokeSpecial() && i.getMethod() == method));
   }
 
   private DexMethod getTargetMethodSignature(Class<?> declaredClass, AppInfoWithLiveness appInfo) {

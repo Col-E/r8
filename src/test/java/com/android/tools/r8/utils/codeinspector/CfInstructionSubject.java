@@ -279,7 +279,6 @@ public class CfInstructionSubject implements InstructionSubject {
         && ((CfSwitch) instruction).getKind() == CfSwitch.Kind.LOOKUP;
   }
 
-  @Override
   public boolean isInvokeSpecial() {
     return instruction instanceof CfInvoke
         && ((CfInvoke) instruction).getOpcode() == Opcodes.INVOKESPECIAL;

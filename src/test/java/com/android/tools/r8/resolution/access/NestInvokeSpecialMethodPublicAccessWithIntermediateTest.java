@@ -122,7 +122,8 @@ public class NestInvokeSpecialMethodPublicAccessWithIntermediateTest extends Tes
     CodeInspector inspector = new CodeInspector(appInfo.app());
     MethodSubject foo = inspector.clazz(callerClass).uniqueMethodWithName("foo");
     assertTrue(
-        foo.streamInstructions().anyMatch(i -> i.isInvokeSpecial() && i.getMethod() == target));
+        foo.streamInstructions()
+            .anyMatch(i -> i.asCfInstruction().isInvokeSpecial() && i.getMethod() == target));
   }
 
   private DexMethod getTargetMethodSignature(Class<?> declaredClass, AppInfoWithLiveness appInfo) {

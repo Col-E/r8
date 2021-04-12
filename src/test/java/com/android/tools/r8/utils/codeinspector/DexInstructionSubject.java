@@ -205,11 +205,6 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
-  public boolean isInvokeSpecial() {
-    return false;
-  }
-
-  @Override
   public boolean isInvokeDynamic() {
     return isInvokeCustom();
   }
