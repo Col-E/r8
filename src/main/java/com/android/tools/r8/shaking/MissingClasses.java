@@ -204,6 +204,10 @@ public class MissingClasses {
                 holder.lookupProgramMethod(synthesizingContextReference.asDexMethod());
             assert synthesizingContext != null;
             rewrittenContexts.add(synthesizingContext);
+          } else if (synthesizingContextReference.isDexType()) {
+            DexProgramClass synthesizingClass =
+                appView.definitionFor(synthesizingContextReference.asDexType()).asProgramClass();
+            rewrittenContexts.add(synthesizingClass);
           } else {
             assert false
                 : "Unexpected synthesizing context: "
