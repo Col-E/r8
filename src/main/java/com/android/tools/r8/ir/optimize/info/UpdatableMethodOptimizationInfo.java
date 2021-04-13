@@ -23,7 +23,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.BitSet;
 import java.util.Set;
-import java.util.function.Function;
 
 public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
 
@@ -147,14 +146,14 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   public UpdatableMethodOptimizationInfo fixupClassTypeReferences(
-      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithClassHierarchy> appView) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens lens) {
     if (returnsObjectWithUpperBoundType != null) {
       returnsObjectWithUpperBoundType =
-          returnsObjectWithUpperBoundType.fixupClassTypeReferences(mapping, appView);
+          returnsObjectWithUpperBoundType.rewrittenWithLens(appView, lens);
     }
     if (returnsObjectWithLowerBoundType != null) {
       TypeElement returnsObjectWithLowerBoundType =
-          this.returnsObjectWithLowerBoundType.fixupClassTypeReferences(mapping, appView);
+          this.returnsObjectWithLowerBoundType.rewrittenWithLens(appView, lens);
       if (returnsObjectWithLowerBoundType.isClassType()) {
         this.returnsObjectWithLowerBoundType = returnsObjectWithLowerBoundType.asClassType();
       } else {

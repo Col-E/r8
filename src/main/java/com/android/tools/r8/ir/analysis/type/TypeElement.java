@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.code.Value;
 import java.util.function.Function;
 
@@ -68,8 +69,13 @@ public abstract class TypeElement {
   }
 
   public TypeElement fixupClassTypeReferences(
-      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithClassHierarchy> appView) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, Function<DexType, DexType> mapping) {
     return this;
+  }
+
+  public final TypeElement rewrittenWithLens(
+      AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens graphLens) {
+    return fixupClassTypeReferences(appView, graphLens::lookupType);
   }
 
   public boolean isNullable() {

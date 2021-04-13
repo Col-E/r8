@@ -134,10 +134,10 @@ public class ArrayTypeElement extends ReferenceTypeElement {
 
   @Override
   public ArrayTypeElement fixupClassTypeReferences(
-      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithClassHierarchy> appView) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, Function<DexType, DexType> mapping) {
     if (memberTypeLattice.isReferenceType()) {
       TypeElement substitutedMemberType =
-          memberTypeLattice.fixupClassTypeReferences(mapping, appView);
+          memberTypeLattice.fixupClassTypeReferences(appView, mapping);
       if (substitutedMemberType != memberTypeLattice) {
         return ArrayTypeElement.create(substitutedMemberType, nullability);
       }

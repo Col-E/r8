@@ -77,8 +77,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstance
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldOrdinalData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldUnknownData;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason;
-import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
@@ -469,31 +468,20 @@ public class EnumUnboxer {
         executorService,
         new OptimizationInfoFixer() {
           @Override
-          public void fixup(DexEncodedField field) {
-            FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
-            if (optimizationInfo.isMutableFieldOptimizationInfo()) {
-              optimizationInfo
-                  .asMutableFieldOptimizationInfo()
-                  .fixupClassTypeReferences(appView.graphLens()::lookupType, appView)
-                  .fixupAbstractValue(appView, appView.graphLens());
-            } else {
-              assert optimizationInfo.isDefaultFieldOptimizationInfo();
-            }
+          public void fixup(DexEncodedField field, MutableFieldOptimizationInfo optimizationInfo) {
+            optimizationInfo
+                .asMutableFieldOptimizationInfo()
+                .fixupClassTypeReferences(appView, appView.graphLens())
+                .fixupAbstractValue(appView, appView.graphLens());
           }
 
           @Override
-          public void fixup(DexEncodedMethod method) {
-            MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
-            if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
-              UpdatableMethodOptimizationInfo updatableOptimizationInfo =
-                  optimizationInfo.asUpdatableMethodOptimizationInfo();
-              updatableOptimizationInfo
-                  .fixupClassTypeReferences(appView.graphLens()::lookupType, appView)
-                  .fixupAbstractReturnValue(appView, appView.graphLens())
-                  .fixupInstanceInitializerInfo(appView, appView.graphLens());
-            } else {
-              assert optimizationInfo.isDefaultMethodOptimizationInfo();
-            }
+          public void fixup(
+              DexEncodedMethod method, UpdatableMethodOptimizationInfo optimizationInfo) {
+            optimizationInfo
+                .fixupClassTypeReferences(appView, appView.graphLens())
+                .fixupAbstractReturnValue(appView, appView.graphLens())
+                .fixupInstanceInitializerInfo(appView, appView.graphLens());
           }
         });
   }

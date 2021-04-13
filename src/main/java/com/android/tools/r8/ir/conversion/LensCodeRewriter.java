@@ -122,8 +122,7 @@ public class LensCodeRewriter {
   private Value makeOutValue(Instruction insn, IRCode code) {
     if (insn.outValue() != null) {
       TypeElement oldType = insn.getOutType();
-      TypeElement newType =
-          oldType.fixupClassTypeReferences(appView.graphLens()::lookupType, appView);
+      TypeElement newType = oldType.rewrittenWithLens(appView, appView.graphLens());
       return code.createValue(newType, insn.getLocalInfo());
     }
     return null;
@@ -622,8 +621,7 @@ public class LensCodeRewriter {
               Assume assume = current.asAssume();
               if (assume.hasOutValue()) {
                 TypeElement type = assume.getOutType();
-                TypeElement substituted =
-                    type.fixupClassTypeReferences(graphLens::lookupType, appView);
+                TypeElement substituted = type.rewrittenWithLens(appView, graphLens);
                 if (substituted != type) {
                   assert type.isArrayType() || type.isClassType();
                   if (substituted.isPrimitiveType()) {
@@ -659,8 +657,7 @@ public class LensCodeRewriter {
             if (current.hasOutValue()) {
               // For all other instructions, substitute any changed type.
               TypeElement type = current.getOutType();
-              TypeElement substituted =
-                  type.fixupClassTypeReferences(graphLens::lookupType, appView);
+              TypeElement substituted = type.rewrittenWithLens(appView, graphLens);
               if (substituted != type) {
                 current.outValue().setType(substituted);
                 affectedPhis.addAll(current.outValue().uniquePhiUsers());

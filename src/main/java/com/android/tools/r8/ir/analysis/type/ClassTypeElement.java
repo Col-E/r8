@@ -156,7 +156,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
 
   @Override
   public TypeElement fixupClassTypeReferences(
-      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithClassHierarchy> appView) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, Function<DexType, DexType> mapping) {
     DexType mappedType = mapping.apply(type);
     if (mappedType.isPrimitiveType()) {
       return PrimitiveTypeElement.fromDexType(mappedType, false);

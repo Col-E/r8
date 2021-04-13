@@ -20,9 +20,9 @@ public abstract class OptimizationFeedback
 
   public interface OptimizationInfoFixer {
 
-    void fixup(DexEncodedField field);
+    void fixup(DexEncodedField field, MutableFieldOptimizationInfo optimizationInfo);
 
-    void fixup(DexEncodedMethod method);
+    void fixup(DexEncodedMethod method, UpdatableMethodOptimizationInfo optimizationInfo);
   }
 
   public void fixupOptimizationInfos(
@@ -31,8 +31,22 @@ public abstract class OptimizationFeedback
     ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> {
-          clazz.fields().forEach(fixer::fixup);
-          clazz.methods().forEach(fixer::fixup);
+          for (DexEncodedField field : clazz.fields()) {
+            FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
+            if (optimizationInfo.isMutableFieldOptimizationInfo()) {
+              fixer.fixup(field, optimizationInfo.asMutableFieldOptimizationInfo());
+            } else {
+              assert optimizationInfo.isDefaultFieldOptimizationInfo();
+            }
+          }
+          for (DexEncodedMethod method : clazz.methods()) {
+            MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
+            if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
+              fixer.fixup(method, optimizationInfo.asUpdatableMethodOptimizationInfo());
+            } else {
+              assert optimizationInfo.isDefaultMethodOptimizationInfo();
+            }
+          }
         },
         executorService);
   }

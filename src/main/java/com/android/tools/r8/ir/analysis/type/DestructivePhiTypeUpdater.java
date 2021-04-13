@@ -85,7 +85,7 @@ public class DestructivePhiTypeUpdater {
               || operandType.isPrimitiveType()
               || operandType.isNullType()
               || (operandType.isReferenceType()
-                  && operandType.fixupClassTypeReferences(mapping, appView) == operandType);
+                  && operandType.fixupClassTypeReferences(appView, mapping) == operandType);
         }
       }
     }
@@ -98,7 +98,7 @@ public class DestructivePhiTypeUpdater {
       BasicBlock block = blocks.next();
       for (Phi phi : block.getPhis()) {
         TypeElement phiType = phi.getType();
-        TypeElement substituted = phiType.fixupClassTypeReferences(mapping, appView);
+        TypeElement substituted = phiType.fixupClassTypeReferences(appView, mapping);
         assert substituted == phiType || affectedPhis.contains(phi);
       }
     }

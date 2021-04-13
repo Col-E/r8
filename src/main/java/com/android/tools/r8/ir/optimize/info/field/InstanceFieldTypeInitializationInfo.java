@@ -62,12 +62,9 @@ public class InstanceFieldTypeInitializationInfo implements InstanceFieldInitial
     }
     return new InstanceFieldTypeInitializationInfo(
         dynamicLowerBoundType != null
-            ? dynamicLowerBoundType
-                .fixupClassTypeReferences(lens::lookupType, appView.withClassHierarchy())
-                .asClassType()
+            ? dynamicLowerBoundType.rewrittenWithLens(appView, lens).asClassType()
             : null,
-        dynamicUpperBoundType.fixupClassTypeReferences(
-            lens::lookupType, appView.withClassHierarchy()));
+        dynamicUpperBoundType.rewrittenWithLens(appView, lens));
   }
 
   @Override
