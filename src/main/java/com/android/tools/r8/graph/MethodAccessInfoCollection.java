@@ -4,8 +4,9 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.utils.ConsumerUtils;
-import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
@@ -89,24 +90,31 @@ public class MethodAccessInfoCollection {
 
   public MethodAccessInfoCollection rewrittenWithLens(
       DexDefinitionSupplier definitions, GraphLens lens) {
-    return new MethodAccessInfoCollection(
-        rewriteInvokesWithLens(directInvokes, definitions, lens),
-        rewriteInvokesWithLens(interfaceInvokes, definitions, lens),
-        rewriteInvokesWithLens(staticInvokes, definitions, lens),
-        rewriteInvokesWithLens(superInvokes, definitions, lens),
-        rewriteInvokesWithLens(virtualInvokes, definitions, lens));
+    MethodAccessInfoCollection.Builder<?> builder = identityBuilder();
+    rewriteInvokesWithLens(builder, directInvokes, definitions, lens, Type.DIRECT);
+    rewriteInvokesWithLens(builder, interfaceInvokes, definitions, lens, Type.INTERFACE);
+    rewriteInvokesWithLens(builder, staticInvokes, definitions, lens, Type.STATIC);
+    rewriteInvokesWithLens(builder, superInvokes, definitions, lens, Type.SUPER);
+    rewriteInvokesWithLens(builder, virtualInvokes, definitions, lens, Type.VIRTUAL);
+    return builder.build();
   }
 
-  private static Map<DexMethod, ProgramMethodSet> rewriteInvokesWithLens(
-      Map<DexMethod, ProgramMethodSet> invokes, DexDefinitionSupplier definitions, GraphLens lens) {
-    return MapUtils.map(
-        invokes,
-        IdentityHashMap::new,
-        lens::getRenamedMethodSignature,
-        methods -> methods.rewrittenWithLens(definitions, lens),
-        (methods, other) -> {
-          methods.addAll(other);
-          return methods;
+  private static void rewriteInvokesWithLens(
+      MethodAccessInfoCollection.Builder<?> builder,
+      Map<DexMethod, ProgramMethodSet> invokes,
+      DexDefinitionSupplier definitions,
+      GraphLens lens,
+      Type type) {
+    invokes.forEach(
+        (reference, contexts) -> {
+          ProgramMethodSet newContexts = contexts.rewrittenWithLens(definitions, lens);
+          for (ProgramMethod newContext : newContexts) {
+            MethodLookupResult methodLookupResult =
+                lens.lookupMethod(reference, newContext.getReference(), type);
+            DexMethod newReference = methodLookupResult.getReference();
+            Type newType = methodLookupResult.getType();
+            builder.registerInvokeInContext(newReference, newContext, newType);
+          }
         });
   }
 
@@ -149,6 +157,25 @@ public class MethodAccessInfoCollection {
 
     public T getVirtualInvokes() {
       return virtualInvokes;
+    }
+
+    public boolean registerInvokeInContext(
+        DexMethod invokedMethod, ProgramMethod context, Type type) {
+      switch (type) {
+        case DIRECT:
+          return registerInvokeDirectInContext(invokedMethod, context);
+        case INTERFACE:
+          return registerInvokeInterfaceInContext(invokedMethod, context);
+        case STATIC:
+          return registerInvokeStaticInContext(invokedMethod, context);
+        case SUPER:
+          return registerInvokeSuperInContext(invokedMethod, context);
+        case VIRTUAL:
+          return registerInvokeVirtualInContext(invokedMethod, context);
+        default:
+          assert false;
+          return false;
+      }
     }
 
     public boolean registerInvokeDirectInContext(DexMethod invokedMethod, ProgramMethod context) {
