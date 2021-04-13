@@ -504,15 +504,15 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * <p>The result is the field that will be hit at runtime, if such field is known. A result of
    * null indicates that the field is either undefined or not a static field.
    */
-  public DexEncodedField lookupStaticTargetOn(DexType type, DexField field) {
+  public DexClassAndField lookupStaticTargetOn(DexType type, DexField field) {
     assert checkIfObsolete();
     assert type.isClassType();
-    DexEncodedField result = resolveFieldOn(type, field).getResolvedField();
-    return result == null || !result.accessFlags.isStatic() ? null : result;
+    DexClassAndField result = resolveFieldOn(type, field).getResolutionPair();
+    return result == null || !result.getAccessFlags().isStatic() ? null : result;
   }
 
-  public DexEncodedField lookupStaticTarget(DexField field) {
-    return lookupStaticTargetOn(field.holder, field);
+  public DexClassAndField lookupStaticTarget(DexField field) {
+    return lookupStaticTargetOn(field.getHolderType(), field);
   }
 
   /**

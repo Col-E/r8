@@ -9,6 +9,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -519,8 +520,8 @@ public final class ClassStaticizer {
     }
     // Allow single assignment to a singleton field.
     StaticPut staticPut = instruction.asStaticPut();
-    DexEncodedField fieldAccessed = appView.appInfo().lookupStaticTarget(staticPut.getField());
-    return fieldAccessed == info.singletonField;
+    DexClassAndField fieldAccessed = appView.appInfo().lookupStaticTarget(staticPut.getField());
+    return fieldAccessed != null && fieldAccessed.getDefinition() == info.singletonField;
   }
 
   // Only allow a very trivial pattern: load the singleton field and return it, which looks like:
@@ -536,8 +537,8 @@ public final class ClassStaticizer {
     for (Instruction instr : code.instructions()) {
       if (instr.isStaticGet()) {
         staticGet = instr.asStaticGet();
-        DexEncodedField fieldAccessed = appView.appInfo().lookupStaticTarget(staticGet.getField());
-        if (fieldAccessed != info.singletonField) {
+        DexClassAndField fieldAccessed = appView.appInfo().lookupStaticTarget(staticGet.getField());
+        if (fieldAccessed == null || fieldAccessed.getDefinition() != info.singletonField) {
           return null;
         }
         instructions.add(instr);
@@ -568,7 +569,8 @@ public final class ClassStaticizer {
       return null;
     }
 
-    assert candidateInfo.singletonField == appView.appInfo().lookupStaticTarget(field)
+    assert candidateInfo.singletonField
+            == appView.appInfo().lookupStaticTarget(field).getDefinition()
         : "Added reference after collectCandidates(...)?";
 
     Value singletonValue = staticGet.dest();

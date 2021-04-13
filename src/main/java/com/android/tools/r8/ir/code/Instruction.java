@@ -1578,7 +1578,11 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     }
 
     public B setFreshOutValue(ValueFactory factory, TypeElement type) {
-      return setOutValue(factory.createValue(type));
+      return setFreshOutValue(factory, type, null);
+    }
+
+    public B setFreshOutValue(ValueFactory factory, TypeElement type, DebugLocalInfo localInfo) {
+      return setOutValue(factory.createValue(type, localInfo));
     }
 
     public B setPosition(Position position) {

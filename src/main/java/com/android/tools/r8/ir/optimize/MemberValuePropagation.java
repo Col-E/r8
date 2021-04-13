@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.google.common.base.Predicates.alwaysTrue;
 
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -39,6 +40,7 @@ import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfoLookup;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRuleReturnValue;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
@@ -105,7 +107,7 @@ public class MemberValuePropagation {
       DexField field = returnValueRule.getField();
       assert instruction.getOutType() == TypeElement.fromDexType(field.type, maybeNull(), appView);
 
-      DexEncodedField staticField = appView.appInfo().lookupStaticTarget(field);
+      DexClassAndField staticField = appView.appInfo().lookupStaticTarget(field);
       if (staticField == null) {
         if (warnedFields.add(field)) {
           reporter.warning(
@@ -118,8 +120,19 @@ public class MemberValuePropagation {
         return null;
       }
 
+      if (AccessControl.isMemberAccessible(
+              staticField, staticField.getHolder(), code.context(), appView)
+          .isTrue()) {
+        return StaticGet.builder()
+            .setField(field)
+            .setFreshOutValue(code, field.getTypeElement(appView), instruction.getLocalInfo())
+            .build();
+      }
+
       Instruction replacement =
-          staticField.valueAsConstInstruction(code, instruction.getLocalInfo(), appView);
+          staticField
+              .getDefinition()
+              .valueAsConstInstruction(code, instruction.getLocalInfo(), appView);
       if (replacement == null) {
         reporter.warning(
             new StringDiagnostic(
@@ -179,11 +192,24 @@ public class MemberValuePropagation {
       }
       replacement.setPosition(position);
       if (block.hasCatchHandlers()) {
-        iterator.split(code, blocks).listIterator(code).add(replacement);
+        BasicBlock splitBlock = iterator.split(code, blocks);
+        splitBlock.listIterator(code).add(replacement);
+
+        // Process the materialized value.
+        blocks.previous();
+        assert !iterator.hasNext();
+        assert IteratorUtils.peekNext(blocks) == splitBlock;
+
+        return true;
       } else {
         iterator.add(replacement);
       }
     }
+
+    // Process the materialized value.
+    iterator.previous();
+    assert iterator.peekNext() == replacement;
+
     return true;
   }
 

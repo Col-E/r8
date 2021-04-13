@@ -16,6 +16,7 @@ import com.android.tools.r8.code.SgetWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -35,6 +36,10 @@ public class StaticGet extends FieldInstruction implements StaticFieldInstructio
 
   public StaticGet(Value dest, DexField field) {
     super(field, dest, (Value) null);
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   public static StaticGet copyOf(IRCode code, StaticGet original) {
@@ -241,6 +246,30 @@ public class StaticGet extends FieldInstruction implements StaticFieldInstructio
       // In D8, this instruction may trigger class initialization if the holder of the field is
       // different from the current context.
       return holder != context.getHolderType();
+    }
+  }
+
+  public static class Builder extends BuilderBase<Builder, StaticGet> {
+
+    private DexField field;
+
+    public Builder setField(DexClassAndField field) {
+      return setField(field.getReference());
+    }
+
+    public Builder setField(DexField field) {
+      this.field = field;
+      return this;
+    }
+
+    @Override
+    public StaticGet build() {
+      return amend(new StaticGet(outValue, field));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
     }
   }
 }
