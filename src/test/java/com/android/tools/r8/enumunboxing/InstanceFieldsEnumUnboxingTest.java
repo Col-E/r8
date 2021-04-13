@@ -8,7 +8,6 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,14 +17,11 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class InstanceFieldsEnumUnboxingTest extends EnumUnboxingTestBase {
 
-  private static final Class<?>[] FAILURES = {
+  private static final Class<?>[] TESTS = {
     FailureIntField.class,
     FailureBoxedInnerEnumField.class,
     FailureUnboxedEnumField.class,
-    FailureTooManyUsedFields.class
-  };
-
-  private static final Class<?>[] SUCCESSES = {
+    FailureTooManyUsedFields.class,
     SuccessUnusedField.class,
     SuccessIntField.class,
     SuccessDoubleField.class,
@@ -57,27 +53,24 @@ public class InstanceFieldsEnumUnboxingTest extends EnumUnboxingTestBase {
     R8TestCompileResult compile =
         testForR8(parameters.getBackend())
             .addInnerClasses(InstanceFieldsEnumUnboxingTest.class)
-            .addKeepMainRules(SUCCESSES)
-            .addKeepMainRules(FAILURES)
+            .addKeepMainRules(TESTS)
             .addEnumUnboxingInspector(
-                inspector -> {
-                  Arrays.stream(SUCCESSES)
-                      .flatMap(
-                          clazz -> Arrays.stream(clazz.getDeclaredClasses()).filter(Class::isEnum))
-                      .forEach(clazz -> inspector.assertUnboxed((Class<? extends Enum<?>>) clazz));
-                  Arrays.stream(FAILURES)
-                      .flatMap(
-                          clazz ->
-                              Arrays.stream(clazz.getDeclaredClasses())
-                                  .filter(
-                                      declaredClass ->
-                                          declaredClass.isEnum()
-                                              && !declaredClass
-                                                  .getSimpleName()
-                                                  .equals("InnerEnum")))
-                      .forEach(
-                          clazz -> inspector.assertNotUnboxed((Class<? extends Enum<?>>) clazz));
-                })
+                inspector ->
+                    inspector
+                        .assertUnboxed(
+                            SuccessUnusedField.EnumField.class,
+                            SuccessIntField.EnumField.class,
+                            SuccessDoubleField.EnumField.class,
+                            SuccessIntFieldOrdinal.EnumField.class,
+                            SuccessIntFieldInitializerInit.EnumField.class,
+                            SuccessStringField.EnumField.class,
+                            SuccessMultiConstructorIntField.EnumField.class,
+                            SuccessPrivateIntField.EnumField.class)
+                        .assertNotUnboxed(
+                            FailureIntField.EnumField.class,
+                            FailureBoxedInnerEnumField.EnumField.class,
+                            FailureUnboxedEnumField.EnumField.class,
+                            FailureTooManyUsedFields.EnumField.class))
             .noMinification()
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
@@ -85,11 +78,8 @@ public class InstanceFieldsEnumUnboxingTest extends EnumUnboxingTestBase {
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .setMinApi(parameters.getApiLevel())
             .compile();
-    for (Class<?> failure : FAILURES) {
-      testClass(compile, failure);
-    }
-    for (Class<?> success : SUCCESSES) {
-      testClass(compile, success);
+    for (Class<?> main : TESTS) {
+      testClass(compile, main);
     }
   }
 

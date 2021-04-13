@@ -9,7 +9,6 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,7 +18,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ComparisonEnumUnboxingTest extends EnumUnboxingTestBase {
 
-  private static final Class<?>[] INPUTS = new Class<?>[] {NullCheck.class, EnumComparison.class};
+  private static final Class<?>[] TESTS = new Class<?>[] {NullCheck.class, EnumComparison.class};
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
@@ -42,16 +41,14 @@ public class ComparisonEnumUnboxingTest extends EnumUnboxingTestBase {
     R8TestCompileResult compile =
         testForR8(parameters.getBackend())
             .addInnerClasses(ComparisonEnumUnboxingTest.class)
-            .addKeepMainRules(INPUTS)
+            .addKeepMainRules(TESTS)
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .addKeepRules(enumKeepRules.getKeepRules())
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .addEnumUnboxingInspector(
                 inspector ->
-                    Arrays.stream(INPUTS)
-                        .map(clazz -> (Class<? extends Enum<?>>) clazz.getDeclaredClasses()[0])
-                        .forEach(inspector::assertUnboxed))
+                    inspector.assertUnboxed(NullCheck.MyEnum.class, EnumComparison.MyEnum.class))
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(
@@ -59,9 +56,9 @@ public class ComparisonEnumUnboxingTest extends EnumUnboxingTestBase {
                   assertEquals(3, inspector.clazz(NullCheck.class).allMethods().size());
                   assertEquals(2, inspector.clazz(EnumComparison.class).allMethods().size());
                 });
-    for (Class<?> input : INPUTS) {
+    for (Class<?> main : TESTS) {
       compile
-          .run(parameters.getRuntime(), input)
+          .run(parameters.getRuntime(), main)
           .assertSuccess()
           .inspectStdOut(this::assertLines2By2Correct);
     }

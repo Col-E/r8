@@ -9,7 +9,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,11 +18,9 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
 
-  private static final Class<?>[] FAILURES = {
-    FailureDefaultMethodUsed.class, FailureUsedAsInterface.class,
-  };
-
-  private static final Class<?>[] SUCCESSES = {
+  private static final Class<?>[] TESTS = {
+    FailureDefaultMethodUsed.class,
+    FailureUsedAsInterface.class,
     SuccessAbstractMethod.class,
     SuccessEmptyInterface.class,
     SuccessUnusedDefaultMethod.class,
@@ -52,20 +49,19 @@ public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
     R8TestCompileResult compile =
         testForR8(parameters.getBackend())
             .addInnerClasses(InterfaceEnumUnboxingTest.class)
-            .addKeepMainRules(SUCCESSES)
-            .addKeepMainRules(FAILURES)
+            .addKeepMainRules(TESTS)
             .addEnumUnboxingInspector(
-                inspector -> {
-                  Arrays.stream(SUCCESSES)
-                      .flatMap(
-                          clazz -> Arrays.stream(clazz.getDeclaredClasses()).filter(Class::isEnum))
-                      .forEach(clazz -> inspector.assertUnboxed((Class<? extends Enum<?>>) clazz));
-                  Arrays.stream(FAILURES)
-                      .flatMap(
-                          clazz -> Arrays.stream(clazz.getDeclaredClasses()).filter(Class::isEnum))
-                      .forEach(
-                          clazz -> inspector.assertNotUnboxed((Class<? extends Enum<?>>) clazz));
-                })
+                inspector ->
+                    inspector
+                        .assertUnboxed(
+                            SuccessAbstractMethod.EnumInterface.class,
+                            SuccessEmptyInterface.EnumInterface.class,
+                            SuccessUnusedDefaultMethod.EnumInterface.class,
+                            SuccessUnusedDefaultMethodOverride.EnumInterface.class,
+                            SuccessUnusedDefaultMethodOverrideEnum.EnumInterface.class)
+                        .assertNotUnboxed(
+                            FailureDefaultMethodUsed.EnumInterface.class,
+                            FailureUsedAsInterface.EnumInterface.class))
             .noMinification()
             .enableNoVerticalClassMergingAnnotations()
             .enableInliningAnnotations()
@@ -74,11 +70,8 @@ public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .setMinApi(parameters.getApiLevel())
             .compile();
-    for (Class<?> failure : FAILURES) {
-      testClass(compile, failure);
-    }
-    for (Class<?> success : SUCCESSES) {
-      testClass(compile, success);
+    for (Class<?> main : TESTS) {
+      testClass(compile, main);
     }
   }
 
