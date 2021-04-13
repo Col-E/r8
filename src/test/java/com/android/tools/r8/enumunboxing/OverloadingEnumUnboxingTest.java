@@ -6,7 +6,6 @@ package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import org.junit.Test;
@@ -36,25 +35,20 @@ public class OverloadingEnumUnboxingTest extends EnumUnboxingTestBase {
   @Test
   public void testEnumUnboxing() throws Exception {
     Class<?> classToTest = TestClass.class;
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(OverloadingEnumUnboxingTest.class)
-            .addKeepMainRule(classToTest)
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .enableNeverClassInliningAnnotations()
-            .enableInliningAnnotations()
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                m -> {
-                  assertEnumIsUnboxed(MyEnum1.class, MyEnum1.class.getSimpleName(), m);
-                  assertEnumIsUnboxed(MyEnum2.class, MyEnum2.class.getSimpleName(), m);
-                })
-            .run(parameters.getRuntime(), classToTest)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(OverloadingEnumUnboxingTest.class)
+        .addKeepMainRule(classToTest)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(
+            inspector -> inspector.assertUnboxed(MyEnum1.class, MyEnum2.class))
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), classToTest)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   @SuppressWarnings("SameParameterValue")

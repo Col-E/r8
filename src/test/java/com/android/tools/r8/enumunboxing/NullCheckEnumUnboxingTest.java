@@ -6,7 +6,6 @@ package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import java.util.Objects;
@@ -36,28 +35,24 @@ public class NullCheckEnumUnboxingTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(NullCheckEnumUnboxingTest.class)
-            .addKeepMainRule(MainNullTest.class)
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .enableNeverClassInliningAnnotations()
-            .enableInliningAnnotations()
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                m -> {
-                  assertEnumIsUnboxed(MyEnum.class, MyEnum.class.getSimpleName(), m);
-                  // MyEnum19 is always unboxed. If minAPI > 19 the unboxer will identify
-                  // Objects#requiredNonNull usage. For 19 and prior, the backport code should not
-                  // prohibit the unboxing either.
-                  assertEnumIsUnboxed(MyEnum19.class, MyEnum19.class.getSimpleName(), m);
-                })
-            .run(parameters.getRuntime(), MainNullTest.class)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(NullCheckEnumUnboxingTest.class)
+        .addKeepMainRule(MainNullTest.class)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        // MyEnum19 is always unboxed. If minAPI > 19 the unboxer will identify
+        // Objects#requiredNonNull usage. For 19 and prior, the backport code should not
+        // prohibit the unboxing either.
+        .addEnumUnboxingInspector(
+            inspector -> inspector.assertUnboxed(MyEnum.class, MyEnum19.class))
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .allowDiagnosticMessages()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), MainNullTest.class)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   @NeverClassInline

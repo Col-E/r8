@@ -7,8 +7,8 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.enumunboxing.DoubleProcessingEnumUnboxingTest.App.AppEnum;
 import com.android.tools.r8.enumunboxing.examplelib1.JavaLibrary1;
 import com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator;
 import com.android.tools.r8.references.Reference;
@@ -67,24 +67,21 @@ public class DoubleProcessingEnumUnboxingTest extends EnumUnboxingTestBase {
             .compile()
             .writeToZip();
     // Compile the app with the lib.
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(App.class, App.AppEnum.class)
-            .addProgramFiles(javaLibShrunk)
-            .addKeepMainRule(App.class)
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .enableNeverClassInliningAnnotations()
-            .enableInliningAnnotations()
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspect(this::assertUtilityClassPresent)
-            .inspectDiagnosticMessages(
-                m -> assertEnumIsUnboxed(App.AppEnum.class, App.class.getSimpleName(), m))
-            .run(parameters.getRuntime(), App.class)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addProgramClasses(App.class, App.AppEnum.class)
+        .addProgramFiles(javaLibShrunk)
+        .addKeepMainRule(App.class)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(App.AppEnum.class))
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(this::assertUtilityClassPresent)
+        .run(parameters.getRuntime(), App.class)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   private void assertUtilityClassPresent(CodeInspector codeInspector) {

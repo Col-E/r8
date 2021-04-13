@@ -8,8 +8,8 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestCompileResult;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,42 +54,39 @@ public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
             .addInnerClasses(InterfaceEnumUnboxingTest.class)
             .addKeepMainRules(SUCCESSES)
             .addKeepMainRules(FAILURES)
+            .addEnumUnboxingInspector(
+                inspector -> {
+                  Arrays.stream(SUCCESSES)
+                      .flatMap(
+                          clazz -> Arrays.stream(clazz.getDeclaredClasses()).filter(Class::isEnum))
+                      .forEach(clazz -> inspector.assertUnboxed((Class<? extends Enum<?>>) clazz));
+                  Arrays.stream(FAILURES)
+                      .flatMap(
+                          clazz -> Arrays.stream(clazz.getDeclaredClasses()).filter(Class::isEnum))
+                      .forEach(
+                          clazz -> inspector.assertNotUnboxed((Class<? extends Enum<?>>) clazz));
+                })
             .noMinification()
             .enableNoVerticalClassMergingAnnotations()
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .addKeepRules(enumKeepRules.getKeepRules())
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())
             .compile();
     for (Class<?> failure : FAILURES) {
-      testClass(compile, failure, true);
+      testClass(compile, failure);
     }
     for (Class<?> success : SUCCESSES) {
-      testClass(compile, success, false);
+      testClass(compile, success);
     }
   }
 
-  private void testClass(R8TestCompileResult compile, Class<?> testClass, boolean failure)
-      throws Exception {
-    R8TestRunResult run =
-        compile
-            .inspectDiagnosticMessages(
-                m -> {
-                  for (Class<?> declaredClass : testClass.getDeclaredClasses()) {
-                    if (declaredClass.isEnum()) {
-                      if (failure) {
-                        assertEnumIsBoxed(declaredClass, testClass.getSimpleName(), m);
-                      } else {
-                        assertEnumIsUnboxed(declaredClass, testClass.getSimpleName(), m);
-                      }
-                    }
-                  }
-                })
-            .run(parameters.getRuntime(), testClass)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+  private void testClass(R8TestCompileResult compile, Class<?> testClass) throws Exception {
+    compile
+        .run(parameters.getRuntime(), testClass)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   static class SuccessEmptyInterface {

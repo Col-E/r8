@@ -7,7 +7,6 @@ package com.android.tools.r8.enumunboxing;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.io.IOException;
 import java.util.List;
@@ -37,22 +36,19 @@ public class EnumMissingFieldsUnboxingTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(TestClass.class)
-            .addProgramClassFileData(getEnumProgramData())
-            .addKeepMainRule(TestClass.class)
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .enableNeverClassInliningAnnotations()
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                m -> assertEnumIsBoxed(CompilationEnum.class, TestClass.class.getSimpleName(), m))
-            .run(parameters.getRuntime(), TestClass.class)
-            .assertFailureWithErrorThatMatches(containsString("NoSuchFieldError"));
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addProgramClasses(TestClass.class)
+        .addProgramClassFileData(getEnumProgramData())
+        .addKeepMainRule(TestClass.class)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(inspector -> inspector.assertNotUnboxed(CompilationEnum.class))
+        .enableNeverClassInliningAnnotations()
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertFailureWithErrorThatMatches(containsString("NoSuchFieldError"))
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   private byte[] getEnumProgramData() throws IOException {

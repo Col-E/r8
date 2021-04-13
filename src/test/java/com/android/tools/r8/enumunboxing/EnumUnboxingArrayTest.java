@@ -7,7 +7,6 @@ package com.android.tools.r8.enumunboxing;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import org.junit.Test;
@@ -18,12 +17,12 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
 
-  private static final Class<?>[] SUCCESSES = {
-    EnumVarArgs.class,
-    EnumArrayReadWriteNoEscape.class,
-    EnumArrayReadWrite.class,
+  private static final Class<?>[] TESTS = {
+    Enum2DimArrayReadWrite.class,
     EnumArrayNullRead.class,
-    Enum2DimArrayReadWrite.class
+    EnumArrayReadWrite.class,
+    EnumArrayReadWriteNoEscape.class,
+    EnumVarArgs.class,
   };
 
   private final TestParameters parameters;
@@ -47,24 +46,29 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
     R8TestCompileResult compile =
         testForR8(parameters.getBackend())
             .addInnerClasses(EnumUnboxingArrayTest.class)
-            .addKeepMainRules(SUCCESSES)
+            .addKeepMainRules(TESTS)
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .addKeepRules(enumKeepRules.getKeepRules())
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
+            .addEnumUnboxingInspector(
+                inspector ->
+                    inspector
+                        .assertUnboxed(
+                            EnumArrayReadWrite.MyEnum.class,
+                            EnumArrayReadWriteNoEscape.MyEnum.class,
+                            EnumVarArgs.MyEnum.class)
+                        // TODO(b/185182242): Should always be unboxed.
+                        .assertUnboxedIf(enumKeepRules.isStudio(), EnumArrayNullRead.MyEnum.class)
+                        // TODO(b/185182242): Should always be unboxed.
+                        .assertNotUnboxed(Enum2DimArrayReadWrite.MyEnum.class))
             .setMinApi(parameters.getApiLevel())
             .compile();
-    for (Class<?> success : SUCCESSES) {
-      R8TestRunResult run =
-          compile
-              .inspectDiagnosticMessages(
-                  m ->
-                      assertEnumIsUnboxed(
-                          success.getDeclaredClasses()[0], success.getSimpleName(), m))
-              .run(parameters.getRuntime(), success)
-              .assertSuccess();
-      assertLines2By2Correct(run.getStdOut());
+    for (Class<?> main : TESTS) {
+      compile
+          .run(parameters.getRuntime(), main)
+          .assertSuccess()
+          .inspectStdOut(this::assertLines2By2Correct);
     }
   }
 

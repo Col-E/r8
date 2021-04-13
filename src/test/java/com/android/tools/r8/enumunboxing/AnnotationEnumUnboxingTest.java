@@ -49,26 +49,22 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
         .addKeepRules(enumKeepRules.getKeepRules())
         .addKeepClassRules(ClassAnnotationDefault.class)
         .addKeepRuntimeVisibleAnnotations()
+        .addEnumUnboxingInspector(
+            inspector ->
+                inspector
+                    .assertUnboxed(MyEnumParamMethod2.class, MyEnumRetMethod2.class)
+                    .assertNotUnboxed(
+                        MyEnum.class,
+                        MyEnumDefault.class,
+                        MyEnumArray.class,
+                        MyEnumArrayDefault.class))
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .allowDiagnosticInfoMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectDiagnosticMessages(
-            m -> {
-              assertEnumIsBoxed(MyEnumDefault.class, MyEnumDefault.class.getSimpleName(), m);
-              assertEnumIsBoxed(MyEnum.class, MyEnum.class.getSimpleName(), m);
-              assertEnumIsBoxed(
-                  MyEnumArrayDefault.class, MyEnumArrayDefault.class.getSimpleName(), m);
-              assertEnumIsBoxed(MyEnumArray.class, MyEnumArray.class.getSimpleName(), m);
-              assertEnumIsUnboxed(
-                  MyEnumRetMethod2.class, MyEnumRetMethod2.class.getSimpleName(), m);
-              assertEnumIsUnboxed(
-                  MyEnumParamMethod2.class, MyEnumParamMethod2.class.getSimpleName(), m);
-            })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("print", "1", "1", "1", "1", "1", "0", "0", "0", "0");
   }

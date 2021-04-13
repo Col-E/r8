@@ -67,7 +67,6 @@ public class VirtualMethodsAccessibilityErrorEnumUnboxingTest extends EnumUnboxi
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .allowDiagnosticInfoMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)

@@ -6,7 +6,6 @@ package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import org.junit.Test;
@@ -35,22 +34,19 @@ public class PhiEnumUnboxingTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(Phi.class, MyEnum.class)
-            .addKeepMainRule(Phi.class)
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .enableInliningAnnotations()
-            .enableNeverClassInliningAnnotations()
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                m -> assertEnumIsUnboxed(MyEnum.class, Phi.class.getSimpleName(), m))
-            .run(parameters.getRuntime(), Phi.class)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Phi.class, MyEnum.class)
+        .addKeepMainRule(Phi.class)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), Phi.class)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   @NeverClassInline

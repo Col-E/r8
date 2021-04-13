@@ -6,7 +6,6 @@ package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import org.junit.Assume;
@@ -37,27 +36,23 @@ public class ClassAccessEnumUnboxingTest extends EnumUnboxingTestBase {
   @Test
   public void testEnumUnboxing() throws Exception {
     Assume.assumeTrue("studio rules required to use valueOf", enumKeepRules.isStudio());
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(ClassAccessEnumUnboxingTest.class)
-            .addKeepMainRule(Main.class)
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .enableNeverClassInliningAnnotations()
-            .enableInliningAnnotations()
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                m -> {
-                  assertEnumIsUnboxed(ProtoEnumLike.class, ProtoEnumLike.class.getSimpleName(), m);
-                  assertEnumIsUnboxed(UnboxableEnum.class, UnboxableEnum.class.getSimpleName(), m);
-                  assertEnumIsBoxed(EscapingEnum1.class, EscapingEnum1.class.getSimpleName(), m);
-                  assertEnumIsBoxed(EscapingEnum2.class, EscapingEnum2.class.getSimpleName(), m);
-                })
-            .run(parameters.getRuntime(), Main.class)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(ClassAccessEnumUnboxingTest.class)
+        .addKeepMainRule(Main.class)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(
+            inspector ->
+                inspector
+                    .assertUnboxed(ProtoEnumLike.class, UnboxableEnum.class)
+                    .assertNotUnboxed(EscapingEnum1.class, EscapingEnum2.class))
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   @NeverClassInline

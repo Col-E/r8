@@ -9,8 +9,8 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,7 +47,11 @@ public class FieldPutEnumUnboxingTest extends EnumUnboxingTestBase {
             .addKeepMainRules(INPUTS)
             .addKeepRules(enumKeepRules.getKeepRules())
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
+            .addEnumUnboxingInspector(
+                inspector ->
+                    Arrays.stream(INPUTS)
+                        .map(clazz -> (Class<? extends Enum<?>>) clazz.getDeclaredClasses()[0])
+                        .forEach(inspector::assertUnboxed))
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
@@ -63,13 +67,10 @@ public class FieldPutEnumUnboxingTest extends EnumUnboxingTestBase {
                 });
 
     for (Class<?> input : INPUTS) {
-      R8TestRunResult run =
-          compile
-              .inspectDiagnosticMessages(
-                  m -> assertEnumIsUnboxed(input.getDeclaredClasses()[0], input.getSimpleName(), m))
-              .run(parameters.getRuntime(), input)
-              .assertSuccess();
-      assertLines2By2Correct(run.getStdOut());
+      compile
+          .run(parameters.getRuntime(), input)
+          .assertSuccess()
+          .inspectStdOut(this::assertLines2By2Correct);
     }
   }
 

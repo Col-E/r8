@@ -5,7 +5,6 @@
 package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import org.junit.Test;
@@ -35,23 +34,19 @@ public class ToStringEnumUnboxingTest extends EnumUnboxingTestBase {
   @Test
   public void testEnumUnboxing() throws Exception {
     Class<?> success = EnumNameToString.class;
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(ToStringEnumUnboxingTest.class)
-            .addKeepMainRule(EnumNameToString.class)
-            .enableNeverClassInliningAnnotations()
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                m ->
-                    assertEnumIsUnboxed(
-                        success.getDeclaredClasses()[0], success.getSimpleName(), m))
-            .run(parameters.getRuntime(), success)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(ToStringEnumUnboxingTest.class)
+        .addKeepMainRule(EnumNameToString.class)
+        .addEnumUnboxingInspector(
+            inspector -> inspector.assertUnboxed(EnumNameToString.MyEnum.class))
+        .enableNeverClassInliningAnnotations()
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), success)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   static class EnumNameToString {

@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
+import com.android.tools.r8.utils.DescriptorUtils;
 
 public class EnumUnboxingInspector {
 
@@ -21,8 +22,23 @@ public class EnumUnboxingInspector {
     this.unboxedEnums = unboxedEnums;
   }
 
+  public EnumUnboxingInspector assertUnboxed(String typeName) {
+    assertTrue(
+        unboxedEnums.isUnboxedEnum(
+            dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(typeName))));
+    return this;
+  }
+
   public EnumUnboxingInspector assertUnboxed(Class<? extends Enum<?>> clazz) {
-    assertTrue(unboxedEnums.isUnboxedEnum(toDexType(clazz, dexItemFactory)));
+    assertTrue(clazz.getTypeName(), unboxedEnums.isUnboxedEnum(toDexType(clazz, dexItemFactory)));
+    return this;
+  }
+
+  @SafeVarargs
+  public final EnumUnboxingInspector assertUnboxed(Class<? extends Enum<?>>... classes) {
+    for (Class<? extends Enum<?>> clazz : classes) {
+      assertUnboxed(clazz);
+    }
     return this;
   }
 
@@ -36,15 +52,24 @@ public class EnumUnboxingInspector {
   }
 
   @SafeVarargs
-  public final EnumUnboxingInspector assertUnboxed(Class<? extends Enum<?>>... classes) {
+  public final EnumUnboxingInspector assertUnboxedIf(
+      boolean condition, Class<? extends Enum<?>>... classes) {
     for (Class<? extends Enum<?>> clazz : classes) {
-      assertUnboxed(clazz);
+      assertUnboxedIf(condition, clazz);
     }
     return this;
   }
 
   public EnumUnboxingInspector assertNotUnboxed(Class<? extends Enum<?>> clazz) {
-    assertFalse(unboxedEnums.isUnboxedEnum(toDexType(clazz, dexItemFactory)));
+    assertFalse(clazz.getTypeName(), unboxedEnums.isUnboxedEnum(toDexType(clazz, dexItemFactory)));
+    return this;
+  }
+
+  @SafeVarargs
+  public final EnumUnboxingInspector assertNotUnboxed(Class<? extends Enum<?>>... classes) {
+    for (Class<? extends Enum<?>> clazz : classes) {
+      assertNotUnboxed(clazz);
+    }
     return this;
   }
 }

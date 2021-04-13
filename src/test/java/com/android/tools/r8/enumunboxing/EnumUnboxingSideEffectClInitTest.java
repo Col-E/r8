@@ -14,7 +14,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class EnumUnboxingSideEffectClInitTest extends EnumUnboxingTestBase {
-  private static final Class<?> ENUM_CLASS = MyEnum.class;
+  private static final Class<MyEnum> ENUM_CLASS = MyEnum.class;
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
   private final EnumKeepRules enumKeepRules;
@@ -38,13 +38,11 @@ public class EnumUnboxingSideEffectClInitTest extends EnumUnboxingTestBase {
         .addInnerClasses(EnumUnboxingSideEffectClInitTest.class)
         .addKeepMainRule(classToTest)
         .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(ENUM_CLASS))
         .enableNeverClassInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .allowDiagnosticInfoMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectDiagnosticMessages(
-            m -> assertEnumIsUnboxed(ENUM_CLASS, classToTest.getSimpleName(), m))
         .run(parameters.getRuntime(), classToTest)
         .assertSuccessWithOutputLines("0");
   }

@@ -7,7 +7,6 @@ package com.android.tools.r8.enumunboxing;
 import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.R8TestCompileResult;
-import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.nio.file.Path;
@@ -50,18 +49,14 @@ public class EnumUnboxingB160535628Test extends EnumUnboxingTestBase {
             .addProgramFiles(javaLibShrunk)
             .addKeepMainRules(ProgramValueOf.class, ProgramStaticMethod.class)
             .addKeepRules(enumKeepRules.getKeepRules())
-            .addOptionsModification(
-                options -> {
-                  assert options.enableEnumUnboxing;
-                  options.testing.enableEnumUnboxingDebugLogs = true;
-                })
+            .addEnumUnboxingInspector(
+                inspector ->
+                    inspector
+                        .assertUnboxed(Lib.LibEnum.class)
+                        .assertUnboxedIf(!missingStaticMethods, Lib.LibEnumStaticMethod.class))
             .allowDiagnosticMessages()
             .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                // The enums cannot be unboxed if static methods are missing,
-                // but they should be unboxed otherwise.
-                this::assertEnumUnboxedIfStaticMethodsPresent);
+            .compile();
     if (missingStaticMethods) {
       compile
           .run(parameters.getRuntime(), ProgramStaticMethod.class)
@@ -92,34 +87,17 @@ public class EnumUnboxingB160535628Test extends EnumUnboxingTestBase {
         .addKeepRules(missingStaticMethods ? "" : "-keep enum * { static <methods>; }")
         .addOptionsModification(
             options -> {
+              assert !options.enableEnumUnboxing;
               options.enableEnumUnboxing = true;
-              options.testing.enableEnumUnboxingDebugLogs = true;
             })
         .addKeepClassRules(Lib.LibEnumStaticMethod.class)
+        .addEnumUnboxingInspector(
+            inspector ->
+                inspector.assertNotUnboxed(Lib.LibEnum.class, Lib.LibEnumStaticMethod.class))
         .allowDiagnosticMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectDiagnosticMessages(
-            msg -> {
-              assertEnumIsBoxed(
-                  Lib.LibEnumStaticMethod.class,
-                  Lib.LibEnumStaticMethod.class.getSimpleName(),
-                  msg);
-              assertEnumIsBoxed(Lib.LibEnum.class, Lib.LibEnum.class.getSimpleName(), msg);
-            })
         .writeToZip();
-  }
-
-  private void assertEnumUnboxedIfStaticMethodsPresent(TestDiagnosticMessages msg) {
-    if (missingStaticMethods) {
-      assertEnumIsBoxed(
-          Lib.LibEnumStaticMethod.class, Lib.LibEnumStaticMethod.class.getSimpleName(), msg);
-      assertEnumIsBoxed(Lib.LibEnum.class, Lib.LibEnum.class.getSimpleName(), msg);
-    } else {
-      assertEnumIsUnboxed(
-          Lib.LibEnumStaticMethod.class, Lib.LibEnumStaticMethod.class.getSimpleName(), msg);
-      assertEnumIsUnboxed(Lib.LibEnum.class, Lib.LibEnum.class.getSimpleName(), msg);
-    }
   }
 
   public static class Lib {

@@ -26,6 +26,10 @@ public class EnumUnboxingCandidateInfoCollection {
     enumTypeToInfo.put(enumClass.type, new EnumUnboxingCandidateInfo(enumClass));
   }
 
+  public void removeCandidate(DexProgramClass enumClass) {
+    removeCandidate(enumClass.getType());
+  }
+
   public void removeCandidate(DexType enumType) {
     enumTypeToInfo.remove(enumType);
   }

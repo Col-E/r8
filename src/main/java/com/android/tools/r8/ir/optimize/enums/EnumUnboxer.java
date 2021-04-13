@@ -90,18 +90,29 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class EnumUnboxer {
@@ -121,7 +132,7 @@ public class EnumUnboxer {
   private EnumUnboxingRewriter enumUnboxerRewriter;
 
   private final boolean debugLogEnabled;
-  private final Map<DexType, Reason> debugLogs;
+  private final Map<DexType, List<Reason>> debugLogs;
 
   public EnumUnboxer(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
@@ -149,10 +160,20 @@ public class EnumUnboxer {
     return ordinal + 1;
   }
 
-  private void markEnumAsUnboxable(Reason reason, DexProgramClass enumClass) {
+  /**
+   * Returns true if {@param enumClass} was marked as being unboxable.
+   *
+   * <p>Note that, if debug logging is enabled, {@param enumClass} is not marked unboxable until the
+   * enum unboxing analysis has finished. This is to ensure completeness of the reason reporting.
+   */
+  private boolean markEnumAsUnboxable(Reason reason, DexProgramClass enumClass) {
     assert enumClass.isEnum();
-    reportFailure(enumClass.type, reason);
-    enumUnboxingCandidatesInfo.removeCandidate(enumClass.type);
+    if (!reportFailure(enumClass, reason)) {
+      // The failure was not reported, meaning debug logging is disabled.
+      enumUnboxingCandidatesInfo.removeCandidate(enumClass);
+      return true;
+    }
+    return false;
   }
 
   private DexProgramClass getEnumUnboxingCandidateOrNull(TypeElement lattice) {
@@ -370,23 +391,30 @@ public class EnumUnboxer {
   }
 
   private Reason validateEnumUsages(IRCode code, Value value, DexProgramClass enumClass) {
+    Reason result = Reason.ELIGIBLE;
     for (Instruction user : value.uniqueUsers()) {
       Reason reason = instructionAllowEnumUnboxing(user, code, enumClass, value);
       if (reason != Reason.ELIGIBLE) {
-        markEnumAsUnboxable(reason, enumClass);
-        return reason;
+        if (markEnumAsUnboxable(reason, enumClass)) {
+          return reason;
+        }
+        // Record that the enum is ineligible, and continue analysis to collect all reasons for
+        // debugging.
+        result = reason;
       }
     }
     for (Phi phi : value.uniquePhiUsers()) {
       for (Value operand : phi.getOperands()) {
         if (!operand.getType().isNullType()
             && getEnumUnboxingCandidateOrNull(operand.getType()) != enumClass) {
+          // All reported reasons from here will be the same (INVALID_PHI), so just return
+          // immediately.
           markEnumAsUnboxable(Reason.INVALID_PHI, enumClass);
           return Reason.INVALID_PHI;
         }
       }
     }
-    return Reason.ELIGIBLE;
+    return result;
   }
 
   public void unboxEnums(
@@ -479,10 +507,12 @@ public class EnumUnboxer {
     analyzeInitializers();
     analyzeAccessibility();
     EnumDataMap enumDataMap = analyzeEnumInstances();
-    assert enumDataMap.getUnboxedEnums().size() == enumUnboxingCandidatesInfo.candidates().size();
     if (debugLogEnabled) {
+      // Remove all enums that have been reported as being unboxable.
+      debugLogs.keySet().forEach(enumUnboxingCandidatesInfo::removeCandidate);
       reportEnumsAnalysis();
     }
+    assert enumDataMap.getUnboxedEnums().size() == enumUnboxingCandidatesInfo.candidates().size();
     return enumDataMap;
   }
 
@@ -495,7 +525,9 @@ public class EnumUnboxer {
             markEnumAsUnboxable(Reason.MISSING_INSTANCE_FIELD_DATA, enumClass);
             return;
           }
-          builder.put(enumClass.type, data);
+          if (!debugLogEnabled || !debugLogs.containsKey(enumClass.getType())) {
+            builder.put(enumClass.type, data);
+          }
         });
     staticFieldValuesMap.clear();
     return new EnumDataMap(builder.build());
@@ -514,6 +546,9 @@ public class EnumUnboxer {
     EnumValuesObjectState valuesContents = null;
 
     EnumStaticFieldValues enumStaticFieldValues = staticFieldValuesMap.get(enumClass.type);
+    if (enumStaticFieldValues == null) {
+      return null;
+    }
 
     // Step 1: We iterate over the field to find direct enum instance information and the values
     // fields.
@@ -593,13 +628,6 @@ public class EnumUnboxer {
         unboxedValues.build(),
         valuesField.build(),
         valuesContents == null ? EnumData.INVALID_VALUES_SIZE : valuesContents.getEnumValuesSize());
-  }
-
-  private boolean isFinalFieldInitialized(DexEncodedField staticField, DexProgramClass enumClass) {
-    assert staticField.isFinal();
-    return appView
-        .appInfo()
-        .isFieldOnlyWrittenInMethodIgnoringPinning(staticField, enumClass.getClassInitializer());
   }
 
   private EnumInstanceFieldData computeEnumFieldData(
@@ -896,8 +924,9 @@ public class EnumUnboxer {
                   .getOptimizationInfo()
                   .getContextInsensitiveInstanceInitializerInfo()
                   .mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
-                markEnumAsUnboxable(Reason.INVALID_INIT, enumClass);
-                break;
+                if (markEnumAsUnboxable(Reason.INVALID_INIT, enumClass)) {
+                  break;
+                }
               }
             }
           }
@@ -905,12 +934,12 @@ public class EnumUnboxer {
             // This case typically happens when a programmer uses EnumSet/EnumMap without using the
             // enum keep rules. The code is incorrect in this case (EnumSet/EnumMap won't work).
             // We bail out.
-            markEnumAsUnboxable(Reason.NO_INIT, enumClass);
-            return;
+            if (markEnumAsUnboxable(Reason.NO_INIT, enumClass)) {
+              return;
+            }
           }
 
           if (enumClass.classInitializationMayHaveSideEffects(appView)) {
-            enumClass.classInitializationMayHaveSideEffects(appView);
             markEnumAsUnboxable(Reason.INVALID_CLINIT, enumClass);
           }
         });
@@ -1196,30 +1225,99 @@ public class EnumUnboxer {
 
   private void reportEnumsAnalysis() {
     assert debugLogEnabled;
-    Reporter reporter = appView.options().reporter;
+    Reporter reporter = appView.reporter();
     Set<DexType> candidates = enumUnboxingCandidatesInfo.candidates();
     reporter.info(
         new StringDiagnostic(
-            "Unboxed enums (Unboxing succeeded "
-                + candidates.size()
-                + "): "
-                + Arrays.toString(candidates.toArray())));
-    StringBuilder sb = new StringBuilder();
-    sb.append("Boxed enums (Unboxing failed ").append(debugLogs.size()).append("):\n");
-    for (DexType enumType : debugLogs.keySet()) {
-      sb.append("- ")
-          .append(enumType)
-          .append(": ")
-          .append(debugLogs.get(enumType).toString())
-          .append('\n');
+            "Unboxed " + candidates.size() + " enums: " + Arrays.toString(candidates.toArray())));
+
+    StringBuilder sb =
+        new StringBuilder("Unable to unbox ")
+            .append(debugLogs.size())
+            .append(" enums.")
+            .append(System.lineSeparator())
+            .append(System.lineSeparator());
+
+    // Sort by the number of reasons that prevent enum unboxing.
+    TreeMap<DexType, List<Reason>> sortedDebugLogs =
+        new TreeMap<>(
+            Comparator.<DexType>comparingInt(x -> debugLogs.get(x).size())
+                .thenComparing(Function.identity()));
+    sortedDebugLogs.putAll(debugLogs);
+
+    // Print the pinned enums and remove them from further reporting.
+    List<DexType> pinned = new ArrayList<>();
+    Iterator<Entry<DexType, List<Reason>>> sortedDebugLogIterator =
+        sortedDebugLogs.entrySet().iterator();
+    while (sortedDebugLogIterator.hasNext()) {
+      Entry<DexType, List<Reason>> entry = sortedDebugLogIterator.next();
+      List<Reason> reasons = entry.getValue();
+      if (reasons.size() > 1) {
+        break;
+      }
+      if (reasons.get(0) == Reason.PINNED) {
+        pinned.add(entry.getKey());
+        sortedDebugLogIterator.remove();
+      }
     }
+    if (!pinned.isEmpty()) {
+      sb.append("Pinned: ").append(Arrays.toString(pinned.toArray()));
+    }
+
+    // Print the reasons for each unboxable enum.
+    sortedDebugLogs.forEach(
+        (type, reasons) -> {
+          sb.append(type).append(" (").append(reasons.size()).append(" reasons):");
+          HashMultiset.create(reasons)
+              .forEachEntry(
+                  (reason, count) ->
+                      sb.append(System.lineSeparator())
+                          .append(" - ")
+                          .append(reason)
+                          .append(" (")
+                          .append(count)
+                          .append(")"));
+          sb.append(System.lineSeparator());
+        });
+
+    sb.append(System.lineSeparator());
+
+    // Print information about how often a given Reason kind prevents enum unboxing.
+    Object2IntMap<Reason> reasonCount = new Object2IntOpenHashMap<>();
+    debugLogs.forEach(
+        (type, reasons) ->
+            reasons.forEach(reason -> reasonCount.put(reason, reasonCount.getInt(reason) + 1)));
+    List<Reason> differentReasons = new ArrayList<>(reasonCount.keySet());
+    differentReasons.sort(
+        (x, y) -> {
+          int freq = reasonCount.getInt(x) - reasonCount.getInt(y);
+          return freq != 0 ? freq : System.identityHashCode(x) - System.identityHashCode(y);
+        });
+    differentReasons.forEach(
+        x -> {
+          sb.append(x)
+              .append(" (")
+              .append(reasonCount.getInt(x))
+              .append(")")
+              .append(System.lineSeparator());
+        });
+
     reporter.info(new StringDiagnostic(sb.toString()));
   }
 
-  void reportFailure(DexType enumType, Reason reason) {
+  boolean reportFailure(DexProgramClass enumClass, Reason reason) {
+    return reportFailure(enumClass.getType(), reason);
+  }
+
+  /** Returns true if the failure was reported. */
+  boolean reportFailure(DexType enumType, Reason reason) {
     if (debugLogEnabled) {
-      debugLogs.put(enumType, reason);
+      debugLogs
+          .computeIfAbsent(enumType, ignore -> Collections.synchronizedList(new ArrayList<>()))
+          .add(reason);
+      return true;
     }
+    return false;
   }
 
   public Set<Phi> rewriteCode(IRCode code) {

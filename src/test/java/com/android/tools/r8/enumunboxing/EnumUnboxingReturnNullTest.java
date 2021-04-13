@@ -16,7 +16,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class EnumUnboxingReturnNullTest extends EnumUnboxingTestBase {
 
-  private static final Class<?> ENUM_CLASS = MyEnum.class;
+  private static final Class<MyEnum> ENUM_CLASS = MyEnum.class;
   private static final String EXPECTED_RESULT =
       StringUtils.lines(
           "print1", "true", "print2", "true", "print2", "false", "0", "print3", "true");
@@ -44,14 +44,12 @@ public class EnumUnboxingReturnNullTest extends EnumUnboxingTestBase {
         .addProgramClasses(classToTest, ENUM_CLASS)
         .addKeepMainRule(classToTest)
         .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(ENUM_CLASS))
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .allowDiagnosticInfoMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectDiagnosticMessages(
-            m -> assertEnumIsUnboxed(ENUM_CLASS, classToTest.getSimpleName(), m))
         .run(parameters.getRuntime(), classToTest)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }

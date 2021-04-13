@@ -7,6 +7,8 @@ package com.android.tools.r8.enumunboxing;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.enumunboxing.PinnedEnumUnboxingTest.MainWithKeptEnum.MyEnum;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,18 +42,20 @@ public class PinnedEnumUnboxingTest extends EnumUnboxingTestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(PinnedEnumUnboxingTest.class)
             .addKeepMainRules(BOXED)
-            .addKeepClassRules(MainWithKeptEnum.MyEnum.class)
+            .addKeepClassRules(MyEnum.class)
             .addKeepMethodRules(MainWithKeptEnumArray.class, "keptMethod()")
             .addKeepRules(enumKeepRules.getKeepRules())
+            .addEnumUnboxingInspector(
+                inspector ->
+                    Arrays.stream(BOXED)
+                        .map(clazz -> (Class<? extends Enum<?>>) clazz.getDeclaredClasses()[0])
+                        .forEach(inspector::assertNotUnboxed))
             .enableNeverClassInliningAnnotations()
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())
             .compile();
     for (Class<?> boxed : BOXED) {
       compileResult
-          .inspectDiagnosticMessages(
-              m -> assertEnumIsBoxed(boxed.getDeclaredClasses()[0], boxed.getSimpleName(), m))
           .run(parameters.getRuntime(), boxed)
           .assertSuccessWithOutputLines("0");
     }

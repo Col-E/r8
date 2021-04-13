@@ -6,7 +6,6 @@ package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.List;
@@ -34,23 +33,20 @@ public class UnusedCaseEnumUnboxingTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(UnusedCaseEnumUnboxingTest.class)
-            .addKeepMainRule(Main.class)
-            .enableNeverClassInliningAnnotations()
-            .enableInliningAnnotations()
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspect(this::assertFieldsRemoved)
-            .inspectDiagnosticMessages(
-                m -> assertEnumIsUnboxed(MyEnum.class, Main.class.getSimpleName(), m))
-            .run(parameters.getRuntime(), Main.class)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(UnusedCaseEnumUnboxingTest.class)
+        .addKeepMainRule(Main.class)
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(this::assertFieldsRemoved)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   private void assertFieldsRemoved(CodeInspector codeInspector) {

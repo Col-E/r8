@@ -71,19 +71,17 @@ public class SimpleKotlinEnumUnboxingTest extends EnumUnboxingTestBase {
         .addKeepRules(enumKeepRules.getKeepRules())
         .addKeepRuntimeVisibleAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(PKG + ".Color"))
         .allowDiagnosticMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspectDiagnosticMessages(
-            messages -> {
-              messages
-                  .assertNoErrors()
-                  .assertAllWarningsMatch(
-                      diagnosticMessage(
-                          containsString("Resource 'META-INF/MANIFEST.MF' already exists.")));
-              assertEnumIsUnboxed(
-                  PKG + ".Color", SimpleKotlinEnumUnboxingTest.class.getSimpleName(), messages);
-            })
+            messages ->
+                messages
+                    .assertNoErrors()
+                    .assertAllWarningsMatch(
+                        diagnosticMessage(
+                            containsString("Resource 'META-INF/MANIFEST.MF' already exists."))))
         .run(parameters.getRuntime(), PKG + ".MainKt")
         .assertSuccessWithOutputLines("RED", "GREEN", "BLUE");
   }

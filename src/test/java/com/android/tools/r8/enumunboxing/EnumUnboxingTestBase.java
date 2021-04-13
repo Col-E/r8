@@ -5,11 +5,8 @@
 package com.android.tools.r8.enumunboxing;
 
 import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
 
-import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -35,6 +32,10 @@ public class EnumUnboxingTestBase extends TestBase {
       return keepRules;
     }
 
+    public boolean isNone() {
+      return this == NONE;
+    }
+
     public boolean isStudio() {
       return this == STUDIO;
     }
@@ -58,32 +59,6 @@ public class EnumUnboxingTestBase extends TestBase {
   protected void enableEnumOptions(InternalOptions options, boolean enumValueOptimization) {
     options.enableEnumValueOptimization = enumValueOptimization;
     options.enableEnumSwitchMapRemoval = enumValueOptimization;
-    options.testing.enableEnumUnboxingDebugLogs = true;
-  }
-
-  protected void assertEnumIsUnboxed(
-      Class<?> enumClass, String testName, TestDiagnosticMessages m) {
-    assertTrue(enumClass.isEnum());
-    assertEnumIsUnboxed(enumClass.getSimpleName(), testName, m);
-  }
-
-  protected void assertEnumIsUnboxed(String enumClass, String testName, TestDiagnosticMessages m) {
-    Diagnostic diagnostic = m.getInfos().get(0);
-    assertTrue(diagnostic.getDiagnosticMessage().startsWith("Unboxed enums"));
-    assertTrue(
-        StringUtils.joinLines(
-            "Expected enum to be removed (" + testName + "):",
-            m.getInfos().get(1).getDiagnosticMessage()),
-        diagnostic.getDiagnosticMessage().contains(enumClass));
-  }
-
-  void assertEnumIsBoxed(Class<?> enumClass, String testName, TestDiagnosticMessages m) {
-    assertTrue(enumClass.isEnum());
-    Diagnostic diagnostic = m.getInfos().get(1);
-    assertTrue(diagnostic.getDiagnosticMessage().startsWith("Boxed enums"));
-    assertTrue(
-        "Expected enum NOT to be removed (" + testName + ")",
-        diagnostic.getDiagnosticMessage().contains(enumClass.getSimpleName()));
   }
 
   static List<Object[]> enumUnboxingTestParameters() {

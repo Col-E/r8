@@ -5,7 +5,6 @@
 package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import org.junit.Test;
@@ -34,25 +33,19 @@ public class FailingEnumUnboxingTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxingFailure() throws Exception {
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(FailingEnumUnboxingTest.class)
-            .addKeepMainRule(EnumStaticFieldMain.class)
-            .enableNeverClassInliningAnnotations()
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                m ->
-                    assertEnumIsBoxed(
-                        EnumStaticFieldMain.EnumStaticField.class,
-                        EnumStaticFieldMain.class.getSimpleName(),
-                        m))
-            .run(parameters.getRuntime(), EnumStaticFieldMain.class)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(FailingEnumUnboxingTest.class)
+        .addKeepMainRule(EnumStaticFieldMain.class)
+        .enableNeverClassInliningAnnotations()
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .addEnumUnboxingInspector(
+            inspector -> inspector.assertNotUnboxed(EnumStaticFieldMain.EnumStaticField.class))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), EnumStaticFieldMain.class)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   static class EnumStaticFieldMain {

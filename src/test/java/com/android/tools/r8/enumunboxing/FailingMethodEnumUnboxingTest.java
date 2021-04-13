@@ -9,9 +9,10 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
-import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import org.junit.Test;
@@ -53,27 +54,24 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
             .addKeepMainRules(FAILURES)
             .addKeepRules(enumKeepRules.getKeepRules())
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
+            .addEnumUnboxingInspector(
+                inspector ->
+                    Arrays.stream(FAILURES)
+                        .map(clazz -> (Class<? extends Enum<?>>) clazz.getDeclaredClasses()[0])
+                        .forEach(inspector::assertNotUnboxed))
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(this::assertEnumsAsExpected);
     for (Class<?> failure : FAILURES) {
-      R8TestRunResult run =
-          compile
-              .inspectDiagnosticMessages(
-                  m ->
-                      assertEnumIsBoxed(
-                          failure.getDeclaredClasses()[0], failure.getSimpleName(), m))
-              .run(parameters.getRuntime(), failure);
-      if (failure == EnumSetTest.class && enumKeepRules.getKeepRules().isEmpty()) {
-        // EnumSet and EnumMap cannot be used without the enumKeepRules.
-        run.assertFailure();
-      } else {
-        run.assertSuccess();
-        assertLines2By2Correct(run.getStdOut());
-      }
+      compile
+          .run(parameters.getRuntime(), failure)
+          .applyIf(
+              failure == EnumSetTest.class && enumKeepRules.getKeepRules().isEmpty(),
+              // EnumSet and EnumMap cannot be used without the enumKeepRules.
+              SingleTestRunResult::assertFailure,
+              result -> result.assertSuccess().inspectStdOut(this::assertLines2By2Correct));
     }
   }
 

@@ -51,7 +51,6 @@ public class LambdaEnumUnboxingTest extends EnumUnboxingTestBase {
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .addOptionsModification(options -> options.testing.enableEnumUnboxingDebugLogs = false)
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
         .setMinApi(parameters.getApiLevel())
         .compile()

@@ -7,7 +7,6 @@ package com.android.tools.r8.enumunboxing;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import org.junit.Test;
@@ -37,23 +36,20 @@ public class ClInitSideEffectEnumUnboxingTest extends EnumUnboxingTestBase {
   @Test
   public void testEnumUnboxing() throws Exception {
     Class<Switch> classToTest = Switch.class;
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(ClInitSideEffectEnumUnboxingTest.class)
-            .addKeepMainRule(classToTest)
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .enableInliningAnnotations()
-            .enableNoHorizontalClassMergingAnnotations()
-            .enableNeverClassInliningAnnotations()
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                m -> assertEnumIsUnboxed(MyEnum.class, classToTest.getSimpleName(), m))
-            .run(parameters.getRuntime(), classToTest)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(ClInitSideEffectEnumUnboxingTest.class)
+        .addKeepMainRule(classToTest)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
+        .enableInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), classToTest)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   @NeverClassInline

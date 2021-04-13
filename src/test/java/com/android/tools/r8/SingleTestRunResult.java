@@ -50,6 +50,11 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
     return result.stdout;
   }
 
+  public <E extends Throwable> RR inspectStdOut(ThrowingConsumer<String, E> consumer) throws E {
+    consumer.accept(getStdOut());
+    return self();
+  }
+
   public String getStdErr() {
     return result.stderr;
   }

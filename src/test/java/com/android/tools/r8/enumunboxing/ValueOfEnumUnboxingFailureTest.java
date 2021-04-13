@@ -36,14 +36,12 @@ public class ValueOfEnumUnboxingFailureTest extends EnumUnboxingTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ValueOfEnumUnboxingFailureTest.class)
         .addKeepMainRule(success)
+        .addEnumUnboxingInspector(inspector -> inspector.assertNotUnboxed(Main.Enum.class))
         .enableNeverClassInliningAnnotations()
         .addKeepRules(enumKeepRules.getKeepRules())
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .allowDiagnosticInfoMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectDiagnosticMessages(
-            m -> assertEnumIsBoxed(success.getDeclaredClasses()[0], success.getSimpleName(), m))
         .run(parameters.getRuntime(), success)
         .assertSuccessWithOutput("VALUE1");
   }

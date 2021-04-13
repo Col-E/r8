@@ -10,7 +10,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -40,28 +39,21 @@ public class EnumUnboxingClassStaticizerTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(EnumUnboxingClassStaticizerTest.class)
-            .addKeepMainRule(TestClass.class)
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .enableNeverClassInliningAnnotations()
-            .enableInliningAnnotations()
-            .noMinification() // For assertions.
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspect(this::assertClassStaticized)
-            .inspectDiagnosticMessages(
-                m ->
-                    assertEnumIsUnboxed(
-                        UnboxableEnum.class,
-                        EnumUnboxingClassStaticizerTest.class.getSimpleName(),
-                        m))
-            .run(parameters.getRuntime(), TestClass.class)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(EnumUnboxingClassStaticizerTest.class)
+        .addKeepMainRule(TestClass.class)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(UnboxableEnum.class))
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .noMinification() // For assertions.
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(this::assertClassStaticized)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   private void assertClassStaticized(CodeInspector codeInspector) {

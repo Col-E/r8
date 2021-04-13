@@ -70,9 +70,7 @@ public class EnumToStringLibTest extends EnumUnboxingTestBase {
                   options.enableEnumUnboxing = enumUnboxing;
                   options.enableEnumValueOptimization = enumValueOptimization;
                   options.enableEnumSwitchMapRemoval = enumValueOptimization;
-                  options.testing.enableEnumUnboxingDebugLogs = enumUnboxing;
                 })
-            .allowDiagnosticInfoMessages(enumUnboxing)
             .setMinApi(parameters.getApiLevel())
             .compile();
       compile

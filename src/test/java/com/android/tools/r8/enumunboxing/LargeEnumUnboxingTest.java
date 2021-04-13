@@ -97,13 +97,11 @@ public class LargeEnumUnboxingTest extends EnumUnboxingTestBase {
         .addProgramClasses(mainClass, LargeEnum.class)
         .addKeepMainRule(mainClass)
         .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(LargeEnum.class))
         .enableNeverClassInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .allowDiagnosticInfoMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectDiagnosticMessages(
-            m -> assertEnumIsUnboxed(LargeEnum.class, mainClass.getSimpleName(), m))
         .run(parameters.getRuntime(), mainClass)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }

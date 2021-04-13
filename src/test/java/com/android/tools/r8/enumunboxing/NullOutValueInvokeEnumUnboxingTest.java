@@ -6,7 +6,6 @@ package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import org.junit.Test;
@@ -17,7 +16,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class NullOutValueInvokeEnumUnboxingTest extends EnumUnboxingTestBase {
 
-  private static final Class<?> ENUM_CLASS = MyEnum.class;
+  private static final Class<MyEnum> ENUM_CLASS = MyEnum.class;
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
@@ -38,22 +37,19 @@ public class NullOutValueInvokeEnumUnboxingTest extends EnumUnboxingTestBase {
   @Test
   public void testEnumUnboxing() throws Exception {
     Class<?> classToTest = NullOutValueInvoke.class;
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(classToTest, ENUM_CLASS)
-            .addKeepMainRule(classToTest)
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .enableNeverClassInliningAnnotations()
-            .enableInliningAnnotations()
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                m -> assertEnumIsUnboxed(ENUM_CLASS, classToTest.getSimpleName(), m))
-            .run(parameters.getRuntime(), classToTest)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addProgramClasses(classToTest, ENUM_CLASS)
+        .addKeepMainRule(classToTest)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(ENUM_CLASS))
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), classToTest)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   @NeverClassInline

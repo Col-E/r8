@@ -8,7 +8,6 @@ import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.List;
@@ -37,28 +36,21 @@ public class EnumUnboxingVerticalClassMergeTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(EnumUnboxingVerticalClassMergeTest.class)
-            .addKeepMainRule(Main.class)
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .enableNeverClassInliningAnnotations()
-            .enableInliningAnnotations()
-            .noMinification() // For assertions.
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspect(this::assertVerticalClassMerged)
-            .inspectDiagnosticMessages(
-                m ->
-                    assertEnumIsUnboxed(
-                        UnboxableEnum.class,
-                        EnumUnboxingVerticalClassMergeTest.class.getSimpleName(),
-                        m))
-            .run(parameters.getRuntime(), Main.class)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(EnumUnboxingVerticalClassMergeTest.class)
+        .addKeepMainRule(Main.class)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(UnboxableEnum.class))
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .noMinification() // For assertions.
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(this::assertVerticalClassMerged)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   private void assertVerticalClassMerged(CodeInspector codeInspector) {

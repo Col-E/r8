@@ -5,7 +5,6 @@
 package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import org.junit.Test;
@@ -15,7 +14,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class JavaCGeneratedMethodTest extends EnumUnboxingTestBase {
 
-  private static final Class<?> ENUM_CLASS = MyEnum.class;
+  private static final Class<MyEnum> ENUM_CLASS = MyEnum.class;
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
@@ -36,23 +35,19 @@ public class JavaCGeneratedMethodTest extends EnumUnboxingTestBase {
   @Test
   public void testEnumUnboxing() throws Exception {
     Class<?> classToTest = Ordinal.class;
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(classToTest, ENUM_CLASS)
-            .addKeepMainRule(classToTest)
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .enableNeverClassInliningAnnotations()
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .addOptionsModification(
-                opt -> opt.testing.enumUnboxingRewriteJavaCGeneratedMethod = true)
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                m -> assertEnumIsUnboxed(ENUM_CLASS, classToTest.getSimpleName(), m))
-            .run(parameters.getRuntime(), classToTest)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addProgramClasses(classToTest, ENUM_CLASS)
+        .addKeepMainRule(classToTest)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(ENUM_CLASS))
+        .enableNeverClassInliningAnnotations()
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .addOptionsModification(opt -> opt.testing.enumUnboxingRewriteJavaCGeneratedMethod = true)
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), classToTest)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   @NeverClassInline

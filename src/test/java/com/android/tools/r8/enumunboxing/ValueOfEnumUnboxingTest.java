@@ -6,8 +6,8 @@ package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.R8TestCompileResult;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,22 +43,21 @@ public class ValueOfEnumUnboxingTest extends EnumUnboxingTestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(ValueOfEnumUnboxingTest.class)
             .addKeepMainRules(SUCCESSES)
+            .addEnumUnboxingInspector(
+                inspector ->
+                    Arrays.stream(SUCCESSES)
+                        .map(clazz -> (Class<? extends Enum<?>>) clazz.getDeclaredClasses()[0])
+                        .forEach(inspector::assertUnboxed))
             .enableNeverClassInliningAnnotations()
             .addKeepRules(enumKeepRules.getKeepRules())
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())
             .compile();
     for (Class<?> success : SUCCESSES) {
-      R8TestRunResult run =
-          compile
-              .inspectDiagnosticMessages(
-                  m ->
-                      assertEnumIsUnboxed(
-                          success.getDeclaredClasses()[0], success.getSimpleName(), m))
-              .run(parameters.getRuntime(), success)
-              .assertSuccess();
-      assertLines2By2Correct(run.getStdOut());
+      compile
+          .run(parameters.getRuntime(), success)
+          .assertSuccess()
+          .inspectStdOut(this::assertLines2By2Correct);
     }
   }
 

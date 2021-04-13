@@ -53,19 +53,29 @@ class EnumUnboxingCandidateAnalysis {
     if (!clazz.isEnum()) {
       return false;
     }
+
+    boolean result = true;
     if (clazz.superType != factory.enumType || !clazz.isEffectivelyFinal(appView)) {
-      enumUnboxer.reportFailure(clazz.type, Reason.SUBTYPES);
-      return false;
+      if (!enumUnboxer.reportFailure(clazz, Reason.SUBTYPES)) {
+        return false;
+      }
+      // Record that `clazz` is ineligible, and continue analysis to ensure all reasons are reported
+      // for debugging.
+      result = false;
     }
     if (clazz.instanceFields().size() > MAX_INSTANCE_FIELDS_FOR_UNBOXING) {
-      enumUnboxer.reportFailure(clazz.type, Reason.MANY_INSTANCE_FIELDS);
-      return false;
+      if (!enumUnboxer.reportFailure(clazz, Reason.MANY_INSTANCE_FIELDS)) {
+        return false;
+      }
+      result = false;
     }
     if (!enumHasBasicStaticFields(clazz)) {
-      enumUnboxer.reportFailure(clazz.type, Reason.UNEXPECTED_STATIC_FIELD);
-      return false;
+      if (!enumUnboxer.reportFailure(clazz, Reason.UNEXPECTED_STATIC_FIELD)) {
+        return false;
+      }
+      result = false;
     }
-    return true;
+    return result;
   }
 
   // The enum should have the $VALUES static field and only fields directly referencing the enum
@@ -116,8 +126,9 @@ class EnumUnboxingCandidateAnalysis {
           || appView.options().testing.allowInjectedAnnotationMethods;
       DexType valueType = method.returnType().toBaseType(appView.dexItemFactory());
       if (enumToUnboxCandidates.isCandidate(valueType)) {
-        enumUnboxer.reportFailure(valueType, Reason.ANNOTATION);
-        enumToUnboxCandidates.removeCandidate(valueType);
+        if (!enumUnboxer.reportFailure(valueType, Reason.ANNOTATION)) {
+          enumToUnboxCandidates.removeCandidate(valueType);
+        }
       }
     }
   }

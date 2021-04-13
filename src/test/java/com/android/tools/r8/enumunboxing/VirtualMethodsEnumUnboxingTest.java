@@ -5,8 +5,6 @@ package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestCompileResult;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import org.junit.Test;
@@ -35,33 +33,28 @@ public class VirtualMethodsEnumUnboxingTest extends EnumUnboxingTestBase {
   @Test
   public void testEnumUnboxing() throws Exception {
     Class<?> classToTest = VirtualMethods.class;
-    R8TestCompileResult compile =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(VirtualMethodsEnumUnboxingTest.class)
-            .addKeepMainRule(classToTest)
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .enableNeverClassInliningAnnotations()
-            .enableInliningAnnotations()
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                m -> {
-                  assertEnumIsUnboxed(MyEnum.class, classToTest.getSimpleName(), m);
-                  assertEnumIsUnboxed(MyEnum2.class, classToTest.getSimpleName(), m);
-                  assertEnumIsUnboxed(MyEnumWithCollisions.class, classToTest.getSimpleName(), m);
-                  assertEnumIsUnboxed(
-                      MyEnumWithPackagePrivateCall.class, classToTest.getSimpleName(), m);
-                  assertEnumIsUnboxed(
-                      MyEnumWithProtectedCall.class, classToTest.getSimpleName(), m);
-                  assertEnumIsUnboxed(
-                      MyEnumWithPackagePrivateFieldAccess.class, classToTest.getSimpleName(), m);
-                  assertEnumIsUnboxed(
-                      MyEnumWithPackagePrivateAndPrivateCall.class, classToTest.getSimpleName(), m);
-                });
-    R8TestRunResult run = compile.run(parameters.getRuntime(), classToTest).assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(VirtualMethodsEnumUnboxingTest.class)
+        .addKeepMainRule(classToTest)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(
+            inspector ->
+                inspector.assertUnboxed(
+                    MyEnum.class,
+                    MyEnum2.class,
+                    MyEnumWithCollisions.class,
+                    MyEnumWithPackagePrivateCall.class,
+                    MyEnumWithProtectedCall.class,
+                    MyEnumWithPackagePrivateFieldAccess.class,
+                    MyEnumWithPackagePrivateAndPrivateCall.class))
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), classToTest)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   @SuppressWarnings("SameParameterValue")

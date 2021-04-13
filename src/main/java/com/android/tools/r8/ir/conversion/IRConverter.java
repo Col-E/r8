@@ -1545,10 +1545,6 @@ public class IRConverter {
       timing.end();
     }
 
-    if (enumUnboxer != null && methodProcessor.isPrimaryMethodProcessor()) {
-      enumUnboxer.analyzeEnums(code);
-    }
-
     assert code.verifyTypes(appView);
 
     deadCodeRemover.run(code, timing);
@@ -1597,6 +1593,10 @@ public class IRConverter {
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
       Timing timing) {
+    if (enumUnboxer != null && methodProcessor.isPrimaryMethodProcessor()) {
+      enumUnboxer.analyzeEnums(code);
+    }
+
     if (libraryMethodOverrideAnalysis != null) {
       timing.begin("Analyze library method overrides");
       libraryMethodOverrideAnalysis.analyze(code);

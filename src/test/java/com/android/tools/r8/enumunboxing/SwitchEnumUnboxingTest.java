@@ -9,7 +9,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -22,7 +21,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class SwitchEnumUnboxingTest extends EnumUnboxingTestBase {
 
-  private static final Class<?> ENUM_CLASS = MyEnumFewCases.class;
+  private static final Class<MyEnumFewCases> ENUM_CLASS = MyEnumFewCases.class;
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
@@ -43,24 +42,21 @@ public class SwitchEnumUnboxingTest extends EnumUnboxingTestBase {
   @Test
   public void testEnumUnboxing() throws Exception {
     Class<Switch> classToTest = Switch.class;
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(SwitchEnumUnboxingTest.class)
-            .addKeepMainRule(classToTest)
-            .addKeepRules(enumKeepRules.getKeepRules())
-            .enableInliningAnnotations()
-            .enableNeverClassInliningAnnotations()
-            .noMinification() // For assertions.
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspect(this::assertSwitchPresentButSwitchMapRemoved)
-            .inspectDiagnosticMessages(
-                m -> assertEnumIsUnboxed(ENUM_CLASS, classToTest.getSimpleName(), m))
-            .run(parameters.getRuntime(), classToTest)
-            .assertSuccess();
-    assertLines2By2Correct(run.getStdOut());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(SwitchEnumUnboxingTest.class)
+        .addKeepMainRule(classToTest)
+        .addKeepRules(enumKeepRules.getKeepRules())
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(ENUM_CLASS))
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .noMinification() // For assertions.
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(this::assertSwitchPresentButSwitchMapRemoved)
+        .run(parameters.getRuntime(), classToTest)
+        .assertSuccess()
+        .inspectStdOut(this::assertLines2By2Correct);
   }
 
   private void assertSwitchPresentButSwitchMapRemoved(CodeInspector i) {
