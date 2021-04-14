@@ -20,9 +20,7 @@ import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
 import com.android.tools.r8.naming.NamingLens.NonIdentityNamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import java.util.ArrayList;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 
 class MinifiedRenaming extends NonIdentityNamingLens {
@@ -89,36 +87,12 @@ class MinifiedRenaming extends NonIdentityNamingLens {
 
   @Override
   public DexString lookupName(DexMethod method) {
-    DexString renamed = renaming.get(method);
-    if (renamed != null) {
-      return renamed;
-    }
-    // If the method does not have a direct renaming, return the resolutions mapping.
-    ResolutionResult resolutionResult = appView.appInfo().unsafeResolveMethodDueToDexFormat(method);
-    if (resolutionResult.isSingleResolution()) {
-      return renaming.getOrDefault(resolutionResult.getSingleTarget().getReference(), method.name);
-    }
-    // If resolution fails, the method must be renamed consistently with the targets that give rise
-    // to the failure.
-    if (resolutionResult.isFailedResolution()) {
-      List<DexEncodedMethod> targets = new ArrayList<>();
-      resolutionResult.asFailedResolution().forEachFailureDependency(targets::add);
-      if (!targets.isEmpty()) {
-        DexString firstRename = renaming.get(targets.get(0).getReference());
-        assert targets.stream()
-            .allMatch(target -> renaming.get(target.getReference()) == firstRename);
-        if (firstRename != null) {
-          return firstRename;
-        }
-      }
-    }
-    // If no renaming can be found the default is the methods name.
-    return method.name;
+    return renaming.getOrDefault(method, method.getName());
   }
 
   @Override
   public DexString lookupName(DexField field) {
-    return renaming.getOrDefault(field, field.name);
+    return renaming.getOrDefault(field, field.getName());
   }
 
   /**

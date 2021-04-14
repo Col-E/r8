@@ -145,7 +145,7 @@ public class ProguardMapMinifier {
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
         new MethodNameMinifier(appView, subtypingInfo, nameStrategy)
-            .computeRenaming(interfaces, timing);
+            .computeRenaming(interfaces, executorService, timing);
     // Amend the method renamings with the default interface methods.
     methodRenaming.renaming.putAll(defaultInterfaceMethodImplementationNames);
     methodRenaming.renaming.putAll(additionalMethodNamings);
