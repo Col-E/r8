@@ -845,6 +845,11 @@ public abstract class R8RunArtTestsTest {
                       DexVm.Version.V4_4_4,
                       DexVm.Version.V5_1_1,
                       DexVm.Version.V6_0_1)))
+          // Class.forName() that fails due to verification error is removed.
+          .put(
+              "412-new-array",
+              TestCondition.match(
+                  TestCondition.compilers(CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8)))
           // Array index out of bounds exception.
           .put("449-checker-bce", TestCondition.any())
           // Fails: get_vreg_jni.cc:46] Check failed: value == 42u (value=314630384, 42u=42)
@@ -887,6 +892,11 @@ public abstract class R8RunArtTestsTest {
           .put("575-checker-string-init-alias", TestCondition.any())
           // Runtime exception.
           .put("577-profile-foreign-dex", TestCondition.any())
+          // Class.forName() that fails due to linkage error is removed.
+          .put(
+              "587-inline-class-error",
+              TestCondition.match(
+                  TestCondition.compilers(CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8)))
           // Array index out of bounds exception.
           .put("602-deoptimizeable", TestCondition.any())
           // Array index out of bounds exception.
