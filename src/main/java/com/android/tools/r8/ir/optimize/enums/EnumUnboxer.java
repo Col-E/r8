@@ -285,6 +285,19 @@ public class EnumUnboxer {
   }
 
   private void analyzeCheckCast(CheckCast checkCast, Set<DexType> eligibleEnums) {
+    // Casts to enum array types are fine as long all enum array creations are valid and have valid
+    // usages. Since creations of enum arrays are rewritten to primitive int arrays, enum array
+    // casts will continue to work after rewriting to int[] casts. Casts that failed with
+    // ClassCastException: "T[] cannot be cast to MyEnum[]" will continue to fail, but with "T[]
+    // cannot be cast to int[]".
+    //
+    // Note that strictly speaking, the rewriting from MyEnum[] to int[] could change the semantics
+    // of code that would fail with "int[] cannot be cast to MyEnum[]" in the input. However, javac
+    // does not allow such code ("incompatible types"), so we should generally not see such code.
+    if (checkCast.getType().isArrayType()) {
+      return;
+    }
+
     // We are doing a type check, which typically means the in-value is of an upper
     // type and cannot be dealt with.
     // If the cast is on a dynamically typed object, the checkCast can be simply removed.
@@ -311,6 +324,9 @@ public class EnumUnboxer {
       ConstClass constClass, Set<DexType> eligibleEnums, ProgramMethod context) {
     // We are using the ConstClass of an enum, which typically means the enum cannot be unboxed.
     // We however allow unboxing if the ConstClass is used only:
+    // - as an argument to java.lang.reflect.Array#newInstance(java.lang.Class, int[]), to allow
+    //   unboxing of:
+    //    MyEnum[][] a = new MyEnum[x][y];
     // - as an argument to Enum#valueOf, to allow unboxing of:
     //    MyEnum a = Enum.valueOf(MyEnum.class, "A");
     // - as a receiver for a name method, to allow unboxing of:
@@ -335,11 +351,18 @@ public class EnumUnboxer {
       }
       if (user.isInvokeStatic()) {
         DexClassAndMethod singleTarget = user.asInvokeStatic().lookupSingleTarget(appView, context);
-        if (singleTarget != null && singleTarget.getReference() == factory.enumMembers.valueOf) {
-          // The name data is required for the correct mapping from the enum name to the ordinal in
-          // the valueOf utility method.
-          addRequiredNameData(enumType);
-          continue;
+        if (singleTarget != null) {
+          if (singleTarget.getReference() == factory.enumMembers.valueOf) {
+            // The name data is required for the correct mapping from the enum name to the ordinal
+            // in
+            // the valueOf utility method.
+            addRequiredNameData(enumType);
+            continue;
+          }
+          if (singleTarget.getReference()
+              == factory.javaLangReflectArrayMembers.newInstanceMethodWithDimensions) {
+            continue;
+          }
         }
       }
       markEnumAsUnboxable(Reason.CONST_CLASS, enumClass);

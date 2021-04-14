@@ -53,14 +53,12 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .addEnumUnboxingInspector(
                 inspector ->
-                    inspector
-                        .assertUnboxed(
-                            EnumArrayNullRead.MyEnum.class,
-                            EnumArrayReadWrite.MyEnum.class,
-                            EnumArrayReadWriteNoEscape.MyEnum.class,
-                            EnumVarArgs.MyEnum.class)
-                        // TODO(b/185182242): Should always be unboxed.
-                        .assertNotUnboxed(Enum2DimArrayReadWrite.MyEnum.class))
+                    inspector.assertUnboxed(
+                        Enum2DimArrayReadWrite.MyEnum.class,
+                        EnumArrayNullRead.MyEnum.class,
+                        EnumArrayReadWrite.MyEnum.class,
+                        EnumArrayReadWriteNoEscape.MyEnum.class,
+                        EnumVarArgs.MyEnum.class))
             .setMinApi(parameters.getApiLevel())
             .compile();
     for (Class<?> main : TESTS) {

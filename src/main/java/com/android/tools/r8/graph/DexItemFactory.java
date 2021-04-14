@@ -390,6 +390,8 @@ public class DexItemFactory {
   public final DexType stringBuilderType = createStaticallyKnownType(stringBuilderDescriptor);
   public final DexType stringBufferType = createStaticallyKnownType(stringBufferDescriptor);
 
+  public final DexType javaLangReflectArrayType =
+      createStaticallyKnownType("Ljava/lang/reflect/Array;");
   public final DexType javaLangSystemType = createStaticallyKnownType(javaLangSystemDescriptor);
   public final DexType javaIoPrintStreamType = createStaticallyKnownType("Ljava/io/PrintStream;");
 
@@ -557,6 +559,8 @@ public class DexItemFactory {
   public final ClassMethods classMethods = new ClassMethods();
   public final ConstructorMethods constructorMethods = new ConstructorMethods();
   public final EnumMembers enumMembers = new EnumMembers();
+  public final JavaLangReflectArrayMembers javaLangReflectArrayMembers =
+      new JavaLangReflectArrayMembers();
   public final JavaLangSystemMethods javaLangSystemMethods = new JavaLangSystemMethods();
   public final NullPointerExceptionMethods npeMethods = new NullPointerExceptionMethods();
   public final IllegalArgumentExceptionMethods illegalArgumentExceptionMethods =
@@ -1451,6 +1455,17 @@ public class DexItemFactory {
               objectDescriptor,
               new DexString[] {objectArrayDescriptor});
     }
+  }
+
+  public class JavaLangReflectArrayMembers {
+
+    public final DexMethod newInstanceMethodWithDimensions =
+        createMethod(
+            javaLangReflectArrayType,
+            createProto(objectType, classType, intArrayType),
+            "newInstance");
+
+    private JavaLangReflectArrayMembers() {}
   }
 
   public class JavaLangSystemMethods {
