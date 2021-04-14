@@ -25,7 +25,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import java.util.Set;
 import org.objectweb.asm.Opcodes;
@@ -159,11 +158,6 @@ public abstract class Invoke extends Instruction {
 
   public Value getArgument(int index) {
     return arguments().get(index);
-  }
-
-  public Value getArgumentForParameter(int index) {
-    int offset = BooleanUtils.intValue(!isInvokeStatic());
-    return getArgument(index + offset);
   }
 
   public Value getFirstArgument() {

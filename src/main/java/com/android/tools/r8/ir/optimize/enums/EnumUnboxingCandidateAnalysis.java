@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason;
-import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnsupportedStaticFieldReason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 
@@ -71,6 +70,9 @@ class EnumUnboxingCandidateAnalysis {
       result = false;
     }
     if (!enumHasBasicStaticFields(clazz)) {
+      if (!enumUnboxer.reportFailure(clazz, Reason.UNEXPECTED_STATIC_FIELD)) {
+        return false;
+      }
       result = false;
     }
     return result;
@@ -79,37 +81,32 @@ class EnumUnboxingCandidateAnalysis {
   // The enum should have the $VALUES static field and only fields directly referencing the enum
   // instances.
   private boolean enumHasBasicStaticFields(DexProgramClass clazz) {
-    boolean result = true;
     for (DexEncodedField staticField : clazz.staticFields()) {
-      if (isEnumField(staticField, clazz)) {
+      if (isEnumField(staticField, clazz.type)) {
         // Enum field, valid, do nothing.
-      } else if (matchesValuesField(staticField, clazz, factory)) {
+      } else if (matchesValuesField(staticField, clazz.type, factory)) {
         // Field $VALUES, valid, do nothing.
       } else if (appView.appInfo().isFieldRead(staticField)) {
         // Only non read static fields are valid, and they are assumed unused.
-        if (!enumUnboxer.reportFailure(
-            clazz, new UnsupportedStaticFieldReason(staticField.getReference()))) {
-          return false;
-        }
-        result = false;
+        return false;
       }
     }
-    return result;
+    return true;
   }
 
-  static boolean isEnumField(DexEncodedField staticField, DexProgramClass enumClass) {
-    return staticField.getType() == enumClass.getType()
-        && staticField.isEnum()
-        && staticField.isFinal();
+  static boolean isEnumField(DexEncodedField staticField, DexType enumType) {
+    return staticField.getReference().type == enumType
+        && staticField.accessFlags.isEnum()
+        && staticField.accessFlags.isFinal();
   }
 
   static boolean matchesValuesField(
-      DexEncodedField staticField, DexProgramClass enumClass, DexItemFactory factory) {
-    return staticField.getType().isArrayType()
-        && staticField.getType().toArrayElementType(factory) == enumClass.getType()
-        && staticField.isSynthetic()
-        && staticField.isFinal()
-        && staticField.getName() == factory.enumValuesFieldName;
+      DexEncodedField staticField, DexType enumType, DexItemFactory factory) {
+    return staticField.getReference().type.isArrayType()
+        && staticField.getReference().type.toArrayElementType(factory) == enumType
+        && staticField.accessFlags.isSynthetic()
+        && staticField.accessFlags.isFinal()
+        && staticField.getReference().name == factory.enumValuesFieldName;
   }
 
   private void removeEnumsInAnnotations() {

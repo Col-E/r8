@@ -81,11 +81,11 @@ public class EnumUnboxingCandidateInfoCollection {
     info.addMethodDependency(programMethod);
   }
 
-  public void addRequiredEnumInstanceFieldData(DexProgramClass enumClass, DexField field) {
+  public void addRequiredEnumInstanceFieldData(DexType enumType, DexField field) {
     // The enumType may be removed concurrently map from enumTypeToInfo. It means in that
     // case the enum is no longer a candidate, and dependencies don't need to be recorded
     // anymore.
-    EnumUnboxingCandidateInfo info = enumTypeToInfo.get(enumClass.getType());
+    EnumUnboxingCandidateInfo info = enumTypeToInfo.get(enumType);
     if (info == null) {
       return;
     }
