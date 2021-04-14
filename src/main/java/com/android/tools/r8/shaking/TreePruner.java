@@ -18,6 +18,11 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.GenericSignatureTypeVariableRemover;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
+import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
+import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -30,6 +35,8 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 
 public class TreePruner {
@@ -63,15 +70,18 @@ public class TreePruner {
             this::isAttributeReferencingPrunedItem);
   }
 
-  public DirectMappedDexApplication run() {
+  public DirectMappedDexApplication run(ExecutorService executorService) throws ExecutionException {
     DirectMappedDexApplication application = appView.appInfo().app().asDirect();
     Timing timing = application.timing;
     timing.begin("Pruning application...");
     try {
       DirectMappedDexApplication.Builder builder = removeUnused(application);
-      return prunedTypes.isEmpty() && !appView.options().configurationDebugging
-          ? application
-          : builder.build();
+      DirectMappedDexApplication newApplication =
+          prunedTypes.isEmpty() && !appView.options().configurationDebugging
+              ? application
+              : builder.build();
+      fixupOptimizationInfo(newApplication, executorService);
+      return newApplication;
     } finally {
       timing.end();
     }
@@ -99,7 +109,7 @@ public class TreePruner {
             && !options.forceProguardCompatibility) {
           // The class is only needed as a type but never instantiated. Make it abstract to reflect
           // this.
-          if (clazz.accessFlags.isFinal()) {
+          if (clazz.isFinal()) {
             // We cannot mark this class abstract, as it is final (not supported on Android).
             // However, this might extend an abstract class and we might have removed the
             // corresponding methods in this class. This might happen if we only keep this
@@ -127,7 +137,7 @@ public class TreePruner {
 
   private void pruneUnusedInterfaces(DexProgramClass clazz) {
     Set<DexType> reachableInterfaces = new LinkedHashSet<>();
-    for (DexType type : clazz.interfaces.values) {
+    for (DexType type : clazz.getInterfaces()) {
       retainReachableInterfacesFrom(type, reachableInterfaces);
     }
     if (!reachableInterfaces.isEmpty()) {
@@ -380,6 +390,33 @@ public class TreePruner {
 
   public Collection<DexMethod> getMethodsToKeepForConfigurationDebugging() {
     return Collections.unmodifiableCollection(methodsToKeepForConfigurationDebugging);
+  }
+
+  private void fixupOptimizationInfo(
+      DirectMappedDexApplication application, ExecutorService executorService)
+      throws ExecutionException {
+    // Clear the type elements cache due to redundant interface removal.
+    appView.dexItemFactory().clearTypeElementsCache();
+
+    OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
+    feedback.fixupOptimizationInfos(
+        application.classes(),
+        executorService,
+        new OptimizationInfoFixer() {
+          @Override
+          public void fixup(DexEncodedField field, MutableFieldOptimizationInfo optimizationInfo) {
+            optimizationInfo.fixupClassTypeReferences(appView, appView.graphLens(), prunedTypes);
+          }
+
+          @Override
+          public void fixup(
+              DexEncodedMethod method, UpdatableMethodOptimizationInfo optimizationInfo) {
+            optimizationInfo.fixupClassTypeReferences(appView, appView.graphLens(), prunedTypes);
+          }
+        });
+
+    // Verify that the fixup did not lead to the caching of any elements.
+    assert appView.dexItemFactory().verifyNoCachedTypeElements();
   }
 
   private boolean verifyNoDeadFields(DexProgramClass clazz) {

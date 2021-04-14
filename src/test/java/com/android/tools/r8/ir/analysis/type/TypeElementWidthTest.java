@@ -76,8 +76,7 @@ public class TypeElementWidthTest extends TestBase {
   public void testReferenceWidth() {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ClassTypeElement referenceType =
-        ClassTypeElement.create(
-            dexItemFactory.objectType, Nullability.maybeNull(), InterfaceCollection.empty());
+        ClassTypeElement.createForD8(dexItemFactory.objectType, Nullability.maybeNull());
     assertFalse(referenceType.isSinglePrimitive());
     assertFalse(referenceType.isWidePrimitive());
     assertEquals(1, referenceType.requiredRegisters());

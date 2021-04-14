@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 
 public class ArrayTypeElement extends ReferenceTypeElement {
@@ -134,10 +135,12 @@ public class ArrayTypeElement extends ReferenceTypeElement {
 
   @Override
   public ArrayTypeElement fixupClassTypeReferences(
-      AppView<? extends AppInfoWithClassHierarchy> appView, Function<DexType, DexType> mapping) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      Function<DexType, DexType> mapping,
+      Set<DexType> prunedTypes) {
     if (memberTypeLattice.isReferenceType()) {
       TypeElement substitutedMemberType =
-          memberTypeLattice.fixupClassTypeReferences(appView, mapping);
+          memberTypeLattice.fixupClassTypeReferences(appView, mapping, prunedTypes);
       if (substitutedMemberType != memberTypeLattice) {
         return ArrayTypeElement.create(substitutedMemberType, nullability);
       }

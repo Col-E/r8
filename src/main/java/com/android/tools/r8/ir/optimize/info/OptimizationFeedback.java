@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.info;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.conversion.FieldOptimizationFeedback;
 import com.android.tools.r8.ir.conversion.MethodOptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLivenessModifier;
@@ -28,8 +29,16 @@ public abstract class OptimizationFeedback
   public void fixupOptimizationInfos(
       AppView<?> appView, ExecutorService executorService, OptimizationInfoFixer fixer)
       throws ExecutionException {
+    fixupOptimizationInfos(appView.appInfo().classes(), executorService, fixer);
+  }
+
+  public void fixupOptimizationInfos(
+      Iterable<DexProgramClass> classes,
+      ExecutorService executorService,
+      OptimizationInfoFixer fixer)
+      throws ExecutionException {
     ThreadUtils.processItems(
-        appView.appInfo().classes(),
+        classes,
         clazz -> {
           for (DexEncodedField field : clazz.fields()) {
             FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();

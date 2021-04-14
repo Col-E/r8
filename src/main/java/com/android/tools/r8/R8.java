@@ -374,7 +374,7 @@ public class R8 {
               shrinker -> shrinker.run(Mode.INITIAL_TREE_SHAKING));
 
           TreePruner pruner = new TreePruner(appViewWithLiveness);
-          DirectMappedDexApplication prunedApp = pruner.run();
+          DirectMappedDexApplication prunedApp = pruner.run(executorService);
 
           // Recompute the subtyping information.
           Set<DexType> removedClasses = pruner.getRemovedClasses();
@@ -609,7 +609,7 @@ public class R8 {
                     DefaultTreePrunerConfiguration.getInstance());
 
             TreePruner pruner = new TreePruner(appViewWithLiveness, treePrunerConfiguration);
-            DirectMappedDexApplication application = pruner.run();
+            DirectMappedDexApplication application = pruner.run(executorService);
             Set<DexType> removedClasses = pruner.getRemovedClasses();
 
             if (options.usageInformationConsumer != null) {

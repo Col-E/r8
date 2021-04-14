@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
+import static java.util.Collections.emptySet;
+
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
@@ -147,13 +149,20 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
 
   public UpdatableMethodOptimizationInfo fixupClassTypeReferences(
       AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens lens) {
+    return fixupClassTypeReferences(appView, lens, emptySet());
+  }
+
+  public UpdatableMethodOptimizationInfo fixupClassTypeReferences(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      GraphLens lens,
+      Set<DexType> prunedTypes) {
     if (returnsObjectWithUpperBoundType != null) {
       returnsObjectWithUpperBoundType =
-          returnsObjectWithUpperBoundType.rewrittenWithLens(appView, lens);
+          returnsObjectWithUpperBoundType.rewrittenWithLens(appView, lens, prunedTypes);
     }
     if (returnsObjectWithLowerBoundType != null) {
       TypeElement returnsObjectWithLowerBoundType =
-          this.returnsObjectWithLowerBoundType.rewrittenWithLens(appView, lens);
+          this.returnsObjectWithLowerBoundType.rewrittenWithLens(appView, lens, prunedTypes);
       if (returnsObjectWithLowerBoundType.isClassType()) {
         this.returnsObjectWithLowerBoundType = returnsObjectWithLowerBoundType.asClassType();
       } else {

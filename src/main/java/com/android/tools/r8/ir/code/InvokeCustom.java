@@ -93,7 +93,8 @@ public final class InvokeCustom extends Invoke {
 
     assert verifyLambdaInterfaces(returnType, lambdaInterfaceSet, objectType);
 
-    return ClassTypeElement.create(objectType, Nullability.maybeNull(), lambdaInterfaceSet);
+    return ClassTypeElement.create(
+        objectType, Nullability.maybeNull(), appView.withClassHierarchy(), lambdaInterfaceSet);
   }
 
   @Override

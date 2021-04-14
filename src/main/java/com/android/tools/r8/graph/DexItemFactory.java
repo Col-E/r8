@@ -2568,12 +2568,15 @@ public class DexItemFactory {
               if (type.isClassType()) {
                 if (!appView.enableWholeProgramOptimizations()) {
                   // Don't reason at the level of interfaces in D8.
-                  return ClassTypeElement.create(type, nullability, InterfaceCollection.empty());
+                  return ClassTypeElement.createForD8(type, nullability);
                 }
                 assert appView.appInfo().hasClassHierarchy();
                 if (appView.isInterface(type).isTrue()) {
                   return ClassTypeElement.create(
-                      objectType, nullability, InterfaceCollection.singleton(type));
+                      objectType,
+                      nullability,
+                      appView.withClassHierarchy(),
+                      InterfaceCollection.singleton(type));
                 }
                 // In theory, `interfaces` is the least upper bound of implemented interfaces.
                 // It is expensive to walk through type hierarchy; collect implemented interfaces;
