@@ -13,7 +13,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.internal.LibrarySanitizer;
-import com.android.tools.r8.internal.YouTubeCompilationBase;
+import com.android.tools.r8.internal.YouTubeCompilationTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
@@ -22,7 +22,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class YouTubeV1508ProtoRewritingTest extends YouTubeCompilationBase {
+public class YouTubeV1508ProtoRewritingTest extends YouTubeCompilationTestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {

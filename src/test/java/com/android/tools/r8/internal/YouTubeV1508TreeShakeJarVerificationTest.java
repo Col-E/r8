@@ -23,7 +23,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class YouTubeV1508TreeShakeJarVerificationTest extends YouTubeCompilationBase {
+public class YouTubeV1508TreeShakeJarVerificationTest extends YouTubeCompilationTestBase {
 
   private static final boolean DUMP = false;
   private static final int MAX_SIZE = 27500000;

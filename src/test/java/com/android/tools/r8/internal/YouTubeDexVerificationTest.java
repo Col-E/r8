@@ -6,7 +6,7 @@ package com.android.tools.r8.internal;
 import com.android.tools.r8.CompilationMode;
 import org.junit.Test;
 
-public class YouTubeDexVerificationTest extends YouTubeCompilationBase {
+public class YouTubeDexVerificationTest extends YouTubeCompilationTestBase {
 
   public YouTubeDexVerificationTest() {
     super(12, 17);

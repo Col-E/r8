@@ -8,7 +8,7 @@ import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
-public class YouTubeProguardJarVerificationTest extends YouTubeCompilationBase {
+public class YouTubeProguardJarVerificationTest extends YouTubeCompilationTestBase {
 
   public YouTubeProguardJarVerificationTest() {
     super(12, 17);

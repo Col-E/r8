@@ -18,8 +18,8 @@ import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.ResourceException;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -38,9 +38,6 @@ import com.android.tools.r8.utils.codeinspector.FoundFieldSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
-import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -64,7 +61,7 @@ import org.junit.ComparisonFailure;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
-public abstract class CompilationTestBase extends TestBase {
+public abstract class CompilationTestBase extends DesugaredLibraryTestBase {
 
   protected KeepingDiagnosticHandler handler;
   protected Reporter reporter;

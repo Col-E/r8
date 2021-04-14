@@ -7,7 +7,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import org.junit.Test;
 
-public class YouTubeDeployJarVerificationTest extends YouTubeCompilationBase {
+public class YouTubeDeployJarVerificationTest extends YouTubeCompilationTestBase {
 
   public YouTubeDeployJarVerificationTest() {
     super(12, 17);

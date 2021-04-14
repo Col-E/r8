@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.ToolHelper;
@@ -14,7 +16,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class YouTubeCompilationBase extends CompilationTestBase {
+public abstract class YouTubeCompilationTestBase extends CompilationTestBase {
 
   static final String APK = "YouTubeRelease_unsigned.apk";
   static final String DEPLOY_JAR = "YouTubeRelease_deploy.jar";
@@ -26,7 +28,7 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
 
   final String base;
 
-  public YouTubeCompilationBase(int majorVersion, int minorVersion) {
+  public YouTubeCompilationTestBase(int majorVersion, int minorVersion) {
     this.base =
         "third_party/youtube/youtube.android_"
             + majorVersion
@@ -49,7 +51,14 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
   }
 
   protected List<Path> getLibraryFiles() {
-    return ImmutableList.of(Paths.get(base, "legacy_YouTubeRelease_combined_library_jars.jar"));
+    Path filtered =
+        Paths.get(base).resolve("legacy_YouTubeRelease_combined_library_jars_filtered.jar");
+    if (filtered.toFile().exists()) {
+      return ImmutableList.of(filtered);
+    }
+    Path unfiltered = Paths.get(base, "legacy_YouTubeRelease_combined_library_jars.jar");
+    assertTrue(unfiltered.toFile().exists());
+    return ImmutableList.of(unfiltered);
   }
 
   protected List<Path> getMainDexRuleFiles() {
