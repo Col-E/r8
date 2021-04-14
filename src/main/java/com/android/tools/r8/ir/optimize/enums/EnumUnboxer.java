@@ -522,6 +522,10 @@ public class EnumUnboxer {
   }
 
   private EnumData buildData(DexProgramClass enumClass, Set<DexField> fields) {
+    if (!enumClass.hasStaticFields()) {
+      return new EnumData(ImmutableMap.of(), ImmutableMap.of(), ImmutableSet.of(), -1);
+    }
+
     // This map holds all the accessible fields to their unboxed value, so we can remap the field
     // read to the unboxed value.
     ImmutableMap.Builder<DexField, Integer> unboxedValues = ImmutableMap.builder();
@@ -904,10 +908,8 @@ public class EnumUnboxer {
   private void analyzeInitializers() {
     enumUnboxingCandidatesInfo.forEachCandidate(
         enumClass -> {
-          boolean hasInstanceInitializer = false;
           for (DexEncodedMethod directMethod : enumClass.directMethods()) {
             if (directMethod.isInstanceInitializer()) {
-              hasInstanceInitializer = true;
               if (directMethod
                   .getOptimizationInfo()
                   .getContextInsensitiveInstanceInitializerInfo()
@@ -918,15 +920,6 @@ public class EnumUnboxer {
               }
             }
           }
-          if (!hasInstanceInitializer) {
-            // This case typically happens when a programmer uses EnumSet/EnumMap without using the
-            // enum keep rules. The code is incorrect in this case (EnumSet/EnumMap won't work).
-            // We bail out.
-            if (markEnumAsUnboxable(Reason.NO_INIT, enumClass)) {
-              return;
-            }
-          }
-
           if (enumClass.classInitializationMayHaveSideEffects(appView)) {
             markEnumAsUnboxable(Reason.INVALID_CLINIT, enumClass);
           }

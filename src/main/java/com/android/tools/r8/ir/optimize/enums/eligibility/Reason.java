@@ -18,7 +18,6 @@ public class Reason {
   public static final Reason UNRESOLVABLE_FIELD = new Reason("UNRESOLVABLE_FIELD");
   public static final Reason CONST_CLASS = new Reason("CONST_CLASS");
   public static final Reason INVALID_PHI = new Reason("INVALID_PHI");
-  public static final Reason NO_INIT = new Reason("NO_INIT");
   public static final Reason INVALID_INIT = new Reason("INVALID_INIT");
   public static final Reason INVALID_CLINIT = new Reason("INVALID_CLINIT");
   public static final Reason INVALID_INVOKE = new Reason("INVALID_INVOKE");

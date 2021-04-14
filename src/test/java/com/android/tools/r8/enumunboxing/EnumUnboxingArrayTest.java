@@ -55,11 +55,10 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
                 inspector ->
                     inspector
                         .assertUnboxed(
+                            EnumArrayNullRead.MyEnum.class,
                             EnumArrayReadWrite.MyEnum.class,
                             EnumArrayReadWriteNoEscape.MyEnum.class,
                             EnumVarArgs.MyEnum.class)
-                        // TODO(b/185182242): Should always be unboxed.
-                        .assertUnboxedIf(enumKeepRules.isStudio(), EnumArrayNullRead.MyEnum.class)
                         // TODO(b/185182242): Should always be unboxed.
                         .assertNotUnboxed(Enum2DimArrayReadWrite.MyEnum.class))
             .setMinApi(parameters.getApiLevel())
