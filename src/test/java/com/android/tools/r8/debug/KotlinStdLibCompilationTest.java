@@ -8,17 +8,13 @@ import static com.android.tools.r8.ToolHelper.getKotlinC_1_3_72;
 import static com.android.tools.r8.ToolHelper.getKotlinC_1_4_20;
 import static com.android.tools.r8.ToolHelper.getKotlinC_1_5_0_m2;
 import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
@@ -60,24 +56,12 @@ public class KotlinStdLibCompilationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
         .addKeepAllAttributes()
-        .applyIf(
-            kotlinc.is(KotlinCompilerVersion.KOTLINC_1_5_20_M2),
-            R8TestBuilder::allowDiagnosticMessages,
-            R8TestBuilder::allowDiagnosticWarningMessages)
+        .allowDiagnosticWarningMessages()
         .noMinification()
         .noTreeShaking()
         .setMode(CompilationMode.DEBUG)
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .applyIf(
-            kotlinc.is(KotlinCompilerVersion.KOTLINC_1_5_20_M2),
-            result -> {
-              result
-                  .assertAllInfoMessagesMatch(containsString("Unexpected error while reading"))
-                  .assertAllInfoMessagesMatch(containsString("kotlin.Metadata: null"));
-            },
-            TestCompileResult::assertNoInfoMessages)
-        .assertNoErrorMessages()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."));
   }
 }
