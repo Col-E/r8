@@ -733,7 +733,7 @@ static mergeServiceFiles(ShadowJar task) {
 task repackageDepsNew(type: ShadowJar) {
     configurations = [project.configurations.runtimeClasspath]
     mergeServiceFiles(it)
-    exclude { it.getRelativePath().getPathString() == "module-info.class" }
+    exclude { it.getRelativePath().getPathString().endsWith("module-info.class") }
     exclude { it.getRelativePath().getPathString().startsWith("META-INF/maven/") }
     baseName 'deps_all'
 }
