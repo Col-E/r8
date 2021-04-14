@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.retrace;
 
-import static com.android.tools.r8.Collectors.toSingle;
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
@@ -15,14 +14,13 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.retrace.StackTrace;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -32,6 +30,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -96,8 +95,6 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
 
   @Test
   public void testRetraceKotlinInlineStaticFunction() throws Exception {
-    // TODO(b/179666509): SMAP has changed.
-    assumeTrue(kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
     String main = "retrace.MainKt";
     String mainFileName = "Main.kt";
     Path kotlinSources = compilationResults.getForConfiguration(kotlinc, targetVersion);
@@ -128,8 +125,6 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
 
   @Test
   public void testRetraceKotlinInlineInstanceFunction() throws Exception {
-    // TODO(b/179666509): SMAP has changed.
-    assumeTrue(kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
     String main = "retrace.MainInstanceKt";
     String mainFileName = "MainInstance.kt";
     Path kotlinSources = compilationResults.getForConfiguration(kotlinc, targetVersion);
@@ -163,8 +158,6 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
 
   @Test
   public void testRetraceKotlinNestedInlineFunction() throws Exception {
-    // TODO(b/179666509): SMAP has changed.
-    assumeTrue(kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
     String main = "retrace.MainNestedKt";
     String mainFileName = "MainNested.kt";
     Path kotlinSources = compilationResults.getForConfiguration(kotlinc, targetVersion);
@@ -197,8 +190,6 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
 
   @Test
   public void testRetraceKotlinNestedInlineFunctionOnFirstLine() throws Exception {
-    // TODO(b/179666509): SMAP has changed.
-    assumeTrue(kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
     String main = "retrace.MainNestedFirstLineKt";
     String mainFileName = "MainNestedFirstLine.kt";
     Path kotlinSources = compilationResults.getForConfiguration(kotlinc, targetVersion);
@@ -236,10 +227,11 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
       LinePosition inlineStack) {
     assertThat(mainSubject, isPresent());
     RetraceFrameResult retraceResult =
-        mainSubject
-            .streamInstructions()
-            .filter(InstructionSubject::isThrow)
-            .collect(toSingle())
+        ListUtils.last(
+                mainSubject
+                    .streamInstructions()
+                    .filter(InstructionSubject::isThrow)
+                    .collect(Collectors.toList()))
             .retraceLinePosition(codeInspector.retrace());
     assertThat(retraceResult, isInlineFrame());
     assertThat(retraceResult, isInlineStack(inlineStack));

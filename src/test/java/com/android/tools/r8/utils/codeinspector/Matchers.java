@@ -523,7 +523,6 @@ public class Matchers {
         Box<Boolean> returnValue = new Box<>();
         single.visitFrames(
             (method, __) -> {
-              boolean sameMethod;
               LinePosition currentInline = currentPosition.get();
               if (currentInline == null) {
                 returnValue.set(false);
@@ -533,7 +532,7 @@ public class Matchers {
                 returnValue.set(false);
                 return;
               }
-              sameMethod =
+              boolean sameMethod =
                   method.asKnown().getMethodReference().equals(currentInline.methodReference);
               boolean samePosition =
                   method.getOriginalPositionOrDefault(currentInline.minifiedPosition)
