@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_20_M2;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 import static org.junit.Assert.assertEquals;
@@ -2150,6 +2151,10 @@ public class ToolHelper {
 
   public static KotlinCompiler getKotlinC_1_4_20() {
     return new KotlinCompiler(KOTLINC_1_4_20);
+  }
+
+  public static KotlinCompiler getKotlinC_1_5_0_m2() {
+    return new KotlinCompiler(KOTLINC_1_5_20_M2);
   }
 
   public static KotlinCompiler[] getKotlinCompilers() {
