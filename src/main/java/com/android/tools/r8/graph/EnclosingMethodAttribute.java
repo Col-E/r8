@@ -55,10 +55,6 @@ public final class EnclosingMethodAttribute {
     return enclosingClass;
   }
 
-  public DexType getEnclosingType() {
-    return enclosingMethod != null ? enclosingMethod.getHolderType() : enclosingClass;
-  }
-
   @Override
   public int hashCode() {
     assert (enclosingClass == null) != (enclosingMethod == null);
