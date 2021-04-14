@@ -139,6 +139,10 @@ public class GenericSignature {
       return false;
     }
 
+    default boolean isValid() {
+      return !isInvalid();
+    }
+
     DexDefinitionSignature<T> toInvalid();
   }
 

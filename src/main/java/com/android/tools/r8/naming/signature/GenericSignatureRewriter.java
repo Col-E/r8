@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GenericSignatureTypeRewriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -20,13 +19,11 @@ public class GenericSignatureRewriter {
   private final AppView<?> appView;
   private final NamingLens namingLens;
   private final InternalOptions options;
-  private final Reporter reporter;
 
   public GenericSignatureRewriter(AppView<?> appView, NamingLens namingLens) {
     this.appView = appView;
     this.namingLens = namingLens;
     this.options = appView.options();
-    this.reporter = options.reporter;
   }
 
   public void run(Iterable<? extends DexProgramClass> classes, ExecutorService executorService)

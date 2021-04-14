@@ -4,10 +4,7 @@
 
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.graph.GenericSignature.EMPTY_SUPER_INTERFACES;
 import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_ARGUMENTS;
-import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_PARAMS;
-import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_SIGNATURES;
 import static com.google.common.base.Predicates.alwaysFalse;
 
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
@@ -120,7 +117,7 @@ public class GenericSignatureTypeRewriter {
     public List<FormalTypeParameter> visitFormalTypeParameters(
         List<FormalTypeParameter> formalTypeParameters) {
       if (formalTypeParameters.isEmpty()) {
-        return EMPTY_TYPE_PARAMS;
+        return formalTypeParameters;
       }
       return ListUtils.mapOrElse(formalTypeParameters, this::visitFormalTypeParameter);
     }
@@ -142,7 +139,7 @@ public class GenericSignatureTypeRewriter {
     public List<ClassTypeSignature> visitSuperInterfaces(
         List<ClassTypeSignature> interfaceSignatures) {
       if (interfaceSignatures.isEmpty()) {
-        return EMPTY_SUPER_INTERFACES;
+        return interfaceSignatures;
       }
       return ListUtils.mapOrElse(interfaceSignatures, this::visitSuperInterface);
     }
@@ -156,7 +153,7 @@ public class GenericSignatureTypeRewriter {
     @Override
     public List<TypeSignature> visitMethodTypeSignatures(List<TypeSignature> typeSignatures) {
       if (typeSignatures.isEmpty()) {
-        return EMPTY_TYPE_SIGNATURES;
+        return typeSignatures;
       }
       return ListUtils.mapOrElse(
           typeSignatures,
@@ -186,7 +183,7 @@ public class GenericSignatureTypeRewriter {
     @Override
     public List<TypeSignature> visitThrowsSignatures(List<TypeSignature> typeSignatures) {
       if (typeSignatures.isEmpty()) {
-        return EMPTY_TYPE_SIGNATURES;
+        return typeSignatures;
       }
       // If a throwing type is no longer found we remove it from the signature.
       return ListUtils.mapOrElse(typeSignatures, this::visitTypeSignature);
@@ -199,11 +196,8 @@ public class GenericSignatureTypeRewriter {
 
     @Override
     public List<FieldTypeSignature> visitInterfaceBounds(List<FieldTypeSignature> fieldSignatures) {
-      if (fieldSignatures == null) {
-        return null;
-      }
-      if (fieldSignatures.isEmpty()) {
-        return EMPTY_TYPE_ARGUMENTS;
+      if (fieldSignatures == null || fieldSignatures.isEmpty()) {
+        return fieldSignatures;
       }
       return ListUtils.mapOrElse(fieldSignatures, this::visitFieldTypeSignature);
     }
@@ -221,7 +215,7 @@ public class GenericSignatureTypeRewriter {
     @Override
     public List<FieldTypeSignature> visitTypeArguments(List<FieldTypeSignature> typeArguments) {
       if (typeArguments.isEmpty()) {
-        return EMPTY_TYPE_ARGUMENTS;
+        return typeArguments;
       }
       return ListUtils.mapOrElse(
           typeArguments,
