@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.kotlin;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.KotlinTestBase.getCompileMemoizer;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -132,7 +132,7 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
             .setMinApi(parameters.getApiLevel())
             .allowDiagnosticWarningMessages()
             .allowUnusedDontWarnKotlinReflectJvmInternal(
-                kotlinParameters.getCompiler().is(KOTLINC_1_4_20));
+                kotlinParameters.getCompiler().isNot(KOTLINC_1_3_72));
     KeepRuleConsumer keepRuleConsumer = null;
     if (desugarLibrary) {
       keepRuleConsumer = createKeepRuleConsumer(parameters);

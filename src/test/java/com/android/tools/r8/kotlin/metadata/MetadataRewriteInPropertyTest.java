@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0_M2;
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionProperty;
@@ -139,9 +140,9 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
     KmPropertySubject age = kmClass.kmPropertyWithUniqueName("age");
     assertThat(age, isPresent());
     assertThat(age, not(isExtensionProperty()));
-    assertEquals(age.fieldSignature().asString(), "a:I");
-    assertEquals(age.getterSignature().asString(), "getAge()I");
-    assertEquals(age.setterSignature().asString(), "setAge(I)V");
+    assertEquals(kotlinc.is(KOTLINC_1_5_0_M2) ? "b:I" : "a:I", age.fieldSignature().asString());
+    assertEquals("getAge()I", age.getterSignature().asString());
+    assertEquals("setAge(I)V", age.setterSignature().asString());
   }
 
   @Test

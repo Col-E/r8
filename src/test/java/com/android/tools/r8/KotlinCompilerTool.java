@@ -31,7 +31,7 @@ public class KotlinCompilerTool {
   public enum KotlinCompilerVersion {
     KOTLINC_1_3_72("kotlin-compiler-1.3.72"),
     KOTLINC_1_4_20("kotlin-compiler-1.4.20"),
-    KOTLINC_1_5_20_M2("kotlin-compiler-1.5.0-M2");
+    KOTLINC_1_5_0_M2("kotlin-compiler-1.5.0-M2");
 
     private final String folder;
 
@@ -76,6 +76,10 @@ public class KotlinCompilerTool {
 
     public boolean is(KotlinCompilerVersion version) {
       return compilerVersion == version;
+    }
+
+    public boolean isNot(KotlinCompilerVersion version) {
+      return !is(version);
     }
 
     public KotlinCompilerVersion getCompilerVersion() {

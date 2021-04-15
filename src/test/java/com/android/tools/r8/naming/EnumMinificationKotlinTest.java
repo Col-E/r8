@@ -10,6 +10,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -70,6 +71,9 @@ public class EnumMinificationKotlinTest extends KotlinTestBase {
     ClassSubject enumClass = inspector.clazz(ENUM_CLASS_NAME);
     assertThat(enumClass, isPresent());
     assertEquals(minify, enumClass.isRenamed());
-    assertThat(enumClass.clinit(), isAbsent());
+    // TODO(b/179994975): Kotlin enum changed in 1.5.
+    assertThat(
+        enumClass.clinit(),
+        kotlinc.is(KotlinCompilerVersion.KOTLINC_1_5_0_M2) ? isPresent() : isAbsent());
   }
 }

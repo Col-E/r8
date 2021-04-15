@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinReflectJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -60,7 +60,7 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .allowDiagnosticWarningMessages()
             .setMinApi(parameters.getApiLevel())
-            .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.is(KOTLINC_1_4_20))
+            .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
             .compile()
             .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib)
             .run(parameters.getRuntime(), mainClassName);

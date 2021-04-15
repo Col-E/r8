@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.kotlin.reflection;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
@@ -92,7 +92,7 @@ public class KotlinReflectTest extends KotlinTestBase {
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticWarningMessages()
-        .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.is(KOTLINC_1_4_20))
+        .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
         .compile()
         .writeToZip(foo.toPath())
         .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib)

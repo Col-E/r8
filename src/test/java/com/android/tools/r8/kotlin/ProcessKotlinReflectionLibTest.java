@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
@@ -46,11 +46,11 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
         .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
-        .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.is(KOTLINC_1_4_20))
-        .allowUnusedProguardConfigurationRules(kotlinc.is(KOTLINC_1_4_20))
+        .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
+        .allowUnusedProguardConfigurationRules(kotlinc.isNot(KOTLINC_1_3_72))
         .apply(consumer)
         .compile()
-        .apply(assertUnusedKeepRuleForKotlinMetadata(kotlinc.is(KOTLINC_1_4_20)));
+        .apply(assertUnusedKeepRuleForKotlinMetadata(kotlinc.isNot(KOTLINC_1_3_72)));
   }
 
   @Test

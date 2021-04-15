@@ -16,6 +16,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -163,8 +164,15 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
             .compileRaw();
 
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    assertThat(kotlinTestCompileResult.stderr, containsString("cannot access"));
-    assertThat(kotlinTestCompileResult.stderr, containsString("private in 'Expr'"));
+    if (kotlinc.is(KotlinCompilerVersion.KOTLINC_1_5_0_M2)) {
+      assertThat(
+          kotlinTestCompileResult.stderr,
+          containsString(
+              "inheritance of sealed classes or interfaces from different module is prohibited"));
+    } else {
+      assertThat(kotlinTestCompileResult.stderr, containsString("cannot access"));
+      assertThat(kotlinTestCompileResult.stderr, containsString("private in 'Expr'"));
+    }
   }
 
   private void inspectInvalid(CodeInspector inspector) {

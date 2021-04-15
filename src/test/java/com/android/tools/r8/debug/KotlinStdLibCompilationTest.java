@@ -4,9 +4,7 @@
 package com.android.tools.r8.debug;
 
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinC_1_3_72;
-import static com.android.tools.r8.ToolHelper.getKotlinC_1_4_20;
-import static com.android.tools.r8.ToolHelper.getKotlinC_1_5_0_m2;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
@@ -34,7 +32,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
   public static List<Object[]> setup() {
     return buildParameters(
         TestParametersBuilder.builder().withAllRuntimesAndApiLevels().build(),
-        new KotlinCompiler[] {getKotlinC_1_3_72(), getKotlinC_1_4_20(), getKotlinC_1_5_0_m2()});
+        getKotlinCompilers());
   }
 
   public KotlinStdLibCompilationTest(TestParameters parameters, KotlinCompiler kotlinc) {

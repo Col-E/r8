@@ -10,7 +10,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.KotlinCompilerTool;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -39,9 +38,10 @@ public class TestRunner extends KotlinTestBase {
 
   private static final KotlinCompileMemoizer kotlinJars =
       getCompileMemoizer(getKotlinFilesInResource("lambdas_kstyle_generics"))
-          .configure(KotlinCompilerTool::includeRuntime);
+          // TODO(b/185465199): This is not really the test for testing shrinking reflect.
+          .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect());
 
-  @Parameters(name = "{0}")
+  @Parameters(name = "{0}, {1}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),

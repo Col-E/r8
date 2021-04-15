@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0_M2;
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -11,6 +12,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -78,6 +80,8 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
 
   @Test
   public void smokeTest() throws Exception {
+    // TODO(b/185496216): The kotlin code no longer compiles.
+    assumeTrue(kotlinc.isNot(KOTLINC_1_5_0_M2));
     Path libJar = libJars.getForConfiguration(kotlinc, targetVersion);
     Path output =
         kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
@@ -96,6 +100,8 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
 
   @Test
   public void testMetadataForLib() throws Exception {
+    // TODO(b/185496216): The kotlin code no longer compiles.
+    assumeTrue(kotlinc.isNot(KOTLINC_1_5_0_M2));
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(
