@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 // This is a parser for the Kotlin-generated source debug extensions, which is a stratified map.
 // The kotlin-parser for this data is can be found here in the kotlin compiler:
@@ -80,13 +81,21 @@ public class KotlinSourceDebugExtensionParser {
         int linesInBlock,
         ThrowingConsumer<List<String>, KotlinSourceDebugExtensionParserException> callback)
         throws IOException, KotlinSourceDebugExtensionParserException {
-      if (terminator.equals(readLine)) {
+      readUntil(terminator::equals, linesInBlock, callback);
+    }
+
+    void readUntil(
+        Predicate<String> terminator,
+        int linesInBlock,
+        ThrowingConsumer<List<String>, KotlinSourceDebugExtensionParserException> callback)
+        throws IOException, KotlinSourceDebugExtensionParserException {
+      if (terminator.test(readLine)) {
         return;
       }
       List<String> readStrings = new ArrayList<>();
       readStrings.add(readNextLine());
       int linesLeft = linesInBlock;
-      while (!terminator.equals(readLine) && !isEOF()) {
+      while (!terminator.test(readLine) && !isEOF()) {
         if (linesLeft == 1) {
           assert readStrings.size() == linesInBlock;
           callback.accept(readStrings);
@@ -97,7 +106,7 @@ public class KotlinSourceDebugExtensionParser {
         }
         readStrings.add(readNextLine());
       }
-      if (readStrings.size() > 0 && !readStrings.get(0).equals(terminator)) {
+      if (readStrings.size() > 0 && !terminator.test(readStrings.get(0))) {
         throw new KotlinSourceDebugExtensionParserException(
             "Block size does not match linesInBlock = " + linesInBlock);
       }
@@ -125,7 +134,7 @@ public class KotlinSourceDebugExtensionParser {
     // *L
     // <from>#<file>,<to>:<debug-line-position>
     // <from>#<file>:<debug-line-position>
-    // *E
+    // *E <-- This is an error in versions prior to kotlin 1.5 and is not present in kotlin 1.5.
     // *S KotlinDebug
     // ***
     // *E
@@ -157,10 +166,12 @@ public class KotlinSourceDebugExtensionParser {
       // or
       // <from>#<file>:<debug-line-position>
       reader.readUntil(
-          SMAP_END_IDENTIFIER, 1, block -> addDebugEntryToBuilder(block.get(0), builder));
+          line -> line.equals(SMAP_END_IDENTIFIER) || line.startsWith(SMAP_SECTION_START),
+          1,
+          block -> addDebugEntryToBuilder(block.get(0), builder));
 
-      // Ensure that we read the end section *E.
-      if (reader.isEOF()) {
+      // Ensure that we read the end section and it is terminated.
+      if (reader.isEOF() && !reader.readLine.equals(SMAP_END_IDENTIFIER)) {
         throw new KotlinSourceDebugExtensionParserException(
             "Unexpected EOF when parsing SMAP debug entries");
       }

@@ -70,7 +70,8 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends KotlinTestBase {
   }
 
   private int getObfuscatedLinePosition() {
-    return kotlinc.is(KotlinCompilerVersion.KOTLINC_1_4_20) ? 32 : 43;
+    // TODO(b/185358363): This should go away when we correctly retrace.
+    return kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72) ? 43 : 32;
   }
 
   @Test
