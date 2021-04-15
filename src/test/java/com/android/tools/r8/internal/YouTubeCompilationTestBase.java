@@ -37,6 +37,33 @@ public abstract class YouTubeCompilationTestBase extends CompilationTestBase {
             + "/";
   }
 
+  protected Path getDesugaredLibraryConfiguration() {
+    Path path = Paths.get(base, "desugar_jdk_libs/full_desugar_jdk_libs.json");
+    assertTrue(path.toFile().exists());
+    return path;
+  }
+
+  protected Path getDesugaredLibraryJDKLibs() {
+    Path path = Paths.get(base, "desugar_jdk_libs/jdk_libs_to_desugar.jar");
+    assertTrue(path.toFile().exists());
+    return path;
+  }
+
+  protected Path getDesugaredLibraryJDKLibsConfiguration() {
+    Path path = Paths.get(base, "desugar_jdk_libs/desugar_jdk_libs_configuration.jar");
+    assertTrue(path.toFile().exists());
+    return path;
+  }
+
+  protected List<Path> getDesugaredLibraryKeepRuleFiles() {
+    ImmutableList<Path> keepRuleFiles =
+        ImmutableList.of(
+            Paths.get(base, "desugar_jdk_libs/base.pgcfg"),
+            Paths.get(base, "desugar_jdk_libs/minify_desugar_jdk_libs.pgcfg"));
+    assertTrue(keepRuleFiles.stream().allMatch(keepRuleFile -> keepRuleFile.toFile().exists()));
+    return keepRuleFiles;
+  }
+
   protected List<Path> getKeepRuleFiles() {
     ImmutableList.Builder<Path> builder = ImmutableList.builder();
     builder.add(Paths.get(base).resolve(PG_CONF));

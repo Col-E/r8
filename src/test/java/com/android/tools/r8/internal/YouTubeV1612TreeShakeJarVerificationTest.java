@@ -8,11 +8,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.analysis.ProtoApplicationStats;
 import java.nio.file.Files;
@@ -28,6 +30,8 @@ public class YouTubeV1612TreeShakeJarVerificationTest extends YouTubeCompilation
 
   private static final boolean DUMP = false;
   private static final int MAX_SIZE = 30000000;
+
+  private final Path dumpDirectory = Paths.get("YouTubeV1612-" + System.currentTimeMillis());
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -54,14 +58,17 @@ public class YouTubeV1612TreeShakeJarVerificationTest extends YouTubeCompilation
             .allowUnusedDontWarnPatterns()
             .allowUnusedProguardConfigurationRules()
             .setMinApi(AndroidApiLevel.L)
-            .enableCoreLibraryDesugaring(AndroidApiLevel.L, keepRuleConsumer)
+            .enableCoreLibraryDesugaring(
+                AndroidApiLevel.L,
+                keepRuleConsumer,
+                StringResource.fromFile(getDesugaredLibraryConfiguration()))
             .compile();
 
     if (ToolHelper.isLocalDevelopment()) {
       if (DUMP) {
-        long time = System.currentTimeMillis();
-        compileResult.writeToZip(Paths.get("YouTubeV1612-" + time + ".zip"));
-        compileResult.writeProguardMap(Paths.get("YouTubeV1612-" + time + ".map"));
+        dumpDirectory.toFile().mkdirs();
+        compileResult.writeToZip(dumpDirectory.resolve("app.zip"));
+        compileResult.writeProguardMap(dumpDirectory.resolve("mapping.txt"));
       }
 
       DexItemFactory dexItemFactory = new DexItemFactory();
@@ -75,14 +82,28 @@ public class YouTubeV1612TreeShakeJarVerificationTest extends YouTubeCompilation
       System.out.println(actual.getStats(baseline));
     }
 
-    long applicationSize = compileResult.getApp().applicationSize();
+    int applicationSize = compileResult.getApp().applicationSize();
     System.out.println("Dex size (app, excluding desugared library): " + applicationSize);
 
-    Path desugaredLibrary = buildDesugaredLibrary(AndroidApiLevel.L, keepRuleConsumer.get());
-    long desugaredLibrarySize = Files.size(desugaredLibrary);
+    Path desugaredLibrary =
+        testForL8(AndroidApiLevel.L)
+            .setDesugaredLibraryConfiguration(getDesugaredLibraryConfiguration())
+            .setDesugarJDKLibs(getDesugaredLibraryJDKLibs())
+            .setDesugarJDKLibsConfiguration(getDesugaredLibraryJDKLibsConfiguration())
+            .addKeepRules(keepRuleConsumer.get())
+            .addKeepRuleFiles(getDesugaredLibraryKeepRuleFiles())
+            .compile();
+
+    byte[] desugaredLibraryDex = ZipUtils.readSingleEntry(desugaredLibrary, "classes.dex");
+
+    if (DUMP) {
+      Files.write(dumpDirectory.resolve("desugared_jdk_libs.dex"), desugaredLibraryDex);
+    }
+
+    int desugaredLibrarySize = desugaredLibraryDex.length;
     System.out.println("Dex size (desugared library): " + desugaredLibrarySize);
 
-    long totalApplicationSize = applicationSize + desugaredLibrarySize;
+    int totalApplicationSize = applicationSize + desugaredLibrarySize;
     System.out.println("Dex size (total): " + totalApplicationSize);
 
     assertTrue(

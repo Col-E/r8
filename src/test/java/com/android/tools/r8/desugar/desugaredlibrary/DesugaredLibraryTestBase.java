@@ -19,6 +19,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
@@ -27,21 +28,25 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.BeforeClass;
+import org.junit.rules.TemporaryFolder;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -94,6 +99,158 @@ public class DesugaredLibraryTestBase extends TestBase {
     return parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel();
   }
 
+  public static class L8TestBuilder {
+
+    private final AndroidApiLevel apiLevel;
+    private final TemporaryFolder temp;
+
+    private CompilationMode mode = CompilationMode.RELEASE;
+    private List<String> keepRules = new ArrayList<>();
+    private List<Path> additionalProgramFiles = new ArrayList<>();
+    private Consumer<InternalOptions> optionsModifier = ConsumerUtils.emptyConsumer();
+    private Path desugarJDKLibs = ToolHelper.getDesugarJDKLibs();
+    private Path desugarJDKLibsConfiguration = ToolHelper.DESUGAR_LIB_CONVERSIONS;
+    private StringResource desugaredLibraryConfiguration =
+        StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting());
+
+    public static L8TestBuilder builder(AndroidApiLevel apiLevel, TemporaryFolder temp) {
+      return new L8TestBuilder(apiLevel, temp);
+    }
+
+    private L8TestBuilder(AndroidApiLevel apiLevel, TemporaryFolder temp) {
+      this.apiLevel = apiLevel;
+      this.temp = temp;
+    }
+
+    public L8TestBuilder addProgramFiles(Collection<Path> programFiles) {
+      this.additionalProgramFiles.addAll(programFiles);
+      return this;
+    }
+
+    public L8TestBuilder addKeepRules(String keepRules) {
+      if (!keepRules.trim().isEmpty()) {
+        this.keepRules.add(keepRules);
+      }
+      return this;
+    }
+
+    public L8TestBuilder addKeepRuleFiles(Collection<Path> keepRuleFiles) throws IOException {
+      for (Path keepRuleFile : keepRuleFiles) {
+        addKeepRules(FileUtils.readTextFile(keepRuleFile, StandardCharsets.UTF_8));
+      }
+      return this;
+    }
+
+    public L8TestBuilder addOptionsModifier(Consumer<InternalOptions> optionsModifier) {
+      this.optionsModifier = this.optionsModifier.andThen(optionsModifier);
+      return this;
+    }
+
+    public L8TestBuilder applyIf(boolean condition, ThrowableConsumer<L8TestBuilder> thenConsumer) {
+      return applyIf(condition, thenConsumer, ThrowableConsumer.empty());
+    }
+
+    public L8TestBuilder applyIf(
+        boolean condition,
+        ThrowableConsumer<L8TestBuilder> thenConsumer,
+        ThrowableConsumer<L8TestBuilder> elseConsumer) {
+      if (condition) {
+        thenConsumer.acceptWithRuntimeException(this);
+      } else {
+        elseConsumer.acceptWithRuntimeException(this);
+      }
+      return this;
+    }
+
+    public L8TestBuilder setDebug() {
+      this.mode = CompilationMode.DEBUG;
+      return this;
+    }
+
+    public L8TestBuilder setDesugarJDKLibs(Path desugarJDKLibs) {
+      this.desugarJDKLibs = desugarJDKLibs;
+      return this;
+    }
+
+    public L8TestBuilder setDesugarJDKLibsConfiguration(Path desugarJDKLibsConfiguration) {
+      this.desugarJDKLibsConfiguration = desugarJDKLibsConfiguration;
+      return this;
+    }
+
+    public L8TestBuilder setDesugaredLibraryConfiguration(Path path) {
+      this.desugaredLibraryConfiguration = StringResource.fromFile(path);
+      return this;
+    }
+
+    public Path compile() {
+      // We wrap exceptions in a RuntimeException to call this from a lambda.
+      try {
+        // If we compile extended library here, it means we use TestNG.
+        // TestNG requires annotations, hence we disable AnnotationRemoval.
+        // This implies that extra warning are generated if this is set.
+        TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
+        Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
+        L8Command.Builder l8Builder =
+            L8Command.builder(diagnosticsHandler)
+                .addProgramFiles(getProgramFiles())
+                .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+                .setMode(mode)
+                .addDesugaredLibraryConfiguration(desugaredLibraryConfiguration)
+                .setMinApiLevel(apiLevel.getLevel())
+                .setOutput(desugaredLib, OutputMode.DexIndexed);
+        Path mapping = null;
+        if (!keepRules.isEmpty()) {
+          mapping = temp.newFolder().toPath().resolve("mapping.txt");
+          l8Builder.addProguardConfiguration(
+              ImmutableList.<String>builder()
+                  .addAll(keepRules)
+                  .add("-printmapping " + mapping)
+                  .build(),
+              Origin.unknown());
+        }
+        ToolHelper.runL8(
+            l8Builder.build(),
+            options -> {
+              if (!additionalProgramFiles.isEmpty()) {
+                options.testing.disableL8AnnotationRemoval = true;
+              }
+              optionsModifier.accept(options);
+            });
+        if (additionalProgramFiles.isEmpty()) {
+          assertTrue(
+              diagnosticsHandler.getInfos().stream()
+                  .noneMatch(
+                      string ->
+                          string
+                              .getDiagnosticMessage()
+                              .startsWith(
+                                  "Invalid parameter counts in MethodParameter attributes.")));
+        }
+        new CodeInspector(desugaredLib, mapping)
+            .forAllClasses(clazz -> assertTrue(clazz.getFinalName().startsWith("j$.")));
+        return desugaredLib;
+      } catch (Exception e) {
+        // Don't wrap assumption violation so junit can catch it.
+        if (e instanceof RuntimeException) {
+          throw ((RuntimeException) e);
+        }
+        throw new RuntimeException(e);
+      }
+    }
+
+    private Collection<Path> getProgramFiles() {
+      return ImmutableList.<Path>builder()
+          .add(desugarJDKLibs)
+          .add(desugarJDKLibsConfiguration)
+          .addAll(additionalProgramFiles)
+          .build();
+    }
+  }
+
+  protected L8TestBuilder testForL8(AndroidApiLevel apiLevel) {
+    return new L8TestBuilder(apiLevel, temp);
+  }
+
   protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) {
     return buildDesugaredLibrary(apiLevel, "", false);
   }
@@ -126,62 +283,11 @@ public class DesugaredLibraryTestBase extends TestBase {
       boolean shrink,
       List<Path> additionalProgramFiles,
       Consumer<InternalOptions> optionsModifier) {
-    // We wrap exceptions in a RuntimeException to call this from a lambda.
-    try {
-      // If we compile extended library here, it means we use TestNG.
-      // TestNG requires annotations, hence we disable AnnotationRemoval.
-      // This implies that extra warning are generated if this is set.
-      boolean extraFiles = !additionalProgramFiles.isEmpty();
-      ArrayList<Path> extraPaths = new ArrayList<>(additionalProgramFiles);
-      TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
-      Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
-      L8Command.Builder l8Builder =
-          L8Command.builder(diagnosticsHandler)
-              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-              .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-              .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
-              .setMode(shrink ? CompilationMode.RELEASE : CompilationMode.DEBUG)
-              .addProgramFiles(extraPaths)
-              .addDesugaredLibraryConfiguration(
-                  StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
-              .setMinApiLevel(apiLevel.getLevel())
-              .setOutput(desugaredLib, OutputMode.DexIndexed);
-      Path mapping = null;
-      if (shrink) {
-        mapping = temp.newFolder().toPath().resolve("mapping.txt");
-        List<String> lines =
-            new ArrayList<>(Arrays.asList(keepRules.split(System.lineSeparator())));
-        lines.add("-printmapping " + mapping);
-        l8Builder.addProguardConfiguration(lines, Origin.unknown());
-      }
-      ToolHelper.runL8(
-          l8Builder.build(),
-          options -> {
-            if (extraFiles) {
-              options.testing.disableL8AnnotationRemoval = true;
-            }
-            optionsModifier.accept(options);
-          });
-      if (!extraFiles) {
-        assertTrue(
-            diagnosticsHandler.getInfos().stream()
-                .noneMatch(
-                    string ->
-                        string
-                            .getDiagnosticMessage()
-                            .startsWith(
-                                "Invalid parameter counts in MethodParameter attributes.")));
-      }
-      new CodeInspector(desugaredLib, mapping)
-          .forAllClasses(clazz -> assertTrue(clazz.getFinalName().startsWith("j$.")));
-      return desugaredLib;
-    } catch (Exception e) {
-      // Don't wrap assumption violation so junit can catch it.
-      if (e instanceof RuntimeException) {
-        throw ((RuntimeException) e);
-      }
-      throw new RuntimeException(e);
-    }
+    return testForL8(apiLevel)
+        .addProgramFiles(additionalProgramFiles)
+        .applyIf(shrink, builder -> builder.addKeepRules(keepRules), L8TestBuilder::setDebug)
+        .addOptionsModifier(optionsModifier)
+        .compile();
   }
 
   protected void assertLines2By2Correct(String stdOut) {
