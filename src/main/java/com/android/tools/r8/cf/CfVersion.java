@@ -8,6 +8,8 @@ import com.android.tools.r8.utils.structural.HashCodeVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import org.objectweb.asm.Opcodes;
 
 public final class CfVersion implements StructuralItem<CfVersion> {
@@ -29,6 +31,24 @@ public final class CfVersion implements StructuralItem<CfVersion> {
   public static final CfVersion V15 = new CfVersion(Opcodes.V15);
 
   private final int version;
+
+  private static CfVersion[] versions = {
+    CfVersion.V1_1,
+    CfVersion.V1_2,
+    CfVersion.V1_3,
+    CfVersion.V1_4,
+    CfVersion.V1_5,
+    CfVersion.V1_6,
+    CfVersion.V1_7,
+    CfVersion.V1_8,
+    CfVersion.V9,
+    CfVersion.V10,
+    CfVersion.V11,
+    CfVersion.V12,
+    CfVersion.V13,
+    CfVersion.V14,
+    CfVersion.V15
+  };
 
   // Private constructor in case we want to canonicalize versions.
   private CfVersion(int version) {
@@ -53,6 +73,14 @@ public final class CfVersion implements StructuralItem<CfVersion> {
 
   private static void specify(StructuralSpecification<CfVersion, ?> spec) {
     spec.withInt(CfVersion::major).withInt(CfVersion::minor);
+  }
+
+  public static Iterable<CfVersion> rangeInclusive(CfVersion from, CfVersion to) {
+    assert from.isLessThanOrEqualTo(to);
+    return Arrays.stream(versions)
+        .filter(version -> version.isGreaterThanOrEqualTo(from))
+        .filter(version -> version.isLessThanOrEqualTo(to))
+        .collect(Collectors.toList());
   }
 
   @Override

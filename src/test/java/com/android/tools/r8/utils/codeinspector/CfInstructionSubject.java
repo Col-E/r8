@@ -53,8 +53,18 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isDexInstruction() {
+    return false;
+  }
+
+  @Override
   public DexInstructionSubject asDexInstruction() {
     return null;
+  }
+
+  @Override
+  public boolean isCfInstruction() {
+    return true;
   }
 
   @Override

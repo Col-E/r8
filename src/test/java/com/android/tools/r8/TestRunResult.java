@@ -53,8 +53,51 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
   public <S extends Throwable, T extends Throwable> RR applyIf(
       boolean condition, ThrowingConsumer<RR, S> thenConsumer, ThrowingConsumer<RR, T> elseConsumer)
       throws S, T {
-    if (condition) {
-      thenConsumer.accept(self());
+    return applyIf(
+        condition,
+        thenConsumer,
+        true,
+        elseConsumer,
+        r -> {
+          assert false;
+        });
+  }
+
+  public <S extends Throwable, T extends Throwable, U extends Throwable> RR applyIf(
+      boolean condition1,
+      ThrowingConsumer<RR, S> thenConsumer1,
+      boolean condition2,
+      ThrowingConsumer<RR, T> thenConsumer2,
+      ThrowingConsumer<RR, U> elseConsumer)
+      throws S, T, U {
+    return applyIf(
+        condition1,
+        thenConsumer1,
+        condition2,
+        thenConsumer2,
+        true,
+        elseConsumer,
+        r -> {
+          assert false;
+        });
+  }
+
+  public <S extends Throwable, T extends Throwable, U extends Throwable, V extends Throwable>
+      RR applyIf(
+          boolean condition1,
+          ThrowingConsumer<RR, S> thenConsumer1,
+          boolean condition2,
+          ThrowingConsumer<RR, T> thenConsumer2,
+          boolean condition3,
+          ThrowingConsumer<RR, U> thenConsumer3,
+          ThrowingConsumer<RR, V> elseConsumer)
+          throws S, T, U, V {
+    if (condition1) {
+      thenConsumer1.accept(self());
+    } else if (condition2) {
+      thenConsumer2.accept(self());
+    } else if (condition3) {
+      thenConsumer3.accept(self());
     } else {
       elseConsumer.accept(self());
     }

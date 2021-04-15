@@ -72,7 +72,8 @@ public class InvokeSpecialToSelfDesugaring implements CfInstructionDesugaring {
       LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
-      MethodProcessingContext methodProcessingContext) {
+      MethodProcessingContext methodProcessingContext,
+      DexItemFactory dexItemFactory) {
     if (instruction.isInvokeSpecial()) {
       return desugarInvokeInstruction(instruction.asInvoke(), eventConsumer, context);
     }

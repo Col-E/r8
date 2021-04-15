@@ -150,7 +150,8 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
       LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
-      MethodProcessingContext methodProcessingContext) {
+      MethodProcessingContext methodProcessingContext,
+      DexItemFactory dexItemFactory) {
     if (instruction.isFieldInstruction()) {
       return desugarFieldInstruction(instruction.asFieldInstruction(), context, eventConsumer);
     }

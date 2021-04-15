@@ -37,7 +37,8 @@ public class BufferCovariantReturnTypeRewriter implements CfInstructionDesugarin
       LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
-      MethodProcessingContext methodProcessingContext) {
+      MethodProcessingContext methodProcessingContext,
+      DexItemFactory dexItemFactory) {
     if (!isInvokeCandidate(instruction)) {
       return null;
     }

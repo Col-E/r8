@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.ProgramMethod;
 import java.util.Collection;
 
@@ -26,7 +27,8 @@ public interface CfInstructionDesugaring {
       LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
-      MethodProcessingContext methodProcessingContext);
+      MethodProcessingContext methodProcessingContext,
+      DexItemFactory dexItemFactory);
 
   /**
    * Returns true if the given instruction needs desugaring.

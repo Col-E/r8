@@ -75,7 +75,8 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
       LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
-      MethodProcessingContext methodProcessingContext) {
+      MethodProcessingContext methodProcessingContext,
+      DexItemFactory dexItemFactory) {
     if (instruction.isInvokeDynamic()) {
       // We are interested in bootstrap methods StringConcatFactory::makeConcat
       // and StringConcatFactory::makeConcatWthConstants, both are static.

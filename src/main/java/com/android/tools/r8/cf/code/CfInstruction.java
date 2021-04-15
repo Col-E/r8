@@ -157,6 +157,10 @@ public abstract class CfInstruction implements CfOrDexInstruction {
     return false;
   }
 
+  public boolean isInvokeVirtual() {
+    return false;
+  }
+
   public boolean isInvokeInterface() {
     return false;
   }

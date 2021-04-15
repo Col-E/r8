@@ -57,10 +57,59 @@ public abstract class TestRunResultCollection<
     return inspectIf(Predicates.alwaysTrue(), consumer);
   }
 
-  public RR applyIf(Predicate<C> filter, Consumer<TestRunResult<?>> fn) {
+  public RR applyIf(Predicate<C> filter, Consumer<TestRunResult<?>> thenConsumer) {
+    return applyIf(filter, thenConsumer, r -> {});
+  }
+
+  public RR applyIf(
+      Predicate<C> filter,
+      Consumer<TestRunResult<?>> thenConsumer,
+      Consumer<TestRunResult<?>> elseConsumer) {
+    return applyIf(
+        filter,
+        thenConsumer,
+        c -> true,
+        elseConsumer,
+        r -> {
+          assert false;
+        });
+  }
+
+  public RR applyIf(
+      Predicate<C> filter1,
+      Consumer<TestRunResult<?>> thenConsumer1,
+      Predicate<C> filter2,
+      Consumer<TestRunResult<?>> thenConsumer2,
+      Consumer<TestRunResult<?>> elseConsumer) {
+    return applyIf(
+        filter1,
+        thenConsumer1,
+        filter2,
+        thenConsumer2,
+        c -> true,
+        elseConsumer,
+        r -> {
+          assert false;
+        });
+  }
+
+  public RR applyIf(
+      Predicate<C> filter1,
+      Consumer<TestRunResult<?>> thenConsumer1,
+      Predicate<C> filter2,
+      Consumer<TestRunResult<?>> thenConsumer2,
+      Predicate<C> filter3,
+      Consumer<TestRunResult<?>> thenConsumer3,
+      Consumer<TestRunResult<?>> elseConsumer) {
     for (Pair<C, TestRunResult<?>> run : runs) {
-      if (filter.test(run.getFirst())) {
-        fn.accept(run.getSecond());
+      if (filter1.test(run.getFirst())) {
+        thenConsumer1.accept(run.getSecond());
+      } else if (filter2.test(run.getFirst())) {
+        thenConsumer2.accept(run.getSecond());
+      } else if (filter3.test(run.getFirst())) {
+        thenConsumer3.accept(run.getSecond());
+      } else {
+        elseConsumer.accept(run.getSecond());
       }
     }
     return self();

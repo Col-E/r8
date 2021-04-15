@@ -323,6 +323,10 @@ public abstract class TestRuntime {
       return Objects.hash(vm, home);
     }
 
+    public boolean isOlderThan(CfVm version) {
+      return vm.lessThan(version);
+    }
+
     public boolean isNewerThan(CfVm version) {
       return !vm.lessThanOrEqual(version);
     }

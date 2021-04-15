@@ -125,7 +125,8 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
       LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
-      MethodProcessingContext methodProcessingContext) {
+      MethodProcessingContext methodProcessingContext,
+      DexItemFactory dexItemFactory) {
     assert !instruction.isInitClass();
     if (instruction.isInvokeDynamic() && needsDesugaring(instruction.asInvokeDynamic(), context)) {
       return desugarInvokeDynamicOnRecord(

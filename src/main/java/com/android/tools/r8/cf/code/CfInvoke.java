@@ -185,6 +185,7 @@ public class CfInvoke extends CfInstruction {
     return opcode == Opcodes.INVOKESTATIC;
   }
 
+  @Override
   public boolean isInvokeVirtual() {
     return opcode == Opcodes.INVOKEVIRTUAL;
   }

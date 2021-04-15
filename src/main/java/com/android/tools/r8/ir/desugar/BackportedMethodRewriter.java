@@ -70,7 +70,8 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
-      MethodProcessingContext methodProcessingContext) {
+      MethodProcessingContext methodProcessingContext,
+      DexItemFactory dexItemFactory) {
     if (!instruction.isInvoke()) {
       return null;
     }

@@ -1682,16 +1682,15 @@ public class OutlineTest extends SmaliTestBase {
         "    sget-object         v1, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "    new-instance        v2, Ljava/util/ArrayList;",
         "    invoke-direct       { v2 }, Ljava/util/ArrayList;-><init>()V",
-        "    invoke-virtual      { v0, v1, v2 }, " +
-        "                            LTest;->method1(Ljava/io/PrintStream;Ljava/util/ArrayList;)Z",
+        "    invoke-direct       { v0, v1, v2 }, "
+            + "LTest;->method1(Ljava/io/PrintStream;Ljava/util/ArrayList;)Z",
         "    move-result         v3",
         "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
-        "    invoke-virtual      { v0, v1, v2 }, " +
-        "                            LTest;->method2(Ljava/io/PrintStream;Ljava/util/ArrayList;)Z",
+        "    invoke-direct       { v0, v1, v2 }, "
+            + "LTest;->method2(Ljava/io/PrintStream;Ljava/util/ArrayList;)Z",
         "    move-result         v3",
         "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
-        "    return-void"
-    );
+        "    return-void");
 
     // Outline 2 times two instructions.
     Consumer<InternalOptions> options =
@@ -1759,14 +1758,13 @@ public class OutlineTest extends SmaliTestBase {
         "    sget-object         v1, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "    new-instance        v2, Ljava/util/ArrayList;",
         "    invoke-direct       { v2 }, Ljava/util/ArrayList;-><init>()V",
-        "    invoke-virtual      { v0, v2 }, LTest;->method1(Ljava/util/List;)Z",
+        "    invoke-direct       { v0, v2 }, LTest;->method1(Ljava/util/List;)Z",
         "    move-result         v3",
         "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
-        "    invoke-virtual      { v0, v2 }, LTest;->method2(Ljava/util/List;)Z",
+        "    invoke-direct       { v0, v2 }, LTest;->method2(Ljava/util/List;)Z",
         "    move-result         v3",
         "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
-        "    return-void"
-    );
+        "    return-void");
 
     // Outline 2 times two instructions.
     Consumer<InternalOptions> options =
@@ -1836,14 +1834,13 @@ public class OutlineTest extends SmaliTestBase {
         "    sget-object         v1, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "    new-instance        v2, Ljava/util/ArrayList;",
         "    invoke-direct       { v2 }, Ljava/util/ArrayList;-><init>()V",
-        "    invoke-virtual      { v0, v2 }, LTest;->method1(Ljava/util/ArrayList;)Z",
+        "    invoke-direct       { v0, v2 }, LTest;->method1(Ljava/util/ArrayList;)Z",
         "    move-result         v3",
         "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
-        "    invoke-virtual      { v0, v2 }, LTest;->method2(Ljava/util/ArrayList;)Z",
+        "    invoke-direct       { v0, v2 }, LTest;->method2(Ljava/util/ArrayList;)Z",
         "    move-result         v3",
         "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
-        "    return-void"
-    );
+        "    return-void");
 
     // Outline 2 times two instructions.
     Consumer<InternalOptions> options =
@@ -1913,14 +1910,13 @@ public class OutlineTest extends SmaliTestBase {
         "    sget-object         v1, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "    new-instance        v2, Ljava/util/ArrayList;",
         "    invoke-direct       { v2 }, Ljava/util/ArrayList;-><init>()V",
-        "    invoke-virtual      { v0, v2 }, LTest;->method1(Ljava/util/ArrayList;)Z",
+        "    invoke-direct       { v0, v2 }, LTest;->method1(Ljava/util/ArrayList;)Z",
         "    move-result         v3",
         "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
-        "    invoke-virtual      { v0, v2 }, LTest;->method2(Ljava/util/ArrayList;)Z",
+        "    invoke-direct       { v0, v2 }, LTest;->method2(Ljava/util/ArrayList;)Z",
         "    move-result         v3",
         "    invoke-virtual      { v1, v3 }, Ljava/io/PrintStream;->print(Z)V",
-        "    return-void"
-    );
+        "    return-void");
 
     // Outline 2 times two instructions.
     Consumer<InternalOptions> options =

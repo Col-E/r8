@@ -45,6 +45,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     this.nestBasedAccessDesugaring = NestBasedAccessDesugaring.create(appView);
     desugarings.add(new LambdaInstructionDesugaring(appView));
     desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
+    desugarings.add(new InvokeToPrivateRewriter());
     desugarings.add(new StringConcatInstructionDesugaring(appView));
     desugarings.add(new BufferCovariantReturnTypeRewriter(appView));
     if (appView.options().enableBackportedMethodRewriting()) {
@@ -181,7 +182,8 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
               localStackAllocator,
               eventConsumer,
               context,
-              methodProcessingContext);
+              methodProcessingContext,
+              appView.dexItemFactory());
       if (replacement != null) {
         assert verifyNoOtherDesugaringNeeded(
             instruction, context, methodProcessingContext, iterator);
@@ -215,7 +217,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
         desugarings, desugaring -> desugaring.needsDesugaring(instruction, context));
   }
 
-  private static boolean verifyNoOtherDesugaringNeeded(
+  private boolean verifyNoOtherDesugaringNeeded(
       CfInstruction instruction,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
@@ -234,7 +236,8 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
                         },
                         CfInstructionDesugaringEventConsumer.createForDesugaredCode(),
                         context,
-                        methodProcessingContext)
+                        methodProcessingContext,
+                        appView.dexItemFactory())
                     != null)
         == null;
     return true;

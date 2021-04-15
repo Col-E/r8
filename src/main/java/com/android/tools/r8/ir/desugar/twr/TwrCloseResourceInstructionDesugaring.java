@@ -44,7 +44,8 @@ public class TwrCloseResourceInstructionDesugaring implements CfInstructionDesug
       LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
-      MethodProcessingContext methodProcessingContext) {
+      MethodProcessingContext methodProcessingContext,
+      DexItemFactory dexItemFactory) {
     if (!instruction.isInvokeStatic()) {
       return null;
     }
