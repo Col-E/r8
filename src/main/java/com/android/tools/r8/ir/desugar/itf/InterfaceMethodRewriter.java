@@ -928,7 +928,7 @@ public final class InterfaceMethodRewriter {
     // If the companion class is a classpath class, then synthesize the companion class method if it
     // does not exist.
     if (companionClass.isClasspathClass()) {
-      synthetizeCompanionClassMethodIfNotPresent(companionClass.asClasspathClass(), rewritten);
+      synthesizeCompanionClassMethodIfNotPresent(companionClass.asClasspathClass(), rewritten);
     }
   }
 
@@ -940,7 +940,7 @@ public final class InterfaceMethodRewriter {
             SyntheticKind.COMPANION_CLASS, type, context, appView.dexItemFactory());
   }
 
-  private static void synthetizeCompanionClassMethodIfNotPresent(
+  private static void synthesizeCompanionClassMethodIfNotPresent(
       DexClasspathClass companionClass, DexMethod method) {
     MethodCollection methodCollection = companionClass.getMethodCollection();
     synchronized (methodCollection) {
@@ -1026,14 +1026,6 @@ public final class InterfaceMethodRewriter {
         executorService);
     for (InterfaceDesugaringProcessor processor : processors) {
       processor.finalizeProcessing(builder, synthesizedMethods);
-    }
-  }
-
-  private void process(InterfaceDesugaringProcessor processor, Builder<?> builder, Flavor flavour) {
-    for (DexProgramClass clazz : builder.getProgramClasses()) {
-      if (shouldProcess(clazz, flavour)) {
-        processor.process(clazz, synthesizedMethods);
-      }
     }
   }
 
