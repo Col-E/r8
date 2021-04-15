@@ -10,6 +10,7 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -20,6 +21,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Stores name information for a class.
@@ -82,12 +84,19 @@ public class ClassNamingForMapApplier implements ClassNaming {
     }
 
     @Override
-    /** No-op */
     public void addMappedRange(
         Range obfuscatedRange,
         MemberNaming.MethodSignature originalSignature,
         Object originalRange,
-        String obfuscatedName) {}
+        String obfuscatedName) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void addMappingInformation(
+        MappingInformation info, Consumer<MappingInformation> onProhibitedAddition) {
+      // Intentionally empty.
+    }
   }
 
   static Builder builder(

@@ -6,8 +6,6 @@ package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.mappinginformation.MappingInformation;
-import com.android.tools.r8.naming.mappinginformation.ScopeReference;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -16,7 +14,6 @@ import com.android.tools.r8.retrace.InvalidMappingFileException;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.Retracer;
 import java.io.BufferedReader;
-import java.util.Collection;
 
 /** A default implementation for the retrace api using the ClassNameMapper defined in R8. */
 public class RetracerImpl implements Retracer {
@@ -71,9 +68,5 @@ public class RetracerImpl implements Retracer {
   @Override
   public RetraceTypeResultImpl retraceType(TypeReference typeReference) {
     return RetraceTypeResultImpl.create(typeReference, this);
-  }
-
-  public Collection<MappingInformation> getAdditionalMappingInfo(ScopeReference reference) {
-    return classNameMapper.getAdditionalMappingInfo(reference);
   }
 }

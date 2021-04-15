@@ -10,7 +10,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class MetaInfMappingInformation extends MappingInformation {
 
@@ -57,22 +57,22 @@ public class MetaInfMappingInformation extends MappingInformation {
   }
 
   public static void deserialize(
-      MapVersion version,
+      MapVersion ignoredCurrentMapVersion,
       JsonObject object,
       DiagnosticsHandler diagnosticsHandler,
       int lineNumber,
-      BiConsumer<ScopeReference, MappingInformation> onMappingInfo) {
+      Consumer<MappingInformation> onMappingInfo) {
     // Parsing the generator information must support parsing at all map versions as it itself is
     // what establishes the version.
-    String mapVersion = object.get(MAP_VERSION_KEY).getAsString();
-    if (mapVersion == null) {
+    String mapVersionString = object.get(MAP_VERSION_KEY).getAsString();
+    if (mapVersionString == null) {
       noKeyForObjectWithId(lineNumber, MAP_VERSION_KEY, MAPPING_ID_KEY, ID);
       return;
     }
-    MapVersion mapVersion1 = MapVersion.fromName(mapVersion);
-    if (mapVersion1 == null) {
+    MapVersion mapVersion = MapVersion.fromName(mapVersionString);
+    if (mapVersion == null) {
       return;
     }
-    onMappingInfo.accept(ScopeReference.globalScope(), new MetaInfMappingInformation(mapVersion1));
+    onMappingInfo.accept(new MetaInfMappingInformation(mapVersion));
   }
 }

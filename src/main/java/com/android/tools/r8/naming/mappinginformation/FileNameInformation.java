@@ -6,11 +6,10 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
-import com.android.tools.r8.naming.mappinginformation.ScopeReference.ClassScopeReference;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class FileNameInformation extends MappingInformation {
 
@@ -64,15 +63,12 @@ public class FileNameInformation extends MappingInformation {
       JsonObject object,
       DiagnosticsHandler diagnosticsHandler,
       int lineNumber,
-      ScopeReference implicitSingletonScope,
-      BiConsumer<ScopeReference, MappingInformation> onMappingInfo) {
-    assert implicitSingletonScope instanceof ClassScopeReference;
+      Consumer<MappingInformation> onMappingInfo) {
     try {
       JsonElement fileName =
           getJsonElementFromObject(object, diagnosticsHandler, lineNumber, FILE_NAME_KEY, ID);
       if (fileName != null) {
-        onMappingInfo.accept(
-            implicitSingletonScope, new FileNameInformation(fileName.getAsString()));
+        onMappingInfo.accept(new FileNameInformation(fileName.getAsString()));
       }
     } catch (UnsupportedOperationException | IllegalStateException ignored) {
       diagnosticsHandler.info(

@@ -50,8 +50,6 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.naming.mappinginformation.CompilerSynthesizedMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
-import com.android.tools.r8.naming.mappinginformation.ScopeReference;
-import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
@@ -294,28 +292,27 @@ public class LineNumberOptimizer {
                       com.android.tools.r8.position.Position.UNKNOWN));
 
       // Check if source file should be added to the map
-      ScopeReference classScope =
-          ScopeReference.fromClassReference(
-              Reference.classFromDescriptor(renamedDescriptor.toString()));
       if (clazz.sourceFile != null) {
         String sourceFile = clazz.sourceFile.toString();
         if (!RetraceUtils.hasPredictableSourceFileName(clazz.toSourceString(), sourceFile)) {
-          classNameMapperBuilder.addMappingInformation(
-              classScope,
-              FileNameInformation.build(sourceFile),
-              conflictingInfo -> {
-                throw new Unreachable();
-              });
+          onDemandClassNamingBuilder
+              .get()
+              .addMappingInformation(
+                  FileNameInformation.build(sourceFile),
+                  conflictingInfo -> {
+                    throw new Unreachable();
+                  });
         }
       }
 
       if (isSyntheticClass && appView.options().testing.enableExperimentalMapFileVersion) {
-        classNameMapperBuilder.addMappingInformation(
-            classScope,
-            CompilerSynthesizedMappingInformation.builder().build(),
-            conflictingInfo -> {
-              throw new Unreachable();
-            });
+        onDemandClassNamingBuilder
+            .get()
+            .addMappingInformation(
+                CompilerSynthesizedMappingInformation.builder().build(),
+                conflictingInfo -> {
+                  throw new Unreachable();
+                });
       }
 
       // If the class is renamed add it to the classNamingBuilder.

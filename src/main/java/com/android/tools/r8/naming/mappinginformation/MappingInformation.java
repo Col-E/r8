@@ -8,7 +8,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public abstract class MappingInformation {
 
@@ -49,8 +49,7 @@ public abstract class MappingInformation {
       JsonObject object,
       DiagnosticsHandler diagnosticsHandler,
       int lineNumber,
-      ScopeReference implicitSingletonScope,
-      BiConsumer<ScopeReference, MappingInformation> onMappingInfo) {
+      Consumer<MappingInformation> onMappingInfo) {
     if (object == null) {
       diagnosticsHandler.info(MappingInformationDiagnostics.notValidJson(lineNumber));
       return;
@@ -73,7 +72,6 @@ public abstract class MappingInformation {
         object,
         diagnosticsHandler,
         lineNumber,
-        implicitSingletonScope,
         onMappingInfo);
   }
 
@@ -83,8 +81,7 @@ public abstract class MappingInformation {
       JsonObject object,
       DiagnosticsHandler diagnosticsHandler,
       int lineNumber,
-      ScopeReference implicitSingletonScope,
-      BiConsumer<ScopeReference, MappingInformation> onMappingInfo) {
+      Consumer<MappingInformation> onMappingInfo) {
     switch (id) {
       case MetaInfMappingInformation.ID:
         MetaInfMappingInformation.deserialize(
@@ -92,11 +89,11 @@ public abstract class MappingInformation {
         return;
       case FileNameInformation.ID:
         FileNameInformation.deserialize(
-            version, object, diagnosticsHandler, lineNumber, implicitSingletonScope, onMappingInfo);
+            version, object, diagnosticsHandler, lineNumber, onMappingInfo);
         return;
       case CompilerSynthesizedMappingInformation.ID:
         CompilerSynthesizedMappingInformation.deserialize(
-            version, object, diagnosticsHandler, lineNumber, implicitSingletonScope, onMappingInfo);
+            version, object, diagnosticsHandler, lineNumber, onMappingInfo);
         return;
       default:
         diagnosticsHandler.info(MappingInformationDiagnostics.noHandlerFor(lineNumber, id));

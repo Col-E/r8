@@ -29,7 +29,6 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
-import com.android.tools.r8.naming.mappinginformation.ScopeReference;
 import com.android.tools.r8.naming.signature.GenericSignatureAction;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.origin.Origin;
@@ -292,8 +291,7 @@ public class CodeInspector {
     }
 
     public Collection<MappingInformation> getAdditionalMappings() {
-      return mapper.getAdditionalMappingInfo(
-          ScopeReference.fromClassReference(Reference.classFromTypeName(naming.renamedName)));
+      return naming.getAdditionalMappingInfo();
     }
 
     public ClassNamingForNameMapper getNaming() {

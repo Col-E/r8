@@ -5,7 +5,6 @@ package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.naming.ClassNameMapper.MissingFileAction.MISSING_FILE_IS_ERROR;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
-import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.graph.DexField;
@@ -15,16 +14,12 @@ import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
-import com.android.tools.r8.naming.mappinginformation.MappingInformation;
-import com.android.tools.r8.naming.mappinginformation.ScopeReference;
 import com.android.tools.r8.position.Position;
-import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BiMapContainer;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharSource;
 import java.io.BufferedReader;
@@ -32,14 +27,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Consumer;
 
 public class ClassNameMapper implements ProguardMap {
 
@@ -50,7 +42,6 @@ public class ClassNameMapper implements ProguardMap {
 
   public static class Builder extends ProguardMap.Builder {
     private final Map<String, ClassNamingForNameMapper.Builder> mapping = new HashMap<>();
-    private final Map<ScopeReference, List<MappingInformation>> scopedMappingInfo = new HashMap<>();
 
     private Builder() {
 
@@ -66,42 +57,11 @@ public class ClassNameMapper implements ProguardMap {
     }
 
     @Override
-    public void addMappingInformation(
-        ScopeReference reference,
-        MappingInformation info,
-        Consumer<MappingInformation> onProhibitedAddition) {
-      List<MappingInformation> additionalMappings =
-          scopedMappingInfo.computeIfAbsent(reference, ignoreArgument(ArrayList::new));
-      for (MappingInformation existing : additionalMappings) {
-        if (!existing.allowOther(info)) {
-          onProhibitedAddition.accept(existing);
-        }
-      }
-      additionalMappings.add(info);
-    }
-
-    @Override
     public ClassNameMapper build() {
-      return new ClassNameMapper(buildClassNameMappings(), buildScopedMappingInfo());
-    }
-
-    private ImmutableMap<ScopeReference, ImmutableList<MappingInformation>>
-        buildScopedMappingInfo() {
-      ImmutableMap.Builder<ScopeReference, ImmutableList<MappingInformation>> builder =
-          ImmutableMap.builder();
-      scopedMappingInfo.forEach((ref, infos) -> builder.put(ref, ImmutableList.copyOf(infos)));
-      return builder.build();
+      return new ClassNameMapper(buildClassNameMappings());
     }
 
     private ImmutableMap<String, ClassNamingForNameMapper> buildClassNameMappings() {
-      // Ensure that all scoped references have at least the identity in the final mapping.
-      for (ScopeReference reference : scopedMappingInfo.keySet()) {
-        if (!reference.isGlobalScope()) {
-          mapping.computeIfAbsent(
-              reference.getHolderReference().getTypeName(),
-              t -> ClassNamingForNameMapper.builder(t, t));
-        }
-      }
       ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
       builder.orderEntriesByValue(Comparator.comparing(x -> x.originalName));
       mapping.forEach(
@@ -166,24 +126,15 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   private final ImmutableMap<String, ClassNamingForNameMapper> classNameMappings;
-  private final ImmutableMap<ScopeReference, ImmutableList<MappingInformation>>
-      additionalMappingInfo;
   private BiMapContainer<String, String> nameMapping;
   private final Map<Signature, Signature> signatureMap = new HashMap<>();
 
-  private ClassNameMapper(
-      ImmutableMap<String, ClassNamingForNameMapper> classNameMappings,
-      ImmutableMap<ScopeReference, ImmutableList<MappingInformation>> additionalMappingInfo) {
+  private ClassNameMapper(ImmutableMap<String, ClassNamingForNameMapper> classNameMappings) {
     this.classNameMappings = classNameMappings;
-    this.additionalMappingInfo = additionalMappingInfo;
   }
 
   public Map<String, ClassNamingForNameMapper> getClassNameMappings() {
     return classNameMappings;
-  }
-
-  public List<MappingInformation> getAdditionalMappingInfo(ScopeReference reference) {
-    return additionalMappingInfo.getOrDefault(reference, ImmutableList.of());
   }
 
   private Signature canonicalizeSignature(Signature signature) {
@@ -255,7 +206,7 @@ public class ClassNameMapper implements ProguardMap {
     ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
     builder.orderEntriesByValue(Comparator.comparing(x -> x.originalName));
     classNameMappings.forEach(builder::put);
-    return new ClassNameMapper(builder.build(), additionalMappingInfo);
+    return new ClassNameMapper(builder.build());
   }
 
   public boolean verifyIsSorted() {
@@ -277,10 +228,7 @@ public class ClassNameMapper implements ProguardMap {
     // deterministic (and easy to navigate manually).
     assert verifyIsSorted();
     for (ClassNamingForNameMapper naming : getClassNameMappings().values()) {
-      List<MappingInformation> additionalMappingInfo =
-          getAdditionalMappingInfo(
-              ScopeReference.fromClassReference(Reference.classFromTypeName(naming.renamedName)));
-      naming.write(consumer, additionalMappingInfo);
+      naming.write(consumer);
     }
   }
 

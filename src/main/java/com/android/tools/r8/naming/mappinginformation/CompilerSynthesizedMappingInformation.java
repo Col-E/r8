@@ -8,7 +8,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class CompilerSynthesizedMappingInformation extends MappingInformation {
 
@@ -59,16 +59,10 @@ public class CompilerSynthesizedMappingInformation extends MappingInformation {
       JsonObject object,
       DiagnosticsHandler diagnosticsHandler,
       int lineNumber,
-      ScopeReference implicitSingletonScope,
-      BiConsumer<ScopeReference, MappingInformation> onMappingInfo) {
+      Consumer<MappingInformation> onMappingInfo) {
     if (version.isLessThan(MapVersion.MapVersionExperimental)) {
       return;
     }
-    CompilerSynthesizedMappingInformation info = builder().build();
-    for (ScopeReference reference :
-        ScopedMappingInformation.deserializeScope(
-            object, implicitSingletonScope, diagnosticsHandler, lineNumber, version)) {
-      onMappingInfo.accept(reference, info);
-    }
+    onMappingInfo.accept(builder().build());
   }
 }

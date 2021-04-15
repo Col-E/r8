@@ -36,14 +36,6 @@ public class MappingInformationDiagnostics implements Diagnostic {
     this.position = position;
   }
 
-  public static MappingInformationDiagnostics invalidScopeFor(
-      int lineNumber, ScopeReference reference, MappingInformation info) {
-    return new MappingInformationDiagnostics(
-        String.format(
-            "Cannot use scope %s for mapping information %s", reference.toString(), info.getId()),
-        new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
-  }
-
   static MappingInformationDiagnostics noHandlerFor(int lineNumber, String value) {
     return new MappingInformationDiagnostics(
         String.format("Could not find a handler for %s", value),
@@ -102,7 +94,7 @@ public class MappingInformationDiagnostics implements Diagnostic {
   }
 
   public static MappingInformationDiagnostics notAllowedCombination(
-      ScopeReference reference, MappingInformation one, MappingInformation other, int lineNumber) {
+      String reference, MappingInformation one, MappingInformation other, int lineNumber) {
     return new MappingInformationDiagnostics(
         "The mapping '"
             + one.serialize()

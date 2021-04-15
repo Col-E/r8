@@ -11,10 +11,7 @@ import com.android.tools.r8.naming.ProguardMap.Builder;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
 import com.android.tools.r8.naming.mappinginformation.MetaInfMappingInformation;
-import com.android.tools.r8.naming.mappinginformation.ScopeReference;
-import com.android.tools.r8.naming.mappinginformation.ScopeReference.ClassScopeReference;
 import com.android.tools.r8.position.TextPosition;
-import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.gson.JsonObject;
@@ -25,7 +22,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Parses a Proguard mapping file and produces mappings from obfuscated class names to the original
@@ -90,7 +87,6 @@ public class ProguardMapReader implements AutoCloseable {
   private int lineOffset = 0;
   private String line;
   private MapVersion version = MapVersion.MapVersionNone;
-  private ScopeReference implicitSingletonScope = ScopeReference.globalScope();
 
   private int peekCodePoint() {
     return lineOffset < line.length() ? line.codePointAt(lineOffset) : '\n';
@@ -226,16 +222,12 @@ public class ProguardMapReader implements AutoCloseable {
   // Parsing of entries
 
   private void parseClassMappings(ProguardMap.Builder mapBuilder) throws IOException {
-    assert implicitSingletonScope == ScopeReference.globalScope();
     while (hasLine()) {
       skipWhitespace();
       if (isCommentLineWithJsonBrace()) {
         parseMappingInformation(
-            (reference, info) -> {
-              if (!reference.isGlobalScope()) {
-                diagnosticsHandler.error(
-                    MappingInformationDiagnostics.invalidScopeFor(lineNo, reference, info));
-              }
+            info -> {
+              assert info.isMetaInfMappingInformation();
             });
         // Skip reading the rest of the line.
         lineOffset = line.length();
@@ -259,7 +251,6 @@ public class ProguardMapReader implements AutoCloseable {
       expect(':');
       ClassNaming.Builder currentClassBuilder =
           mapBuilder.classNamingBuilder(after, before, getPosition());
-      implicitSingletonScope = new ClassScopeReference(Reference.classFromTypeName(after));
       skipWhitespace();
       if (nextLine()) {
         parseMemberMappings(mapBuilder, currentClassBuilder);
@@ -267,20 +258,18 @@ public class ProguardMapReader implements AutoCloseable {
     }
   }
 
-  private void parseMappingInformation(
-      BiConsumer<ScopeReference, MappingInformation> onMappingInfo) {
+  private void parseMappingInformation(Consumer<MappingInformation> onMappingInfo) {
     MappingInformation.fromJsonObject(
         version,
         parseJsonInComment(),
         diagnosticsHandler,
         lineNo,
-        implicitSingletonScope,
-        (reference, info) -> {
+        info -> {
           MetaInfMappingInformation generatorInfo = info.asMetaInfMappingInformation();
           if (generatorInfo != null) {
             version = generatorInfo.getMapVersion();
           }
-          onMappingInfo.accept(reference, info);
+          onMappingInfo.accept(info);
         });
   }
 
@@ -295,14 +284,13 @@ public class ProguardMapReader implements AutoCloseable {
       // Try to parse any information added in comments above member namings
       if (isCommentLineWithJsonBrace()) {
         parseMappingInformation(
-            (reference, mappingInfo) ->
-                mapBuilder.addMappingInformation(
-                    reference,
-                    mappingInfo,
+            info ->
+                classNamingBuilder.addMappingInformation(
+                    info,
                     conflictingInfo ->
                         diagnosticsHandler.warning(
                             MappingInformationDiagnostics.notAllowedCombination(
-                                reference, mappingInfo, conflictingInfo, lineNo))));
+                                "??", info, conflictingInfo, lineNo))));
         // Skip reading the rest of the line.
         lineOffset = line.length();
         continue;
