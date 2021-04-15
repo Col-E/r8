@@ -77,6 +77,13 @@ import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstance
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldOrdinalData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldUnknownData;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason;
+import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.IllegalInvokeWithImpreciseParameterTypeReason;
+import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingContentsForEnumValuesArrayReason;
+import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingEnumStaticFieldValuesReason;
+import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingInstanceFieldValueForEnumInstanceReason;
+import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingObjectStateForEnumInstanceReason;
+import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnsupportedInstanceFieldValueForEnumInstanceReason;
+import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnsupportedLibraryInvokeReason;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
@@ -84,7 +91,6 @@ import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
@@ -354,9 +360,8 @@ public class EnumUnboxer {
         if (singleTarget != null) {
           if (singleTarget.getReference() == factory.enumMembers.valueOf) {
             // The name data is required for the correct mapping from the enum name to the ordinal
-            // in
-            // the valueOf utility method.
-            addRequiredNameData(enumType);
+            // in the valueOf utility method.
+            addRequiredNameData(enumClass);
             continue;
           }
           if (singleTarget.getReference()
@@ -371,9 +376,9 @@ public class EnumUnboxer {
     eligibleEnums.add(enumType);
   }
 
-  private void addRequiredNameData(DexType enumType) {
+  private void addRequiredNameData(DexProgramClass enumClass) {
     enumUnboxingCandidatesInfo.addRequiredEnumInstanceFieldData(
-        enumType, factory.enumMembers.nameField);
+        enumClass, factory.enumMembers.nameField);
   }
 
   private boolean isUnboxableNameMethod(DexMethod method) {
@@ -529,10 +534,11 @@ public class EnumUnboxer {
   private EnumDataMap analyzeEnumInstances() {
     ImmutableMap.Builder<DexType, EnumData> builder = ImmutableMap.builder();
     enumUnboxingCandidatesInfo.forEachCandidateAndRequiredInstanceFieldData(
-        (enumClass, fields) -> {
-          EnumData data = buildData(enumClass, fields);
+        (enumClass, instanceFields) -> {
+          EnumData data = buildData(enumClass, instanceFields);
           if (data == null) {
-            markEnumAsUnboxable(Reason.MISSING_INSTANCE_FIELD_DATA, enumClass);
+            // Reason is already reported at this point.
+            enumUnboxingCandidatesInfo.removeCandidate(enumClass);
             return;
           }
           if (!debugLogEnabled || !debugLogs.containsKey(enumClass.getType())) {
@@ -543,7 +549,7 @@ public class EnumUnboxer {
     return new EnumDataMap(builder.build());
   }
 
-  private EnumData buildData(DexProgramClass enumClass, Set<DexField> fields) {
+  private EnumData buildData(DexProgramClass enumClass, Set<DexField> instanceFields) {
     if (!enumClass.hasStaticFields()) {
       return new EnumData(ImmutableMap.of(), ImmutableMap.of(), ImmutableSet.of(), -1);
     }
@@ -561,6 +567,7 @@ public class EnumUnboxer {
 
     EnumStaticFieldValues enumStaticFieldValues = staticFieldValuesMap.get(enumClass.type);
     if (enumStaticFieldValues == null) {
+      reportFailure(enumClass, new MissingEnumStaticFieldValuesReason());
       return null;
     }
 
@@ -576,10 +583,16 @@ public class EnumUnboxer {
             continue;
           }
           // We could not track the content of that field. We bail out.
+          reportFailure(
+              enumClass, new MissingObjectStateForEnumInstanceReason(staticField.getReference()));
           return null;
         }
         OptionalInt optionalOrdinal = getOrdinal(enumState);
         if (!optionalOrdinal.isPresent()) {
+          reportFailure(
+              enumClass,
+              new MissingInstanceFieldValueForEnumInstanceReason(
+                  staticField.getReference(), factory.enumMembers.ordinalField));
           return null;
         }
         int ordinal = optionalOrdinal.getAsInt();
@@ -596,6 +609,8 @@ public class EnumUnboxer {
           // We could not track the content of that field. We bail out.
           // We could not track the content of that field, and the field could be a values field.
           // We conservatively bail out.
+          reportFailure(
+              enumClass, new MissingContentsForEnumValuesArrayReason(staticField.getReference()));
           return null;
         }
         assert valuesState.isEnumValuesObjectState();
@@ -626,25 +641,41 @@ public class EnumUnboxer {
     // The ordinalToObjectState map may have holes at this point, if some enum instances are never
     // used ($VALUES unused or removed, and enum instance field unused or removed), it contains
     // only data for reachable enum instance, that is what we're interested in.
-    ImmutableMap.Builder<DexField, EnumInstanceFieldKnownData> instanceFieldBuilder =
-        ImmutableMap.builder();
-    for (DexField instanceField : fields) {
-      EnumInstanceFieldData fieldData =
-          computeEnumFieldData(instanceField, enumClass, ordinalToObjectState);
-      if (fieldData.isUnknown()) {
-        return null;
-      }
-      instanceFieldBuilder.put(instanceField, fieldData.asEnumFieldKnownData());
+    ImmutableMap<DexField, EnumInstanceFieldKnownData> instanceFieldsData =
+        computeRequiredEnumInstanceFieldsData(enumClass, instanceFields, ordinalToObjectState);
+    if (instanceFieldsData == null) {
+      return null;
     }
 
     return new EnumData(
-        instanceFieldBuilder.build(),
+        instanceFieldsData,
         unboxedValues.build(),
         valuesField.build(),
         valuesContents == null ? EnumData.INVALID_VALUES_SIZE : valuesContents.getEnumValuesSize());
   }
 
-  private EnumInstanceFieldData computeEnumFieldData(
+  private ImmutableMap<DexField, EnumInstanceFieldKnownData> computeRequiredEnumInstanceFieldsData(
+      DexProgramClass enumClass,
+      Set<DexField> instanceFields,
+      Int2ReferenceMap<ObjectState> ordinalToObjectState) {
+    ImmutableMap.Builder<DexField, EnumInstanceFieldKnownData> builder = ImmutableMap.builder();
+    for (DexField instanceField : instanceFields) {
+      EnumInstanceFieldData fieldData =
+          computeRequiredEnumInstanceFieldData(instanceField, enumClass, ordinalToObjectState);
+      if (fieldData.isUnknown()) {
+        if (!debugLogEnabled) {
+          return null;
+        }
+        builder = null;
+      }
+      if (builder != null) {
+        builder.put(instanceField, fieldData.asEnumFieldKnownData());
+      }
+    }
+    return builder != null ? builder.build() : null;
+  }
+
+  private EnumInstanceFieldData computeRequiredEnumInstanceFieldData(
       DexField instanceField,
       DexProgramClass enumClass,
       Int2ReferenceMap<ObjectState> ordinalToObjectState) {
@@ -657,7 +688,15 @@ public class EnumUnboxer {
     for (Integer ordinal : ordinalToObjectState.keySet()) {
       ObjectState state = ordinalToObjectState.get(ordinal);
       AbstractValue fieldValue = state.getAbstractFieldValue(encodedInstanceField);
+      if (!fieldValue.isSingleValue()) {
+        reportFailure(
+            enumClass, new MissingInstanceFieldValueForEnumInstanceReason(ordinal, instanceField));
+        return EnumInstanceFieldUnknownData.getInstance();
+      }
       if (!(fieldValue.isSingleNumberValue() || fieldValue.isSingleStringValue())) {
+        reportFailure(
+            enumClass,
+            new UnsupportedInstanceFieldValueForEnumInstanceReason(ordinal, instanceField));
         return EnumInstanceFieldUnknownData.getInstance();
       }
       data.put(ordinalToUnboxedInt(ordinal), fieldValue);
@@ -1111,7 +1150,7 @@ public class EnumUnboxer {
       Value enumValue) {
     assert instanceGet.getField().holder == enumClass.type;
     DexField field = instanceGet.getField();
-    enumUnboxingCandidatesInfo.addRequiredEnumInstanceFieldData(enumClass.type, field);
+    enumUnboxingCandidatesInfo.addRequiredEnumInstanceFieldData(enumClass, field);
     return Reason.ELIGIBLE;
   }
 
@@ -1133,10 +1172,11 @@ public class EnumUnboxer {
     if (singleTarget == null) {
       return Reason.INVALID_INVOKE;
     }
-    DexClass dexClass = singleTarget.getHolder();
-    if (dexClass.isProgramClass()) {
-      if (dexClass.isEnum() && singleTarget.getDefinition().isInstanceInitializer()) {
-        if (code.method().getHolderType() == dexClass.type && code.method().isClassInitializer()) {
+    DexMethod singleTargetReference = singleTarget.getReference();
+    DexClass targetHolder = singleTarget.getHolder();
+    if (targetHolder.isProgramClass()) {
+      if (targetHolder.isEnum() && singleTarget.getDefinition().isInstanceInitializer()) {
+        if (code.context().getHolder() == targetHolder && code.method().isClassInitializer()) {
           // The enum instance initializer is allowed to be called only from the enum clinit.
           return Reason.ELIGIBLE;
         } else {
@@ -1145,28 +1185,28 @@ public class EnumUnboxer {
       }
       // Check that the enum-value only flows into parameters whose type exactly matches the
       // enum's type.
-      int offset = BooleanUtils.intValue(!singleTarget.getDefinition().isStatic());
-      for (int i = 0; i < singleTarget.getReference().getParameters().size(); i++) {
-        if (invoke.getArgument(offset + i) == enumValue) {
-          if (singleTarget.getReference().getParameter(i).toBaseType(factory) != enumClass.type) {
-            return Reason.GENERIC_INVOKE;
-          }
+      for (int i = 0; i < singleTarget.getParameters().size(); i++) {
+        if (invoke.getArgumentForParameter(i) == enumValue
+            && singleTarget.getParameter(i).toBaseType(factory) != enumClass.getType()) {
+          return new IllegalInvokeWithImpreciseParameterTypeReason(singleTargetReference);
         }
       }
       if (invoke.isInvokeMethodWithReceiver()) {
         Value receiver = invoke.asInvokeMethodWithReceiver().getReceiver();
-        if (receiver == enumValue && dexClass.isInterface()) {
+        if (receiver == enumValue && targetHolder.isInterface()) {
           return Reason.DEFAULT_METHOD_INVOKE;
         }
       }
       return Reason.ELIGIBLE;
     }
-    if (dexClass.isClasspathClass()) {
-      return Reason.INVALID_INVOKE;
+
+    if (targetHolder.isClasspathClass()) {
+      return Reason.INVALID_INVOKE_CLASSPATH;
     }
-    assert dexClass.isLibraryClass();
-    DexMethod singleTargetReference = singleTarget.getReference();
-    if (dexClass.type != factory.enumType) {
+
+    assert targetHolder.isLibraryClass();
+
+    if (targetHolder.getType() != factory.enumType) {
       // System.identityHashCode(Object) is supported for proto enums.
       // Object#getClass without outValue and Objects.requireNonNull are supported since R8
       // rewrites explicit null checks to such instructions.
@@ -1174,7 +1214,7 @@ public class EnumUnboxer {
         return Reason.ELIGIBLE;
       }
       if (singleTargetReference == factory.stringMembers.valueOf) {
-        addRequiredNameData(enumClass.type);
+        addRequiredNameData(enumClass);
         return Reason.ELIGIBLE;
       }
       if (singleTargetReference == factory.objectMembers.getClass
@@ -1186,7 +1226,7 @@ public class EnumUnboxer {
           || singleTargetReference == factory.objectsMethods.requireNonNullWithMessage) {
         return Reason.ELIGIBLE;
       }
-      return Reason.UNSUPPORTED_LIBRARY_CALL;
+      return new UnsupportedLibraryInvokeReason(singleTargetReference);
     }
     // TODO(b/147860220): EnumSet and EnumMap may be interesting to model.
     if (singleTargetReference == factory.enumMembers.compareTo) {
@@ -1196,7 +1236,7 @@ public class EnumUnboxer {
     } else if (singleTargetReference == factory.enumMembers.nameMethod
         || singleTargetReference == factory.enumMembers.toString) {
       assert invoke.asInvokeMethodWithReceiver().getReceiver() == enumValue;
-      addRequiredNameData(enumClass.type);
+      addRequiredNameData(enumClass);
       return Reason.ELIGIBLE;
     } else if (singleTargetReference == factory.enumMembers.ordinalMethod) {
       return Reason.ELIGIBLE;
@@ -1204,12 +1244,11 @@ public class EnumUnboxer {
       return Reason.ELIGIBLE;
     } else if (singleTargetReference == factory.enumMembers.constructor) {
       // Enum constructor call is allowed only if called from an enum initializer.
-      if (code.method().isInstanceInitializer()
-          && code.method().getHolderType() == enumClass.type) {
+      if (code.method().isInstanceInitializer() && code.context().getHolder() == enumClass) {
         return Reason.ELIGIBLE;
       }
     }
-    return Reason.UNSUPPORTED_LIBRARY_CALL;
+    return new UnsupportedLibraryInvokeReason(singleTargetReference);
   }
 
   // Return is used for valueOf methods.
@@ -1286,24 +1325,27 @@ public class EnumUnboxer {
     sb.append(System.lineSeparator());
 
     // Print information about how often a given Reason kind prevents enum unboxing.
-    Object2IntMap<Reason> reasonCount = new Object2IntOpenHashMap<>();
+    Object2IntMap<Object> reasonKindCount = new Object2IntOpenHashMap<>();
     debugLogs.forEach(
         (type, reasons) ->
-            reasons.forEach(reason -> reasonCount.put(reason, reasonCount.getInt(reason) + 1)));
-    List<Reason> differentReasons = new ArrayList<>(reasonCount.keySet());
-    differentReasons.sort(
-        (x, y) -> {
-          int freq = reasonCount.getInt(x) - reasonCount.getInt(y);
-          return freq != 0 ? freq : System.identityHashCode(x) - System.identityHashCode(y);
+            reasons.forEach(
+                reason ->
+                    reasonKindCount.put(reason.getKind(), reasonKindCount.getInt(reason) + 1)));
+    List<Object> differentReasonKinds = new ArrayList<>(reasonKindCount.keySet());
+    differentReasonKinds.sort(
+        (reasonKind, other) -> {
+          int freq = reasonKindCount.getInt(reasonKind) - reasonKindCount.getInt(other);
+          return freq != 0
+              ? freq
+              : System.identityHashCode(reasonKind) - System.identityHashCode(other);
         });
-    differentReasons.forEach(
-        x -> {
-          sb.append(x)
-              .append(" (")
-              .append(reasonCount.getInt(x))
-              .append(")")
-              .append(System.lineSeparator());
-        });
+    differentReasonKinds.forEach(
+        reasonKind ->
+            sb.append(reasonKind)
+                .append(" (")
+                .append(reasonKindCount.getInt(reasonKind))
+                .append(")")
+                .append(System.lineSeparator()));
 
     reporter.info(new StringDiagnostic(sb.toString()));
   }
