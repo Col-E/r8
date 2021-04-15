@@ -6,7 +6,6 @@ package com.android.tools.r8.cf.bootstrap;
 import static com.android.tools.r8.graph.GenericSignatureIdentityTest.testParseSignaturesInJar;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.google.common.io.ByteStreams.toByteArray;
-import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -106,14 +105,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
           .setMode(mode)
           .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
           .addKeepRuleFiles(MAIN_KEEP)
-          .allowDiagnosticInfoMessages(mode == CompilationMode.DEBUG)
           .compile()
-          .assertAllInfoMessagesMatch(
-              anyOf(
-                  containsString("Stripped invalid locals information from 1 method."),
-                  containsString("Methods with invalid locals information:"),
-                  containsString(
-                      "Some warnings are typically a sign of using an outdated Java toolchain.")))
           .apply(c -> FileUtils.writeTextFile(map, c.getProguardMap()))
           .writeToZip(jar);
     }
