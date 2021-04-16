@@ -103,10 +103,7 @@ public class ProguardMapSupplier {
     // Turn off linting of the mapping file in some build systems.
     builder.append("# common_typos_disable" + "\n");
     // Emit the R8 specific map-file version.
-    MapVersion mapVersion =
-        options.testing.enableExperimentalMapFileVersion
-            ? MapVersion.MapVersionExperimental
-            : MapVersion.STABLE;
+    MapVersion mapVersion = options.getMapFileVersion();
     if (mapVersion.isGreaterThan(MapVersion.MapVersionNone)) {
       builder
           .append("# ")

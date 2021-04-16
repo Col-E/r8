@@ -43,6 +43,7 @@ import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Result;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNaming;
 import com.android.tools.r8.naming.ClassNaming.Builder;
+import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -50,6 +51,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.naming.mappinginformation.CompilerSynthesizedMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
@@ -297,22 +299,17 @@ public class LineNumberOptimizer {
         if (!RetraceUtils.hasPredictableSourceFileName(clazz.toSourceString(), sourceFile)) {
           onDemandClassNamingBuilder
               .get()
-              .addMappingInformation(
-                  FileNameInformation.build(sourceFile),
-                  conflictingInfo -> {
-                    throw new Unreachable();
-                  });
+              .addMappingInformation(FileNameInformation.build(sourceFile), Unreachable::raise);
         }
       }
 
-      if (isSyntheticClass && appView.options().testing.enableExperimentalMapFileVersion) {
+      if (isSyntheticClass
+          && CompilerSynthesizedMappingInformation.isSupported(
+              appView.options().getMapFileVersion())) {
         onDemandClassNamingBuilder
             .get()
             .addMappingInformation(
-                CompilerSynthesizedMappingInformation.builder().build(),
-                conflictingInfo -> {
-                  throw new Unreachable();
-                });
+                CompilerSynthesizedMappingInformation.builder().build(), Unreachable::raise);
       }
 
       // If the class is renamed add it to the classNamingBuilder.
@@ -381,15 +378,32 @@ public class LineNumberOptimizer {
           DexString obfuscatedNameDexString = namingLens.lookupName(method.getReference());
           String obfuscatedName = obfuscatedNameDexString.toString();
 
+          List<MappingInformation> methodMappingInfo = new ArrayList<>();
+          if (method.isD8R8Synthesized()
+              && CompilerSynthesizedMappingInformation.isSupported(
+                  appView.options().getMapFileVersion())) {
+            methodMappingInfo.add(CompilerSynthesizedMappingInformation.builder().build());
+          }
+
+          // Don't emit pure identity mappings.
+          if (mappedPositions.isEmpty()
+              && methodMappingInfo.isEmpty()
+              && obfuscatedNameDexString == originalMethod.name
+              && originalMethod.holder == originalType) {
+            continue;
+          }
+
+          MemberNaming memberNaming = new MemberNaming(originalSignature, obfuscatedName);
+          onDemandClassNamingBuilder.get().addMemberEntry(memberNaming);
+
           // Add simple "a() -> b" mapping if we won't have any other with concrete line numbers
           if (mappedPositions.isEmpty()) {
-            // But only if it's been renamed.
-            if (obfuscatedNameDexString != originalMethod.name
-                || originalMethod.holder != originalType) {
-              onDemandClassNamingBuilder
-                  .get()
-                  .addMappedRange(null, originalSignature, null, obfuscatedName);
-            }
+            MappedRange range =
+                onDemandClassNamingBuilder
+                    .get()
+                    .addMappedRange(null, originalSignature, null, obfuscatedName);
+            methodMappingInfo.forEach(
+                info -> range.addMappingInformation(info, Unreachable::raise));
             continue;
           }
 
@@ -399,9 +413,6 @@ public class LineNumberOptimizer {
               m ->
                   signatures.computeIfAbsent(
                       m, key -> MethodSignature.fromDexMethod(m, m.holder != clazz.getType()));
-
-          MemberNaming memberNaming = new MemberNaming(originalSignature, obfuscatedName);
-          onDemandClassNamingBuilder.get().addMemberEntry(memberNaming);
 
           // Update memberNaming with the collected positions, merging multiple positions into a
           // single region whenever possible.
@@ -446,19 +457,24 @@ public class LineNumberOptimizer {
             Range originalRange = new Range(firstPosition.originalLine, lastPosition.originalLine);
 
             ClassNaming.Builder classNamingBuilder = onDemandClassNamingBuilder.get();
-            classNamingBuilder.addMappedRange(
-                obfuscatedRange,
-                getOriginalMethodSignature.apply(firstPosition.method),
-                originalRange,
-                obfuscatedName);
+            MappedRange lastMappedRange =
+                classNamingBuilder.addMappedRange(
+                    obfuscatedRange,
+                    getOriginalMethodSignature.apply(firstPosition.method),
+                    originalRange,
+                    obfuscatedName);
             Position caller = firstPosition.caller;
             while (caller != null) {
-              classNamingBuilder.addMappedRange(
-                  obfuscatedRange,
-                  getOriginalMethodSignature.apply(caller.method),
-                  Math.max(caller.line, 0), // Prevent against "no-position".
-                  obfuscatedName);
+              lastMappedRange =
+                  classNamingBuilder.addMappedRange(
+                      obfuscatedRange,
+                      getOriginalMethodSignature.apply(caller.method),
+                      Math.max(caller.line, 0), // Prevent against "no-position".
+                      obfuscatedName);
               caller = caller.callerPosition;
+            }
+            for (MappingInformation info : methodMappingInfo) {
+              lastMappedRange.addMappingInformation(info, Unreachable::raise);
             }
             i = j;
           }

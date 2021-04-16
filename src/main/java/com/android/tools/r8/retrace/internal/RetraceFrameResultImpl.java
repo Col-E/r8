@@ -16,6 +16,7 @@ import com.android.tools.r8.retrace.RetracedClassMemberReference;
 import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -152,6 +153,23 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
       this.obfuscatedPosition = obfuscatedPosition;
     }
 
+    private boolean isOuterMostFrameCompilerSynthesized() {
+      if (mappedRanges == null || mappedRanges.isEmpty()) {
+        return false;
+      }
+      return ListUtils.last(mappedRanges).isCompilerSynthesized();
+    }
+
+    /**
+     * Predicate determines if the *entire* frame is to be considered synthetic.
+     *
+     * <p>That is only true for a frame that has just one entry and that entry is synthetic.
+     */
+    @Override
+    public boolean isCompilerSynthesized() {
+      return getOuterFrames().isEmpty() && isOuterMostFrameCompilerSynthesized();
+    }
+
     @Override
     public RetraceFrameResult getRetraceResultContext() {
       return retraceFrameResult;
@@ -173,11 +191,27 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
-    public void visitFrames(BiConsumer<RetracedMethodReference, Integer> consumer) {
+    public void visitAllFrames(BiConsumer<RetracedMethodReference, Integer> consumer) {
       int counter = 0;
       consumer.accept(getTopFrame(), counter++);
       for (RetracedMethodReferenceImpl outerFrame : getOuterFrames()) {
         consumer.accept(outerFrame, counter++);
+      }
+    }
+
+    @Override
+    public void visitNonCompilerSynthesizedFrames(
+        BiConsumer<RetracedMethodReference, Integer> consumer) {
+      int index = 0;
+      RetracedMethodReferenceImpl prev = getTopFrame();
+      for (RetracedMethodReferenceImpl next : getOuterFrames()) {
+        consumer.accept(prev, index++);
+        prev = next;
+      }
+      // We expect only the last frame, i.e., the outer-most caller to potentially be synthesized.
+      // If not include it too.
+      if (!isOuterMostFrameCompilerSynthesized()) {
+        consumer.accept(prev, index);
       }
     }
 

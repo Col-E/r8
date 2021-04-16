@@ -73,7 +73,10 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
 
   private void joinAmbiguousLines(
       List<List<String>> retracedResult, Consumer<String> joinedConsumer) {
-    assert !retracedResult.isEmpty();
+    if (retracedResult.isEmpty()) {
+      // The result is empty, likely it maps to compiler synthesized items.
+      return;
+    }
     List<String> initialResult = retracedResult.get(0);
     initialResult.forEach(joinedConsumer);
     if (retracedResult.size() <= 1) {

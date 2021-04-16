@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
@@ -30,5 +31,13 @@ public class D8TestRunResult extends SingleTestRunResult<D8TestRunResult> {
   protected CodeInspector internalGetCodeInspector() throws IOException {
     assertNotNull(app);
     return proguardMap == null ? new CodeInspector(app) : new CodeInspector(app, proguardMap);
+  }
+
+  @Override
+  public StackTrace getStackTrace() {
+    if (proguardMap == null) {
+      return super.getStackTrace();
+    }
+    return super.getStackTrace().retrace(proguardMap);
   }
 }

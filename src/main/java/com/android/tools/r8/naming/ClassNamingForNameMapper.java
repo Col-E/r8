@@ -82,14 +82,15 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     /** The parameters are forwarded to MappedRange constructor, see explanation there. */
     @Override
-    public void addMappedRange(
+    public MappedRange addMappedRange(
         Range minifiedRange,
         MemberNaming.MethodSignature originalSignature,
         Object originalRange,
         String renamedName) {
-      mappedRangesByName
-          .computeIfAbsent(renamedName, k -> new ArrayList<>())
-          .add(new MappedRange(minifiedRange, originalSignature, originalRange, renamedName));
+      MappedRange range =
+          new MappedRange(minifiedRange, originalSignature, originalRange, renamedName);
+      mappedRangesByName.computeIfAbsent(renamedName, k -> new ArrayList<>()).add(range);
+      return range;
     }
 
     @Override
@@ -343,6 +344,9 @@ public class ClassNamingForNameMapper implements ClassNaming {
     mappedRangesSorted.sort(Comparator.comparingInt(range -> range.sequenceNumber));
     for (MappedRange range : mappedRangesSorted) {
       consumer.accept("    ").accept(range.toString()).accept("\n");
+      for (MappingInformation info : range.additionalMappingInfo) {
+        consumer.accept("      # ").accept(info.serialize()).accept("\n");
+      }
     }
   }
 
@@ -418,6 +422,8 @@ public class ClassNamingForNameMapper implements ClassNaming {
      */
     private final int sequenceNumber = getNextSequenceNumber();
 
+    private List<MappingInformation> additionalMappingInfo = new ArrayList<>();
+
     private MappedRange(
         Range minifiedRange, MethodSignature signature, Object originalRange, String renamedName) {
 
@@ -429,6 +435,26 @@ public class ClassNamingForNameMapper implements ClassNaming {
       this.signature = signature;
       this.originalRange = originalRange;
       this.renamedName = renamedName;
+    }
+
+    public void addMappingInformation(
+        MappingInformation info, Consumer<MappingInformation> onProhibitedAddition) {
+      for (MappingInformation existing : additionalMappingInfo) {
+        if (!existing.allowOther(info)) {
+          onProhibitedAddition.accept(existing);
+          return;
+        }
+      }
+      additionalMappingInfo.add(info);
+    }
+
+    public boolean isCompilerSynthesized() {
+      for (MappingInformation info : additionalMappingInfo) {
+        if (info.isCompilerSynthesizedMappingInformation()) {
+          return true;
+        }
+      }
+      return false;
     }
 
     public int getOriginalLineNumber(int lineNumberAfterMinification) {
@@ -506,6 +532,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
       result = 31 * result + signature.hashCode();
       result = 31 * result + renamedName.hashCode();
       return result;
+    }
+
+    public List<MappingInformation> getAdditionalMappingInfo() {
+      return additionalMappingInfo;
     }
   }
 }

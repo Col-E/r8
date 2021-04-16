@@ -224,10 +224,25 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     }
 
     @Override
+    public boolean isCompilerSynthesized() {
+      if (classResult.mapper != null) {
+        for (MappingInformation info : classResult.mapper.getAdditionalMappingInfo()) {
+          if (info.isCompilerSynthesizedMappingInformation()) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    @Override
     public RetraceSourceFileResultImpl retraceSourceFile(String sourceFile) {
-      for (MappingInformation info : classResult.mapper.getAdditionalMappingInfo()) {
-        if (info.isFileNameInformation()) {
-          return new RetraceSourceFileResultImpl(info.asFileNameInformation().getFileName(), false);
+      if (classResult.mapper != null) {
+        for (MappingInformation info : classResult.mapper.getAdditionalMappingInfo()) {
+          if (info.isFileNameInformation()) {
+            return new RetraceSourceFileResultImpl(
+                info.asFileNameInformation().getFileName(), false);
+          }
         }
       }
       return new RetraceSourceFileResultImpl(

@@ -19,7 +19,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableList;
@@ -60,41 +59,20 @@ public class RetraceLambdaTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkRunResult)
         .apply(this::checkNoOutputSynthetics)
-        .inspectStackTrace(
-            stackTrace ->
-                assertThat(
-                    stackTrace,
-                    isSameExceptForFileNameAndLineNumber(
-                        StackTrace.builder()
-                            .addWithoutFileNameAndLineNumber(Main.class, JAVAC_LAMBDA_METHOD)
-                            .addWithoutFileNameAndLineNumber(Main.class, "runIt")
-                            .addWithoutFileNameAndLineNumber(Main.class, "main")
-                            .build())));
+        .inspectStackTrace(RetraceLambdaTest::checkExpectedStackTrace);
   }
 
   @Test
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .internalEnableMappingOutput()
+        .enableExperimentalMapFileVersion()
         .addInnerClasses(getClass())
         .setMinApi(parameters.getApiLevel())
-        .enableExperimentalMapFileVersion()
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkRunResult)
         .apply(this::checkOneOutputSynthetic)
-        .inspectStackTrace(
-            stackTrace ->
-                assertThat(
-                    stackTrace,
-                    isSameExceptForFileNameAndLineNumber(
-                        StackTrace.builder()
-                            .addWithoutFileNameAndLineNumber(Main.class, JAVAC_LAMBDA_METHOD)
-                            // TODO(b/172014416): Support a D8 mapping and prune the synthetic.
-                            .addWithoutFileNameAndLineNumber(
-                                SyntheticItemsTestUtils.syntheticLambdaClass(Main.class, 0), "run")
-                            .addWithoutFileNameAndLineNumber(Main.class, "runIt")
-                            .addWithoutFileNameAndLineNumber(Main.class, "main")
-                            .build())));
+        .inspectStackTrace(RetraceLambdaTest::checkExpectedStackTrace);
   }
 
   @Test
@@ -140,7 +118,7 @@ public class RetraceLambdaTest extends TestBase {
             stackTrace -> {
               int frames = parameters.isCfRuntime() ? 3 : 5;
               checkRawStackTraceFrameCount(stackTrace, frames, "Expected nothing to be inlined");
-              checkCurrentlyIncorrectStackTrace(stackTrace);
+              checkExpectedStackTrace(stackTrace);
             });
   }
 
@@ -182,6 +160,17 @@ public class RetraceLambdaTest extends TestBase {
       }
     }
     assertEquals(message + stackTrace.getOriginalStderr(), expectedFrames, linesFromTest);
+  }
+
+  private static void checkExpectedStackTrace(StackTrace stackTrace) {
+    assertThat(
+        stackTrace,
+        isSameExceptForFileNameAndLineNumber(
+            StackTrace.builder()
+                .addWithoutFileNameAndLineNumber(Main.class, JAVAC_LAMBDA_METHOD)
+                .addWithoutFileNameAndLineNumber(Main.class, "runIt")
+                .addWithoutFileNameAndLineNumber(Main.class, "main")
+                .build()));
   }
 
   private void checkCurrentlyIncorrectStackTrace(StackTrace stackTrace) {

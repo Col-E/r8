@@ -41,6 +41,10 @@ public final class Reference {
     return descriptor.equals("V") ? null : typeFromDescriptor(descriptor);
   }
 
+  public static TypeReference returnTypeFromTypeName(String typename) {
+    return typename.equals("void") ? null : typeFromTypeName(typename);
+  }
+
   public static TypeReference typeFromDescriptor(String descriptor) {
     switch (descriptor.charAt(0)) {
       case 'L':

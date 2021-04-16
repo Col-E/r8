@@ -99,15 +99,16 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                                   frameElement -> {
                                     List<RetraceStackTraceProxy<T, ST>> retracedProxies =
                                         new ArrayList<>();
-                                    frameElement.visitFrames(
+                                    frameElement.visitNonCompilerSynthesizedFrames(
                                         (frame, index) -> {
+                                          boolean isTopFrame = retracedProxies.isEmpty();
                                           RetraceStackTraceProxyImpl.Builder<T, ST> proxy =
                                               RetraceStackTraceProxyImpl.builder(element)
                                                   .setRetracedClass(frame.getHolderClass())
                                                   .setRetracedMethod(frame)
                                                   .setAmbiguous(
-                                                      frameResult.isAmbiguous() && index == 0)
-                                                  .setTopFrame(index == 0);
+                                                      frameResult.isAmbiguous() && isTopFrame)
+                                                  .setTopFrame(isTopFrame);
                                           if (element.hasLineNumber()) {
                                             proxy.setLineNumber(
                                                 frame.getOriginalPositionOrDefault(

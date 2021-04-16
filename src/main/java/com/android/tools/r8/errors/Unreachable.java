@@ -8,6 +8,14 @@ package com.android.tools.r8.errors;
  */
 public class Unreachable extends InternalCompilerError {
 
+  public static Unreachable raise() {
+    throw new Unreachable();
+  }
+
+  public static Unreachable raise(Object... ignore) {
+    throw new Unreachable();
+  }
+
   public Unreachable() {
   }
 

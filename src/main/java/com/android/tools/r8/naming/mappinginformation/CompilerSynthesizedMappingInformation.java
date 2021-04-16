@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 
 public class CompilerSynthesizedMappingInformation extends MappingInformation {
 
+  public static final MapVersion SUPPORTED_VERSION = MapVersion.MapVersionExperimental;
   public static final String ID = "com.android.tools.r8.synthesized";
 
   public static class Builder {
@@ -19,6 +20,10 @@ public class CompilerSynthesizedMappingInformation extends MappingInformation {
     public CompilerSynthesizedMappingInformation build() {
       return new CompilerSynthesizedMappingInformation();
     }
+  }
+
+  public static boolean isSupported(MapVersion version) {
+    return version.isGreaterThanOrEqualTo(SUPPORTED_VERSION);
   }
 
   private CompilerSynthesizedMappingInformation() {}
@@ -60,9 +65,8 @@ public class CompilerSynthesizedMappingInformation extends MappingInformation {
       DiagnosticsHandler diagnosticsHandler,
       int lineNumber,
       Consumer<MappingInformation> onMappingInfo) {
-    if (version.isLessThan(MapVersion.MapVersionExperimental)) {
-      return;
+    if (isSupported(version)) {
+      onMappingInfo.accept(builder().build());
     }
-    onMappingInfo.accept(builder().build());
   }
 }

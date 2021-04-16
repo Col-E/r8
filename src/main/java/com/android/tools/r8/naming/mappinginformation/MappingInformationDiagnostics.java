@@ -94,14 +94,9 @@ public class MappingInformationDiagnostics implements Diagnostic {
   }
 
   public static MappingInformationDiagnostics notAllowedCombination(
-      String reference, MappingInformation one, MappingInformation other, int lineNumber) {
+      MappingInformation one, MappingInformation other, int lineNumber) {
     return new MappingInformationDiagnostics(
-        "The mapping '"
-            + one.serialize()
-            + "' is not allowed in combination with '"
-            + other.serialize()
-            + "' in the mapping for "
-            + reference.toString(),
+        "The mapping '" + one + "' is not allowed in combination with '" + other + "'",
         new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
   }
 }

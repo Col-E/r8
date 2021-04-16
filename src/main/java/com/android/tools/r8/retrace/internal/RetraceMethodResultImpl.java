@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.retrace.internal;
 
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.references.MethodReference;
@@ -137,6 +138,11 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
       this.classElement = classElement;
       this.retraceMethodResult = retraceMethodResult;
       this.methodReference = methodReference;
+    }
+
+    @Override
+    public boolean isCompilerSynthesized() {
+      throw new Unimplemented("b/172014416");
     }
 
     @Override

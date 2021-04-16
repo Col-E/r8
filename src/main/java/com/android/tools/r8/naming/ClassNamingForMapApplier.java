@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
@@ -84,12 +85,12 @@ public class ClassNamingForMapApplier implements ClassNaming {
     }
 
     @Override
-    public void addMappedRange(
+    public MappedRange addMappedRange(
         Range obfuscatedRange,
         MemberNaming.MethodSignature originalSignature,
         Object originalRange,
         String obfuscatedName) {
-      // Intentionally empty.
+      return null;
     }
 
     @Override

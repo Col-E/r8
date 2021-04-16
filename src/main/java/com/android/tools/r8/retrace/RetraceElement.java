@@ -11,4 +11,6 @@ package com.android.tools.r8.retrace;
 public interface RetraceElement<R extends RetraceResult<?>> {
 
   R getRetraceResultContext();
+
+  boolean isCompilerSynthesized();
 }

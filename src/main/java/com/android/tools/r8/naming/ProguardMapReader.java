@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
@@ -277,20 +278,33 @@ public class ProguardMapReader implements AutoCloseable {
       throws IOException {
     MemberNaming lastAddedNaming = null;
     MemberNaming activeMemberNaming = null;
+    MappedRange activeMappedRange = null;
     Range previousMappedRange = null;
     do {
       Object originalRange = null;
       Range mappedRange = null;
       // Try to parse any information added in comments above member namings
       if (isCommentLineWithJsonBrace()) {
+        final MemberNaming currentMember = activeMemberNaming;
+        final MappedRange currentRange = activeMappedRange;
         parseMappingInformation(
-            info ->
+            info -> {
+              if (currentMember == null) {
                 classNamingBuilder.addMappingInformation(
                     info,
                     conflictingInfo ->
                         diagnosticsHandler.warning(
                             MappingInformationDiagnostics.notAllowedCombination(
-                                "??", info, conflictingInfo, lineNo))));
+                                info, conflictingInfo, lineNo)));
+              } else if (currentRange != null) {
+                currentRange.addMappingInformation(
+                    info,
+                    conflictingInfo ->
+                        diagnosticsHandler.warning(
+                            MappingInformationDiagnostics.notAllowedCombination(
+                                info, conflictingInfo, lineNo)));
+              }
+            });
         // Skip reading the rest of the line.
         lineOffset = line.length();
         continue;
@@ -332,8 +346,9 @@ public class ProguardMapReader implements AutoCloseable {
       String renamedName = parseMethodName();
 
       if (signature instanceof MethodSignature) {
-        classNamingBuilder.addMappedRange(
-            mappedRange, (MethodSignature) signature, originalRange, renamedName);
+        activeMappedRange =
+            classNamingBuilder.addMappedRange(
+                mappedRange, (MethodSignature) signature, originalRange, renamedName);
       }
 
       assert mappedRange == null || signature instanceof MethodSignature;

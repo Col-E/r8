@@ -47,6 +47,8 @@ import com.android.tools.r8.retrace.stacktraces.SourceFileNameSynthesizeStackTra
 import com.android.tools.r8.retrace.stacktraces.SourceFileWithNumberAndEmptyStackTrace;
 import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
 import com.android.tools.r8.retrace.stacktraces.SuppressedStackTrace;
+import com.android.tools.r8.retrace.stacktraces.SyntheticLambdaMethodStackTrace;
+import com.android.tools.r8.retrace.stacktraces.SyntheticLambdaMethodWithInliningStackTrace;
 import com.android.tools.r8.retrace.stacktraces.UnicodeInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.UnknownSourceStackTrace;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -254,6 +256,16 @@ public class RetraceTests extends TestBase {
     runRetraceTest(new AutoStackTrace());
   }
 
+  @Test
+  public void testRetraceSynthesizedLambda() throws Exception {
+    runRetraceTest(new SyntheticLambdaMethodStackTrace());
+  }
+
+  @Test
+  public void testRetraceSynthesizedLambdaWithInlining() throws Exception {
+    runRetraceTest(new SyntheticLambdaMethodWithInliningStackTrace());
+  }
+
   private void inspectRetraceTest(
       StackTraceForTest stackTraceForTest, Consumer<Retracer> inspection) {
     inspection.accept(
@@ -304,7 +316,10 @@ public class RetraceTests extends TestBase {
               .setStackTrace(stackTraceForTest.obfuscatedStackTrace())
               .setRegularExpression(useRegExpParsing ? DEFAULT_REGULAR_EXPRESSION : null)
               .setRetracedStackTraceConsumer(
-                  retraced -> assertEquals(stackTraceForTest.retracedStackTrace(), retraced))
+                  retraced ->
+                      assertEquals(
+                          StringUtils.joinLines(stackTraceForTest.retracedStackTrace()),
+                          StringUtils.joinLines(retraced)))
               .build();
       Retrace.run(retraceCommand);
       return diagnosticsHandler;
