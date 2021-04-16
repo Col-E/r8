@@ -23,6 +23,7 @@ import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -138,9 +139,8 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
     assert rewriter.isEmulatedInterface(emulatedInterface.type);
     DexProgramClass theProgramInterface = emulatedInterface.asProgramClass();
     DexProgramClass synthesizedClass = synthesizeEmulateInterfaceLibraryClass(theProgramInterface);
-    if (synthesizedClass != null) {
-      syntheticClasses.put(emulatedInterface, synthesizedClass);
-    }
+    assert synthesizedClass != null;
+    syntheticClasses.put(emulatedInterface, synthesizedClass);
   }
 
   private DexProgramClass synthesizeEmulateInterfaceLibraryClass(DexProgramClass theInterface) {
@@ -220,9 +220,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
                   extraDispatchCases,
                   appView));
         });
-    if (emulationMethods.isEmpty()) {
-      return null;
-    }
+    assert !emulationMethods.isEmpty();
     DexType emulateLibraryClassType =
         InterfaceMethodRewriter.getEmulateLibraryInterfaceClassType(
             theInterface.type, appView.dexItemFactory());
@@ -280,7 +278,13 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
         || appView.isAlreadyLibraryDesugared(emulatedInterface)) {
       return;
     }
-    generateEmulateInterfaceLibrary(emulatedInterface);
+    if (needsEmulateInterfaceLibrary(emulatedInterface)) {
+      generateEmulateInterfaceLibrary(emulatedInterface);
+    }
+  }
+
+  private boolean needsEmulateInterfaceLibrary(DexProgramClass emulatedInterface) {
+    return Iterables.any(emulatedInterface.methods(), DexEncodedMethod::isDefaultMethod);
   }
 
   @Override
