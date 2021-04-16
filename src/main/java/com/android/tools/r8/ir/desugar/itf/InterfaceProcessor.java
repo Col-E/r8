@@ -89,7 +89,43 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     if (!iface.isInterface()) {
       return;
     }
+    analyzeBridges(iface);
+    if (needsCompanionClass(iface)) {
+      synthesizeCompanionClass(iface, synthesizedMethods);
+    }
+  }
 
+  private void analyzeBridges(DexProgramClass iface) {
+    for (ProgramMethod method : iface.virtualProgramMethods()) {
+      DexEncodedMethod virtual = method.getDefinition();
+      if (!interfaceMethodRemovalChangesApi(virtual, iface)) {
+        getPostProcessingInterfaceInfo(iface).setHasBridgesToRemove();
+        return;
+      }
+    }
+  }
+
+  private boolean needsCompanionClass(DexProgramClass iface) {
+    if (hasStaticMethodThatTriggersNonTrivialClassInitializer(iface)) {
+      return true;
+    }
+    for (ProgramMethod method : iface.virtualProgramMethods()) {
+      DexEncodedMethod virtual = method.getDefinition();
+      if (rewriter.isDefaultMethod(virtual)) {
+        return true;
+      }
+    }
+    for (ProgramMethod method : iface.directProgramMethods()) {
+      DexEncodedMethod definition = method.getDefinition();
+      if (!definition.isInitializer()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void synthesizeCompanionClass(
+      DexProgramClass iface, ProgramMethodSet synthesizedMethods) {
     // The list of methods to be created in companion class.
     List<DexEncodedMethod> companionMethods = new ArrayList<>();
 
@@ -102,9 +138,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     // make private instance methods public static.
     processDirectInterfaceMethods(iface, companionMethods);
 
-    if (companionMethods.isEmpty()) {
-      return; // No methods to create, companion class not needed.
-    }
+    assert !companionMethods.isEmpty();
 
     ClassAccessFlags companionClassFlags = iface.accessFlags.copy();
     companionClassFlags.unsetAbstract();
@@ -260,20 +294,14 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
         getPostProcessingInterfaceInfo(iface)
             .mapDefaultMethodToCompanionMethod(virtual, implMethod);
       }
-
-      if (!interfaceMethodRemovalChangesApi(virtual, iface)) {
-        getPostProcessingInterfaceInfo(iface).setHasBridgesToRemove();
-      }
     }
   }
 
   private void processDirectInterfaceMethods(
       DexProgramClass iface, List<DexEncodedMethod> companionMethods) {
-    DexEncodedMethod clinit = null;
     for (ProgramMethod method : iface.directProgramMethods()) {
       DexEncodedMethod definition = method.getDefinition();
       if (definition.isClassInitializer()) {
-        clinit = definition;
         continue;
       }
       if (definition.isInstanceInitializer()) {
@@ -282,6 +310,8 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                 + method.getReference().toSourceString();
         continue;
       }
+
+      getPostProcessingInterfaceInfo(iface).setHasNonClinitDirectMethods();
 
       MethodAccessFlags originalFlags = method.getAccessFlags();
       MethodAccessFlags newFlags = originalFlags.copy();
@@ -342,12 +372,6 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
       implMethod.copyMetadata(definition);
       companionMethods.add(implMethod);
       getPostProcessingInterfaceInfo(iface).moveMethod(oldMethod, companionMethod);
-    }
-
-    boolean hasNonClinitDirectMethods =
-        iface.getMethodCollection().size() != (clinit == null ? 0 : 1);
-    if (hasNonClinitDirectMethods) {
-      getPostProcessingInterfaceInfo(iface).setHasNonClinitDirectMethods();
     }
   }
 
