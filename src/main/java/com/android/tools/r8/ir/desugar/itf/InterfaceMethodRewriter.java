@@ -25,12 +25,10 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -39,10 +37,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.MethodCollection;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -918,45 +913,20 @@ public final class InterfaceMethodRewriter {
       return;
     }
 
-    // If the companion class does not exist, then synthesize it on the classpath.
-    DexClass companionClass = appView.definitionFor(rewritten.getHolderType());
-    if (companionClass == null) {
-      companionClass =
-          synthesizeEmptyCompanionClass(appView, rewritten.getHolderType(), method.getHolder());
-    }
-
-    // If the companion class is a classpath class, then synthesize the companion class method if it
-    // does not exist.
-    if (companionClass.isClasspathClass()) {
-      synthesizeCompanionClassMethodIfNotPresent(companionClass.asClasspathClass(), rewritten);
-    }
-  }
-
-  private static DexClasspathClass synthesizeEmptyCompanionClass(
-      AppView<?> appView, DexType type, DexClass context) {
-    return appView
+    appView
         .getSyntheticItems()
-        .createClasspathClass(
-            SyntheticKind.COMPANION_CLASS, type, context, appView.dexItemFactory());
-  }
-
-  private static void synthesizeCompanionClassMethodIfNotPresent(
-      DexClasspathClass companionClass, DexMethod method) {
-    MethodCollection methodCollection = companionClass.getMethodCollection();
-    synchronized (methodCollection) {
-      if (methodCollection.getMethod(method) == null) {
-        boolean d8R8Synthesized = true;
-        methodCollection.addDirectMethod(
-            new DexEncodedMethod(
-                method,
-                MethodAccessFlags.createPublicStaticSynthetic(),
-                MethodTypeSignature.noSignature(),
-                DexAnnotationSet.empty(),
-                ParameterAnnotationsList.empty(),
-                DexEncodedMethod.buildEmptyThrowingCfCode(method),
-                d8R8Synthesized));
-      }
-    }
+        .ensureDirectMethodOnSyntheticClasspathClassWhileMigrating(
+            SyntheticKind.COMPANION_CLASS,
+            rewritten.getHolderType(),
+            method.getHolder(),
+            appView,
+            rewritten,
+            builder ->
+                builder
+                    .setName(rewritten.name)
+                    .setProto(rewritten.proto)
+                    .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                    .setCode(DexEncodedMethod::buildEmptyThrowingCfCode));
   }
 
   /**

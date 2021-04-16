@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -360,18 +361,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return clazz;
   }
 
-  public DexClasspathClass createClasspathClass(
-      SyntheticKind kind, DexType type, DexClass context, DexItemFactory factory) {
-    // Obtain the outer synthesizing context in the case the context itself is synthetic.
-    // This is to ensure a flat input-type -> synthetic-item mapping.
-    SynthesizingContext outerContext = SynthesizingContext.fromNonSyntheticInputContext(context);
-    SyntheticClasspathClassBuilder classBuilder =
-        new SyntheticClasspathClassBuilder(type, outerContext, factory);
-    DexClasspathClass clazz = classBuilder.build();
-    addPendingDefinition(new SyntheticClasspathClassDefinition(kind, outerContext, clazz));
-    return clazz;
-  }
-
   // TODO(b/172194101): Make this take a unique context.
   public DexProgramClass createFixedClass(
       SyntheticKind kind,
@@ -390,6 +379,91 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return clazz;
   }
 
+  // This is a temporary API for migration to the hygienic synthetic, the classes created behave
+  // like a hygienic synthetic, but use the legacyType passed as parameter instead of the
+  // hygienic type.
+  public DexProgramClass ensureFixedClassWhileMigrating(
+      SyntheticKind kind,
+      DexType legacyType,
+      DexProgramClass context,
+      AppView<?> appView,
+      Consumer<SyntheticProgramClassBuilder> fn) {
+    synchronized (context) {
+      DexClass dexClass = appView.definitionFor(legacyType);
+      if (dexClass != null) {
+        assert dexClass.isProgramClass();
+        return dexClass.asProgramClass();
+      }
+      // Obtain the outer synthesizing context in the case the context itself is synthetic.
+      // This is to ensure a flat input-type -> synthetic-item mapping.
+      SynthesizingContext outerContext = getSynthesizingContext(context);
+      SyntheticProgramClassBuilder classBuilder =
+          new SyntheticProgramClassBuilder(legacyType, outerContext, appView.dexItemFactory());
+      fn.accept(classBuilder);
+      DexProgramClass clazz = classBuilder.build();
+      addPendingDefinition(new SyntheticProgramClassDefinition(kind, outerContext, clazz));
+      return clazz;
+    }
+  }
+
+  public DexClasspathClass createFixedClasspathClass(
+      SyntheticKind kind, DexClasspathClass context, DexItemFactory factory) {
+    // Obtain the outer synthesizing context in the case the context itself is synthetic.
+    // This is to ensure a flat input-type -> synthetic-item mapping.
+    SynthesizingContext outerContext = SynthesizingContext.fromNonSyntheticInputContext(context);
+    DexType type = SyntheticNaming.createFixedType(kind, outerContext, factory);
+    SyntheticClasspathClassBuilder classBuilder =
+        new SyntheticClasspathClassBuilder(type, outerContext, factory);
+    DexClasspathClass clazz = classBuilder.build();
+    addPendingDefinition(new SyntheticClasspathClassDefinition(kind, outerContext, clazz));
+    return clazz;
+  }
+
+  // This is a temporary API for migration to the hygienic synthetic, the classes created behave
+  // like a hygienic synthetic, but use the legacyType passed as parameter instead of the
+  // hygienic type.
+  private DexClasspathClass ensureFixedClasspathClassWhileMigrating(
+      SyntheticKind kind, DexType legacyType, DexClass context, AppView<?> appView) {
+    synchronized (context) {
+      DexClass dexClass = appView.definitionFor(legacyType);
+      if (dexClass != null) {
+        assert dexClass.isClasspathClass();
+        return dexClass.asClasspathClass();
+      }
+      // Obtain the outer synthesizing context in the case the context itself is synthetic.
+      // This is to ensure a flat input-type -> synthetic-item mapping.
+      SynthesizingContext outerContext = SynthesizingContext.fromNonSyntheticInputContext(context);
+      SyntheticClasspathClassBuilder classBuilder =
+          new SyntheticClasspathClassBuilder(legacyType, outerContext, appView.dexItemFactory());
+      DexClasspathClass clazz = classBuilder.build();
+      addPendingDefinition(new SyntheticClasspathClassDefinition(kind, outerContext, clazz));
+      return clazz;
+    }
+  }
+
+  // This is a temporary API for migration to the hygienic synthetic, the classes created behave
+  // like a hygienic synthetic, but use the legacyType passed as parameter instead of the
+  // hygienic type.
+  public void ensureDirectMethodOnSyntheticClasspathClassWhileMigrating(
+      SyntheticKind kind,
+      DexType legacyType,
+      DexClass context,
+      AppView<?> appView,
+      DexMethod method,
+      Consumer<SyntheticMethodBuilder> builderConsumer) {
+    DexClasspathClass syntheticClass =
+        ensureFixedClasspathClassWhileMigrating(kind, legacyType, context, appView);
+    synchronized (syntheticClass) {
+      if (syntheticClass.lookupMethod(method) != null) {
+        return;
+      }
+      SyntheticMethodBuilder syntheticMethodBuilder =
+          new SyntheticMethodBuilder(appView.dexItemFactory(), syntheticClass.type);
+      builderConsumer.accept(syntheticMethodBuilder);
+      syntheticClass.addDirectMethod(syntheticMethodBuilder.build());
+    }
+  }
+
   public DexProgramClass createFixedClassFromType(
       SyntheticKind kind,
       DexType contextType,
@@ -404,19 +478,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     fn.accept(classBuilder);
     DexProgramClass clazz = classBuilder.build();
     addPendingDefinition(new SyntheticProgramClassDefinition(kind, outerContext, clazz));
-    return clazz;
-  }
-
-  public DexClasspathClass createFixedClasspathClass(
-      SyntheticKind kind, DexClasspathClass context, DexItemFactory factory) {
-    // Obtain the outer synthesizing context in the case the context itself is synthetic.
-    // This is to ensure a flat input-type -> synthetic-item mapping.
-    SynthesizingContext outerContext = SynthesizingContext.fromNonSyntheticInputContext(context);
-    DexType type = SyntheticNaming.createFixedType(kind, outerContext, factory);
-    SyntheticClasspathClassBuilder classBuilder =
-        new SyntheticClasspathClassBuilder(type, outerContext, factory);
-    DexClasspathClass clazz = classBuilder.build();
-    addPendingDefinition(new SyntheticClasspathClassDefinition(kind, outerContext, clazz));
     return clazz;
   }
 

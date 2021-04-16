@@ -221,6 +221,10 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     return Iterables.filter(directMethods(), predicate::test);
   }
 
+  public void addDirectMethod(DexEncodedMethod method) {
+    methodCollection.addDirectMethod(method);
+  }
+
   public void addDirectMethods(Collection<DexEncodedMethod> methods) {
     methodCollection.addDirectMethods(methods);
   }

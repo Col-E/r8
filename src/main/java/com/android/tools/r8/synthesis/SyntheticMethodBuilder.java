@@ -7,9 +7,11 @@ import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -20,7 +22,8 @@ public class SyntheticMethodBuilder {
     Code generate(DexMethod method);
   }
 
-  private final SyntheticClassBuilder<?, ?> parent;
+  private final DexItemFactory factory;
+  private final DexType holderType;
   private DexString name = null;
   private DexProto proto = null;
   private CfVersion classFileVersion;
@@ -28,11 +31,17 @@ public class SyntheticMethodBuilder {
   private MethodAccessFlags accessFlags = null;
 
   SyntheticMethodBuilder(SyntheticClassBuilder<?, ?> parent) {
-    this.parent = parent;
+    this.factory = parent.getFactory();
+    this.holderType = parent.getType();
+  }
+
+  SyntheticMethodBuilder(DexItemFactory factory, DexType holderType) {
+    this.factory = factory;
+    this.holderType = holderType;
   }
 
   public SyntheticMethodBuilder setName(String name) {
-    return setName(parent.getFactory().createString(name));
+    return setName(factory.createString(name));
   }
 
   public SyntheticMethodBuilder setName(DexString name) {
@@ -95,7 +104,7 @@ public class SyntheticMethodBuilder {
   }
 
   private DexMethod getMethodSignature() {
-    return parent.getFactory().createMethod(parent.getType(), proto, name);
+    return factory.createMethod(holderType, proto, name);
   }
 
   private MethodAccessFlags getAccessFlags() {
