@@ -28,7 +28,7 @@ fun main() {
   val nested = Quux::methodWithNestedAnnotations.returnType.arguments[0].type?.annotations?.get(0) as Nested
   println(nested.message)
   nested.kept.printAnnoWithClassAndEnum()
-  if (nested::class::memberProperties.get().any { it.name.equals("notKept") }) {
+  if (nested::class.memberProperties.any { it.name.equals("notKept") }) {
     println("com.android.tools.r8.kotlin.metadata.annotation_lib.Foo")
   } else {
     println("a.b.c")
