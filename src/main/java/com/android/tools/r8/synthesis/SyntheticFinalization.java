@@ -453,10 +453,10 @@ public class SyntheticFinalization {
 
   private static boolean shouldAnnotateSynthetics(InternalOptions options) {
     // Only intermediate builds have annotated synthetics to allow later sharing.
-    // This is currently also disabled on CF to CF desugaring to avoid missing class references to
-    // the annotated classes.
+    // This is currently also disabled on non-L8 CF to CF desugaring to avoid missing class
+    // references to the annotated classes.
     // TODO(b/147485959): Find an alternative encoding for synthetics to avoid missing-class refs.
-    return options.intermediate && !options.cfToCfDesugar;
+    return options.intermediate && (!options.cfToCfDesugar || options.forceAnnotateSynthetics);
   }
 
   private <T extends SyntheticDefinition<?, T, ?>>
