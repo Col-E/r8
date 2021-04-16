@@ -1245,30 +1245,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return builder.build();
   }
 
-  public static DexEncodedMethod toEmulateDispatchLibraryMethod(
-      DexType interfaceType,
-      DexMethod newMethod,
-      DexMethod companionMethod,
-      DexMethod libraryMethod,
-      List<Pair<DexType, DexMethod>> extraDispatchCases,
-      AppView<?> appView) {
-    MethodAccessFlags accessFlags =
-        MethodAccessFlags.fromSharedAccessFlags(
-            Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC, false);
-    CfCode code =
-        new EmulateInterfaceSyntheticCfCodeProvider(
-                interfaceType, companionMethod, libraryMethod, extraDispatchCases, appView)
-            .generateCfCode();
-    return new DexEncodedMethod(
-        newMethod,
-        accessFlags,
-        MethodTypeSignature.noSignature(),
-        DexAnnotationSet.empty(),
-        ParameterAnnotationsList.empty(),
-        code,
-        true);
-  }
-
   public ProgramMethod toStaticForwardingBridge(
       DexProgramClass holder, DexMethod newMethod, DexItemFactory dexItemFactory) {
     assert isPrivate()
