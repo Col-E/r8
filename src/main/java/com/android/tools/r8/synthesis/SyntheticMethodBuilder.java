@@ -111,7 +111,10 @@ public class SyntheticMethodBuilder {
             getCodeObject(methodSignature),
             isCompilerSynthesized,
             classFileVersion);
-    assert isValidSyntheticMethod(method);
+    // Companion class method may have different properties.
+    assert isValidSyntheticMethod(method)
+        || SyntheticNaming.isSynthetic(
+            holderType.asClassReference(), null, SyntheticNaming.SyntheticKind.COMPANION_CLASS);
     if (onBuildConsumer != null) {
       onBuildConsumer.accept(method);
     }
