@@ -595,10 +595,6 @@ public class DexProgramClass extends DexClass
     methodCollection.addVirtualMethod(virtualMethod);
   }
 
-  public void addDirectMethod(DexEncodedMethod directMethod) {
-    methodCollection.addDirectMethod(directMethod);
-  }
-
   public void replaceVirtualMethod(
       DexMethod virtualMethod, Function<DexEncodedMethod, DexEncodedMethod> replacement) {
     methodCollection.replaceVirtualMethod(virtualMethod, replacement);
