@@ -109,7 +109,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     this.committed = committed;
   }
 
-  public static void collectSyntheticInputs(AppView<?> appView) {
+  public static void collectSyntheticInputs(AppView<AppInfo> appView) {
     // Collecting synthetic items must be the very first task after application build.
     SyntheticItems synthetics = appView.getSyntheticItems();
     assert synthetics.nextSyntheticId == 0;
@@ -143,15 +143,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     CommittedItems commit =
         new CommittedItems(
             synthetics.nextSyntheticId, appView.appInfo().app(), committed, ImmutableList.of());
-    if (appView.appInfo().hasClassHierarchy()) {
-      appView
-          .withClassHierarchy()
-          .setAppInfo(appView.appInfo().withClassHierarchy().rebuildWithClassHierarchy(commit));
-    } else {
-      appView
-          .withoutClassHierarchy()
-          .setAppInfo(new AppInfo(commit, appView.appInfo().getMainDexInfo()));
-    }
+    appView.setAppInfo(new AppInfo(commit, appView.appInfo().getMainDexInfo()));
   }
 
   // Predicates and accessors.
