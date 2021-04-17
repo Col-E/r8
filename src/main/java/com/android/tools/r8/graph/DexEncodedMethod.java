@@ -61,6 +61,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.FieldAccessorBuilder;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
@@ -77,6 +78,7 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.Ordered;
@@ -1241,6 +1243,30 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     DexEncodedMethod.Builder builder = DexEncodedMethod.builder(this);
     builder.setMethod(getReference().withHolder(newHolderType, factory));
     return builder.build();
+  }
+
+  public static DexEncodedMethod toEmulateDispatchLibraryMethod(
+      DexType interfaceType,
+      DexMethod newMethod,
+      DexMethod companionMethod,
+      DexMethod libraryMethod,
+      List<Pair<DexType, DexMethod>> extraDispatchCases,
+      AppView<?> appView) {
+    MethodAccessFlags accessFlags =
+        MethodAccessFlags.fromSharedAccessFlags(
+            Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC, false);
+    CfCode code =
+        new EmulateInterfaceSyntheticCfCodeProvider(
+                interfaceType, companionMethod, libraryMethod, extraDispatchCases, appView)
+            .generateCfCode();
+    return new DexEncodedMethod(
+        newMethod,
+        accessFlags,
+        MethodTypeSignature.noSignature(),
+        DexAnnotationSet.empty(),
+        ParameterAnnotationsList.empty(),
+        code,
+        true);
   }
 
   public ProgramMethod toStaticForwardingBridge(

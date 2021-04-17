@@ -8,7 +8,6 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
@@ -43,7 +42,6 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -679,25 +677,13 @@ public class DesugaredLibraryRetargeter {
           appView
               .dexItemFactory()
               .createMethod(dispatchHolder, desugarMethod.proto, emulatedDispatchMethod.getName());
-      MethodAccessFlags accessFlags =
-          MethodAccessFlags.fromSharedAccessFlags(
-              Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC, false);
-      CfCode code =
-          new EmulateInterfaceSyntheticCfCodeProvider(
-                  emulatedDispatchMethod.getHolderType(),
-                  desugarMethod,
-                  itfMethod,
-                  Collections.emptyList(),
-                  appView)
-              .generateCfCode();
-      return new DexEncodedMethod(
+      return DexEncodedMethod.toEmulateDispatchLibraryMethod(
+          emulatedDispatchMethod.getHolderType(),
           newMethod,
-          accessFlags,
-          MethodTypeSignature.noSignature(),
-          DexAnnotationSet.empty(),
-          ParameterAnnotationsList.empty(),
-          code,
-          true);
+          desugarMethod,
+          itfMethod,
+          Collections.emptyList(),
+          appView);
     }
   }
 
