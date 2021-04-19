@@ -4,26 +4,27 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
 import it.unimi.dsi.fastutil.objects.Reference2BooleanMap;
 import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
 
 public class NoIndirectRuntimeTypeChecks extends MultiClassSameReferencePolicy<DexTypeList> {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final RuntimeTypeCheckInfo runtimeTypeCheckInfo;
 
   private final Reference2BooleanMap<DexType> cache = new Reference2BooleanOpenHashMap<>();
 
   public NoIndirectRuntimeTypeChecks(
-      AppView<AppInfoWithLiveness> appView, RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
     this.appView = appView;
     this.runtimeTypeCheckInfo = runtimeTypeCheckInfo;
   }

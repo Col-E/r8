@@ -5,6 +5,7 @@
 package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass.FieldSetter;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -19,7 +20,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AnnotationFixer;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -37,16 +37,17 @@ import java.util.Set;
  * tracked in {@link TreeFixer#lensBuilder}.
  */
 class TreeFixer extends TreeFixerBase {
+
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final HorizontallyMergedClasses mergedClasses;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
-  private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory dexItemFactory;
   private final SyntheticArgumentClass syntheticArgumentClass;
   private final BiMap<DexMethodSignature, DexMethodSignature> reservedInterfaceSignatures =
       HashBiMap.create();
 
   public TreeFixer(
-      AppView<AppInfoWithLiveness> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       HorizontallyMergedClasses mergedClasses,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       SyntheticArgumentClass syntheticArgumentClass) {

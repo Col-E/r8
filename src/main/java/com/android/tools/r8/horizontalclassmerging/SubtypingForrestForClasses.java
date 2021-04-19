@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,12 +30,12 @@ import java.util.function.BiFunction;
  * </code>
  */
 public class SubtypingForrestForClasses {
-  private final AppView<AppInfoWithLiveness> appView;
 
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Collection<DexProgramClass> roots = new ArrayList<>();
   private final Map<DexProgramClass, List<DexProgramClass>> subtypeMap = new IdentityHashMap<>();
 
-  public SubtypingForrestForClasses(AppView<AppInfoWithLiveness> appView) {
+  public SubtypingForrestForClasses(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
     calculateSubtyping(appView.appInfo().classes());
   }

@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.VerticalClassMerger.IllegalAccessDetector;
 import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ArrayList;
@@ -18,9 +18,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class RespectPackageBoundaries extends MultiClassPolicy {
-  private final AppView<AppInfoWithLiveness> appView;
 
-  public RespectPackageBoundaries(AppView<AppInfoWithLiveness> appView) {
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+
+  public RespectPackageBoundaries(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
   }
 

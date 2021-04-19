@@ -6,29 +6,20 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
-import com.android.tools.r8.ir.analysis.proto.EnumLiteProtoShrinker;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.Collections;
-import java.util.Set;
 
 public class NotMatchedByNoHorizontalClassMerging extends SingleClassPolicy {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final Set<DexType> deadEnumLiteMaps;
 
   public NotMatchedByNoHorizontalClassMerging(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.deadEnumLiteMaps =
-        appView.withProtoEnumShrinker(
-            EnumLiteProtoShrinker::getDeadEnumLiteMaps, Collections.emptySet());
   }
 
   @Override
   public boolean canMerge(DexProgramClass program) {
-    return !deadEnumLiteMaps.contains(program.getType())
-        && !appView.appInfo().isNoHorizontalClassMergingOfType(program.getType());
+    return !appView.appInfo().isNoHorizontalClassMergingOfType(program.getType());
   }
 
   @Override

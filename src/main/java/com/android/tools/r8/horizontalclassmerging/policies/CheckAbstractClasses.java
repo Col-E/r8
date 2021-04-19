@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
 import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses.AbstractClassification;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 
 public class CheckAbstractClasses extends MultiClassSameReferencePolicy<AbstractClassification> {
@@ -20,7 +20,7 @@ public class CheckAbstractClasses extends MultiClassSameReferencePolicy<Abstract
 
   private final InternalOptions options;
 
-  public CheckAbstractClasses(AppView<AppInfoWithLiveness> appView) {
+  public CheckAbstractClasses(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.options = appView.options();
   }
 

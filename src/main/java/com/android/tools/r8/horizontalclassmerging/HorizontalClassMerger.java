@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.policies.AllInstantiatedOrUninstantiated;
@@ -15,6 +16,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.MinimizeFieldCasts;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotationClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassAnnotationCollisions;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassInitializerWithObservableSideEffects;
+import com.android.tools.r8.horizontalclassmerging.policies.NoDeadEnumLiteMaps;
 import com.android.tools.r8.horizontalclassmerging.policies.NoDirectRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoEnums;
 import com.android.tools.r8.horizontalclassmerging.policies.NoIndirectRuntimeTypeChecks;
@@ -38,7 +40,6 @@ import com.android.tools.r8.horizontalclassmerging.policies.SameParentClass;
 import com.android.tools.r8.horizontalclassmerging.policies.SyntheticItemsPolicy;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
-import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -49,9 +50,19 @@ import java.util.List;
 
 public class HorizontalClassMerger {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  // TODO(b/181846319): Add 'FINAL' mode that runs after synthetic finalization.
+  public enum Mode {
+    INITIAL;
 
-  public HorizontalClassMerger(AppView<AppInfoWithLiveness> appView) {
+    public boolean isInitial() {
+      return this == INITIAL;
+    }
+  }
+
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final Mode mode = Mode.INITIAL;
+
+  public HorizontalClassMerger(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
     assert appView.options().enableInlining;
   }
@@ -76,7 +87,9 @@ public class HorizontalClassMerger {
     // Merge the classes.
     List<ClassMerger> classMergers = initializeClassMergers(lensBuilder, groups);
     SyntheticArgumentClass syntheticArgumentClass =
-        new SyntheticArgumentClass.Builder(appView).build(groups);
+        mode.isInitial()
+            ? new SyntheticArgumentClass.Builder(appView.withLiveness()).build(groups)
+            : null;
     applyClassMergers(classMergers, syntheticArgumentClass);
 
     // Generate the graph lens.
@@ -87,8 +100,9 @@ public class HorizontalClassMerger {
         createLens(mergedClasses, lensBuilder, syntheticArgumentClass);
 
     // Prune keep info.
-    KeepInfoCollection keepInfo = appView.appInfo().getKeepInfo();
-    keepInfo.mutate(mutator -> mutator.removeKeepInfoForPrunedItems(mergedClasses.getSources()));
+    appView
+        .getKeepInfo()
+        .mutate(mutator -> mutator.removeKeepInfoForPrunedItems(mergedClasses.getSources()));
 
     return new HorizontalClassMergerResult(createFieldAccessInfoCollectionModifier(groups), lens);
   }
@@ -113,9 +127,11 @@ public class HorizontalClassMerger {
   }
 
   private List<Policy> getPolicies(RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
     List<SingleClassPolicy> singleClassPolicies =
         ImmutableList.of(
-            new NotMatchedByNoHorizontalClassMerging(appView),
+            new NotMatchedByNoHorizontalClassMerging(appViewWithLiveness),
+            new NoDeadEnumLiteMaps(appViewWithLiveness),
             new NoAnnotationClasses(),
             new NoEnums(appView),
             new NoInnerClasses(),
@@ -128,7 +144,7 @@ public class HorizontalClassMerger {
             new NoServiceLoaders(appView),
             new NotVerticallyMergedIntoSubtype(appView),
             new NoDirectRuntimeTypeChecks(runtimeTypeCheckInfo),
-            new DontInlinePolicy(appView));
+            new DontInlinePolicy(appViewWithLiveness));
     List<MultiClassPolicy> multiClassPolicies =
         ImmutableList.of(
             new SameInstanceFields(appView),
@@ -138,13 +154,13 @@ public class HorizontalClassMerger {
             new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
             new PreventMethodImplementation(appView),
             new PreventMergeIntoDifferentMainDexGroups(appView),
-            new AllInstantiatedOrUninstantiated(appView),
+            new AllInstantiatedOrUninstantiated(appViewWithLiveness),
             new SameParentClass(),
             new SameNestHost(appView),
-            new PreserveMethodCharacteristics(appView),
+            new PreserveMethodCharacteristics(appViewWithLiveness),
             new SameFeatureSplit(appView),
             new RespectPackageBoundaries(appView),
-            new DontMergeSynchronizedClasses(appView),
+            new DontMergeSynchronizedClasses(appViewWithLiveness),
             new MinimizeFieldCasts(),
             new LimitGroups(appView));
     return ImmutableList.<Policy>builder()

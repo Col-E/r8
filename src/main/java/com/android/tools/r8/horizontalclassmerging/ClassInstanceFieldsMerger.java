@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerGraphLens.Builder;
 import com.android.tools.r8.horizontalclassmerging.policies.SameInstanceFields.InstanceFieldInfo;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.IterableUtils;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -22,7 +22,7 @@ import java.util.Map;
 
 public class ClassInstanceFieldsMerger {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Builder lensBuilder;
 
   private DexEncodedField classIdField;
@@ -31,7 +31,7 @@ public class ClassInstanceFieldsMerger {
   private final Map<DexEncodedField, List<DexEncodedField>> fieldMappings = new LinkedHashMap<>();
 
   public ClassInstanceFieldsMerger(
-      AppView<AppInfoWithLiveness> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       MergeGroup group) {
     this.appView = appView;

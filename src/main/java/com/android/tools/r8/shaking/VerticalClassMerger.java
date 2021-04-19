@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -1793,10 +1794,11 @@ public class VerticalClassMerger {
     private boolean foundIllegalAccess;
     private ProgramMethod context;
 
-    private final AppView<AppInfoWithLiveness> appView;
+    private final AppView<? extends AppInfoWithClassHierarchy> appView;
     private final DexClass source;
 
-    public IllegalAccessDetector(AppView<AppInfoWithLiveness> appView, DexClass source) {
+    public IllegalAccessDetector(
+        AppView<? extends AppInfoWithClassHierarchy> appView, DexClass source) {
       super(appView.dexItemFactory());
       this.appView = appView;
       this.source = source;

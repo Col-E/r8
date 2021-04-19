@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
 import com.android.tools.r8.horizontalclassmerging.policies.SyntheticItemsPolicy.ClassKind;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 
@@ -19,9 +19,9 @@ public class SyntheticItemsPolicy extends MultiClassSameReferencePolicy<ClassKin
     NOT_SYNTHETIC
   }
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
 
-  public SyntheticItemsPolicy(AppView<AppInfoWithLiveness> appView) {
+  public SyntheticItemsPolicy(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
   }
 

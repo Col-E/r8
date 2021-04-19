@@ -4,15 +4,15 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class NotVerticallyMergedIntoSubtype extends SingleClassPolicy {
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
 
-  public NotVerticallyMergedIntoSubtype(AppView<AppInfoWithLiveness> appView) {
+  public NotVerticallyMergedIntoSubtype(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
   }
 

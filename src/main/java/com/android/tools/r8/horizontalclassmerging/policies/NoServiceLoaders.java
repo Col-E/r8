@@ -4,18 +4,18 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Set;
 
 public class NoServiceLoaders extends SingleClassPolicy {
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Set<DexType> allServiceImplementations;
 
-  public NoServiceLoaders(AppView<AppInfoWithLiveness> appView) {
+  public NoServiceLoaders(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
 
     allServiceImplementations = appView.appServices().computeAllServiceImplementations();

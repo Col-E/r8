@@ -4,20 +4,20 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import it.unimi.dsi.fastutil.objects.Reference2BooleanMap;
 import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
 
 public class NoEnums extends SingleClassPolicy {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Reference2BooleanMap<DexClass> cache = new Reference2BooleanOpenHashMap<>();
 
-  public NoEnums(AppView<AppInfoWithLiveness> appView) {
+  public NoEnums(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
   }
 

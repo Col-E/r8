@@ -8,6 +8,7 @@ import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -31,7 +32,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.NumberFromIntervalValue;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepClassInfo;
 import com.android.tools.r8.utils.IterableUtils;
 import com.google.common.collect.Iterables;
@@ -59,7 +59,7 @@ public class ClassMerger {
 
   private static final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final MergeGroup group;
   private final DexItemFactory dexItemFactory;
   private final ClassInitializerSynthesizedCode classInitializerSynthesizedCode;
@@ -73,7 +73,7 @@ public class ClassMerger {
   private final Collection<ConstructorMerger> constructorMergers;
 
   private ClassMerger(
-      AppView<AppInfoWithLiveness> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       MergeGroup group,
       Collection<VirtualMethodMerger> virtualMethodMergers,
@@ -192,6 +192,8 @@ public class ClassMerger {
   }
 
   void appendClassIdField() {
+    assert appView.hasLiveness();
+
     boolean deprecated = false;
     boolean d8R8Synthesized = true;
     DexEncodedField classIdField =
@@ -212,7 +214,7 @@ public class ClassMerger {
     // be able to recognize that {0, 1, 2, 3} is useless, we record that the value of the field is
     // known to be in [0; 3] here.
     NumberFromIntervalValue abstractValue = new NumberFromIntervalValue(0, group.size() - 1);
-    feedback.recordFieldHasAbstractValue(classIdField, appView, abstractValue);
+    feedback.recordFieldHasAbstractValue(classIdField, appView.withLiveness(), abstractValue);
 
     classInstanceFieldsMerger.setClassIdField(classIdField);
   }
@@ -279,10 +281,10 @@ public class ClassMerger {
   }
 
   public static class Builder {
-    private final AppView<AppInfoWithLiveness> appView;
+    private final AppView<? extends AppInfoWithClassHierarchy> appView;
     private final MergeGroup group;
 
-    public Builder(AppView<AppInfoWithLiveness> appView, MergeGroup group) {
+    public Builder(AppView<? extends AppInfoWithClassHierarchy> appView, MergeGroup group) {
       this.appView = appView;
       this.group = group;
     }

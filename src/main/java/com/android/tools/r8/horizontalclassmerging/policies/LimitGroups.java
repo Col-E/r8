@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -17,7 +17,7 @@ public class LimitGroups extends MultiClassPolicy {
 
   private final int maxGroupSize;
 
-  public LimitGroups(AppView<AppInfoWithLiveness> appView) {
+  public LimitGroups(AppView<? extends AppInfoWithClassHierarchy> appView) {
     maxGroupSize = appView.options().horizontalClassMergerOptions().getMaxGroupSize();
     assert maxGroupSize >= 2;
   }

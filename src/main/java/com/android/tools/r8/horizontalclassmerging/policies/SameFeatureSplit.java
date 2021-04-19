@@ -5,15 +5,15 @@
 package com.android.tools.r8.horizontalclassmerging.policies;
 
 import com.android.tools.r8.FeatureSplit;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class SameFeatureSplit extends MultiClassSameReferencePolicy<FeatureSplit> {
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
 
-  public SameFeatureSplit(AppView<AppInfoWithLiveness> appView) {
+  public SameFeatureSplit(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
   }
 

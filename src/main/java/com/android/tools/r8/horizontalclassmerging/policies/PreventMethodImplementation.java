@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -15,7 +16,6 @@ import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.horizontalclassmerging.SubtypingForrestForClasses;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -49,7 +49,8 @@ import java.util.Map;
  * <p>See: https://docs.oracle.com/javase/specs/jvms/se15/html/jvms-5.html#jvms-5.4.3.3)
  */
 public class PreventMethodImplementation extends MultiClassPolicy {
-  private final AppView<AppInfoWithLiveness> appView;
+
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final SubtypingForrestForClasses subtypingForrestForClasses;
 
   private final InterfaceDefaultSignaturesCache interfaceDefaultMethodsCache =
@@ -123,7 +124,7 @@ public class PreventMethodImplementation extends MultiClassPolicy {
     }
   }
 
-  public PreventMethodImplementation(AppView<AppInfoWithLiveness> appView) {
+  public PreventMethodImplementation(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
     this.subtypingForrestForClasses = new SubtypingForrestForClasses(appView);
   }

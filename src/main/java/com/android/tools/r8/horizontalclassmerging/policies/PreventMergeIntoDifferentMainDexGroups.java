@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.shaking.MainDexInfo.MainDexGroup;
 import com.android.tools.r8.synthesis.SyntheticItems;
@@ -18,7 +18,8 @@ public class PreventMergeIntoDifferentMainDexGroups
   private final MainDexInfo mainDexInfo;
   private final SyntheticItems synthetics;
 
-  public PreventMergeIntoDifferentMainDexGroups(AppView<AppInfoWithLiveness> appView) {
+  public PreventMergeIntoDifferentMainDexGroups(
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     mainDexInfo = appView.appInfo().getMainDexInfo();
     synthetics = appView.getSyntheticItems();
   }

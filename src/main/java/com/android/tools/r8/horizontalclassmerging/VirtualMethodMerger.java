@@ -5,6 +5,7 @@
 package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.cf.CfVersion;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -18,7 +19,6 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.structural.Ordered;
@@ -30,21 +30,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VirtualMethodMerger {
+
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final DexItemFactory dexItemFactory;
   private final MergeGroup group;
   private final List<ProgramMethod> methods;
-  private final AppView<AppInfoWithLiveness> appView;
   private final DexMethod superMethod;
 
   public VirtualMethodMerger(
-      AppView<AppInfoWithLiveness> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       MergeGroup group,
       List<ProgramMethod> methods,
       DexMethod superMethod) {
+    this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.group = group;
     this.methods = methods;
-    this.appView = appView;
     this.superMethod = superMethod;
   }
 
@@ -57,7 +58,8 @@ public class VirtualMethodMerger {
     }
 
     /** Get the super method handle if this method overrides a parent method. */
-    private DexMethod superMethod(AppView<AppInfoWithLiveness> appView, DexProgramClass target) {
+    private DexMethod superMethod(
+        AppView<? extends AppInfoWithClassHierarchy> appView, DexProgramClass target) {
       DexMethod template = methods.iterator().next().getReference();
       SingleResolutionResult resolutionResult =
           appView
@@ -79,7 +81,8 @@ public class VirtualMethodMerger {
       return resolutionResult.getResolvedMethod().getReference();
     }
 
-    public VirtualMethodMerger build(AppView<AppInfoWithLiveness> appView, MergeGroup group) {
+    public VirtualMethodMerger build(
+        AppView<? extends AppInfoWithClassHierarchy> appView, MergeGroup group) {
       // If not all the classes are in the merge group, find the fallback super method to call.
       DexMethod superMethod =
           methods.size() < group.size() ? superMethod(appView, group.getTarget()) : null;
