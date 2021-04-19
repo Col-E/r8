@@ -430,6 +430,9 @@ public final class L8Command extends BaseCompilerCommand {
   private DumpOptions dumpOptions() {
     DumpOptions.Builder builder = DumpOptions.builder(Tool.L8);
     dumpBaseCommandOptions(builder);
+    if (r8Command != null) {
+      builder.setProguardConfiguration(r8Command.getInternalOptions().getProguardConfiguration());
+    }
     return builder.setDesugaredLibraryConfiguration(libraryConfiguration).build();
   }
 }

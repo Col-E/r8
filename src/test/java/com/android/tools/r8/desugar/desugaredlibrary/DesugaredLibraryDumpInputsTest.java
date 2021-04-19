@@ -5,6 +5,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -122,7 +123,17 @@ public class DesugaredLibraryDumpInputsTest extends DesugaredLibraryTestBase {
     assertTrue(Files.exists(unzipped.resolve("program.jar")));
     assertTrue(Files.exists(unzipped.resolve("library.jar")));
     assertTrue(Files.exists(unzipped.resolve("desugared-library.json")));
-    assertTrue(Files.exists(unzipped.resolve("build.properties")));
+    Path buildPropertiesPath = unzipped.resolve("build.properties");
+    assertTrue(Files.exists(buildPropertiesPath));
+    List<String> buildProperties = Files.readAllLines(buildPropertiesPath);
+    assertTrue(buildProperties.get(0).startsWith("tool="));
+    boolean isD8 = buildProperties.get(0).equals("tool=D8");
+    boolean isR8 = buildProperties.get(0).equals("tool=R8");
+    if ((shrinkDesugaredLibrary || isR8) && !isD8) {
+      assertTrue(Files.exists(unzipped.resolve("proguard.config")));
+    } else {
+      assertFalse(Files.exists(unzipped.resolve("proguard.config")));
+    }
   }
 
   static class TestClass {
