@@ -204,7 +204,7 @@ def determine_version(args, dump):
   return args.version
 
 def determine_compiler(args, dump):
-  compilers = ['d8', 'r8', 'r8full']
+  compilers = ['d8', 'r8', 'r8full', 'l8']
   if args.compiler not in compilers:
     error("Unable to determine a compiler to use. Specified %s,"
           " Valid options: %s" % (args.compiler, ', '.join(compilers)))
@@ -301,6 +301,8 @@ def run1(out, args, otherargs, jdkhome=None):
     cmd.extend(['-cp', '%s:%s' % (wrapper_dir, jar)])
     if compiler == 'd8':
       cmd.append('com.android.tools.r8.D8')
+    if compiler == 'l8':
+      cmd.append('com.android.tools.r8.L8')
     if compiler.startswith('r8'):
       cmd.append('com.android.tools.r8.utils.CompileDumpCompatR8')
     if compiler == 'r8':
@@ -313,7 +315,7 @@ def run1(out, args, otherargs, jdkhome=None):
                  determine_feature_output(feature_jar, temp)])
     if dump.library_jar():
       cmd.extend(['--lib', dump.library_jar()])
-    if dump.classpath_jar():
+    if dump.classpath_jar() and compiler != 'l8':
       cmd.extend(['--classpath', dump.classpath_jar()])
     if dump.desugared_library_json() and not args.disable_desugared_lib:
       cmd.extend(['--desugared-lib', dump.desugared_library_json()])
@@ -323,7 +325,10 @@ def run1(out, args, otherargs, jdkhome=None):
       cmd.extend(['--pg-conf', dump.config_file()])
     if dump.main_dex_rules_resource():
       cmd.extend(['--main-dex-rules', dump.main_dex_rules_resource()])
-    if compiler != 'd8':
+    if compiler == 'l8':
+      if dump.config_file():
+        cmd.extend(['--pg-map-output', '%s.map' % out])
+    elif compiler != 'd8':
       cmd.extend(['--pg-map-output', '%s.map' % out])
     if min_api:
       cmd.extend(['--min-api', min_api])
