@@ -91,8 +91,10 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             .addHorizontallyMergedClassesInspector(
                 inspector ->
                     inspector
-                        .assertMergedInto(Iface1Impl.class, CycleReferenceBA.class)
-                        .assertMergedInto(Iface2Impl.class, CycleReferenceBA.class))
+                        .assertIsCompleteMergeGroup(
+                            Iface1Impl.class, Iface2Impl.class, CycleReferenceBA.class)
+                        .assertMergedInto(CycleReferenceBA.class, Iface1Impl.class)
+                        .assertMergedInto(Iface2Impl.class, Iface1Impl.class))
             .allowAccessModification()
             .noMinification()
             .setMinApi(parameters.getApiLevel())

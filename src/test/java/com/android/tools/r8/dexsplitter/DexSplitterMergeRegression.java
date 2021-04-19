@@ -60,6 +60,13 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
     Consumer<R8FullTestBuilder> configurator =
         r8FullTestBuilder ->
             r8FullTestBuilder
+                .addOptionsModification(
+                    options ->
+                        options.testing.horizontalClassMergingTarget =
+                            (candidates, target) -> candidates.iterator().next())
+                .addHorizontallyMergedClassesInspector(
+                    inspector ->
+                        inspector.assertMergedInto(BaseWithStatic.class, AFeatureWithStatic.class))
                 .enableNoVerticalClassMergingAnnotations()
                 .enableInliningAnnotations()
                 .noMinification();
@@ -127,7 +134,6 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
     }
   }
 
-  // Name is important, see predicate in tests/
   public static class AFeatureWithStatic {
 
     @NeverInline

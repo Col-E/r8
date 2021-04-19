@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.AssumeMayHaveSideEffects;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -61,6 +62,7 @@ public class MergedReturnTypeTest extends MergedTypeBaseTest {
 
   public static class MergedReturnTypeWithCollisionTest extends MergedTypeBaseTest {
 
+    @NoHorizontalClassMerging
     static class SuperTestClass {
 
       @AssumeMayHaveSideEffects
@@ -92,7 +94,7 @@ public class MergedReturnTypeTest extends MergedTypeBaseTest {
     @Override
     public void configure(R8FullTestBuilder builder) {
       super.configure(builder);
-      builder.enableSideEffectAnnotations();
+      builder.enableNoHorizontalClassMergingAnnotations().enableSideEffectAnnotations();
     }
 
     @Override

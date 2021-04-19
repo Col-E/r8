@@ -222,12 +222,21 @@ public class NonNullParamTest extends TestBase {
                 mainClass),
             builder ->
                 builder
+                    .addHorizontallyMergedClassesInspector(
+                        horizontallyMergedClassesInspector ->
+                            horizontallyMergedClassesInspector
+                                .assertIsCompleteMergeGroup(
+                                    NonNullParamInterfaceImpl.class,
+                                    NonNullParamAfterInvokeInterface.class)
+                                .assertMergedInto(
+                                    NonNullParamAfterInvokeInterface.class,
+                                    NonNullParamInterfaceImpl.class))
                     .addOptionsModification(this::disableDevirtualization)
                     .enableInliningAnnotations()
                     .enableNeverClassInliningAnnotations()
                     .enableNoVerticalClassMergingAnnotations());
 
-    ClassSubject mainSubject = inspector.clazz(NonNullParamAfterInvokeInterface.class);
+    ClassSubject mainSubject = inspector.clazz(NonNullParamInterfaceImpl.class);
     assertThat(mainSubject, isPresent());
 
     MethodSubject checkViaCall = mainSubject.uniqueMethodWithName("checkViaCall");

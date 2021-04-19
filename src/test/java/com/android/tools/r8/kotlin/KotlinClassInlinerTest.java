@@ -71,6 +71,8 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                 testBuilder
                     // TODO(jsjeon): Introduce @NeverInline to kotlinR8TestResources
                     .addKeepRules("-neverinline class * { void test*State*(...); }")
+                    .addNoHorizontalClassMergingRule(
+                        "class_inliner_lambda_j_style.SamIface$Consumer")
                     .addHorizontallyMergedClassesInspector(
                         inspector ->
                             inspector
@@ -102,7 +104,9 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
             testBuilder ->
                 testBuilder
                     // TODO(jsjeon): Introduce @NeverInline to kotlinR8TestResources
-                    .addKeepRules("-neverinline class * { void test*State*(...); }"))
+                    .addKeepRules("-neverinline class * { void test*State*(...); }")
+                    .addNoHorizontalClassMergingRule(
+                        "class_inliner_lambda_j_style.SamIface$Consumer"))
         .inspect(
             inspector -> {
               // TODO(b/173337498): MainKt$testStateless$1 should always be class inlined.

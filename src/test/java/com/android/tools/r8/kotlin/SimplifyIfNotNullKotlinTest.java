@@ -48,7 +48,10 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
 
     final String mainClassName = ex1.getClassName();
     final String extraRules = neverInlineMethod(mainClassName, testMethodSignature);
-    runTest(FOLDER, mainClassName, testBuilder -> testBuilder.addKeepRules(extraRules))
+    runTest(
+            FOLDER,
+            mainClassName,
+            testBuilder -> testBuilder.addKeepRules(extraRules).allowAccessModification())
         .inspect(
             inspector -> {
               ClassSubject clazz = checkClassIsKept(inspector, ex1.getClassName());

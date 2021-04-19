@@ -51,6 +51,10 @@ public class IterableUtils {
     return defaultValue;
   }
 
+  public static <T> T first(Iterable<T> iterable) {
+    return iterable.iterator().next();
+  }
+
   public static <T> int firstIndexMatching(Iterable<T> iterable, Predicate<T> tester) {
     int i = 0;
     for (T element : iterable) {

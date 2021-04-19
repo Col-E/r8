@@ -40,6 +40,10 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
     return this;
   }
 
+  public int size() {
+    return size;
+  }
+
   @Override
   public StructuralMapping<DexString> getStructuralMapping() {
     // Structural accept is never accessed as all accept methods are defined directly.

@@ -10,6 +10,8 @@ import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -52,6 +54,7 @@ public class MergedParameterTypeTest extends MergedTypeBaseTest {
 
   public static class MergedParameterTypeWithCollisionTest extends MergedTypeBaseTest {
 
+    @NoHorizontalClassMerging
     static class SuperTestClass {
 
       public static void method(A obj) {
@@ -77,6 +80,12 @@ public class MergedParameterTypeTest extends MergedTypeBaseTest {
     public MergedParameterTypeWithCollisionTest(
         TestParameters parameters, boolean enableVerticalClassMerging) {
       super(parameters, enableVerticalClassMerging, ImmutableList.of(SuperTestClass.class));
+    }
+
+    @Override
+    public void configure(R8FullTestBuilder builder) {
+      super.configure(builder);
+      builder.enableNoHorizontalClassMergingAnnotations();
     }
 
     @Override

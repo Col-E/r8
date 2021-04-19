@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.analysis.value.NumberFromIntervalValue;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepClassInfo;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
@@ -41,6 +42,7 @@ import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -290,17 +292,35 @@ public class ClassMerger {
       this.group = group;
     }
 
+    private void selectTarget() {
+      Iterable<DexProgramClass> candidates = Iterables.filter(group, DexClass::isPublic);
+      if (IterableUtils.isEmpty(candidates)) {
+        candidates = group;
+      }
+      Iterator<DexProgramClass> candidateIterator = candidates.iterator();
+      DexProgramClass target = IterableUtils.first(candidates);
+      while (candidateIterator.hasNext()) {
+        DexProgramClass current = candidateIterator.next();
+        KeepClassInfo keepClassInfo = appView.getKeepInfo().getClassInfo(current);
+        if (keepClassInfo.isMinificationAllowed(appView.options())) {
+          target = current;
+          break;
+        }
+        // Select the target with the shortest name.
+        if (current.getType().getDescriptor().size() < target.getType().getDescriptor().size) {
+          target = current;
+        }
+      }
+      group.setTarget(appView.testing().horizontalClassMergingTarget.apply(candidates, target));
+    }
+
     private Builder setup() {
       DexItemFactory dexItemFactory = appView.dexItemFactory();
-      DexProgramClass target =
-          IterableUtils.findOrDefault(group, DexClass::isPublic, group.iterator().next());
       // TODO(b/165498187): ensure the name for the field is fresh
       group.setClassIdField(
           dexItemFactory.createField(
-              target.getType(), dexItemFactory.intType, CLASS_ID_FIELD_NAME));
-      group.setTarget(target);
-      setupForMethodMerging(target);
-      group.forEachSource(this::setupForMethodMerging);
+              group.getTarget().getType(), dexItemFactory.intType, CLASS_ID_FIELD_NAME));
+      group.forEach(this::setupForMethodMerging);
       return this;
     }
 
@@ -343,6 +363,7 @@ public class ClassMerger {
 
     public ClassMerger build(
         HorizontalClassMergerGraphLens.Builder lensBuilder) {
+      selectTarget();
       setup();
       List<VirtualMethodMerger> virtualMethodMergers =
           new ArrayList<>(virtualMethodMergerBuilders.size());
