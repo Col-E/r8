@@ -267,6 +267,10 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return Collections.emptyList();
   }
 
+  public boolean isSharedSynthetic(DexProgramClass clazz) {
+    return getSynthesizingContexts(clazz.getType()).size() >= 2;
+  }
+
   // TODO(b/180091213): Implement this and remove client provided the oracle.
   public Set<DexReference> getSynthesizingContexts(
       DexProgramClass clazz, SynthesizingContextOracle oracle) {
