@@ -653,7 +653,8 @@ public class FileWriter {
     }
   }
 
-  private void writeEncodedMethods(Iterable<DexEncodedMethod> unsortedMethods) {
+  private void writeEncodedMethods(
+      Iterable<DexEncodedMethod> unsortedMethods, boolean isSharedSynthetic) {
     List<DexEncodedMethod> methods = IterableUtils.toNewArrayList(unsortedMethods);
     methods.sort(
         (a, b) ->
@@ -674,7 +675,7 @@ public class FileWriter {
         dest.putUleb128(mixedSectionOffsets.getOffsetFor(code));
         // Writing the methods starts to take up memory so we are going to flush the
         // code objects since they are no longer necessary after this.
-        codeMapping.clearCode(method);
+        codeMapping.clearCode(method, isSharedSynthetic);
       }
     }
   }
@@ -688,9 +689,10 @@ public class FileWriter {
     dest.putUleb128(clazz.getMethodCollection().numberOfVirtualMethods());
     writeEncodedFields(clazz.staticFields());
     writeEncodedFields(clazz.instanceFields());
-    assert !appInfo.getSyntheticItems().isSharedSynthetic(clazz);
-    writeEncodedMethods(clazz.directMethods());
-    writeEncodedMethods(clazz.virtualMethods());
+    boolean isSharedSynthetic =
+        appInfo.getSyntheticItems().getSynthesizingContexts(clazz.getType()).size() > 1;
+    writeEncodedMethods(clazz.directMethods(), isSharedSynthetic);
+    writeEncodedMethods(clazz.virtualMethods(), isSharedSynthetic);
   }
 
   private void addStaticFieldValues(DexProgramClass clazz) {

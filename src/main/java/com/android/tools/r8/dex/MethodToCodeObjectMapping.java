@@ -13,7 +13,7 @@ public abstract class MethodToCodeObjectMapping {
 
   public abstract DexCode getCode(DexEncodedMethod method);
 
-  public abstract void clearCode(DexEncodedMethod method);
+  public abstract void clearCode(DexEncodedMethod method, boolean isSharedSynthetic);
 
   public abstract boolean verifyCodeObjects(Collection<DexCode> codes);
 
@@ -37,8 +37,11 @@ public abstract class MethodToCodeObjectMapping {
     }
 
     @Override
-    public void clearCode(DexEncodedMethod method) {
-      method.removeCode();
+    public void clearCode(DexEncodedMethod method, boolean isSharedSynthetic) {
+      // When using methods directly any shared class needs to maintain its methods as read-only.
+      if (!isSharedSynthetic) {
+        method.removeCode();
+      }
     }
 
     @Override
@@ -61,7 +64,7 @@ public abstract class MethodToCodeObjectMapping {
     }
 
     @Override
-    public void clearCode(DexEncodedMethod method) {
+    public void clearCode(DexEncodedMethod method, boolean isSharedSynthetic) {
       // We can safely clear the thread local pointer to even shared methods.
       codes.put(method, null);
     }

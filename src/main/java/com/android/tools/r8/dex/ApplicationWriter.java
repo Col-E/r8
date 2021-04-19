@@ -641,11 +641,12 @@ public class ApplicationWriter {
     }
     // At least one method needs a jumbo string in which case we construct a thread local mapping
     // for all code objects and write the processed results into that map.
-    // TODO(b/181636450): Reconsider the code mapping setup now that synthetics are never duplicated
-    //  in outputs.
     Map<DexEncodedMethod, DexCode> codeMapping = new IdentityHashMap<>();
     for (DexProgramClass clazz : classes) {
-      assert !appView.getSyntheticItems().isSharedSynthetic(clazz);
+      // TODO(b/181636450): Reconsider the code mapping setup now that synthetics are never
+      //  duplicated in outputs.
+      boolean isSharedSynthetic =
+          appView.getSyntheticItems().getSynthesizingContexts(clazz.getType()).size() > 1;
       clazz.forEachMethod(
           method -> {
             DexCode code =
@@ -654,10 +655,12 @@ public class ApplicationWriter {
                     application.dexItemFactory,
                     options.testing.forceJumboStringProcessing);
             codeMapping.put(method, code);
-            // The mapping now has ownership of the methods code object. This ensures freeing of
-            // code resources once the map entry is cleared and also ensures that we don't end up
-            // using the incorrect code pointer again later!
-            method.removeCode();
+            if (!isSharedSynthetic) {
+              // If the class is not a shared class the mapping now has ownership of the methods
+              // code object. This ensures freeing of code resources once the map entry is cleared
+              // and also ensures that we don't end up using the incorrect code pointer again later!
+              method.removeCode();
+            }
           });
     }
     return MethodToCodeObjectMapping.fromMapBacking(codeMapping);
