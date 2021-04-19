@@ -9,9 +9,9 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.ProguardMap.Builder;
+import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
-import com.android.tools.r8.naming.mappinginformation.MetaInfMappingInformation;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -266,7 +266,7 @@ public class ProguardMapReader implements AutoCloseable {
         diagnosticsHandler,
         lineNo,
         info -> {
-          MetaInfMappingInformation generatorInfo = info.asMetaInfMappingInformation();
+          MapVersionMappingInformation generatorInfo = info.asMetaInfMappingInformation();
           if (generatorInfo != null) {
             version = generatorInfo.getMapVersion();
           }

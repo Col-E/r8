@@ -22,7 +22,7 @@ public abstract class MappingInformation {
     return false;
   }
 
-  public MetaInfMappingInformation asMetaInfMappingInformation() {
+  public MapVersionMappingInformation asMetaInfMappingInformation() {
     return null;
   }
 
@@ -83,8 +83,8 @@ public abstract class MappingInformation {
       int lineNumber,
       Consumer<MappingInformation> onMappingInfo) {
     switch (id) {
-      case MetaInfMappingInformation.ID:
-        MetaInfMappingInformation.deserialize(
+      case MapVersionMappingInformation.ID:
+        MapVersionMappingInformation.deserialize(
             version, object, diagnosticsHandler, lineNumber, onMappingInfo);
         return;
       case FileNameInformation.ID:

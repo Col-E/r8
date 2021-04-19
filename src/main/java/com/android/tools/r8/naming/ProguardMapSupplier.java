@@ -7,7 +7,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.naming.mappinginformation.MetaInfMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -107,7 +107,7 @@ public class ProguardMapSupplier {
     if (mapVersion.isGreaterThan(MapVersion.MapVersionNone)) {
       builder
           .append("# ")
-          .append(new MetaInfMappingInformation(mapVersion).serialize())
+          .append(new MapVersionMappingInformation(mapVersion).serialize())
           .append("\n");
     }
     consumer.accept(builder.toString(), reporter);

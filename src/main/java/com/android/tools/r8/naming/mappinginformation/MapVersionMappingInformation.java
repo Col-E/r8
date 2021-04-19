@@ -12,14 +12,14 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.util.function.Consumer;
 
-public class MetaInfMappingInformation extends MappingInformation {
+public class MapVersionMappingInformation extends MappingInformation {
 
-  public static final String ID = "com.android.tools.r8.metainf";
-  public static final String MAP_VERSION_KEY = "map-version";
+  public static final String ID = "com.android.tools.r8.mapping";
+  public static final String MAP_VERSION_KEY = "version";
 
   private final MapVersion mapVersion;
 
-  public MetaInfMappingInformation(MapVersion mapVersion) {
+  public MapVersionMappingInformation(MapVersion mapVersion) {
     super();
     this.mapVersion = mapVersion;
   }
@@ -35,7 +35,7 @@ public class MetaInfMappingInformation extends MappingInformation {
   }
 
   @Override
-  public MetaInfMappingInformation asMetaInfMappingInformation() {
+  public MapVersionMappingInformation asMetaInfMappingInformation() {
     return this;
   }
 
@@ -73,6 +73,6 @@ public class MetaInfMappingInformation extends MappingInformation {
     if (mapVersion == null) {
       return;
     }
-    onMappingInfo.accept(new MetaInfMappingInformation(mapVersion));
+    onMappingInfo.accept(new MapVersionMappingInformation(mapVersion));
   }
 }

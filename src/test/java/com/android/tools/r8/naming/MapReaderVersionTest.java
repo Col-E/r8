@@ -44,7 +44,7 @@ public class MapReaderVersionTest extends TestBase {
     ClassNameMapper mapper =
         ClassNameMapper.mapperFromString(
             StringUtils.joinLines(
-                "# { id: 'com.android.tools.r8.metainf', map-version: 'experimental' }",
+                "# { id: 'com.android.tools.r8.mapping', version: 'experimental' }",
                 "pkg.Foo -> a.a:",
                 "# { id: 'com.android.tools.r8.synthesized' }"));
     assertMapping("a.a", "pkg.Foo", true, mapper);
@@ -60,12 +60,12 @@ public class MapReaderVersionTest extends TestBase {
                 "pkg.Foo -> a.a:",
                 "# { id: 'com.android.tools.r8.synthesized' }",
                 // Section with map-version experimental.
-                "# { id: 'com.android.tools.r8.metainf', map-version: 'experimental' }",
+                "# { id: 'com.android.tools.r8.mapping', version: 'experimental' }",
                 "pkg.Bar -> a.b:",
                 "# { id: 'com.android.tools.r8.synthesized' }",
                 // Section reverting map-version back to none (to support tooling that
                 // concatenates).
-                "# { id: 'com.android.tools.r8.metainf', map-version: 'none' }",
+                "# { id: 'com.android.tools.r8.mapping', version: 'none' }",
                 "pkg.Baz -> a.c:",
                 "# { id: 'com.android.tools.r8.synthesized' }"),
             diagnostics);
