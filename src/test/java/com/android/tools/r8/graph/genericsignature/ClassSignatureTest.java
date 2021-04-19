@@ -8,7 +8,10 @@ import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.google.common.base.Predicates.alwaysFalse;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
@@ -16,12 +19,15 @@ import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignaturePrinter;
+import com.android.tools.r8.graph.GenericSignatureTypeRewriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.Reporter;
+import java.util.function.Function;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -151,6 +157,39 @@ public class ClassSignatureTest extends TestBase {
   public void testFormalTypeParametersEmptyError() {
     // TODO(b/169716723): This should throw an error
     assertThrows(AssertionError.class, () -> testParsingAndPrintingError("<>Lfoo/bar/baz<TT;>;"));
+  }
+
+  @Test
+  public void testPruningInterfaceBound() {
+    DexItemFactory factory = new DexItemFactory();
+    DexType context = factory.createType("Lj$/util/stream/Node$OfPrimitive;");
+    String className = "j$.util.stream.Node$OfPrimitive";
+    TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
+    ClassSignature parsedClassSignature =
+        GenericSignature.parseClassSignature(
+            className,
+            "<T_SPLITR::Lj$/util/Spliterator$OfPrimitive;T_NODE:Ljava/lang/Object;>"
+                + "Ljava/lang/Object;",
+            Origin.unknown(),
+            factory,
+            testDiagnosticMessages);
+    testDiagnosticMessages.assertNoMessages();
+    assertTrue(parsedClassSignature.hasSignature());
+    GenericSignatureTypeRewriter rewriter =
+        new GenericSignatureTypeRewriter(
+            factory,
+            dexType -> dexType.toDescriptorString().equals("Lj$/util/Spliterator$OfPrimitive;"),
+            Function.identity(),
+            context);
+    ClassSignature rewritten = rewriter.rewrite(parsedClassSignature);
+    assertNotNull(rewritten);
+    assertTrue(rewritten.hasSignature());
+    ClassSignature reparsed =
+        GenericSignature.parseClassSignature(
+            className, rewritten.toString(), Origin.unknown(), factory, testDiagnosticMessages);
+    assertFalse(reparsed.hasSignature());
+    testDiagnosticMessages.assertWarningThatMatches(
+        diagnosticMessage(containsString("Invalid signature")));
   }
 
   private void testParsingAndPrintingEqual(String signature) {

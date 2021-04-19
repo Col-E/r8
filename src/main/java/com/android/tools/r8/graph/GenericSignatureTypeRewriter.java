@@ -28,7 +28,7 @@ public class GenericSignatureTypeRewriter {
   private final DexItemFactory factory;
   private final Predicate<DexType> wasPruned;
   private final Function<DexType, DexType> lookupType;
-  private final DexProgramClass context;
+  private final DexType context;
 
   private final FieldTypeSignature objectTypeSignature;
 
@@ -39,14 +39,14 @@ public class GenericSignatureTypeRewriter {
             ? appView.appInfo().withLiveness()::wasPruned
             : alwaysFalse(),
         appView.graphLens()::lookupType,
-        context);
+        context.getType());
   }
 
   public GenericSignatureTypeRewriter(
       DexItemFactory factory,
       Predicate<DexType> wasPruned,
       Function<DexType, DexType> lookupType,
-      DexProgramClass context) {
+      DexType context) {
     this.factory = factory;
     this.wasPruned = wasPruned;
     this.lookupType = lookupType;
@@ -133,7 +133,7 @@ public class GenericSignatureTypeRewriter {
     @Override
     public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
       ClassTypeSignature rewritten = classTypeSignature.visit(this);
-      return rewritten == null || rewritten.type() == context.type
+      return rewritten == null || rewritten.type() == context
           ? new ClassTypeSignature(factory.objectType, EMPTY_TYPE_ARGUMENTS)
           : rewritten;
     }
@@ -150,7 +150,7 @@ public class GenericSignatureTypeRewriter {
     @Override
     public ClassTypeSignature visitSuperInterface(ClassTypeSignature classTypeSignature) {
       ClassTypeSignature rewritten = classTypeSignature.visit(this);
-      return rewritten == null || rewritten.type() == context.type ? null : rewritten;
+      return rewritten == null || rewritten.type() == context ? null : rewritten;
     }
 
     @Override

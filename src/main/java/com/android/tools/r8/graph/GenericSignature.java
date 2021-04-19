@@ -7,11 +7,11 @@ import static com.android.tools.r8.utils.DescriptorUtils.getClassBinaryNameFromD
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassBinaryName;
 import static com.google.common.base.Predicates.alwaysTrue;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.GenericSignatureFormatError;
 import java.nio.CharBuffer;
@@ -857,7 +857,7 @@ public class GenericSignature {
       String signature,
       Origin origin,
       DexItemFactory factory,
-      Reporter reporter) {
+      DiagnosticsHandler diagnosticsHandler) {
     if (signature == null || signature.isEmpty()) {
       return ClassSignature.NO_CLASS_SIGNATURE;
     }
@@ -865,7 +865,7 @@ public class GenericSignature {
     try {
       return parser.parseClassSignature(signature);
     } catch (GenericSignatureFormatError e) {
-      reporter.warning(
+      diagnosticsHandler.warning(
           GenericSignatureDiagnostic.invalidClassSignature(signature, className, origin, e));
       return ClassSignature.NO_CLASS_SIGNATURE;
     }
@@ -876,7 +876,7 @@ public class GenericSignature {
       String signature,
       Origin origin,
       DexItemFactory factory,
-      Reporter reporter) {
+      DiagnosticsHandler diagnosticsHandler) {
     if (signature == null || signature.isEmpty()) {
       return NO_FIELD_TYPE_SIGNATURE;
     }
@@ -884,7 +884,7 @@ public class GenericSignature {
     try {
       return parser.parseFieldTypeSignature(signature);
     } catch (GenericSignatureFormatError e) {
-      reporter.warning(
+      diagnosticsHandler.warning(
           GenericSignatureDiagnostic.invalidFieldSignature(signature, fieldName, origin, e));
       return GenericSignature.NO_FIELD_TYPE_SIGNATURE;
     }
@@ -895,7 +895,7 @@ public class GenericSignature {
       String signature,
       Origin origin,
       DexItemFactory factory,
-      Reporter reporter) {
+      DiagnosticsHandler diagnosticsHandler) {
     if (signature == null || signature.isEmpty()) {
       return MethodTypeSignature.NO_METHOD_TYPE_SIGNATURE;
     }
@@ -903,7 +903,7 @@ public class GenericSignature {
     try {
       return parser.parseMethodTypeSignature(signature);
     } catch (GenericSignatureFormatError e) {
-      reporter.warning(
+      diagnosticsHandler.warning(
           GenericSignatureDiagnostic.invalidMethodSignature(signature, methodName, origin, e));
       return MethodTypeSignature.NO_METHOD_TYPE_SIGNATURE;
     }
