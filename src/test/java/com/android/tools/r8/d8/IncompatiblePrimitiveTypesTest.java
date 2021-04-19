@@ -84,17 +84,13 @@ public class IncompatiblePrimitiveTypesTest extends TestBase {
             .addProgramFiles(inputJar)
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), "TestClass");
-    TestRunResult<?> dxResult =
-        testForDX().addProgramFiles(inputJar).run(parameters.getRuntime(), "TestClass");
     if (parameters.getRuntime().asDex().getVm().getVersion().isNewerThan(Version.V4_4_4)) {
       d8Result.assertSuccessWithOutput(expectedOutput);
-      dxResult.assertSuccessWithOutput(expectedOutput);
     } else {
       // TODO(b/119812046): On Art 4.0.4 and 4.4.4 it is a verification error to use one short type
-      // as another short type.
+      //  as another short type.
       Matcher<String> expectedError = containsString("java.lang.VerifyError");
       d8Result.assertFailureWithErrorThatMatches(expectedError);
-      dxResult.assertFailureWithErrorThatMatches(expectedError);
     }
   }
 }

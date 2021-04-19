@@ -92,7 +92,7 @@ public class RetraceLambdaTest extends TestBase {
             stackTrace -> {
               int frames = parameters.isCfRuntime() ? 2 : 1;
               checkRawStackTraceFrameCount(stackTrace, frames, "Expected everything to be inlined");
-              checkCurrentlyIncorrectStackTrace(stackTrace);
+              checkExpectedStackTrace(stackTrace);
             });
   }
 
@@ -168,29 +168,6 @@ public class RetraceLambdaTest extends TestBase {
         isSameExceptForFileNameAndLineNumber(
             StackTrace.builder()
                 .addWithoutFileNameAndLineNumber(Main.class, JAVAC_LAMBDA_METHOD)
-                .addWithoutFileNameAndLineNumber(Main.class, "runIt")
-                .addWithoutFileNameAndLineNumber(Main.class, "main")
-                .build()));
-  }
-
-  private void checkCurrentlyIncorrectStackTrace(StackTrace stackTrace) {
-    assertThat(
-        stackTrace,
-        isSameExceptForFileNameAndLineNumber(
-            StackTrace.builder()
-                .addWithoutFileNameAndLineNumber(Main.class, RetraceLambdaTest.JAVAC_LAMBDA_METHOD)
-                .applyIf(
-                    parameters.isDexRuntime(),
-                    b ->
-                        b
-                            // TODO(b/172014416): Lambda bridges should be marked synthetic
-                            //  and removed.
-                            .addWithoutFileNameAndLineNumber(Main.class, LAMBDA_BRIDGE_METHOD)
-                            // TODO(b/172014416): The frame mapping should have removed this
-                            //  entry.
-                            // TODO(b/172014416): Synthetics should not map back to internal
-                            //  names.
-                            .addWithoutFileNameAndLineNumber(INTERNAL_LAMBDA_CLASS, "run"))
                 .addWithoutFileNameAndLineNumber(Main.class, "runIt")
                 .addWithoutFileNameAndLineNumber(Main.class, "main")
                 .build()));

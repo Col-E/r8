@@ -17,6 +17,7 @@ public class CanonicalPositions {
   private final Position callerPosition;
   private final Map<Position, Position> canonicalPositions;
   private final Position preamblePosition;
+  private final boolean isCompilerSynthesizedInlinee;
 
   // Lazily computed synthetic position for shared exceptional exits in synchronized methods.
   private Position syntheticPosition;
@@ -24,18 +25,22 @@ public class CanonicalPositions {
   public CanonicalPositions(
       Position callerPosition,
       int expectedPositionsCount,
-      DexMethod method) {
+      DexMethod method,
+      boolean methodIsSynthesized) {
     canonicalPositions =
         new HashMap<>(1 + (callerPosition == null ? 0 : 1) + expectedPositionsCount);
-    this.callerPosition = callerPosition;
     if (callerPosition != null) {
-      canonicalPositions.put(callerPosition, callerPosition);
+      this.callerPosition = getCanonical(callerPosition);
+      isCompilerSynthesizedInlinee = methodIsSynthesized;
+      preamblePosition =
+          methodIsSynthesized
+              ? callerPosition
+              : getCanonical(new Position(0, null, method, callerPosition));
+    } else {
+      this.callerPosition = null;
+      isCompilerSynthesizedInlinee = false;
+      preamblePosition = getCanonical(Position.synthetic(0, method, null));
     }
-    preamblePosition =
-        callerPosition == null
-            ? Position.synthetic(0, method, null)
-            : new Position(0, null, method, callerPosition);
-    canonicalPositions.put(preamblePosition, preamblePosition);
   }
 
   public Position getPreamblePosition() {
@@ -53,15 +58,20 @@ public class CanonicalPositions {
 
   /**
    * Append callerPosition (supplied in constructor) to the end of caller's caller chain and return
-   * the canonical instance. Always returns null if preserveCaller (also supplied in constructor) is
-   * false.
+   * the canonical instance.
    */
   public Position canonicalizeCallerPosition(Position caller) {
     if (caller == null) {
       return callerPosition;
     }
     if (caller.callerPosition == null && callerPosition == null) {
+      // This is itself the outer-most position.
       return getCanonical(caller);
+    }
+    if (caller.callerPosition == null && isCompilerSynthesizedInlinee) {
+      // This is the outer-most position of the inlinee (eg, the inlinee itself).
+      // If compiler synthesized, strip it from the position info by directly returning caller.
+      return callerPosition;
     }
     Position callerOfCaller = canonicalizeCallerPosition(caller.callerPosition);
     return getCanonical(

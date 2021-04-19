@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.naming.retrace;
 
-import static com.android.tools.r8.ir.desugar.LambdaClass.R8_LAMBDA_ACCESSOR_METHOD_PREFIX;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileName;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;
@@ -13,10 +12,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
-import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -59,71 +56,30 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
     return mode == CompilationMode.RELEASE ? 2 : 4;
   }
 
-  private boolean isSynthesizedLambdaFrame(StackTraceLine line) {
-    // TODO(141287349): The mapping should not map the external name to the internal name!
-    return SyntheticItemsTestUtils.isInternalLambda(Reference.classFromTypeName(line.className))
-        || line.methodName.startsWith(R8_LAMBDA_ACCESSOR_METHOD_PREFIX);
-  }
-
-  private void checkLambdaFrames(StackTrace retracedStackTrace) {
-    StackTrace lambdaFrames = retracedStackTrace.filter(this::isSynthesizedLambdaFrame);
-    assertEquals(2, lambdaFrames.size());
-
-    StackTraceLine syntheticLambdaClassFrame = lambdaFrames.get(1);
-    if (syntheticLambdaClassFrame.hasLineNumber()) {
-      assertEquals(mode == CompilationMode.RELEASE ? 0 : 2, syntheticLambdaClassFrame.lineNumber);
-    }
-    // Proguard retrace will take the class name until the first $ to construct the file
-    // name, so for "-$$Lambda$...", the file name becomes "-.java".
-    // TODO(b/141287349): Format the class name of desugared lambda classes.
-    // assertEquals("-.java", syntheticLambdaClassFrame.fileName);
-  }
-
   private void checkIsSame(StackTrace actualStackTrace, StackTrace retracedStackTrace) {
     // Even when SourceFile is present retrace replaces the file name in the stack trace.
-    if (parameters.isCfRuntime()) {
-      assertThat(retracedStackTrace, isSame(expectedStackTrace));
-    } else {
-      // With the frame from the lambda class filtered out the stack trace is the same.
-      assertThat(
-          retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)),
-          isSame(expectedStackTrace));
-      // Check the frame from the lambda class.
-      checkLambdaFrames(retracedStackTrace);
-    }
+    assertThat(retracedStackTrace, isSame(expectedStackTrace));
     assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
   }
 
   private void checkIsSameExceptForFileName(
       StackTrace actualStackTrace, StackTrace retracedStackTrace) {
     // Even when SourceFile is present retrace replaces the file name in the stack trace.
-    if (parameters.isCfRuntime()) {
-      assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace));
-    } else {
-      // With the frames from the lambda class filtered out the stack trace is the same.
-      assertThat(
-          retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)),
-          isSameExceptForFileName(expectedStackTrace));
-      // Check the frame from the lambda class.
-      checkLambdaFrames(retracedStackTrace);
-    }
+    assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace));
     assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
   }
 
   private void checkIsSameExceptForFileNameAndLineNumber(
       StackTrace actualStackTrace, StackTrace retracedStackTrace) {
     // Even when SourceFile is present retrace replaces the file name in the stack trace.
-    if (parameters.isCfRuntime()) {
-      assertThat(retracedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
-    } else {
-      // With the frame from the lambda class filtered out the stack trace is the same.
-      assertThat(
-          retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)),
-          isSameExceptForFileNameAndLineNumber(expectedStackTrace));
-      // Check the frame from the lambda class.
-      checkLambdaFrames(retracedStackTrace);
-    }
+    assertThat(retracedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
     assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+  }
+
+  @Override
+  public void configure(R8TestBuilder<?> builder) {
+    // Enable pruning of lambda synthetics in retrace.
+    builder.enableExperimentalMapFileVersion();
   }
 
   @Test

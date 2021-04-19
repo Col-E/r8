@@ -87,7 +87,8 @@ public class DexSourceCode implements SourceCode {
         new CanonicalPositions(
             callerPosition,
             debugEntries == null ? 0 : debugEntries.size(),
-            originalMethod);
+            originalMethod,
+            method.getDefinition().isD8R8Synthesized());
   }
 
   @Override

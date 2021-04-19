@@ -227,7 +227,6 @@ public class StackTrace {
   private final String originalStderr;
 
   private StackTrace(List<StackTraceLine> stackTraceLines, String originalStderr) {
-    assert stackTraceLines.size() > 0;
     this.stackTraceLines = stackTraceLines;
     this.originalStderr = originalStderr;
   }

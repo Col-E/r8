@@ -246,7 +246,12 @@ public class CfSourceCode implements SourceCode {
       }
     }
     this.state = new CfState(origin);
-    canonicalPositions = new CanonicalPositions(callerPosition, cfPositionCount, originalMethod);
+    canonicalPositions =
+        new CanonicalPositions(
+            callerPosition,
+            cfPositionCount,
+            originalMethod,
+            method.getDefinition().isD8R8Synthesized());
     internalOutputMode = appView.options().getInternalOutputMode();
 
     needsGeneratedMethodSynchronization =
