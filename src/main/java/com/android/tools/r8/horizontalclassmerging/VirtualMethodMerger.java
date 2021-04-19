@@ -171,6 +171,10 @@ public class VirtualMethodMerger {
     return numberOfNonAbstractMethods <= 1;
   }
 
+  boolean isNopOrTrivial() {
+    return isNop() || isTrivial();
+  }
+
   /**
    * If there is only a single method that does not override anything then it is safe to just move
    * it to the target type if it is not already in it.
@@ -221,11 +225,10 @@ public class VirtualMethodMerger {
     assert !methods.isEmpty();
 
     // Handle trivial merges.
-    if (isNop() || isTrivial()) {
+    if (isNopOrTrivial()) {
       mergeTrivial(classMethodsBuilder, lensBuilder);
       return;
     }
-
 
     Int2ReferenceSortedMap<DexMethod> classIdToMethodMap = new Int2ReferenceAVLTreeMap<>();
 

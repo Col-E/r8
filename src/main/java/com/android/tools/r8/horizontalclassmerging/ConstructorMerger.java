@@ -96,7 +96,7 @@ public class ConstructorMerger {
       return this;
     }
 
-    public List<ConstructorMerger> build(AppView<?> appView, MergeGroup group) {
+    public List<ConstructorMerger> build(MergeGroup group) {
       assert constructorGroups.stream().noneMatch(List::isEmpty);
       return ListUtils.map(
           constructorGroups, constructors -> new ConstructorMerger(appView, group, constructors));
@@ -185,7 +185,7 @@ public class ConstructorMerger {
         new ConstructorEntryPointSynthesizedCode(
             typeConstructorClassMap,
             newConstructorReference,
-            group.getClassIdField(),
+            group.hasClassIdField() ? group.getClassIdField() : null,
             bridgeConstructorReference);
     DexEncodedMethod newConstructor =
         new DexEncodedMethod(

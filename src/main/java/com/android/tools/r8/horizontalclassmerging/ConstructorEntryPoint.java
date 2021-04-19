@@ -49,6 +49,10 @@ public class ConstructorEntryPoint extends SyntheticSourceCode {
     this.classIdField = classIdField;
   }
 
+  private boolean hasClassIdField() {
+    return classIdField != null;
+  }
+
   void addConstructorInvoke(DexMethod typeConstructor) {
     add(
         builder -> {
@@ -66,11 +70,13 @@ public class ConstructorEntryPoint extends SyntheticSourceCode {
 
   /** Assign the given register to the class id field. */
   void addRegisterClassIdAssignment(int idRegister) {
+    assert hasClassIdField();
     add(builder -> builder.addInstancePut(idRegister, getReceiverRegister(), classIdField));
   }
 
   /** Assign the given constant integer value to the class id field. */
   void addConstantRegisterClassIdAssignment(int classId) {
+    assert hasClassIdField();
     int idRegister = nextRegister(ValueType.INT);
     add(builder -> builder.addIntConst(idRegister, classId));
     addRegisterClassIdAssignment(idRegister);
@@ -82,7 +88,9 @@ public class ConstructorEntryPoint extends SyntheticSourceCode {
     // The class id register is always the first synthetic argument.
     int idRegister = getParamRegister(exampleTargetConstructor.getArity());
 
-    addRegisterClassIdAssignment(idRegister);
+    if (hasClassIdField()) {
+      addRegisterClassIdAssignment(idRegister);
+    }
 
     int[] keys = new int[typeConstructorCount - 1];
     int[] offsets = new int[typeConstructorCount - 1];
@@ -115,7 +123,9 @@ public class ConstructorEntryPoint extends SyntheticSourceCode {
 
   protected void prepareSingleConstructorInstructions() {
     Entry<DexMethod> entry = typeConstructors.int2ReferenceEntrySet().first();
-    addConstantRegisterClassIdAssignment(entry.getIntKey());
+    if (hasClassIdField()) {
+      addConstantRegisterClassIdAssignment(entry.getIntKey());
+    }
     addConstructorInvoke(entry.getValue());
     add(IRBuilder::addReturn, endsBlock);
   }

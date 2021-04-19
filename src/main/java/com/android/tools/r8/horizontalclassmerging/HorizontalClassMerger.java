@@ -98,13 +98,16 @@ public class HorizontalClassMerger {
     FieldAccessInfoCollectionModifier.Builder builder =
         new FieldAccessInfoCollectionModifier.Builder();
     for (MergeGroup group : groups) {
-      DexProgramClass target = group.getTarget();
-      target.forEachProgramInstanceInitializerMatching(
-          definition -> definition.getCode().isHorizontalClassMergingCode(),
-          method -> builder.recordFieldWrittenInContext(group.getClassIdField(), method));
-      target.forEachProgramVirtualMethodMatching(
-          definition -> definition.hasCode() && definition.getCode().isHorizontalClassMergingCode(),
-          method -> builder.recordFieldReadInContext(group.getClassIdField(), method));
+      if (group.hasClassIdField()) {
+        DexProgramClass target = group.getTarget();
+        target.forEachProgramInstanceInitializerMatching(
+            definition -> definition.getCode().isHorizontalClassMergingCode(),
+            method -> builder.recordFieldWrittenInContext(group.getClassIdField(), method));
+        target.forEachProgramVirtualMethodMatching(
+            definition ->
+                definition.hasCode() && definition.getCode().isHorizontalClassMergingCode(),
+            method -> builder.recordFieldReadInContext(group.getClassIdField(), method));
+      }
     }
     return builder.build();
   }

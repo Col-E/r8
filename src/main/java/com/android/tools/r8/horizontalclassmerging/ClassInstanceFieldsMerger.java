@@ -128,8 +128,9 @@ public class ClassInstanceFieldsMerger {
 
   public DexEncodedField[] merge() {
     List<DexEncodedField> newFields = new ArrayList<>();
-    assert classIdField != null;
-    newFields.add(classIdField);
+    if (classIdField != null) {
+      newFields.add(classIdField);
+    }
     fieldMappings.forEach(
         (targetField, oldFields) ->
             newFields.add(mergeSourceFieldsToTargetField(targetField, oldFields)));
