@@ -38,6 +38,6 @@ public class D8TestRunResult extends SingleTestRunResult<D8TestRunResult> {
     if (proguardMap == null) {
       return super.getStackTrace();
     }
-    return super.getStackTrace().retrace(proguardMap);
+    return super.getStackTrace().retraceAllowExperimentalMapping(proguardMap);
   }
 }

@@ -28,6 +28,6 @@ public interface Retracer {
 
   static Retracer createDefault(
       ProguardMapProducer proguardMapProducer, DiagnosticsHandler diagnosticsHandler) {
-    return RetracerImpl.create(proguardMapProducer, diagnosticsHandler);
+    return RetracerImpl.create(proguardMapProducer, diagnosticsHandler, false);
   }
 }

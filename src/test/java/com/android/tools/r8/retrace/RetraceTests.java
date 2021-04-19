@@ -258,12 +258,12 @@ public class RetraceTests extends TestBase {
 
   @Test
   public void testRetraceSynthesizedLambda() throws Exception {
-    runRetraceTest(new SyntheticLambdaMethodStackTrace());
+    runExperimentalRetraceTest(new SyntheticLambdaMethodStackTrace());
   }
 
   @Test
   public void testRetraceSynthesizedLambdaWithInlining() throws Exception {
-    runRetraceTest(new SyntheticLambdaMethodWithInliningStackTrace());
+    runExperimentalRetraceTest(new SyntheticLambdaMethodWithInliningStackTrace());
   }
 
   private void inspectRetraceTest(
@@ -276,6 +276,16 @@ public class RetraceTests extends TestBase {
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest)
       throws Exception {
+    return runRetraceTest(stackTraceForTest, false);
+  }
+
+  private TestDiagnosticMessagesImpl runExperimentalRetraceTest(StackTraceForTest stackTraceForTest)
+      throws Exception {
+    return runRetraceTest(stackTraceForTest, true);
+  }
+
+  private TestDiagnosticMessagesImpl runRetraceTest(
+      StackTraceForTest stackTraceForTest, boolean allowExperimentalMapping) throws Exception {
     if (external) {
       assumeTrue(useRegExpParsing);
       assumeTrue(testParameters.isCfRuntime());
@@ -296,6 +306,9 @@ public class RetraceTests extends TestBase {
       command.add("-ea");
       command.add("-cp");
       command.add(ToolHelper.R8_RETRACE_JAR.toString());
+      if (allowExperimentalMapping) {
+        command.add("-Dcom.android.tools.r8.experimentalmapping");
+      }
       command.add("com.android.tools.r8.retrace.Retrace");
       command.add(mappingFile.toString());
       command.add(stackTraceFile.toString());
@@ -321,7 +334,7 @@ public class RetraceTests extends TestBase {
                           StringUtils.joinLines(stackTraceForTest.retracedStackTrace()),
                           StringUtils.joinLines(retraced)))
               .build();
-      Retrace.run(retraceCommand);
+      Retrace.runForTesting(retraceCommand, allowExperimentalMapping);
       return diagnosticsHandler;
     }
   }

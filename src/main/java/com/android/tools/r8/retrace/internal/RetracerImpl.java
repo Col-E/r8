@@ -26,7 +26,9 @@ public class RetracerImpl implements Retracer {
   }
 
   public static RetracerImpl create(
-      ProguardMapProducer proguardMapProducer, DiagnosticsHandler diagnosticsHandler) {
+      ProguardMapProducer proguardMapProducer,
+      DiagnosticsHandler diagnosticsHandler,
+      boolean allowExperimentalMapping) {
     if (proguardMapProducer instanceof DirectClassNameMapperProguardMapProducer) {
       return new RetracerImpl(
           ((DirectClassNameMapperProguardMapProducer) proguardMapProducer).getClassNameMapper());
@@ -34,7 +36,10 @@ public class RetracerImpl implements Retracer {
     try {
       ClassNameMapper classNameMapper =
           ClassNameMapper.mapperFromBufferedReader(
-              new BufferedReader(proguardMapProducer.get()), diagnosticsHandler, true);
+              new BufferedReader(proguardMapProducer.get()),
+              diagnosticsHandler,
+              true,
+              allowExperimentalMapping);
       return new RetracerImpl(classNameMapper);
     } catch (Throwable throwable) {
       throw new InvalidMappingFileException(throwable);

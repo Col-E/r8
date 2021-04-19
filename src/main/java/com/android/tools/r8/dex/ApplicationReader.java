@@ -297,7 +297,12 @@ public class ApplicationReader {
             () -> {
               try {
                 String content = map.getString();
-                builder.setProguardMap(ClassNameMapper.mapperFromString(content));
+                builder.setProguardMap(
+                    ClassNameMapper.mapperFromString(
+                        content,
+                        options.reporter,
+                        false,
+                        options.testing.enableExperimentalMapFileVersion));
               } catch (IOException | ResourceException e) {
                 throw new CompilationError("Failure to read proguard map file", e, map.getOrigin());
               }

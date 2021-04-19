@@ -13,6 +13,7 @@ import com.android.tools.r8.Version;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
 import com.android.tools.r8.retrace.internal.PlainStackTraceLineParser;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
+import com.android.tools.r8.retrace.internal.RetracerImpl;
 import com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.ListUtils;
@@ -224,13 +225,25 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
    * @param command The command that describes the desired behavior of this retrace invocation.
    */
   public static void run(RetraceCommand command) {
+    boolean allowExperimentalMapVersion =
+        System.getProperty("com.android.tools.r8.experimentalmapping") != null;
+    runForTesting(command, allowExperimentalMapVersion);
+  }
+
+  static void runForTesting(RetraceCommand command, boolean allowExperimentalMapping) {
     try {
       Timing timing = Timing.create("R8 retrace", command.printMemory());
       timing.begin("Read proguard map");
       RetraceOptions options = command.getOptions();
       DiagnosticsHandler diagnosticsHandler = options.getDiagnosticsHandler();
+      // The setup of a retracer should likely also follow a builder pattern instead of having
+      // static create methods. That would avoid the need to method overload the construction here
+      // and the default create would become the default build of a retracer.
       Retracer retracer =
-          Retracer.createDefault(options.getProguardMapProducer(), diagnosticsHandler);
+          RetracerImpl.create(
+              options.getProguardMapProducer(),
+              options.getDiagnosticsHandler(),
+              allowExperimentalMapping);
       timing.end();
       timing.begin("Report result");
       StringRetrace stringRetrace =

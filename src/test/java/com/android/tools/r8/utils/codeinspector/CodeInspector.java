@@ -139,6 +139,8 @@ public class CodeInspector {
       // The inspector allows building IR for a method. An output type must be defined for that.
       internalOptions.programConsumer = DexIndexedConsumer.emptyConsumer();
     }
+    // Always allow use of experimental map-file reading in the inspector.
+    internalOptions.testing.enableExperimentalMapFileVersion = true;
     return internalOptions;
   }
 

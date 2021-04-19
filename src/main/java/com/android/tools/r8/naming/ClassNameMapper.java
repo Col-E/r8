@@ -100,25 +100,35 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   public static ClassNameMapper mapperFromString(
-      String contents, DiagnosticsHandler diagnosticsHandler, boolean allowEmptyMappedRanges)
+      String contents,
+      DiagnosticsHandler diagnosticsHandler,
+      boolean allowEmptyMappedRanges,
+      boolean allowExperimentalMapping)
       throws IOException {
     return mapperFromBufferedReader(
-        CharSource.wrap(contents).openBufferedStream(), diagnosticsHandler, allowEmptyMappedRanges);
+        CharSource.wrap(contents).openBufferedStream(),
+        diagnosticsHandler,
+        allowEmptyMappedRanges,
+        allowExperimentalMapping);
   }
 
   private static ClassNameMapper mapperFromBufferedReader(
       BufferedReader reader, DiagnosticsHandler diagnosticsHandler) throws IOException {
-    return mapperFromBufferedReader(reader, diagnosticsHandler, false);
+    return mapperFromBufferedReader(reader, diagnosticsHandler, false, false);
   }
 
   public static ClassNameMapper mapperFromBufferedReader(
-      BufferedReader reader, DiagnosticsHandler diagnosticsHandler, boolean allowEmptyMappedRanges)
+      BufferedReader reader,
+      DiagnosticsHandler diagnosticsHandler,
+      boolean allowEmptyMappedRanges,
+      boolean allowExperimentalMapping)
       throws IOException {
     try (ProguardMapReader proguardReader =
         new ProguardMapReader(
             reader,
             diagnosticsHandler != null ? diagnosticsHandler : new Reporter(),
-            allowEmptyMappedRanges)) {
+            allowEmptyMappedRanges,
+            allowExperimentalMapping)) {
       ClassNameMapper.Builder builder = ClassNameMapper.builder();
       proguardReader.parse(builder);
       return builder.build();

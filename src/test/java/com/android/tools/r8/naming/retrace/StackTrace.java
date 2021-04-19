@@ -12,8 +12,8 @@ import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.retrace.ProguardMapProducer;
-import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceCommand;
+import com.android.tools.r8.retrace.RetraceHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Equivalence;
 import java.util.ArrayList;
@@ -301,16 +301,25 @@ public class StackTrace {
     return extractFromJvm(result.getStdErr());
   }
 
+  public StackTrace retraceAllowExperimentalMapping(String map) {
+    return retrace(map, null, true);
+  }
+
   public StackTrace retrace(String map) {
     return retrace(map, null);
   }
 
   public StackTrace retrace(String map, String regularExpression) {
+    return retrace(map, regularExpression, false);
+  }
+
+  public StackTrace retrace(
+      String map, String regularExpression, boolean allowExperimentalMapping) {
     class Box {
       List<String> result;
     }
     Box box = new Box();
-    Retrace.run(
+    RetraceHelper.runForTesting(
         RetraceCommand.builder()
             .setProguardMapProducer(ProguardMapProducer.fromString(map))
             .setStackTrace(
@@ -319,7 +328,8 @@ public class StackTrace {
                     .collect(Collectors.toList()))
             .setRegularExpression(regularExpression)
             .setRetracedStackTraceConsumer(retraced -> box.result = retraced)
-            .build());
+            .build(),
+        allowExperimentalMapping);
     // Keep the original stderr in the retraced stacktrace.
     return new StackTrace(internalExtractFromJvm(StringUtils.lines(box.result)), originalStderr);
   }

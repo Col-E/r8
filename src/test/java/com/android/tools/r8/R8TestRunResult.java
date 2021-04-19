@@ -49,7 +49,7 @@ public class R8TestRunResult extends SingleTestRunResult<R8TestRunResult> {
 
   @Override
   public StackTrace getStackTrace() {
-    return super.getStackTrace().retrace(proguardMap);
+    return super.getStackTrace().retraceAllowExperimentalMapping(proguardMap);
   }
 
   public StackTrace getOriginalStackTrace() {
