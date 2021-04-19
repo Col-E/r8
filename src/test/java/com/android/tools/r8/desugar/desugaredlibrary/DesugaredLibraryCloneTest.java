@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticException;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.time.DayOfWeek;
@@ -21,6 +18,7 @@ public class DesugaredLibraryCloneTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
+  private final String EXPECTED = "Just another manic MONDAY";
 
   @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
   public static List<Object[]> data() {
@@ -33,21 +31,24 @@ public class DesugaredLibraryCloneTest extends DesugaredLibraryTestBase {
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testD8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(getClass())
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compileWithExpectedDiagnostics(
-            diagnostics ->
-                // TODO(b/185735455): Should not throw an error.
-                diagnostics.assertErrorThatMatches(
-                    diagnosticException(NullPointerException.class)));
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
@@ -55,11 +56,14 @@ public class DesugaredLibraryCloneTest extends DesugaredLibraryTestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compileWithExpectedDiagnostics(
-            diagnostics ->
-                // TODO(b/185735455): Should not throw an error.
-                diagnostics.assertErrorThatMatches(
-                    diagnosticException(NullPointerException.class)));
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public static class Main {

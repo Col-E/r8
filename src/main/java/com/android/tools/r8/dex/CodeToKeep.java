@@ -79,9 +79,12 @@ public abstract class CodeToKeep {
 
     @Override
     void recordMethod(DexMethod method) {
-      if (shouldKeep(method.holder)) {
-        keepClass(method.holder);
-        toKeep.get(method.holder).methods.add(method);
+      DexType baseType = method.holder.toBaseType(options.dexItemFactory());
+      if (shouldKeep(baseType)) {
+        keepClass(baseType);
+        if (!method.holder.isArrayType()) {
+          toKeep.get(method.holder).methods.add(method);
+        }
       }
       if (shouldKeep(method.proto.returnType)) {
         keepClass(method.proto.returnType);
@@ -95,9 +98,12 @@ public abstract class CodeToKeep {
 
     @Override
     void recordField(DexField field) {
-      if (shouldKeep(field.holder)) {
-        keepClass(field.holder);
-        toKeep.get(field.holder).fields.add(field);
+      DexType baseType = field.holder.toBaseType(options.dexItemFactory());
+      if (shouldKeep(baseType)) {
+        keepClass(baseType);
+        if (!field.holder.isArrayType()) {
+          toKeep.get(field.holder).fields.add(field);
+        }
       }
       if (shouldKeep(field.type)) {
         keepClass(field.type);
