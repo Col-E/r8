@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethodRewrites;
+import com.android.tools.r8.ir.desugar.backports.SparseArrayMethodRewrites;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -1055,6 +1056,13 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
             new MethodGenerator(
                 method, BackportedMethods::MathMethods_floorModLongInt, "floorModLongInt"));
       }
+
+      // android.util.SparseArray
+
+      // void android.util.SparseArray.set(int, Object))
+      addProvider(
+          new InvokeRewriter(
+              factory.androidUtilSparseArrayMembers.set, SparseArrayMethodRewrites.rewriteSet()));
     }
 
     private void initializeJava9MethodProviders(DexItemFactory factory) {

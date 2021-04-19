@@ -536,6 +536,8 @@ public class DexItemFactory {
   public final DexType androidUtilPropertyType =
       createStaticallyKnownType("Landroid/util/Property;");
   public final DexType androidViewViewType = createStaticallyKnownType("Landroid/view/View;");
+  public final DexType androidUtilSparseArrayType =
+      createStaticallyKnownType("Landroid/util/SparseArray;");
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);
@@ -581,6 +583,8 @@ public class DexItemFactory {
   public final AndroidSystemOsConstantsMembers androidSystemOsConstantsMembers =
       new AndroidSystemOsConstantsMembers();
   public final AndroidViewViewMembers androidViewViewMembers = new AndroidViewViewMembers();
+  public final AndroidUtilSparseArrayMembers androidUtilSparseArrayMembers =
+      new AndroidUtilSparseArrayMembers();
 
   // java.**
   public final JavaIoFileMembers javaIoFileMembers = new JavaIoFileMembers();
@@ -957,6 +961,13 @@ public class DexItemFactory {
       consumer.accept(PRESSED_ENABLED_STATE_SET);
       consumer.accept(SELECTED_STATE_SET);
     }
+  }
+
+  public class AndroidUtilSparseArrayMembers extends LibraryMembers {
+    public final DexMethod put =
+        createMethod(androidUtilSparseArrayType, createProto(voidType, intType, objectType), "put");
+    public final DexMethod set =
+        createMethod(androidUtilSparseArrayType, createProto(voidType, intType, objectType), "set");
   }
 
   public class BooleanMembers extends LibraryMembers {

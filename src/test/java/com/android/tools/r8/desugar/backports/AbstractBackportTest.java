@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2IntAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2IntSortedMap;
 import java.io.IOException;
@@ -29,25 +30,71 @@ import org.junit.Test;
 
 abstract class AbstractBackportTest extends TestBase {
   protected final TestParameters parameters;
-  private final Class<?> targetClass;
-  private final Class<?> testClass;
+  private final ClassInfo targetClass;
+  private final ClassInfo testClass;
   private final Path testJar;
   private final String testClassName;
   private final Int2IntSortedMap invokeStaticCounts = new Int2IntAVLTreeMap();
   private final Set<String> ignoredInvokes = new HashSet<>();
 
+  private static class ClassInfo {
+    private final Class<?> clazz;
+    private final List<byte[]> classFileData;
+
+    private ClassInfo(Class<?> clazz) {
+      this.clazz = clazz;
+      this.classFileData = null;
+    }
+
+    private ClassInfo(byte[] classFileData) {
+      this.clazz = null;
+      this.classFileData = ImmutableList.of(classFileData);
+    }
+
+    private ClassInfo(List<byte[]> classFileData) {
+      this.clazz = null;
+      this.classFileData = classFileData;
+    }
+
+    String getName() {
+      return clazz != null ? clazz.getName() : extractClassName(classFileData.get(0));
+    }
+
+    TestBuilder<?, ?> addAsProgramClass(TestBuilder<?, ?> builder) throws IOException {
+      if (clazz != null) {
+        return builder.addProgramClassesAndInnerClasses(clazz);
+      } else {
+        return builder.addProgramClassFileData(classFileData);
+      }
+    }
+  }
+
   AbstractBackportTest(TestParameters parameters, Class<?> targetClass,
       Class<?> testClass) {
-    this(parameters, targetClass, testClass, null, null);
+    this(parameters, new ClassInfo(targetClass), new ClassInfo(testClass), null, null);
+  }
+
+  AbstractBackportTest(
+      TestParameters parameters, byte[] targetClassFileData, List<byte[]> testClassFileData) {
+    this(
+        parameters,
+        new ClassInfo(targetClassFileData),
+        new ClassInfo(testClassFileData),
+        null,
+        null);
   }
 
   AbstractBackportTest(TestParameters parameters, Class<?> targetClass,
       Path testJar, String testClassName) {
-    this(parameters, targetClass, null, testJar, testClassName);
+    this(parameters, new ClassInfo(targetClass), null, testJar, testClassName);
   }
 
-  private AbstractBackportTest(TestParameters parameters, Class<?> targetClass,
-      Class<?> testClass, Path testJar, String testClassName) {
+  private AbstractBackportTest(
+      TestParameters parameters,
+      ClassInfo targetClass,
+      ClassInfo testClass,
+      Path testJar,
+      String testClassName) {
     this.parameters = parameters;
     this.targetClass = targetClass;
     this.testClass = testClass;
@@ -83,7 +130,7 @@ abstract class AbstractBackportTest extends TestBase {
   private void configureProgram(TestBuilder<?, ?> builder) throws IOException {
     builder.addProgramClasses(MiniAssert.class, IgnoreInvokes.class);
     if (testClass != null) {
-      builder.addProgramClassesAndInnerClasses(testClass);
+      testClass.addAsProgramClass(builder);
     } else {
       builder.addProgramFiles(testJar);
     }
@@ -187,6 +234,10 @@ abstract class AbstractBackportTest extends TestBase {
         throw new AssertionError(
             "Expected <" + expected + "> to be same instance as <" + actual + '>');
       }
+    }
+
+    static void fail(String message) {
+      throw new AssertionError("Failed: " + message);
     }
   }
 }
