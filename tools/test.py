@@ -7,6 +7,8 @@
 # if an argument is given, run only tests with that pattern. This script will
 # force the tests to run, even if no input changed.
 
+import archive_desugar_jdk_libs
+import notify
 import optparse
 import os
 import shutil
@@ -16,9 +18,7 @@ import thread
 import time
 import uuid
 
-import archive_desugar_jdk_libs
 import gradle
-import notify
 import utils
 
 ALL_ART_VMS = [
@@ -386,14 +386,9 @@ def Main():
   for art_vm in vms_to_test:
     vm_suffix = "_" + options.dex_vm_kind if art_vm != "default" else ""
     runtimes = ['dex-' + art_vm]
-    # Only append the "none" runtime and JVMs if running on the "default" DEX VM.
+    # Append the "none" runtime and default JVM if running the "default" DEX VM.
     if art_vm == "default":
-      # TODO(b/170454076): Remove special casing for bot when rex-script has
-      #  been migrated to account for runtimes.
-      if utils.is_bot():
         runtimes.extend(['jdk11', 'none'])
-      else:
-        runtimes.extend(['jdk8', 'jdk9', 'jdk11', 'none'])
     return_code = gradle.RunGradle(
         gradle_args + [
           '-Pdex_vm=%s' % art_vm + vm_suffix,
