@@ -139,6 +139,10 @@ public class GenericSignature {
       return false;
     }
 
+    default boolean isValid() {
+      return !isInvalid();
+    }
+
     DexDefinitionSignature<T> toInvalid();
   }
 
@@ -516,7 +520,9 @@ public class GenericSignature {
       this.type = type;
       this.typeArguments = typeArguments;
       this.enclosingTypeSignature = enclosingTypeSignature;
+      assert type != DexItemFactory.nullValueType || indicator == WildcardIndicator.NOT_AN_ARGUMENT;
       assert typeArguments.stream().allMatch(FieldTypeSignature::isArgument);
+      assert typeArguments.stream().allMatch(FieldTypeSignature::hasSignature);
     }
 
     public DexType type() {
@@ -540,6 +546,7 @@ public class GenericSignature {
     @Override
     public ClassTypeSignature asArgument(WildcardIndicator indicator) {
       assert indicator != WildcardIndicator.NOT_AN_ARGUMENT;
+      assert hasSignature();
       return new ClassTypeSignature(type, typeArguments, enclosingTypeSignature, indicator);
     }
 

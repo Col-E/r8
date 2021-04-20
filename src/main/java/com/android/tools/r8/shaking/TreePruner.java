@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
+import com.android.tools.r8.graph.GenericSignatureTypeVariableRemover;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
@@ -45,6 +46,7 @@ public class TreePruner {
   private final UnusedItemsPrinter unusedItemsPrinter;
   private final Set<DexType> prunedTypes = Sets.newIdentityHashSet();
   private final Set<DexMethod> methodsToKeepForConfigurationDebugging = Sets.newIdentityHashSet();
+  private final GenericSignatureTypeVariableRemover typeVariableRemover;
 
   public TreePruner(AppView<AppInfoWithLiveness> appView) {
     this(appView, DefaultTreePrunerConfiguration.getInstance());
@@ -61,6 +63,11 @@ public class TreePruner {
                     ExceptionUtils.withConsumeResourceHandler(
                         options.reporter, options.usageInformationConsumer, s))
             : UnusedItemsPrinter.DONT_PRINT;
+    this.typeVariableRemover =
+        new GenericSignatureTypeVariableRemover(
+            appView,
+            this::isAttributeReferencingMissingOrPrunedType,
+            this::isAttributeReferencingPrunedItem);
   }
 
   public DirectMappedDexApplication run(ExecutorService executorService) throws ExecutionException {
@@ -193,6 +200,7 @@ public class TreePruner {
     if (reachableStaticFields != null) {
       clazz.setStaticFields(reachableStaticFields);
     }
+    typeVariableRemover.removeDeadGenericSignatureTypeVariables(clazz);
     clazz.removeInnerClasses(this::isAttributeReferencingMissingOrPrunedType);
     clazz.removeEnclosingMethodAttribute(this::isAttributeReferencingPrunedItem);
     rewriteNestAttributes(clazz);
