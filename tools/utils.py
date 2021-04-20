@@ -103,6 +103,46 @@ def archive_value(name, gs_dir, value):
       f.write(str(value))
     archive_file(name, gs_dir, tempfile)
 
+def find_cloud_storage_file_from_options(name, options, orElse=None):
+  # Import archive on-demand since archive depends on utils.
+  from archive import GetUploadDestination
+  hash_or_version = find_hash_or_version_from_options(options)
+  if not hash_or_version:
+    return orElse
+  is_hash = options.commit_hash is not None
+  download_path = GetUploadDestination(hash_or_version, name, is_hash)
+  if file_exists_on_cloud_storage(download_path):
+    out = tempfile.NamedTemporaryFile().name
+    download_file_from_cloud_storage(download_path, out)
+    return out
+  else:
+    raise Exception('Could not find file {} from hash/version: {}.'
+                  .format(name, hash_or_version))
+
+def find_r8_jar_from_options(options):
+  return find_cloud_storage_file_from_options('r8.jar', options)
+
+def find_r8_lib_jar_from_options(options):
+  return find_cloud_storage_file_from_options('r8lib.jar', options)
+
+def find_hash_or_version_from_options(options):
+  if options.tag:
+    return find_hash_or_version_from_tag(options.tag)
+  else:
+    return options.commit_hash or options.version
+
+def find_hash_or_version_from_tag(tag_or_hash):
+  info = subprocess.check_output([
+      'git',
+      'show',
+      tag_or_hash,
+      '-s',
+      '--format=oneline']).splitlines()[-1].split()
+  # The info should be on the following form [hash,"Version",version]
+  if len(info) == 3 and len(info[0]) == 40 and info[1] == "Version":
+    return info[2]
+  return None
+
 def getAndroidHome():
   return os.environ.get(
       ANDROID_HOME_ENVIROMENT_NAME, os.path.join(USER_HOME, 'Android', 'Sdk'))

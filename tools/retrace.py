@@ -53,52 +53,24 @@ def parse_arguments():
   return parser.parse_args()
 
 
-def find_version_or_hash_from_tag(tag_or_hash):
-  info = subprocess.check_output([
-      'git',
-      'show',
-      tag_or_hash,
-      '-s',
-      '--format=oneline']).splitlines()[-1].split()
-  # The info should be on the following form [hash,"Version",version]
-  if len(info) == 3 and len(info[0]) == 40 and info[1] == "Version":
-    return info[2]
-  return None
-
-
 def main():
   args = parse_arguments()
-  if args.tag:
-    hash_or_version = find_version_or_hash_from_tag(args.tag)
-  else:
-    hash_or_version = args.commit_hash or args.version
+  map_path = utils.find_cloud_storage_file_from_options(
+      'r8lib.jar.map', args, orElse=args.map)
   return run(
-      args.map,
-      hash_or_version,
+      map_path,
       args.stacktrace,
       args.commit_hash is not None,
       args.no_r8lib,
       quiet=args.quiet,
       debug=args.debug_agent)
 
-def run(map_path, hash_or_version, stacktrace, is_hash, no_r8lib, quiet=False,
-        debug=False):
-  if hash_or_version:
-    download_path = archive.GetUploadDestination(
-        hash_or_version,
-        'r8lib.jar.map',
-        is_hash)
-    if utils.file_exists_on_cloud_storage(download_path):
-      map_path = tempfile.NamedTemporaryFile().name
-      utils.download_file_from_cloud_storage(download_path, map_path)
-    else:
-      print('Could not find map file from argument: %s.' % hash_or_version)
-      return 1
-
+def run(map_path, stacktrace, is_hash, no_r8lib, quiet=False, debug=False):
   retrace_args = [jdk.GetJavaExecutable()]
 
   if debug:
-    retrace_args.append('-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005')
+    retrace_args.append(
+        '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005')
 
   retrace_args += [
     '-cp',
