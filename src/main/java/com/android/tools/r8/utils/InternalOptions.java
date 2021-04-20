@@ -1518,8 +1518,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseDexPcAsDebugInformation() {
-    // TODO(b/37830524): Enable for min-api 26 (OREO) and above.
-    return enablePcDebugInfoOutput;
+    return enablePcDebugInfoOutput && !debug && hasMinApi(AndroidApiLevel.O);
   }
 
   public boolean isInterfaceMethodDesugaringEnabled() {
