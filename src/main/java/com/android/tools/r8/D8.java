@@ -310,6 +310,7 @@ public final class D8 {
         // Since tracing is not lens aware, this needs to be done prior to synthetic finalization
         // which will construct a graph lens.
         if (!options.mainDexKeepRules.isEmpty()) {
+          appView.dexItemFactory().clearTypeElementsCache();
           MainDexInfo mainDexInfo =
               new GenerateMainDexList(options)
                   .traceMainDex(
