@@ -2983,7 +2983,8 @@ public class Enqueuer {
       ImmutableSet<ProguardKeepRuleBase> keepAllSet =
           ImmutableSet.of(appView.options().getProguardConfiguration().getKeepAllRule());
       for (DexProgramClass clazz : appView.appInfo().classes()) {
-        if (appView.getSyntheticItems().isNonLegacySynthetic(clazz)) {
+        if (appView.getSyntheticItems().isSyntheticClass(clazz)
+            && !appView.getSyntheticItems().isSubjectToKeepRules(clazz)) {
           // Don't treat compiler synthesized classes as kept roots.
           continue;
         }

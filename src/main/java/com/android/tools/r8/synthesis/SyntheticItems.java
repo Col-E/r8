@@ -109,7 +109,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     this.committed = committed;
   }
 
-  public static void collectSyntheticInputs(AppView<AppInfo> appView) {
+  public static void collectSyntheticInputs(AppView<?> appView) {
     // Collecting synthetic items must be the very first task after application build.
     SyntheticItems synthetics = appView.getSyntheticItems();
     assert synthetics.nextSyntheticId == 0;
@@ -119,7 +119,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       // If the compilation is in intermediate mode the synthetics should just be passed through.
       return;
     }
-    CommittedSyntheticsCollection.Builder builder = synthetics.committed.builder();
+    CommittedSyntheticsCollection.Builder builder =
+        synthetics.committed.builderForSyntheticInputs();
     // TODO(b/158159959): Consider identifying synthetics in the input reader to speed this up.
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       SyntheticMarker marker =
@@ -127,10 +128,9 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       if (marker.isSyntheticMethods()) {
         clazz.forEachProgramMethod(
             // TODO(b/158159959): Support having multiple methods per class.
-            method -> {
-              builder.addNonLegacyMethod(
-                  new SyntheticMethodDefinition(marker.getKind(), marker.getContext(), method));
-            });
+            method ->
+                builder.addNonLegacyMethod(
+                    new SyntheticMethodDefinition(marker.getKind(), marker.getContext(), method)));
       } else if (marker.isSyntheticClass()) {
         builder.addNonLegacyClass(
             new SyntheticProgramClassDefinition(marker.getKind(), marker.getContext(), clazz));
@@ -143,7 +143,15 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     CommittedItems commit =
         new CommittedItems(
             synthetics.nextSyntheticId, appView.appInfo().app(), committed, ImmutableList.of());
-    appView.setAppInfo(new AppInfo(commit, appView.appInfo().getMainDexInfo()));
+    if (appView.appInfo().hasClassHierarchy()) {
+      appView
+          .withClassHierarchy()
+          .setAppInfo(appView.appInfo().withClassHierarchy().rebuildWithClassHierarchy(commit));
+    } else {
+      appView
+          .withoutClassHierarchy()
+          .setAppInfo(new AppInfo(commit, appView.appInfo().getMainDexInfo()));
+    }
   }
 
   // Predicates and accessors.
@@ -237,6 +245,11 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     }
     assert false;
     return null;
+  }
+
+  public boolean isSubjectToKeepRules(DexProgramClass clazz) {
+    assert isSyntheticClass(clazz);
+    return committed.containsSyntheticInput(clazz.getType());
   }
 
   public boolean isSyntheticClass(DexType type) {

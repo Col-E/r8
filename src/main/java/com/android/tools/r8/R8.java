@@ -103,6 +103,7 @@ import com.android.tools.r8.shaking.VerticalClassMerger;
 import com.android.tools.r8.shaking.VerticalClassMergerGraphLens;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.synthesis.SyntheticFinalization;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -291,6 +292,7 @@ public class R8 {
 
         appView = AppView.createForR8(application, mainDexInfo);
         appView.setAppServices(AppServices.builder(appView).build());
+        SyntheticItems.collectSyntheticInputs(appView);
       }
 
       // Check for potentially having pass-through of Cf-code for kotlin libraries.
