@@ -8,7 +8,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8TestCompileResult;
@@ -122,7 +121,7 @@ public class GenericSignatureTest extends TestBase {
     assertEquals(1, classSignature.formalTypeParameters.size());
     FormalTypeParameter formalTypeParameter = classSignature.formalTypeParameters.get(0);
     assertEquals("T", formalTypeParameter.name);
-    assertNull(formalTypeParameter.interfaceBounds);
+    assertTrue(formalTypeParameter.interfaceBounds.isEmpty());
     assertTrue(formalTypeParameter.classBound.isClassTypeSignature());
     ClassTypeSignature classBoundSignature = formalTypeParameter.classBound.asClassTypeSignature();
     assertEquals(y.getDexProgramClass().type, classBoundSignature.type);
