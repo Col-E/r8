@@ -305,11 +305,11 @@ public class StackTrace {
   }
 
   public StackTrace retrace(String map) {
-    return retrace(map, null);
+    return retrace(map, null, true);
   }
 
   public StackTrace retrace(String map, String regularExpression) {
-    return retrace(map, regularExpression, false);
+    return retrace(map, regularExpression, true);
   }
 
   public StackTrace retrace(
