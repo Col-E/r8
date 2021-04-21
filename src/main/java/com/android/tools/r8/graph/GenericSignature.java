@@ -157,6 +157,7 @@ public class GenericSignature {
       this.name = name;
       this.classBound = classBound;
       this.interfaceBounds = interfaceBounds;
+      assert interfaceBounds != null;
     }
 
     public String getName() {
@@ -1078,7 +1079,7 @@ public class GenericSignature {
         builder.add(parseFieldTypeSignature());
       }
       if (builder == null) {
-        return new FormalTypeParameter(typeParameterIdentifier, classBound, null);
+        return new FormalTypeParameter(typeParameterIdentifier, classBound, EMPTY_TYPE_ARGUMENTS);
       }
       return new FormalTypeParameter(typeParameterIdentifier, classBound, builder.build());
     }

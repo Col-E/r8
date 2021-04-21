@@ -63,7 +63,7 @@ class GenericSignatureTypeVisitor implements GenericSignatureVisitor {
   @Override
   public List<FormalTypeParameter> visitFormalTypeParameters(
       List<FormalTypeParameter> formalTypeParameters) {
-    formalTypeParameters.forEach(formalTypeParameter -> formalTypeParameter.visit(this));
+    formalTypeParameters.forEach(this::visitFormalTypeParameter);
     return formalTypeParameters;
   }
 

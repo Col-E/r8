@@ -76,7 +76,11 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
 
   @Override
   public FormalTypeParameter visitFormalTypeParameter(FormalTypeParameter formalTypeParameter) {
-    return formalTypeParameter.visit(this);
+    FormalTypeParameter rewritten = formalTypeParameter.visit(this);
+    // Guard against no information being present in bounds.
+    assert (rewritten.getClassBound() != null && rewritten.getClassBound().hasSignature())
+        || !rewritten.getInterfaceBounds().isEmpty();
+    return rewritten;
   }
 
   @Override

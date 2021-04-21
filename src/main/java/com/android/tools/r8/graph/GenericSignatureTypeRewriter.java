@@ -27,7 +27,7 @@ public class GenericSignatureTypeRewriter {
   private final Function<DexType, DexType> lookupType;
   private final DexType context;
 
-  private final FieldTypeSignature objectTypeSignature;
+  private final ClassTypeSignature objectTypeSignature;
 
   public GenericSignatureTypeRewriter(AppView<?> appView, DexProgramClass context) {
     this(
@@ -124,7 +124,15 @@ public class GenericSignatureTypeRewriter {
 
     @Override
     public FormalTypeParameter visitFormalTypeParameter(FormalTypeParameter formalTypeParameter) {
-      return formalTypeParameter.visit(this);
+      FormalTypeParameter rewritten = formalTypeParameter.visit(this);
+      // Guard against no information being present in bounds.
+      boolean isEmptyClassBound =
+          rewritten.getClassBound() == null || rewritten.getClassBound().hasNoSignature();
+      if (isEmptyClassBound && rewritten.getInterfaceBounds().isEmpty()) {
+        return new FormalTypeParameter(
+            formalTypeParameter.getName(), objectTypeSignature, rewritten.getInterfaceBounds());
+      }
+      return rewritten;
     }
 
     @Override

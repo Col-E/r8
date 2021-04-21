@@ -8,7 +8,6 @@ import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.google.common.base.Predicates.alwaysFalse;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -187,9 +186,9 @@ public class ClassSignatureTest extends TestBase {
     ClassSignature reparsed =
         GenericSignature.parseClassSignature(
             className, rewritten.toString(), Origin.unknown(), factory, testDiagnosticMessages);
-    assertFalse(reparsed.hasSignature());
-    testDiagnosticMessages.assertWarningThatMatches(
-        diagnosticMessage(containsString("Invalid signature")));
+    assertTrue(reparsed.hasSignature());
+    testDiagnosticMessages.assertNoMessages();
+    assertEquals(rewritten.toString(), reparsed.toString());
   }
 
   private void testParsingAndPrintingEqual(String signature) {
