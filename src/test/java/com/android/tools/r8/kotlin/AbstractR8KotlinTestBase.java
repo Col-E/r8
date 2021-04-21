@@ -53,12 +53,6 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
 
   protected final TestParameters testParameters;
 
-  // Some tests defined in subclasses, e.g., Metadata tests, don't care about access relaxation.
-  protected AbstractR8KotlinTestBase(
-      TestParameters parameters, KotlinTestParameters kotlinParameters) {
-    this(parameters, kotlinParameters, false);
-  }
-
   protected AbstractR8KotlinTestBase(
       TestParameters parameters,
       KotlinTestParameters kotlinParameters,

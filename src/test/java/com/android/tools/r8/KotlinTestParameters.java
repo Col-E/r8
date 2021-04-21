@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,7 +82,12 @@ public class KotlinTestParameters {
       int index = 0;
       for (KotlinCompiler kotlinc : compilers) {
         for (KotlinTargetVersion targetVersion : targetVersions) {
-          testParameters.add(new KotlinTestParameters(kotlinc, targetVersion, index++));
+          // KotlinTargetVersion java 6 is deprecated from kotlinc 1.5 and forward, no need to run
+          // tests on that target.
+          if (targetVersion != KotlinTargetVersion.JAVA_6
+              || kotlinc.isNot(KotlinCompilerVersion.KOTLINC_1_5_0_M2)) {
+            testParameters.add(new KotlinTestParameters(kotlinc, targetVersion, index++));
+          }
         }
       }
       return new KotlinTestParametersCollection(testParameters);
