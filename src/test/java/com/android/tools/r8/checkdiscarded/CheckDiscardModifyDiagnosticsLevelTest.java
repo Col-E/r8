@@ -78,7 +78,7 @@ public class CheckDiscardModifyDiagnosticsLevelTest extends TestBase {
   }
 
   @Test
-  public void dontFailCompilationOnCheckDiscardedFailure() {
+  public void dontFailCompilationIfCheckDiscardedFails() {
     try {
       testForR8(Backend.DEX)
           .addProgramClasses(
