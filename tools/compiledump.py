@@ -342,19 +342,40 @@ def run1(out, args, otherargs, jdkhome=None):
       print(subprocess.check_output(cmd, stderr=subprocess.STDOUT))
       return 0
     except subprocess.CalledProcessError as e:
-      if not args.nolib and version != 'source':
-        stacktrace = os.path.join(temp, 'stacktrace')
-        open(stacktrace, 'w+').write(e.output.decode('UTF-8'))
-        local_map = utils.R8LIB_MAP if version == 'main' else None
-        hash_or_version = None if version == 'main' else version
-        print("=" * 80)
-        print(" RETRACED OUTPUT")
-        print("=" * 80)
-        retrace.run(
-          local_map, hash_or_version, stacktrace, is_hash(version), no_r8lib=False)
-      else:
+      if args.nolib \
+          or version == 'source' \
+          or not try_retrace_output(e, version, temp):
         print(e.output.decode('UTF-8'))
       return 1
+
+def try_retrace_output(e, version, temp):
+  try:
+    stacktrace = os.path.join(temp, 'stacktrace')
+    open(stacktrace, 'w+').write(e.output.decode('UTF-8'))
+    print("=" * 80)
+    print(" RETRACED OUTPUT")
+    print("=" * 80)
+    retrace.run(get_map_file(version, temp), stacktrace, no_r8lib=False)
+    return True
+  except Exception as e2:
+    print("Failed to retrace for version: %s" % version)
+    print(e2)
+    return False
+
+def get_map_file(version, temp):
+  if version == 'main':
+    return utils.R8LIB_MAP
+  download_path = archive.GetUploadDestination(
+        version,
+        'r8lib.jar.map',
+        is_hash(version))
+  if utils.file_exists_on_cloud_storage(download_path):
+    map_path = os.path.join(temp, 'mapping.map')
+    utils.download_file_from_cloud_storage(download_path, map_path)
+    return map_path
+  else:
+    print('Could not find map file from argument: %s.' % version)
+    return None
 
 def run(args, otherargs):
   if (args.loop):

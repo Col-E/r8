@@ -3,13 +3,13 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-import archive
 import argparse
 import jdk
 import subprocess
 import sys
-import tempfile
+
 import utils
+
 
 def parse_arguments():
   parser = argparse.ArgumentParser(
@@ -60,12 +60,11 @@ def main():
   return run(
       map_path,
       args.stacktrace,
-      args.commit_hash is not None,
       args.no_r8lib,
       quiet=args.quiet,
       debug=args.debug_agent)
 
-def run(map_path, stacktrace, is_hash, no_r8lib, quiet=False, debug=False):
+def run(map_path, stacktrace, no_r8lib, quiet=False, debug=False):
   retrace_args = [jdk.GetJavaExecutable()]
 
   if debug:
