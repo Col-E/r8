@@ -1717,7 +1717,6 @@ task buildSmali {
                 }
             }
         } else {
-            dependsOn "${taskName}_dexmerger"
             task "${taskName}_smali"(type: SmaliTask) {
                 source = smaliFiles
                 destination = intermediateFile
@@ -1919,6 +1918,9 @@ def filterStackTrace(Throwable exception) {
     }
 }
 
+def testTimes = [:]
+def numberOfTestTimesToPrint = 40
+
 test {
     if (project.hasProperty('generate_golden_files_to')) {
         systemProperty 'generate_golden_files_to', project.property('generate_golden_files_to')
@@ -1963,10 +1965,26 @@ test {
         systemProperty 'desugar_jdk_libs', project.property('desugar_jdk_libs')
     }
 
+    if (project.hasProperty('print_times') || project.hasProperty('one_line_per_test')) {
+        afterTest { desc, result ->
+            def executionTime = (result.endTime - result.startTime) / 1000
+            testTimes["${desc.name} [${desc.className}]"] = executionTime
+        }
+        afterSuite { desc, result ->
+          // parent is null if all tests are done.
+          if (desc.parent == null) {
+            def sortedTimes = testTimes.sort({e1, e2 -> e2.value <=> e1.value})
+            sortedTimes.eachWithIndex{key, value, i ->
+                if (i < numberOfTestTimesToPrint) println "$key: $value"}
+          }
+        }
+    }
+
     if (project.hasProperty('one_line_per_test')) {
         beforeTest { desc ->
             println "Start executing test ${desc.name} [${desc.className}]"
         }
+
         afterTest { desc, result ->
             if (result.resultType == TestResult.ResultType.FAILURE) {
                 printStackTrace(result)
