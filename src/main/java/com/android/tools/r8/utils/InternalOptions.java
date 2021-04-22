@@ -1228,6 +1228,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // See b/174530756 for more details.
     public boolean enableProtoEnumSwitchMapShrinking = true;
 
+    public void disable() {
+      enableGeneratedExtensionRegistryShrinking = false;
+      enableGeneratedMessageLiteShrinking = false;
+      enableGeneratedMessageLiteBuilderShrinking = false;
+      traverseOneOfAndRepeatedProtoFields = false;
+      enableEnumLiteProtoShrinking = false;
+    }
+
     public boolean enableRemoveProtoEnumSwitchMap() {
       return isProtoShrinkingEnabled() && enableProtoEnumSwitchMapShrinking;
     }

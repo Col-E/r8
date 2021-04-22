@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldTypeFactory;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -26,9 +27,8 @@ public class ProtoShrinker {
 
   private Set<DexType> deadProtoTypes = Sets.newIdentityHashSet();
 
-  public ProtoShrinker(AppView<AppInfoWithLiveness> appView) {
+  public ProtoShrinker(AppView<AppInfoWithLiveness> appView, ProtoReferences references) {
     ProtoFieldTypeFactory factory = new ProtoFieldTypeFactory();
-    ProtoReferences references = new ProtoReferences(appView.dexItemFactory());
     this.decoder = new RawMessageInfoDecoder(factory, references);
     this.factory = factory;
     this.generatedExtensionRegistryShrinker =
@@ -52,6 +52,26 @@ public class ProtoShrinker {
             ? new ProtoEnumSwitchMapRemover(references)
             : null;
     this.references = references;
+  }
+
+  public static ProtoShrinker create(AppView<AppInfoWithLiveness> appView) {
+    if (!appView.enableWholeProgramOptimizations()
+        || !appView.options().protoShrinking().isProtoShrinkingEnabled()) {
+      return null;
+    }
+
+    ProtoReferences references = new ProtoReferences(appView.dexItemFactory());
+    if (appView.definitionFor(references.generatedMessageLiteType) == null) {
+      appView
+          .reporter()
+          .warning(
+              new StringDiagnostic(
+                  "Ignoring -shrinkunusedprotofields since the protobuf-lite runtime is missing"));
+      appView.options().protoShrinking().disable();
+      return null;
+    }
+
+    return new ProtoShrinker(appView, references);
   }
 
   public Set<DexType> getDeadProtoTypes() {

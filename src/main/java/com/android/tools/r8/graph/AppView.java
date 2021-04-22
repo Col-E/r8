@@ -128,12 +128,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
     this.libraryMethodSideEffectModelCollection = new LibraryMethodSideEffectModelCollection(this);
     this.libraryMemberOptimizer = new LibraryMemberOptimizer(this);
-
-    if (enableWholeProgramOptimizations() && options().protoShrinking().isProtoShrinkingEnabled()) {
-      this.protoShrinker = new ProtoShrinker(withLiveness());
-    } else {
-      this.protoShrinker = null;
-    }
+    this.protoShrinker = ProtoShrinker.create(withLiveness());
   }
 
   public boolean verifyMainThread() {
