@@ -38,6 +38,8 @@ import time
 import utils
 import run_on_app
 
+import youtube_data
+
 # How often the bot/tester should check state
 PULL_DELAY = 30
 TEST_RESULT_DIR = 'internal'
@@ -74,7 +76,7 @@ BENCHMARK_APPS = [
     },
     {
         'app': 'youtube',
-        'version': '12.22',
+        'version': youtube_data.LATEST_VERSION,
         'find-xmx-min': 750,
         'find-xmx-max': 1150,
         'find-xmx-range': 32,

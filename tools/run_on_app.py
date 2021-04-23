@@ -396,7 +396,7 @@ def get_version_and_data(options):
     version = options.version or '20180926'
     data = nest_data
   elif options.app == 'youtube':
-    version = options.version or '12.22'
+    version = options.version or youtube_data.LATEST_VERSION
     data = youtube_data
   elif options.app == 'chrome':
     version = options.version or '180917'
