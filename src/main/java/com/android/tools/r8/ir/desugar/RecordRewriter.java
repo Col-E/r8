@@ -228,7 +228,7 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
         .createMethod(
             SyntheticNaming.SyntheticKind.RECORD_HELPER,
             methodProcessingContext.createUniqueContext(),
-            factory,
+            appView,
             builder ->
                 builder
                     .setProto(helperProto)

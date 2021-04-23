@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -28,26 +29,27 @@ public class SyntheticMarker {
                     kind, context.getSynthesizingContextType(), factory)));
   }
 
-  public static SyntheticMarker stripMarkerFromClass(
-      DexProgramClass clazz, DexItemFactory factory) {
-    SyntheticMarker marker = internalStripMarkerFromClass(clazz, factory);
+  public static SyntheticMarker stripMarkerFromClass(DexProgramClass clazz, AppView<?> appView) {
+    SyntheticMarker marker = internalStripMarkerFromClass(clazz, appView);
     assert marker != NO_MARKER
-        || DexAnnotation.getSynthesizedClassAnnotationContextType(clazz.annotations(), factory)
+        || DexAnnotation.getSynthesizedClassAnnotationContextType(
+                clazz.annotations(), appView.dexItemFactory())
             == null;
     return marker;
   }
 
   private static SyntheticMarker internalStripMarkerFromClass(
-      DexProgramClass clazz, DexItemFactory factory) {
+      DexProgramClass clazz, AppView<?> appView) {
     ClassAccessFlags flags = clazz.accessFlags;
-    if (clazz.superType != factory.objectType) {
+    if (clazz.superType != appView.dexItemFactory().objectType) {
       return NO_MARKER;
     }
     if (!flags.isSynthetic() || flags.isAbstract() || flags.isEnum()) {
       return NO_MARKER;
     }
     Pair<SyntheticKind, DexType> info =
-        DexAnnotation.getSynthesizedClassAnnotationContextType(clazz.annotations(), factory);
+        DexAnnotation.getSynthesizedClassAnnotationContextType(
+            clazz.annotations(), appView.dexItemFactory());
     if (info == null) {
       return NO_MARKER;
     }
@@ -65,7 +67,8 @@ public class SyntheticMarker {
       }
     }
     clazz.setAnnotations(DexAnnotationSet.empty());
-    return new SyntheticMarker(kind, SynthesizingContext.fromSyntheticInputClass(clazz, context));
+    return new SyntheticMarker(
+        kind, SynthesizingContext.fromSyntheticInputClass(clazz, context, appView));
   }
 
   private static final SyntheticMarker NO_MARKER = new SyntheticMarker(null, null);

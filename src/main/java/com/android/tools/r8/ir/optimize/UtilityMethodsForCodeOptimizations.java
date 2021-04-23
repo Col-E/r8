@@ -38,7 +38,7 @@ public class UtilityMethodsForCodeOptimizations {
         syntheticItems.createMethod(
             SyntheticNaming.SyntheticKind.TO_STRING_IF_NOT_NULL,
             methodProcessingContext.createUniqueContext(),
-            dexItemFactory,
+            appView,
             builder ->
                 builder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
@@ -65,7 +65,7 @@ public class UtilityMethodsForCodeOptimizations {
         syntheticItems.createMethod(
             SyntheticNaming.SyntheticKind.THROW_CCE_IF_NOT_NULL,
             positionContext,
-            dexItemFactory,
+            appView,
             builder ->
                 builder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
@@ -93,7 +93,7 @@ public class UtilityMethodsForCodeOptimizations {
         syntheticItems.createMethod(
             SyntheticNaming.SyntheticKind.THROW_IAE,
             methodProcessingContext.createUniqueContext(),
-            dexItemFactory,
+            appView,
             builder ->
                 builder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
@@ -119,7 +119,7 @@ public class UtilityMethodsForCodeOptimizations {
         syntheticItems.createMethod(
             SyntheticNaming.SyntheticKind.THROW_ICCE,
             methodProcessingContext.createUniqueContext(),
-            dexItemFactory,
+            appView,
             builder ->
                 builder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
@@ -147,7 +147,7 @@ public class UtilityMethodsForCodeOptimizations {
         syntheticItems.createMethod(
             SyntheticNaming.SyntheticKind.THROW_NSME,
             methodProcessingContext.createUniqueContext(),
-            dexItemFactory,
+            appView,
             builder ->
                 builder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())

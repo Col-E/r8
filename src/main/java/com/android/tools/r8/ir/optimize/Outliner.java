@@ -1367,7 +1367,7 @@ public class Outliner {
               .createMethod(
                   SyntheticKind.OUTLINE,
                   methodProcessingContext.createUniqueContext(),
-                  appView.dexItemFactory(),
+                  appView,
                   builder -> {
                     builder
                         .setAccessFlags(

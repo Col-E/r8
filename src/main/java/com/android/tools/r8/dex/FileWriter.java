@@ -690,7 +690,7 @@ public class FileWriter {
     writeEncodedFields(clazz.staticFields());
     writeEncodedFields(clazz.instanceFields());
     boolean isSharedSynthetic =
-        appInfo.getSyntheticItems().getSynthesizingContexts(clazz.getType()).size() > 1;
+        appInfo.getSyntheticItems().getSynthesizingContextTypes(clazz.getType()).size() > 1;
     writeEncodedMethods(clazz.directMethods(), isSharedSynthetic);
     writeEncodedMethods(clazz.virtualMethods(), isSharedSynthetic);
   }

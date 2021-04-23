@@ -113,7 +113,7 @@ public class MainDexInfo {
       return false;
     }
     DexType type = reference.getContextType();
-    for (DexType context : synthetics.getSynthesizingContexts(type)) {
+    for (DexType context : synthetics.getSynthesizingContextTypes(type)) {
       if (items.contains(context)) {
         return true;
       }

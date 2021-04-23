@@ -6,8 +6,9 @@ package com.android.tools.r8.synthesis;
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescriptor;
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassBinaryName;
 
+import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
@@ -37,37 +38,55 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
   private final DexType inputContextType;
   private final Origin inputContextOrigin;
 
-  static SynthesizingContext fromNonSyntheticInputContext(DexClass context) {
+  private final FeatureSplit featureSplit;
+
+  static SynthesizingContext fromNonSyntheticInputContext(ClasspathOrLibraryClass context) {
     // A context that is itself non-synthetic is the single context, thus both the input context
     // and synthesizing context coincide.
     return new SynthesizingContext(
-        context.getContextType(), context.getContextType(), context.getOrigin());
+        context.getContextType(),
+        context.getContextType(),
+        context.getOrigin(),
+        // Synthesizing from a non-program context is just considered to be "base".
+        FeatureSplit.BASE);
   }
 
   static SynthesizingContext fromType(DexType type) {
-    return new SynthesizingContext(type, type, Origin.unknown());
+    // This method should only be used for synthesizing from a non-program context!
+    // Thus we have no origin info and place the context in the "base" feature.
+    return new SynthesizingContext(type, type, Origin.unknown(), FeatureSplit.BASE);
   }
 
-  static SynthesizingContext fromNonSyntheticInputContext(ProgramDefinition context) {
+  static SynthesizingContext fromNonSyntheticInputContext(
+      ProgramDefinition context, FeatureSplit featureSplit) {
     // A context that is itself non-synthetic is the single context, thus both the input context
     // and synthesizing context coincide.
     return new SynthesizingContext(
-        context.getContextType(), context.getContextType(), context.getOrigin());
+        context.getContextType(), context.getContextType(), context.getOrigin(), featureSplit);
   }
 
   static SynthesizingContext fromSyntheticInputClass(
-      DexProgramClass clazz, DexType synthesizingContextType) {
+      DexProgramClass clazz, DexType synthesizingContextType, AppView<?> appView) {
     assert synthesizingContextType != null;
     // A context that is itself synthetic must denote a synthesizing context from which to ensure
     // hygiene. This synthesizing context type is encoded on the synthetic for intermediate builds.
-    return new SynthesizingContext(synthesizingContextType, clazz.type, clazz.origin);
+    FeatureSplit featureSplit =
+        appView
+            .appInfoForDesugaring()
+            .getClassToFeatureSplitMap()
+            .getFeatureSplit(clazz, appView.getSyntheticItems());
+    return new SynthesizingContext(synthesizingContextType, clazz.type, clazz.origin, featureSplit);
   }
 
   private SynthesizingContext(
-      DexType synthesizingContextType, DexType inputContextType, Origin inputContextOrigin) {
+      DexType synthesizingContextType,
+      DexType inputContextType,
+      Origin inputContextOrigin,
+      FeatureSplit featureSplit) {
     this.synthesizingContextType = synthesizingContextType;
     this.inputContextType = inputContextType;
     this.inputContextOrigin = inputContextOrigin;
+    this.featureSplit = featureSplit;
   }
 
   @Override
@@ -81,8 +100,16 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
         .compare(this, other);
   }
 
+  DexType getSynthesizingContextType() {
+    return synthesizingContextType;
+  }
+
   Origin getInputContextOrigin() {
     return inputContextOrigin;
+  }
+
+  FeatureSplit getFeatureSplit() {
+    return featureSplit;
   }
 
   SynthesizingContext rewrite(NonIdentityGraphLens lens) {
@@ -92,11 +119,10 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
             && rewrittenSynthesizingContextType == synthesizingContextType
         ? this
         : new SynthesizingContext(
-            rewrittenSynthesizingContextType, rewrittenInputeContextType, inputContextOrigin);
-  }
-
-  DexType getSynthesizingContextType() {
-    return synthesizingContextType;
+            rewrittenSynthesizingContextType,
+            rewrittenInputeContextType,
+            inputContextOrigin,
+            featureSplit);
   }
 
   void registerPrefixRewriting(DexType hygienicType, AppView<?> appView) {
@@ -128,7 +154,10 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
 
   @Override
   public String toString() {
-    return "SynthesizingContext{" + getSynthesizingContextType() + "}";
+    return "SynthesizingContext{"
+        + getSynthesizingContextType()
+        + (featureSplit != FeatureSplit.BASE ? ", feature:" + featureSplit : "")
+        + "}";
   }
 
   // TODO(b/181858113): Remove once deprecated main-dex-list is removed.

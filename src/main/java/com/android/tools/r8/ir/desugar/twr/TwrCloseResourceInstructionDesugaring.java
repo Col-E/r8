@@ -71,7 +71,7 @@ public class TwrCloseResourceInstructionDesugaring implements CfInstructionDesug
         .createMethod(
             SyntheticKind.TWR_CLOSE_RESOURCE,
             methodProcessingContext.createUniqueContext(),
-            appView.dexItemFactory(),
+            appView,
             methodBuilder ->
                 methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())

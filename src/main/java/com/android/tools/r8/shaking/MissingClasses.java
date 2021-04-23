@@ -191,7 +191,9 @@ public class MissingClasses {
 
         // Rewrite the synthetic context to its synthesizing contexts.
         Set<DexReference> synthesizingContextReferences =
-            appView.getSyntheticItems().getSynthesizingContexts(clazz, synthesizingContextOracle);
+            appView
+                .getSyntheticItems()
+                .getSynthesizingContextReferences(clazz, synthesizingContextOracle);
         assert synthesizingContextReferences != null;
         assert !synthesizingContextReferences.isEmpty();
         for (DexReference synthesizingContextReference : synthesizingContextReferences) {

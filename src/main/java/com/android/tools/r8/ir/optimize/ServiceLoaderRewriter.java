@@ -193,7 +193,7 @@ public class ServiceLoaderRewriter {
             .createMethod(
                 SyntheticKind.SERVICE_LOADER,
                 methodProcessingContext.createUniqueContext(),
-                appView.dexItemFactory(),
+                appView,
                 builder ->
                     builder
                         .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())

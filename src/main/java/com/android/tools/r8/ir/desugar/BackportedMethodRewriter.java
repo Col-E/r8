@@ -1442,7 +1442,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
           .createMethod(
               SyntheticNaming.SyntheticKind.BACKPORT,
               methodProcessingContext.createUniqueContext(),
-              appView.dexItemFactory(),
+              appView,
               builder ->
                   builder
                       .setProto(getProto(appView.dexItemFactory()))

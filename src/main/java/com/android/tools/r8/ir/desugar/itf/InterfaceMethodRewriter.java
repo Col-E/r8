@@ -25,6 +25,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -455,7 +456,7 @@ public final class InterfaceMethodRewriter {
                 .createMethod(
                     SyntheticNaming.SyntheticKind.STATIC_INTERFACE_CALL,
                     methodProcessingContext.createUniqueContext(),
-                    factory,
+                    appView,
                     syntheticMethodBuilder ->
                         syntheticMethodBuilder
                             .setProto(invokedMethod.proto)
@@ -907,18 +908,18 @@ public final class InterfaceMethodRewriter {
 
   private static void recordCompanionClassReference(
       AppView<?> appView, DexClassAndMethod method, DexMethod rewritten) {
+    ClasspathOrLibraryClass context = method.getHolder().asClasspathOrLibraryClass();
     // If the interface class is a program class, we shouldn't need to synthesize the companion
     // class on the classpath.
-    if (method.getHolder().isProgramClass()) {
+    if (context == null) {
       return;
     }
-
     appView
         .getSyntheticItems()
         .ensureDirectMethodOnSyntheticClasspathClassWhileMigrating(
             SyntheticKind.COMPANION_CLASS,
             rewritten.getHolderType(),
-            method.getHolder(),
+            context,
             appView,
             rewritten,
             builder ->
@@ -1149,7 +1150,7 @@ public final class InterfaceMethodRewriter {
     if (consumer != null) {
       Origin dependencyOrigin = dependency.getOrigin();
       java.util.Collection<DexType> dependents =
-          appInfo.getSyntheticItems().getSynthesizingContexts(dependent.getType());
+          appInfo.getSyntheticItems().getSynthesizingContextTypes(dependent.getType());
       if (dependents.isEmpty()) {
         reportDependencyEdge(consumer, dependencyOrigin, dependent);
       } else {

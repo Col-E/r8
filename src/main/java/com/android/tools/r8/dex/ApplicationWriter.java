@@ -646,7 +646,7 @@ public class ApplicationWriter {
       // TODO(b/181636450): Reconsider the code mapping setup now that synthetics are never
       //  duplicated in outputs.
       boolean isSharedSynthetic =
-          appView.getSyntheticItems().getSynthesizingContexts(clazz.getType()).size() > 1;
+          appView.getSyntheticItems().getSynthesizingContextTypes(clazz.getType()).size() > 1;
       clazz.forEachMethod(
           method -> {
             DexCode code =

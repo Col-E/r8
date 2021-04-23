@@ -53,7 +53,7 @@ public class SyntheticArgumentClass {
     private DexProgramClass synthesizeClass(DexProgramClass context, SyntheticKind syntheticKind) {
       return appView
           .getSyntheticItems()
-          .createFixedClass(syntheticKind, context, appView.dexItemFactory(), builder -> {});
+          .createFixedClass(syntheticKind, context, appView, builder -> {});
     }
 
     public SyntheticArgumentClass build(Collection<MergeGroup> mergeGroups) {

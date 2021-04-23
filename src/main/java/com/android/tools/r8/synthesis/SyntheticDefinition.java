@@ -81,13 +81,7 @@ abstract class SyntheticDefinition<
       // single context.
       getContext().getSynthesizingContextType().hashWithTypeEquivalence(hasher, map);
     }
-    if (!classToFeatureSplitMap.isEmpty()) {
-      hasher.putInt(
-          classToFeatureSplitMap
-              .getFeatureSplit(getContext().getSynthesizingContextType(), syntheticItems)
-              .hashCode());
-    }
-
+    hasher.putInt(context.getFeatureSplit().hashCode());
     internalComputeHash(hasher, map);
     return hasher.hash();
   }
@@ -121,17 +115,12 @@ abstract class SyntheticDefinition<
         return order;
       }
     }
-    if (!classToFeatureSplitMap.isEmpty()) {
-      DexType synthesizingContextType = this.getContext().getSynthesizingContextType();
-      DexType otherSynthesizingContextType = other.getContext().getSynthesizingContextType();
-      if (!classToFeatureSplitMap.isInSameFeatureOrBothInBase(
-          synthesizingContextType, otherSynthesizingContextType, syntheticItems)) {
-        int order =
-            classToFeatureSplitMap.compareFeatureSplitsForDexTypes(
-                synthesizingContextType, otherSynthesizingContextType, syntheticItems);
-        assert order != 0;
-        return order;
-      }
+    if (getContext().getFeatureSplit() != other.getContext().getFeatureSplit()) {
+      int order =
+          classToFeatureSplitMap.compareFeatureSplits(
+              context.getFeatureSplit(), other.getContext().getFeatureSplit());
+      assert order != 0;
+      return order;
     }
     RepresentativeMap map = null;
     // If the synthetics have been moved include the original types in the equivalence.

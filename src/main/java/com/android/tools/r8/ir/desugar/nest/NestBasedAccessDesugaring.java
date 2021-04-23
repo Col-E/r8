@@ -325,7 +325,7 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
                       .createFixedClass(
                           SyntheticKind.INIT_TYPE_ARGUMENT,
                           method.asProgramMethod().getHolder(),
-                          dexItemFactory,
+                          appView,
                           builder -> {})
                       .getType();
                 } else {

@@ -148,7 +148,7 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
             .createClass(
                 SyntheticNaming.SyntheticKind.LAMBDA,
                 methodProcessingContext.createUniqueContext(),
-                appView.dexItemFactory(),
+                appView,
                 builder -> box.set(new LambdaClass(builder, appView, this, context, descriptor)));
     // Immediately set the actual program class on the lambda.
     LambdaClass lambdaClass = box.get();

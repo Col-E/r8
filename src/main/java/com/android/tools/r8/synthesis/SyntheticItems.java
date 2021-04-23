@@ -3,9 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
@@ -123,8 +126,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         synthetics.committed.builderForSyntheticInputs();
     // TODO(b/158159959): Consider identifying synthetics in the input reader to speed this up.
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      SyntheticMarker marker =
-          SyntheticMarker.stripMarkerFromClass(clazz, appView.dexItemFactory());
+      SyntheticMarker marker = SyntheticMarker.stripMarkerFromClass(clazz, appView);
       if (marker.isSyntheticMethods()) {
         clazz.forEachProgramMethod(
             // TODO(b/158159959): Support having multiple methods per class.
@@ -260,7 +262,37 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return isSyntheticClass(clazz.type);
   }
 
-  public Collection<DexType> getSynthesizingContexts(DexType type) {
+  public FeatureSplit getContextualFeatureSplit(DexType type) {
+    List<SynthesizingContext> contexts = getSynthesizingContexts(type);
+    if (contexts.isEmpty()) {
+      return null;
+    }
+    assert verifyAllContextsHaveSameFeature(contexts);
+    return contexts.get(0).getFeatureSplit();
+  }
+
+  private boolean verifyAllContextsHaveSameFeature(List<SynthesizingContext> contexts) {
+    assert !contexts.isEmpty();
+    FeatureSplit featureSplit = contexts.get(0).getFeatureSplit();
+    for (int i = 1; i < contexts.size(); i++) {
+      assert featureSplit == contexts.get(i).getFeatureSplit();
+    }
+    return true;
+  }
+
+  private List<SynthesizingContext> getSynthesizingContexts(DexType type) {
+    SyntheticReference<?, ?, ?> reference = committed.getNonLegacyItem(type);
+    if (reference != null) {
+      return Collections.singletonList(reference.getContext());
+    }
+    SyntheticDefinition<?, ?, ?> definition = pending.nonLegacyDefinitions.get(type);
+    if (definition != null) {
+      return Collections.singletonList(definition.getContext());
+    }
+    return Collections.emptyList();
+  }
+
+  public Collection<DexType> getSynthesizingContextTypes(DexType type) {
     SyntheticReference<?, ?, ?> reference = committed.getNonLegacyItem(type);
     if (reference != null) {
       return Collections.singletonList(reference.getContext().getSynthesizingContextType());
@@ -281,7 +313,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   }
 
   // TODO(b/180091213): Implement this and remove client provided the oracle.
-  public Set<DexReference> getSynthesizingContexts(
+  public Set<DexReference> getSynthesizingContextReferences(
       DexProgramClass clazz, SynthesizingContextOracle oracle) {
     assert isSyntheticClass(clazz);
     return oracle.getSynthesizingContexts(clazz);
@@ -317,7 +349,14 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return ListUtils.map(pending.legacyClasses.values(), LegacySyntheticDefinition::getDefinition);
   }
 
-  private SynthesizingContext getSynthesizingContext(ProgramDefinition context) {
+  private SynthesizingContext getSynthesizingContext(
+      ProgramDefinition context, AppView<?> appView) {
+    return getSynthesizingContext(
+        context, appView.appInfoForDesugaring().getClassToFeatureSplitMap());
+  }
+
+  private SynthesizingContext getSynthesizingContext(
+      ProgramDefinition context, ClassToFeatureSplitMap featureSplits) {
     DexType contextType = context.getContextType();
     SyntheticDefinition<?, ?, ?> existingDefinition = pending.nonLegacyDefinitions.get(contextType);
     if (existingDefinition != null) {
@@ -328,7 +367,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       return existingReference.getContext();
     }
     // This context is not nested in an existing synthetic context so create a new "leaf" context.
-    return SynthesizingContext.fromNonSyntheticInputContext(context);
+    FeatureSplit featureSplit = featureSplits.getFeatureSplit(context, this);
+    return SynthesizingContext.fromNonSyntheticInputContext(context, featureSplit);
   }
 
   // Addition and creation of synthetic items.
@@ -358,16 +398,16 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   public DexProgramClass createClass(
       SyntheticKind kind,
       UniqueContext context,
-      DexItemFactory factory,
+      AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> fn) {
     // Obtain the outer synthesizing context in the case the context itself is synthetic.
     // This is to ensure a flat input-type -> synthetic-item mapping.
-    SynthesizingContext outerContext = getSynthesizingContext(context.getClassContext());
+    SynthesizingContext outerContext = getSynthesizingContext(context.getClassContext(), appView);
     DexType type =
         SyntheticNaming.createInternalType(
-            kind, outerContext, context.getSyntheticSuffix(), factory);
+            kind, outerContext, context.getSyntheticSuffix(), appView.dexItemFactory());
     SyntheticProgramClassBuilder classBuilder =
-        new SyntheticProgramClassBuilder(type, outerContext, factory);
+        new SyntheticProgramClassBuilder(type, outerContext, appView.dexItemFactory());
     fn.accept(classBuilder);
     DexProgramClass clazz = classBuilder.build();
     addPendingDefinition(new SyntheticProgramClassDefinition(kind, outerContext, clazz));
@@ -378,14 +418,14 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   public DexProgramClass createFixedClass(
       SyntheticKind kind,
       DexProgramClass context,
-      DexItemFactory factory,
+      AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> fn) {
     // Obtain the outer synthesizing context in the case the context itself is synthetic.
     // This is to ensure a flat input-type -> synthetic-item mapping.
-    SynthesizingContext outerContext = getSynthesizingContext(context);
-    DexType type = SyntheticNaming.createFixedType(kind, outerContext, factory);
+    SynthesizingContext outerContext = getSynthesizingContext(context, appView);
+    DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
     SyntheticProgramClassBuilder classBuilder =
-        new SyntheticProgramClassBuilder(type, outerContext, factory);
+        new SyntheticProgramClassBuilder(type, outerContext, appView.dexItemFactory());
     fn.accept(classBuilder);
     DexProgramClass clazz = classBuilder.build();
     addPendingDefinition(new SyntheticProgramClassDefinition(kind, outerContext, clazz));
@@ -409,7 +449,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       }
       // Obtain the outer synthesizing context in the case the context itself is synthetic.
       // This is to ensure a flat input-type -> synthetic-item mapping.
-      SynthesizingContext outerContext = getSynthesizingContext(context);
+      SynthesizingContext outerContext = getSynthesizingContext(context, appView);
       SyntheticProgramClassBuilder classBuilder =
           new SyntheticProgramClassBuilder(legacyType, outerContext, appView.dexItemFactory());
       fn.accept(classBuilder);
@@ -436,7 +476,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   // like a hygienic synthetic, but use the legacyType passed as parameter instead of the
   // hygienic type.
   private DexClasspathClass ensureFixedClasspathClassWhileMigrating(
-      SyntheticKind kind, DexType legacyType, DexClass context, AppView<?> appView) {
+      SyntheticKind kind, DexType legacyType, ClasspathOrLibraryClass context, AppView<?> appView) {
     synchronized (context) {
       DexClass dexClass = appView.definitionFor(legacyType);
       if (dexClass != null) {
@@ -460,7 +500,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   public void ensureDirectMethodOnSyntheticClasspathClassWhileMigrating(
       SyntheticKind kind,
       DexType legacyType,
-      DexClass context,
+      ClasspathOrLibraryClass context,
       AppView<?> appView,
       DexMethod method,
       Consumer<SyntheticMethodBuilder> builderConsumer) {
@@ -498,25 +538,26 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   public ProgramMethod createMethod(
       SyntheticKind kind,
       UniqueContext context,
-      DexItemFactory factory,
+      AppView<?> appView,
       Consumer<SyntheticMethodBuilder> fn) {
-    return createMethod(kind, context.getClassContext(), factory, fn, context::getSyntheticSuffix);
+    return createMethod(kind, context.getClassContext(), appView, fn, context::getSyntheticSuffix);
   }
 
   private ProgramMethod createMethod(
       SyntheticKind kind,
       ProgramDefinition context,
-      DexItemFactory factory,
+      AppView<?> appView,
       Consumer<SyntheticMethodBuilder> fn,
       Supplier<String> syntheticIdSupplier) {
     assert nextSyntheticId != INVALID_ID_AFTER_SYNTHETIC_FINALIZATION;
     // Obtain the outer synthesizing context in the case the context itself is synthetic.
     // This is to ensure a flat input-type -> synthetic-item mapping.
-    SynthesizingContext outerContext = getSynthesizingContext(context);
+    SynthesizingContext outerContext = getSynthesizingContext(context, appView);
     DexType type =
-        SyntheticNaming.createInternalType(kind, outerContext, syntheticIdSupplier.get(), factory);
+        SyntheticNaming.createInternalType(
+            kind, outerContext, syntheticIdSupplier.get(), appView.dexItemFactory());
     SyntheticProgramClassBuilder classBuilder =
-        new SyntheticProgramClassBuilder(type, outerContext, factory);
+        new SyntheticProgramClassBuilder(type, outerContext, appView.dexItemFactory());
     DexProgramClass clazz =
         classBuilder
             .addMethod(fn.andThen(m -> m.setName(SyntheticNaming.INTERNAL_SYNTHETIC_METHOD_PREFIX)))

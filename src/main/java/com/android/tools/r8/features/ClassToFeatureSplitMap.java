@@ -22,10 +22,8 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.Sets;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -95,6 +93,10 @@ public class ClassToFeatureSplitMap {
   public int compareFeatureSplitsForDexTypes(DexType a, DexType b, SyntheticItems syntheticItems) {
     FeatureSplit featureSplitA = getFeatureSplit(a, syntheticItems);
     FeatureSplit featureSplitB = getFeatureSplit(b, syntheticItems);
+    return compareFeatureSplits(featureSplitA, featureSplitB);
+  }
+
+  public int compareFeatureSplits(FeatureSplit featureSplitA, FeatureSplit featureSplitB) {
     assert featureSplitA != null;
     assert featureSplitB != null;
     if (featureSplitA == featureSplitB) {
@@ -129,26 +131,20 @@ public class ClassToFeatureSplitMap {
   }
 
   public FeatureSplit getFeatureSplit(DexType type, SyntheticItems syntheticItems) {
-    Collection<DexType> contexts = syntheticItems.getSynthesizingContexts(type);
-    if (!contexts.isEmpty()) {
-      Iterator<DexType> iterator = contexts.iterator();
-      DexType context = iterator.next();
-      FeatureSplit feature = classToFeatureSplitMap.getOrDefault(context, FeatureSplit.BASE);
-      assert verifyConsistentFeatureContexts(iterator, feature);
+    FeatureSplit feature = classToFeatureSplitMap.get(type);
+    if (feature != null) {
       return feature;
     }
-    return classToFeatureSplitMap.getOrDefault(type, FeatureSplit.BASE);
-  }
-
-  private boolean verifyConsistentFeatureContexts(
-      Iterator<DexType> contextIterator, FeatureSplit feature) {
-    while (contextIterator.hasNext()) {
-      assert feature
-          == classToFeatureSplitMap.getOrDefault(contextIterator.next(), FeatureSplit.BASE);
+    feature = syntheticItems.getContextualFeatureSplit(type);
+    if (feature != null) {
+      return feature;
     }
-    return true;
+    return FeatureSplit.BASE;
   }
 
+  // Note, this predicate may be misleading as the map does not include synthetics.
+  // In practice it should not be an issue as there should not be a way to have a feature shrink
+  // to only contain synthetic content. At a minimum the entry points of the feature must remain.
   public boolean isEmpty() {
     return classToFeatureSplitMap.isEmpty();
   }
