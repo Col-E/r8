@@ -18,9 +18,7 @@ import java.util.List;
 
 public abstract class YouTubeCompilationTestBase extends CompilationTestBase {
 
-  static final String APK = "YouTubeRelease_unsigned.apk";
   static final String DEPLOY_JAR = "YouTubeRelease_deploy.jar";
-  static final String PG_JAR = "YouTubeRelease_proguard.jar";
   static final String PG_MAP = "YouTubeRelease_proguard.map";
   static final String PG_CONF = "YouTubeRelease_proguard.config";
   static final String PG_PROTO_CONF = "YouTubeRelease_proto_safety.pgconf";
@@ -119,10 +117,5 @@ public abstract class YouTubeCompilationTestBase extends CompilationTestBase {
 
   Path getReleaseProguardMap() {
     return Paths.get(base).resolve(PG_MAP);
-  }
-
-  void runR8AndCheckVerification(CompilationMode mode, String input) throws Exception {
-    runAndCheckVerification(
-        CompilerUnderTest.R8, mode, base + APK, null, null, ImmutableList.of(base + input));
   }
 }
