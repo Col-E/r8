@@ -157,7 +157,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     if (mappedRanges == null || mappedRanges.getMappedRanges().isEmpty()) {
       return null;
     }
-    if (position <= 0) {
+    if (position < 0) {
       return mappedRanges.getMappedRanges();
     }
     List<MappedRange> mappedRangesForPosition = mappedRanges.allRangesForLine(position, false);
