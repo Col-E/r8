@@ -167,10 +167,14 @@ public class StringBuilderOptimizer {
     }
     if (histogramOfLengthOfPartialResult != null) {
       Log.info(getClass(), "------ histogram of StringBuilder partial result lengths ------");
-      histogramOfLengthOfPartialResult.forEach((length, count) -> {
-        Log.info(getClass(),
-            "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
-      });
+      histogramOfLengthOfPartialResult.forEach(
+          (length, count) ->
+              Log.info(
+                  getClass(),
+                  "%s: %s (%s)",
+                  length,
+                  StringUtils.times("*", Math.min(count, 53)),
+                  count));
     }
   }
 
@@ -712,20 +716,7 @@ public class StringBuilderOptimizer {
           builder, optimizationConfiguration)) {
         return null;
       }
-      String result = StringUtils.join("", contents);
-      int estimate = estimateSizeReduction(contents);
-      return estimate > result.length() ? result : null;
-    }
-
-    private int estimateSizeReduction(List<String> contents) {
-      int result = 8; // builder initialization
-      for (String content : contents) {
-        result += 4; // builder append()
-        // If a certain string is only used as part of the resulting string, it will be gone.
-        result += (int) (content.length() * 0.5); // Magic number of that chance: 50%.
-      }
-      result += 4; // builder toString()
-      return result;
+      return StringUtils.join("", contents);
     }
 
     void removeTrivialBuilders() {
