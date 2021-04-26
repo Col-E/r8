@@ -496,24 +496,5 @@ class Tracer {
             }
           });
     }
-
-    @Override
-    public void registerCallSite(DexCallSite callSite) {
-      super.registerCallSite(callSite);
-
-      // For Lambda's, in order to find the correct use, we need to register the method for the
-      // functional interface.
-      List<DexType> directInterfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
-      if (directInterfaces != null) {
-        for (DexType directInterface : directInterfaces) {
-          DexProgramClass clazz = asProgramClassOrNull(appInfo.definitionFor(directInterface));
-          if (clazz != null) {
-            clazz.forEachProgramVirtualMethodMatching(
-                definition -> definition.getReference().name.equals(callSite.methodName),
-                this::registerMethod);
-          }
-        }
-      }
-    }
   }
 }
