@@ -21,7 +21,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
@@ -44,6 +43,7 @@ import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Predicate;
 
 class Tracer {
 
@@ -218,27 +218,35 @@ class Tracer {
     }
   }
 
-  private final Set<String> descriptors;
-  private final DiagnosticsHandler diagnostics;
-  private final DirectMappedDexApplication application;
   private final AppInfoWithClassHierarchy appInfo;
+  private final DiagnosticsHandler diagnostics;
+  private final Predicate<DexType> targetPredicate;
 
   Tracer(Set<String> descriptors, AndroidApp inputApp, DiagnosticsHandler diagnostics)
       throws IOException {
-    this.descriptors = descriptors;
-    this.diagnostics = diagnostics;
-    InternalOptions options = new InternalOptions();
-    application = new ApplicationReader(inputApp, options, Timing.empty()).read().toDirect();
-    appInfo =
+    this(
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
-            application,
+            new ApplicationReader(inputApp, new InternalOptions(), Timing.empty())
+                .read()
+                .toDirect(),
             ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
-            MainDexInfo.none());
+            MainDexInfo.none()),
+        diagnostics,
+        type -> descriptors.contains(type.toDescriptorString()));
+  }
+
+  private Tracer(
+      AppInfoWithClassHierarchy appInfo,
+      DiagnosticsHandler diagnostics,
+      Predicate<DexType> targetPredicate) {
+    this.appInfo = appInfo;
+    this.diagnostics = diagnostics;
+    this.targetPredicate = targetPredicate;
   }
 
   void run(TraceReferencesConsumer consumer) {
     UseCollector useCollector = new UseCollector(appInfo.dexItemFactory(), consumer, diagnostics);
-    for (DexProgramClass clazz : application.classes()) {
+    for (DexProgramClass clazz : appInfo.classes()) {
       useCollector.registerSuperType(clazz, clazz.superType);
       for (DexType implementsType : clazz.getInterfaces()) {
         useCollector.registerSuperType(clazz, implementsType);
@@ -271,7 +279,7 @@ class Tracer {
     }
 
     private boolean isTargetType(DexType type) {
-      return descriptors.contains(type.toDescriptorString());
+      return targetPredicate.test(type);
     }
 
     private void addType(DexType type) {
