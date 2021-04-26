@@ -3,14 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexAnnotation;
-import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -20,13 +18,13 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -45,7 +43,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 class Tracer {
@@ -242,23 +239,25 @@ class Tracer {
   void run(TraceReferencesConsumer consumer) {
     UseCollector useCollector = new UseCollector(appInfo.dexItemFactory(), consumer, diagnostics);
     for (DexProgramClass clazz : application.classes()) {
-      useCollector.setContext(clazz);
       useCollector.registerSuperType(clazz, clazz.superType);
-      for (DexType implementsType : clazz.interfaces.values) {
+      for (DexType implementsType : clazz.getInterfaces()) {
         useCollector.registerSuperType(clazz, implementsType);
       }
-      clazz.forEachProgramMethod(useCollector::registerMethod);
       clazz.forEachField(useCollector::registerField);
+      clazz.forEachProgramMethod(
+          method -> {
+            useCollector.registerMethod(method);
+            useCollector.traceCode(method);
+          });
     }
     consumer.finished(diagnostics);
     useCollector.reportMissingDefinitions();
   }
 
-  class UseCollector extends UseRegistry {
+  class UseCollector {
 
     private DexItemFactory factory;
     private final TraceReferencesConsumer consumer;
-    private DexProgramClass context;
     private final DiagnosticsHandler diagnostics;
     private final Set<ClassReference> missingClasses = new HashSet<>();
     private final Set<FieldReference> missingFields = new HashSet<>();
@@ -266,7 +265,6 @@ class Tracer {
 
     UseCollector(
         DexItemFactory factory, TraceReferencesConsumer consumer, DiagnosticsHandler diagnostics) {
-      super(factory);
       this.factory = factory;
       this.consumer = consumer;
       this.diagnostics = diagnostics;
@@ -297,6 +295,10 @@ class Tracer {
       }
     }
 
+    private void addTypes(DexTypeList types) {
+      types.forEach(this::addType);
+    }
+
     private void addField(DexField field) {
       addType(field.type);
       DexEncodedField baseField = appInfo.resolveField(field).getResolvedField();
@@ -318,10 +320,8 @@ class Tracer {
 
     private void addMethod(DexMethod method) {
       addType(method.holder);
-      for (DexType parameterType : method.proto.parameters.values) {
-        addType(parameterType);
-      }
-      addType(method.proto.returnType);
+      addTypes(method.getParameters());
+      addType(method.getReturnType());
       DexClass holder = appInfo.definitionForHolder(method);
       DexEncodedMethod definition = method.lookupOnClass(holder);
       TracedMethodImpl tracedMethod = new TracedMethodImpl(method, definition);
@@ -363,127 +363,36 @@ class Tracer {
       }
     }
 
-    public void setContext(DexProgramClass context) {
-      this.context = context;
-    }
-
-    @Override
-    public void registerInitClass(DexType clazz) {
-      addType(clazz);
-    }
-
-    @Override
-    public void registerInvokeVirtual(DexMethod method) {
-      if (method.holder.isArrayType()) {
-        addType(method.holder);
-        return;
-      }
-      ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
-      DexEncodedMethod target =
-          resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
-      if (target != null && target.getReference() != method) {
-        addType(method.holder);
-        addMethod(target.getReference());
-      } else {
-        addMethod(method);
-      }
-    }
-
-    @Override
-    public void registerInvokeDirect(DexMethod method) {
-      addMethod(method);
-    }
-
-    @Override
-    public void registerInvokeStatic(DexMethod method) {
-      DexEncodedMethod target = appInfo.unsafeResolveMethodDueToDexFormat(method).getSingleTarget();
-      if (target != null && target.getReference() != method) {
-        addType(method.holder);
-        addMethod(target.getReference());
-      } else {
-        addMethod(method);
-      }
-    }
-
-    @Override
-    public void registerInvokeInterface(DexMethod method) {
-      registerInvokeVirtual(method);
-    }
-
-    @Override
-    public void registerInvokeSuper(DexMethod method) {
-      DexClassAndMethod superTarget = appInfo.lookupSuperTarget(method, context);
-      if (superTarget != null) {
-        addMethod(superTarget.getReference());
-      } else {
-        addMethod(method);
-      }
-    }
-
-    @Override
-    public void registerInstanceFieldWrite(DexField field) {
-      addField(field);
-    }
-
-    @Override
-    public void registerInstanceFieldRead(DexField field) {
-      addField(field);
-    }
-
-    @Override
-    public void registerNewInstance(DexType type) {
-      addType(type);
-    }
-
-    @Override
-    public void registerStaticFieldRead(DexField field) {
-      addField(field);
-    }
-
-    @Override
-    public void registerStaticFieldWrite(DexField field) {
-      addField(field);
-    }
-
-    @Override
-    public void registerTypeReference(DexType type) {
-      addType(type);
-    }
-
-    @Override
-    public void registerInstanceOf(DexType type) {
-      addType(type);
-    }
-
     private void registerField(DexEncodedField field) {
-      registerTypeReference(field.getReference().type);
+      addType(field.getType());
     }
 
     private void registerMethod(ProgramMethod method) {
       DexClassAndMethod superTarget =
           appInfo
               .resolveMethodOn(method.getHolder(), method.getReference())
-              .lookupInvokeSpecialTarget(context, appInfo);
+              .lookupInvokeSpecialTarget(method.getHolder(), appInfo);
       if (superTarget != null) {
         addMethod(superTarget.getReference());
       }
-      for (DexType type : method.getDefinition().getParameters()) {
-        registerTypeReference(type);
-      }
+      addTypes(method.getParameters());
+      addType(method.getReturnType());
       for (DexAnnotation annotation : method.getDefinition().annotations().annotations) {
-        if (annotation.annotation.type == appInfo.dexItemFactory().annotationThrows) {
+        if (annotation.getAnnotationType() == appInfo.dexItemFactory().annotationThrows) {
           DexValueArray dexValues = annotation.annotation.elements[0].value.asDexValueArray();
           for (DexValue dexValType : dexValues.getValues()) {
-            registerTypeReference(dexValType.asDexValueType().value);
+            addType(dexValType.asDexValueType().value);
           }
         }
       }
-      registerTypeReference(method.getDefinition().returnType());
-      method.registerCodeReferences(this);
+    }
+
+    private void traceCode(ProgramMethod method) {
+      method.registerCodeReferences(new MethodUseCollector(method));
     }
 
     private void registerSuperType(DexProgramClass clazz, DexType superType) {
-      registerTypeReference(superType);
+      addType(superType);
       // If clazz overrides any methods in superType, we should keep those as well.
       clazz.forEachMethod(
           method -> {
@@ -495,6 +404,101 @@ class Tracer {
               addMethod(dexEncodedMethod.getReference());
             }
           });
+    }
+
+    class MethodUseCollector extends UseRegistry {
+
+      private final ProgramMethod context;
+
+      public MethodUseCollector(ProgramMethod context) {
+        super(appInfo.dexItemFactory());
+        this.context = context;
+      }
+
+      // Method refererences.
+
+      @Override
+      public void registerInvokeDirect(DexMethod method) {
+        addMethod(method);
+      }
+
+      @Override
+      public void registerInvokeInterface(DexMethod method) {
+        registerInvokeVirtual(method);
+      }
+
+      @Override
+      public void registerInvokeStatic(DexMethod method) {
+        DexEncodedMethod target =
+            appInfo.unsafeResolveMethodDueToDexFormat(method).getSingleTarget();
+        if (target != null && target.getReference() != method) {
+          addType(method.holder);
+          addMethod(target.getReference());
+        } else {
+          addMethod(method);
+        }
+      }
+
+      @Override
+      public void registerInvokeSuper(DexMethod method) {
+        DexClassAndMethod superTarget = appInfo.lookupSuperTarget(method, context);
+        if (superTarget != null) {
+          addMethod(superTarget.getReference());
+        } else {
+          addMethod(method);
+        }
+      }
+
+      @Override
+      public void registerInvokeVirtual(DexMethod method) {
+        if (method.holder.isArrayType()) {
+          addType(method.holder);
+          return;
+        }
+        ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
+        DexEncodedMethod target =
+            resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
+        if (target != null && target.getReference() != method) {
+          addType(method.holder);
+          addMethod(target.getReference());
+        } else {
+          addMethod(method);
+        }
+      }
+
+      // Field references.
+
+      @Override
+      public void registerInitClass(DexType clazz) {
+        addType(clazz);
+      }
+
+      @Override
+      public void registerInstanceFieldRead(DexField field) {
+        addField(field);
+      }
+
+      @Override
+      public void registerInstanceFieldWrite(DexField field) {
+        addField(field);
+      }
+
+      @Override
+      public void registerStaticFieldRead(DexField field) {
+        addField(field);
+      }
+
+      @Override
+      public void registerStaticFieldWrite(DexField field) {
+        addField(field);
+      }
+
+      // Type references.
+
+      @Override
+      public void registerTypeReference(DexType type) {
+        addType(type);
+      }
     }
   }
 }

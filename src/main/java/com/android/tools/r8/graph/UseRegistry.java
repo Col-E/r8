@@ -51,7 +51,9 @@ public abstract class UseRegistry {
     registerInvokeStatic(method);
   }
 
-  public abstract void registerNewInstance(DexType type);
+  public void registerNewInstance(DexType type) {
+    registerTypeReference(type);
+  }
 
   public abstract void registerStaticFieldRead(DexField field);
 
@@ -67,7 +69,9 @@ public abstract class UseRegistry {
 
   public abstract void registerTypeReference(DexType type);
 
-  public abstract void registerInstanceOf(DexType type);
+  public void registerInstanceOf(DexType type) {
+    registerTypeReference(type);
+  }
 
   public void registerConstClass(
       DexType type, ListIterator<? extends CfOrDexInstruction> iterator) {
