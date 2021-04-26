@@ -50,25 +50,24 @@ public class KotlinJvmMethodSignatureInfo implements EnqueuerMetadataTraceable {
     if (methodSignature == null) {
       return null;
     }
-    String kotlinDescriptor = methodSignature.getDesc();
-    if (!KotlinMetadataUtils.isValidMethodDescriptor(kotlinDescriptor)) {
+    String name = methodSignature.getName();
+    String descriptor = methodSignature.getDesc();
+    if (!KotlinMetadataUtils.isValidMethodDescriptor(descriptor)) {
       // If the method descriptor is invalid, keep it as invalid.
-      return new KotlinJvmMethodSignatureInfo(methodSignature.getName(), kotlinDescriptor);
+      return new KotlinJvmMethodSignatureInfo(methodSignature.getName(), descriptor);
     }
-    String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(kotlinDescriptor);
+    String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(descriptor);
     KotlinTypeReference returnType =
         KotlinTypeReference.fromDescriptor(returnTypeDescriptor, factory);
-    String[] descriptors = DescriptorUtils.getArgumentTypeDescriptors(kotlinDescriptor);
+    String[] descriptors = DescriptorUtils.getArgumentTypeDescriptors(descriptor);
     if (descriptors.length == 0) {
-      return new KotlinJvmMethodSignatureInfo(
-          methodSignature.getName(), returnType, EMPTY_PARAMETERS_LIST);
+      return new KotlinJvmMethodSignatureInfo(name, returnType, EMPTY_PARAMETERS_LIST);
     }
     ImmutableList.Builder<KotlinTypeReference> parameters = ImmutableList.builder();
-    for (String descriptor : descriptors) {
-      parameters.add(KotlinTypeReference.fromDescriptor(descriptor, factory));
+    for (String paramDescriptor : descriptors) {
+      parameters.add(KotlinTypeReference.fromDescriptor(paramDescriptor, factory));
     }
-    return new KotlinJvmMethodSignatureInfo(
-        methodSignature.getName(), returnType, parameters.build());
+    return new KotlinJvmMethodSignatureInfo(name, returnType, parameters.build());
   }
 
   public JvmMethodSignature rewrite(

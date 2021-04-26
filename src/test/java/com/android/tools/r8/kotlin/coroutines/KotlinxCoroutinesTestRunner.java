@@ -94,7 +94,10 @@ public class KotlinxCoroutinesTestRunner extends KotlinMetadataTestBase {
             .compile()
             .inspect(
                 inspector ->
-                    assertEqualMetadata(new CodeInspector(BASE_LIBRARY), inspector, i -> {}))
+                    assertEqualMetadata(
+                        new CodeInspector(BASE_LIBRARY),
+                        inspector,
+                        (addedStrings, addedNonInitStrings) -> {}))
             .writeToZip();
     Path testJar = compileTestSources(baseJar);
     runTestsInJar(testJar, baseJar);

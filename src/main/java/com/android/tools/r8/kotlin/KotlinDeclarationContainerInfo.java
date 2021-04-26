@@ -55,8 +55,10 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
       Map<String, DexEncodedField> fieldSignatureMap,
       DexItemFactory factory,
       Reporter reporter,
-      Consumer<DexEncodedMethod> keepByteCode) {
+      Consumer<DexEncodedMethod> keepByteCode,
+      KotlinJvmSignatureExtensionInformation extensionInformation) {
     ImmutableList.Builder<KotlinFunctionInfo> notBackedFunctions = ImmutableList.builder();
+    int functionCounter = 0;
     for (KmFunction kmFunction : container.getFunctions()) {
       JvmMethodSignature signature = JvmExtensionsKt.getSignature(kmFunction);
       if (signature == null) {
@@ -64,7 +66,11 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
         continue;
       }
       KotlinFunctionInfo kotlinFunctionInfo =
-          KotlinFunctionInfo.create(kmFunction, factory, reporter);
+          KotlinFunctionInfo.create(
+              kmFunction,
+              factory,
+              reporter,
+              extensionInformation.hasJvmMethodSignatureExtensionForFunction(functionCounter++));
       DexEncodedMethod method = methodSignatureMap.get(signature.asString());
       if (method == null) {
         notBackedFunctions.add(kotlinFunctionInfo);

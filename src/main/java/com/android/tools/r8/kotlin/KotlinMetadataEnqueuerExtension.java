@@ -84,7 +84,6 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
               }
             }
           });
-      appView.setCfByteCodePassThrough(keepByteCodeFunctions);
       for (DexProgramClass localOrAnonymousClass : localOrAnonymousClasses) {
         EnclosingMethodAttribute enclosingAttribute =
             localOrAnonymousClass.getEnclosingMethodAttribute();
@@ -103,6 +102,7 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
               m -> keepByteCodeFunctions.add(m.getReference()));
         }
       }
+      appView.setCfByteCodePassThrough(keepByteCodeFunctions);
     } else {
       assert verifyKotlinMetadataModeledForAllClasses(enqueuer, keepMetadata);
     }

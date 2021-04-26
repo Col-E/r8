@@ -39,9 +39,12 @@ public class KotlinFileFacadeInfo implements KotlinClassLevelInfo {
       DexItemFactory factory,
       Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode) {
+    KmPackage kmPackage = kmFileFacade.toKmPackage();
+    KotlinJvmSignatureExtensionInformation extensionInformation =
+        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(kmFileFacade);
     return new KotlinFileFacadeInfo(
         KotlinPackageInfo.create(
-            kmFileFacade.toKmPackage(), clazz, factory, reporter, keepByteCode),
+            kmPackage, clazz, factory, reporter, keepByteCode, extensionInformation),
         packageName,
         metadataVersion);
   }
