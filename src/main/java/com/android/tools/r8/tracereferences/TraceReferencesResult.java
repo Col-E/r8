@@ -16,25 +16,22 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-class TraceReferencesResult {
+public class TraceReferencesResult {
 
   final Set<TracedClass> types;
   final Map<ClassReference, Set<TracedField>> fields;
   final Map<ClassReference, Set<TracedMethod>> methods;
   final Set<PackageReference> keepPackageNames;
-  final Set<Object> missingDefinition;
 
   TraceReferencesResult(
       Set<TracedClass> types,
       Map<ClassReference, Set<TracedField>> fields,
       Map<ClassReference, Set<TracedMethod>> methods,
-      Set<PackageReference> keepPackageNames,
-      Set<Object> missingDefinition) {
+      Set<PackageReference> keepPackageNames) {
     this.types = types;
     this.fields = fields;
     this.methods = methods;
     this.keepPackageNames = keepPackageNames;
-    this.missingDefinition = missingDefinition;
   }
 
   static Builder builder() {
@@ -45,33 +42,23 @@ class TraceReferencesResult {
     private final Set<TracedClass> types = new HashSet<>();
     private final Map<ClassReference, Set<TracedField>> fields = new HashMap<>();
     private final Map<ClassReference, Set<TracedMethod>> methods = new HashMap<>();
-    private final Set<Object> missingDefinition = new HashSet<>();
     private final Set<PackageReference> keepPackageNames = new HashSet<>();
 
     @Override
     public void acceptType(TracedClass tracedClass, DiagnosticsHandler handler) {
       types.add(tracedClass);
-      if (tracedClass.isMissingDefinition()) {
-        this.missingDefinition.add(tracedClass.getReference());
-      }
     }
 
     @Override
     public void acceptField(TracedField tracedField, DiagnosticsHandler handler) {
       FieldReference field = tracedField.getReference();
       fields.computeIfAbsent(field.getHolderClass(), k -> new HashSet<>()).add(tracedField);
-      if (tracedField.isMissingDefinition()) {
-        this.missingDefinition.add(field);
-      }
     }
 
     @Override
     public void acceptMethod(TracedMethod tracedMethod, DiagnosticsHandler handler) {
       MethodReference method = tracedMethod.getReference();
       methods.computeIfAbsent(method.getHolderClass(), k -> new HashSet<>()).add(tracedMethod);
-      if (tracedMethod.isMissingDefinition()) {
-        this.missingDefinition.add(method);
-      }
     }
 
     @Override
@@ -83,13 +70,7 @@ class TraceReferencesResult {
     public void finished(DiagnosticsHandler handler) {}
 
     TraceReferencesResult build() {
-      missingDefinition.forEach(
-          missingDefinition -> {
-            assert missingDefinition instanceof ClassReference
-                || missingDefinition instanceof FieldReference
-                || missingDefinition instanceof MethodReference;
-          });
-      return new TraceReferencesResult(types, fields, methods, keepPackageNames, missingDefinition);
+      return new TraceReferencesResult(types, fields, methods, keepPackageNames);
     }
   }
 }

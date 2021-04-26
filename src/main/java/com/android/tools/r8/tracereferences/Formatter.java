@@ -76,20 +76,14 @@ abstract class Formatter {
   protected abstract void printTypeFooter();
 
   void format(TraceReferencesResult result) {
-    print(
-        result.types,
-        result.keepPackageNames,
-        result.fields,
-        result.methods,
-        result.missingDefinition);
+    print(result.types, result.keepPackageNames, result.fields, result.methods);
   }
 
   private void print(
       Set<TracedClass> types,
       Set<PackageReference> keepPackageNames,
       Map<ClassReference, Set<TracedField>> fields,
-      Map<ClassReference, Set<TracedMethod>> methods,
-      Set<Object> missingDefinition) {
+      Map<ClassReference, Set<TracedMethod>> methods) {
     List<TracedClass> sortedTypes = new ArrayList<>(types);
     sortedTypes.sort(Comparator.comparing(tracedClass -> tracedClass.getReference().getTypeName()));
     for (TracedClass type : sortedTypes) {
@@ -97,7 +91,7 @@ abstract class Formatter {
           methods.getOrDefault(type.getReference(), Collections.emptySet());
       Set<TracedField> fieldsForClass =
           fields.getOrDefault(type.getReference(), Collections.emptySet());
-      if (missingDefinition.contains(type.getReference())) {
+      if (type.isMissingDefinition()) {
         continue;
       }
       printTypeHeader(type);
