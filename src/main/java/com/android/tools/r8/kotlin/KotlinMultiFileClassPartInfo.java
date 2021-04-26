@@ -8,7 +8,9 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.Reporter;
 import java.util.function.Consumer;
 import kotlinx.metadata.KmPackage;
 import kotlinx.metadata.jvm.KotlinClassHeader;
@@ -40,15 +42,16 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
       String packageName,
       int[] metadataVersion,
       DexClass clazz,
-      AppView<?> appView,
+      DexItemFactory factory,
+      Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode) {
     KmPackage kmPackage = classPart.toKmPackage();
     KotlinJvmSignatureExtensionInformation extensionInformation =
-        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(
-            classPart, appView.options());
+        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(classPart);
     return new KotlinMultiFileClassPartInfo(
         classPart.getFacadeClassName(),
-        KotlinPackageInfo.create(kmPackage, clazz, appView, keepByteCode, extensionInformation),
+        KotlinPackageInfo.create(
+            kmPackage, clazz, factory, reporter, keepByteCode, extensionInformation),
         packageName,
         metadataVersion);
   }

@@ -73,7 +73,11 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
             } else {
               clazz.setKotlinInfo(
                   KotlinClassMetadataReader.getKotlinInfo(
-                      clazz, appView, method -> keepByteCodeFunctions.add(method.getReference())));
+                      appView.dexItemFactory().kotlin,
+                      clazz,
+                      appView.dexItemFactory(),
+                      appView.options().reporter,
+                      method -> keepByteCodeFunctions.add(method.getReference())));
               if (clazz.getEnclosingMethodAttribute() != null
                   && clazz.getEnclosingMethodAttribute().getEnclosingMethod() != null) {
                 localOrAnonymousClasses.add(clazz);

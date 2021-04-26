@@ -12,8 +12,10 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
+import com.android.tools.r8.utils.Reporter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -40,7 +42,8 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
   public static KotlinPackageInfo create(
       KmPackage kmPackage,
       DexClass clazz,
-      AppView<?> appView,
+      DexItemFactory factory,
+      Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode,
       KotlinJvmSignatureExtensionInformation extensionInformation) {
     Map<String, DexEncodedField> fieldMap = new HashMap<>();
@@ -54,17 +57,9 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
     return new KotlinPackageInfo(
         JvmExtensionsKt.getModuleName(kmPackage),
         KotlinDeclarationContainerInfo.create(
-            kmPackage,
-            methodMap,
-            fieldMap,
-            appView.dexItemFactory(),
-            appView.reporter(),
-            keepByteCode,
-            extensionInformation),
+            kmPackage, methodMap, fieldMap, factory, reporter, keepByteCode, extensionInformation),
         KotlinLocalDelegatedPropertyInfo.create(
-            JvmExtensionsKt.getLocalDelegatedProperties(kmPackage),
-            appView.dexItemFactory(),
-            appView.reporter()));
+            JvmExtensionsKt.getLocalDelegatedProperties(kmPackage), factory, reporter));
   }
 
   public void rewrite(

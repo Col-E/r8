@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ReflectionHelper;
 import java.util.HashSet;
@@ -38,17 +37,16 @@ public class KotlinJvmSignatureExtensionInformation {
   }
 
   public static KotlinJvmSignatureExtensionInformation readInformationFromMessage(
-      FileFacade fileFacadeMetadata, InternalOptions options) {
-    return readPackageDataFromMessage(fileFacadeMetadata, options);
+      FileFacade fileFacadeMetadata) {
+    return readPackageDataFromMessage(fileFacadeMetadata);
   }
 
   public static KotlinJvmSignatureExtensionInformation readInformationFromMessage(
-      MultiFileClassPart classPart, InternalOptions options) {
-    return readPackageDataFromMessage(classPart, options);
+      MultiFileClassPart classPart) {
+    return readPackageDataFromMessage(classPart);
   }
 
-  private static KotlinJvmSignatureExtensionInformation readPackageDataFromMessage(
-      Object object, InternalOptions options) {
+  private static KotlinJvmSignatureExtensionInformation readPackageDataFromMessage(Object object) {
     try {
       Pair<?, ProtoBuf.Package> kotlinPairData =
           ReflectionHelper.performReflection(
@@ -63,13 +61,12 @@ public class KotlinJvmSignatureExtensionInformation {
                   .build());
       return builder().visit(kotlinPairData.getSecond()).build();
     } catch (Exception e) {
-      options.warningReadingKotlinMetadataReflective();
       return empty();
     }
   }
 
   public static KotlinJvmSignatureExtensionInformation readInformationFromMessage(
-      SyntheticClass syntheticClass, InternalOptions options) {
+      SyntheticClass syntheticClass) {
     Pair<?, ProtoBuf.Function> kotlinPairData = null;
     try {
       kotlinPairData =
@@ -88,13 +85,12 @@ public class KotlinJvmSignatureExtensionInformation {
       }
       return builder().visit(kotlinPairData.getSecond(), 0).build();
     } catch (Exception e) {
-      options.warningReadingKotlinMetadataReflective();
       return empty();
     }
   }
 
   public static KotlinJvmSignatureExtensionInformation readInformationFromMessage(
-      KotlinClassMetadata.Class kMetadata, InternalOptions options) {
+      KotlinClassMetadata.Class kMetadata) {
     try {
       Pair<?, ProtoBuf.Class> kotlinPairData =
           ReflectionHelper.performReflection(
@@ -109,7 +105,6 @@ public class KotlinJvmSignatureExtensionInformation {
                   .build());
       return builder().visit(kotlinPairData.getSecond()).build();
     } catch (Exception e) {
-      options.warningReadingKotlinMetadataReflective();
       return empty();
     }
   }

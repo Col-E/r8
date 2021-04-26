@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ConsumerUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -130,6 +131,8 @@ public class KotlinMetadataRewriter {
     if (lens.isIdentityLens()) {
       return;
     }
+    final Kotlin kotlin = factory.kotlin;
+    final Reporter reporter = appView.options().reporter;
     final WriteMetadataFieldInfo writeMetadataFieldInfo = WriteMetadataFieldInfo.rewriteAll();
     ThreadUtils.processItems(
         appView.appInfo().classes(),
@@ -138,9 +141,9 @@ public class KotlinMetadataRewriter {
           if (metadata == null) {
             return;
           }
-          KotlinClassLevelInfo kotlinInfo =
+          final KotlinClassLevelInfo kotlinInfo =
               KotlinClassMetadataReader.getKotlinInfo(
-                  clazz, appView, ConsumerUtils.emptyConsumer(), metadata);
+                  kotlin, clazz, factory, reporter, ConsumerUtils.emptyConsumer(), metadata);
           if (kotlinInfo == NO_KOTLIN_INFO) {
             return;
           }
