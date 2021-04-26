@@ -329,7 +329,7 @@ public class TraceReferencesCommand {
       return this;
     }
 
-    Builder setConsumer(TraceReferencesConsumer consumer) {
+    public Builder setConsumer(TraceReferencesConsumer consumer) {
       this.consumer = consumer;
       return this;
     }
