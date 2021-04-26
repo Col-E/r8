@@ -333,7 +333,7 @@ public final class L8Command extends BaseCompilerCommand {
       if (isShrinking()) {
         l8CfConsumer = new InMemoryJarContent();
         R8Command.Builder r8Builder =
-            new CompatProguardCommandBuilder(true, getReporter())
+            R8Command.builder(getReporter())
                 .addProgramResourceProvider((ProgramResourceProvider) l8CfConsumer)
                 .setSynthesizedClassesPrefix(
                     libraryConfiguration.getSynthesizedLibraryClassesPackagePrefix())

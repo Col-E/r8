@@ -91,14 +91,11 @@ public class MarkersTest extends TestBase {
             markerTool(Tool.R8),
             markerCompilationMode(compilationMode),
             markerMinApi(apiLevel),
-            markerR8Mode("compatibility"));
+            markerR8Mode("full"));
     Matcher<Marker> d8Matcher =
         allOf(markerTool(Tool.D8), markerCompilationMode(compilationMode), markerMinApi(apiLevel));
-    if (shrinkDesugaredLibrary) {
-      assertMarkersMatch(markers, ImmutableList.of(l8Matcher, r8Matcher));
-    } else {
-      assertMarkersMatch(markers, ImmutableList.of(l8Matcher, d8Matcher));
-    }
+    assertMarkersMatch(
+        markers, ImmutableList.of(l8Matcher, shrinkDesugaredLibrary ? r8Matcher : d8Matcher));
   }
 
   @Test
