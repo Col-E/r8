@@ -8,9 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.utils.Reporter;
 import java.util.function.Consumer;
 import kotlinx.metadata.KmPackage;
 import kotlinx.metadata.jvm.KotlinClassHeader;
@@ -36,15 +34,14 @@ public class KotlinFileFacadeInfo implements KotlinClassLevelInfo {
       String packageName,
       int[] metadataVersion,
       DexClass clazz,
-      DexItemFactory factory,
-      Reporter reporter,
+      AppView<?> appView,
       Consumer<DexEncodedMethod> keepByteCode) {
     KmPackage kmPackage = kmFileFacade.toKmPackage();
     KotlinJvmSignatureExtensionInformation extensionInformation =
-        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(kmFileFacade);
+        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(
+            kmFileFacade, appView.options());
     return new KotlinFileFacadeInfo(
-        KotlinPackageInfo.create(
-            kmPackage, clazz, factory, reporter, keepByteCode, extensionInformation),
+        KotlinPackageInfo.create(kmPackage, clazz, appView, keepByteCode, extensionInformation),
         packageName,
         metadataVersion);
   }
