@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.retrace;
 
+import static com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
@@ -59,6 +61,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -67,16 +70,19 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class RetraceTests extends TestBase {
 
-  @Parameters(name = "{0}, external: {1}")
+  @Parameters(name = "{0}, use regular expression: {1}, external: {2}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withCfRuntimes().build(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withCfRuntimes().build(), BooleanUtils.values(), BooleanUtils.values());
   }
 
   private final TestParameters testParameters;
+  private final boolean useRegExpParsing;
   private final boolean external;
 
-  public RetraceTests(TestParameters parameters, boolean external) {
+  public RetraceTests(TestParameters parameters, boolean useRegExpParsing, boolean external) {
     this.testParameters = parameters;
+    this.useRegExpParsing = useRegExpParsing;
     this.external = external;
   }
 
@@ -148,7 +154,8 @@ public class RetraceTests extends TestBase {
     List<ActualBotStackTraceBase> stackTraces =
         ImmutableList.of(new ActualIdentityStackTrace(), new ActualRetraceBotStackTrace());
     for (ActualBotStackTraceBase stackTrace : stackTraces) {
-      runRetraceTest(stackTrace).assertNoWarnings();
+      runRetraceTest(stackTrace)
+          .assertWarningsCount(useRegExpParsing ? 0 : stackTrace.expectedWarnings());
     }
   }
 
@@ -186,7 +193,7 @@ public class RetraceTests extends TestBase {
   public void testCircularReferenceStackTrace() throws Exception {
     // Proguard retrace (and therefore the default regular expression) will not retrace circular
     // reference exceptions.
-    assumeTrue("b/178599214", false);
+    assumeFalse(useRegExpParsing);
     runRetraceTest(new CircularReferenceStackTrace());
   }
 
@@ -196,8 +203,9 @@ public class RetraceTests extends TestBase {
   }
 
   @Test
+  @Ignore("b/170293908")
   public void testBootLoaderAndNamedModulesStackTrace() throws Exception {
-    assumeTrue("b/170293908", false);
+    assumeFalse(useRegExpParsing);
     runRetraceTest(new NamedModuleStackTrace());
   }
 
@@ -279,6 +287,7 @@ public class RetraceTests extends TestBase {
   private TestDiagnosticMessagesImpl runRetraceTest(
       StackTraceForTest stackTraceForTest, boolean allowExperimentalMapping) throws Exception {
     if (external) {
+      assumeTrue(useRegExpParsing);
       assumeTrue(testParameters.isCfRuntime());
       // The external dependency is built on top of R8Lib. If test.py is run with
       // no r8lib, do not try and run the external R8 Retrace since it has not been built.
@@ -318,6 +327,7 @@ public class RetraceTests extends TestBase {
           RetraceCommand.builder(diagnosticsHandler)
               .setProguardMapProducer(ProguardMapProducer.fromString(stackTraceForTest.mapping()))
               .setStackTrace(stackTraceForTest.obfuscatedStackTrace())
+              .setRegularExpression(useRegExpParsing ? DEFAULT_REGULAR_EXPRESSION : null)
               .setRetracedStackTraceConsumer(
                   retraced ->
                       assertEquals(

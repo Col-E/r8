@@ -21,7 +21,7 @@ public class RetraceOptions {
   private final DiagnosticsHandler diagnosticsHandler;
   private final ProguardMapProducer proguardMapProducer;
 
-  private RetraceOptions(
+  RetraceOptions(
       String regularExpression,
       DiagnosticsHandler diagnosticsHandler,
       ProguardMapProducer proguardMapProducer,
@@ -111,9 +111,6 @@ public class RetraceOptions {
       }
       if (this.proguardMapProducer == null) {
         throw new RuntimeException("ProguardMapSupplier not specified");
-      }
-      if (this.regularExpression == null) {
-        throw new RuntimeException("Regular expression not specified");
       }
       return new RetraceOptions(
           regularExpression, diagnosticsHandler, proguardMapProducer, isVerbose);
