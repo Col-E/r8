@@ -77,10 +77,10 @@ BENCHMARK_APPS = [
     {
         'app': 'youtube',
         'version': youtube_data.LATEST_VERSION,
-        'find-xmx-min': 750,
-        'find-xmx-max': 1150,
-        'find-xmx-range': 32,
-        'oom-threshold': 950,
+        'find-xmx-min': 2800,
+        'find-xmx-max': 3200,
+        'find-xmx-range': 64,
+        'oom-threshold': 3000,
         # TODO(b/143431825): Youtube can OOM randomly in memory configurations
         #  that should work.
         'skip-find-xmx-max': True,
