@@ -8,6 +8,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -74,6 +75,16 @@ public class IterableUtils {
     return iterable.iterator().hasNext();
   }
 
+  public static <T> T min(Iterable<T> iterable, Comparator<T> comparator) {
+    T min = null;
+    for (T element : iterable) {
+      if (min == null || comparator.compare(element, min) < 0) {
+        min = element;
+      }
+    }
+    return min;
+  }
+
   public static <T> int size(Iterable<T> iterable) {
     int result = 0;
     for (T element : iterable) {
@@ -104,7 +115,7 @@ public class IterableUtils {
     return Iterables.concat(singleton(t), iterable);
   }
 
-  public static <T> T flatten(T init, BiFunction<T, T, T> combine, Iterable<? extends T> iterable) {
+  public static <T> T reduce(T init, BiFunction<T, T, T> combine, Iterable<? extends T> iterable) {
     T v = init;
     for (T t : iterable) {
       v = combine.apply(v, t);
@@ -113,12 +124,16 @@ public class IterableUtils {
   }
 
   public static int sumInt(Iterable<Integer> iterable) {
-    return flatten(0, Integer::sum, iterable);
+    return reduce(0, Integer::sum, iterable);
   }
 
   public static <F> int sumInt(Iterable<F> iterable, Function<? super F, Integer> fn) {
     Iterable<Integer> integers = Iterables.transform(iterable, fn::apply);
     return sumInt(integers);
+  }
+
+  public static <T> Iterable<T> flatten(Iterable<? extends Iterable<T>> iterable) {
+    return flatMap(iterable, Function.identity());
   }
 
   public static <T, U> Iterable<U> flatMap(

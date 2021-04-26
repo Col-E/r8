@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
 import com.android.tools.r8.horizontalclassmerging.policies.SyntheticItemsPolicy.ClassKind;
 import com.android.tools.r8.synthesis.SyntheticItems;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 
 public class SyntheticItemsPolicy extends MultiClassSameReferencePolicy<ClassKind> {
 
@@ -34,19 +33,9 @@ public class SyntheticItemsPolicy extends MultiClassSameReferencePolicy<ClassKin
       return ClassKind.NOT_SYNTHETIC;
     }
 
-    // Do not allow merging synthetics that are not lambdas.
-    if (!syntheticItems.isNonLegacySynthetic(clazz)
-        || syntheticItems.getNonLegacySyntheticKind(clazz) != SyntheticKind.LAMBDA) {
-      return ineligibleForClassMerging();
-    }
-
-    // Allow merging Java lambdas with Java lambdas.
-    if (appView.options().horizontalClassMergerOptions().isJavaLambdaMergingEnabled()) {
-      return ClassKind.SYNTHETIC;
-    }
-
-    // Java lambda merging is disabled.
-    return ineligibleForClassMerging();
+    return syntheticItems.isEligibleForClassMerging(clazz)
+        ? ClassKind.SYNTHETIC
+        : ineligibleForClassMerging();
   }
 
   @Override

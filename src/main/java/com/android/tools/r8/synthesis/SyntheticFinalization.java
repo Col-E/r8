@@ -27,12 +27,12 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.structural.RepresentativeMap;
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -91,6 +91,15 @@ public class SyntheticFinalization {
     private final MutableBidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod> methodMap =
         BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
     private final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
+
+    boolean isEmpty() {
+      if (typeMap.isEmpty()) {
+        assert fieldMap.isEmpty();
+        assert methodMap.isEmpty();
+        return true;
+      }
+      return false;
+    }
 
     void move(DexType from, DexType to) {
       DexType old = typeMap.put(from, to);
@@ -196,19 +205,24 @@ public class SyntheticFinalization {
 
   public static void finalizeWithLiveness(AppView<AppInfoWithLiveness> appView) {
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
-    appView.setAppInfo(appView.appInfo().rebuildWithLiveness(result.commit));
     appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(result.mainDexInfo));
-    appView.rewriteWithLens(result.lens);
+    if (result.lens != null) {
+      appView.rewriteWithLensAndApplication(result.lens, result.commit.getApplication().asDirect());
+    } else {
+      assert result.commit.getApplication() == appView.appInfo().app();
+    }
+    appView.setAppInfo(appView.appInfo().rebuildWithLiveness(result.commit));
     appView.pruneItems(result.prunedItems);
   }
 
   Result computeFinalSynthetics(AppView<?> appView) {
     assert verifyNoNestedSynthetics();
+    assert verifyOneSyntheticPerSyntheticClass();
     DexApplication application;
     Builder lensBuilder = new Builder();
-    ImmutableMap.Builder<DexType, SyntheticMethodReference> finalMethodsBuilder =
+    ImmutableMap.Builder<DexType, List<SyntheticMethodReference>> finalMethodsBuilder =
         ImmutableMap.builder();
-    ImmutableMap.Builder<DexType, SyntheticProgramClassReference> finalClassesBuilder =
+    ImmutableMap.Builder<DexType, List<SyntheticProgramClassReference>> finalClassesBuilder =
         ImmutableMap.builder();
     Set<DexType> derivedMainDexTypes = Sets.newIdentityHashSet();
     {
@@ -217,16 +231,19 @@ public class SyntheticFinalization {
           buildLensAndProgram(
               appView,
               computeEquivalences(
-                  appView, committed.getNonLegacyMethods().values(), generators, lensBuilder),
+                  appView, committed.getNonLegacyMethods(), generators, lensBuilder),
               computeEquivalences(
-                  appView, committed.getNonLegacyClasses().values(), generators, lensBuilder),
+                  appView, committed.getNonLegacyClasses(), generators, lensBuilder),
               lensBuilder,
-              (clazz, reference) -> finalClassesBuilder.put(clazz.getType(), reference),
-              (clazz, reference) -> finalMethodsBuilder.put(clazz.getType(), reference),
+              (clazz, reference) ->
+                  finalClassesBuilder.put(clazz.getType(), ImmutableList.of(reference)),
+              (clazz, reference) ->
+                  finalMethodsBuilder.put(clazz.getType(), ImmutableList.of(reference)),
               derivedMainDexTypes);
     }
-    ImmutableMap<DexType, SyntheticMethodReference> finalMethods = finalMethodsBuilder.build();
-    ImmutableMap<DexType, SyntheticProgramClassReference> finalClasses =
+    ImmutableMap<DexType, List<SyntheticMethodReference>> finalMethods =
+        finalMethodsBuilder.build();
+    ImmutableMap<DexType, List<SyntheticProgramClassReference>> finalClasses =
         finalClassesBuilder.build();
 
     Set<DexType> prunedSynthetics = Sets.newIdentityHashSet();
@@ -266,7 +283,7 @@ public class SyntheticFinalization {
   private <R extends SyntheticReference<R, D, ?>, D extends SyntheticDefinition<R, D, ?>>
       Map<DexType, EquivalenceGroup<D>> computeEquivalences(
           AppView<?> appView,
-          ImmutableCollection<R> references,
+          ImmutableMap<DexType, List<R>> references,
           Map<String, NumberGenerator> generators,
           Builder lensBuilder) {
     boolean intermediate = appView.options().intermediate;
@@ -306,6 +323,32 @@ public class SyntheticFinalization {
     return true;
   }
 
+  private boolean verifyOneSyntheticPerSyntheticClass() {
+    Set<DexType> seen = Sets.newIdentityHashSet();
+    committed
+        .getLegacyTypes()
+        .forEach(
+            (type, references) -> {
+              assert seen.add(type);
+              assert references.size() == 1;
+            });
+    committed
+        .getNonLegacyClasses()
+        .forEach(
+            (type, references) -> {
+              assert seen.add(type);
+              assert references.size() == 1;
+            });
+    committed
+        .getNonLegacyMethods()
+        .forEach(
+            (type, references) -> {
+              assert seen.add(type);
+              assert references.size() == 1;
+            });
+    return true;
+  }
+
   private static DexApplication buildLensAndProgram(
       AppView<?> appView,
       Map<DexType, EquivalenceGroup<SyntheticMethodDefinition>> syntheticMethodGroups,
@@ -316,8 +359,7 @@ public class SyntheticFinalization {
       Set<DexType> derivedMainDexSynthetics) {
     DexApplication application = appView.appInfo().app();
     MainDexInfo mainDexInfo = appView.appInfo().getMainDexInfo();
-    List<DexProgramClass> newProgramClasses = new ArrayList<>();
-    Set<DexType> pruned = Sets.newIdentityHashSet();
+    Set<DexProgramClass> pruned = Sets.newIdentityHashSet();
 
     TreeFixerBase treeFixer =
         new TreeFixerBase(appView) {
@@ -353,7 +395,7 @@ public class SyntheticFinalization {
           assert representativeClass.getMethodCollection().size() == 1;
           for (SyntheticMethodDefinition member : syntheticGroup.getMembers()) {
             if (member != representative) {
-              pruned.add(member.getHolder().getType());
+              pruned.add(member.getHolder());
               deduplicatedClasses.add(member.getHolder());
             }
             if (member.getContext().isDerivedFromMainDexList(mainDexInfo)) {
@@ -371,9 +413,8 @@ public class SyntheticFinalization {
               representative.getKind(), representative.getHolder(), context, appView);
           for (SyntheticProgramClassDefinition member : syntheticGroup.getMembers()) {
             DexProgramClass memberClass = member.getHolder();
-            DexType memberType = memberClass.getType();
             if (member != representative) {
-              pruned.add(memberType);
+              pruned.add(memberClass);
               deduplicatedClasses.add(memberClass);
             }
             if (member.getContext().isDerivedFromMainDexList(mainDexInfo)) {
@@ -382,21 +423,31 @@ public class SyntheticFinalization {
           }
         });
 
-    for (DexProgramClass clazz : application.classes()) {
-      if (!pruned.contains(clazz.type)) {
-        newProgramClasses.add(clazz);
+    // Only create a new application if anything changed.
+    if (lensBuilder.isEmpty()) {
+      assert deduplicatedClasses.isEmpty();
+      assert pruned.isEmpty();
+    } else {
+      if (!pruned.isEmpty()) {
+        List<DexProgramClass> newProgramClasses = new ArrayList<>();
+        for (DexProgramClass clazz : application.classes()) {
+          if (!pruned.contains(clazz)) {
+            newProgramClasses.add(clazz);
+          }
+        }
+        assert newProgramClasses.size() < application.classes().size();
+        application = application.builder().replaceProgramClasses(newProgramClasses).build();
       }
+
+      // Assert that the non-representatives have been removed from the app.
+      assert verifyNonRepresentativesRemovedFromApplication(application, syntheticClassGroups);
+      assert verifyNonRepresentativesRemovedFromApplication(application, syntheticMethodGroups);
+
+      DexApplication.Builder<?> builder = application.builder();
+      treeFixer.fixupClasses(deduplicatedClasses);
+      builder.replaceProgramClasses(treeFixer.fixupClasses(application.classes()));
+      application = builder.build();
     }
-    application = application.builder().replaceProgramClasses(newProgramClasses).build();
-
-    // Assert that the non-representatives have been removed from the app.
-    assert verifyNonRepresentativesRemovedFromApplication(application, syntheticClassGroups);
-    assert verifyNonRepresentativesRemovedFromApplication(application, syntheticMethodGroups);
-
-    DexApplication.Builder<?> builder = application.builder();
-    treeFixer.fixupClasses(deduplicatedClasses);
-    builder.replaceProgramClasses(treeFixer.fixupClasses(application.classes()));
-    application = builder.build();
 
     // Add the synthesized from after repackaging which changed class definitions.
     final DexApplication appForLookup = application;
@@ -653,9 +704,10 @@ public class SyntheticFinalization {
   }
 
   private <R extends SyntheticReference<R, D, ?>, D extends SyntheticDefinition<R, D, ?>>
-      Map<DexType, D> lookupDefinitions(AppView<?> appView, Collection<R> references) {
+      Map<DexType, D> lookupDefinitions(
+          AppView<?> appView, ImmutableMap<DexType, List<R>> references) {
     Map<DexType, D> definitions = new IdentityHashMap<>(references.size());
-    for (R reference : references) {
+    for (R reference : IterableUtils.flatten(references.values())) {
       D definition = reference.lookupDefinition(appView::definitionFor);
       if (definition == null) {
         // We expect pruned definitions to have been removed.

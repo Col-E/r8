@@ -54,7 +54,7 @@ class SyntheticMethodReference
   @Override
   SyntheticMethodReference internalRewrite(
       SynthesizingContext rewrittenContext, NonIdentityGraphLens lens) {
-    DexMethod rewritten = lens.lookupMethod(method);
+    DexMethod rewritten = lens.getRenamedMethodSignature(method);
     // If the reference has been non-trivially rewritten the compiler has changed it and it can no
     // longer be considered a synthetic. The context may or may not have changed.
     if (method != rewritten && !lens.isSimpleRenaming(method, rewritten)) {

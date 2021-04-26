@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -138,6 +139,12 @@ public class ListUtils {
     ArrayList<T> list = new ArrayList<>();
     forEachable.forEach(list::add);
     return list;
+  }
+
+  public static <T> ImmutableList<T> newImmutableList(ForEachable<T> forEachable) {
+    ImmutableList.Builder<T> builder = ImmutableList.builder();
+    forEachable.forEach(builder::add);
+    return builder.build();
   }
 
   public static <T> Optional<T> removeFirstMatch(List<T> list, Predicate<T> element) {

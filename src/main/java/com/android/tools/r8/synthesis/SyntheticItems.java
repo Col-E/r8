@@ -23,8 +23,10 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.synthesis.SyntheticFinalization.Result;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,7 +38,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public class SyntheticItems implements SyntheticDefinitionsProvider {
 
@@ -122,8 +123,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       // If the compilation is in intermediate mode the synthetics should just be passed through.
       return;
     }
-    CommittedSyntheticsCollection.Builder builder =
-        synthetics.committed.builderForSyntheticInputs();
+    CommittedSyntheticsCollection.Builder builder = synthetics.committed.builder();
     // TODO(b/158159959): Consider identifying synthetics in the input reader to speed this up.
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       SyntheticMarker marker = SyntheticMarker.stripMarkerFromClass(clazz, appView);
@@ -138,7 +138,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
             new SyntheticProgramClassDefinition(marker.getKind(), marker.getContext(), clazz));
       }
     }
-    CommittedSyntheticsCollection committed = builder.build();
+    CommittedSyntheticsCollection committed = builder.collectSyntheticInputs().build();
     if (committed.isEmpty()) {
       return;
     }
@@ -184,15 +184,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return baseDefinitionFor.apply(type);
   }
 
-  public boolean verifyNonLegacySyntheticsAreCommitted() {
-    assert pending.nonLegacyDefinitions.isEmpty()
-        : "Uncommitted synthetics: "
-            + pending.nonLegacyDefinitions.keySet().stream()
-                .map(DexType::getName)
-                .collect(Collectors.joining(", "));
-    return true;
-  }
-
   public boolean hasPendingSyntheticClasses() {
     return !pending.isEmpty();
   }
@@ -233,20 +224,27 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return isCommittedSynthetic(type) || isPendingSynthetic(type);
   }
 
-  public SyntheticKind getNonLegacySyntheticKind(DexProgramClass clazz) {
-    assert isNonLegacySynthetic(clazz);
-    SyntheticReference<?, ?, ?> reference = committed.getNonLegacyItem(clazz.getType());
-    if (reference == null) {
-      SyntheticDefinition<?, ?, ?> definition = pending.nonLegacyDefinitions.get(clazz.getType());
-      if (definition != null) {
-        reference = definition.toReference();
-      }
+  public boolean isEligibleForClassMerging(DexProgramClass clazz) {
+    assert isSyntheticClass(clazz);
+    return isSyntheticLambda(clazz);
+  }
+
+  // TODO(b/186211926): Allow merging of legacy synthetics.
+  private boolean isSyntheticLambda(DexProgramClass clazz) {
+    if (!isNonLegacySynthetic(clazz)) {
+      return false;
     }
-    if (reference != null) {
-      return reference.getKind();
+    Iterable<SyntheticReference<?, ?, ?>> references = committed.getNonLegacyItems(clazz.getType());
+    if (!Iterables.isEmpty(references)) {
+      assert Iterables.size(references) == 1;
+      return references.iterator().next().getKind() == SyntheticKind.LAMBDA;
+    }
+    SyntheticDefinition<?, ?, ?> definition = pending.nonLegacyDefinitions.get(clazz.getType());
+    if (definition != null) {
+      return definition.getKind() == SyntheticKind.LAMBDA;
     }
     assert false;
-    return null;
+    return false;
   }
 
   public boolean isSubjectToKeepRules(DexProgramClass clazz) {
@@ -280,36 +278,32 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return true;
   }
 
-  private List<SynthesizingContext> getSynthesizingContexts(DexType type) {
-    SyntheticReference<?, ?, ?> reference = committed.getNonLegacyItem(type);
-    if (reference != null) {
-      return Collections.singletonList(reference.getContext());
+  private void forEachSynthesizingContext(DexType type, Consumer<SynthesizingContext> consumer) {
+    for (SyntheticReference<?, ?, ?> reference : committed.getNonLegacyItems(type)) {
+      consumer.accept(reference.getContext());
     }
     SyntheticDefinition<?, ?, ?> definition = pending.nonLegacyDefinitions.get(type);
     if (definition != null) {
-      return Collections.singletonList(definition.getContext());
+      consumer.accept(definition.getContext());
     }
-    return Collections.emptyList();
+  }
+
+  private List<SynthesizingContext> getSynthesizingContexts(DexType type) {
+    return ListUtils.newImmutableList(builder -> forEachSynthesizingContext(type, builder));
   }
 
   public Collection<DexType> getSynthesizingContextTypes(DexType type) {
-    SyntheticReference<?, ?, ?> reference = committed.getNonLegacyItem(type);
-    if (reference != null) {
-      return Collections.singletonList(reference.getContext().getSynthesizingContextType());
-    }
-    SyntheticDefinition<?, ?, ?> definition = pending.nonLegacyDefinitions.get(type);
-    if (definition != null) {
-      return Collections.singletonList(definition.getContext().getSynthesizingContextType());
-    }
-    LegacySyntheticReference legacyReference = committed.getLegacyTypes().get(type);
-    if (legacyReference != null) {
-      return legacyReference.getContexts();
+    ImmutableList.Builder<DexType> builder = ImmutableList.builder();
+    forEachSynthesizingContext(
+        type, synthesizingContext -> builder.add(synthesizingContext.getSynthesizingContextType()));
+    for (LegacySyntheticReference legacyReference : committed.getLegacyTypes(type)) {
+      builder.addAll(legacyReference.getContexts());
     }
     LegacySyntheticDefinition legacyDefinition = pending.legacyClasses.get(type);
     if (legacyDefinition != null) {
-      return legacyDefinition.getContexts();
+      builder.addAll(legacyDefinition.getContexts());
     }
-    return Collections.emptyList();
+    return builder.build();
   }
 
   // TODO(b/180091213): Implement this and remove client provided the oracle.
@@ -330,14 +324,12 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       DexProgramClass clazz,
       Predicate<DexProgramClass> ifIsLambda,
       Predicate<DexProgramClass> ifNotLambda) {
-    SyntheticReference<?, ?, ?> reference = committed.getNonLegacyItem(clazz.getType());
-    if (reference == null) {
-      SyntheticDefinition<?, ?, ?> definition = pending.nonLegacyDefinitions.get(clazz.getType());
-      if (definition != null) {
-        reference = definition.toReference();
-      }
+    Iterable<SyntheticReference<?, ?, ?>> references = committed.getNonLegacyItems(clazz.getType());
+    SyntheticDefinition<?, ?, ?> definition = pending.nonLegacyDefinitions.get(clazz.getType());
+    if (definition != null) {
+      references = Iterables.concat(references, IterableUtils.singleton(definition.toReference()));
     }
-    if (reference != null && reference.getKind() == SyntheticKind.LAMBDA) {
+    if (Iterables.any(references, reference -> reference.getKind() == SyntheticKind.LAMBDA)) {
       assert ifIsLambda.test(clazz);
     } else {
       assert ifNotLambda.test(clazz);
@@ -355,6 +347,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         context, appView.appInfoForDesugaring().getClassToFeatureSplitMap());
   }
 
+  /** Used to find the synthesizing context for a new synthetic that is about to be created. */
   private SynthesizingContext getSynthesizingContext(
       ProgramDefinition context, ClassToFeatureSplitMap featureSplits) {
     DexType contextType = context.getContextType();
@@ -362,9 +355,15 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     if (existingDefinition != null) {
       return existingDefinition.getContext();
     }
-    SyntheticReference<?, ?, ?> existingReference = committed.getNonLegacyItem(contextType);
-    if (existingReference != null) {
-      return existingReference.getContext();
+    Iterable<SyntheticReference<?, ?, ?>> existingReferences =
+        committed.getNonLegacyItems(contextType);
+    if (!Iterables.isEmpty(existingReferences)) {
+      // Use a deterministic synthesizing context from the set of contexts.
+      return IterableUtils.min(
+              existingReferences,
+              (existingReference, other) ->
+                  existingReference.getReference().compareTo(other.getReference()))
+          .getContext();
     }
     // This context is not nested in an existing synthetic context so create a new "leaf" context.
     FeatureSplit featureSplit = featureSplits.getFeatureSplit(context, this);

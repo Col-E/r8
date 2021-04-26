@@ -1189,7 +1189,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         !Version.isDevelopmentVersion()
             || System.getProperty("com.android.tools.r8.disableHorizontalClassMerging") == null;
     public boolean enableConstructorMerging = true;
-    public boolean enableJavaLambdaMerging = true;
 
     public int maxGroupSize = 30;
 
@@ -1203,10 +1202,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public void enableIf(boolean enable) {
       this.enable = enable;
-    }
-
-    public void enableJavaLambdaMerging() {
-      enableJavaLambdaMerging = true;
     }
 
     public int getMaxGroupSize() {
@@ -1223,10 +1218,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean isEnabled() {
       return enable;
-    }
-
-    public boolean isJavaLambdaMergingEnabled() {
-      return enableJavaLambdaMerging;
     }
   }
 

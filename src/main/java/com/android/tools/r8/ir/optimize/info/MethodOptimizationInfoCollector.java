@@ -908,11 +908,7 @@ public class MethodOptimizationInfoCollector {
                     .verifySyntheticLambdaProperty(
                         context.getHolder(),
                         lambdaClass ->
-                            appView.appInfo().hasPinnedInstanceInitializer(lambdaClass.getType())
-                                || appView
-                                    .options()
-                                    .horizontalClassMergerOptions()
-                                    .isJavaLambdaMergingEnabled(),
+                            appView.appInfo().hasPinnedInstanceInitializer(lambdaClass.getType()),
                         nonLambdaClass -> true)
             : "Unexpected observable side effects from lambda `" + context.toSourceString() + "`";
       }
