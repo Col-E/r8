@@ -309,6 +309,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
+  public T allowUnnecessaryDontWarnWildcards() {
+    return addOptionsModification(
+        options -> options.testing.allowUnnecessaryDontWarnWildcards = true);
+  }
+
   public T allowUnusedDontWarnKotlinReflectJvmInternal() {
     addOptionsModification(
         options ->

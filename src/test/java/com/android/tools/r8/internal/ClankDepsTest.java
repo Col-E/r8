@@ -41,8 +41,9 @@ public class ClankDepsTest extends TestBase {
         .addDontWarn("dalvik.system.VMStack")
         .addDontWarn("zzz.com.facebook.litho.R$id")
         .addDontWarn("com.google.android.libraries.elements.R$id")
-        .allowUnusedProguardConfigurationRules()
         .allowUnusedDontWarnPatterns()
+        .allowUnusedProguardConfigurationRules()
+        .allowUnnecessaryDontWarnWildcards()
         .setMinApi(AndroidApiLevel.N)
         .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertOnlyInfos);
   }

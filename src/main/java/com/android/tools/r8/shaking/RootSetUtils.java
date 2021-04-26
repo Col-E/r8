@@ -488,16 +488,17 @@ public class RootSetUtils {
           break;
         }
         // In compat mode traverse all direct methods in the hierarchy.
-        if (currentClass == clazz || options.forceProguardCompatibility) {
-          currentClass
-              .directMethods()
-              .forEach(
-                  method -> {
-                    DexDefinition precondition =
-                        testAndGetPrecondition(method, preconditionSupplier);
-                    markMethod(method, memberKeepRules, methodsMarked, rule, precondition, ifRule);
-                  });
-        }
+        currentClass
+            .getMethodCollection()
+            .forEachDirectMethodMatching(
+                method ->
+                    currentClass == clazz
+                        || (method.isStatic() && !method.isPrivate() && !method.isInitializer())
+                        || options.forceProguardCompatibility,
+                method -> {
+                  DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
+                  markMethod(method, memberKeepRules, methodsMarked, rule, precondition, ifRule);
+                });
         currentClass
             .virtualMethods()
             .forEach(
