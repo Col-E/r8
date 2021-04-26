@@ -329,11 +329,10 @@ public class VirtualFile {
       Collection<DexProgramClass> synthetics = new ArrayList<>();
       // Assign dedicated virtual files for all program classes.
       for (DexProgramClass clazz : appView.appInfo().classes()) {
-        Collection<DexType> contexts =
-            appView.getSyntheticItems().getSynthesizingContextTypes(clazz.getType());
         // TODO(b/181636450): Simplify this making use of the assumption that synthetics are never
         //  duplicated.
-        if (!combineSyntheticClassesWithPrimaryClass || contexts.isEmpty()) {
+        if (!combineSyntheticClassesWithPrimaryClass
+            || !appView.getSyntheticItems().isSyntheticClass(clazz)) {
           VirtualFile file =
               new VirtualFile(
                   virtualFiles.size(),
@@ -353,13 +352,14 @@ public class VirtualFile {
         }
       }
       for (DexProgramClass synthetic : synthetics) {
-        for (DexType context :
-            appView.getSyntheticItems().getSynthesizingContextTypes(synthetic.getType())) {
-          DexProgramClass inputType = appView.definitionForProgramType(context);
-          VirtualFile file = files.get(inputType);
-          file.addClass(synthetic);
-          file.commitTransaction();
-        }
+        Collection<DexType> synthesizingContexts =
+            appView.getSyntheticItems().getSynthesizingContextTypes(synthetic.getType());
+        assert synthesizingContexts.size() == 1;
+        DexProgramClass inputType =
+            appView.definitionForProgramType(synthesizingContexts.iterator().next());
+        VirtualFile file = files.get(inputType);
+        file.addClass(synthetic);
+        file.commitTransaction();
       }
       return virtualFiles;
     }
