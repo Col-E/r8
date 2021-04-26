@@ -60,7 +60,6 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
         .assertSuccessWithOutput(EXPECTED_MAIN);
   }
 
-
   @Test
   public void testMetadataForLib() throws Exception {
     Path outputJar =
@@ -77,7 +76,8 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
                 inspector ->
                     assertEqualMetadata(
                         new CodeInspector(jars.getForConfiguration(kotlinc, targetVersion)),
-                        inspector))
+                        inspector,
+                        i -> {}))
             .writeToZip();
     testForJvm()
         .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinReflectJar(kotlinc))

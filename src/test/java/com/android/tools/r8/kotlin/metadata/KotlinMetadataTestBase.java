@@ -15,9 +15,13 @@ import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.function.IntConsumer;
 import junit.framework.TestCase;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -44,7 +48,10 @@ public abstract class KotlinMetadataTestBase extends KotlinTestBase {
   static final String KT_COMPARABLE = "Lkotlin/Comparable;";
 
   public void assertEqualMetadata(
-      CodeInspector originalInspector, CodeInspector rewrittenInspector) {
+      CodeInspector originalInspector,
+      CodeInspector rewrittenInspector,
+      IntConsumer addedStringsInspector) {
+    IntBox addedStrings = new IntBox();
     for (FoundClassSubject clazzSubject : originalInspector.allClasses()) {
       ClassSubject r8Clazz = rewrittenInspector.clazz(clazzSubject.getOriginalName());
       assertThat(r8Clazz, isPresent());
@@ -60,12 +67,23 @@ public abstract class KotlinMetadataTestBase extends KotlinTestBase {
       TestCase.assertEquals(originalHeader.getKind(), rewrittenHeader.getKind());
       // TODO(b/154199572): Should we check for meta-data version?
       TestCase.assertEquals(originalHeader.getPackageName(), rewrittenHeader.getPackageName());
+
+      HashSet<String> originalStrings = new HashSet<>(Arrays.asList(originalHeader.getData2()));
+      HashSet<String> rewrittenStrings = new HashSet<>(Arrays.asList(rewrittenHeader.getData2()));
+      rewrittenStrings.forEach(
+          rewrittenString -> {
+            if (originalStrings.contains(rewrittenString)) {
+              return;
+            }
+            addedStrings.increment();
+          });
       // We cannot assert equality of the data since it may be ordered differently. Instead we use
       // the KotlinMetadataWriter.
       String expected = KotlinMetadataWriter.kotlinMetadataToString("", originalMetadata);
       String actual = KotlinMetadataWriter.kotlinMetadataToString("", rewrittenMetadata);
       TestCase.assertEquals(expected, actual);
     }
+    addedStringsInspector.accept(addedStrings.get());
   }
 
   public static void verifyExpectedWarningsFromKotlinReflectAndStdLib(

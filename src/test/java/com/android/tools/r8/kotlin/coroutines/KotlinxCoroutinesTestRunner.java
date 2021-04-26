@@ -92,7 +92,9 @@ public class KotlinxCoroutinesTestRunner extends KotlinMetadataTestBase {
                 "org.junit.runners.model.Statement",
                 "org.junit.runners.model.TestTimedOutException")
             .compile()
-            .inspect(inspector -> assertEqualMetadata(new CodeInspector(BASE_LIBRARY), inspector))
+            .inspect(
+                inspector ->
+                    assertEqualMetadata(new CodeInspector(BASE_LIBRARY), inspector, i -> {}))
             .writeToZip();
     Path testJar = compileTestSources(baseJar);
     runTestsInJar(testJar, baseJar);

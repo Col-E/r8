@@ -7,9 +7,12 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.Collection;
@@ -35,6 +38,18 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
     this.parameters = parameters;
   }
 
+  public int getExpectedAddedCount() {
+    if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_3_72)) {
+      return 2441;
+    } else if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_4_20)) {
+      return 2561;
+    } else if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_5_0_M2)) {
+      return 2594;
+    } else {
+      throw new Unreachable("Should not compile in this configuration");
+    }
+  }
+
   @Test
   public void testKotlinStdLib() throws Exception {
     testForR8(parameters.getBackend())
@@ -48,6 +63,11 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .inspect(
             inspector ->
-                assertEqualMetadata(new CodeInspector(getKotlinStdlibJar(kotlinc)), inspector));
+                assertEqualMetadata(
+                    new CodeInspector(getKotlinStdlibJar(kotlinc)),
+                    inspector,
+                    addedStrings -> {
+                      assertEquals(getExpectedAddedCount(), addedStrings);
+                    }));
   }
 }
