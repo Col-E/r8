@@ -222,7 +222,7 @@ class Tracer {
   private final DiagnosticsHandler diagnostics;
   private final Predicate<DexType> targetPredicate;
 
-  Tracer(Set<String> descriptors, AndroidApp inputApp, DiagnosticsHandler diagnostics)
+  Tracer(Set<String> targetDescriptors, AndroidApp inputApp, DiagnosticsHandler diagnostics)
       throws IOException {
     this(
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
@@ -232,7 +232,7 @@ class Tracer {
             ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
             MainDexInfo.none()),
         diagnostics,
-        type -> descriptors.contains(type.toDescriptorString()));
+        type -> targetDescriptors.contains(type.toDescriptorString()));
   }
 
   private Tracer(
