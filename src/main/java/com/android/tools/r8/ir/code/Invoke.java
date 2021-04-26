@@ -83,6 +83,10 @@ public abstract class Invoke extends Instruction {
       return dexOpcodeRange;
     }
 
+    public boolean isInterface() {
+      return this == INTERFACE;
+    }
+
     public MethodHandleType toMethodHandle(DexMethod targetMethod) {
       switch (this) {
         case STATIC:

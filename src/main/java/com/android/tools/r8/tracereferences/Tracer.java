@@ -10,6 +10,7 @@ import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -24,6 +25,7 @@ import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -157,11 +159,19 @@ class Tracer {
 
   static class TracedClassImpl extends TracedReferenceBase<ClassReference, ClassAccessFlags>
       implements TracedClass {
+    private TracedClassImpl(DexType type) {
+      this(type, null);
+    }
+
     private TracedClassImpl(DexType reference, DexClass definition) {
       super(
-          Reference.classFromDescriptor(reference.toDescriptorString()),
+          reference.asClassReference(),
           definition != null ? new ClassAccessFlagsImpl(definition.getAccessFlags()) : null,
           definition == null);
+    }
+
+    private TracedClassImpl(DexClass clazz) {
+      this(clazz.getType(), clazz);
     }
 
     @Override
@@ -177,14 +187,19 @@ class Tracer {
 
   static class TracedFieldImpl extends TracedReferenceBase<FieldReference, FieldAccessFlags>
       implements TracedField {
+    private TracedFieldImpl(DexField field) {
+      this(field, null);
+    }
+
     private TracedFieldImpl(DexField reference, DexEncodedField definition) {
       super(
-          Reference.field(
-              Reference.classFromDescriptor(reference.holder.toDescriptorString()),
-              reference.name.toString(),
-              Reference.typeFromDescriptor(reference.type.toDescriptorString())),
+          reference.asFieldReference(),
           definition != null ? new FieldAccessFlagsImpl(definition.getAccessFlags()) : null,
           definition == null);
+    }
+
+    private TracedFieldImpl(DexClassAndField field) {
+      this(field.getReference(), field.getDefinition());
     }
 
     @Override
@@ -200,11 +215,19 @@ class Tracer {
 
   static class TracedMethodImpl extends TracedReferenceBase<MethodReference, MethodAccessFlags>
       implements TracedMethod {
+    private TracedMethodImpl(DexMethod reference) {
+      this(reference, null);
+    }
+
     private TracedMethodImpl(DexMethod reference, DexEncodedMethod definition) {
       super(
           reference.asMethodReference(),
           definition != null ? new MethodAccessFlagsImpl(definition.getAccessFlags()) : null,
           definition == null);
+    }
+
+    private TracedMethodImpl(DexClassAndMethod method) {
+      this(method.getReference(), method.getDefinition());
     }
 
     @Override
@@ -290,71 +313,57 @@ class Tracer {
       if (type.isPrimitiveType() || type.isVoidType()) {
         return;
       }
-      DexClass clazz = appInfo.definitionFor(type);
-      TracedClassImpl tracedClass = new TracedClassImpl(type, clazz);
-      checkMissingDefinition(tracedClass);
-      if (isTargetType(type) || tracedClass.isMissingDefinition()) {
-        consumer.acceptType(tracedClass, diagnostics);
-        if (!tracedClass.isMissingDefinition()
-            && clazz.accessFlags.isVisibilityDependingOnPackage()) {
-          consumer.acceptPackage(
-              Reference.packageFromString(clazz.type.getPackageName()), diagnostics);
-        }
-      }
+      assert type.isClassType();
+      addClassType(type);
     }
 
     private void addTypes(DexTypeList types) {
       types.forEach(this::addType);
     }
 
-    private void addField(DexField field) {
-      addType(field.type);
-      DexEncodedField baseField = appInfo.resolveField(field).getResolvedField();
-      if (baseField != null && baseField.getHolderType() != field.holder) {
-        field = baseField.getReference();
-      }
-      addType(field.holder);
-      TracedFieldImpl tracedField = new TracedFieldImpl(field, baseField);
-      checkMissingDefinition(tracedField);
-      if (isTargetType(field.holder) || tracedField.isMissingDefinition()) {
-        consumer.acceptField(tracedField, diagnostics);
-        if (!tracedField.isMissingDefinition()
-            && baseField.accessFlags.isVisibilityDependingOnPackage()) {
-          consumer.acceptPackage(
-              Reference.packageFromString(baseField.getHolderType().getPackageName()), diagnostics);
+    private void addClassType(DexType type) {
+      assert type.isClassType();
+      DexClass clazz = appInfo.definitionFor(type);
+      if (clazz != null) {
+        addClass(clazz);
+      } else {
+        TracedClassImpl tracedClass = new TracedClassImpl(type);
+        collectMissingClass(tracedClass);
+        if (isTargetType(type)) {
+          consumer.acceptType(tracedClass, diagnostics);
         }
       }
     }
 
-    private void addMethod(DexMethod method) {
-      addType(method.holder);
-      addTypes(method.getParameters());
-      addType(method.getReturnType());
-      DexClass holder = appInfo.definitionForHolder(method);
-      DexEncodedMethod definition = method.lookupOnClass(holder);
-      TracedMethodImpl tracedMethod = new TracedMethodImpl(method, definition);
-      if (isTargetType(method.holder) || tracedMethod.isMissingDefinition()) {
+    private void addClass(DexClass clazz) {
+      if (isTargetType(clazz.getType())) {
+        TracedClassImpl tracedClass = new TracedClassImpl(clazz);
+        consumer.acceptType(tracedClass, diagnostics);
+        if (clazz.getAccessFlags().isVisibilityDependingOnPackage()) {
+          consumer.acceptPackage(
+              Reference.packageFromString(clazz.getType().getPackageName()), diagnostics);
+        }
+      }
+    }
+
+    private void addSuperMethodFromTarget(DexClassAndMethod method) {
+      assert !method.isProgramMethod();
+      assert isTargetType(method.getHolderType());
+
+      // There should be no need to register the types referenced from the method signature:
+      // - The return type and the parameter types are registered when visiting the source method
+      //   that overrides this target method,
+      // - The holder type is registered from visiting the extends/implements clause of the sub
+      //   class.
+
+      TracedMethodImpl tracedMethod = new TracedMethodImpl(method);
+      if (isTargetType(method.getHolderType())) {
         consumer.acceptMethod(tracedMethod, diagnostics);
-        checkMissingDefinition(tracedMethod);
-        if (!tracedMethod.isMissingDefinition()
-            && definition.accessFlags.isVisibilityDependingOnPackage()) {
+        if (method.getAccessFlags().isVisibilityDependingOnPackage()) {
           consumer.acceptPackage(
-              Reference.packageFromString(definition.getHolderType().getPackageName()),
-              diagnostics);
+              Reference.packageFromString(method.getHolderType().getPackageName()), diagnostics);
         }
       }
-    }
-
-    private void checkMissingDefinition(TracedClassImpl tracedClass) {
-      collectMissing(tracedClass, missingClasses);
-    }
-
-    private void checkMissingDefinition(TracedFieldImpl tracedField) {
-      collectMissing(tracedField, missingFields);
-    }
-
-    private void checkMissingDefinition(TracedMethodImpl tracedMethod) {
-      collectMissing(tracedMethod, missingMethods);
     }
 
     private <R, T extends TracedReferenceBase<R, ?>> void collectMissing(
@@ -362,6 +371,21 @@ class Tracer {
       if (tracedReference.isMissingDefinition()) {
         missingCollection.add(tracedReference.getReference());
       }
+    }
+
+    private void collectMissingClass(TracedClassImpl tracedClass) {
+      assert tracedClass.isMissingDefinition();
+      collectMissing(tracedClass, missingClasses);
+    }
+
+    private void collectMissingField(TracedFieldImpl tracedField) {
+      assert tracedField.isMissingDefinition();
+      collectMissing(tracedField, missingFields);
+    }
+
+    private void collectMissingMethod(TracedMethodImpl tracedMethod) {
+      assert tracedMethod.isMissingDefinition();
+      collectMissing(tracedMethod, missingMethods);
     }
 
     private void reportMissingDefinitions() {
@@ -376,13 +400,6 @@ class Tracer {
     }
 
     private void registerMethod(ProgramMethod method) {
-      DexClassAndMethod superTarget =
-          appInfo
-              .resolveMethodOn(method.getHolder(), method.getReference())
-              .lookupInvokeSpecialTarget(method.getHolder(), appInfo);
-      if (superTarget != null) {
-        addMethod(superTarget.getReference());
-      }
       addTypes(method.getParameters());
       addType(method.getReturnType());
       for (DexAnnotation annotation : method.getDefinition().annotations().annotations) {
@@ -392,6 +409,16 @@ class Tracer {
             addType(dexValType.asDexValueType().value);
           }
         }
+      }
+
+      DexClassAndMethod superTarget =
+          appInfo
+              .resolveMethodOn(method.getHolder(), method.getReference())
+              .lookupInvokeSpecialTarget(method.getHolder(), appInfo);
+      if (superTarget != null
+          && !superTarget.isProgramMethod()
+          && isTargetType(superTarget.getHolderType())) {
+        addSuperMethodFromTarget(superTarget);
       }
     }
 
@@ -404,12 +431,14 @@ class Tracer {
       // If clazz overrides any methods in superType, we should keep those as well.
       clazz.forEachMethod(
           method -> {
-            ResolutionResult resolutionResult =
-                appInfo.resolveMethodOn(
-                    superType, method.getReference(), superType != clazz.superType);
-            DexEncodedMethod dexEncodedMethod = resolutionResult.getSingleTarget();
-            if (dexEncodedMethod != null) {
-              addMethod(dexEncodedMethod.getReference());
+            DexClassAndMethod resolvedMethod =
+                appInfo
+                    .resolveMethodOn(superType, method.getReference(), superType != clazz.superType)
+                    .getResolutionPair();
+            if (resolvedMethod != null
+                && !resolvedMethod.isProgramMethod()
+                && isTargetType(resolvedMethod.getHolderType())) {
+              addSuperMethodFromTarget(resolvedMethod);
             }
           });
     }
@@ -423,54 +452,76 @@ class Tracer {
         this.context = context;
       }
 
-      // Method refererences.
+      // Method references.
 
       @Override
       public void registerInvokeDirect(DexMethod method) {
-        addMethod(method);
+        DexClass holder = appInfo.definitionFor(method.getHolderType());
+        handleRewrittenMethodReference(method, method.lookupMemberOnClass(holder));
       }
 
       @Override
       public void registerInvokeInterface(DexMethod method) {
-        registerInvokeVirtual(method);
+        handleInvokeWithDynamicDispatch(method, Type.INTERFACE);
       }
 
       @Override
       public void registerInvokeStatic(DexMethod method) {
-        DexEncodedMethod target =
-            appInfo.unsafeResolveMethodDueToDexFormat(method).getSingleTarget();
-        if (target != null && target.getReference() != method) {
-          addType(method.holder);
-          addMethod(target.getReference());
-        } else {
-          addMethod(method);
-        }
+        DexClassAndMethod resolvedMethod =
+            appInfo.unsafeResolveMethodDueToDexFormat(method).getResolutionPair();
+        handleRewrittenMethodReference(method, resolvedMethod);
       }
 
       @Override
       public void registerInvokeSuper(DexMethod method) {
         DexClassAndMethod superTarget = appInfo.lookupSuperTarget(method, context);
-        if (superTarget != null) {
-          addMethod(superTarget.getReference());
-        } else {
-          addMethod(method);
-        }
+        handleRewrittenMethodReference(method, superTarget);
       }
 
       @Override
       public void registerInvokeVirtual(DexMethod method) {
-        if (method.holder.isArrayType()) {
-          addType(method.holder);
+        handleInvokeWithDynamicDispatch(method, Type.VIRTUAL);
+      }
+
+      private void handleInvokeWithDynamicDispatch(DexMethod method, Type type) {
+        if (method.getHolderType().isArrayType()) {
+          addType(method.getHolderType());
           return;
         }
-        ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
-        DexEncodedMethod target =
-            resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
-        if (target != null && target.getReference() != method) {
-          addType(method.holder);
-          addMethod(target.getReference());
+        ResolutionResult resolutionResult =
+            type.isInterface()
+                ? appInfo.resolveMethodOnInterface(method)
+                : appInfo.resolveMethodOnClass(method);
+        DexClassAndMethod resolvedMethod =
+            resolutionResult.isVirtualTarget() ? resolutionResult.getResolutionPair() : null;
+        handleRewrittenMethodReference(method, resolvedMethod);
+      }
+
+      private void handleRewrittenMethodReference(
+          DexMethod method, DexClassAndMethod resolvedMethod) {
+        assert resolvedMethod == null || resolvedMethod.getReference().match(method);
+        addType(method.getHolderType());
+        addTypes(method.getParameters());
+        addType(method.getReturnType());
+        if (resolvedMethod != null) {
+          if (isTargetType(resolvedMethod.getHolderType())) {
+            if (resolvedMethod.getHolderType() != method.getHolderType()) {
+              addType(resolvedMethod.getHolderType());
+            }
+            TracedMethodImpl tracedMethod = new TracedMethodImpl(resolvedMethod);
+            consumer.acceptMethod(tracedMethod, diagnostics);
+            if (resolvedMethod.getAccessFlags().isVisibilityDependingOnPackage()) {
+              consumer.acceptPackage(
+                  Reference.packageFromString(resolvedMethod.getHolderType().getPackageName()),
+                  diagnostics);
+            }
+          }
         } else {
-          addMethod(method);
+          TracedMethodImpl tracedMethod = new TracedMethodImpl(method);
+          collectMissingMethod(tracedMethod);
+          if (isTargetType(method.getHolderType())) {
+            consumer.acceptMethod(tracedMethod, diagnostics);
+          }
         }
       }
 
@@ -483,22 +534,53 @@ class Tracer {
 
       @Override
       public void registerInstanceFieldRead(DexField field) {
-        addField(field);
+        handleFieldAccess(field);
       }
 
       @Override
       public void registerInstanceFieldWrite(DexField field) {
-        addField(field);
+        handleFieldAccess(field);
       }
 
       @Override
       public void registerStaticFieldRead(DexField field) {
-        addField(field);
+        handleFieldAccess(field);
       }
 
       @Override
       public void registerStaticFieldWrite(DexField field) {
-        addField(field);
+        handleFieldAccess(field);
+      }
+
+      private void handleFieldAccess(DexField field) {
+        handleRewrittenFieldReference(field);
+      }
+
+      private void handleRewrittenFieldReference(DexField field) {
+        addType(field.getHolderType());
+        addType(field.getType());
+
+        DexClassAndField resolvedField = appInfo.resolveField(field).getResolutionPair();
+        if (resolvedField != null) {
+          if (isTargetType(resolvedField.getHolderType())) {
+            if (resolvedField.getHolderType() != field.getHolderType()) {
+              addClass(resolvedField.getHolder());
+            }
+            TracedFieldImpl tracedField = new TracedFieldImpl(resolvedField);
+            consumer.acceptField(tracedField, diagnostics);
+            if (resolvedField.getAccessFlags().isVisibilityDependingOnPackage()) {
+              consumer.acceptPackage(
+                  Reference.packageFromString(resolvedField.getHolderType().getPackageName()),
+                  diagnostics);
+            }
+          }
+        } else {
+          TracedFieldImpl tracedField = new TracedFieldImpl(field);
+          collectMissingField(tracedField);
+          if (isTargetType(field.getHolderType())) {
+            consumer.acceptField(tracedField, diagnostics);
+          }
+        }
       }
 
       // Type references.
