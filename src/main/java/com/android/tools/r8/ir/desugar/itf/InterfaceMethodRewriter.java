@@ -744,7 +744,7 @@ public final class InterfaceMethodRewriter {
       assert !defaultMethod.getAccessFlags().isAbstract();
       instructions.replaceCurrentInstruction(
           new InvokeStatic(
-              emulateInterfaceLibraryMethod(defaultMethod),
+              emulateInterfaceLibraryMethod(defaultMethod, factory),
               invokeMethod.outValue(),
               invokeMethod.arguments()));
     }
@@ -773,7 +773,8 @@ public final class InterfaceMethodRewriter {
     return false;
   }
 
-  DexMethod emulateInterfaceLibraryMethod(DexClassAndMethod method) {
+  public static DexMethod emulateInterfaceLibraryMethod(
+      DexClassAndMethod method, DexItemFactory factory) {
     return factory.createMethod(
         getEmulateLibraryInterfaceClassType(method.getHolderType(), factory),
         factory.prependTypeToProto(method.getHolderType(), method.getProto()),
@@ -786,7 +787,7 @@ public final class InterfaceMethodRewriter {
         + ";";
   }
 
-  static DexType getEmulateLibraryInterfaceClassType(DexType type, DexItemFactory factory) {
+  public static DexType getEmulateLibraryInterfaceClassType(DexType type, DexItemFactory factory) {
     assert type.isClassType();
     String descriptor = type.descriptor.toString();
     String elTypeDescriptor = getEmulateLibraryInterfaceClassDescriptor(descriptor);

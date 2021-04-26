@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar.itf;
 
+import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.emulateInterfaceLibraryMethod;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -214,7 +216,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
           emulationMethods.add(
               DexEncodedMethod.toEmulateDispatchLibraryMethod(
                   method.getHolderType(),
-                  rewriter.emulateInterfaceLibraryMethod(method),
+                  emulateInterfaceLibraryMethod(method, rewriter.factory),
                   companionMethod,
                   libraryMethod,
                   extraDispatchCases,

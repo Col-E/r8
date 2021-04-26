@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.DESCRIPTOR_VIVIFIED_PREFIX;
 import static com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter.getRetargetPackageAndClassPrefixDescriptor;
-import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.utils.collections.IdentityHashSetFromMap.newProgramDerivedContextSet;
 
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
@@ -282,8 +281,6 @@ public class MissingClasses {
         AppView<?> appView) {
       DexItemFactory dexItemFactory = appView.dexItemFactory();
       InternalOptions options = appView.options();
-      DexString emulatedLibraryClassNameSuffix =
-          dexItemFactory.createString(EMULATE_LIBRARY_CLASS_NAME_SUFFIX + ";");
       DexString retargetPackageAndClassPrefixDescriptor =
           dexItemFactory.createString(
               getRetargetPackageAndClassPrefixDescriptor(options.desugaredLibraryConfiguration));
@@ -291,8 +288,7 @@ public class MissingClasses {
       return type -> {
         DexString descriptor = type.getDescriptor();
         return descriptor.startsWith(retargetPackageAndClassPrefixDescriptor)
-            || descriptor.startsWith(vivifiedClassNamePrefix)
-            || descriptor.endsWith(emulatedLibraryClassNameSuffix);
+            || descriptor.startsWith(vivifiedClassNamePrefix);
       };
     }
 

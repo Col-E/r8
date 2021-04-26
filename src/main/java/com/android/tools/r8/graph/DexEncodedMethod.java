@@ -1252,16 +1252,13 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       DexMethod libraryMethod,
       List<Pair<DexType, DexMethod>> extraDispatchCases,
       AppView<?> appView) {
-    MethodAccessFlags accessFlags =
-        MethodAccessFlags.fromSharedAccessFlags(
-            Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC, false);
     CfCode code =
         new EmulateInterfaceSyntheticCfCodeProvider(
                 interfaceType, companionMethod, libraryMethod, extraDispatchCases, appView)
             .generateCfCode();
     return new DexEncodedMethod(
         newMethod,
-        accessFlags,
+        MethodAccessFlags.createPublicStaticSynthetic(),
         MethodTypeSignature.noSignature(),
         DexAnnotationSet.empty(),
         ParameterAnnotationsList.empty(),

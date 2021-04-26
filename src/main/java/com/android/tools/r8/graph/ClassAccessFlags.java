@@ -58,6 +58,11 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
     super(originalFlags, modifiedFlags);
   }
 
+  public static ClassAccessFlags createPublicFinalSynthetic() {
+    return new ClassAccessFlags(
+        Constants.ACC_PUBLIC | Constants.ACC_FINAL | Constants.ACC_SYNTHETIC);
+  }
+
   public static ClassAccessFlags fromSharedAccessFlags(int access) {
     assert (access & SHARED_FLAGS) == access;
     assert SHARED_FLAGS == DEX_FLAGS;

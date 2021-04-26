@@ -11,6 +11,8 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -66,6 +68,10 @@ public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<
       staticField.clearStaticValue();
     }
     assert kind == Kind.CF : "Invalid kind " + kind + " for library-path class " + type;
+  }
+
+  public static Builder builder(DexItemFactory dexItemFactory) {
+    return new Builder(dexItemFactory);
   }
 
   public static DexLibraryClass asLibraryClassOrNull(DexClass clazz) {
@@ -151,5 +157,78 @@ public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<
     return isInterface()
         ? appView.options().libraryInterfacesMayHaveStaticInitialization
         : !appView.dexItemFactory().libraryClassesWithoutStaticInitialization.contains(type);
+  }
+
+  public static class Builder {
+
+    // Required.
+    private DexType type;
+    private ClassAccessFlags accessFlags;
+
+    // Optional.
+    private Origin origin = Origin.unknown();
+    private DexType superType;
+    private DexTypeList interfaces = DexTypeList.empty();
+    private DexString sourceFile = null;
+    private NestHostClassAttribute nestHost = null;
+    private List<NestMemberClassAttribute> nestMembers = Collections.emptyList();
+    private EnclosingMethodAttribute enclosingMember = null;
+    private List<InnerClassAttribute> innerClasses = Collections.emptyList();
+    private ClassSignature classSignature = ClassSignature.noSignature();
+    private DexAnnotationSet annotations = DexAnnotationSet.empty();
+    private DexEncodedField[] staticFields = DexEncodedField.EMPTY_ARRAY;
+    private DexEncodedField[] instanceFields = DexEncodedField.EMPTY_ARRAY;
+    private DexEncodedMethod[] directMethods = DexEncodedMethod.EMPTY_ARRAY;
+    private DexEncodedMethod[] virtualMethods = DexEncodedMethod.EMPTY_ARRAY;
+    private boolean skipNameValidationForTesting;
+
+    private Builder(DexItemFactory dexItemFactory) {
+      this.superType = dexItemFactory.objectType;
+      this.skipNameValidationForTesting = dexItemFactory.getSkipNameValidationForTesting();
+    }
+
+    public Builder setAccessFlags(ClassAccessFlags accessFlags) {
+      this.accessFlags = accessFlags;
+      return this;
+    }
+
+    public Builder setDirectMethods(Collection<DexEncodedMethod> directMethods) {
+      this.directMethods = directMethods.toArray(DexEncodedMethod.EMPTY_ARRAY);
+      return this;
+    }
+
+    public Builder setType(DexType type) {
+      this.type = type;
+      return this;
+    }
+
+    public DexLibraryClass build() {
+      assert validate();
+      return new DexLibraryClass(
+          type,
+          ProgramResource.Kind.CF,
+          origin,
+          accessFlags,
+          superType,
+          interfaces,
+          sourceFile,
+          nestHost,
+          nestMembers,
+          enclosingMember,
+          innerClasses,
+          classSignature,
+          annotations,
+          staticFields,
+          instanceFields,
+          directMethods,
+          virtualMethods,
+          skipNameValidationForTesting);
+    }
+
+    private boolean validate() {
+      assert type != null;
+      assert accessFlags != null;
+      return true;
+    }
   }
 }
