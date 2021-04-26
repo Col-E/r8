@@ -185,6 +185,10 @@ public class Enqueuer {
     GENERATE_MAIN_DEX_LIST,
     WHY_ARE_YOU_KEEPING;
 
+    public boolean isTreeShaking() {
+      return isInitialTreeShaking() || isFinalTreeShaking();
+    }
+
     public boolean isInitialTreeShaking() {
       return this == INITIAL_TREE_SHAKING;
     }
@@ -1504,7 +1508,8 @@ public class Enqueuer {
 
       // Record field reference for generated extension registry shrinking.
       appView.withGeneratedExtensionRegistryShrinker(
-          shrinker -> shrinker.handleFailedOrUnknownFieldResolution(fieldReference, currentMethod));
+          shrinker ->
+              shrinker.handleFailedOrUnknownFieldResolution(fieldReference, currentMethod, mode));
       return;
     }
 

@@ -4,11 +4,13 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
@@ -25,13 +27,17 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.DefaultTreePrunerConfiguration;
 import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.shaking.Enqueuer.Mode;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.TreePrunerConfiguration;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -71,8 +77,7 @@ public class GeneratedExtensionRegistryShrinker {
   private final AppView<AppInfoWithLiveness> appView;
   private final ProtoReferences references;
 
-  private final Set<DexType> classesWithRemovedExtensionFields = Sets.newIdentityHashSet();
-  private final Set<DexField> removedExtensionFields = Sets.newIdentityHashSet();
+  private final Map<DexType, Map<DexField, Mode>> removedExtensionFields = new IdentityHashMap<>();
 
   GeneratedExtensionRegistryShrinker(
       AppView<AppInfoWithLiveness> appView, ProtoReferences references) {
@@ -92,14 +97,16 @@ public class GeneratedExtensionRegistryShrinker {
    * of these methods and replace the reads of these fields by null.
    */
   public TreePrunerConfiguration run(Enqueuer.Mode mode) {
-    forEachDeadProtoExtensionField(this::recordDeadProtoExtensionField);
+    forEachDeadProtoExtensionField(field -> recordDeadProtoExtensionField(field, mode));
     appView.appInfo().getFieldAccessInfoCollection().removeIf((field, info) -> wasRemoved(field));
     return createTreePrunerConfiguration(mode);
   }
 
-  private void recordDeadProtoExtensionField(DexField field) {
-    classesWithRemovedExtensionFields.add(field.holder);
-    removedExtensionFields.add(field);
+  private void recordDeadProtoExtensionField(DexField field, Enqueuer.Mode mode) {
+    assert mode.isInitialTreeShaking() || mode.isFinalTreeShaking();
+    removedExtensionFields
+        .computeIfAbsent(field.getHolderType(), ignore -> new IdentityHashMap<>())
+        .put(field, mode);
   }
 
   private TreePrunerConfiguration createTreePrunerConfiguration(Enqueuer.Mode mode) {
@@ -124,7 +131,7 @@ public class GeneratedExtensionRegistryShrinker {
    */
   public void rewriteCode(DexEncodedMethod method, IRCode code) {
     if (method.isClassInitializer()
-        && classesWithRemovedExtensionFields.contains(method.getHolderType())
+        && removedExtensionFields.containsKey(method.getHolderType())
         && code.metadata().mayHaveStaticPut()) {
       rewriteClassInitializer(code);
     }
@@ -133,7 +140,7 @@ public class GeneratedExtensionRegistryShrinker {
   private void rewriteClassInitializer(IRCode code) {
     List<StaticPut> toBeRemoved = new ArrayList<>();
     for (StaticPut staticPut : code.<StaticPut>instructions(Instruction::isStaticPut)) {
-      if (removedExtensionFields.contains(staticPut.getField())) {
+      if (wasRemoved(staticPut.getField())) {
         toBeRemoved.add(staticPut);
       }
     }
@@ -147,7 +154,9 @@ public class GeneratedExtensionRegistryShrinker {
   }
 
   public boolean wasRemoved(DexField field) {
-    return removedExtensionFields.contains(field);
+    return removedExtensionFields
+        .getOrDefault(field.getHolderType(), Collections.emptyMap())
+        .containsKey(field);
   }
 
   public void postOptimizeGeneratedExtensionRegistry(
@@ -155,7 +164,7 @@ public class GeneratedExtensionRegistryShrinker {
       throws ExecutionException {
     timing.begin("[Proto] Post optimize generated extension registry");
     SortedProgramMethodSet wave =
-        SortedProgramMethodSet.create(this::forEachFindLiteExtensionByNumberMethod);
+        SortedProgramMethodSet.create(this::forEachMethodThatRequiresPostOptimization);
     OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
     methodProcessor.forEachWaveWithExtension(
         (method, methodProcessingContext) ->
@@ -166,6 +175,34 @@ public class GeneratedExtensionRegistryShrinker {
                 methodProcessingContext),
         executorService);
     timing.end();
+  }
+
+  private void forEachMethodThatRequiresPostOptimization(Consumer<ProgramMethod> consumer) {
+    forEachClassInitializerWithRemovedExtensionFields(consumer, Enqueuer.Mode.FINAL_TREE_SHAKING);
+    forEachFindLiteExtensionByNumberMethod(consumer);
+  }
+
+  private void forEachClassInitializerWithRemovedExtensionFields(
+      Consumer<ProgramMethod> consumer, Enqueuer.Mode modeOfInterest) {
+    Set<DexType> classesWithRemovedExtensionFieldsInModeOfInterest = Sets.newIdentityHashSet();
+    removedExtensionFields
+        .values()
+        .forEach(
+            removedExtensionFieldsForHolder ->
+                removedExtensionFieldsForHolder.forEach(
+                    (field, mode) -> {
+                      if (mode == modeOfInterest) {
+                        classesWithRemovedExtensionFieldsInModeOfInterest.add(
+                            field.getHolderType());
+                      }
+                    }));
+    classesWithRemovedExtensionFieldsInModeOfInterest.forEach(
+        type -> {
+          DexProgramClass clazz = asProgramClassOrNull(appView.appInfo().definitionFor(type));
+          if (clazz != null && clazz.hasClassInitializer()) {
+            consumer.accept(clazz.getProgramClassInitializer());
+          }
+        });
   }
 
   private void forEachFindLiteExtensionByNumberMethod(Consumer<ProgramMethod> consumer) {
@@ -183,9 +220,10 @@ public class GeneratedExtensionRegistryShrinker {
             });
   }
 
-  public void handleFailedOrUnknownFieldResolution(DexField fieldReference, ProgramMethod context) {
-    if (references.isFindLiteExtensionByNumberMethod(context)) {
-      removedExtensionFields.add(fieldReference);
+  public void handleFailedOrUnknownFieldResolution(
+      DexField fieldReference, ProgramMethod context, Enqueuer.Mode mode) {
+    if (mode.isTreeShaking() && references.isFindLiteExtensionByNumberMethod(context)) {
+      recordDeadProtoExtensionField(fieldReference, mode);
     }
   }
 

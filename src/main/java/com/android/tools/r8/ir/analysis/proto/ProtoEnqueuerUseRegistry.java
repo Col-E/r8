@@ -59,14 +59,22 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
    * not trace any static-get instructions in every implementation of dynamicMethod() that accesses
    * an 'INSTANCE' or a 'DEFAULT_INSTANCE' field.
    *
+   * <p>The motivation for this is that the proto shrinker will optimize the proto schemas in each
+   * dynamicMethod() after the second round of tree shaking. This is done by {@link
+   * GeneratedMessageLiteShrinker#postOptimizeDynamicMethods}. If we traced all static field reads
+   * as the {@link DefaultEnqueuerUseRegistry} we would end up retaining the types that are
+   * references from the non-optimized proto schemas, but which do not end up being referenced from
+   * the final optimized proto schemas.
+   *
    * <p>The static-get instructions that remain after the proto schema has been optimized will be
    * traced manually by {@link ProtoEnqueuerExtension#tracePendingInstructionsInDynamicMethods}.
    */
   @Override
   public void registerStaticFieldRead(DexField field) {
     if (references.isDynamicMethod(getContextMethod())
+        && field.getHolderType() != getContextHolder().getType()
         && isStaticFieldReadForProtoSchemaDefinition(field)) {
-      enqueuer.addDeadProtoTypeCandidate(field.holder);
+      enqueuer.addDeadProtoTypeCandidate(field.getHolderType());
       return;
     }
     super.registerStaticFieldRead(field);
