@@ -11,7 +11,6 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
-import com.android.tools.r8.retrace.internal.PlainStackTraceLineParser;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
 import com.android.tools.r8.retrace.internal.RetracerImpl;
 import com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser;
@@ -248,9 +247,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
       timing.begin("Report result");
       StringRetrace stringRetrace =
           new StringRetrace(
-              options.getRegularExpression() == null
-                  ? new PlainStackTraceLineParser()
-                  : new StackTraceRegularExpressionParser(options.getRegularExpression()),
+              new StackTraceRegularExpressionParser(options.getRegularExpression()),
               StackTraceElementProxyRetracer.createDefault(retracer),
               diagnosticsHandler,
               options.isVerbose());

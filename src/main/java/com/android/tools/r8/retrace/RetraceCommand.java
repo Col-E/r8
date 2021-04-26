@@ -25,10 +25,14 @@ public class RetraceCommand {
       List<String> stackTrace,
       Consumer<List<String>> retracedStackTraceConsumer,
       boolean isVerbose) {
-    options =
-        new RetraceOptions(regularExpression, diagnosticsHandler, proguardMapProducer, isVerbose);
     this.stackTrace = stackTrace;
     this.retracedStackTraceConsumer = retracedStackTraceConsumer;
+    this.options =
+        RetraceOptions.builder(diagnosticsHandler)
+            .setRegularExpression(regularExpression)
+            .setProguardMapProducer(proguardMapProducer)
+            .setVerbose(isVerbose)
+            .build();
 
     assert this.stackTrace != null;
     assert this.retracedStackTraceConsumer != null;
