@@ -4,8 +4,9 @@
 
 package com.android.tools.r8.retrace;
 
+import static com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
 import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
@@ -15,6 +16,7 @@ import com.android.tools.r8.retrace.stacktraces.AmbiguousWithSignatureVerboseSta
 import com.android.tools.r8.retrace.stacktraces.FoundMethodVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
 import com.android.tools.r8.retrace.stacktraces.VerboseUnknownStackTrace;
+import com.android.tools.r8.utils.BooleanUtils;
 import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,12 +26,16 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class RetraceVerboseTests extends TestBase {
 
-  @Parameters(name = "{0}")
+  @Parameters(name = "{0}, use regular expression: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withNoneRuntime().build());
+    return buildParameters(getTestParameters().withNoneRuntime().build(), BooleanUtils.values());
   }
 
-  public RetraceVerboseTests(TestParameters parameters) {}
+  private final boolean useRegExpParsing;
+
+  public RetraceVerboseTests(TestParameters parameters, boolean useRegExpParsing) {
+    this.useRegExpParsing = useRegExpParsing;
+  }
 
   @Test
   public void testFoundMethod() {
@@ -48,20 +54,23 @@ public class RetraceVerboseTests extends TestBase {
 
   @Test
   public void testAmbiguousMissingLineVerbose() {
-    assumeTrue("b/169346455", false);
+    // TODO(b/169346455): Enable when separated parser.
+    assumeFalse(useRegExpParsing);
     runRetraceTest(new AmbiguousWithSignatureVerboseStackTrace());
   }
 
-  private void runRetraceTest(StackTraceForTest stackTraceForTest) {
+  private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
     RetraceCommand retraceCommand =
         RetraceCommand.builder(diagnosticsHandler)
             .setProguardMapProducer(ProguardMapProducer.fromString(stackTraceForTest.mapping()))
             .setStackTrace(stackTraceForTest.obfuscatedStackTrace())
+            .setRegularExpression(useRegExpParsing ? DEFAULT_REGULAR_EXPRESSION : null)
             .setVerbose(true)
             .setRetracedStackTraceConsumer(
                 retraced -> assertEquals(stackTraceForTest.retracedStackTrace(), retraced))
             .build();
     Retrace.run(retraceCommand);
+    return diagnosticsHandler;
   }
 }
