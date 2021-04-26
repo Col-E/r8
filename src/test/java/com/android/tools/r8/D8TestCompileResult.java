@@ -4,7 +4,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
 import java.util.Set;
 
@@ -29,7 +28,7 @@ public class D8TestCompileResult extends TestCompileResult<D8TestCompileResult, 
 
   @Override
   public Set<String> getMainDexClasses() {
-    throw new Unimplemented();
+    return state.getMainDexClasses();
   }
 
   @Override
