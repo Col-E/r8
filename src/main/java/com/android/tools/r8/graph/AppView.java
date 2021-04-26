@@ -116,7 +116,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.dontWarnConfiguration = DontWarnConfiguration.create(options().getProguardConfiguration());
     this.wholeProgramOptimizations = wholeProgramOptimizations;
     this.graphLens = GraphLens.getIdentityLens();
-    this.initClassLens = InitClassLens.getDefault();
+    this.initClassLens = InitClassLens.getThrowingInstance();
     this.rewritePrefix = mapper;
 
     if (enableWholeProgramOptimizations() && options().callSiteOptimizationOptions().isEnabled()) {

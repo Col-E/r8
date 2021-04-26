@@ -6,13 +6,13 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.Unreachable;
 
-public class DefaultInitClassLens extends InitClassLens {
+public class ThrowingInitClassLens extends InitClassLens {
 
-  private static final DefaultInitClassLens INSTANCE = new DefaultInitClassLens();
+  private static final ThrowingInitClassLens INSTANCE = new ThrowingInitClassLens();
 
-  private DefaultInitClassLens() {}
+  private ThrowingInitClassLens() {}
 
-  public static DefaultInitClassLens getInstance() {
+  public static ThrowingInitClassLens getInstance() {
     return INSTANCE;
   }
 
