@@ -37,6 +37,13 @@ public class FoundKmClassSubject extends KmClassSubject
   }
 
   @Override
+  public List<KmConstructorSubject> getConstructors() {
+    return kmClass.getConstructors().stream()
+        .map(constructor -> new FoundKmConstructorSubject(codeInspector, constructor))
+        .collect(Collectors.toList());
+  }
+
+  @Override
   public CodeInspector codeInspector() {
     return codeInspector;
   }

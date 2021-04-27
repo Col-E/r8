@@ -21,6 +21,11 @@ public class AbsentKmClassSubject extends KmClassSubject {
   }
 
   @Override
+  public List<KmConstructorSubject> getConstructors() {
+    return null;
+  }
+
+  @Override
   public boolean isPresent() {
     return false;
   }

@@ -5,7 +5,10 @@
 package com.android.tools.r8.kotlin.metadata.pruned_app
 
 import com.android.tools.r8.kotlin.metadata.pruned_lib.Sub
+import com.android.tools.r8.kotlin.metadata.pruned_lib.SubUser
 
 fun main() {
-  println(Sub().kept())
+  val sub = Sub()
+  println(sub.kept())
+  SubUser().use(sub)
 }

@@ -12,6 +12,8 @@ public abstract class KmClassSubject extends Subject
 
   public abstract DexClass getDexClass();
 
+  public abstract List<KmConstructorSubject> getConstructors();
+
   public abstract List<String> getSuperTypeDescriptors();
 
   public abstract List<ClassSubject> getSuperTypes();

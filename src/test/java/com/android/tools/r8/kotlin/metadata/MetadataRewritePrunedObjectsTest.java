@@ -26,13 +26,17 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class MetadataRewritePrunedObjectsTest extends KotlinMetadataTestBase {
 
-  private final String EXPECTED = StringUtils.lines("42");
+  private final String EXPECTED = StringUtils.lines("42", "0", "Goodbye World");
   private static final String PKG_LIB = PKG + ".pruned_lib";
   private static final String PKG_APP = PKG + ".pruned_app";
 
   private static final KotlinCompileMemoizer libJars =
       getCompileMemoizer(
-          getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_LIB), "lib"));
+              getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_LIB), "lib"))
+          .configure(
+              kotlinCompilerTool -> {
+                kotlinCompilerTool.addClasspathFiles(ToolHelper.getClassPathForTests());
+              });
   private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0}, {1}")
@@ -70,8 +74,12 @@ public class MetadataRewritePrunedObjectsTest extends KotlinMetadataTestBase {
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
-            .addKeepRules("-keep class " + PKG_LIB + ".Sub { <init>(); *** kept(); }")
+            .enableInliningAnnotations()
+            .addClasspathFiles(
+                ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinAnnotationJar(kotlinc))
+            .addKeepRules(
+                "-keep class " + PKG_LIB + ".Sub { <init>(); *** kept(); *** keptProperty; }")
+            .addKeepClassAndMembersRules(PKG_LIB + ".SubUser")
             .addKeepRuntimeVisibleAnnotations()
             .noMinification()
             .compile()
@@ -98,6 +106,15 @@ public class MetadataRewritePrunedObjectsTest extends KotlinMetadataTestBase {
     KmClassSubject kmClass = sub.getKmClass();
     assertThat(kmClass, isPresent());
     assertEquals(0, kmClass.getSuperTypes().size());
+    // Ensure that we do not prune the constructors.
+    assertEquals(1, kmClass.getConstructors().size());
+    // Assert that we have removed the metadata for a function that is removed.
     assertThat(kmClass.kmFunctionWithUniqueName("notKept"), not(isPresent()));
+    // TODO(b/186508801): This should be removed.
+    assertThat(kmClass.kmFunctionWithUniqueName("keptWithoutPinning"), isPresent());
+    // Check that we have not pruned the property information for a kept field.
+    assertThat(kmClass.kmPropertyWithUniqueName("keptProperty"), isPresent());
+    // TODO(b/186508801): This should be removed.
+    assertThat(kmClass.kmPropertyWithUniqueName("notExposedProperty"), isPresent());
   }
 }
