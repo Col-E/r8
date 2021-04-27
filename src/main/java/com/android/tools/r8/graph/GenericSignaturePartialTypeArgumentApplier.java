@@ -37,10 +37,9 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
   }
 
   public static GenericSignaturePartialTypeArgumentApplier build(
-      AppView<?> appView, ClassSignature classSignature, Map<String, DexType> substitutions) {
+      DexType objectType, ClassSignature classSignature, Map<String, DexType> substitutions) {
     GenericSignaturePartialTypeArgumentApplier applier =
-        new GenericSignaturePartialTypeArgumentApplier(
-            substitutions, appView.dexItemFactory().objectType);
+        new GenericSignaturePartialTypeArgumentApplier(substitutions, objectType);
     classSignature.formalTypeParameters.forEach(
         parameter -> applier.introducedClassTypeVariables.add(parameter.name));
     return applier;

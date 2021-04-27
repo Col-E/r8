@@ -37,7 +37,7 @@ public class GenericSignatureTypeVariableRemover {
     }
     GenericSignaturePartialTypeArgumentApplier genericSignatureTypeArgumentApplier =
         GenericSignaturePartialTypeArgumentApplier.build(
-            appView, clazz.getClassSignature(), substitutions);
+            appView.dexItemFactory().objectType, clazz.getClassSignature(), substitutions);
     clazz.setClassSignature(
         genericSignatureTypeArgumentApplier.visitClassSignature(clazz.getClassSignature()));
     clazz
