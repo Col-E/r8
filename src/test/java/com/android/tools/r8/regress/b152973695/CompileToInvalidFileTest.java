@@ -6,7 +6,6 @@ package com.android.tools.r8.regress.b152973695;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.ClassFileConsumer;
@@ -82,9 +81,7 @@ public class CompileToInvalidFileTest extends TestBase {
 
   private void checkDiagnostics(TestDiagnosticMessages diagnostics, boolean isD8) {
     if (classFileConsumer && isD8) {
-      diagnostics.assertWarningsMatch(
-          diagnosticMessage(
-              equalTo("Compiling to Java class files with D8 is not officially supported")));
+      diagnostics.assertWarningsMatch(cfD8NotSupportedDiagnostic);
     } else {
       diagnostics.assertOnlyErrors();
     }

@@ -8,7 +8,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
@@ -20,7 +19,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,10 +47,6 @@ public class InvalidDebugInfoTests extends TestBase {
     options.testing.forceIRForCfToCfDesugar = true;
   }
 
-  private final Matcher<Diagnostic> cfNotSupportedDiagnostic =
-      diagnosticMessage(
-          containsString("Compiling to Java class files with D8 is not officially supported"));
-
   private void assertInvalidTypeMessage(TestDiagnosticMessages diagnostics) {
     assertInvalidInfoMessages(diagnostics, "Attempt to define local of type");
   }
@@ -64,7 +58,7 @@ public class InvalidDebugInfoTests extends TestBase {
   private void assertInvalidInfoMessages(TestDiagnosticMessages diagnostics, String message) {
     if (parameters.isCfRuntime()) {
       diagnostics.assertNoErrors();
-      diagnostics.assertWarningsMatch(cfNotSupportedDiagnostic);
+      diagnostics.assertWarningsMatch(cfD8NotSupportedDiagnostic);
     } else {
       diagnostics.assertOnlyInfos();
     }
@@ -79,7 +73,7 @@ public class InvalidDebugInfoTests extends TestBase {
   private void assertNoMessages(TestDiagnosticMessages diagnostics) {
     if (parameters.isCfRuntime()) {
       diagnostics.assertOnlyWarnings();
-      diagnostics.assertWarningsMatch(cfNotSupportedDiagnostic);
+      diagnostics.assertWarningsMatch(cfD8NotSupportedDiagnostic);
     } else {
       diagnostics.assertNoMessages();
     }

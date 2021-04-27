@@ -57,11 +57,7 @@ public class TestDiagnosticMessagesImpl extends TestDiagnosticMessages
 
   @Override
   public void warning(Diagnostic warning) {
-    // When testing D8 with class file output this warning is always emitted. Discard this, as
-    // for tests this is not relevant.
-    if (!warning.equals("Compiling to Java class files with D8 is not officially supported")) {
-      warnings.add(warning);
-    }
+    warnings.add(warning);
   }
 
   @Override

@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -46,6 +47,10 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
   public L8CommandTest(TestParameters parameters) {
     parameters.assertNoneRuntime();
   }
+
+  protected final Matcher<Diagnostic> cfL8NotSupportedDiagnostic =
+      diagnosticMessage(
+          containsString("L8 does not support shrinking when generating class files"));
 
   @Test(expected = CompilationFailedException.class)
   public void emptyBuilder() throws Throwable {
@@ -192,8 +197,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
           "--classfile");
       fail("Expected failure");
     } catch (CompilationFailedException e) {
-      diagnostics.assertErrorsMatch(
-          diagnosticMessage(containsString("not support shrinking when generating class files")));
+      diagnostics.assertErrorsMatch(cfL8NotSupportedDiagnostic);
     }
   }
 
@@ -300,8 +304,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
       addProguardConfigurationString(diagnostics, ClassFileConsumer.emptyConsumer());
       fail("Expected failure");
     } catch (CompilationFailedException e) {
-      diagnostics.assertErrorsMatch(
-          diagnosticMessage(containsString("not support shrinking when generating class files")));
+      diagnostics.assertErrorsMatch(cfL8NotSupportedDiagnostic);
     }
   }
 
@@ -345,8 +348,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
       addProguardConfigurationFile(diagnostics, ClassFileConsumer.emptyConsumer());
       fail("Expected failure");
     } catch (CompilationFailedException e) {
-      diagnostics.assertErrorsMatch(
-          diagnosticMessage(containsString("not support shrinking when generating class files")));
+      diagnostics.assertErrorsMatch(cfL8NotSupportedDiagnostic);
     }
   }
 
