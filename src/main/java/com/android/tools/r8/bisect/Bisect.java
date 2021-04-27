@@ -193,7 +193,7 @@ public class Bisect {
             AppView.createForD8(AppInfo.createInitialAppInfo(app)),
             null,
             GraphLens.getIdentityLens(),
-            InitClassLens.getDefault(),
+            InitClassLens.getThrowingInstance(),
             NamingLens.getIdentityLens(),
             null);
     writer.write(executor);

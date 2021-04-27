@@ -118,7 +118,7 @@ public class Smali {
               AppView.createForD8(AppInfo.createInitialAppInfo(dexApp)),
               null,
               GraphLens.getIdentityLens(),
-              InitClassLens.getDefault(),
+              InitClassLens.getThrowingInstance(),
               NamingLens.getIdentityLens(),
               null);
       writer.write(executor);

@@ -113,7 +113,7 @@ public final class DexSplitterHelper {
                   appView,
                   markers,
                   GraphLens.getIdentityLens(),
-                  InitClassLens.getDefault(),
+                  InitClassLens.getThrowingInstance(),
                   NamingLens.getIdentityLens(),
                   null,
                   consumer)

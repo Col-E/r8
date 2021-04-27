@@ -13,8 +13,8 @@ public abstract class InitClassLens {
     return new Builder();
   }
 
-  public static DefaultInitClassLens getDefault() {
-    return DefaultInitClassLens.getInstance();
+  public static ThrowingInitClassLens getThrowingInstance() {
+    return ThrowingInitClassLens.getInstance();
   }
 
   public abstract DexField getInitClassField(DexType clazz);

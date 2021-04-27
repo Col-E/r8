@@ -346,6 +346,26 @@ public abstract class GraphLens {
     return lookupMethod(method, null, null).getReference();
   }
 
+  public final MethodLookupResult lookupInvokeDirect(DexMethod method, ProgramMethod context) {
+    return lookupMethod(method, context.getReference(), Type.DIRECT);
+  }
+
+  public final MethodLookupResult lookupInvokeInterface(DexMethod method, ProgramMethod context) {
+    return lookupMethod(method, context.getReference(), Type.INTERFACE);
+  }
+
+  public final MethodLookupResult lookupInvokeStatic(DexMethod method, ProgramMethod context) {
+    return lookupMethod(method, context.getReference(), Type.STATIC);
+  }
+
+  public final MethodLookupResult lookupInvokeSuper(DexMethod method, ProgramMethod context) {
+    return lookupMethod(method, context.getReference(), Type.SUPER);
+  }
+
+  public final MethodLookupResult lookupInvokeVirtual(DexMethod method, ProgramMethod context) {
+    return lookupMethod(method, context.getReference(), Type.VIRTUAL);
+  }
+
   /** Lookup a rebound or non-rebound method reference using the current graph lens. */
   public abstract MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type);
 
