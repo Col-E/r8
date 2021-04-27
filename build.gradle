@@ -1912,7 +1912,7 @@ def filterStackTrace(Throwable exception) {
 }
 
 def testTimes = [:]
-def numberOfTestTimesToPrint = 40
+def numberOfTestTimesToPrint = 100
 
 test {
     if (project.hasProperty('generate_golden_files_to')) {
