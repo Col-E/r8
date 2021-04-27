@@ -77,7 +77,7 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
                     assertEqualMetadata(
                         new CodeInspector(jars.getForConfiguration(kotlinc, targetVersion)),
                         inspector,
-                        (addedStrings, addedNonInitStrings) -> {}))
+                        i -> {}))
             .writeToZip();
     testForJvm()
         .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinReflectJar(kotlinc))

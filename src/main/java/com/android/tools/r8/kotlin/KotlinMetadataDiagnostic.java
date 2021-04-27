@@ -74,12 +74,13 @@ public class KotlinMetadataDiagnostic implements Diagnostic {
             + StringUtils.stacktraceAsString(t));
   }
 
-  static KotlinMetadataDiagnostic lambdaBackingNotFound(DexType type, String functionName) {
+  static KotlinMetadataDiagnostic lambdaBackingNotFound(
+      DexType type, KotlinJvmMethodSignatureInfo signatureInfo) {
     return new KotlinMetadataDiagnostic(
         Origin.unknown(),
         Position.UNKNOWN,
         "The lambda function "
-            + functionName
+            + signatureInfo.toString()
             + " could no longer be found in "
             + type.toSourceString()
             + " . The method is most likely pruned and would require a specific keep rule to keep"

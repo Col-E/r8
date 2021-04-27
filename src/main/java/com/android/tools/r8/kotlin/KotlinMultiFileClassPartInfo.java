@@ -45,13 +45,9 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
       DexItemFactory factory,
       Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode) {
-    KmPackage kmPackage = classPart.toKmPackage();
-    KotlinJvmSignatureExtensionInformation extensionInformation =
-        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(classPart);
     return new KotlinMultiFileClassPartInfo(
         classPart.getFacadeClassName(),
-        KotlinPackageInfo.create(
-            kmPackage, clazz, factory, reporter, keepByteCode, extensionInformation),
+        KotlinPackageInfo.create(classPart.toKmPackage(), clazz, factory, reporter, keepByteCode),
         packageName,
         metadataVersion);
   }

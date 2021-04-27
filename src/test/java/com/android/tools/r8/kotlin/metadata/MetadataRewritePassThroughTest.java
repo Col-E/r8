@@ -40,23 +40,11 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
 
   public int getExpectedAddedCount() {
     if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_3_72)) {
-      return 597;
+      return 2441;
     } else if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_4_20)) {
-      return 685;
+      return 2561;
     } else if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_5_0_M2)) {
-      return 694;
-    } else {
-      throw new Unreachable("Should not compile in this configuration");
-    }
-  }
-
-  public int getExpectedNonInitAddedCount() {
-    if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_3_72)) {
-      return 327;
-    } else if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_4_20)) {
-      return 413;
-    } else if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_5_0_M2)) {
-      return 417;
+      return 2594;
     } else {
       throw new Unreachable("Should not compile in this configuration");
     }
@@ -78,9 +66,8 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
                 assertEqualMetadata(
                     new CodeInspector(getKotlinStdlibJar(kotlinc)),
                     inspector,
-                    (addedStrings, addedNonInitStrings) -> {
-                      assertEquals(getExpectedAddedCount(), addedStrings.intValue());
-                      assertEquals(getExpectedNonInitAddedCount(), addedNonInitStrings.intValue());
+                    addedStrings -> {
+                      assertEquals(getExpectedAddedCount(), addedStrings);
                     }));
   }
 }

@@ -47,14 +47,13 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
       Kotlin kotlin,
       DexItemFactory factory,
       Reporter reporter) {
-    KmLambda lambda = syntheticClass.toKmLambda();
-    assert lambda == null || syntheticClass.isLambda();
-    KotlinJvmSignatureExtensionInformation extensionInformation =
-        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(syntheticClass);
+    KmLambda lambda = null;
+    if (syntheticClass.isLambda()) {
+      lambda = syntheticClass.toKmLambda();
+      assert lambda != null;
+    }
     return new KotlinSyntheticClassInfo(
-        lambda != null
-            ? KotlinLambdaInfo.create(clazz, lambda, factory, reporter, extensionInformation)
-            : null,
+        lambda != null ? KotlinLambdaInfo.create(clazz, lambda, factory, reporter) : null,
         getFlavour(syntheticClass, clazz, kotlin),
         packageName,
         metadataVersion);

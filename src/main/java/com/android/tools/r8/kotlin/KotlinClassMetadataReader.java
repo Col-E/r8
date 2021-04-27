@@ -27,9 +27,6 @@ import java.util.function.Consumer;
 import kotlinx.metadata.InconsistentKotlinMetadataException;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
-import kotlinx.metadata.jvm.KotlinClassMetadata.FileFacade;
-import kotlinx.metadata.jvm.KotlinClassMetadata.MultiFileClassFacade;
-import kotlinx.metadata.jvm.KotlinClassMetadata.MultiFileClassPart;
 import kotlinx.metadata.jvm.KotlinClassMetadata.SyntheticClass;
 
 public final class KotlinClassMetadataReader {
@@ -142,7 +139,7 @@ public final class KotlinClassMetadataReader {
     int[] metadataVersion = kMetadata.getHeader().getMetadataVersion();
     if (kMetadata instanceof KotlinClassMetadata.Class) {
       return KotlinClassInfo.create(
-          (KotlinClassMetadata.Class) kMetadata,
+          ((KotlinClassMetadata.Class) kMetadata).toKmClass(),
           packageName,
           metadataVersion,
           clazz,
@@ -152,7 +149,7 @@ public final class KotlinClassMetadataReader {
     } else if (kMetadata instanceof KotlinClassMetadata.FileFacade) {
       // e.g., B.kt becomes class `BKt`
       return KotlinFileFacadeInfo.create(
-          (FileFacade) kMetadata,
+          (KotlinClassMetadata.FileFacade) kMetadata,
           packageName,
           metadataVersion,
           clazz,
@@ -162,11 +159,14 @@ public final class KotlinClassMetadataReader {
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassFacade) {
       // multi-file class with the same @JvmName.
       return KotlinMultiFileClassFacadeInfo.create(
-          (MultiFileClassFacade) kMetadata, packageName, metadataVersion, factory);
+          (KotlinClassMetadata.MultiFileClassFacade) kMetadata,
+          packageName,
+          metadataVersion,
+          factory);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassPart) {
       // A single file, which is part of multi-file class.
       return KotlinMultiFileClassPartInfo.create(
-          (MultiFileClassPart) kMetadata,
+          (KotlinClassMetadata.MultiFileClassPart) kMetadata,
           packageName,
           metadataVersion,
           clazz,
