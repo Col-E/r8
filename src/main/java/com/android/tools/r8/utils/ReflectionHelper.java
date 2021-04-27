@@ -12,7 +12,6 @@ import java.util.function.Consumer;
 
 public class ReflectionHelper {
 
-  @SuppressWarnings("unchecked")
   public static <T> T performReflection(Object object, ReflectiveOperation<?> operation)
       throws Exception {
     return (T) operation.compute(object);
