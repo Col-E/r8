@@ -49,17 +49,19 @@ public class KotlinContractInfo implements EnqueuerMetadataTraceable {
     forEachApply(effects, effect -> effect::trace, definitionSupplier);
   }
 
-  public void rewrite(
+  boolean rewrite(
       KmVisitorProviders.KmContractVisitorProvider visitorProvider,
       AppView<?> appView,
       NamingLens namingLens) {
     if (this == NO_EFFECT) {
-      return;
+      return false;
     }
+    boolean rewritten = false;
     KmContractVisitor kmContractVisitor = visitorProvider.get();
     for (KotlinEffectInfo effect : effects) {
-      effect.rewrite(kmContractVisitor::visitEffect, appView, namingLens);
+      rewritten |= effect.rewrite(kmContractVisitor::visitEffect, appView, namingLens);
     }
     kmContractVisitor.visitEnd();
+    return rewritten;
   }
 }

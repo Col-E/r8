@@ -13,6 +13,12 @@ import kotlinx.metadata.KmClassVisitor;
 // Structure around a kotlin companion object that can be assigned to a field.
 public class KotlinCompanionInfo implements KotlinFieldLevelInfo {
 
+  private final String companionObjectFieldName;
+
+  public KotlinCompanionInfo(String companionObjectFieldName) {
+    this.companionObjectFieldName = companionObjectFieldName;
+  }
+
   @Override
   public boolean isCompanion() {
     return true;
@@ -23,10 +29,11 @@ public class KotlinCompanionInfo implements KotlinFieldLevelInfo {
     return this;
   }
 
-  public void rewrite(KmClassVisitor visitor, DexField field, NamingLens lens) {
+  boolean rewrite(KmClassVisitor visitor, DexField field, NamingLens lens) {
     DexString dexString = lens.lookupName(field);
     String finalName = dexString.toString();
     visitor.visitCompanionObject(finalName);
+    return !finalName.equals(companionObjectFieldName);
   }
 
   @Override

@@ -34,13 +34,14 @@ class KotlinVersionRequirementInfo {
     return new KotlinVersionRequirementInfo(builder.build());
   }
 
-  public void rewrite(KmVisitorProviders.KmVersionRequirementVisitorProvider visitorProvider) {
+  boolean rewrite(KmVisitorProviders.KmVersionRequirementVisitorProvider visitorProvider) {
     if (this == NO_VERSION_REQUIREMENTS) {
-      return;
+      return false;
     }
     for (KotlinVersionRequirementPoint versionRequirement : versionRequirements) {
       versionRequirement.rewrite(visitorProvider.get());
     }
+    return false;
   }
 
   private static class KotlinVersionRequirementPoint {

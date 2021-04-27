@@ -51,12 +51,18 @@ public class KotlinEffectInfo implements EnqueuerMetadataTraceable {
     conclusion.trace(definitionSupplier);
   }
 
-  void rewrite(KmEffectVisitorProvider visitorProvider, AppView<?> appView, NamingLens namingLens) {
+  boolean rewrite(
+      KmEffectVisitorProvider visitorProvider, AppView<?> appView, NamingLens namingLens) {
     KmEffectVisitor kmEffectVisitor = visitorProvider.get(type, invocationKind);
-    conclusion.rewrite(kmEffectVisitor::visitConclusionOfConditionalEffect, appView, namingLens);
+    boolean rewritten =
+        conclusion.rewrite(
+            kmEffectVisitor::visitConclusionOfConditionalEffect, appView, namingLens);
     for (KotlinEffectExpressionInfo constructorArgument : constructorArguments) {
-      constructorArgument.rewrite(kmEffectVisitor::visitConstructorArgument, appView, namingLens);
+      rewritten |=
+          constructorArgument.rewrite(
+              kmEffectVisitor::visitConstructorArgument, appView, namingLens);
     }
     kmEffectVisitor.visitEnd();
+    return rewritten;
   }
 }

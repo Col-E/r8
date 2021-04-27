@@ -58,20 +58,23 @@ public class KotlinTypeAliasInfo implements EnqueuerMetadataTraceable {
         KotlinVersionRequirementInfo.create(alias.getVersionRequirements()));
   }
 
-  void rewrite(
+  boolean rewrite(
       KmVisitorProviders.KmTypeAliasVisitorProvider visitorProvider,
       AppView<?> appView,
       NamingLens namingLens) {
     KmTypeAliasVisitor kmTypeAliasVisitor = visitorProvider.get(flags, name);
-    underlyingType.rewrite(kmTypeAliasVisitor::visitUnderlyingType, appView, namingLens);
-    expandedType.rewrite(kmTypeAliasVisitor::visitExpandedType, appView, namingLens);
+    boolean rewritten =
+        underlyingType.rewrite(kmTypeAliasVisitor::visitUnderlyingType, appView, namingLens);
+    rewritten |= expandedType.rewrite(kmTypeAliasVisitor::visitExpandedType, appView, namingLens);
     for (KotlinTypeParameterInfo typeParameter : typeParameters) {
-      typeParameter.rewrite(kmTypeAliasVisitor::visitTypeParameter, appView, namingLens);
+      rewritten |=
+          typeParameter.rewrite(kmTypeAliasVisitor::visitTypeParameter, appView, namingLens);
     }
     for (KotlinAnnotationInfo annotation : annotations) {
-      annotation.rewrite(kmTypeAliasVisitor::visitAnnotation, appView, namingLens);
+      rewritten |= annotation.rewrite(kmTypeAliasVisitor::visitAnnotation, appView, namingLens);
     }
-    versionRequirements.rewrite(kmTypeAliasVisitor::visitVersionRequirement);
+    rewritten |= versionRequirements.rewrite(kmTypeAliasVisitor::visitVersionRequirement);
+    return rewritten;
   }
 
   @Override

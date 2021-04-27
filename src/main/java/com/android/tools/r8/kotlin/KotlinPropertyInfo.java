@@ -12,11 +12,14 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
 import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmPropertyVisitor;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
+import kotlinx.metadata.jvm.JvmFieldSignature;
+import kotlinx.metadata.jvm.JvmMethodSignature;
 import kotlinx.metadata.jvm.JvmPropertyExtensionVisitor;
 
 // Holds information about KmProperty
@@ -140,7 +143,7 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
     return setterSignature;
   }
 
-  void rewrite(
+  boolean rewrite(
       KmVisitorProviders.KmPropertyVisitorProvider visitorProvider,
       DexEncodedField field,
       DexEncodedMethod getter,
@@ -150,32 +153,52 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
     // TODO(b/154348683): Flags again.
     KmPropertyVisitor kmProperty = visitorProvider.get(flags, name, getterFlags, setterFlags);
     // TODO(b/154348149): ReturnType could have been merged to a subtype.
+    boolean rewritten = false;
     if (returnType != null) {
-      returnType.rewrite(kmProperty::visitReturnType, appView, namingLens);
+      rewritten = returnType.rewrite(kmProperty::visitReturnType, appView, namingLens);
     }
     if (receiverParameterType != null) {
-      receiverParameterType.rewrite(kmProperty::visitReceiverParameterType, appView, namingLens);
+      rewritten |=
+          receiverParameterType.rewrite(
+              kmProperty::visitReceiverParameterType, appView, namingLens);
     }
     if (setterParameter != null) {
-      setterParameter.rewrite(kmProperty::visitSetterParameter, appView, namingLens);
+      rewritten |= setterParameter.rewrite(kmProperty::visitSetterParameter, appView, namingLens);
     }
     for (KotlinTypeParameterInfo typeParameter : typeParameters) {
-      typeParameter.rewrite(kmProperty::visitTypeParameter, appView, namingLens);
+      rewritten |= typeParameter.rewrite(kmProperty::visitTypeParameter, appView, namingLens);
     }
-    versionRequirements.rewrite(kmProperty::visitVersionRequirement);
+    rewritten |= versionRequirements.rewrite(kmProperty::visitVersionRequirement);
     JvmPropertyExtensionVisitor extensionVisitor =
         (JvmPropertyExtensionVisitor) kmProperty.visitExtensions(JvmPropertyExtensionVisitor.TYPE);
     if (extensionVisitor != null) {
+      Box<JvmFieldSignature> rewrittenFieldSignature = new Box<>();
+      if (fieldSignature != null) {
+        rewritten |=
+            fieldSignature.rewrite(rewrittenFieldSignature::set, field, appView, namingLens);
+      }
+      Box<JvmMethodSignature> rewrittenGetterSignature = new Box<>();
+      if (getterSignature != null) {
+        rewritten |=
+            getterSignature.rewrite(rewrittenGetterSignature::set, getter, appView, namingLens);
+      }
+      Box<JvmMethodSignature> rewrittenSetterSignature = new Box<>();
+      if (setterSignature != null) {
+        rewritten |=
+            setterSignature.rewrite(rewrittenSetterSignature::set, setter, appView, namingLens);
+      }
       extensionVisitor.visit(
           jvmFlags,
-          fieldSignature == null ? null : fieldSignature.rewrite(field, appView, namingLens),
-          getterSignature == null ? null : getterSignature.rewrite(getter, appView, namingLens),
-          setterSignature == null ? null : setterSignature.rewrite(setter, appView, namingLens));
+          rewrittenFieldSignature.get(),
+          rewrittenGetterSignature.get(),
+          rewrittenSetterSignature.get());
       if (syntheticMethodForAnnotations != null) {
-        extensionVisitor.visitSyntheticMethodForAnnotations(
-            syntheticMethodForAnnotations.rewrite(null, appView, namingLens));
+        rewritten |=
+            syntheticMethodForAnnotations.rewrite(
+                extensionVisitor::visitSyntheticMethodForAnnotations, null, appView, namingLens);
       }
     }
+    return rewritten;
   }
 
   @Override

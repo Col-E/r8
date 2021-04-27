@@ -19,6 +19,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.ProguardKeepRuleType;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.Pair;
 import kotlinx.metadata.KmExtensionType;
 import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmPropertyExtensionVisitor;
@@ -48,7 +49,8 @@ public class KotlinMetadataUtils {
     }
 
     @Override
-    public KotlinClassHeader rewrite(DexClass clazz, AppView<?> appView, NamingLens namingLens) {
+    public Pair<KotlinClassHeader, Boolean> rewrite(
+        DexClass clazz, AppView<?> appView, NamingLens namingLens) {
       throw new Unreachable("Should never be called");
     }
 

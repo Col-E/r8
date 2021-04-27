@@ -84,23 +84,28 @@ public class KotlinTypeParameterInfo implements EnqueuerMetadataTraceable {
     return builder.build();
   }
 
-  void rewrite(
+  boolean rewrite(
       KmVisitorProviders.KmTypeParameterVisitorProvider visitorProvider,
       AppView<?> appView,
       NamingLens namingLens) {
     KmTypeParameterVisitor kmTypeParameterVisitor = visitorProvider.get(flags, name, id, variance);
+    boolean rewritten = false;
     for (KotlinTypeInfo originalUpperBound : originalUpperBounds) {
-      originalUpperBound.rewrite(kmTypeParameterVisitor::visitUpperBound, appView, namingLens);
+      rewritten |=
+          originalUpperBound.rewrite(kmTypeParameterVisitor::visitUpperBound, appView, namingLens);
     }
     if (annotations.isEmpty()) {
-      return;
+      return rewritten;
     }
     JvmTypeParameterExtensionVisitor extensionVisitor =
         (JvmTypeParameterExtensionVisitor)
             kmTypeParameterVisitor.visitExtensions(JvmTypeParameterExtensionVisitor.TYPE);
-    for (KotlinAnnotationInfo annotation : annotations) {
-      annotation.rewrite(extensionVisitor::visitAnnotation, appView, namingLens);
+    if (extensionVisitor != null) {
+      for (KotlinAnnotationInfo annotation : annotations) {
+        rewritten |= annotation.rewrite(extensionVisitor::visitAnnotation, appView, namingLens);
+      }
     }
+    return rewritten;
   }
 
   @Override

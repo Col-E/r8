@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,17 +56,25 @@ public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
   }
 
   @Override
-  public KotlinClassHeader rewrite(DexClass clazz, AppView<?> appView, NamingLens namingLens) {
+  public Pair<KotlinClassHeader, Boolean> rewrite(
+      DexClass clazz, AppView<?> appView, NamingLens namingLens) {
+    List<String> partClassNameStrings = new ArrayList<>(partClassNames.size());
+    boolean rewritten = false;
+    for (KotlinTypeReference partClassName : partClassNames) {
+      rewritten |=
+          partClassName.toRenamedBinaryNameOrDefault(
+              binaryName -> {
+                if (binaryName != null) {
+                  partClassNameStrings.add(binaryName);
+                }
+              },
+              appView,
+              namingLens,
+              null);
+    }
     KotlinClassMetadata.MultiFileClassFacade.Writer writer =
         new KotlinClassMetadata.MultiFileClassFacade.Writer();
-    List<String> partClassNameStrings = new ArrayList<>(partClassNames.size());
-    for (KotlinTypeReference partClassName : partClassNames) {
-      String binaryName = partClassName.toRenamedBinaryNameOrDefault(appView, namingLens, null);
-      if (binaryName != null) {
-        partClassNameStrings.add(binaryName);
-      }
-    }
-    return writer.write(partClassNameStrings).getHeader();
+    return Pair.create(writer.write(partClassNameStrings).getHeader(), rewritten);
   }
 
   @Override

@@ -85,25 +85,27 @@ public class KotlinEffectExpressionInfo implements EnqueuerMetadataTraceable {
     forEachApply(orArguments, arg -> arg::trace, definitionSupplier);
   }
 
-  public void rewrite(
+  boolean rewrite(
       KmEffectExpressionVisitorProvider provider, AppView<?> appView, NamingLens namingLens) {
     if (this == NO_EXPRESSION) {
-      return;
+      return false;
     }
     KmEffectExpressionVisitor visitor = provider.get();
     visitor.visit(flags, parameterIndex);
     if (constantValue != null) {
       visitor.visitConstantValue(constantValue.getValue());
     }
+    boolean rewritten = false;
     if (isInstanceType != null) {
-      isInstanceType.rewrite(visitor::visitIsInstanceType, appView, namingLens);
+      rewritten |= isInstanceType.rewrite(visitor::visitIsInstanceType, appView, namingLens);
     }
     for (KotlinEffectExpressionInfo andArgument : andArguments) {
-      andArgument.rewrite(visitor::visitAndArgument, appView, namingLens);
+      rewritten |= andArgument.rewrite(visitor::visitAndArgument, appView, namingLens);
     }
     for (KotlinEffectExpressionInfo orArgument : orArguments) {
-      orArgument.rewrite(visitor::visitAndArgument, appView, namingLens);
+      rewritten |= orArgument.rewrite(visitor::visitAndArgument, appView, namingLens);
     }
     visitor.visitEnd();
+    return rewritten;
   }
 }

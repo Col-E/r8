@@ -155,7 +155,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
     return builder.build();
   }
 
-  public void rewrite(
+  boolean rewrite(
       KmVisitorProviders.KmFunctionVisitorProvider functionProvider,
       KmVisitorProviders.KmPropertyVisitorProvider propertyProvider,
       KmVisitorProviders.KmTypeAliasVisitorProvider typeAliasProvider,
@@ -163,8 +163,9 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
       AppView<?> appView,
       NamingLens namingLens) {
     // Type aliases only have a representation here, so we can generate them directly.
+    boolean rewritten = false;
     for (KotlinTypeAliasInfo typeAlias : typeAliases) {
-      typeAlias.rewrite(typeAliasProvider, appView, namingLens);
+      rewritten |= typeAlias.rewrite(typeAliasProvider, appView, namingLens);
     }
     // For properties, we need to combine potentially a field, setter and getter.
     Map<KotlinPropertyInfo, KotlinPropertyGroup> properties = new IdentityHashMap<>();
@@ -199,21 +200,24 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
     }
     for (KotlinPropertyInfo kotlinPropertyInfo : properties.keySet()) {
       KotlinPropertyGroup kotlinPropertyGroup = properties.get(kotlinPropertyInfo);
-      kotlinPropertyInfo.rewrite(
-          propertyProvider,
-          kotlinPropertyGroup.backingField,
-          kotlinPropertyGroup.getter,
-          kotlinPropertyGroup.setter,
-          appView,
-          namingLens);
+      rewritten |=
+          kotlinPropertyInfo.rewrite(
+              propertyProvider,
+              kotlinPropertyGroup.backingField,
+              kotlinPropertyGroup.getter,
+              kotlinPropertyGroup.setter,
+              appView,
+              namingLens);
     }
     // Add all not backed functions and properties.
     for (KotlinFunctionInfo notBackedFunction : functionsWithNoBacking) {
-      notBackedFunction.rewrite(functionProvider, null, appView, namingLens);
+      rewritten |= notBackedFunction.rewrite(functionProvider, null, appView, namingLens);
     }
     for (KotlinPropertyInfo notBackedProperty : propertiesWithNoBacking) {
-      notBackedProperty.rewrite(propertyProvider, null, null, null, appView, namingLens);
+      rewritten |=
+          notBackedProperty.rewrite(propertyProvider, null, null, null, appView, namingLens);
     }
+    return rewritten;
   }
 
   @Override

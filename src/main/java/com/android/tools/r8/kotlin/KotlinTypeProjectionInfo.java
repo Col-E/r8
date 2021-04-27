@@ -35,7 +35,7 @@ public class KotlinTypeProjectionInfo implements EnqueuerMetadataTraceable {
     return variance == null && typeInfo == null;
   }
 
-  public void rewrite(
+  boolean rewrite(
       KmVisitorProviders.KmTypeProjectionVisitorProvider visitorProvider,
       KmVisitorProviders.KmTypeStarProjectionVisitorProvider starProjectionProvider,
       AppView<?> appView,
@@ -45,6 +45,7 @@ public class KotlinTypeProjectionInfo implements EnqueuerMetadataTraceable {
     } else {
       typeInfo.rewrite(flags -> visitorProvider.get(flags, variance), appView, namingLens);
     }
+    return false;
   }
 
   @Override

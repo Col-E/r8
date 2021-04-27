@@ -52,10 +52,12 @@ public class KotlinLocalDelegatedPropertyInfo implements EnqueuerMetadataTraceab
     forEachApply(propertyInfos, prop -> prop::trace, definitionSupplier);
   }
 
-  public void rewrite(
+  boolean rewrite(
       KmPropertyVisitorProvider visitorProvider, AppView<?> appView, NamingLens namingLens) {
+    boolean rewritten = false;
     for (KotlinPropertyInfo propertyInfo : propertyInfos) {
-      propertyInfo.rewrite(visitorProvider, null, null, null, appView, namingLens);
+      rewritten |= propertyInfo.rewrite(visitorProvider, null, null, null, appView, namingLens);
     }
+    return rewritten;
   }
 }

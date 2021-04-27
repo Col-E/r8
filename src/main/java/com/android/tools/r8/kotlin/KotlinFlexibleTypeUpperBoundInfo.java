@@ -62,15 +62,16 @@ public class KotlinFlexibleTypeUpperBoundInfo extends KotlinTypeInfo {
         flexibleTypeUpperBound.getTypeFlexibilityId());
   }
 
-  public void rewrite(
+  boolean rewrite(
       KmVisitorProviders.KmFlexibleUpperBoundVisitorProvider visitorProvider,
       AppView<?> appView,
       NamingLens namingLens) {
     if (this == NO_FLEXIBLE_UPPER_BOUND) {
       // Nothing to do.
-      return;
+      return false;
     }
-    super.rewrite(flags -> visitorProvider.get(flags, typeFlexibilityId), appView, namingLens);
+    return super.rewrite(
+        flags -> visitorProvider.get(flags, typeFlexibilityId), appView, namingLens);
   }
 
   @Override

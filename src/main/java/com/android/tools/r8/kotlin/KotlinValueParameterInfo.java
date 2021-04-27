@@ -66,16 +66,18 @@ class KotlinValueParameterInfo implements EnqueuerMetadataTraceable {
     return builder.build();
   }
 
-  void rewrite(
+  boolean rewrite(
       KmVisitorProviders.KmValueParameterVisitorProvider visitorProvider,
       AppView<?> appView,
       NamingLens namingLens) {
     KmValueParameterVisitor kmValueParameterVisitor = visitorProvider.get(flags, name);
-    type.rewrite(kmValueParameterVisitor::visitType, appView, namingLens);
+    boolean rewritten = type.rewrite(kmValueParameterVisitor::visitType, appView, namingLens);
     if (varargElementType != null) {
-      varargElementType.rewrite(
-          kmValueParameterVisitor::visitVarargElementType, appView, namingLens);
+      rewritten |=
+          varargElementType.rewrite(
+              kmValueParameterVisitor::visitVarargElementType, appView, namingLens);
     }
+    return rewritten;
   }
 
   @Override

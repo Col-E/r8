@@ -55,20 +55,28 @@ public class KotlinConstructorInfo implements KotlinMethodLevelInfo {
             : null);
   }
 
-  public void rewrite(
+  boolean rewrite(
       KmClass kmClass, DexEncodedMethod method, AppView<?> appView, NamingLens namingLens) {
     // Note that JvmExtensionsKt.setSignature does not have an overload for KmConstructorVisitor,
     // thus we rely on creating the KmConstructor manually.
     // TODO(b/154348683): Check for special flags to pass in.
     KmConstructor kmConstructor = new KmConstructor(flags);
+    boolean rewritten = false;
     if (signature != null) {
-      JvmExtensionsKt.setSignature(kmConstructor, signature.rewrite(method, appView, namingLens));
+      rewritten =
+          signature.rewrite(
+              rewrittenSignature -> JvmExtensionsKt.setSignature(kmConstructor, rewrittenSignature),
+              method,
+              appView,
+              namingLens);
     }
     for (KotlinValueParameterInfo valueParameterInfo : valueParameters) {
-      valueParameterInfo.rewrite(kmConstructor::visitValueParameter, appView, namingLens);
+      rewritten |=
+          valueParameterInfo.rewrite(kmConstructor::visitValueParameter, appView, namingLens);
     }
-    versionRequirements.rewrite(kmConstructor::visitVersionRequirement);
+    rewritten |= versionRequirements.rewrite(kmConstructor::visitVersionRequirement);
     kmClass.getConstructors().add(kmConstructor);
+    return rewritten;
   }
 
   @Override

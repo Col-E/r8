@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.LinkedHashMap;
@@ -48,26 +49,38 @@ public class KotlinAnnotationInfo implements EnqueuerMetadataTraceable {
     return builder.build();
   }
 
-  public void rewrite(
+  boolean rewrite(
       KmVisitorProviders.KmAnnotationVisitorProvider visitorProvider,
       AppView<?> appView,
       NamingLens namingLens) {
-    String renamedDescriptor =
-        annotationType.toRenamedDescriptorOrDefault(appView, namingLens, null);
-    if (renamedDescriptor == null) {
-      // The type has been pruned
-      return;
-    }
-    String classifier = DescriptorUtils.descriptorToKotlinClassifier(renamedDescriptor);
-    Map<String, KmAnnotationArgument<?>> rewrittenArguments = new LinkedHashMap<>();
-    arguments.forEach(
-        (key, arg) -> {
-          KmAnnotationArgument<?> rewrittenArg = arg.rewrite(appView, namingLens);
-          if (rewrittenArg != null) {
-            rewrittenArguments.put(key, rewrittenArg);
-          }
-        });
-    visitorProvider.get(new KmAnnotation(classifier, rewrittenArguments));
+    BooleanBox rewritten = new BooleanBox(false);
+    rewritten.or(
+        annotationType.toRenamedDescriptorOrDefault(
+            renamedDescriptor -> {
+              if (renamedDescriptor == null) {
+                // The type has been pruned
+                rewritten.set(true);
+                return;
+              }
+              String classifier = DescriptorUtils.descriptorToKotlinClassifier(renamedDescriptor);
+              Map<String, KmAnnotationArgument<?>> rewrittenArguments = new LinkedHashMap<>();
+              arguments.forEach(
+                  (key, arg) ->
+                      rewritten.or(
+                          arg.rewrite(
+                              rewrittenArg -> {
+                                if (rewrittenArg != null) {
+                                  rewrittenArguments.put(key, rewrittenArg);
+                                }
+                              },
+                              appView,
+                              namingLens)));
+              visitorProvider.get(new KmAnnotation(classifier, rewrittenArguments));
+            },
+            appView,
+            namingLens,
+            null));
+    return rewritten.get();
   }
 
   @Override

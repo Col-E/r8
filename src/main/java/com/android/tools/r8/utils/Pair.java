@@ -55,4 +55,8 @@ public class Pair<T, S> {
   public String toString() {
     return "Pair{" + first + ", " + second + '}';
   }
+
+  public static <T, S> Pair<T, S> create(T t, S s) {
+    return new Pair<>(t, s);
+  }
 }

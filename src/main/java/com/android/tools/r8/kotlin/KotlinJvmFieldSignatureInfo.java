@@ -10,6 +10,8 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
+import com.android.tools.r8.utils.Box;
+import java.util.function.Consumer;
 import kotlinx.metadata.jvm.JvmFieldSignature;
 
 /**
@@ -36,19 +38,27 @@ public class KotlinJvmFieldSignatureInfo implements EnqueuerMetadataTraceable {
         KotlinTypeReference.fromDescriptor(fieldSignature.getDesc(), factory));
   }
 
-  public JvmFieldSignature rewrite(
-      DexEncodedField field, AppView<?> appView, NamingLens namingLens) {
+  boolean rewrite(
+      Consumer<JvmFieldSignature> consumer,
+      DexEncodedField field,
+      AppView<?> appView,
+      NamingLens namingLens) {
+    boolean rewritten = false;
     String finalName = name;
     if (field != null) {
       String fieldName = field.getReference().name.toString();
       String rewrittenName = namingLens.lookupName(field.getReference()).toString();
       if (!fieldName.equals(rewrittenName)) {
+        rewritten = true;
         finalName = rewrittenName;
       }
     }
     String defValue = appView.dexItemFactory().objectType.toDescriptorString();
-    return new JvmFieldSignature(
-        finalName, type.toRenamedDescriptorOrDefault(appView, namingLens, defValue));
+    Box<String> renamedDescriptor = new Box<>();
+    rewritten |=
+        type.toRenamedDescriptorOrDefault(renamedDescriptor::set, appView, namingLens, defValue);
+    consumer.accept(new JvmFieldSignature(finalName, renamedDescriptor.get()));
+    return rewritten;
   }
 
   @Override

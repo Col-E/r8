@@ -67,21 +67,23 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
             appView.reporter()));
   }
 
-  public void rewrite(
-      KmPackage kmPackage, DexClass clazz, AppView<?> appView, NamingLens namingLens) {
-    containerInfo.rewrite(
-        kmPackage::visitFunction,
-        kmPackage::visitProperty,
-        kmPackage::visitTypeAlias,
-        clazz,
-        appView,
-        namingLens);
+  boolean rewrite(KmPackage kmPackage, DexClass clazz, AppView<?> appView, NamingLens namingLens) {
+    boolean rewritten =
+        containerInfo.rewrite(
+            kmPackage::visitFunction,
+            kmPackage::visitProperty,
+            kmPackage::visitTypeAlias,
+            clazz,
+            appView,
+            namingLens);
     JvmPackageExtensionVisitor extensionVisitor =
         (JvmPackageExtensionVisitor) kmPackage.visitExtensions(JvmPackageExtensionVisitor.TYPE);
-    localDelegatedProperties.rewrite(
-        extensionVisitor::visitLocalDelegatedProperty, appView, namingLens);
+    rewritten |=
+        localDelegatedProperties.rewrite(
+            extensionVisitor::visitLocalDelegatedProperty, appView, namingLens);
     extensionVisitor.visitModuleName(moduleName);
     extensionVisitor.visitEnd();
+    return rewritten;
   }
 
   @Override

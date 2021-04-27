@@ -115,46 +115,56 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
     return name;
   }
 
-  public void rewrite(
+  boolean rewrite(
       KmVisitorProviders.KmFunctionVisitorProvider visitorProvider,
       DexEncodedMethod method,
       AppView<?> appView,
       NamingLens namingLens) {
     // TODO(b/154348683): Check method for flags to pass in.
+    boolean rewritten = false;
     String finalName = this.name;
     if (method != null) {
       String methodName = method.getReference().name.toString();
       String rewrittenName = namingLens.lookupName(method.getReference()).toString();
       if (!methodName.equals(rewrittenName)) {
+        rewritten = true;
         finalName = rewrittenName;
       }
     }
     KmFunctionVisitor kmFunction = visitorProvider.get(flags, finalName);
     // TODO(b/154348149): ReturnType could have been merged to a subtype.
-    returnType.rewrite(kmFunction::visitReturnType, appView, namingLens);
+    rewritten |= returnType.rewrite(kmFunction::visitReturnType, appView, namingLens);
     for (KotlinValueParameterInfo valueParameterInfo : valueParameters) {
-      valueParameterInfo.rewrite(kmFunction::visitValueParameter, appView, namingLens);
+      rewritten |= valueParameterInfo.rewrite(kmFunction::visitValueParameter, appView, namingLens);
     }
     for (KotlinTypeParameterInfo typeParameterInfo : typeParameters) {
-      typeParameterInfo.rewrite(kmFunction::visitTypeParameter, appView, namingLens);
+      rewritten |= typeParameterInfo.rewrite(kmFunction::visitTypeParameter, appView, namingLens);
     }
     if (receiverParameterType != null) {
-      receiverParameterType.rewrite(kmFunction::visitReceiverParameterType, appView, namingLens);
+      rewritten |=
+          receiverParameterType.rewrite(
+              kmFunction::visitReceiverParameterType, appView, namingLens);
     }
-    versionRequirements.rewrite(kmFunction::visitVersionRequirement);
+    rewritten |= versionRequirements.rewrite(kmFunction::visitVersionRequirement);
     JvmFunctionExtensionVisitor extensionVisitor =
         (JvmFunctionExtensionVisitor) kmFunction.visitExtensions(JvmFunctionExtensionVisitor.TYPE);
     if (signature != null && extensionVisitor != null) {
-      extensionVisitor.visit(signature.rewrite(method, appView, namingLens));
+      rewritten |= signature.rewrite(extensionVisitor::visit, method, appView, namingLens);
     }
     if (lambdaClassOrigin != null && extensionVisitor != null) {
-      String lambdaClassOriginName =
-          lambdaClassOrigin.toRenamedBinaryNameOrDefault(appView, namingLens, null);
-      if (lambdaClassOriginName != null) {
-        extensionVisitor.visitLambdaClassOriginName(lambdaClassOriginName);
-      }
+      rewritten |=
+          lambdaClassOrigin.toRenamedBinaryNameOrDefault(
+              lambdaClassOriginName -> {
+                if (lambdaClassOriginName != null) {
+                  extensionVisitor.visitLambdaClassOriginName(lambdaClassOriginName);
+                }
+              },
+              appView,
+              namingLens,
+              null);
     }
-    contract.rewrite(kmFunction::visitContract, appView, namingLens);
+    rewritten |= contract.rewrite(kmFunction::visitContract, appView, namingLens);
+    return rewritten;
   }
 
   @Override

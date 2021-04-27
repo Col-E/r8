@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ConsumerUtils;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -155,10 +156,15 @@ public class KotlinMetadataRewriter {
       DexAnnotation oldMeta,
       WriteMetadataFieldInfo writeMetadataFieldInfo) {
     try {
-      KotlinClassHeader kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
+      Pair<KotlinClassHeader, Boolean> kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
+      // TODO(b/185756596): Remove when special handling is no longer needed.
+      if (!kotlinClassHeader.getSecond() && !appView.enableWholeProgramOptimizations()) {
+        // No rewrite occurred and the data is the same as before.
+        return;
+      }
       DexAnnotation newMeta =
           createKotlinMetadataAnnotation(
-              kotlinClassHeader,
+              kotlinClassHeader.getFirst(),
               kotlinInfo.getPackageName(),
               getMaxVersion(METADATA_VERSION_1_4, kotlinInfo.getMetadataVersion()),
               writeMetadataFieldInfo);

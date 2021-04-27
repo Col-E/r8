@@ -79,34 +79,42 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
     return arguments.build();
   }
 
-  public void rewrite(
+  boolean rewrite(
       KmVisitorProviders.KmTypeVisitorProvider visitorProvider,
       AppView<?> appView,
       NamingLens namingLens) {
     // TODO(b/154348683): Check for correct flags
     KmTypeVisitor kmTypeVisitor = visitorProvider.get(flags);
-    classifier.rewrite(kmTypeVisitor, appView, namingLens);
+    boolean rewritten = classifier.rewrite(kmTypeVisitor, appView, namingLens);
     if (abbreviatedType != null) {
-      abbreviatedType.rewrite(kmTypeVisitor::visitAbbreviatedType, appView, namingLens);
+      rewritten |=
+          abbreviatedType.rewrite(kmTypeVisitor::visitAbbreviatedType, appView, namingLens);
     }
     if (outerType != null) {
-      outerType.rewrite(kmTypeVisitor::visitOuterType, appView, namingLens);
+      rewritten |= outerType.rewrite(kmTypeVisitor::visitOuterType, appView, namingLens);
     }
     for (KotlinTypeProjectionInfo argument : arguments) {
-      argument.rewrite(
-          kmTypeVisitor::visitArgument, kmTypeVisitor::visitStarProjection, appView, namingLens);
+      rewritten |=
+          argument.rewrite(
+              kmTypeVisitor::visitArgument,
+              kmTypeVisitor::visitStarProjection,
+              appView,
+              namingLens);
     }
-    flexibleTypeUpperBound.rewrite(kmTypeVisitor::visitFlexibleTypeUpperBound, appView, namingLens);
+    rewritten |=
+        flexibleTypeUpperBound.rewrite(
+            kmTypeVisitor::visitFlexibleTypeUpperBound, appView, namingLens);
     if (annotations.isEmpty()) {
-      return;
+      return rewritten;
     }
     JvmTypeExtensionVisitor extensionVisitor =
         (JvmTypeExtensionVisitor) kmTypeVisitor.visitExtensions(JvmTypeExtensionVisitor.TYPE);
     if (extensionVisitor != null) {
       for (KotlinAnnotationInfo annotation : annotations) {
-        annotation.rewrite(extensionVisitor::visitAnnotation, appView, namingLens);
+        rewritten |= annotation.rewrite(extensionVisitor::visitAnnotation, appView, namingLens);
       }
     }
+    return rewritten;
   }
 
   @Override

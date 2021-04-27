@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.Pair;
 import kotlinx.metadata.KmLambda;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -82,15 +83,16 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
   }
 
   @Override
-  public KotlinClassHeader rewrite(DexClass clazz, AppView<?> appView, NamingLens namingLens) {
+  public Pair<KotlinClassHeader, Boolean> rewrite(
+      DexClass clazz, AppView<?> appView, NamingLens namingLens) {
     Writer writer = new Writer();
+    boolean rewritten = false;
     if (lambda != null) {
       KmLambda kmLambda = new KmLambda();
-      if (lambda.rewrite(() -> kmLambda, clazz, appView, namingLens)) {
-        kmLambda.accept(writer);
-      }
+      rewritten = lambda.rewrite(() -> kmLambda, clazz, appView, namingLens);
+      kmLambda.accept(writer);
     }
-    return writer.write().getHeader();
+    return Pair.create(writer.write().getHeader(), rewritten);
   }
 
   @Override

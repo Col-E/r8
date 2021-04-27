@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
@@ -193,7 +194,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     }
     for (DexEncodedField field : hostClass.fields()) {
       if (field.getReference().name.toString().equals(companionObjectName)) {
-        field.setKotlinMemberInfo(new KotlinCompanionInfo());
+        field.setKotlinMemberInfo(new KotlinCompanionInfo(companionObjectName));
         return;
       }
     }
@@ -212,7 +213,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   }
 
   @Override
-  public KotlinClassHeader rewrite(DexClass clazz, AppView<?> appView, NamingLens namingLens) {
+  public Pair<KotlinClassHeader, Boolean> rewrite(
+      DexClass clazz, AppView<?> appView, NamingLens namingLens) {
     KmClass kmClass = new KmClass();
     // TODO(b/154348683): Set flags.
     kmClass.setFlags(flags);
@@ -222,88 +224,113 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     // If the original descriptor equals the rewritten descriptor, we pick the original name
     // to preserve potential errors in the original name. As an example, the kotlin stdlib has
     // name: .kotlin/collections/CollectionsKt___CollectionsKt$groupingBy$1, which seems incorrect.
+    boolean rewritten = !originalDescriptor.equals(rewrittenDescriptor);
     kmClass.setName(
-        originalDescriptor.equals(rewrittenDescriptor)
+        !rewritten
             ? this.name
             : DescriptorUtils.getBinaryNameFromDescriptor(rewrittenDescriptor.toString()));
     // Find a companion object.
     for (DexEncodedField field : clazz.fields()) {
       if (field.getKotlinMemberInfo().isCompanion()) {
-        field
-            .getKotlinMemberInfo()
-            .asCompanion()
-            .rewrite(kmClass, field.getReference(), namingLens);
+        rewritten |=
+            field
+                .getKotlinMemberInfo()
+                .asCompanion()
+                .rewrite(kmClass, field.getReference(), namingLens);
       }
     }
     // Take all not backed constructors because we will never find them in definitions.
     for (KotlinConstructorInfo constructorInfo : constructorsWithNoBacking) {
-      constructorInfo.rewrite(kmClass, null, appView, namingLens);
+      rewritten |= constructorInfo.rewrite(kmClass, null, appView, namingLens);
     }
     // Find all constructors.
     for (DexEncodedMethod method : clazz.methods()) {
       if (method.getKotlinMemberInfo().isConstructor()) {
         KotlinConstructorInfo constructorInfo = method.getKotlinMemberInfo().asConstructor();
-        constructorInfo.rewrite(kmClass, method, appView, namingLens);
+        rewritten |= constructorInfo.rewrite(kmClass, method, appView, namingLens);
       }
     }
     // Rewrite functions, type-aliases and type-parameters.
-    declarationContainerInfo.rewrite(
-        kmClass::visitFunction,
-        kmClass::visitProperty,
-        kmClass::visitTypeAlias,
-        clazz,
-        appView,
-        namingLens);
+    rewritten |=
+        declarationContainerInfo.rewrite(
+            kmClass::visitFunction,
+            kmClass::visitProperty,
+            kmClass::visitTypeAlias,
+            clazz,
+            appView,
+            namingLens);
     // Rewrite type parameters.
     for (KotlinTypeParameterInfo typeParameter : typeParameters) {
-      typeParameter.rewrite(kmClass::visitTypeParameter, appView, namingLens);
+      rewritten |= typeParameter.rewrite(kmClass::visitTypeParameter, appView, namingLens);
     }
     // Rewrite super types.
     for (KotlinTypeInfo superType : superTypes) {
       // Ensure the rewritten super type is not this type.
       if (clazz.getType() != superType.rewriteType(appView.graphLens())) {
-        superType.rewrite(kmClass::visitSupertype, appView, namingLens);
+        rewritten |= superType.rewrite(kmClass::visitSupertype, appView, namingLens);
+      } else {
+        rewritten = true;
       }
     }
     // Rewrite nested classes.
     for (KotlinTypeReference nestedClass : nestedClasses) {
-      String nestedDescriptor = nestedClass.toRenamedBinaryNameOrDefault(appView, namingLens, null);
-      if (nestedDescriptor != null) {
-        // If the class is a nested class, it should be on the form Foo.Bar$Baz, where Baz is the
-        // name we should record.
-        int innerClassIndex = nestedDescriptor.lastIndexOf(DescriptorUtils.INNER_CLASS_SEPARATOR);
-        kmClass.visitNestedClass(nestedDescriptor.substring(innerClassIndex + 1));
-      }
+      rewritten |=
+          nestedClass.toRenamedBinaryNameOrDefault(
+              nestedDescriptor -> {
+                if (nestedDescriptor != null) {
+                  // If the class is a nested class, it should be on the form Foo.Bar$Baz, where Baz
+                  // is the
+                  // name we should record.
+                  int innerClassIndex =
+                      nestedDescriptor.lastIndexOf(DescriptorUtils.INNER_CLASS_SEPARATOR);
+                  kmClass.visitNestedClass(nestedDescriptor.substring(innerClassIndex + 1));
+                }
+              },
+              appView,
+              namingLens,
+              null);
     }
     // Rewrite sealed sub classes.
     for (KotlinTypeReference sealedSubClass : sealedSubClasses) {
-      String sealedDescriptor =
-          sealedSubClass.toRenamedBinaryNameOrDefault(appView, namingLens, null);
-      if (sealedDescriptor != null) {
-        kmClass.visitSealedSubclass(
-            sealedDescriptor.replace(
-                DescriptorUtils.INNER_CLASS_SEPARATOR, DescriptorUtils.JAVA_PACKAGE_SEPARATOR));
-      }
+      rewritten |=
+          sealedSubClass.toRenamedBinaryNameOrDefault(
+              sealedDescriptor -> {
+                if (sealedDescriptor != null) {
+                  kmClass.visitSealedSubclass(
+                      sealedDescriptor.replace(
+                          DescriptorUtils.INNER_CLASS_SEPARATOR,
+                          DescriptorUtils.JAVA_PACKAGE_SEPARATOR));
+                }
+              },
+              appView,
+              namingLens,
+              null);
     }
     // TODO(b/154347404): Understand enum entries.
     kmClass.getEnumEntries().addAll(enumEntries);
-    versionRequirements.rewrite(kmClass::visitVersionRequirement);
+    rewritten |= versionRequirements.rewrite(kmClass::visitVersionRequirement);
     JvmClassExtensionVisitor extensionVisitor =
         (JvmClassExtensionVisitor) kmClass.visitExtensions(JvmClassExtensionVisitor.TYPE);
     extensionVisitor.visitModuleName(moduleName);
     if (anonymousObjectOrigin != null) {
-      String renamedAnon =
-          anonymousObjectOrigin.toRenamedBinaryNameOrDefault(appView, namingLens, null);
-      if (renamedAnon != null) {
-        extensionVisitor.visitAnonymousObjectOriginName(renamedAnon);
-      }
+      rewritten |=
+          anonymousObjectOrigin.toRenamedBinaryNameOrDefault(
+              renamedAnon -> {
+                if (renamedAnon != null) {
+                  extensionVisitor.visitAnonymousObjectOriginName(renamedAnon);
+                }
+              },
+              appView,
+              namingLens,
+              null);
     }
-    localDelegatedProperties.rewrite(
-        extensionVisitor::visitLocalDelegatedProperty, appView, namingLens);
+    rewritten |=
+        localDelegatedProperties.rewrite(
+            extensionVisitor::visitLocalDelegatedProperty, appView, namingLens);
     extensionVisitor.visitEnd();
     KotlinClassMetadata.Class.Writer writer = new KotlinClassMetadata.Class.Writer();
     kmClass.accept(writer);
-    return writer.write().getHeader();
+    return Pair.create(writer.write().getHeader(), rewritten);
   }
 
   @Override

@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.DescriptorUtils;
+import java.util.function.Consumer;
 
 /**
  * To account for invalid type references in kotlin metadata, the class KotlinTypeReference will
@@ -60,34 +61,48 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
     return new KotlinTypeReference(unknownValue);
   }
 
-  String toRenamedDescriptorOrDefault(
-      AppView<?> appView, NamingLens namingLens, String defaultValue) {
+  boolean toRenamedDescriptorOrDefault(
+      Consumer<String> rewrittenConsumer,
+      AppView<?> appView,
+      NamingLens namingLens,
+      String defaultValue) {
     if (unknown != null) {
-      return unknown;
+      rewrittenConsumer.accept(unknown);
+      return false;
     }
     assert known != null;
     DexType rewrittenType = toRewrittenTypeOrNull(appView, known);
     if (rewrittenType == null) {
-      return defaultValue;
+      rewrittenConsumer.accept(defaultValue);
+      return true;
     }
-    return namingLens.lookupDescriptor(rewrittenType).toString();
+    String renamedString = namingLens.lookupDescriptor(rewrittenType).toString();
+    rewrittenConsumer.accept(renamedString);
+    return !known.toDescriptorString().equals(renamedString);
   }
 
-  String toRenamedBinaryNameOrDefault(
-      AppView<?> appView, NamingLens namingLens, String defaultValue) {
+  boolean toRenamedBinaryNameOrDefault(
+      Consumer<String> rewrittenConsumer,
+      AppView<?> appView,
+      NamingLens namingLens,
+      String defaultValue) {
     if (unknown != null) {
       // Unknown values are always on the input form, so we can just return it.
-      return unknown;
+      rewrittenConsumer.accept(unknown);
+      return false;
     }
-    String descriptor = toRenamedDescriptorOrDefault(appView, namingLens, defaultValue);
-    if (descriptor == null) {
-      return null;
-    }
-    if (descriptor.equals(defaultValue)) {
-      // We assume that the default value passed in is already a binary name.
-      return descriptor;
-    }
-    return DescriptorUtils.getBinaryNameFromDescriptor(descriptor);
+    return toRenamedDescriptorOrDefault(
+        descriptor -> {
+          // We assume that the default value passed in is already a binary name.
+          if (descriptor == null || descriptor.equals(defaultValue)) {
+            rewrittenConsumer.accept(descriptor);
+          } else {
+            rewrittenConsumer.accept(DescriptorUtils.getBinaryNameFromDescriptor(descriptor));
+          }
+        },
+        appView,
+        namingLens,
+        defaultValue);
   }
 
   private static DexType toRewrittenTypeOrNull(AppView<?> appView, DexType type) {

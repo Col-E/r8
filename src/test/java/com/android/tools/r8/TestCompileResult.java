@@ -379,6 +379,11 @@ public abstract class TestCompileResult<
     return self();
   }
 
+  public CR assertWarningThatMatches(Matcher<Diagnostic> matcher) {
+    getDiagnosticMessages().assertWarningThatMatches(matcher);
+    return self();
+  }
+
   public CR assertAllWarningMessagesMatch(Matcher<String> matcher) {
     getDiagnosticMessages().assertHasWarnings().assertAllWarningsMatch(diagnosticMessage(matcher));
     return self();
