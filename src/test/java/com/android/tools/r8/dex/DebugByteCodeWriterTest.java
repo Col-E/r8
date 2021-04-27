@@ -52,7 +52,7 @@ public class DebugByteCodeWriterTest {
         appView,
         GraphLens.getIdentityLens(),
         NamingLens.getIdentityLens(),
-        InitClassLens.getThrowingInstance(),
+        InitClassLens.getDefault(),
         new LensCodeRewriterUtils(appView),
         Collections.emptyList(),
         Collections.emptyList(),

@@ -83,26 +83,6 @@ public abstract class Invoke extends Instruction {
       return dexOpcodeRange;
     }
 
-    public boolean isDirect() {
-      return this == DIRECT;
-    }
-
-    public boolean isInterface() {
-      return this == INTERFACE;
-    }
-
-    public boolean isStatic() {
-      return this == STATIC;
-    }
-
-    public boolean isSuper() {
-      return this == SUPER;
-    }
-
-    public boolean isVirtual() {
-      return this == VIRTUAL;
-    }
-
     public MethodHandleType toMethodHandle(DexMethod targetMethod) {
       switch (this) {
         case STATIC:

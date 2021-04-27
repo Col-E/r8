@@ -324,7 +324,7 @@ public final class D8 {
                 appView,
                 marker == null ? null : ImmutableList.copyOf(markers),
                 appView.graphLens(),
-                InitClassLens.getThrowingInstance(),
+                InitClassLens.getDefault(),
                 namingLens,
                 proguardMapSupplier)
             .write(executor);
@@ -394,7 +394,7 @@ public final class D8 {
             appView,
             null,
             GraphLens.getIdentityLens(),
-            InitClassLens.getThrowingInstance(),
+            InitClassLens.getDefault(),
             desugaringLens,
             null,
             convertedCfFiles)

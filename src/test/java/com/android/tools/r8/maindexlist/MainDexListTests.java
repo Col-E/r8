@@ -878,7 +878,7 @@ public class MainDexListTests extends TestBase {
             AppView.createForD8(AppInfo.createInitialAppInfo(application)),
             null,
             GraphLens.getIdentityLens(),
-            InitClassLens.getThrowingInstance(),
+            InitClassLens.getDefault(),
             NamingLens.getIdentityLens(),
             null);
     ExecutorService executor = ThreadUtils.getExecutorService(options);

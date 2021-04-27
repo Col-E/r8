@@ -106,7 +106,7 @@ public class DexFileMergerHelper {
                 appView,
                 markers,
                 GraphLens.getIdentityLens(),
-                InitClassLens.getThrowingInstance(),
+                InitClassLens.getDefault(),
                 NamingLens.getIdentityLens(),
                 null);
         writer.write(executor);

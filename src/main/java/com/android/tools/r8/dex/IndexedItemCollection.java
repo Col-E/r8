@@ -106,7 +106,7 @@ public interface IndexedItemCollection {
   }
 
   default InitClassLens getInitClassLens() {
-    return InitClassLens.getThrowingInstance();
+    return InitClassLens.getDefault();
   }
 
   default DexString getRenamedName(DexMethod method) {

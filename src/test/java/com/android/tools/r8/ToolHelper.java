@@ -2113,7 +2113,7 @@ public class ToolHelper {
         Executors.newSingleThreadExecutor(),
         appView,
         GraphLens.getIdentityLens(),
-        InitClassLens.getThrowingInstance(),
+        InitClassLens.getDefault(),
         NamingLens.getIdentityLens(),
         options,
         null);
