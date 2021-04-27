@@ -301,19 +301,14 @@ public class StackTrace {
   }
 
   public StackTrace retraceAllowExperimentalMapping(String map) {
-    return retrace(map, null, true);
+    return retrace(map, true);
   }
 
   public StackTrace retrace(String map) {
-    return retrace(map, null, true);
+    return retrace(map, true);
   }
 
-  public StackTrace retrace(String map, String regularExpression) {
-    return retrace(map, regularExpression, true);
-  }
-
-  public StackTrace retrace(
-      String map, String regularExpression, boolean allowExperimentalMapping) {
+  public StackTrace retrace(String map, boolean allowExperimentalMapping) {
     class Box {
       List<String> result;
     }
@@ -325,7 +320,6 @@ public class StackTrace {
                 stackTraceLines.stream()
                     .map(line -> line.originalLine)
                     .collect(Collectors.toList()))
-            .setRegularExpression(regularExpression)
             .setRetracedStackTraceConsumer(retraced -> box.result = retraced)
             .build(),
         allowExperimentalMapping);

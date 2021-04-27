@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.retrace;
 
-import static com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 
@@ -13,10 +12,9 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.retrace.StackTrace;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.util.List;
 import java.util.function.BiConsumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,18 +25,15 @@ import org.junit.runners.Parameterized.Parameters;
 public class SourceFileTest extends TestBase {
 
   private final TestParameters parameters;
-  private final boolean useRegularExpression;
   private static final String FILE_NAME = "foobarbaz.java";
 
-  @Parameters(name = "{0}, useRegularExpression: {1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public SourceFileTest(TestParameters parameters, boolean useRegularExpression) {
+  public SourceFileTest(TestParameters parameters) {
     this.parameters = parameters;
-    this.useRegularExpression = useRegularExpression;
   }
 
   @Test
@@ -106,9 +101,7 @@ public class SourceFileTest extends TestBase {
             : r8FullTestBuilder.run(parameters.getRuntime(), Main.class);
     runResult.assertFailureWithErrorThatMatches(containsString("Hello World!"));
     StackTrace originalStackTrace = runResult.getOriginalStackTrace();
-    StackTrace retracedStackTrace =
-        originalStackTrace.retrace(
-            runResult.proguardMap(), useRegularExpression ? DEFAULT_REGULAR_EXPRESSION : null);
+    StackTrace retracedStackTrace = originalStackTrace.retrace(runResult.proguardMap());
     runResult.inspectFailure(inspector -> consumer.accept(retracedStackTrace, inspector));
   }
 
