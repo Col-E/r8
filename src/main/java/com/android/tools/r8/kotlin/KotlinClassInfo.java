@@ -84,13 +84,16 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   }
 
   public static KotlinClassInfo create(
-      KmClass kmClass,
+      KotlinClassMetadata.Class metadata,
       String packageName,
       int[] metadataVersion,
       DexClass hostClass,
       DexItemFactory factory,
       Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode) {
+    KmClass kmClass = metadata.toKmClass();
+    KotlinJvmSignatureExtensionInformation extensionInformation =
+        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(metadata);
     Map<String, DexEncodedField> fieldMap = new HashMap<>();
     for (DexEncodedField field : hostClass.fields()) {
       fieldMap.put(toJvmFieldSignature(field.getReference()).asString(), field);
@@ -100,9 +103,12 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       methodMap.put(toJvmMethodSignature(method.getReference()).asString(), method);
     }
     ImmutableList.Builder<KotlinConstructorInfo> notBackedConstructors = ImmutableList.builder();
+    int constructorIndex = 0;
     for (KmConstructor kmConstructor : kmClass.getConstructors()) {
+      boolean readConstructorSignature =
+          extensionInformation.hasJvmMethodSignatureExtensionForConstructor(constructorIndex++);
       KotlinConstructorInfo constructorInfo =
-          KotlinConstructorInfo.create(kmConstructor, factory, reporter);
+          KotlinConstructorInfo.create(kmConstructor, factory, reporter, readConstructorSignature);
       JvmMethodSignature signature = JvmExtensionsKt.getSignature(kmConstructor);
       if (signature != null) {
         DexEncodedMethod method = methodMap.get(signature.asString());
@@ -116,7 +122,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     }
     KotlinDeclarationContainerInfo container =
         KotlinDeclarationContainerInfo.create(
-            kmClass, methodMap, fieldMap, factory, reporter, keepByteCode);
+            kmClass, methodMap, fieldMap, factory, reporter, keepByteCode, extensionInformation);
     setCompanionObject(kmClass, hostClass, reporter);
     return new KotlinClassInfo(
         kmClass.getFlags(),

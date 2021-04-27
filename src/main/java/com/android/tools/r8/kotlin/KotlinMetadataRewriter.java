@@ -101,11 +101,11 @@ public class KotlinMetadataRewriter {
         appView.appInfo().classes(),
         clazz -> {
           KotlinClassLevelInfo kotlinInfo = clazz.getKotlinInfo();
-          DexAnnotation oldMeta = clazz.annotations().getFirstMatching(rewrittenMetadataType);
           if (kotlinInfo == INVALID_KOTLIN_INFO) {
             // Maintain invalid kotlin info for classes.
             return;
           }
+          DexAnnotation oldMeta = clazz.annotations().getFirstMatching(rewrittenMetadataType);
           // TODO(b/181103083): Consider removing if rewrittenMetadataType
           //  != factory.kotlinMetadataType
           if (oldMeta == null

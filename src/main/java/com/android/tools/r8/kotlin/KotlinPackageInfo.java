@@ -44,7 +44,8 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
       DexClass clazz,
       DexItemFactory factory,
       Reporter reporter,
-      Consumer<DexEncodedMethod> keepByteCode) {
+      Consumer<DexEncodedMethod> keepByteCode,
+      KotlinJvmSignatureExtensionInformation extensionInformation) {
     Map<String, DexEncodedField> fieldMap = new HashMap<>();
     for (DexEncodedField field : clazz.fields()) {
       fieldMap.put(toJvmFieldSignature(field.getReference()).asString(), field);
@@ -56,7 +57,7 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
     return new KotlinPackageInfo(
         JvmExtensionsKt.getModuleName(kmPackage),
         KotlinDeclarationContainerInfo.create(
-            kmPackage, methodMap, fieldMap, factory, reporter, keepByteCode),
+            kmPackage, methodMap, fieldMap, factory, reporter, keepByteCode, extensionInformation),
         KotlinLocalDelegatedPropertyInfo.create(
             JvmExtensionsKt.getLocalDelegatedProperties(kmPackage), factory, reporter));
   }

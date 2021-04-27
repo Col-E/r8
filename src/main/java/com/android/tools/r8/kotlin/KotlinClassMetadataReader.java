@@ -27,6 +27,9 @@ import java.util.function.Consumer;
 import kotlinx.metadata.InconsistentKotlinMetadataException;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
+import kotlinx.metadata.jvm.KotlinClassMetadata.FileFacade;
+import kotlinx.metadata.jvm.KotlinClassMetadata.MultiFileClassFacade;
+import kotlinx.metadata.jvm.KotlinClassMetadata.MultiFileClassPart;
 import kotlinx.metadata.jvm.KotlinClassMetadata.SyntheticClass;
 
 public final class KotlinClassMetadataReader {
@@ -139,7 +142,7 @@ public final class KotlinClassMetadataReader {
     int[] metadataVersion = kMetadata.getHeader().getMetadataVersion();
     if (kMetadata instanceof KotlinClassMetadata.Class) {
       return KotlinClassInfo.create(
-          ((KotlinClassMetadata.Class) kMetadata).toKmClass(),
+          (KotlinClassMetadata.Class) kMetadata,
           packageName,
           metadataVersion,
           clazz,
@@ -149,7 +152,7 @@ public final class KotlinClassMetadataReader {
     } else if (kMetadata instanceof KotlinClassMetadata.FileFacade) {
       // e.g., B.kt becomes class `BKt`
       return KotlinFileFacadeInfo.create(
-          (KotlinClassMetadata.FileFacade) kMetadata,
+          (FileFacade) kMetadata,
           packageName,
           metadataVersion,
           clazz,
@@ -159,14 +162,11 @@ public final class KotlinClassMetadataReader {
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassFacade) {
       // multi-file class with the same @JvmName.
       return KotlinMultiFileClassFacadeInfo.create(
-          (KotlinClassMetadata.MultiFileClassFacade) kMetadata,
-          packageName,
-          metadataVersion,
-          factory);
+          (MultiFileClassFacade) kMetadata, packageName, metadataVersion, factory);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassPart) {
       // A single file, which is part of multi-file class.
       return KotlinMultiFileClassPartInfo.create(
-          (KotlinClassMetadata.MultiFileClassPart) kMetadata,
+          (MultiFileClassPart) kMetadata,
           packageName,
           metadataVersion,
           clazz,
