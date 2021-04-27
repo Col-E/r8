@@ -7,9 +7,7 @@ package com.android.tools.r8.kotlin;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.utils.Reporter;
 import kotlinx.metadata.KmLambda;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -45,15 +43,16 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
       int[] metadataVersion,
       DexClass clazz,
       Kotlin kotlin,
-      DexItemFactory factory,
-      Reporter reporter) {
+      AppView<?> appView) {
     KmLambda lambda = syntheticClass.toKmLambda();
     assert lambda == null || syntheticClass.isLambda();
     KotlinJvmSignatureExtensionInformation extensionInformation =
-        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(syntheticClass);
+        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(
+            syntheticClass, appView.options());
     return new KotlinSyntheticClassInfo(
         lambda != null
-            ? KotlinLambdaInfo.create(clazz, lambda, factory, reporter, extensionInformation)
+            ? KotlinLambdaInfo.create(
+                clazz, lambda, appView.dexItemFactory(), appView.reporter(), extensionInformation)
             : null,
         getFlavour(syntheticClass, clazz, kotlin),
         packageName,

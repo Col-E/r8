@@ -88,12 +88,14 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       String packageName,
       int[] metadataVersion,
       DexClass hostClass,
-      DexItemFactory factory,
-      Reporter reporter,
+      AppView<?> appView,
       Consumer<DexEncodedMethod> keepByteCode) {
+    DexItemFactory factory = appView.dexItemFactory();
+    Reporter reporter = appView.reporter();
     KmClass kmClass = metadata.toKmClass();
     KotlinJvmSignatureExtensionInformation extensionInformation =
-        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(metadata);
+        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(
+            metadata, appView.options());
     Map<String, DexEncodedField> fieldMap = new HashMap<>();
     for (DexEncodedField field : hostClass.fields()) {
       fieldMap.put(toJvmFieldSignature(field.getReference()).asString(), field);

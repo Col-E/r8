@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.kotlin.KotlinSyntheticClassInfo.Flavour;
-import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -35,43 +34,43 @@ import kotlinx.metadata.jvm.KotlinClassMetadata.SyntheticClass;
 public final class KotlinClassMetadataReader {
 
   public static KotlinClassLevelInfo getKotlinInfo(
-      Kotlin kotlin,
-      DexClass clazz,
-      DexItemFactory factory,
-      Reporter reporter,
-      Consumer<DexEncodedMethod> keepByteCode) {
-    DexAnnotation meta = clazz.annotations().getFirstMatching(factory.kotlinMetadataType);
+      DexClass clazz, AppView<?> appView, Consumer<DexEncodedMethod> keepByteCode) {
+    DexAnnotation meta =
+        clazz.annotations().getFirstMatching(appView.dexItemFactory().kotlinMetadataType);
     if (meta != null) {
-      return getKotlinInfo(kotlin, clazz, factory, reporter, keepByteCode, meta);
+      return getKotlinInfo(clazz, appView, keepByteCode, meta);
     }
     return NO_KOTLIN_INFO;
   }
 
   public static KotlinClassLevelInfo getKotlinInfo(
-      Kotlin kotlin,
       DexClass clazz,
-      DexItemFactory factory,
-      Reporter reporter,
+      AppView<?> appView,
       Consumer<DexEncodedMethod> keepByteCode,
       DexAnnotation annotation) {
     try {
+      Kotlin kotlin = appView.dexItemFactory().kotlin;
       KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, annotation.annotation);
-      return createKotlinInfo(kotlin, clazz, kMetadata, factory, reporter, keepByteCode);
+      return createKotlinInfo(kotlin, clazz, kMetadata, appView, keepByteCode);
     } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
-      reporter.info(
-          new StringDiagnostic(
-              "Class "
-                  + clazz.type.toSourceString()
-                  + " has malformed kotlin.Metadata: "
-                  + e.getMessage()));
+      appView
+          .reporter()
+          .info(
+              new StringDiagnostic(
+                  "Class "
+                      + clazz.type.toSourceString()
+                      + " has malformed kotlin.Metadata: "
+                      + e.getMessage()));
       return INVALID_KOTLIN_INFO;
     } catch (Throwable e) {
-      reporter.info(
-          new StringDiagnostic(
-              "Unexpected error while reading "
-                  + clazz.type.toSourceString()
-                  + "'s kotlin.Metadata: "
-                  + e.getMessage()));
+      appView
+          .reporter()
+          .info(
+              new StringDiagnostic(
+                  "Unexpected error while reading "
+                      + clazz.type.toSourceString()
+                      + "'s kotlin.Metadata: "
+                      + e.getMessage()));
       return INVALID_KOTLIN_INFO;
     }
   }
@@ -135,8 +134,7 @@ public final class KotlinClassMetadataReader {
       Kotlin kotlin,
       DexClass clazz,
       KotlinClassMetadata kMetadata,
-      DexItemFactory factory,
-      Reporter reporter,
+      AppView<?> appView,
       Consumer<DexEncodedMethod> keepByteCode) {
     String packageName = kMetadata.getHeader().getPackageName();
     int[] metadataVersion = kMetadata.getHeader().getMetadataVersion();
@@ -146,23 +144,16 @@ public final class KotlinClassMetadataReader {
           packageName,
           metadataVersion,
           clazz,
-          factory,
-          reporter,
+          appView,
           keepByteCode);
     } else if (kMetadata instanceof KotlinClassMetadata.FileFacade) {
       // e.g., B.kt becomes class `BKt`
       return KotlinFileFacadeInfo.create(
-          (FileFacade) kMetadata,
-          packageName,
-          metadataVersion,
-          clazz,
-          factory,
-          reporter,
-          keepByteCode);
+          (FileFacade) kMetadata, packageName, metadataVersion, clazz, appView, keepByteCode);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassFacade) {
       // multi-file class with the same @JvmName.
       return KotlinMultiFileClassFacadeInfo.create(
-          (MultiFileClassFacade) kMetadata, packageName, metadataVersion, factory);
+          (MultiFileClassFacade) kMetadata, packageName, metadataVersion, appView.dexItemFactory());
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassPart) {
       // A single file, which is part of multi-file class.
       return KotlinMultiFileClassPartInfo.create(
@@ -170,8 +161,7 @@ public final class KotlinClassMetadataReader {
           packageName,
           metadataVersion,
           clazz,
-          factory,
-          reporter,
+          appView,
           keepByteCode);
     } else if (kMetadata instanceof KotlinClassMetadata.SyntheticClass) {
       return KotlinSyntheticClassInfo.create(
@@ -180,8 +170,7 @@ public final class KotlinClassMetadataReader {
           metadataVersion,
           clazz,
           kotlin,
-          factory,
-          reporter);
+          appView);
     } else {
       throw new MetadataError("unsupported 'k' value: " + kMetadata.getHeader().getKind());
     }

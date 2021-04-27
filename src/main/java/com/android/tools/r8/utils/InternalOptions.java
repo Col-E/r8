@@ -81,6 +81,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
@@ -815,6 +816,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   /** A set of dexitems we have reported missing to dedupe warnings. */
   private final Set<DexItem> reportedMissingForDesugaring = Sets.newConcurrentHashSet();
 
+  private final AtomicBoolean reportedErrorReadingKotlinMetadataReflectively =
+      new AtomicBoolean(false);
   private final Set<DexItem> invalidLibraryClasses = Sets.newConcurrentHashSet();
 
   public RuntimeException errorMissingNestHost(DexClass clazz) {
@@ -900,6 +903,16 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
               classToDesugar == implementing
                   ? null
                   : Reference.classFromDescriptor(implementing.getType().toDescriptorString())));
+    }
+  }
+
+  public void warningReadingKotlinMetadataReflective() {
+    if (reportedErrorReadingKotlinMetadataReflectively.compareAndSet(false, true)) {
+      reporter.warning(
+          new StringDiagnostic(
+              "Could not read the kotlin metadata message reflectively which indicates the"
+                  + " compiler running in the context of a Security Manager. Not being able to"
+                  + " read the kotlin metadata will have a negative effect oncode size"));
     }
   }
 
