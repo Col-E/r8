@@ -50,7 +50,7 @@ public class TraceReferencesKeepRules extends TraceReferencesConsumer.Forwarding
     private boolean allowObfuscation;
 
     /**
-     * Indicate if the generated keep rules should have the <code>allobobfuscation</code> modifier.
+     * Indicate if the generated keep rules should have the <code>allowobfuscation</code> modifier.
      */
     public Builder setAllowObfuscation(boolean value) {
       allowObfuscation = value;

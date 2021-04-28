@@ -12,12 +12,12 @@ import com.android.tools.r8.diagnostic.internal.MissingFieldInfoImpl;
 import com.android.tools.r8.diagnostic.internal.MissingMethodInfoImpl;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -38,14 +38,10 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.MainDexInfo;
-import com.android.tools.r8.tracereferences.TraceReferencesConsumer.AccessFlags;
-import com.android.tools.r8.tracereferences.TraceReferencesConsumer.ClassAccessFlags;
-import com.android.tools.r8.tracereferences.TraceReferencesConsumer.FieldAccessFlags;
-import com.android.tools.r8.tracereferences.TraceReferencesConsumer.MethodAccessFlags;
-import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedClass;
-import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedField;
-import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedMethod;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedReference;
+import com.android.tools.r8.tracereferences.internal.TracedClassImpl;
+import com.android.tools.r8.tracereferences.internal.TracedFieldImpl;
+import com.android.tools.r8.tracereferences.internal.TracedMethodImpl;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -54,199 +50,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
 
-class Tracer {
-
-  static class AccessFlagsImpl<T extends com.android.tools.r8.graph.AccessFlags<T>>
-      implements AccessFlags {
-    T accessFlags;
-
-    AccessFlagsImpl(T accessFlags) {
-      this.accessFlags = accessFlags;
-    }
-
-    @Override
-    public boolean isStatic() {
-      return accessFlags.isStatic();
-    }
-
-    @Override
-    public boolean isPublic() {
-      return accessFlags.isPublic();
-    }
-
-    @Override
-    public boolean isProtected() {
-      return accessFlags.isProtected();
-    }
-
-    @Override
-    public boolean isPrivate() {
-      return accessFlags.isPrivate();
-    }
-  }
-
-  static class ClassAccessFlagsImpl
-      extends AccessFlagsImpl<com.android.tools.r8.graph.ClassAccessFlags>
-      implements ClassAccessFlags {
-    ClassAccessFlagsImpl(com.android.tools.r8.graph.ClassAccessFlags accessFlags) {
-      super(accessFlags);
-    }
-
-    @Override
-    public boolean isInterface() {
-      return accessFlags.isInterface();
-    }
-
-    @Override
-    public boolean isEnum() {
-      return accessFlags.isEnum();
-    }
-  }
-
-  static class FieldAccessFlagsImpl
-      extends AccessFlagsImpl<com.android.tools.r8.graph.FieldAccessFlags>
-      implements FieldAccessFlags {
-    FieldAccessFlagsImpl(com.android.tools.r8.graph.FieldAccessFlags accessFlags) {
-      super(accessFlags);
-    }
-  }
-
-  static class MethodAccessFlagsImpl
-      extends AccessFlagsImpl<com.android.tools.r8.graph.MethodAccessFlags>
-      implements MethodAccessFlags {
-    MethodAccessFlagsImpl(com.android.tools.r8.graph.MethodAccessFlags accessFlags) {
-      super(accessFlags);
-    }
-  }
-
-  abstract static class TracedReferenceBase<T, F> implements TracedReference<T, F> {
-    private final T reference;
-    private final F accessFlags;
-    private final boolean missingDefinition;
-
-    private TracedReferenceBase(T reference, F accessFlags, boolean missingDefinition) {
-      assert accessFlags != null || missingDefinition;
-      this.reference = reference;
-      this.accessFlags = accessFlags;
-      this.missingDefinition = missingDefinition;
-    }
-
-    @Override
-    public T getReference() {
-      return reference;
-    }
-
-    @Override
-    public boolean isMissingDefinition() {
-      return missingDefinition;
-    }
-
-    @Override
-    public F getAccessFlags() {
-      return accessFlags;
-    }
-
-    @Override
-    public int hashCode() {
-      // Equality is only based on the reference.
-      return reference.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      // Equality is only based on the reference.
-      if (!(other instanceof TracedReferenceBase)) {
-        return false;
-      }
-      return reference.equals(((TracedReferenceBase<?, ?>) other).reference);
-    }
-
-    public abstract String getKindName();
-  }
-
-  static class TracedClassImpl extends TracedReferenceBase<ClassReference, ClassAccessFlags>
-      implements TracedClass {
-    private TracedClassImpl(DexType type) {
-      this(type, null);
-    }
-
-    private TracedClassImpl(DexType reference, DexClass definition) {
-      super(
-          reference.asClassReference(),
-          definition != null ? new ClassAccessFlagsImpl(definition.getAccessFlags()) : null,
-          definition == null);
-    }
-
-    private TracedClassImpl(DexClass clazz) {
-      this(clazz.getType(), clazz);
-    }
-
-    @Override
-    public String getKindName() {
-      return "type";
-    }
-
-    @Override
-    public String toString() {
-      return getReference().getTypeName();
-    }
-  }
-
-  static class TracedFieldImpl extends TracedReferenceBase<FieldReference, FieldAccessFlags>
-      implements TracedField {
-    private TracedFieldImpl(DexField field) {
-      this(field, null);
-    }
-
-    private TracedFieldImpl(DexField reference, DexEncodedField definition) {
-      super(
-          reference.asFieldReference(),
-          definition != null ? new FieldAccessFlagsImpl(definition.getAccessFlags()) : null,
-          definition == null);
-    }
-
-    private TracedFieldImpl(DexClassAndField field) {
-      this(field.getReference(), field.getDefinition());
-    }
-
-    @Override
-    public String getKindName() {
-      return "field";
-    }
-
-    @Override
-    public String toString() {
-      return getReference().toString();
-    }
-  }
-
-  static class TracedMethodImpl extends TracedReferenceBase<MethodReference, MethodAccessFlags>
-      implements TracedMethod {
-    private TracedMethodImpl(DexMethod reference) {
-      this(reference, null);
-    }
-
-    private TracedMethodImpl(DexMethod reference, DexEncodedMethod definition) {
-      super(
-          reference.asMethodReference(),
-          definition != null ? new MethodAccessFlagsImpl(definition.getAccessFlags()) : null,
-          definition == null);
-    }
-
-    private TracedMethodImpl(DexClassAndMethod method) {
-      this(method.getReference(), method.getDefinition());
-    }
-
-    @Override
-    public String getKindName() {
-      return "method";
-    }
-
-    @Override
-    public String toString() {
-      return getReference().toString();
-    }
-  }
+public class Tracer {
 
   private final AppInfoWithClassHierarchy appInfo;
   private final DiagnosticsHandler diagnostics;
@@ -269,6 +73,18 @@ class Tracer {
         type -> targetDescriptors.contains(type.toDescriptorString()));
   }
 
+  public Tracer(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      DiagnosticsHandler diagnostics,
+      Predicate<DexType> targetPredicate) {
+    this(
+        appView.appInfo(),
+        diagnostics,
+        appView.graphLens(),
+        appView.initClassLens(),
+        targetPredicate);
+  }
+
   private Tracer(
       AppInfoWithClassHierarchy appInfo,
       DiagnosticsHandler diagnostics,
@@ -282,7 +98,7 @@ class Tracer {
     this.targetPredicate = targetPredicate;
   }
 
-  void run(TraceReferencesConsumer consumer) {
+  public void run(TraceReferencesConsumer consumer) {
     UseCollector useCollector = new UseCollector(appInfo, consumer, diagnostics, targetPredicate);
     for (DexProgramClass clazz : appInfo.classes()) {
       useCollector.registerSuperType(clazz, clazz.superType);
@@ -389,7 +205,7 @@ class Tracer {
       }
     }
 
-    private <R, T extends TracedReferenceBase<R, ?>> void collectMissing(
+    private <R, T extends TracedReference<R, ?>> void collectMissing(
         T tracedReference, Set<R> missingCollection) {
       if (tracedReference.isMissingDefinition()) {
         missingCollection.add(tracedReference.getReference());

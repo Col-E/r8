@@ -34,7 +34,7 @@ public class TraceReferencesResult {
     this.keepPackageNames = keepPackageNames;
   }
 
-  static Builder builder() {
+  public static Builder builder() {
     return new Builder();
   }
 

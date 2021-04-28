@@ -22,8 +22,9 @@ public abstract class CodeToKeep {
 
   static CodeToKeep createCodeToKeep(InternalOptions options, NamingLens namingLens) {
     if ((!namingLens.hasPrefixRewritingLogic()
-            && options.desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty())
-        || options.isDesugaredLibraryCompilation()) {
+            && !options.desugaredLibraryConfiguration.hasEmulatedLibraryInterfaces())
+        || options.isDesugaredLibraryCompilation()
+        || options.testing.enableExperimentalDesugaredLibraryKeepRuleGenerator) {
       return new NopCodeToKeep();
     }
     return new DesugaredLibraryCodeToKeep(namingLens, options);

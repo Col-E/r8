@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryKeepRuleGenerator;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
@@ -798,6 +799,9 @@ public class R8 {
 
       new GenericSignatureRewriter(appView, prefixRewritingNamingLens)
           .run(appView.appInfo().classes(), executorService);
+
+      new DesugaredLibraryKeepRuleGenerator(appView, prefixRewritingNamingLens)
+          .runIfNecessary(timing);
 
       // Generate the resulting application resources.
       // TODO(b/165783399): Apply the graph lens to all instructions in the CF and DEX backends.

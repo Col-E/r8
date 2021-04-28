@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -32,5 +34,9 @@ public class ClassReferenceUtils {
 
   public static Comparator<ClassReference> getClassReferenceComparator() {
     return COMPARATOR;
+  }
+
+  public static DexType toDexType(ClassReference classReference, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createType(classReference.getDescriptor());
   }
 }

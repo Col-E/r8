@@ -161,6 +161,10 @@ public class DesugaredLibraryConfiguration {
     return rewritePrefix;
   }
 
+  public boolean hasEmulatedLibraryInterfaces() {
+    return !getEmulateLibraryInterface().isEmpty();
+  }
+
   public Map<DexType, DexType> getEmulateLibraryInterface() {
     return emulateLibraryInterface;
   }
