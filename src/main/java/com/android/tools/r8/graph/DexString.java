@@ -50,6 +50,10 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
     throw new Unreachable();
   }
 
+  public byte byteAt(int index) {
+    return content[index];
+  }
+
   /** DexString is a leaf item so we directly define its compareTo which avoids overhead. */
   @Override
   public int compareTo(DexString other) {

@@ -304,7 +304,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       return true;
     }
     InvokeMethod replacement;
-    if (appView.options().canUseRequireNonNull()) {
+    if (appView.options().canUseJavaUtilObjectsRequireNonNull()) {
       DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
       replacement = new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(receiver));
     } else {

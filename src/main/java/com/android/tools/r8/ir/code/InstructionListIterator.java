@@ -107,9 +107,17 @@ public interface InstructionListIterator
   void replaceCurrentInstructionWithConstClass(
       AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo);
 
+  default void replaceCurrentInstructionWithConstFalse(IRCode code) {
+    replaceCurrentInstructionWithConstInt(code, 0);
+  }
+
   void replaceCurrentInstructionWithConstInt(IRCode code, int value);
 
   void replaceCurrentInstructionWithConstString(AppView<?> appView, IRCode code, DexString value);
+
+  default void replaceCurrentInstructionWithConstTrue(IRCode code) {
+    replaceCurrentInstructionWithConstInt(code, 1);
+  }
 
   default void replaceCurrentInstructionWithConstString(
       AppView<?> appView, IRCode code, String value) {

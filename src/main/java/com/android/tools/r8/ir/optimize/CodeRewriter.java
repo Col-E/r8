@@ -305,7 +305,7 @@ public class CodeRewriter {
             if (invokedMethod == dexItemFactory.npeMethods.init) {
               message = null;
             } else if (invokedMethod == dexItemFactory.npeMethods.initWithMessage) {
-              if (!appView.options().canUseRequireNonNull()) {
+              if (!appView.options().canUseJavaUtilObjectsRequireNonNull()) {
                 continue;
               }
               message = constructorCall.getArgument(1);
@@ -3348,7 +3348,7 @@ public class CodeRewriter {
     assert theIf == block.exit();
     iterator.previous();
     Instruction instruction;
-    if (appView.options().canUseRequireNonNull()) {
+    if (appView.options().canUseJavaUtilObjectsRequireNonNull()) {
       if (message != null) {
         DexMethod requireNonNullMethod =
             appView.dexItemFactory().objectsMethods.requireNonNullWithMessage;

@@ -578,14 +578,24 @@ public class Value implements Comparable<Value> {
   }
 
   public void replaceUsers(Value newValue) {
+    replaceUsers(newValue, null);
+  }
+
+  public void replaceUsers(Value newValue, Set<Value> affectedValues) {
     if (this == newValue) {
       return;
     }
     for (Instruction user : uniqueUsers()) {
       user.replaceValue(this, newValue);
+      if (affectedValues != null && user.hasOutValue()) {
+        affectedValues.add(user.outValue);
+      }
     }
     for (Phi user : uniquePhiUsers()) {
       user.replaceOperand(this, newValue);
+      if (affectedValues != null) {
+        affectedValues.add(user);
+      }
     }
     if (debugData != null) {
       for (Instruction user : debugData.users) {

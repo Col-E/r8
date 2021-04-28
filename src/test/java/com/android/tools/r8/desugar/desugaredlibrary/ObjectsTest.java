@@ -526,7 +526,7 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
       // Android K methods.
       objectsCompare("b", "a");
       objectsDeepEquals(args, new Object());
-      objectsEquals(args, new Object());
+      objectsEquals(System.currentTimeMillis() > 0 ? args : null, new Object());
       objectsHash(1, 2);
       objectsHashCode(4);
       objectsRequireNonNull(System.currentTimeMillis() >= 0 ? null : new Object());

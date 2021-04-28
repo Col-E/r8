@@ -190,6 +190,10 @@ public abstract class Invoke extends Instruction {
     return getArgument(0);
   }
 
+  public Value getLastArgument() {
+    return getArgument(arguments().size() - 1);
+  }
+
   public int requiredArgumentRegisters() {
     int registers = 0;
     for (Value inValue : inValues) {

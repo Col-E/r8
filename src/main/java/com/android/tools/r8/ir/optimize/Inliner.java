@@ -776,7 +776,7 @@ public class Inliner implements PostOptimization {
 
         InstructionListIterator iterator = throwBlock.listIterator(code);
         iterator.setInsertionPosition(invoke.getPosition());
-        if (appView.options().canUseRequireNonNull()) {
+        if (appView.options().canUseJavaUtilObjectsRequireNonNull()) {
           DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
           iterator.add(new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(receiver)));
         } else {

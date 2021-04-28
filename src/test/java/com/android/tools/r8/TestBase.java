@@ -1754,7 +1754,12 @@ public class TestBase {
         || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K);
   }
 
-  public static boolean canUseRequireNonNull(TestParameters parameters) {
+  public static boolean canUseJavaUtilObjectsIsNull(TestParameters parameters) {
+    return parameters.isDexRuntime()
+        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
+  }
+
+  public static boolean canUseJavaUtilObjectsRequireNonNull(TestParameters parameters) {
     return parameters.isDexRuntime()
         && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K);
   }

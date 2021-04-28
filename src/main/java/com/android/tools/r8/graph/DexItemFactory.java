@@ -555,6 +555,7 @@ public class DexItemFactory {
   public final RecordMembers recordMembers = new RecordMembers();
   public final ShortMembers shortMembers = new ShortMembers();
   public final StringMembers stringMembers = new StringMembers();
+  public final SupplierMembers supplierMembers = new SupplierMembers();
   public final DoubleMembers doubleMembers = new DoubleMembers();
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
   public final AssertionErrorMethods assertionErrorMethods = new AssertionErrorMethods();
@@ -1340,11 +1341,29 @@ public class DexItemFactory {
 
   public class ObjectsMethods {
 
+    public final DexMethod equals =
+        createMethod(objectsType, createProto(booleanType, objectType, objectType), "equals");
+    public final DexMethod hashCode =
+        createMethod(objectsType, createProto(intType, objectType), "hashCode");
+    public final DexMethod isNull =
+        createMethod(objectsType, createProto(booleanType, objectType), "isNull");
+    public final DexMethod nonNull =
+        createMethod(objectsType, createProto(booleanType, objectType), "nonNull");
     public final DexMethod requireNonNull;
     public final DexMethod requireNonNullWithMessage;
     public final DexMethod requireNonNullWithMessageSupplier;
+    public final DexMethod requireNonNullElse =
+        createMethod(
+            objectsType, createProto(objectType, objectType, objectType), "requireNonNullElse");
+    public final DexMethod requireNonNullElseGet =
+        createMethod(
+            objectsType,
+            createProto(objectType, objectType, supplierType),
+            "requireNonNullElseGet");
     public final DexMethod toStringWithObject =
         createMethod(objectsType, createProto(stringType, objectType), "toString");
+    public final DexMethod toStringWithObjectAndNullDefault =
+        createMethod(objectsType, createProto(stringType, objectType, stringType), "toString");
 
     private ObjectsMethods() {
       DexString requireNonNullMethodName = createString("requireNonNull");
@@ -1365,7 +1384,13 @@ public class DexItemFactory {
     public boolean isRequireNonNullMethod(DexMethod method) {
       return method == requireNonNull
           || method == requireNonNullWithMessage
-          || method == requireNonNullWithMessageSupplier;
+          || method == requireNonNullWithMessageSupplier
+          || method == requireNonNullElse
+          || method == requireNonNullElseGet;
+    }
+
+    public boolean isToStringMethod(DexMethod method) {
+      return method == toStringWithObject || method == toStringWithObjectAndNullDefault;
     }
 
     public Iterable<DexMethod> requireNonNullMethods() {
@@ -1881,6 +1906,13 @@ public class DexItemFactory {
       assert false : "Unexpected invoke targeting `" + invokedMethod.toSourceString() +  "`";
       return false;
     }
+  }
+
+  public class SupplierMembers extends LibraryMembers {
+
+    public final DexMethod get = createMethod(supplierType, createProto(objectType), "get");
+
+    private SupplierMembers() {}
   }
 
   public class PolymorphicMethods {
