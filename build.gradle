@@ -1998,8 +1998,8 @@ def setUpNewTestReporting(Test task) {
 
     // Events to stdout/err are appended to the files in the test directories.
     task.onOutput { desc, event ->
-        getTestResultEntryOutputFile(testReportOutput, desc, event.getDestination().name())
-                << event.getMessage()
+        getTestResultEntryOutputFile(testReportOutput, desc, event.getDestination().name()) <<
+                event.getMessage()
     }
 
     task.afterTest { desc, result ->
@@ -2008,11 +2008,11 @@ def setUpNewTestReporting(Test task) {
         }
         def testReportPath = getTestReportEntryDir(testReportOutput, desc)
         // Emit the result type status in a file of the same name: SUCCESS, FAILURE or SKIPPED.
-        getTestResultEntryOutputFile(testReportOutput, desc, result.getResultType().name())
-                << result.getResultType().name()
+        getTestResultEntryOutputFile(testReportOutput, desc, result.getResultType().name()) <<
+                result.getResultType().name()
         // Emit the test time.
-        getTestResultEntryOutputFile(testReportOutput, desc, "time")
-                << "${result.getEndTime() - result.getStartTime()}"
+        getTestResultEntryOutputFile(testReportOutput, desc, "time") <<
+                "${result.getEndTime() - result.getStartTime()}"
         // For failed tests, update the index and emit stack trace information.
         if (result.resultType == TestResult.ResultType.FAILURE) {
             def title = "${desc.className}.${desc.name}"
@@ -2044,7 +2044,7 @@ def setUpNewTestReporting(Test task) {
 }
 
 def testTimes = [:]
-def numberOfTestTimesToPrint = 100
+def numberOfTestTimesToPrint = 40
 
 test { task ->
     def newTestingReport = project.hasProperty('testing-report')
