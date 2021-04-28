@@ -44,8 +44,6 @@ import java.util.Arrays;
 public final class RecordCfMethods {
 
   public static void registerSynthesizedCodeReferences(DexItemFactory factory) {
-    factory.createSynthesizedType(
-        "Lcom/android/tools/r8/desugar/records/RecordMethods$RecordStub;");
     factory.createSynthesizedType("Ljava/lang/Record;");
     factory.createSynthesizedType("Ljava/util/Arrays;");
     factory.createSynthesizedType("[Ljava/lang/Object;");
@@ -121,9 +119,7 @@ public final class RecordCfMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(
-                          options.itemFactory.createType(
-                              "Lcom/android/tools/r8/desugar/records/RecordMethods$RecordStub;")),
+                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList())),
@@ -133,9 +129,7 @@ public final class RecordCfMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {
-                      FrameType.initialized(
-                          options.itemFactory.createType(
-                              "Lcom/android/tools/r8/desugar/records/RecordMethods$RecordStub;")),
+                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(
@@ -240,9 +234,7 @@ public final class RecordCfMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(
-                          options.itemFactory.createType(
-                              "Lcom/android/tools/r8/desugar/records/RecordMethods$RecordStub;")),
+                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.stringType)
                     }),
@@ -263,9 +255,7 @@ public final class RecordCfMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(
-                          options.itemFactory.createType(
-                              "Lcom/android/tools/r8/desugar/records/RecordMethods$RecordStub;")),
+                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.stringType)
                     }),
@@ -325,9 +315,7 @@ public final class RecordCfMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6},
                     new FrameType[] {
-                      FrameType.initialized(
-                          options.itemFactory.createType(
-                              "Lcom/android/tools/r8/desugar/records/RecordMethods$RecordStub;")),
+                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
@@ -398,9 +386,7 @@ public final class RecordCfMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5, 6},
                     new FrameType[] {
-                      FrameType.initialized(
-                          options.itemFactory.createType(
-                              "Lcom/android/tools/r8/desugar/records/RecordMethods$RecordStub;")),
+                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
@@ -416,9 +402,7 @@ public final class RecordCfMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
-                      FrameType.initialized(
-                          options.itemFactory.createType(
-                              "Lcom/android/tools/r8/desugar/records/RecordMethods$RecordStub;")),
+                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),

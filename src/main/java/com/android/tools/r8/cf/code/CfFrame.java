@@ -30,6 +30,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
+import java.util.SortedMap;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -342,7 +343,23 @@ public class CfFrame extends CfInstruction {
     this.stack = stack;
   }
 
+  // This is used from tests. As fastutils are repackaged and minified the method above is
+  // not available from tests which use fastutils in their original namespace.
+  public CfFrame(SortedMap<Integer, FrameType> locals, Deque<FrameType> stack) {
+    this(
+        locals instanceof Int2ReferenceAVLTreeMap
+            ? (Int2ReferenceAVLTreeMap<FrameType>) locals
+            : new Int2ReferenceAVLTreeMap<>(locals),
+        stack);
+  }
+
   public Int2ReferenceSortedMap<FrameType> getLocals() {
+    return locals;
+  }
+
+  // This is used from tests. As fastutils are repackaged and minified the method above is
+  // not available from tests which use fastutils in their original namespace.
+  public SortedMap<Integer, FrameType> getLocalsAsSortedMap() {
     return locals;
   }
 

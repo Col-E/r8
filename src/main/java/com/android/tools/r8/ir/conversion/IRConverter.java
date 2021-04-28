@@ -88,6 +88,7 @@ import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.position.MethodPosition;
@@ -540,9 +541,6 @@ public class IRConverter {
       return;
     }
     checkPrefixMerging(method);
-    if (!needsIRConversion(definition.getCode(), method)) {
-      return;
-    }
     if (options.isGeneratingClassFiles()
         || !(options.passthroughDexCode && definition.getCode().isDexCode())) {
       // We do not process in call graph order, so anything could be a leaf.
@@ -560,7 +558,10 @@ public class IRConverter {
     }
   }
 
-  private boolean needsIRConversion(Code code, ProgramMethod method) {
+  private boolean needsIRConversion(ProgramMethod method) {
+    if (appView.enableWholeProgramOptimizations()) {
+      return true;
+    }
     if (options.testing.forceIRForCfToCfDesugar) {
       return true;
     }
@@ -570,23 +571,23 @@ public class IRConverter {
     if (!options.cfToCfDesugar) {
       return true;
     }
-    if (instructionDesugaring.needsDesugaring(method)) {
-      return true;
-    }
     if (desugaredLibraryAPIConverter != null
         && desugaredLibraryAPIConverter.shouldRegisterCallback(method)) {
       return true;
     }
-
-    NeedsIRDesugarUseRegistry useRegistry =
-        new NeedsIRDesugarUseRegistry(
-            appView,
-            desugaredLibraryRetargeter,
-            interfaceMethodRewriter,
-            desugaredLibraryAPIConverter);
-    method.registerCodeReferences(useRegistry);
-
-    return useRegistry.needsDesugaring();
+    if (method.getDefinition().getCode() instanceof SynthesizedCode) {
+      // SynthesizedCode needs IR to generate the code.
+      return true;
+    } else {
+      NeedsIRDesugarUseRegistry useRegistry =
+          new NeedsIRDesugarUseRegistry(
+              appView,
+              desugaredLibraryRetargeter,
+              interfaceMethodRewriter,
+              desugaredLibraryAPIConverter);
+      method.registerCodeReferences(useRegistry);
+      return useRegistry.needsDesugaring();
+    }
   }
 
   private void checkPrefixMerging(ProgramMethod method) {
@@ -1119,10 +1120,12 @@ public class IRConverter {
     if (options.testing.hookInIrConversion != null) {
       options.testing.hookInIrConversion.run();
     }
-    if (options.skipIR) {
+
+    if (!needsIRConversion(method) || options.skipIR) {
       feedback.markProcessed(method.getDefinition(), ConstraintWithTarget.NEVER);
       return Timing.empty();
     }
+
     IRCode code = method.buildIR(appView);
     if (code == null) {
       feedback.markProcessed(method.getDefinition(), ConstraintWithTarget.NEVER);

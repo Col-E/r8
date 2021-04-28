@@ -2299,7 +2299,7 @@ public class DexItemFactory {
 
   private DexType createStaticallyKnownType(Class<?> clazz) {
     return createStaticallyKnownType(
-        createString(DescriptorUtils.javaTypeToDescriptor(clazz.getName())));
+        createString(DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName())));
   }
 
   private DexType createStaticallyKnownType(DexString descriptor) {

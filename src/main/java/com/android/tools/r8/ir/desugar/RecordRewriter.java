@@ -130,7 +130,11 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
     assert !instruction.isInitClass();
     if (instruction.isInvokeDynamic() && needsDesugaring(instruction.asInvokeDynamic(), context)) {
       return desugarInvokeDynamicOnRecord(
-          instruction.asInvokeDynamic(), context, eventConsumer, methodProcessingContext);
+          instruction.asInvokeDynamic(),
+          localStackAllocator,
+          context,
+          eventConsumer,
+          methodProcessingContext);
     }
     if (instruction.isInvoke()) {
       CfInvoke cfInvoke = instruction.asInvoke();
@@ -146,6 +150,7 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
 
   public List<CfInstruction> desugarInvokeDynamicOnRecord(
       CfInvokeDynamic invokeDynamic,
+      LocalStackAllocator localStackAllocator,
       ProgramMethod context,
       CfInstructionDesugaringEventConsumer eventConsumer,
       MethodProcessingContext methodProcessingContext) {
@@ -166,7 +171,13 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
           ClassNameComputationInfo.ClassNameMapping.SIMPLE_NAME.map(
               recordValueType.getValue().toDescriptorString(), context.getHolder(), factory);
       return desugarInvokeRecordToString(
-          recordClass, fieldNames, fields, simpleName, eventConsumer, methodProcessingContext);
+          recordClass,
+          fieldNames,
+          fields,
+          simpleName,
+          localStackAllocator,
+          eventConsumer,
+          methodProcessingContext);
     }
     if (callSite.methodName == factory.hashCodeMethodName) {
       return desugarInvokeRecordHashCode(
@@ -273,12 +284,14 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
       DexString fieldNames,
       DexField[] fields,
       DexString simpleName,
+      LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       MethodProcessingContext methodProcessingContext) {
     ensureGetFieldsAsObjects(recordClass, fields, eventConsumer);
     ArrayList<CfInstruction> instructions = new ArrayList<>();
     instructions.add(new CfConstString(simpleName));
     instructions.add(new CfConstString(fieldNames));
+    localStackAllocator.allocateLocalStack(2);
     ProgramMethod programMethod =
         synthesizeRecordHelper(
             recordToStringHelperProto,

@@ -233,7 +233,8 @@ public class PrintUses {
       if (typeMethods != null) {
         DexClass holder = appInfo.definitionForHolder(method);
         DexEncodedMethod definition = method.lookupOnClass(holder);
-        assert definition != null : "Could not find method " + method.toString();
+        assert definition != null
+            : "Could not find method " + method.toString() + " in " + context.getTypeName();
         if (!allowObfuscation) {
           noObfuscationTypes.add(method.holder);
         }
