@@ -526,22 +526,22 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
       // Android K methods.
       objectsCompare("b", "a");
       objectsDeepEquals(args, new Object());
-      objectsEquals(System.currentTimeMillis() > 0 ? args : null, new Object());
+      objectsEquals(makeNullable(args), new Object());
       objectsHash(1, 2);
       objectsHashCode(4);
-      objectsRequireNonNull(System.currentTimeMillis() >= 0 ? null : new Object());
+      objectsRequireNonNull(getNonNullableNull());
       objectsRequireNonNullWithMessage(null, "Was null");
       if (objectsRequireNonNullWithSupplierSupported) {
         objectsRequireNonNullWithSupplier(null, () -> "Supplier said was null");
       } else {
         System.out.println("Not supported (b/174840626)");
       }
-      objectsToString("5");
-      objectsToStringWithNullDefault(null, "6");
+      objectsToString(makeNullable("5"));
+      objectsToStringWithNullDefault(getNonNullableNull(), "6");
 
       // Android N methods.
-      objectsIsNull(null);
-      objectsNonNull(null);
+      objectsIsNull(getNonNullableNull());
+      objectsNonNull(getNonNullableNull());
 
       // Android R methods.
       Class<?> c = Class.forName("AndroidRUtilsObjectsMethods");
@@ -552,6 +552,14 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
       c.getDeclaredMethod("checkIndex", int.class, int.class).invoke(null, 3, 10);
       c.getDeclaredMethod("requireNonNullElse", Object.class, Object.class).invoke(null, null, 4);
       // TODO(b/174840626) Also support requireNonNullElseGet.
+    }
+
+    private static Object makeNullable(Object obj) {
+      return System.currentTimeMillis() > 0 ? obj : null;
+    }
+
+    private static Object getNonNullableNull() {
+      return System.currentTimeMillis() > 0 ? null : new Object();
     }
   }
 
