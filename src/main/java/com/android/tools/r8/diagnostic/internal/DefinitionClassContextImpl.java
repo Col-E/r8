@@ -4,16 +4,16 @@
 
 package com.android.tools.r8.diagnostic.internal;
 
-import com.android.tools.r8.diagnostic.MissingDefinitionClassContext;
+import com.android.tools.r8.diagnostic.DefinitionClassContext;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
 
-public class MissingDefinitionClassContextImpl extends MissingDefinitionContextBase
-    implements MissingDefinitionClassContext {
+public class DefinitionClassContextImpl extends DefinitionContextBase
+    implements DefinitionClassContext {
 
   private final ClassReference classReference;
 
-  private MissingDefinitionClassContextImpl(ClassReference classReference, Origin origin) {
+  private DefinitionClassContextImpl(ClassReference classReference, Origin origin) {
     super(origin);
     this.classReference = classReference;
   }
@@ -27,7 +27,7 @@ public class MissingDefinitionClassContextImpl extends MissingDefinitionContextB
     return classReference;
   }
 
-  public static class Builder extends MissingDefinitionContextBase.Builder<Builder> {
+  public static class Builder extends DefinitionContextBase.Builder<Builder> {
 
     private ClassReference classReference;
 
@@ -44,9 +44,9 @@ public class MissingDefinitionClassContextImpl extends MissingDefinitionContextB
     }
 
     @Override
-    public MissingDefinitionClassContextImpl build() {
+    public DefinitionClassContextImpl build() {
       assert validate();
-      return new MissingDefinitionClassContextImpl(classReference, origin);
+      return new DefinitionClassContextImpl(classReference, origin);
     }
 
     @Override

@@ -11,15 +11,15 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionFieldContextImpl;
+import com.android.tools.r8.diagnostic.DefinitionContext;
+import com.android.tools.r8.diagnostic.internal.DefinitionFieldContextImpl;
 import com.android.tools.r8.utils.FieldReferenceUtils;
 import org.junit.Test;
 
 public class MissingClassReferencedFromLibraryInstanceFieldTest extends MissingClassesTestBase {
 
-  private static final MissingDefinitionContext referencedFrom =
-      MissingDefinitionFieldContextImpl.builder()
+  private static final DefinitionContext referencedFrom =
+      DefinitionFieldContextImpl.builder()
           .setFieldContext(FieldReferenceUtils.fieldFromField(Library.class, "field"))
           .setOrigin(getOrigin(Library.class))
           .build();

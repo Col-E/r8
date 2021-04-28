@@ -5,21 +5,21 @@
 package com.android.tools.r8.diagnostic;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.references.ClassReference;
 
 @Keep
-public interface MissingDefinitionFieldContext extends MissingDefinitionContext {
+public interface DefinitionClassContext extends DefinitionContext {
 
-  /** Returns the reference of the field context. */
-  FieldReference getFieldReference();
+  /** Returns the reference of the class context. */
+  ClassReference getClassReference();
 
   @Override
-  default boolean isFieldContext() {
+  default boolean isClassContext() {
     return true;
   }
 
   @Override
-  default MissingDefinitionFieldContext asFieldContext() {
+  default DefinitionClassContext asClassContext() {
     return this;
   }
 }

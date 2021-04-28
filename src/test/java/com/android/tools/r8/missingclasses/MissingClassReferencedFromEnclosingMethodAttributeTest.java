@@ -11,8 +11,8 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionClassContextImpl;
+import com.android.tools.r8.diagnostic.DefinitionContext;
+import com.android.tools.r8.diagnostic.internal.DefinitionClassContextImpl;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -22,8 +22,8 @@ import org.junit.runners.Parameterized.Parameters;
 
 public class MissingClassReferencedFromEnclosingMethodAttributeTest extends MissingClassesTestBase {
 
-  private static final MissingDefinitionContext referencedFrom =
-      MissingDefinitionClassContextImpl.builder()
+  private static final DefinitionContext referencedFrom =
+      DefinitionClassContextImpl.builder()
           .setClassContext(Reference.classFromClass(getMainClass()))
           .setOrigin(getOrigin(getMainClass()))
           .build();

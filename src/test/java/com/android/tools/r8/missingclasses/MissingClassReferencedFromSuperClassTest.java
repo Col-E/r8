@@ -8,15 +8,15 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionClassContextImpl;
+import com.android.tools.r8.diagnostic.DefinitionContext;
+import com.android.tools.r8.diagnostic.internal.DefinitionClassContextImpl;
 import com.android.tools.r8.references.Reference;
 import org.junit.Test;
 
 public class MissingClassReferencedFromSuperClassTest extends MissingClassesTestBase {
 
-  private static final MissingDefinitionContext referencedFrom =
-      MissingDefinitionClassContextImpl.builder()
+  private static final DefinitionContext referencedFrom =
+      DefinitionClassContextImpl.builder()
           .setClassContext(Reference.classFromClass(Main.class))
           .setOrigin(getOrigin(Main.class))
           .build();

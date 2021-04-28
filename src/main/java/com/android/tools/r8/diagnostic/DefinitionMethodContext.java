@@ -5,21 +5,21 @@
 package com.android.tools.r8.diagnostic;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.MethodReference;
 
 @Keep
-public interface MissingDefinitionClassContext extends MissingDefinitionContext {
+public interface DefinitionMethodContext extends DefinitionContext {
 
-  /** Returns the reference of the class context. */
-  ClassReference getClassReference();
+  /** Returns the reference of the method context. */
+  MethodReference getMethodReference();
 
   @Override
-  default boolean isClassContext() {
+  default boolean isMethodContext() {
     return true;
   }
 
   @Override
-  default MissingDefinitionClassContext asClassContext() {
+  default DefinitionMethodContext asMethodContext() {
     return this;
   }
 }

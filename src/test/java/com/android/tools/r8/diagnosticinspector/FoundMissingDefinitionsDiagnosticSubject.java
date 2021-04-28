@@ -9,8 +9,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ThrowableConsumer;
+import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.diagnostic.MissingClassInfo;
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionInfo;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.diagnostic.MissingFieldInfo;
@@ -66,12 +66,12 @@ public class FoundMissingDefinitionsDiagnosticSubject
   }
 
   public FoundMissingDefinitionsDiagnosticSubject assertIsMissingClassWithExactContexts(
-      ClassReference classReference, MissingDefinitionContext... expectedContexts) {
+      ClassReference classReference, DefinitionContext... expectedContexts) {
     return assertIsMissingClassWithExactContexts(classReference, Arrays.asList(expectedContexts));
   }
 
   public FoundMissingDefinitionsDiagnosticSubject assertIsMissingClassWithExactContexts(
-      ClassReference classReference, List<MissingDefinitionContext> expectedContexts) {
+      ClassReference classReference, List<DefinitionContext> expectedContexts) {
     return inspectMissingClassInfo(
         classReference,
         missingClassInfoSubject -> missingClassInfoSubject.assertExactContexts(expectedContexts));

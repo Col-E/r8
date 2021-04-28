@@ -11,8 +11,8 @@ import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionMethodContextImpl;
+import com.android.tools.r8.diagnostic.DefinitionContext;
+import com.android.tools.r8.diagnostic.internal.DefinitionMethodContextImpl;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import java.util.Collections;
@@ -20,9 +20,9 @@ import org.junit.Test;
 
 public class MissingClassReferencedFromUnusedLambdaReturnTest extends MissingClassesTestBase {
 
-  private static final MissingDefinitionContext[] referencedFrom =
-      new MissingDefinitionContext[] {
-        MissingDefinitionMethodContextImpl.builder()
+  private static final DefinitionContext[] referencedFrom =
+      new DefinitionContext[] {
+        DefinitionMethodContextImpl.builder()
             .setMethodContext(
                 Reference.method(
                     Reference.classFromClass(Main.class),
@@ -31,7 +31,7 @@ public class MissingClassReferencedFromUnusedLambdaReturnTest extends MissingCla
                     Reference.classFromClass(MissingClass.class)))
             .setOrigin(getOrigin(Main.class))
             .build(),
-        MissingDefinitionMethodContextImpl.builder()
+        DefinitionMethodContextImpl.builder()
             .setMethodContext(MethodReferenceUtils.mainMethod(Main.class))
             .setOrigin(getOrigin(Main.class))
             .build(),

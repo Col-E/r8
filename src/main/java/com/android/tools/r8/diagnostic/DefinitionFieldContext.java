@@ -5,21 +5,21 @@
 package com.android.tools.r8.diagnostic;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.FieldReference;
 
 @Keep
-public interface MissingDefinitionMethodContext extends MissingDefinitionContext {
+public interface DefinitionFieldContext extends DefinitionContext {
 
-  /** Returns the reference of the method context. */
-  MethodReference getMethodReference();
+  /** Returns the reference of the field context. */
+  FieldReference getFieldReference();
 
   @Override
-  default boolean isMethodContext() {
+  default boolean isFieldContext() {
     return true;
   }
 
   @Override
-  default MissingDefinitionMethodContext asMethodContext() {
+  default DefinitionFieldContext asFieldContext() {
     return this;
   }
 }

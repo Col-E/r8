@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.diagnostic.internal;
 
+import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.diagnostic.MissingClassInfo;
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionInfo;
 import com.android.tools.r8.references.ClassReference;
 import java.util.Collection;
@@ -15,7 +15,7 @@ public class MissingClassInfoImpl extends MissingDefinitionInfoBase implements M
   private final ClassReference classReference;
 
   private MissingClassInfoImpl(
-      ClassReference classReference, Collection<MissingDefinitionContext> referencedFromContexts) {
+      ClassReference classReference, Collection<DefinitionContext> referencedFromContexts) {
     super(referencedFromContexts);
     this.classReference = classReference;
   }

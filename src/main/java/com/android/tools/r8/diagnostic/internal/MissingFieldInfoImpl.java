@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.diagnostic.internal;
 
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
+import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionInfo;
 import com.android.tools.r8.diagnostic.MissingFieldInfo;
 import com.android.tools.r8.references.FieldReference;
@@ -15,7 +15,7 @@ public class MissingFieldInfoImpl extends MissingDefinitionInfoBase implements M
   private final FieldReference fieldReference;
 
   private MissingFieldInfoImpl(
-      FieldReference fieldReference, Collection<MissingDefinitionContext> referencedFromContexts) {
+      FieldReference fieldReference, Collection<DefinitionContext> referencedFromContexts) {
     super(referencedFromContexts);
     this.fieldReference = fieldReference;
   }

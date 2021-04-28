@@ -7,8 +7,8 @@ package com.android.tools.r8.missingclasses;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionMethodContextImpl;
+import com.android.tools.r8.diagnostic.DefinitionContext;
+import com.android.tools.r8.diagnostic.internal.DefinitionMethodContextImpl;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -21,8 +21,8 @@ public class MissingClassReferencedFromThrowsClauseWithNoShrinkingTest
   private static final String NEW_A_DESCRIPTOR = "Lfoo/a;";
   private static final String NEW_B_DESCRIPTOR = "Lfoo/b;";
 
-  private static final MissingDefinitionContext referencedFrom =
-      MissingDefinitionMethodContextImpl.builder()
+  private static final DefinitionContext referencedFrom =
+      DefinitionMethodContextImpl.builder()
           .setMethodContext(
               Reference.method(
                   Reference.classFromDescriptor("Lfoo/a;"), "foo", ImmutableList.of(), null))

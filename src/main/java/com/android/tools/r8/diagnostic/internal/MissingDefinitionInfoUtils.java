@@ -8,8 +8,8 @@ import static com.android.tools.r8.utils.ClassReferenceUtils.getClassReferenceCo
 import static com.android.tools.r8.utils.FieldReferenceUtils.getFieldReferenceComparator;
 import static com.android.tools.r8.utils.MethodReferenceUtils.getMethodReferenceComparator;
 
+import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.diagnostic.MissingClassInfo;
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionInfo;
 import com.android.tools.r8.diagnostic.MissingFieldInfo;
 import com.android.tools.r8.diagnostic.MissingMethodInfo;
@@ -110,9 +110,9 @@ public class MissingDefinitionInfoUtils {
     Box<ClassReference> classContext = new Box<>();
     Box<FieldReference> fieldContext = new Box<>();
     Box<MethodReference> methodContext = new Box<>();
-    for (MissingDefinitionContext missingDefinitionContext :
+    for (DefinitionContext missingDefinitionContext :
         missingDefinitionInfo.getReferencedFromContexts()) {
-      MissingDefinitionContextUtils.accept(
+      DefinitionContextUtils.accept(
           missingDefinitionContext,
           missingDefinitionClassContext ->
               classContext.setMin(

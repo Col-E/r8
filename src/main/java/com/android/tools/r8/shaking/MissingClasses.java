@@ -9,8 +9,8 @@ import static com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter.getReta
 import static com.android.tools.r8.utils.collections.IdentityHashSetFromMap.newProgramDerivedContextSet;
 
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
+import com.android.tools.r8.diagnostic.internal.DefinitionContextUtils;
 import com.android.tools.r8.diagnostic.internal.MissingClassInfoImpl;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionContextUtils;
 import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
 import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
 import com.android.tools.r8.graph.AppView;
@@ -147,7 +147,7 @@ public class MissingClasses {
                 MissingClassInfoImpl.builder().setClass(missingClass.asClassReference());
             for (ProgramDerivedContext programDerivedContext : programDerivedContexts) {
               missingClassInfoBuilder.addReferencedFromContext(
-                  MissingDefinitionContextUtils.create(programDerivedContext));
+                  DefinitionContextUtils.create(programDerivedContext));
             }
             diagnosticBuilder.addMissingDefinitionInfo(missingClassInfoBuilder.build());
           });

@@ -68,5 +68,5 @@ public interface MissingDefinitionInfo {
   String getDiagnosticMessage();
 
   /** The contexts from which this missing definition was referenced. */
-  Collection<MissingDefinitionContext> getReferencedFromContexts();
+  Collection<DefinitionContext> getReferencedFromContexts();
 }

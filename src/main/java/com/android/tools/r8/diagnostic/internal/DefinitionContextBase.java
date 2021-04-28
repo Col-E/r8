@@ -4,14 +4,14 @@
 
 package com.android.tools.r8.diagnostic.internal;
 
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
+import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.origin.Origin;
 
-public abstract class MissingDefinitionContextBase implements MissingDefinitionContext {
+public abstract class DefinitionContextBase implements DefinitionContext {
 
   private final Origin origin;
 
-  MissingDefinitionContextBase(Origin origin) {
+  DefinitionContextBase(Origin origin) {
     this.origin = origin;
   }
 
@@ -31,7 +31,7 @@ public abstract class MissingDefinitionContextBase implements MissingDefinitionC
 
     abstract B self();
 
-    public abstract MissingDefinitionContext build();
+    public abstract DefinitionContext build();
 
     public boolean validate() {
       assert origin != null;

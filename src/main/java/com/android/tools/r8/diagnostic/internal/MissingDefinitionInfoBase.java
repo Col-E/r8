@@ -4,16 +4,16 @@
 
 package com.android.tools.r8.diagnostic.internal;
 
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
+import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionInfo;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 
 public abstract class MissingDefinitionInfoBase implements MissingDefinitionInfo {
 
-  final Collection<MissingDefinitionContext> referencedFromContexts;
+  final Collection<DefinitionContext> referencedFromContexts;
 
-  MissingDefinitionInfoBase(Collection<MissingDefinitionContext> referencedFromContexts) {
+  MissingDefinitionInfoBase(Collection<DefinitionContext> referencedFromContexts) {
     this.referencedFromContexts = referencedFromContexts;
   }
 
@@ -25,18 +25,18 @@ public abstract class MissingDefinitionInfoBase implements MissingDefinitionInfo
   }
 
   @Override
-  public final Collection<MissingDefinitionContext> getReferencedFromContexts() {
+  public final Collection<DefinitionContext> getReferencedFromContexts() {
     return referencedFromContexts;
   }
 
   public abstract static class Builder {
 
-    final ImmutableList.Builder<MissingDefinitionContext> referencedFromContextsBuilder =
+    final ImmutableList.Builder<DefinitionContext> referencedFromContextsBuilder =
         ImmutableList.builder();
 
     Builder() {}
 
-    public Builder addReferencedFromContext(MissingDefinitionContext missingDefinitionContext) {
+    public Builder addReferencedFromContext(DefinitionContext missingDefinitionContext) {
       referencedFromContextsBuilder.add(missingDefinitionContext);
       return this;
     }

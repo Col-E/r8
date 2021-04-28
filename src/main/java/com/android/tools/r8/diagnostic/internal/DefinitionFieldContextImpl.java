@@ -4,16 +4,16 @@
 
 package com.android.tools.r8.diagnostic.internal;
 
-import com.android.tools.r8.diagnostic.MissingDefinitionFieldContext;
+import com.android.tools.r8.diagnostic.DefinitionFieldContext;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.FieldReference;
 
-public class MissingDefinitionFieldContextImpl extends MissingDefinitionContextBase
-    implements MissingDefinitionFieldContext {
+public class DefinitionFieldContextImpl extends DefinitionContextBase
+    implements DefinitionFieldContext {
 
   private final FieldReference fieldReference;
 
-  private MissingDefinitionFieldContextImpl(FieldReference fieldReference, Origin origin) {
+  private DefinitionFieldContextImpl(FieldReference fieldReference, Origin origin) {
     super(origin);
     this.fieldReference = fieldReference;
   }
@@ -27,7 +27,7 @@ public class MissingDefinitionFieldContextImpl extends MissingDefinitionContextB
     return fieldReference;
   }
 
-  public static class Builder extends MissingDefinitionContextBase.Builder<Builder> {
+  public static class Builder extends DefinitionContextBase.Builder<Builder> {
 
     private FieldReference fieldReference;
 
@@ -44,9 +44,9 @@ public class MissingDefinitionFieldContextImpl extends MissingDefinitionContextB
     }
 
     @Override
-    public MissingDefinitionFieldContextImpl build() {
+    public DefinitionFieldContextImpl build() {
       assert validate();
-      return new MissingDefinitionFieldContextImpl(fieldReference, origin);
+      return new DefinitionFieldContextImpl(fieldReference, origin);
     }
 
     @Override

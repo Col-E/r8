@@ -7,9 +7,9 @@ package com.android.tools.r8.diagnosticinspector;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
+import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionInfo;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionContextUtils;
+import com.android.tools.r8.diagnostic.internal.DefinitionContextUtils;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -34,7 +34,7 @@ public class FoundMissingDefinitionInfoSubject {
         .getReferencedFromContexts()
         .forEach(
             context ->
-                MissingDefinitionContextUtils.accept(
+                DefinitionContextUtils.accept(
                     context,
                     classContext ->
                         classContexts.put(
@@ -51,11 +51,11 @@ public class FoundMissingDefinitionInfoSubject {
   }
 
   public FoundMissingDefinitionInfoSubject assertExactContexts(
-      List<MissingDefinitionContext> expectedContexts) {
+      List<DefinitionContext> expectedContexts) {
     assertEquals(expectedContexts.size(), missingDefinitionInfo.getReferencedFromContexts().size());
     expectedContexts.forEach(
         expectedContext ->
-            MissingDefinitionContextUtils.accept(
+            DefinitionContextUtils.accept(
                 expectedContext,
                 expectedClassContext -> {
                   FoundMissingDefinitionContextSubject subject =

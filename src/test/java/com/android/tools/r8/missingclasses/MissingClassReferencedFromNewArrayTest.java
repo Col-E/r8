@@ -7,15 +7,15 @@ package com.android.tools.r8.missingclasses;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionMethodContextImpl;
+import com.android.tools.r8.diagnostic.DefinitionContext;
+import com.android.tools.r8.diagnostic.internal.DefinitionMethodContextImpl;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import org.junit.Test;
 
 public class MissingClassReferencedFromNewArrayTest extends MissingClassesTestBase {
 
-  private static final MissingDefinitionContext referencedFrom =
-      MissingDefinitionMethodContextImpl.builder()
+  private static final DefinitionContext referencedFrom =
+      DefinitionMethodContextImpl.builder()
           .setMethodContext(MethodReferenceUtils.mainMethod(Main.class))
           .setOrigin(getOrigin(Main.class))
           .build();

@@ -13,8 +13,8 @@ import com.android.tools.r8.TestCompilerBuilder.DiagnosticsConsumer;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.diagnostic.MissingDefinitionContext;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionContextUtils;
+import com.android.tools.r8.diagnostic.DefinitionContext;
+import com.android.tools.r8.diagnostic.internal.DefinitionContextUtils;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import java.lang.annotation.Retention;
@@ -101,19 +101,18 @@ public abstract class MissingClassesTestBase extends TestBase {
   }
 
   void inspectDiagnosticsWithIgnoreWarnings(
-      TestDiagnosticMessages diagnostics, MissingDefinitionContext... referencedFrom) {
+      TestDiagnosticMessages diagnostics, DefinitionContext... referencedFrom) {
     assertTrue(referencedFrom.length > 0);
     inspectDiagnosticsWithIgnoreWarnings(
         diagnostics,
         referencedFrom,
         getExpectedDiagnosticMessage(
-            MissingDefinitionContextUtils.toSourceString(referencedFrom[0]),
-            referencedFrom.length));
+            DefinitionContextUtils.toSourceString(referencedFrom[0]), referencedFrom.length));
   }
 
   void inspectDiagnosticsWithIgnoreWarnings(
       TestDiagnosticMessages diagnostics,
-      MissingDefinitionContext[] referencedFrom,
+      DefinitionContext[] referencedFrom,
       String expectedDiagnosticMessage) {
     diagnostics
         .assertOnlyWarnings()
@@ -132,19 +131,18 @@ public abstract class MissingClassesTestBase extends TestBase {
   }
 
   void inspectDiagnosticsWithNoRules(
-      TestDiagnosticMessages diagnostics, MissingDefinitionContext... referencedFrom) {
+      TestDiagnosticMessages diagnostics, DefinitionContext... referencedFrom) {
     assertTrue(referencedFrom.length > 0);
     inspectDiagnosticsWithNoRules(
         diagnostics,
         referencedFrom,
         getExpectedDiagnosticMessage(
-            MissingDefinitionContextUtils.toSourceString(referencedFrom[0]),
-            referencedFrom.length));
+            DefinitionContextUtils.toSourceString(referencedFrom[0]), referencedFrom.length));
   }
 
   void inspectDiagnosticsWithNoRules(
       TestDiagnosticMessages diagnostics,
-      MissingDefinitionContext[] referencedFrom,
+      DefinitionContext[] referencedFrom,
       String expectedDiagnosticMessage) {
     diagnostics
         .assertOnlyErrors()
