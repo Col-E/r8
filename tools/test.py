@@ -170,6 +170,14 @@ def ParseOptions():
   result.add_option('--print-times', '--print_times',
       help='Print the execution time of the slowest tests..',
       default=False, action='store_true')
+  result.add_option(
+      '--testing-report',
+      help='Use the custom testing report output format',
+      default=False, action='store_true')
+  result.add_option(
+      '--stacktrace',
+      help='Pass --stacktrace to the gradle run',
+      default=False, action='store_true')
   return result.parse_args()
 
 def archive_failures():
@@ -214,7 +222,11 @@ def Main():
       shutil.copyfile(library_jar, desugar_jdk_libs)
       print('Desugared library for test in ' + desugar_jdk_libs)
 
-  gradle_args = ['--stacktrace']
+  gradle_args = []
+
+  if options.stacktrace or utils.is_bot():
+    gradle_args.append('--stacktrace')
+
   if utils.is_bot():
     # Bots don't like dangling processes.
     gradle_args.append('--no-daemon')
@@ -301,7 +313,8 @@ def Main():
     gradle_args.append('-Pdesugar_jdk_json_dir=' + desugar_jdk_json_dir)
   if desugar_jdk_libs:
     gradle_args.append('-Pdesugar_jdk_libs=' + desugar_jdk_libs)
-
+  if options.testing_report:
+    gradle_args.append('-Ptesting-report')
 
   # Build an R8 with dependencies for bootstrapping tests before adding test sources.
   gradle_args.append('r8WithDeps')

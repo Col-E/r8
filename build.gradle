@@ -11,6 +11,12 @@ import smali.SmaliTask
 import tasks.DownloadDependency
 import tasks.GetJarsFromConfiguration
 import utils.Utils
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.StandardOpenOption
 
 buildscript {
     repositories {
@@ -1848,43 +1854,47 @@ task configureTestForR8Lib(type: Copy) {
     outputs.dir r8LibTestPath
 }
 
+def shouldRetrace() {
+    return project.hasProperty('r8lib') || project.hasProperty('r8lib_no_deps')
+}
+
+def retrace(Throwable exception) {
+    def out = new StringBuffer()
+    def err = new StringBuffer()
+    def command = "python tools/retrace.py --quiet"
+    def header = "RETRACED STACKTRACE";
+    if (System.getenv('BUILDBOT_BUILDERNAME') != null
+            && !System.getenv('BUILDBOT_BUILDERNAME').endsWith("_release")) {
+        header += ": (${command} --commit_hash ${System.getenv('BUILDBOT_REVISION')})";
+    }
+    out.append("\n--------------------------------------\n")
+    out.append("${header}\n")
+    out.append("--------------------------------------\n")
+    Process process = command.execute()
+    def processIn = new PrintStream(process.getOut())
+    process.consumeProcessOutput(out, err)
+    exception.printStackTrace(processIn)
+    processIn.flush()
+    processIn.close()
+    def errorDuringRetracing = process.waitFor() != 0
+    if (errorDuringRetracing) {
+        out.append("ERROR DURING RETRACING\n")
+        out.append(err.toString())
+    }
+    if (project.hasProperty('print_obfuscated_stacktraces') || errorDuringRetracing) {
+        out.append("\n\n--------------------------------------\n")
+        out.append("OBFUSCATED STACKTRACE\n")
+        out.append("--------------------------------------\n")
+    }
+    return out.toString()
+}
+
 def printStackTrace(TestResult result) {
     filterStackTraces(result)
-    if (project.hasProperty('r8lib') || project.hasProperty('r8lib_no_deps')) {
-        def out = new StringBuffer()
-        def err = new StringBuffer()
-        def command = "python tools/retrace.py --quiet"
-        def header = "RETRACED STACKTRACE";
-        if (System.getenv('BUILDBOT_BUILDERNAME') != null
-                && !System.getenv('BUILDBOT_BUILDERNAME').endsWith("_release")) {
-            header += ": (${command} --commit_hash ${System.getenv('BUILDBOT_REVISION')})";
-        }
-        out.append("\n--------------------------------------\n")
-        out.append("${header}\n")
-        out.append("--------------------------------------\n")
-        Process process = command.execute()
-        def processIn = new PrintStream(process.getOut())
-        process.consumeProcessOutput(out, err)
-        result.exception.printStackTrace(processIn)
-        processIn.flush()
-        processIn.close()
-        def errorDuringRetracing = process.waitFor() != 0
-        if (errorDuringRetracing) {
-            out.append("ERROR DURING RETRACING\n")
-            out.append(err.toString())
-        }
-        if (project.hasProperty('print_obfuscated_stacktraces') || errorDuringRetracing) {
-            out.append("\n\n--------------------------------------\n")
-            out.append("OBFUSCATED STACKTRACE\n")
-            out.append("--------------------------------------\n")
-        } else {
-          result.exceptions.clear()
-        }
-        def exception = new Exception(out.toString())
+    if (shouldRetrace()) {
+        def exception = new Exception(retrace(result.exception))
         exception.setStackTrace([] as StackTraceElement[])
         result.exceptions.add(0, exception)
-    } else {
-        result.exception.printStackTrace()
     }
 }
 
@@ -1894,6 +1904,7 @@ def filterStackTraces(TestResult result) {
     }
 }
 
+// It would be nice to do this in a non-destructive way...
 def filterStackTrace(Throwable exception) {
     if (!project.hasProperty('print_full_stacktraces')) {
         def elements = []
@@ -1911,10 +1922,136 @@ def filterStackTrace(Throwable exception) {
     }
 }
 
+def printAllStackTracesToFile(List<Throwable> exceptions, File out) {
+    new PrintStream(new FileOutputStream(out)).withCloseable {printer ->
+        exceptions.forEach { it.printStackTrace(printer) }
+    }
+}
+
+def ensureDir(File dir) {
+    dir.mkdirs()
+    return dir
+}
+
+def getTestReportEntryDir(reportDir, testDesc) {
+    return ensureDir(reportDir.toPath()
+            .resolve(testDesc.getClassName())
+            .resolve(testDesc.getName())
+            .toFile())
+}
+
+def getTestResultEntryOutputFile(reportDir, testDesc, fileName) {
+    def dir = getTestReportEntryDir(reportDir, testDesc).toPath()
+    return dir.resolve(fileName).toFile()
+}
+
+def getGitBranchName() {
+    def out = new StringBuilder()
+    def err = new StringBuilder()
+    def proc = "git rev-parse --abbrev-ref HEAD".execute()
+    proc.waitForProcessOutput(out, err)
+    return out
+}
+
+def setUpNewTestReporting(Test task) {
+    // Hide all test events from the console, they are written to the report.
+    task.testLogging { events = [] }
+
+    def testReportOutput = project.hasProperty('test_report_output')
+            ? file(project.hasProperty('test_report_output'))
+            : file("${buildDir}/testreport")
+    def index = testReportOutput.toPath().resolve("index.html").toFile()
+
+    task.beforeSuite { desc ->
+        if (!desc.parent) {
+            // Start by printing a link to the test report for easy access.
+            println "Test report being written to:"
+            println "file://${index}"
+
+            def branch = getGitBranchName()
+            def title = "${desc} @ ${branch}"
+
+            // TODO(b/186607794): Support resuming testing based on the existing report.
+            delete testReportOutput
+            testReportOutput.mkdirs()
+            index << "<html><head><title>${title}</title></head>"
+            index << "<body><h1>${title}</h1>"
+            index << "<p>Run on: ${new Date()}</p>"
+            index << "<p>Git branch: ${branch}</p>"
+            index << "<p><a href=\"file://${testReportOutput}\">Test directories</a></p>"
+            index << "<h2>Failing tests (reload to refresh)</h2><ul>"
+        }
+    }
+
+    task.afterSuite { desc, result ->
+        if (!desc.parent) {
+            // Update the final test results in the index.
+            index << "</ul>"
+            index << "<h2>Tests finished: ${result.resultType.name()}</h2><ul>"
+            index << "<li>Number of tests: ${result.testCount}"
+            index << "<li>Failing tests: ${result.failedTestCount}"
+            index << "<li>Successful tests: ${result.successfulTestCount}"
+            index << "<li>Skipped tests: ${result.skippedTestCount}"
+            index << "</ul></body></html>"
+        }
+    }
+
+    // Events to stdout/err are appended to the files in the test directories.
+    task.onOutput { desc, event ->
+        getTestResultEntryOutputFile(testReportOutput, desc, event.getDestination().name())
+                << event.getMessage()
+    }
+
+    task.afterTest { desc, result ->
+        if (result.getTestCount() != 1) {
+            throw new IllegalStateException("Unexpected test with more than one result: ${desc}")
+        }
+        def testReportPath = getTestReportEntryDir(testReportOutput, desc)
+        // Emit the result type status in a file of the same name: SUCCESS, FAILURE or SKIPPED.
+        getTestResultEntryOutputFile(testReportOutput, desc, result.getResultType().name())
+                << result.getResultType().name()
+        // Emit the test time.
+        getTestResultEntryOutputFile(testReportOutput, desc, "time")
+                << "${result.getEndTime() - result.getStartTime()}"
+        // For failed tests, update the index and emit stack trace information.
+        if (result.resultType == TestResult.ResultType.FAILURE) {
+            def title = "${desc.className}.${desc.name}"
+            index << "<li><a href=\"file://${testReportPath}\">${title}</a></li>"
+            if (!result.exceptions.isEmpty()) {
+                printAllStackTracesToFile(
+                        result.exceptions,
+                        getTestResultEntryOutputFile(
+                                testReportOutput,
+                                desc,
+                                "exceptions-raw.txt"))
+                filterStackTraces(result)
+                printAllStackTracesToFile(
+                        result.exceptions,
+                        getTestResultEntryOutputFile(
+                                testReportOutput,
+                                desc,
+                                "exceptions-filtered.txt"))
+                if (shouldRetrace()) {
+                    def out = getTestResultEntryOutputFile(
+                            testReportOutput,
+                            desc,
+                            "exceptions-retraced.txt")
+                    result.exceptions.forEach { out << retrace(it) }
+                }
+            }
+        }
+    }
+}
+
 def testTimes = [:]
 def numberOfTestTimesToPrint = 100
 
-test {
+test { task ->
+    def newTestingReport = project.hasProperty('testing-report')
+    if (newTestingReport) {
+        setUpNewTestReporting(task)
+    }
+
     if (project.hasProperty('generate_golden_files_to')) {
         systemProperty 'generate_golden_files_to', project.property('generate_golden_files_to')
         assert project.hasProperty('HEAD_sha1')
@@ -1927,13 +2064,11 @@ test {
         systemProperty 'test_git_HEAD_sha1', project.property('HEAD_sha1')
     }
 
-    dependsOn buildLibraryDesugarConversions
-    dependsOn getJarsFromSupportLibs
-    // R8.jar is required for running bootstrap tests.
-    dependsOn r8
-    testLogging.exceptionFormat = 'full'
-    if (project.hasProperty('print_test_stdout')) {
-        testLogging.showStandardStreams = true
+    if (!newTestingReport) {
+        testLogging.exceptionFormat = 'full'
+        if (project.hasProperty('print_test_stdout')) {
+            testLogging.showStandardStreams = true
+        }
     }
     if (project.hasProperty('dex_vm') && project.property('dex_vm') != 'default') {
         println "NOTE: Running with non default vm: " + project.property('dex_vm')
@@ -1958,39 +2093,42 @@ test {
         systemProperty 'desugar_jdk_libs', project.property('desugar_jdk_libs')
     }
 
-    if (project.hasProperty('print_times') || project.hasProperty('one_line_per_test')) {
-        afterTest { desc, result ->
-            def executionTime = (result.endTime - result.startTime) / 1000
-            testTimes["${desc.name} [${desc.className}]"] = executionTime
-        }
-        afterSuite { desc, result ->
-          // parent is null if all tests are done.
-          if (desc.parent == null) {
-            def sortedTimes = testTimes.sort({e1, e2 -> e2.value <=> e1.value})
-            sortedTimes.eachWithIndex{key, value, i ->
-                if (i < numberOfTestTimesToPrint) println "$key: $value"}
-          }
-        }
-    }
-
-    if (project.hasProperty('one_line_per_test')) {
-        beforeTest { desc ->
-            println "Start executing test ${desc.name} [${desc.className}]"
+    if (!newTestingReport) {
+        if (project.hasProperty('print_times') || project.hasProperty('one_line_per_test')) {
+            afterTest { desc, result ->
+                def executionTime = (result.endTime - result.startTime) / 1000
+                testTimes["${desc.name} [${desc.className}]"] = executionTime
+            }
+            afterSuite { desc, result ->
+                // parent is null if all tests are done.
+                if (desc.parent == null) {
+                    def sortedTimes = testTimes.sort({ e1, e2 -> e2.value <=> e1.value })
+                    sortedTimes.eachWithIndex { key, value, i ->
+                        if (i < numberOfTestTimesToPrint) println "$key: $value"
+                    }
+                }
+            }
         }
 
-        afterTest { desc, result ->
-            if (result.resultType == TestResult.ResultType.FAILURE) {
-                printStackTrace(result)
+        if (project.hasProperty('one_line_per_test')) {
+            beforeTest { desc ->
+                println "Start executing test ${desc.name} [${desc.className}]"
             }
-            if (project.hasProperty('update_test_timestamp')) {
-                file(project.getProperty('update_test_timestamp')).text = new Date().getTime()
+
+            afterTest { desc, result ->
+                if (result.resultType == TestResult.ResultType.FAILURE) {
+                    printStackTrace(result)
+                }
+                if (project.hasProperty('update_test_timestamp')) {
+                    file(project.getProperty('update_test_timestamp')).text = new Date().getTime()
+                }
+                println "Done executing test ${desc.name} [${desc.className}] with result: ${result.resultType}"
             }
-            println "Done executing test ${desc.name} [${desc.className}] with result: ${result.resultType}"
-        }
-    } else {
-        afterTest { desc, result ->
-            if (result.resultType == TestResult.ResultType.FAILURE) {
-                printStackTrace(result)
+        } else {
+            afterTest { desc, result ->
+                if (result.resultType == TestResult.ResultType.FAILURE) {
+                    printStackTrace(result)
+                }
             }
         }
     }
