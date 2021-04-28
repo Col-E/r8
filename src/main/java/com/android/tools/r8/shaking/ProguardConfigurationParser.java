@@ -81,6 +81,8 @@ public class ProguardConfigurationParser {
   private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS =
       ImmutableList.of("isclassnamestring", "whyarenotsimple", "convertchecknotnull");
 
+  private static final List<String> IGNORED_RETURN_VALUE_ATTRIBUTES = ImmutableList.of("_NONNULL_");
+
   private static final List<String> WARNED_SINGLE_ARG_OPTIONS = ImmutableList.of(
       // TODO(b/37137994): -outjars should be reported as errors, not just as warnings!
       "outjars");
@@ -588,6 +590,19 @@ public class ProguardConfigurationParser {
           || parseOptimizationOption(optionStart);
     }
 
+    private boolean parseIgnoredReturnValueAttribute() {
+      return Iterables.any(IGNORED_RETURN_VALUE_ATTRIBUTES, this::skipReturnValueAttribute);
+    }
+
+    private boolean parseIgnoredReturnValueAttributes() {
+      boolean anySkipped = false;
+      while (parseIgnoredReturnValueAttribute()) {
+        anySkipped = true;
+        skipWhitespace();
+      }
+      return anySkipped;
+    }
+
     private void parseInclude() throws ProguardRuleParserException {
       TextPosition start = getPosition();
       Path included = parseFileName(false);
@@ -671,6 +686,10 @@ public class ProguardConfigurationParser {
         }
       }
       return false;
+    }
+
+    private boolean skipReturnValueAttribute(String name) {
+      return acceptString(name);
     }
 
     private boolean parseOptimizationOption(TextPosition optionStart)
@@ -1317,49 +1336,52 @@ public class ProguardConfigurationParser {
                   // Parse "return ..." if present.
                   if (acceptString("return")) {
                     skipWhitespace();
-                    if (acceptString("true")) {
-                      ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(true));
-                    } else if (acceptString("false")) {
-                      ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(false));
-                    } else if (acceptString("null")) {
-                      ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue());
-                    } else {
-                      TextPosition fieldOrValueStart = getPosition();
-                      String qualifiedFieldNameOrInteger = acceptFieldNameOrIntegerForReturn();
-                      if (qualifiedFieldNameOrInteger != null) {
-                        if (isInteger(qualifiedFieldNameOrInteger)) {
-                          Integer min = Integer.parseInt(qualifiedFieldNameOrInteger);
-                          Integer max = min;
-                          skipWhitespace();
-                          if (acceptString("..")) {
+                    boolean anyReturnValueAttributesSkipped = parseIgnoredReturnValueAttributes();
+                    if (!anyReturnValueAttributesSkipped || !hasNextChar(';')) {
+                      if (acceptString("true")) {
+                        ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(true));
+                      } else if (acceptString("false")) {
+                        ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(false));
+                      } else if (acceptString("null")) {
+                        ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue());
+                      } else {
+                        TextPosition fieldOrValueStart = getPosition();
+                        String qualifiedFieldNameOrInteger = acceptFieldNameOrIntegerForReturn();
+                        if (qualifiedFieldNameOrInteger != null) {
+                          if (isInteger(qualifiedFieldNameOrInteger)) {
+                            Integer min = Integer.parseInt(qualifiedFieldNameOrInteger);
+                            Integer max = min;
                             skipWhitespace();
-                            max = acceptInteger();
-                            if (max == null) {
-                              throw parseError("Expected integer value");
+                            if (acceptString("..")) {
+                              skipWhitespace();
+                              max = acceptInteger();
+                              if (max == null) {
+                                throw parseError("Expected integer value");
+                              }
                             }
-                          }
-                          if (!allowValueSpecification) {
-                            throw parseError("Unexpected value specification", fieldOrValueStart);
-                          }
-                          ruleBuilder.setReturnValue(
-                              new ProguardMemberRuleReturnValue(new LongInterval(min, max)));
-                        } else {
-                          if (ruleBuilder.getTypeMatcher() instanceof MatchSpecificType) {
-                            int lastDotIndex = qualifiedFieldNameOrInteger.lastIndexOf(".");
-                            DexType fieldType = ((MatchSpecificType) ruleBuilder
-                                .getTypeMatcher()).type;
-                            DexType fieldClass =
-                                dexItemFactory.createType(
-                                    javaTypeToDescriptor(
-                                        qualifiedFieldNameOrInteger.substring(0, lastDotIndex)));
-                            DexString fieldName =
-                                dexItemFactory.createString(
-                                    qualifiedFieldNameOrInteger.substring(lastDotIndex + 1));
-                            DexField field = dexItemFactory
-                                .createField(fieldClass, fieldType, fieldName);
-                            ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(field));
+                            if (!allowValueSpecification) {
+                              throw parseError("Unexpected value specification", fieldOrValueStart);
+                            }
+                            ruleBuilder.setReturnValue(
+                                new ProguardMemberRuleReturnValue(new LongInterval(min, max)));
                           } else {
-                            throw parseError("Expected specific type", fieldOrValueStart);
+                            if (ruleBuilder.getTypeMatcher() instanceof MatchSpecificType) {
+                              int lastDotIndex = qualifiedFieldNameOrInteger.lastIndexOf(".");
+                              DexType fieldType =
+                                  ((MatchSpecificType) ruleBuilder.getTypeMatcher()).type;
+                              DexType fieldClass =
+                                  dexItemFactory.createType(
+                                      javaTypeToDescriptor(
+                                          qualifiedFieldNameOrInteger.substring(0, lastDotIndex)));
+                              DexString fieldName =
+                                  dexItemFactory.createString(
+                                      qualifiedFieldNameOrInteger.substring(lastDotIndex + 1));
+                              DexField field =
+                                  dexItemFactory.createField(fieldClass, fieldType, fieldName);
+                              ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(field));
+                            } else {
+                              throw parseError("Expected specific type", fieldOrValueStart);
+                            }
                           }
                         }
                       }

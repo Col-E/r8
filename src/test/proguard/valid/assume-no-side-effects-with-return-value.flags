@@ -10,4 +10,6 @@
     public static int returns234To567() return 234..567;
     public static int returnsField() return com.google.C.X;
     public static Object returnsNull() return null;
+    public static Object returnsNonNull() return _NONNULL_;
+    public static Object returnsNonNullField() return _NONNULL_ com.google.C.X;
 }
