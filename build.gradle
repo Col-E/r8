@@ -2047,6 +2047,12 @@ def testTimes = [:]
 def numberOfTestTimesToPrint = 40
 
 test { task ->
+
+    dependsOn buildLibraryDesugarConversions
+    dependsOn getJarsFromSupportLibs
+    // R8.jar is required for running bootstrap tests.
+    dependsOn r8
+
     def newTestingReport = project.hasProperty('testing-report')
     if (newTestingReport) {
         setUpNewTestReporting(task)
@@ -2063,6 +2069,7 @@ test { task ->
         assert project.hasProperty('HEAD_sha1')
         systemProperty 'test_git_HEAD_sha1', project.property('HEAD_sha1')
     }
+
 
     if (!newTestingReport) {
         testLogging.exceptionFormat = 'full'
