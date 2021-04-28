@@ -440,7 +440,7 @@ public abstract class TestCompilerBuilder<
 
   public T enableCoreLibraryDesugaring(
       AndroidApiLevel minApiLevel,
-      KeepRuleConsumer keepRuleConsumer,
+      StringConsumer keepRuleConsumer,
       StringResource desugaredLibraryConfiguration) {
     assert minApiLevel.getLevel() < AndroidApiLevel.O.getLevel();
     builder.addDesugaredLibraryConfiguration(desugaredLibraryConfiguration);

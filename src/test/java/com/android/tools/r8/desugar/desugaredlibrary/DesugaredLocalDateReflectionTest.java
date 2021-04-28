@@ -25,7 +25,7 @@ public class DesugaredLocalDateReflectionTest extends DesugaredLibraryTestBase {
   private final boolean shrinkDesugaredLibrary;
   private static final String EXPECTED = StringUtils.lines("1992");
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(), BooleanUtils.values());

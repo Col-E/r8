@@ -4,7 +4,8 @@
 
 package com.android.tools.r8;
 
-public abstract class TestBaseResult<CR extends TestBaseResult<CR, RR>, RR extends TestRunResult> {
+public abstract class TestBaseResult<
+    CR extends TestBaseResult<CR, RR>, RR extends TestRunResult<RR>> {
 
   final TestState state;
 

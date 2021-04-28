@@ -3,16 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.internal;
 
+import static com.android.tools.r8.ToolHelper.isLocalDevelopment;
+import static com.android.tools.r8.ToolHelper.shouldRunSlowTests;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.analysis.ProtoApplicationStats;
 import java.nio.file.Paths;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,15 +30,15 @@ public class YouTubeV1533TreeShakeJarVerificationTest extends YouTubeCompilation
   }
 
   public YouTubeV1533TreeShakeJarVerificationTest(TestParameters parameters) {
-    super(15, 33);
+    super(15, 33, AndroidApiLevel.H_MR2);
     parameters.assertNoneRuntime();
   }
 
   @Test
   public void testR8() throws Exception {
     // TODO(b/141603168): Enable this on the bots.
-    // assumeTrue(isLocalDevelopment());
-    // assumeTrue(shouldRunSlowTests());
+    assumeTrue(isLocalDevelopment());
+    assumeTrue(shouldRunSlowTests());
 
     LibrarySanitizer librarySanitizer =
         new LibrarySanitizer(temp)
@@ -58,25 +57,16 @@ public class YouTubeV1533TreeShakeJarVerificationTest extends YouTubeCompilation
             .allowDiagnosticMessages()
             .allowUnusedDontWarnPatterns()
             .allowUnusedProguardConfigurationRules()
-            .setMinApi(AndroidApiLevel.H_MR2)
-            .compile();
+            .setMinApi(getApiLevel())
+            .compile()
+            .apply(this::printProtoStats);
 
-    if (ToolHelper.isLocalDevelopment()) {
+    if (isLocalDevelopment()) {
       if (DUMP) {
         long time = System.currentTimeMillis();
         compileResult.writeToZip(Paths.get("YouTubeV1533-" + time + ".zip"));
         compileResult.writeProguardMap(Paths.get("YouTubeV1533-" + time + ".map"));
       }
-
-      DexItemFactory dexItemFactory = new DexItemFactory();
-      ProtoApplicationStats original =
-          new ProtoApplicationStats(dexItemFactory, new CodeInspector(getProgramFiles()));
-      ProtoApplicationStats actual =
-          new ProtoApplicationStats(dexItemFactory, compileResult.inspector(), original);
-      ProtoApplicationStats baseline =
-          new ProtoApplicationStats(
-              dexItemFactory, new CodeInspector(getReleaseApk(), getReleaseProguardMap()));
-      System.out.println(actual.getStats(baseline));
     }
 
     int applicationSize = compileResult.app.applicationSize();

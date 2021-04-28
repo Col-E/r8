@@ -66,7 +66,7 @@ public class TypeReferenceUtils {
       DexItemFactory dexItemFactory,
       Function<ClassReference, DexType> classReferenceConverter) {
     if (typeReference == null) {
-      return null;
+      return dexItemFactory.voidType;
     }
     if (typeReference.isPrimitive()) {
       PrimitiveReference primitiveReference = typeReference.asPrimitive();

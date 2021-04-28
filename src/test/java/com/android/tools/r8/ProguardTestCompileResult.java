@@ -10,7 +10,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 public class ProguardTestCompileResult
     extends TestCompileResult<ProguardTestCompileResult, ProguardTestRunResult> {
@@ -58,7 +57,7 @@ public class ProguardTestCompileResult
   }
 
   @Override
-  public CodeInspector inspector() throws IOException, ExecutionException {
+  public CodeInspector inspector() throws IOException {
     return new CodeInspector(app, proguardMap);
   }
 

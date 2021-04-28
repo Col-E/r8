@@ -11,7 +11,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 public class ExternalR8TestCompileResult
     extends TestCompileResult<ExternalR8TestCompileResult, ExternalR8TestRunResult> {
@@ -68,7 +67,7 @@ public class ExternalR8TestCompileResult
   }
 
   @Override
-  public CodeInspector inspector() throws IOException, ExecutionException {
+  public CodeInspector inspector() throws IOException {
     return new CodeInspector(app, proguardMap);
   }
 

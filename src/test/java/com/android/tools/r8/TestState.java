@@ -35,7 +35,7 @@ public class TestState {
     return getNewTempFolder().resolve(name);
   }
 
-  DiagnosticsHandler getDiagnosticsHandler() {
+  public DiagnosticsHandler getDiagnosticsHandler() {
     return messages;
   }
 

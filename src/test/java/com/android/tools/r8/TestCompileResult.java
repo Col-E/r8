@@ -25,6 +25,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.TriFunction;
@@ -278,6 +279,18 @@ public abstract class TestCompileResult<
     return self();
   }
 
+  public CR writeSingleDexOutputToFile(Path file) throws IOException {
+    assertTrue(getApp().getClassProgramResourcesForTesting().isEmpty());
+    try {
+      List<ProgramResource> dexProgramSources = getApp().getDexProgramResourcesForTesting();
+      assertEquals(1, dexProgramSources.size());
+      FileUtils.writeToFile(file, null, dexProgramSources.get(0).getBytes());
+      return self();
+    } catch (ResourceException e) {
+      throw new IOException(e);
+    }
+  }
+
   public Path writeToZip() throws IOException {
     Path file = state.getNewTempFolder().resolve("out.zip");
     writeToZip(file);
@@ -305,17 +318,17 @@ public abstract class TestCompileResult<
     return self();
   }
 
-  public CodeInspector inspector() throws IOException, ExecutionException {
+  public CodeInspector inspector() throws IOException {
     return new CodeInspector(app);
   }
 
   public CodeInspector inspector(Consumer<InternalOptions> debugOptionsConsumer)
-      throws IOException, ExecutionException {
+      throws IOException {
     return new CodeInspector(app, debugOptionsConsumer);
   }
 
   public <E extends Throwable> CR inspect(ThrowingConsumer<CodeInspector, E> consumer)
-      throws IOException, ExecutionException, E {
+      throws IOException, E {
     consumer.accept(inspector());
     return self();
   }

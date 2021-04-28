@@ -5,10 +5,13 @@ package com.android.tools.r8.internal;
 
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.analysis.ProtoApplicationStats;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -25,14 +28,20 @@ public abstract class YouTubeCompilationTestBase extends CompilationTestBase {
   static final String PG_MISSING_CLASSES_CONF = "YouTubeRelease_proguard_missing_classes.config";
 
   final String base;
+  final AndroidApiLevel apiLevel;
 
-  public YouTubeCompilationTestBase(int majorVersion, int minorVersion) {
+  public YouTubeCompilationTestBase(int majorVersion, int minorVersion, AndroidApiLevel apiLevel) {
     this.base =
         "third_party/youtube/youtube.android_"
             + majorVersion
             + "."
             + String.format("%02d", minorVersion)
             + "/";
+    this.apiLevel = apiLevel;
+  }
+
+  protected AndroidApiLevel getApiLevel() {
+    return apiLevel;
   }
 
   protected Path getDesugaredLibraryConfiguration() {
@@ -117,5 +126,19 @@ public abstract class YouTubeCompilationTestBase extends CompilationTestBase {
 
   Path getReleaseProguardMap() {
     return Paths.get(base).resolve(PG_MAP);
+  }
+
+  void printProtoStats(R8TestCompileResult compileResult) throws Exception {
+    if (ToolHelper.isLocalDevelopment()) {
+      DexItemFactory dexItemFactory = new DexItemFactory();
+      ProtoApplicationStats original =
+          new ProtoApplicationStats(dexItemFactory, new CodeInspector(getProgramFiles()));
+      ProtoApplicationStats actual =
+          new ProtoApplicationStats(dexItemFactory, compileResult.inspector(), original);
+      ProtoApplicationStats baseline =
+          new ProtoApplicationStats(
+              dexItemFactory, new CodeInspector(getReleaseApk(), getReleaseProguardMap()));
+      System.out.println(actual.getStats(baseline));
+    }
   }
 }

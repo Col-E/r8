@@ -52,7 +52,7 @@ public abstract class ProtoShrinkingTestBase extends TestBase {
   public static final Path PROTO3_PROTO_JAR =
       Paths.get(ToolHelper.GENERATED_PROTO_BUILD_DIR).resolve("proto3.jar");
 
-  static void assertRewrittenProtoSchemasMatch(
+  public static void assertRewrittenProtoSchemasMatch(
       CodeInspector expectedInspector, CodeInspector actualInspector) throws Exception {
     Map<String, IntList> actualInfos = getInfoValues(actualInspector);
 
@@ -84,13 +84,13 @@ public abstract class ProtoShrinkingTestBase extends TestBase {
         "}");
   }
 
-  static String keepAllProtosRule() {
+  public static String keepAllProtosRule() {
     return StringUtils.lines(
         "-if class * extends com.google.protobuf.GeneratedMessageLite",
         "-keep,allowobfuscation class <1> { <init>(...); <fields>; }");
   }
 
-  static String keepDynamicMethodSignatureRule() {
+  public static String keepDynamicMethodSignatureRule() {
     return StringUtils.lines(
         "-keepclassmembers,includedescriptorclasses class com.google.protobuf.GeneratedMessageLite "
             + "{",
@@ -99,7 +99,7 @@ public abstract class ProtoShrinkingTestBase extends TestBase {
         "}");
   }
 
-  static String keepNewMessageInfoSignatureRule() {
+  public static String keepNewMessageInfoSignatureRule() {
     return StringUtils.lines(
         "-keepclassmembers,includedescriptorclasses class com.google.protobuf.GeneratedMessageLite "
             + "{",

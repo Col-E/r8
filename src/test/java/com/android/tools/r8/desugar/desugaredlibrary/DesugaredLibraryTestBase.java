@@ -5,20 +5,23 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
+import static junit.framework.Assert.assertNull;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.L8Command;
+import com.android.tools.r8.L8TestCompileResult;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestState;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -28,10 +31,10 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -41,9 +44,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import org.junit.BeforeClass;
 import org.junit.rules.TemporaryFolder;
@@ -102,9 +107,10 @@ public class DesugaredLibraryTestBase extends TestBase {
   public static class L8TestBuilder {
 
     private final AndroidApiLevel apiLevel;
-    private final TemporaryFolder temp;
+    private final TestState state;
 
     private CompilationMode mode = CompilationMode.RELEASE;
+    private String generatedKeepRules = null;
     private List<String> keepRules = new ArrayList<>();
     private List<Path> additionalProgramFiles = new ArrayList<>();
     private Consumer<InternalOptions> optionsModifier = ConsumerUtils.emptyConsumer();
@@ -112,6 +118,7 @@ public class DesugaredLibraryTestBase extends TestBase {
     private Path desugarJDKLibsConfiguration = ToolHelper.DESUGAR_LIB_CONVERSIONS;
     private StringResource desugaredLibraryConfiguration =
         StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting());
+    private List<Path> libraryFiles = new ArrayList<>();
 
     public static L8TestBuilder builder(AndroidApiLevel apiLevel, TemporaryFolder temp) {
       return new L8TestBuilder(apiLevel, temp);
@@ -119,7 +126,7 @@ public class DesugaredLibraryTestBase extends TestBase {
 
     private L8TestBuilder(AndroidApiLevel apiLevel, TemporaryFolder temp) {
       this.apiLevel = apiLevel;
-      this.temp = temp;
+      this.state = new TestState(temp);
     }
 
     public L8TestBuilder addProgramFiles(Collection<Path> programFiles) {
@@ -127,16 +134,25 @@ public class DesugaredLibraryTestBase extends TestBase {
       return this;
     }
 
-    public L8TestBuilder addKeepRules(String keepRules) {
-      if (!keepRules.trim().isEmpty()) {
-        this.keepRules.add(keepRules);
-      }
+    public L8TestBuilder addLibraryFiles(Path... libraryFiles) {
+      Collections.addAll(this.libraryFiles, libraryFiles);
+      return this;
+    }
+
+    public L8TestBuilder addGeneratedKeepRules(String generatedKeepRules) {
+      assertNull(this.generatedKeepRules);
+      this.generatedKeepRules = generatedKeepRules;
+      return this;
+    }
+
+    public L8TestBuilder addKeepRuleFile(Path keepRuleFile) throws IOException {
+      this.keepRules.add(FileUtils.readTextFile(keepRuleFile, StandardCharsets.UTF_8));
       return this;
     }
 
     public L8TestBuilder addKeepRuleFiles(Collection<Path> keepRuleFiles) throws IOException {
       for (Path keepRuleFile : keepRuleFiles) {
-        addKeepRules(FileUtils.readTextFile(keepRuleFile, StandardCharsets.UTF_8));
+        addKeepRuleFile(keepRuleFile);
       }
       return this;
     }
@@ -182,60 +198,44 @@ public class DesugaredLibraryTestBase extends TestBase {
       return this;
     }
 
-    public Path compile() {
+    private L8TestBuilder setDisableL8AnnotationRemoval(boolean disableL8AnnotationRemoval) {
+      return addOptionsModifier(
+          options -> options.testing.disableL8AnnotationRemoval = disableL8AnnotationRemoval);
+    }
+
+    public L8TestCompileResult compile()
+        throws IOException, CompilationFailedException, ExecutionException {
       // We wrap exceptions in a RuntimeException to call this from a lambda.
-      try {
-        // If we compile extended library here, it means we use TestNG.
-        // TestNG requires annotations, hence we disable AnnotationRemoval.
-        // This implies that extra warning are generated if this is set.
-        TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
-        Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
-        L8Command.Builder l8Builder =
-            L8Command.builder(diagnosticsHandler)
-                .addProgramFiles(getProgramFiles())
-                .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-                .setMode(mode)
-                .addDesugaredLibraryConfiguration(desugaredLibraryConfiguration)
-                .setMinApiLevel(apiLevel.getLevel())
-                .setOutput(desugaredLib, OutputMode.DexIndexed);
-        Path mapping = null;
-        if (!keepRules.isEmpty()) {
-          mapping = temp.newFolder().toPath().resolve("mapping.txt");
-          l8Builder.addProguardConfiguration(
-              ImmutableList.<String>builder()
-                  .addAll(keepRules)
-                  .add("-printmapping " + mapping)
-                  .build(),
-              Origin.unknown());
+      AndroidAppConsumers sink = new AndroidAppConsumers();
+      L8Command.Builder l8Builder =
+          L8Command.builder(state.getDiagnosticsHandler())
+              .addProgramFiles(getProgramFiles())
+              .addLibraryFiles(getLibraryFiles())
+              .setMode(mode)
+              .addDesugaredLibraryConfiguration(desugaredLibraryConfiguration)
+              .setMinApiLevel(apiLevel.getLevel())
+              .setProgramConsumer(sink.wrapProgramConsumer(DexIndexedConsumer.emptyConsumer()));
+      Path mapping = null;
+      if (!keepRules.isEmpty() || generatedKeepRules != null) {
+        mapping = state.getNewTempFile("mapping.txt");
+        l8Builder
+            .addProguardConfiguration(
+                ImmutableList.<String>builder()
+                    .addAll(keepRules)
+                    .addAll(
+                        generatedKeepRules != null
+                            ? ImmutableList.of(generatedKeepRules)
+                            : Collections.emptyList())
+                    .build(),
+                Origin.unknown())
+            .setProguardMapOutputPath(mapping);
         }
-        ToolHelper.runL8(
-            l8Builder.build(),
-            options -> {
-              if (!additionalProgramFiles.isEmpty()) {
-                options.testing.disableL8AnnotationRemoval = true;
-              }
-              optionsModifier.accept(options);
-            });
-        if (additionalProgramFiles.isEmpty()) {
-          assertTrue(
-              diagnosticsHandler.getInfos().stream()
-                  .noneMatch(
-                      string ->
-                          string
-                              .getDiagnosticMessage()
-                              .startsWith(
-                                  "Invalid parameter counts in MethodParameter attributes.")));
-        }
-        new CodeInspector(desugaredLib, mapping)
-            .forAllClasses(clazz -> assertTrue(clazz.getFinalName().startsWith("j$.")));
-        return desugaredLib;
-      } catch (Exception e) {
-        // Don't wrap assumption violation so junit can catch it.
-        if (e instanceof RuntimeException) {
-          throw ((RuntimeException) e);
-        }
-        throw new RuntimeException(e);
-      }
+      ToolHelper.runL8(l8Builder.build(), optionsModifier);
+      return new L8TestCompileResult(sink.build(), apiLevel, generatedKeepRules, mapping, state)
+          .inspect(
+              inspector ->
+                  inspector.forAllClasses(
+                      clazz -> assertTrue(clazz.getFinalName().startsWith("j$."))));
     }
 
     private Collection<Path> getProgramFiles() {
@@ -245,6 +245,10 @@ public class DesugaredLibraryTestBase extends TestBase {
           .addAll(additionalProgramFiles)
           .build();
     }
+
+    private Collection<Path> getLibraryFiles() {
+      return libraryFiles;
+    }
   }
 
   protected L8TestBuilder testForL8(AndroidApiLevel apiLevel) {
@@ -252,12 +256,12 @@ public class DesugaredLibraryTestBase extends TestBase {
   }
 
   protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) {
-    return buildDesugaredLibrary(apiLevel, "", false);
+    return buildDesugaredLibrary(apiLevel, null, false);
   }
 
   protected Path buildDesugaredLibrary(
       AndroidApiLevel apiLevel, Consumer<InternalOptions> optionsModifier) {
-    return buildDesugaredLibrary(apiLevel, "", false, ImmutableList.of(), optionsModifier);
+    return buildDesugaredLibrary(apiLevel, null, false, ImmutableList.of(), optionsModifier);
   }
 
   protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel, String keepRules) {
@@ -279,15 +283,46 @@ public class DesugaredLibraryTestBase extends TestBase {
 
   protected Path buildDesugaredLibrary(
       AndroidApiLevel apiLevel,
-      String keepRules,
-      boolean shrink,
+      String generatedKeepRules,
+      boolean release,
       List<Path> additionalProgramFiles,
       Consumer<InternalOptions> optionsModifier) {
-    return testForL8(apiLevel)
-        .addProgramFiles(additionalProgramFiles)
-        .applyIf(shrink, builder -> builder.addKeepRules(keepRules), L8TestBuilder::setDebug)
-        .addOptionsModifier(optionsModifier)
-        .compile();
+    try {
+      return testForL8(apiLevel)
+          .addProgramFiles(additionalProgramFiles)
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+          .applyIf(
+              release,
+              builder -> {
+                if (generatedKeepRules != null && !generatedKeepRules.trim().isEmpty()) {
+                  builder.addGeneratedKeepRules(generatedKeepRules);
+                }
+              },
+              L8TestBuilder::setDebug)
+          .addOptionsModifier(optionsModifier)
+          // If we compile extended library here, it means we use TestNG. TestNG requires
+          // annotations, hence we disable annotation removal. This implies that extra warnings are
+          // generated.
+          .setDisableL8AnnotationRemoval(!additionalProgramFiles.isEmpty())
+          .compile()
+          .applyIf(
+              additionalProgramFiles.isEmpty(),
+              builder ->
+                  builder.inspectDiagnosticMessages(
+                      diagnostics ->
+                          assertTrue(
+                              diagnostics.getInfos().stream()
+                                  .noneMatch(
+                                      string ->
+                                          string
+                                              .getDiagnosticMessage()
+                                              .startsWith(
+                                                  "Invalid parameter counts in MethodParameter"
+                                                      + " attributes.")))))
+          .writeToZip();
+    } catch (CompilationFailedException | ExecutionException | IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   protected void assertLines2By2Correct(String stdOut) {
