@@ -11,4 +11,36 @@ public interface KotlinMemberLevelInfo extends EnqueuerMetadataTraceable {
   default boolean isNoKotlinInformation() {
     return false;
   }
+
+  default boolean isCompanion() {
+    return false;
+  }
+
+  default KotlinCompanionInfo asCompanion() {
+    return null;
+  }
+
+  default boolean isConstructor() {
+    return false;
+  }
+
+  default KotlinConstructorInfo asConstructor() {
+    return null;
+  }
+
+  default boolean isFunction() {
+    return false;
+  }
+
+  default KotlinFunctionInfo asFunction() {
+    return null;
+  }
+
+  default boolean isProperty() {
+    return false;
+  }
+
+  default KotlinPropertyInfo asProperty() {
+    return null;
+  }
 }

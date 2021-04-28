@@ -170,22 +170,19 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
     // For properties, we need to combine potentially a field, setter and getter.
     Map<KotlinPropertyInfo, KotlinPropertyGroup> properties = new IdentityHashMap<>();
     for (DexEncodedField field : clazz.fields()) {
-      if (field.getKotlinMemberInfo().isFieldProperty()) {
+      if (field.getKotlinInfo().isProperty()) {
         properties
             .computeIfAbsent(
-                field.getKotlinMemberInfo().asFieldProperty(), ignored -> new KotlinPropertyGroup())
+                field.getKotlinInfo().asProperty(), ignored -> new KotlinPropertyGroup())
             .setBackingField(field);
       }
     }
     for (DexEncodedMethod method : clazz.methods()) {
-      if (method.getKotlinMemberInfo().isFunction()) {
-        method
-            .getKotlinMemberInfo()
-            .asFunction()
-            .rewrite(functionProvider, method, appView, namingLens);
+      if (method.getKotlinInfo().isFunction()) {
+        method.getKotlinInfo().asFunction().rewrite(functionProvider, method, appView, namingLens);
         continue;
       }
-      KotlinPropertyInfo kotlinPropertyInfo = method.getKotlinMemberInfo().asProperty();
+      KotlinPropertyInfo kotlinPropertyInfo = method.getKotlinInfo().asProperty();
       if (kotlinPropertyInfo == null) {
         continue;
       }

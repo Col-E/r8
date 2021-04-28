@@ -6,19 +6,4 @@ package com.android.tools.r8.kotlin;
 
 public interface KotlinFieldLevelInfo extends KotlinMemberLevelInfo {
 
-  default boolean isCompanion() {
-    return false;
-  }
-
-  default KotlinCompanionInfo asCompanion() {
-    return null;
-  }
-
-  default boolean isFieldProperty() {
-    return false;
-  }
-
-  default KotlinPropertyInfo asFieldProperty() {
-    return null;
-  }
 }

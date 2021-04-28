@@ -26,7 +26,7 @@ public class NoKotlinMetadata extends SingleClassPolicy {
 
   private boolean verifyNoUnexpectedKotlinMemberInfo(DexProgramClass clazz) {
     assert Streams.stream(clazz.members())
-        .allMatch(member -> member.getKotlinMemberInfo().isNoKotlinInformation());
+        .allMatch(member -> member.getKotlinInfo().isNoKotlinInformation());
     return true;
   }
 

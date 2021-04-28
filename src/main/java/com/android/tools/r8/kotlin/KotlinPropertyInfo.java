@@ -112,16 +112,6 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
   }
 
   @Override
-  public boolean isFieldProperty() {
-    return true;
-  }
-
-  @Override
-  public KotlinPropertyInfo asFieldProperty() {
-    return this;
-  }
-
-  @Override
   public boolean isProperty() {
     return true;
   }

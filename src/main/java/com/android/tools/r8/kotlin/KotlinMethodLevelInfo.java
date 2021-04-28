@@ -6,27 +6,4 @@ package com.android.tools.r8.kotlin;
 
 public interface KotlinMethodLevelInfo extends KotlinMemberLevelInfo {
 
-  default boolean isConstructor() {
-    return false;
-  }
-
-  default KotlinConstructorInfo asConstructor() {
-    return null;
-  }
-
-  default boolean isFunction() {
-    return false;
-  }
-
-  default KotlinFunctionInfo asFunction() {
-    return null;
-  }
-
-  default boolean isProperty() {
-    return false;
-  }
-
-  default KotlinPropertyInfo asProperty() {
-    return null;
-  }
 }

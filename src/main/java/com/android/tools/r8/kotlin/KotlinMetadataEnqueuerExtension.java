@@ -92,8 +92,8 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
         DexEncodedMethod method = holder.lookupMethod(enclosingAttribute.getEnclosingMethod());
         // If we cannot lookup the method, the conservative choice is keep the byte code.
         if (method == null
-            || (method.getKotlinMemberInfo().isFunction()
-                && method.getKotlinMemberInfo().asFunction().hasCrossInlineParameter())) {
+            || (method.getKotlinInfo().isFunction()
+                && method.getKotlinInfo().asFunction().hasCrossInlineParameter())) {
           localOrAnonymousClass.forEachProgramMethod(
               m -> keepByteCodeFunctions.add(m.getReference()));
         }
@@ -108,10 +108,7 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
           clazz.getKotlinInfo().trace(definitionsForContext(clazz));
           clazz.forEachProgramMember(
               member ->
-                  member
-                      .getDefinition()
-                      .getKotlinMemberInfo()
-                      .trace(definitionsForContext(member)));
+                  member.getDefinition().getKotlinInfo().trace(definitionsForContext(member)));
         });
   }
 

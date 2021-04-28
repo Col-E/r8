@@ -135,8 +135,13 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   @Override
-  public KotlinFieldLevelInfo getKotlinMemberInfo() {
+  public KotlinFieldLevelInfo getKotlinInfo() {
     return kotlinMemberInfo;
+  }
+
+  @Override
+  public void clearKotlinInfo() {
+    kotlinMemberInfo = getNoKotlinInfo();
   }
 
   @Override

@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.kotlin.KotlinMemberLevelInfo;
 
 public class ProgramField extends DexClassAndField
     implements ProgramMember<DexEncodedField, DexField> {
@@ -56,5 +57,15 @@ public class ProgramField extends DexClassAndField
     DexClass holder = super.getHolder();
     assert holder.isProgramClass();
     return holder.asProgramClass();
+  }
+
+  @Override
+  public KotlinMemberLevelInfo getKotlinInfo() {
+    return getDefinition().getKotlinInfo();
+  }
+
+  @Override
+  public void clearKotlinInfo() {
+    getDefinition().clearKotlinInfo();
   }
 }

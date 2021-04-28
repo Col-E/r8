@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.kotlin.KotlinMemberLevelInfo;
+
 public interface ProgramMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
     extends ProgramDefinition {
 
@@ -18,4 +20,8 @@ public interface ProgramMember<D extends DexEncodedMember<D, R>, R extends DexMe
   DexProgramClass getHolder();
 
   DexType getHolderType();
+
+  KotlinMemberLevelInfo getKotlinInfo();
+
+  void clearKotlinInfo();
 }

@@ -231,12 +231,9 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
             : DescriptorUtils.getBinaryNameFromDescriptor(rewrittenDescriptor.toString()));
     // Find a companion object.
     for (DexEncodedField field : clazz.fields()) {
-      if (field.getKotlinMemberInfo().isCompanion()) {
+      if (field.getKotlinInfo().isCompanion()) {
         rewritten |=
-            field
-                .getKotlinMemberInfo()
-                .asCompanion()
-                .rewrite(kmClass, field.getReference(), namingLens);
+            field.getKotlinInfo().asCompanion().rewrite(kmClass, field.getReference(), namingLens);
       }
     }
     // Take all not backed constructors because we will never find them in definitions.
@@ -245,8 +242,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     }
     // Find all constructors.
     for (DexEncodedMethod method : clazz.methods()) {
-      if (method.getKotlinMemberInfo().isConstructor()) {
-        KotlinConstructorInfo constructorInfo = method.getKotlinMemberInfo().asConstructor();
+      if (method.getKotlinInfo().isConstructor()) {
+        KotlinConstructorInfo constructorInfo = method.getKotlinInfo().asConstructor();
         rewritten |= constructorInfo.rewrite(kmClass, method, appView, namingLens);
       }
     }

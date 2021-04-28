@@ -68,7 +68,7 @@ public class KotlinLambdaInfo implements EnqueuerMetadataTraceable {
     }
     DexEncodedMethod backing = null;
     for (DexEncodedMethod method : clazz.methods()) {
-      if (method.getKotlinMemberInfo() == function) {
+      if (method.getKotlinInfo() == function) {
         backing = method;
         break;
       }

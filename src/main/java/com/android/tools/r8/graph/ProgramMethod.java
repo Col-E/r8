@@ -9,6 +9,7 @@ import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.kotlin.KotlinMemberLevelInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
@@ -92,6 +93,16 @@ public final class ProgramMethod extends DexClassAndMethod
     DexClass holder = super.getHolder();
     assert holder.isProgramClass();
     return holder.asProgramClass();
+  }
+
+  @Override
+  public KotlinMemberLevelInfo getKotlinInfo() {
+    return getDefinition().getKotlinInfo();
+  }
+
+  @Override
+  public void clearKotlinInfo() {
+    getDefinition().clearKotlinMemberInfo();
   }
 
   public MethodPosition getPosition() {

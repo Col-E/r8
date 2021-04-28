@@ -113,7 +113,6 @@ public class MetadataRewritePrunedObjectsTest extends KotlinMetadataTestBase {
     assertThat(kmClass.kmFunctionWithUniqueName("keptWithoutPinning"), not(isPresent()));
     // Check that we have not pruned the property information for a kept field.
     assertThat(kmClass.kmPropertyWithUniqueName("keptProperty"), isPresent());
-    // TODO(b/186508801): This should be removed.
-    assertThat(kmClass.kmPropertyWithUniqueName("notExposedProperty"), isPresent());
+    assertThat(kmClass.kmPropertyWithUniqueName("notExposedProperty"), not(isPresent()));
   }
 }

@@ -626,8 +626,13 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   @Override
-  public KotlinMethodLevelInfo getKotlinMemberInfo() {
+  public KotlinMethodLevelInfo getKotlinInfo() {
     return kotlinMemberInfo;
+  }
+
+  @Override
+  public void clearKotlinInfo() {
+    kotlinMemberInfo = getNoKotlinInfo();
   }
 
   public void setKotlinMemberInfo(KotlinMethodLevelInfo kotlinMemberInfo) {

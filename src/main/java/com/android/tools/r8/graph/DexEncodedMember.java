@@ -24,7 +24,9 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
     this.d8R8Synthesized = d8R8Synthesized;
   }
 
-  public abstract KotlinMemberLevelInfo getKotlinMemberInfo();
+  public abstract KotlinMemberLevelInfo getKotlinInfo();
+
+  public abstract void clearKotlinInfo();
 
   public DexType getHolderType() {
     return getReference().getHolderType();
