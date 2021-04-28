@@ -55,20 +55,9 @@ public class GenericSignaturePrunedOuterTest extends TestBase {
   public void checkSignatures(CodeInspector inspector) {
     checkSignature(
         inspector.clazz(Bar.class.getTypeName() + "$1"),
-        "L"
-            + binaryName(Foo.class)
-            + "<"
-            + descriptor(Object.class)
-            + descriptor(Main.class)
-            + ">;");
+        "L" + binaryName(Foo.class) + "<*" + descriptor(Main.class) + ">;");
     checkSignature(
-        inspector.clazz(Bar.class.getTypeName() + "$2"),
-        "L"
-            + binaryName(Foo.class)
-            + "<"
-            + descriptor(Object.class)
-            + descriptor(Object.class)
-            + ">;");
+        inspector.clazz(Bar.class.getTypeName() + "$2"), "L" + binaryName(Foo.class) + "<**>;");
   }
 
   private void checkSignature(ClassSubject classSubject, String expectedSignature) {

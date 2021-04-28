@@ -26,10 +26,6 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
   private final Set<String> introducedClassTypeVariables = new HashSet<>();
   private final Set<String> introducedMethodTypeVariables = new HashSet<>();
 
-  // Wildcards can only be called be used in certain positions:
-  // https://docs.oracle.com/javase/tutorial/java/generics/wildcards.html
-  private boolean canUseWildcardInArguments = true;
-
   private GenericSignaturePartialTypeArgumentApplier(
       Map<String, DexType> substitutions, DexType objectType) {
     this.substitutions = substitutions;
@@ -96,11 +92,7 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
     if (interfaceSignatures.isEmpty()) {
       return interfaceSignatures;
     }
-    canUseWildcardInArguments = false;
-    List<ClassTypeSignature> map =
-        ListUtils.mapOrElse(interfaceSignatures, this::visitSuperInterface);
-    canUseWildcardInArguments = true;
-    return map;
+    return ListUtils.mapOrElse(interfaceSignatures, this::visitSuperInterface);
   }
 
   @Override
@@ -108,7 +100,9 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
     if (typeArguments.isEmpty()) {
       return typeArguments;
     }
-    return ListUtils.mapOrElse(typeArguments, this::visitFieldTypeSignature);
+    // Wildcards can only be called be used in certain positions:
+    // https://docs.oracle.com/javase/tutorial/java/generics/wildcards.html
+    return ListUtils.mapOrElse(typeArguments, arg -> visitFieldTypeSignature(arg, true));
   }
 
   @Override
@@ -171,14 +165,16 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
 
   @Override
   public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
-    canUseWildcardInArguments = false;
-    ClassTypeSignature visit = classTypeSignature.visit(this);
-    canUseWildcardInArguments = true;
-    return visit;
+    return classTypeSignature.visit(this);
   }
 
   @Override
   public FieldTypeSignature visitFieldTypeSignature(FieldTypeSignature fieldSignature) {
+    return visitFieldTypeSignature(fieldSignature, false);
+  }
+
+  private FieldTypeSignature visitFieldTypeSignature(
+      FieldTypeSignature fieldSignature, boolean canUseWildcardInArguments) {
     if (fieldSignature.isStar()) {
       return fieldSignature;
     } else if (fieldSignature.isClassTypeSignature()) {

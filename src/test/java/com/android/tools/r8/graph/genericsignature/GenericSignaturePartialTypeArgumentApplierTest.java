@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.graph.genericsignature;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -45,10 +43,11 @@ public class GenericSignaturePartialTypeArgumentApplierTest extends TestBase {
 
   @Test
   public void testVariablesInOuterPosition() {
-    // TODO(b/186547736): The expected signature should be (Ljava/lang/Object;)Ljava/lang/Object;
-    runTest(ImmutableMap.of("T", objectType, "R", objectType), "(TT;)TR;", "(*)*")
-        .assertWarningThatMatches(
-            diagnosticMessage(containsString("Invalid signature '(*)*' for method foo")));
+    runTest(
+            ImmutableMap.of("T", objectType, "R", objectType),
+            "(TT;)TR;",
+            "(Ljava/lang/Object;)Ljava/lang/Object;")
+        .assertNoMessages();
   }
 
   @Test
