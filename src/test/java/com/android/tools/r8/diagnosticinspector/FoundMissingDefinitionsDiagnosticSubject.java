@@ -13,7 +13,11 @@ import com.android.tools.r8.diagnostic.MissingClassInfo;
 import com.android.tools.r8.diagnostic.MissingDefinitionContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionInfo;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
+import com.android.tools.r8.diagnostic.MissingFieldInfo;
+import com.android.tools.r8.diagnostic.MissingMethodInfo;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,15 +28,26 @@ public class FoundMissingDefinitionsDiagnosticSubject
     extends FoundDiagnosticSubject<MissingDefinitionsDiagnostic> {
 
   private final Map<ClassReference, MissingClassInfo> missingClasses = new HashMap<>();
+  private final Map<FieldReference, MissingFieldInfo> missingFields = new HashMap<>();
+  private final Map<MethodReference, MissingMethodInfo> missingMethods = new HashMap<>();
 
   public FoundMissingDefinitionsDiagnosticSubject(MissingDefinitionsDiagnostic diagnostic) {
     super(diagnostic);
     diagnostic.getMissingDefinitions().stream()
-        .filter(MissingDefinitionInfo::isMissingClass)
-        .map(MissingDefinitionInfo::asMissingClass)
         .forEach(
-            missingClassInfo ->
-                missingClasses.put(missingClassInfo.getClassReference(), missingClassInfo));
+            missingDefinitionInfo -> {
+              if (missingDefinitionInfo.isMissingClass()) {
+                MissingClassInfo missingClassInfo = missingDefinitionInfo.asMissingClass();
+                missingClasses.put(missingClassInfo.getClassReference(), missingClassInfo);
+              } else if (missingDefinitionInfo.isMissingField()) {
+                MissingFieldInfo missingFieldInfo = missingDefinitionInfo.asMissingField();
+                missingFields.put(missingFieldInfo.getFieldReference(), missingFieldInfo);
+              } else {
+                assert missingDefinitionInfo.isMissingMethod();
+                MissingMethodInfo missingMethodInfo = missingDefinitionInfo.asMissingMethod();
+                missingMethods.put(missingMethodInfo.getMethodReference(), missingMethodInfo);
+              }
+            });
   }
 
   public FoundMissingDefinitionsDiagnosticSubject assertHasMessage(String expectedMessage) {
@@ -62,8 +77,65 @@ public class FoundMissingDefinitionsDiagnosticSubject
         missingClassInfoSubject -> missingClassInfoSubject.assertExactContexts(expectedContexts));
   }
 
+  public FoundMissingDefinitionsDiagnosticSubject assertIsAllMissingClasses(Class<?>... classes) {
+    for (Class<?> clazz : classes) {
+      assertIsMissingClass(clazz);
+    }
+    return assertNumberOfMissingClasses(classes.length);
+  }
+
+  public FoundMissingDefinitionsDiagnosticSubject assertIsMissingField(
+      FieldReference fieldReference) {
+    assertTrue(missingFields.containsKey(fieldReference));
+    return this;
+  }
+
+  public FoundMissingDefinitionsDiagnosticSubject assertIsAllMissingFields(
+      FieldReference... fieldReferences) {
+    for (FieldReference fieldReference : fieldReferences) {
+      assertIsMissingField(fieldReference);
+    }
+    return assertNumberOfMissingFields(fieldReferences.length);
+  }
+
+  public FoundMissingDefinitionsDiagnosticSubject assertIsMissingMethod(
+      MethodReference methodReference) {
+    assertTrue(missingMethods.containsKey(methodReference));
+    return this;
+  }
+
+  public FoundMissingDefinitionsDiagnosticSubject assertIsAllMissingMethods(
+      MethodReference... methodReferences) {
+    for (MethodReference methodReference : methodReferences) {
+      assertIsMissingMethod(methodReference);
+    }
+    return assertNumberOfMissingMethods(methodReferences.length);
+  }
+
+  public FoundMissingDefinitionsDiagnosticSubject assertNoMissingClasses() {
+    return assertNumberOfMissingClasses(0);
+  }
+
+  public FoundMissingDefinitionsDiagnosticSubject assertNoMissingFields() {
+    return assertNumberOfMissingFields(0);
+  }
+
+  public FoundMissingDefinitionsDiagnosticSubject assertNoMissingMethods() {
+    return assertNumberOfMissingMethods(0);
+  }
+
   public FoundMissingDefinitionsDiagnosticSubject assertNumberOfMissingClasses(int expected) {
-    assertEquals(expected, getDiagnostic().getMissingDefinitions().size());
+    assertEquals(expected, missingClasses.size());
+    return this;
+  }
+
+  public FoundMissingDefinitionsDiagnosticSubject assertNumberOfMissingFields(int expected) {
+    assertEquals(expected, missingFields.size());
+    return this;
+  }
+
+  public FoundMissingDefinitionsDiagnosticSubject assertNumberOfMissingMethods(int expected) {
+    assertEquals(expected, missingMethods.size());
     return this;
   }
 

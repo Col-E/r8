@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.function.Consumer;
 
 // Helper to check that a particular error occurred.
+// TODO(b/186505526): Prefer TestDiagnosticMessages.
+@Deprecated
 public class DiagnosticsChecker implements DiagnosticsHandler {
 
   public List<Diagnostic> errors = new ArrayList<>();
@@ -60,24 +62,8 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
         diagnostics.stream().anyMatch(d -> d.getDiagnosticMessage().contains(snippet)));
   }
 
-  private static void checkNotContains(String snippet, List<Diagnostic> diagnostics) {
-    List<String> messages = ListUtils.map(diagnostics, Diagnostic::getDiagnosticMessage);
-    System.out.println("Expecting no match for '" + snippet + "'");
-    System.out.println("Diagnostics messages:\n" + messages);
-    assertTrue(
-        "Expected to *not* find snippet '"
-            + snippet
-            + "' in error messages:\n"
-            + String.join("\n", messages),
-        diagnostics.stream().noneMatch(d -> d.getDiagnosticMessage().contains(snippet)));
-  }
-
   public static void checkContains(Collection<String> snippets, List<Diagnostic> diagnostics) {
     snippets.forEach(snippet -> checkContains(snippet, diagnostics));
-  }
-
-  public static void checkNotContains(Collection<String> snippets, List<Diagnostic> diagnostics) {
-    snippets.forEach(snippet -> checkNotContains(snippet, diagnostics));
   }
 
   public void checkErrorsContains(String snippet) {
@@ -105,19 +91,6 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
       fail("Failure expected");
     } catch (CompilationFailedException e) {
       checkContains(snippets, handler.errors);
-      throw e;
-    }
-  }
-
-  public static void checkErrorDiagnostics(
-      Consumer<DiagnosticsChecker> checker, FailingRunner runner)
-      throws CompilationFailedException {
-    DiagnosticsChecker handler = new DiagnosticsChecker();
-    try {
-      runner.run(handler);
-      fail("Failure expected");
-    } catch (CompilationFailedException e) {
-      checker.accept(handler);
       throw e;
     }
   }

@@ -59,7 +59,8 @@ public class MissingDefinitionInfoUtils {
               methodReference, other.asMissingClass().getClassReference());
         }
         if (other.isMissingField()) {
-          MethodReferenceUtils.compare(methodReference, other.asMissingField().getFieldReference());
+          return MethodReferenceUtils.compare(
+              methodReference, other.asMissingField().getFieldReference());
         }
         return MethodReferenceUtils.compare(
             methodReference, other.asMissingMethod().getMethodReference());
@@ -86,16 +87,21 @@ public class MissingDefinitionInfoUtils {
 
   public static void writeDiagnosticMessage(
       StringBuilder builder, MissingDefinitionInfo missingDefinitionInfo) {
-    builder.append("Missing class ");
     MissingDefinitionInfoUtils.accept(
         missingDefinitionInfo,
-        missingClassInfo -> builder.append(missingClassInfo.getClassReference().getTypeName()),
+        missingClassInfo ->
+            builder
+                .append("Missing class ")
+                .append(missingClassInfo.getClassReference().getTypeName()),
         missingFieldInfo ->
-            builder.append(
-                FieldReferenceUtils.toSourceString(missingFieldInfo.getFieldReference())),
+            builder
+                .append("Missing field ")
+                .append(FieldReferenceUtils.toSourceString(missingFieldInfo.getFieldReference())),
         missingMethodInfo ->
-            builder.append(
-                MethodReferenceUtils.toSourceString(missingMethodInfo.getMethodReference())));
+            builder
+                .append("Missing method ")
+                .append(
+                    MethodReferenceUtils.toSourceString(missingMethodInfo.getMethodReference())));
     writeReferencedFromSuffix(builder, missingDefinitionInfo);
   }
 
@@ -119,14 +125,15 @@ public class MissingDefinitionInfoUtils {
                   missingDefinitionMethodContext.getMethodReference(),
                   getMethodReferenceComparator()));
     }
-    assert classContext.isSet() || fieldContext.isSet() || methodContext.isSet();
+    // TODO(b/186506586): Reenable assert once trace references also provide contextual information.
+    // assert classContext.isSet() || fieldContext.isSet() || methodContext.isSet();
     if (fieldContext.isSet()) {
       writeReferencedFromSuffix(
           builder, missingDefinitionInfo, FieldReferenceUtils.toSourceString(fieldContext.get()));
     } else if (methodContext.isSet()) {
       writeReferencedFromSuffix(
           builder, missingDefinitionInfo, MethodReferenceUtils.toSourceString(methodContext.get()));
-    } else {
+    } else if (classContext.isSet()) {
       writeReferencedFromSuffix(builder, missingDefinitionInfo, classContext.get().getTypeName());
     }
   }

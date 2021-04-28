@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
+import com.android.tools.r8.utils.StringDiagnostic;
 
 public class FoundDiagnosticSubject<D extends Diagnostic> implements DiagnosticSubject {
 
@@ -26,5 +27,11 @@ public class FoundDiagnosticSubject<D extends Diagnostic> implements DiagnosticS
   public FoundMissingDefinitionsDiagnosticSubject assertIsMissingDefinitionsDiagnostic() {
     assertThat(diagnostic, diagnosticType(MissingDefinitionsDiagnostic.class));
     return new FoundMissingDefinitionsDiagnosticSubject((MissingDefinitionsDiagnostic) diagnostic);
+  }
+
+  @Override
+  public FoundStringDiagnosticSubject assertIsStringDiagnostic() {
+    assertThat(diagnostic, diagnosticType(StringDiagnostic.class));
+    return new FoundStringDiagnosticSubject((StringDiagnostic) diagnostic);
   }
 }

@@ -7,4 +7,6 @@ package com.android.tools.r8.diagnosticinspector;
 public interface DiagnosticSubject {
 
   FoundMissingDefinitionsDiagnosticSubject assertIsMissingDefinitionsDiagnostic();
+
+  FoundStringDiagnosticSubject assertIsStringDiagnostic();
 }

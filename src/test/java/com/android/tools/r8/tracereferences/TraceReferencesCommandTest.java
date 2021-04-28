@@ -21,7 +21,9 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.FieldReferenceUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.google.common.collect.ImmutableList;
@@ -469,9 +471,11 @@ public class TraceReferencesCommandTest extends TestBase {
     assertEquals(1, diagnosticsChecker.errors.size());
     assertEquals(0, diagnosticsChecker.warnings.size());
     assertEquals(0, diagnosticsChecker.infos.size());
-    diagnosticsChecker.checkErrorsContains(Reference.classFromClass(Target.class).toString());
-    diagnosticsChecker.checkErrorsContains(Reference.fieldFromField(field).toString());
-    diagnosticsChecker.checkErrorsContains(Reference.methodFromMethod(method).toString());
+    diagnosticsChecker.checkErrorsContains(Reference.classFromClass(Target.class).getTypeName());
+    diagnosticsChecker.checkErrorsContains(
+        FieldReferenceUtils.toSourceString(Reference.fieldFromField(field)));
+    diagnosticsChecker.checkErrorsContains(
+        MethodReferenceUtils.toSourceString(Reference.methodFromMethod(method)));
   }
 
   @Test
@@ -570,8 +574,15 @@ public class TraceReferencesCommandTest extends TestBase {
     assertThat(
         baosErr.toString(Charsets.UTF_8.name()),
         containsString(
-            "Warning: Tracereferences found 1 classe(s), 1 field(s) and 1 method(s) without"
-                + " definition"));
+            StringUtils.lines(
+                "Warning: Missing class " + Target.class.getTypeName(),
+                "Missing field "
+                    + FieldReferenceUtils.toSourceString(
+                        FieldReferenceUtils.fieldFromField(Target.class, "field")),
+                "Missing method "
+                    + MethodReferenceUtils.toSourceString(
+                        MethodReferenceUtils.methodFromMethod(
+                            Target.class, "method", int.class)))));
     assertEquals(0, baosOut.size());
   }
 
@@ -613,8 +624,15 @@ public class TraceReferencesCommandTest extends TestBase {
     assertThat(
         baosOut.toString(Charsets.UTF_8.name()),
         containsString(
-            "Info: Tracereferences found 1 classe(s), 1 field(s) and 1 method(s) without"
-                + " definition"));
+            StringUtils.lines(
+                "Info: Missing class " + Target.class.getTypeName(),
+                "Missing field "
+                    + FieldReferenceUtils.toSourceString(
+                        FieldReferenceUtils.fieldFromField(Target.class, "field")),
+                "Missing method "
+                    + MethodReferenceUtils.toSourceString(
+                        MethodReferenceUtils.methodFromMethod(
+                            Target.class, "method", int.class)))));
   }
 
   private void checkTargetPartlyMissing(DiagnosticsChecker diagnosticsChecker) {
@@ -629,8 +647,10 @@ public class TraceReferencesCommandTest extends TestBase {
     assertEquals(1, diagnosticsChecker.errors.size());
     assertEquals(0, diagnosticsChecker.warnings.size());
     assertEquals(0, diagnosticsChecker.infos.size());
-    diagnosticsChecker.checkErrorsContains(Reference.fieldFromField(field).toString());
-    diagnosticsChecker.checkErrorsContains(Reference.methodFromMethod(method).toString());
+    diagnosticsChecker.checkErrorsContains(
+        FieldReferenceUtils.toSourceString(Reference.fieldFromField(field)));
+    diagnosticsChecker.checkErrorsContains(
+        MethodReferenceUtils.toSourceString(Reference.methodFromMethod(method)));
   }
 
   @Test

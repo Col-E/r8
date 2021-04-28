@@ -6,6 +6,10 @@ package com.android.tools.r8.tracereferences;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.diagnostic.internal.MissingClassInfoImpl;
+import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
+import com.android.tools.r8.diagnostic.internal.MissingFieldInfoImpl;
+import com.android.tools.r8.diagnostic.internal.MissingMethodInfoImpl;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -409,8 +413,21 @@ class Tracer {
 
     private void reportMissingDefinitions() {
       if (missingClasses.size() > 0 || missingFields.size() > 0 || missingMethods.size() > 0) {
-        diagnostics.error(
-            new MissingDefinitionsDiagnostic(missingClasses, missingFields, missingMethods));
+        MissingDefinitionsDiagnosticImpl.Builder diagnosticBuilder =
+            MissingDefinitionsDiagnosticImpl.builder();
+        missingClasses.forEach(
+            classReference ->
+                diagnosticBuilder.addMissingDefinitionInfo(
+                    MissingClassInfoImpl.builder().setClass(classReference).build()));
+        missingFields.forEach(
+            fieldReference ->
+                diagnosticBuilder.addMissingDefinitionInfo(
+                    MissingFieldInfoImpl.builder().setField(fieldReference).build()));
+        missingMethods.forEach(
+            methodReference ->
+                diagnosticBuilder.addMissingDefinitionInfo(
+                    MissingMethodInfoImpl.builder().setMethod(methodReference).build()));
+        diagnostics.error(diagnosticBuilder.build());
       }
     }
 

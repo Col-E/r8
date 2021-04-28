@@ -37,6 +37,13 @@ public class Reporter implements DiagnosticsHandler {
           || diagnosticsClassName.equals(diagnostic.getClass().getTypeName())) {
         return to;
       }
+      // Some diagnostics are exposed as interfaces, and implemented by internal implementations.
+      for (Class<?> clazz : diagnostic.getClass().getInterfaces()) {
+        if (diagnosticsClassName.equals(clazz.getSimpleName())
+            || diagnosticsClassName.equals(clazz.getTypeName())) {
+          return to;
+        }
+      }
       return level;
     }
   }
