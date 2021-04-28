@@ -10,6 +10,7 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedClass;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedField;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedMethod;
+import com.android.tools.r8.tracereferences.internal.TraceReferencesResult;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
@@ -76,7 +77,11 @@ abstract class Formatter {
   protected abstract void printTypeFooter();
 
   void format(TraceReferencesResult result) {
-    print(result.types, result.keepPackageNames, result.fields, result.methods);
+    print(
+        result.getTracedClasses(),
+        result.getTracedPackageNames(),
+        result.getTracedFields(),
+        result.getTracedMethods());
   }
 
   private void print(

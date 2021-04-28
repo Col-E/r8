@@ -14,9 +14,9 @@ import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.diagnostic.DefinitionContext;
-import com.android.tools.r8.diagnostic.internal.DefinitionContextUtils;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.MissingDefinitionsDiagnosticTestUtils;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.List;
@@ -106,8 +106,8 @@ public abstract class MissingClassesTestBase extends TestBase {
     inspectDiagnosticsWithIgnoreWarnings(
         diagnostics,
         referencedFrom,
-        getExpectedDiagnosticMessage(
-            DefinitionContextUtils.toSourceString(referencedFrom[0]), referencedFrom.length));
+        MissingDefinitionsDiagnosticTestUtils.getMissingClassMessage(
+            getMissingClassReference(), referencedFrom));
   }
 
   void inspectDiagnosticsWithIgnoreWarnings(
@@ -136,8 +136,8 @@ public abstract class MissingClassesTestBase extends TestBase {
     inspectDiagnosticsWithNoRules(
         diagnostics,
         referencedFrom,
-        getExpectedDiagnosticMessage(
-            DefinitionContextUtils.toSourceString(referencedFrom[0]), referencedFrom.length));
+        MissingDefinitionsDiagnosticTestUtils.getMissingClassMessage(
+            getMissingClassReference(), referencedFrom));
   }
 
   void inspectDiagnosticsWithNoRules(
@@ -158,20 +158,5 @@ public abstract class MissingClassesTestBase extends TestBase {
                         checker -> checker.assertIsMissingClass(getMissingClassReference()))
                     .assertHasMessage(expectedDiagnosticMessage)
                     .assertNumberOfMissingClasses(1));
-  }
-
-  private String getExpectedDiagnosticMessage(String referencedFrom, int numberOfContexts) {
-    StringBuilder builder =
-        new StringBuilder("Missing class ")
-            .append(getMissingClassReference().getTypeName())
-            .append(" (referenced from: ")
-            .append(referencedFrom);
-    if (numberOfContexts > 1) {
-      builder.append(" and ").append(numberOfContexts - 1).append(" other context");
-      if (numberOfContexts > 2) {
-        builder.append("s");
-      }
-    }
-    return builder.append(")").toString();
   }
 }

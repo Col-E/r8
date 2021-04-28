@@ -131,7 +131,10 @@ public class DesugaredLibraryKeepRuleGenerator {
       ClassReference rewrittenReference = rewrittenWithLens(tracedClass.getReference());
       super.acceptType(
           rewrittenReference != tracedClass.getReference()
-              ? new TracedClassImpl(rewrittenReference, tracedClass.getAccessFlags())
+              ? new TracedClassImpl(
+                  rewrittenReference,
+                  tracedClass.getReferencedFromContext(),
+                  tracedClass.getAccessFlags())
               : tracedClass,
           handler);
     }
@@ -141,7 +144,10 @@ public class DesugaredLibraryKeepRuleGenerator {
       FieldReference rewrittenReference = rewrittenWithLens(tracedField.getReference());
       super.acceptField(
           rewrittenReference != tracedField.getReference()
-              ? new TracedFieldImpl(rewrittenReference, tracedField.getAccessFlags())
+              ? new TracedFieldImpl(
+                  rewrittenReference,
+                  tracedField.getReferencedFromContext(),
+                  tracedField.getAccessFlags())
               : tracedField,
           handler);
     }
@@ -151,7 +157,10 @@ public class DesugaredLibraryKeepRuleGenerator {
       MethodReference rewrittenReference = rewrittenWithLens(tracedMethod.getReference());
       super.acceptMethod(
           rewrittenReference != tracedMethod.getReference()
-              ? new TracedMethodImpl(rewrittenReference, tracedMethod.getAccessFlags())
+              ? new TracedMethodImpl(
+                  rewrittenReference,
+                  tracedMethod.getReferencedFromContext(),
+                  tracedMethod.getAccessFlags())
               : tracedMethod,
           handler);
     }

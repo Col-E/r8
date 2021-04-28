@@ -6,6 +6,7 @@ package com.android.tools.r8.tracereferences;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.KeepForSubclassing;
+import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -54,6 +55,9 @@ public interface TraceReferencesConsumer {
 
     /** Returns the reference traced. */
     T getReference();
+
+    /** Returns the context from which this was referenced. */
+    DefinitionContext getReferencedFromContext();
 
     /**
      * Returns the access flags for the reference traced. If the definition is not found (<code>
