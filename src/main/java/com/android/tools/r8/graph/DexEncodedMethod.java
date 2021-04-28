@@ -10,7 +10,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SUBCLASS;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.cf.CfVersion;
@@ -160,7 +160,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
   private CallSiteOptimizationInfo callSiteOptimizationInfo = CallSiteOptimizationInfo.bottom();
   private CfVersion classFileVersion;
-  private KotlinMethodLevelInfo kotlinMemberInfo = NO_KOTLIN_INFO;
+  private KotlinMethodLevelInfo kotlinMemberInfo = getNoKotlinInfo();
   /** Generic signature information if the attribute is present in the input */
   private MethodTypeSignature genericSignature;
 
@@ -640,8 +640,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     // an inlinee, is extension property. Being merged here means:
     //   * That inlinee is not an extension property anymore. We can ignore metadata from it.
     //   * This method is still an extension function, just with a bigger body.
-    assert this.kotlinMemberInfo == NO_KOTLIN_INFO;
+    assert this.kotlinMemberInfo == getNoKotlinInfo();
     this.kotlinMemberInfo = kotlinMemberInfo;
+  }
+
+  public void clearKotlinMemberInfo() {
+    kotlinMemberInfo = getNoKotlinInfo();
   }
 
   public boolean isKotlinFunction() {

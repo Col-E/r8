@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.INVALID_KOTLIN_INFO;
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getInvalidKotlinInfo;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -101,7 +101,7 @@ public class KotlinMetadataRewriter {
         appView.appInfo().classes(),
         clazz -> {
           KotlinClassLevelInfo kotlinInfo = clazz.getKotlinInfo();
-          if (kotlinInfo == INVALID_KOTLIN_INFO) {
+          if (kotlinInfo == getInvalidKotlinInfo()) {
             // Maintain invalid kotlin info for classes.
             return;
           }
@@ -109,7 +109,7 @@ public class KotlinMetadataRewriter {
           // TODO(b/181103083): Consider removing if rewrittenMetadataType
           //  != factory.kotlinMetadataType
           if (oldMeta == null
-              || kotlinInfo == NO_KOTLIN_INFO
+              || kotlinInfo == getNoKotlinInfo()
               || (appView.appInfo().hasLiveness()
                   && !appView.withLiveness().appInfo().isPinned(clazz.type))) {
             // Remove @Metadata in DexAnnotation when there is no kotlin info and the type is not
@@ -142,7 +142,7 @@ public class KotlinMetadataRewriter {
           KotlinClassLevelInfo kotlinInfo =
               KotlinClassMetadataReader.getKotlinInfo(
                   clazz, appView, ConsumerUtils.emptyConsumer(), metadata);
-          if (kotlinInfo == NO_KOTLIN_INFO) {
+          if (kotlinInfo == getNoKotlinInfo()) {
             return;
           }
           writeKotlinInfoToAnnotation(clazz, kotlinInfo, metadata, writeMetadataFieldInfo);

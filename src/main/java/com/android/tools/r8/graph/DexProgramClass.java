@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.ProgramResource;
@@ -49,7 +49,7 @@ public class DexProgramClass extends DexClass
   private final ProgramResource.Kind originKind;
   private CfVersion initialClassFileVersion = null;
   private boolean deprecated = false;
-  private KotlinClassLevelInfo kotlinInfo = NO_KOTLIN_INFO;
+  private KotlinClassLevelInfo kotlinInfo = getNoKotlinInfo();
 
   private final ChecksumSupplier checksumSupplier;
 
@@ -415,7 +415,7 @@ public class DexProgramClass extends DexClass
 
   public void setKotlinInfo(KotlinClassLevelInfo kotlinInfo) {
     assert kotlinInfo != null;
-    assert this.kotlinInfo == NO_KOTLIN_INFO || kotlinInfo == NO_KOTLIN_INFO;
+    assert this.kotlinInfo == getNoKotlinInfo() || kotlinInfo == getNoKotlinInfo();
     this.kotlinInfo = kotlinInfo;
   }
 

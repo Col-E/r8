@@ -5,7 +5,7 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.KotlinClassMetadataReader.hasKotlinClassMetadataAnnotation;
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -67,7 +67,7 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
                   && clazz.hasClassInitializer()) {
                 feedback.classInitializerMayBePostponed(clazz.getClassInitializer());
               }
-              clazz.setKotlinInfo(NO_KOTLIN_INFO);
+              clazz.setKotlinInfo(getNoKotlinInfo());
               clazz.removeAnnotations(
                   annotation -> annotation.getAnnotationType() == kotlinMetadataType);
             } else {
@@ -123,7 +123,7 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
           assert !hasKotlinClassMetadataAnnotation(clazz, definitionsForContext(clazz))
               || !keepMetadata
               || !enqueuer.isPinned(clazz.type)
-              || clazz.getKotlinInfo() != NO_KOTLIN_INFO;
+              || clazz.getKotlinInfo() != getNoKotlinInfo();
         });
     return true;
   }

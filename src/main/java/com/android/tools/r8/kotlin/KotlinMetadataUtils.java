@@ -31,8 +31,8 @@ import kotlinx.metadata.jvm.KotlinClassHeader;
 
 public class KotlinMetadataUtils {
 
-  public static final NoKotlinInfo NO_KOTLIN_INFO = new NoKotlinInfo("NO_KOTLIN_INFO");
-  public static final NoKotlinInfo INVALID_KOTLIN_INFO = new NoKotlinInfo("INVALID_KOTLIN_INFO");
+  private static final NoKotlinInfo NO_KOTLIN_INFO = new NoKotlinInfo("NO_KOTLIN_INFO");
+  private static final NoKotlinInfo INVALID_KOTLIN_INFO = new NoKotlinInfo("INVALID_KOTLIN_INFO");
 
   private static class NoKotlinInfo
       implements KotlinClassLevelInfo, KotlinFieldLevelInfo, KotlinMethodLevelInfo {
@@ -73,6 +73,14 @@ public class KotlinMetadataUtils {
     public void trace(DexDefinitionSupplier definitionSupplier) {
       // No information needed to trace.
     }
+  }
+
+  public static NoKotlinInfo getNoKotlinInfo() {
+    return NO_KOTLIN_INFO;
+  }
+
+  public static NoKotlinInfo getInvalidKotlinInfo() {
+    return INVALID_KOTLIN_INFO;
   }
 
   static JvmFieldSignature toJvmFieldSignature(DexField field) {

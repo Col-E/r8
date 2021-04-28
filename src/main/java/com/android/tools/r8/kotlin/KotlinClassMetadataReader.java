@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.INVALID_KOTLIN_INFO;
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getInvalidKotlinInfo;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 import static com.android.tools.r8.kotlin.KotlinSyntheticClassInfo.getFlavour;
 
 import com.android.tools.r8.graph.AppView;
@@ -37,10 +37,7 @@ public final class KotlinClassMetadataReader {
       DexClass clazz, AppView<?> appView, Consumer<DexEncodedMethod> keepByteCode) {
     DexAnnotation meta =
         clazz.annotations().getFirstMatching(appView.dexItemFactory().kotlinMetadataType);
-    if (meta != null) {
-      return getKotlinInfo(clazz, appView, keepByteCode, meta);
-    }
-    return NO_KOTLIN_INFO;
+    return meta != null ? getKotlinInfo(clazz, appView, keepByteCode, meta) : getNoKotlinInfo();
   }
 
   public static KotlinClassLevelInfo getKotlinInfo(
@@ -61,7 +58,7 @@ public final class KotlinClassMetadataReader {
                       + clazz.type.toSourceString()
                       + " has malformed kotlin.Metadata: "
                       + e.getMessage()));
-      return INVALID_KOTLIN_INFO;
+      return getInvalidKotlinInfo();
     } catch (Throwable e) {
       appView
           .reporter()
@@ -71,7 +68,7 @@ public final class KotlinClassMetadataReader {
                       + clazz.type.toSourceString()
                       + "'s kotlin.Metadata: "
                       + e.getMessage()));
-      return INVALID_KOTLIN_INFO;
+      return getNoKotlinInfo();
     }
   }
 

@@ -201,11 +201,12 @@ public class AnnotationRemover {
         method.annotations().rewrite(annotation -> rewriteAnnotation(method, annotation)));
     method.parameterAnnotationsList =
         method.parameterAnnotationsList.keepIf(this::filterParameterAnnotations);
-    if (appView
-        .getKeepInfo()
-        .getMethodInfo(method, clazz)
-        .isAllowSignatureAttributeRemovalAllowed(options)) {
+    KeepMethodInfo methodInfo = appView.getKeepInfo().getMethodInfo(method, clazz);
+    if (methodInfo.isAllowSignatureAttributeRemovalAllowed(options)) {
       method.clearGenericSignature();
+    }
+    if (!methodInfo.isPinned() && method.getKotlinMemberInfo().isFunction()) {
+      method.clearKotlinMemberInfo();
     }
   }
 
