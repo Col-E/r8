@@ -2044,7 +2044,7 @@ def setUpNewTestReporting(Test task) {
 }
 
 def testTimes = [:]
-def numberOfTestTimesToPrint = 40
+def numberOfTestTimesToPrint = 100
 
 test { task ->
 
