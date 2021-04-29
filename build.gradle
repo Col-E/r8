@@ -1928,21 +1928,53 @@ def printAllStackTracesToFile(List<Throwable> exceptions, File out) {
     }
 }
 
+static def escapeHtml(String string) {
+    return string.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+}
+
+static def urlEncode(String string) {
+    // Not sure why, but the + also needs to be converted to have working links.
+    return URLEncoder.encode(string, "UTF-8").replace("+","%20")
+}
+
 def ensureDir(File dir) {
     dir.mkdirs()
     return dir
 }
 
+// Some of our test parameters have new lines :-( We really don't want test names to span lines.
+static def sanitizedTestName(testDesc) {
+    if (testDesc.getName().contains("\n")) {
+        throw new RuntimeException("Unsupported use of newline in test name: '${testDesc.getName()}'")
+    }
+    return testDesc.getName()
+}
+
+static def desanitizedTestName(testName) {
+    return testName
+}
+
 def getTestReportEntryDir(reportDir, testDesc) {
     return ensureDir(reportDir.toPath()
             .resolve(testDesc.getClassName())
-            .resolve(testDesc.getName())
+            .resolve(sanitizedTestName(testDesc))
             .toFile())
+}
+
+def getTestReportEntryURL(reportDir, testDesc) {
+    def classDir = urlEncode(testDesc.getClassName())
+    def testDir = urlEncode(sanitizedTestName(testDesc))
+    return "file://${reportDir}/${classDir}/${testDir}"
 }
 
 def getTestResultEntryOutputFile(reportDir, testDesc, fileName) {
     def dir = getTestReportEntryDir(reportDir, testDesc).toPath()
     return dir.resolve(fileName).toFile()
+}
+
+def withTestResultEntryWriter(reportDir, testDesc, fileName, append, fn) {
+    def file = getTestResultEntryOutputFile(reportDir, testDesc, fileName)
+    new FileWriter(file, append).withCloseable fn
 }
 
 def getGitBranchName() {
@@ -1953,32 +1985,109 @@ def getGitBranchName() {
     return out
 }
 
+def getFreshTestReportIndex(File reportDir) {
+    def number = 0
+    while (true) {
+        def freshIndex = reportDir.toPath().resolve("index.${number++}.html").toFile()
+        if (!freshIndex.exists()) {
+            return freshIndex
+        }
+    }
+}
+
+def forEachTestReportAlreadyX(File reportDir, fileName, onTest) {
+    def out = new StringBuilder()
+    def err = new StringBuilder()
+    def proc = "find . -name ${fileName}".execute([], reportDir)
+    proc.waitForProcessOutput(out, err)
+    def outString = out.toString()
+    outString.eachLine {
+        // Lines are of the form: ./<class>/<name>/FAILURE
+        def clazz = null
+        def name = null
+        try {
+            def trimmed = it.trim()
+            def line = trimmed.substring(2)
+            def sep = line.indexOf("/")
+            clazz = line.substring(0, sep)
+            name = line.substring(sep + 1, line.length() - fileName.length() - 1)
+        } catch (Exception e) {
+            logger.lifecycle("WARNING: failed attempt to read test description from: '${it}'")
+            return
+        }
+        onTest(clazz, desanitizedTestName(name))
+    }
+    return !outString.trim().isEmpty()
+}
+
+def forEachTestReportAlreadyFailing(File reportDir, onFailureTest) {
+    return forEachTestReportAlreadyX(reportDir, TestResult.ResultType.FAILURE.name(), onFailureTest)
+}
+
+def forEachTestReportAlreadyPassing(File reportDir, onSucceededTest) {
+    return forEachTestReportAlreadyX(reportDir, TestResult.ResultType.SUCCESS.name(), onSucceededTest)
+}
+
+def forEachTestReportAlreadySkipped(File reportDir, onSucceededTest) {
+    return forEachTestReportAlreadyX(reportDir, TestResult.ResultType.SKIPPED.name(), onSucceededTest)
+}
+
 def setUpNewTestReporting(Test task) {
     // Hide all test events from the console, they are written to the report.
     task.testLogging { events = [] }
 
-    def testReportOutput = project.hasProperty('test_report_output')
+    def reportDir = project.hasProperty('test_report_output')
             ? file(project.hasProperty('test_report_output'))
             : file("${buildDir}/testreport")
-    def index = testReportOutput.toPath().resolve("index.html").toFile()
+    def index = reportDir.toPath().resolve("index.html").toFile()
+    def resuming = reportDir.exists()
+
+    def hasFailingTests = false;
+    if (resuming) {
+        // Test filtering happens before the test execution is initiated so compute it here.
+        // If there are still failing tests in the report, include only those.
+        hasFailingTests = forEachTestReportAlreadyFailing(reportDir, {
+            clazz, name -> task.filter.includeTestsMatching("$clazz.$name")
+        })
+        // Otherwise exclude all of the test already marked as succeeding.
+        if (!hasFailingTests) {
+            forEachTestReportAlreadyPassing(reportDir, {
+                clazz, name -> task.filter.excludeTestsMatching("$clazz.$name")
+            })
+            forEachTestReportAlreadySkipped(reportDir, {
+                clazz, name -> task.filter.excludeTestsMatching("$clazz.$name")
+            })
+        }
+    }
 
     task.beforeSuite { desc ->
         if (!desc.parent) {
-            // Start by printing a link to the test report for easy access.
-            println "Test report being written to:"
-            println "file://${index}"
-
+            def parentReport = null
+            if (resuming) {
+                if (index.exists()) {
+                    parentReport = getFreshTestReportIndex(reportDir)
+                    index.renameTo(parentReport)
+                }
+            } else {
+                reportDir.mkdirs()
+            }
             def branch = getGitBranchName()
-            def title = "${desc} @ ${branch}"
-
-            // TODO(b/186607794): Support resuming testing based on the existing report.
-            delete testReportOutput
-            testReportOutput.mkdirs()
-            index << "<html><head><title>${title}</title></head>"
-            index << "<body><h1>${title}</h1>"
+            def runPrefix = resuming ? "Resuming" : "Starting"
+            def title =  "${runPrefix} @ ${branch}"
+            // Print a console link to the test report for easy access.
+            println "${runPrefix} test, report written to:"
+            println "  file://${index}"
+            // Print the new index content.
+            index << "<html><head><title>${title}</title>"
+            index << "<style> * { font-family: monospace; }</style>"
+            index << "</head><body><h1>${title}</h1>"
             index << "<p>Run on: ${new Date()}</p>"
             index << "<p>Git branch: ${branch}</p>"
-            index << "<p><a href=\"file://${testReportOutput}\">Test directories</a></p>"
+            if (parentReport != null) {
+                index << "<p><a href=\"file://${parentReport}\">Previous result index</a></p>"
+            }
+            index << "<p><a href=\"file://${index}\">Most recent result index</a></p>"
+            index << "<p><a href=\"file://${reportDir}\">Test directories</a></p>"
             index << "<h2>Failing tests (reload to refresh)</h2><ul>"
         }
     }
@@ -1987,7 +2096,18 @@ def setUpNewTestReporting(Test task) {
         if (!desc.parent) {
             // Update the final test results in the index.
             index << "</ul>"
-            index << "<h2>Tests finished: ${result.resultType.name()}</h2><ul>"
+            if (result.resultType == TestResult.ResultType.SUCCESS) {
+                if (hasFailingTests) {
+                    index << "<h2>Rerun of failed tests now pass!</h2>"
+                    index << "<h2>Rerun again to continue with outstanding tests!</h2>"
+                } else {
+                    index << "<h2 style=\"background-color:#62D856\">GREEN BAR == YOU ROCK!</h2>"
+                }
+            } else if (result.resultType == TestResult.ResultType.FAILURE) {
+                index << "<h2 style=\"background-color:#6D130Ared\">Some tests failed: ${result.resultType.name()}</h2><ul>"
+            } else {
+                index << "<h2>Tests finished: ${result.resultType.name()}</h2><ul>"
+            }
             index << "<li>Number of tests: ${result.testCount}"
             index << "<li>Failing tests: ${result.failedTestCount}"
             index << "<li>Successful tests: ${result.successfulTestCount}"
@@ -1997,46 +2117,55 @@ def setUpNewTestReporting(Test task) {
     }
 
     // Events to stdout/err are appended to the files in the test directories.
+    // TODO(b/186607794): Doing so will cause resuming test runs for failing tests to append too!
+    //  consider writing the outputs to a .temp and moving that on test completion. This can still
+    //  be wrong if the tests are ctrl-c and output has been written, but that is likely a minor
+    //  concern.
     task.onOutput { desc, event ->
-        getTestResultEntryOutputFile(testReportOutput, desc, event.getDestination().name()) <<
-                event.getMessage()
+        withTestResultEntryWriter(reportDir, desc, event.getDestination().name(), true, {
+            it.append(event.getMessage())
+        })
     }
 
     task.afterTest { desc, result ->
         if (result.getTestCount() != 1) {
             throw new IllegalStateException("Unexpected test with more than one result: ${desc}")
         }
-        def testReportPath = getTestReportEntryDir(testReportOutput, desc)
+        // Clear any previous result files.
+        for (def resultType : TestResult.ResultType.values()) {
+            delete getTestResultEntryOutputFile(reportDir, desc, resultType.name())
+        }
         // Emit the result type status in a file of the same name: SUCCESS, FAILURE or SKIPPED.
-        getTestResultEntryOutputFile(testReportOutput, desc, result.getResultType().name()) <<
-                result.getResultType().name()
+        withTestResultEntryWriter(reportDir, desc, result.getResultType().name(), false, {
+            it.append(result.getResultType().name())
+        })
         // Emit the test time.
-        getTestResultEntryOutputFile(testReportOutput, desc, "time") <<
-                "${result.getEndTime() - result.getStartTime()}"
+        withTestResultEntryWriter(reportDir, desc, "time", false, {
+            it.append("${result.getEndTime() - result.getStartTime()}")
+        })
         // For failed tests, update the index and emit stack trace information.
         if (result.resultType == TestResult.ResultType.FAILURE) {
-            def title = "${desc.className}.${desc.name}"
-            index << "<li><a href=\"file://${testReportPath}\">${title}</a></li>"
+            def title = escapeHtml("${desc.className}.${desc.name}")
+            def link = getTestReportEntryURL(reportDir, desc)
+            index << "<li><a href=\"${link}\">${title}</a></li>"
             if (!result.exceptions.isEmpty()) {
                 printAllStackTracesToFile(
                         result.exceptions,
                         getTestResultEntryOutputFile(
-                                testReportOutput,
+                                reportDir,
                                 desc,
                                 "exceptions-raw.txt"))
                 filterStackTraces(result)
                 printAllStackTracesToFile(
                         result.exceptions,
                         getTestResultEntryOutputFile(
-                                testReportOutput,
+                                reportDir,
                                 desc,
                                 "exceptions-filtered.txt"))
                 if (shouldRetrace()) {
-                    def out = getTestResultEntryOutputFile(
-                            testReportOutput,
-                            desc,
-                            "exceptions-retraced.txt")
-                    result.exceptions.forEach { out << retrace(it) }
+                    withTestResultEntryWriter(reportDir, desc, "exceptions-retraced.txt", false, { writer ->
+                        result.exceptions.forEach { writer.append(retrace(it)) }
+                    })
                 }
             }
         }

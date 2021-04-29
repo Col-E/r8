@@ -23,9 +23,6 @@ public class Regress72485384Test extends TestBase {
 
   @Parameters(name = "{1}, allowUnusedProguardConfigurationRules: {0}")
   public static Collection<Object[]> getParameters() {
-    String baseConfig =
-        keepMainProguardConfiguration(Main.class)
-            + "-keepattributes Signature,InnerClasses,EnclosingMethod ";
     TestParametersCollection parametersCollection =
         getTestParameters()
             .withDexRuntimes()
@@ -36,10 +33,10 @@ public class Regress72485384Test extends TestBase {
       Collections.addAll(
           tests,
           new Object[][] {
-            {parameters, baseConfig},
-            {parameters, baseConfig + "-dontshrink"},
-            {parameters, baseConfig + "-dontshrink -dontobfuscate"},
-            {parameters, baseConfig + "-dontobfuscate"}
+            {parameters, ""},
+            {parameters, "-dontshrink"},
+            {parameters, "-dontshrink -dontobfuscate"},
+            {parameters, "-dontobfuscate"}
           });
     }
     return tests;
@@ -50,7 +47,10 @@ public class Regress72485384Test extends TestBase {
 
   public Regress72485384Test(TestParameters parameters, String proguardConfig) {
     this.parameters = parameters;
-    this.proguardConfig = proguardConfig;
+    this.proguardConfig =
+        keepMainProguardConfiguration(Main.class)
+            + "-keepattributes Signature,InnerClasses,EnclosingMethod "
+            + proguardConfig;
   }
 
   @Test
