@@ -13,6 +13,7 @@ import tasks.GetJarsFromConfiguration
 import utils.Utils
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.gradle.api.tasks.testing.TestOutputEvent
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -1977,15 +1978,15 @@ def withTestResultEntryWriter(reportDir, testDesc, fileName, append, fn) {
     new FileWriter(file, append).withCloseable fn
 }
 
-def getGitBranchName() {
+static def getGitBranchName() {
     def out = new StringBuilder()
     def err = new StringBuilder()
     def proc = "git rev-parse --abbrev-ref HEAD".execute()
     proc.waitForProcessOutput(out, err)
-    return out
+    return out.toString().trim()
 }
 
-def getFreshTestReportIndex(File reportDir) {
+static def getFreshTestReportIndex(File reportDir) {
     def number = 0
     while (true) {
         def freshIndex = reportDir.toPath().resolve("index.${number++}.html").toFile()
@@ -2032,15 +2033,16 @@ def forEachTestReportAlreadySkipped(File reportDir, onSucceededTest) {
     return forEachTestReportAlreadyX(reportDir, TestResult.ResultType.SKIPPED.name(), onSucceededTest)
 }
 
-def setUpNewTestReporting(Test task) {
+def setUpTestingState(Test task) {
     // Hide all test events from the console, they are written to the report.
     task.testLogging { events = [] }
 
-    def reportDir = project.hasProperty('test_report_output')
-            ? file(project.hasProperty('test_report_output'))
-            : file("${buildDir}/testreport")
+    def branch = getGitBranchName()
+    def reportDir = file("${buildDir}/test-state/${branch}")
     def index = reportDir.toPath().resolve("index.html").toFile()
-    def resuming = reportDir.exists()
+    def resetState = project.hasProperty('reset-testing-state')
+    def reportDirExists = reportDir.exists()
+    def resuming = !resetState && reportDirExists
 
     def hasFailingTests = false;
     if (resuming) {
@@ -2051,6 +2053,9 @@ def setUpNewTestReporting(Test task) {
         })
         // Otherwise exclude all of the test already marked as succeeding.
         if (!hasFailingTests) {
+            // Also allow the test to overall succeed if there are no remaining tests that match,
+            // which is natural if the state already succeeded in full.
+            task.filter.failOnNoMatchingTests = false
             forEachTestReportAlreadyPassing(reportDir, {
                 clazz, name -> task.filter.excludeTestsMatching("$clazz.$name")
             })
@@ -2063,6 +2068,9 @@ def setUpNewTestReporting(Test task) {
     task.beforeSuite { desc ->
         if (!desc.parent) {
             def parentReport = null
+            if (resetState && reportDirExists) {
+                delete reportDir
+            }
             if (resuming) {
                 if (index.exists()) {
                     parentReport = getFreshTestReportIndex(reportDir)
@@ -2071,7 +2079,6 @@ def setUpNewTestReporting(Test task) {
             } else {
                 reportDir.mkdirs()
             }
-            def branch = getGitBranchName()
             def runPrefix = resuming ? "Resuming" : "Starting"
             def title =  "${runPrefix} @ ${branch}"
             // Print a console link to the test report for easy access.
@@ -2104,7 +2111,7 @@ def setUpNewTestReporting(Test task) {
                     index << "<h2 style=\"background-color:#62D856\">GREEN BAR == YOU ROCK!</h2>"
                 }
             } else if (result.resultType == TestResult.ResultType.FAILURE) {
-                index << "<h2 style=\"background-color:#6D130Ared\">Some tests failed: ${result.resultType.name()}</h2><ul>"
+                index << "<h2 style=\"background-color:#6D130A\">Some tests failed: ${result.resultType.name()}</h2><ul>"
             } else {
                 index << "<h2>Tests finished: ${result.resultType.name()}</h2><ul>"
             }
@@ -2117,14 +2124,20 @@ def setUpNewTestReporting(Test task) {
     }
 
     // Events to stdout/err are appended to the files in the test directories.
-    // TODO(b/186607794): Doing so will cause resuming test runs for failing tests to append too!
-    //  consider writing the outputs to a .temp and moving that on test completion. This can still
-    //  be wrong if the tests are ctrl-c and output has been written, but that is likely a minor
-    //  concern.
     task.onOutput { desc, event ->
         withTestResultEntryWriter(reportDir, desc, event.getDestination().name(), true, {
             it.append(event.getMessage())
         })
+    }
+
+    task.beforeTest { desc ->
+        // Remove any stale output files before running the test.
+        for (def destType : TestOutputEvent.Destination.values()) {
+            def destFile = getTestResultEntryOutputFile(reportDir, desc, destType.name())
+            if (destFile.exists()) {
+                delete destFile
+            }
+        }
     }
 
     task.afterTest { desc, result ->
@@ -2182,9 +2195,9 @@ test { task ->
     // R8.jar is required for running bootstrap tests.
     dependsOn r8
 
-    def newTestingReport = project.hasProperty('testing-report')
-    if (newTestingReport) {
-        setUpNewTestReporting(task)
+    def useTestingState = project.hasProperty('testing-state')
+    if (useTestingState) {
+        setUpTestingState(task)
     }
 
     if (project.hasProperty('generate_golden_files_to')) {
@@ -2200,7 +2213,7 @@ test { task ->
     }
 
 
-    if (!newTestingReport) {
+    if (!useTestingState) {
         testLogging.exceptionFormat = 'full'
         if (project.hasProperty('print_test_stdout')) {
             testLogging.showStandardStreams = true
@@ -2229,7 +2242,7 @@ test { task ->
         systemProperty 'desugar_jdk_libs', project.property('desugar_jdk_libs')
     }
 
-    if (!newTestingReport) {
+    if (!useTestingState) {
         if (project.hasProperty('print_times') || project.hasProperty('one_line_per_test')) {
             afterTest { desc, result ->
                 def executionTime = (result.endTime - result.startTime) / 1000

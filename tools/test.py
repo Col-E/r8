@@ -171,8 +171,12 @@ def ParseOptions():
       help='Print the execution time of the slowest tests..',
       default=False, action='store_true')
   result.add_option(
-      '--testing-report',
-      help='Use the custom testing report output format',
+      '--with-testing-state',
+      help='Run/resume tests using testing state.',
+      default=False, action='store_true')
+  result.add_option(
+      '--reset-testing-state',
+      help='Clean the testing state and rerun tests (implies --with-testing-state).',
       default=False, action='store_true')
   result.add_option(
       '--stacktrace',
@@ -313,8 +317,11 @@ def Main():
     gradle_args.append('-Pdesugar_jdk_json_dir=' + desugar_jdk_json_dir)
   if desugar_jdk_libs:
     gradle_args.append('-Pdesugar_jdk_libs=' + desugar_jdk_libs)
-  if options.testing_report:
-    gradle_args.append('-Ptesting-report')
+  if options.reset_testing_state:
+    gradle_args.append('-Ptesting-state')
+    gradle_args.append('-Preset-testing-state')
+  elif options.with_testing_state:
+    gradle_args.append('-Ptesting-state')
 
   # Build an R8 with dependencies for bootstrapping tests before adding test sources.
   gradle_args.append('r8WithDeps')

@@ -14,13 +14,11 @@ import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.origin.Origin;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 public class InterfaceRenamingTestRunner extends TestBase {
 
