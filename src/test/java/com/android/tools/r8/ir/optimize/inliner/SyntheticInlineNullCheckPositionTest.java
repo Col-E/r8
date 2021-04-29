@@ -71,7 +71,7 @@ public class SyntheticInlineNullCheckPositionTest extends TestBase {
         .assertFailureWithErrorThatThrows(NullPointerException.class)
         .inspectStackTrace(
             stackTrace -> {
-              if (canUseJavaUtilObjectsIsNull(parameters)) {
+              if (canUseJavaUtilObjectsRequireNonNull(parameters)) {
                 assertThat(
                     stackTrace,
                     isSameExceptForSpecificLineNumber(
