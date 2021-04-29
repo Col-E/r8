@@ -42,9 +42,7 @@ public abstract class MissingDefinitionInfoBase implements MissingDefinitionInfo
     }
 
     public B addReferencedFromContexts(Iterable<DefinitionContext> missingDefinitionContexts) {
-      for (DefinitionContext missingDefinitionContext : missingDefinitionContexts) {
-        addReferencedFromContext(missingDefinitionContext);
-      }
+      missingDefinitionContexts.forEach(this::addReferencedFromContext);
       return self();
     }
 
