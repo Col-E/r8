@@ -29,7 +29,7 @@ public class MissingMethodInfoImpl extends MissingDefinitionInfoBase implements 
     return methodReference;
   }
 
-  public static class Builder extends MissingDefinitionInfoBase.Builder {
+  public static class Builder extends MissingDefinitionInfoBase.Builder<Builder> {
 
     private MethodReference methodReference;
 
@@ -42,6 +42,11 @@ public class MissingMethodInfoImpl extends MissingDefinitionInfoBase implements 
 
     public MissingDefinitionInfo build() {
       return new MissingMethodInfoImpl(methodReference, referencedFromContextsBuilder.build());
+    }
+
+    @Override
+    Builder self() {
+      return this;
     }
   }
 }

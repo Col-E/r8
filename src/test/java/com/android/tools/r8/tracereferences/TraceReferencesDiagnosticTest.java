@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
+import static com.android.tools.r8.utils.MissingDefinitionsDiagnosticTestUtils.getMissingClassMessage;
+import static com.android.tools.r8.utils.MissingDefinitionsDiagnosticTestUtils.getMissingFieldMessage;
+import static com.android.tools.r8.utils.MissingDefinitionsDiagnosticTestUtils.getMissingMethodMessage;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -12,7 +15,10 @@ import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.diagnostic.DefinitionContext;
+import com.android.tools.r8.diagnostic.internal.DefinitionMethodContextImpl;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.tracereferences.TraceReferencesCommandTest.Source;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -75,21 +81,41 @@ public class TraceReferencesDiagnosticTest extends TestBase {
       // Expected.
     }
 
+    DefinitionContext referencedFrom =
+        DefinitionMethodContextImpl.builder()
+            .setMethodContext(Reference.methodFromMethod(Source.class.getDeclaredMethod("source")))
+            .setOrigin(getOrigin(Source.class))
+            .build();
     testDiagnosticMessages.inspectErrors(
         diagnostic ->
             diagnostic
                 .assertIsMissingDefinitionsDiagnostic()
                 .assertHasMessage(
                     StringUtils.joinLines(
-                        "Missing class " + Target1.class.getTypeName(),
-                        "Missing method void " + Target1.class.getTypeName() + ".<init>()",
-                        "Missing class " + Target2.class.getTypeName(),
-                        "Missing method void " + Target2.class.getTypeName() + ".<init>()",
-                        "Missing class " + Target3.class.getTypeName(),
-                        "Missing method void " + Target3.class.getTypeName() + ".<init>()",
-                        "Missing field int " + Target.class.getTypeName() + ".missingField1",
-                        "Missing field int " + Target.class.getTypeName() + ".missingField2",
-                        "Missing method void " + Target.class.getTypeName() + ".missingMethod()"))
+                        getMissingClassMessage(Target1.class, referencedFrom),
+                        getMissingMethodMessage(
+                            Reference.methodFromMethod(Target1.class.getDeclaredConstructor()),
+                            referencedFrom),
+                        getMissingClassMessage(Target2.class, referencedFrom),
+                        getMissingMethodMessage(
+                            Reference.methodFromMethod(Target2.class.getDeclaredConstructor()),
+                            referencedFrom),
+                        getMissingClassMessage(Target3.class, referencedFrom),
+                        getMissingMethodMessage(
+                            Reference.methodFromMethod(Target3.class.getDeclaredConstructor()),
+                            referencedFrom),
+                        getMissingFieldMessage(
+                            Reference.fieldFromField(
+                                Target.class.getDeclaredField("missingField1")),
+                            referencedFrom),
+                        getMissingFieldMessage(
+                            Reference.fieldFromField(
+                                Target.class.getDeclaredField("missingField2")),
+                            referencedFrom),
+                        getMissingMethodMessage(
+                            Reference.methodFromMethod(
+                                Target.class.getDeclaredMethod("missingMethod")),
+                            referencedFrom)))
                 .assertIsAllMissingClasses(Target1.class, Target2.class, Target3.class)
                 .assertIsAllMissingFields(
                     Reference.fieldFromField(Target.class.getField("missingField1")),
@@ -146,15 +172,29 @@ public class TraceReferencesDiagnosticTest extends TestBase {
       // Expected.
     }
 
+    DefinitionContext referencedFrom =
+        DefinitionMethodContextImpl.builder()
+            .setMethodContext(Reference.methodFromMethod(Source.class.getDeclaredMethod("source")))
+            .setOrigin(getOrigin(Source.class))
+            .build();
     testDiagnosticMessages.inspectErrors(
         diagnostic ->
             diagnostic
                 .assertIsMissingDefinitionsDiagnostic()
                 .assertHasMessage(
                     StringUtils.joinLines(
-                        "Missing field int " + Target.class.getTypeName() + ".missingField1",
-                        "Missing field int " + Target.class.getTypeName() + ".missingField2",
-                        "Missing method void " + Target.class.getTypeName() + ".missingMethod()"))
+                        getMissingFieldMessage(
+                            Reference.fieldFromField(
+                                Target.class.getDeclaredField("missingField1")),
+                            referencedFrom),
+                        getMissingFieldMessage(
+                            Reference.fieldFromField(
+                                Target.class.getDeclaredField("missingField2")),
+                            referencedFrom),
+                        getMissingMethodMessage(
+                            Reference.methodFromMethod(
+                                Target.class.getDeclaredMethod("missingMethod")),
+                            referencedFrom)))
                 .assertNoMissingClasses()
                 .assertIsAllMissingFields(
                     Reference.fieldFromField(Target.class.getField("missingField1")),
@@ -202,12 +242,19 @@ public class TraceReferencesDiagnosticTest extends TestBase {
       // Expected.
     }
 
+    DefinitionContext referencedFrom =
+        DefinitionMethodContextImpl.builder()
+            .setMethodContext(Reference.methodFromMethod(Source.class.getDeclaredMethod("source")))
+            .setOrigin(getOrigin(Source.class))
+            .build();
     testDiagnosticMessages.inspectErrors(
         diagnostic ->
             diagnostic
                 .assertIsMissingDefinitionsDiagnostic()
                 .assertHasMessage(
-                    "Missing method void " + Target.class.getTypeName() + ".missingMethod()")
+                    getMissingMethodMessage(
+                        Reference.methodFromMethod(Target.class.getDeclaredMethod("missingMethod")),
+                        referencedFrom))
                 .assertNoMissingClasses()
                 .assertNoMissingFields()
                 .assertIsAllMissingMethods(

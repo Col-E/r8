@@ -4,16 +4,21 @@
 
 package com.android.tools.r8.tracereferences.internal;
 
+import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedReference;
 
 abstract class TracedReferenceBase<T, F> implements TracedReference<T, F> {
+
   private final T reference;
+  private final DefinitionContext referencedFrom;
   private final F accessFlags;
   private final boolean missingDefinition;
 
-  TracedReferenceBase(T reference, F accessFlags, boolean missingDefinition) {
+  TracedReferenceBase(
+      T reference, DefinitionContext referencedFrom, F accessFlags, boolean missingDefinition) {
     assert accessFlags != null || missingDefinition;
     this.reference = reference;
+    this.referencedFrom = referencedFrom;
     this.accessFlags = accessFlags;
     this.missingDefinition = missingDefinition;
   }
@@ -21,6 +26,11 @@ abstract class TracedReferenceBase<T, F> implements TracedReference<T, F> {
   @Override
   public T getReference() {
     return reference;
+  }
+
+  @Override
+  public DefinitionContext getReferencedFromContext() {
+    return referencedFrom;
   }
 
   @Override

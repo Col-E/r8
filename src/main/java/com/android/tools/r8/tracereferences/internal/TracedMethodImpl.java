@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.tracereferences.internal;
 
+import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.references.MethodReference;
@@ -12,16 +13,22 @@ import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedMethod
 
 public class TracedMethodImpl extends TracedReferenceBase<MethodReference, MethodAccessFlags>
     implements TracedMethod {
-  public TracedMethodImpl(DexMethod method) {
-    this(method.asMethodReference(), null);
+  public TracedMethodImpl(DexMethod method, DefinitionContext referencedFrom) {
+    this(method.asMethodReference(), referencedFrom, null);
   }
 
-  public TracedMethodImpl(DexClassAndMethod method) {
-    this(method.getMethodReference(), new MethodAccessFlagsImpl(method.getAccessFlags()));
+  public TracedMethodImpl(DexClassAndMethod method, DefinitionContext referencedFrom) {
+    this(
+        method.getMethodReference(),
+        referencedFrom,
+        new MethodAccessFlagsImpl(method.getAccessFlags()));
   }
 
-  public TracedMethodImpl(MethodReference methodReference, MethodAccessFlags accessFlags) {
-    super(methodReference, accessFlags, accessFlags == null);
+  public TracedMethodImpl(
+      MethodReference methodReference,
+      DefinitionContext referencedFrom,
+      MethodAccessFlags accessFlags) {
+    super(methodReference, referencedFrom, accessFlags, accessFlags == null);
   }
 
   @Override

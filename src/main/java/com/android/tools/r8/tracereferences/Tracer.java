@@ -6,10 +6,8 @@ package com.android.tools.r8.tracereferences;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.diagnostic.internal.MissingClassInfoImpl;
-import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
-import com.android.tools.r8.diagnostic.internal.MissingFieldInfoImpl;
-import com.android.tools.r8.diagnostic.internal.MissingMethodInfoImpl;
+import com.android.tools.r8.diagnostic.DefinitionContext;
+import com.android.tools.r8.diagnostic.internal.DefinitionContextUtils;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -17,7 +15,6 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -30,6 +27,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.FieldLookupResult;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
@@ -101,11 +99,12 @@ public class Tracer {
   public void run(TraceReferencesConsumer consumer) {
     UseCollector useCollector = new UseCollector(appInfo, consumer, diagnostics, targetPredicate);
     for (DexProgramClass clazz : appInfo.classes()) {
-      useCollector.registerSuperType(clazz, clazz.superType);
+      DefinitionContext classContext = DefinitionContextUtils.create(clazz);
+      useCollector.registerSuperType(clazz, clazz.superType, classContext);
       for (DexType implementsType : clazz.getInterfaces()) {
-        useCollector.registerSuperType(clazz, implementsType);
+        useCollector.registerSuperType(clazz, implementsType, classContext);
       }
-      clazz.forEachField(useCollector::registerField);
+      clazz.forEachProgramField(useCollector::registerField);
       clazz.forEachProgramMethod(
           method -> {
             useCollector.registerMethod(method);
@@ -113,7 +112,6 @@ public class Tracer {
           });
     }
     consumer.finished(diagnostics);
-    useCollector.reportMissingDefinitions();
   }
 
   // The graph lens is intentionally only made accessible to the MethodUseCollector, since the
@@ -146,37 +144,39 @@ public class Tracer {
       return targetPredicate.test(type);
     }
 
-    private void addType(DexType type) {
+    private void addType(DexType type, DefinitionContext referencedFrom) {
       if (type.isArrayType()) {
-        addType(type.toBaseType(factory));
+        addType(type.toBaseType(factory), referencedFrom);
         return;
       }
       if (type.isPrimitiveType() || type.isVoidType()) {
         return;
       }
       assert type.isClassType();
-      addClassType(type);
+      addClassType(type, referencedFrom);
     }
 
-    private void addTypes(DexTypeList types) {
-      types.forEach(this::addType);
+    private void addTypes(DexTypeList types, DefinitionContext referencedFrom) {
+      for (DexType type : types) {
+        addType(type, referencedFrom);
+      }
     }
 
-    private void addClassType(DexType type) {
+    private void addClassType(DexType type, DefinitionContext referencedFrom) {
       assert type.isClassType();
       DexClass clazz = appInfo.definitionFor(type);
       if (clazz != null) {
-        addClass(clazz);
+        addClass(clazz, referencedFrom);
       } else {
-        TracedClassImpl tracedClass = new TracedClassImpl(type);
+        TracedClassImpl tracedClass = new TracedClassImpl(type, referencedFrom);
         collectMissingClass(tracedClass);
         consumer.acceptType(tracedClass, diagnostics);
       }
     }
 
-    private void addClass(DexClass clazz) {
+    private void addClass(DexClass clazz, DefinitionContext referencedFrom) {
       if (isTargetType(clazz.getType())) {
-        TracedClassImpl tracedClass = new TracedClassImpl(clazz);
+        TracedClassImpl tracedClass = new TracedClassImpl(clazz, referencedFrom);
         consumer.acceptType(tracedClass, diagnostics);
         if (clazz.getAccessFlags().isVisibilityDependingOnPackage()) {
           consumer.acceptPackage(
@@ -185,7 +185,8 @@ public class Tracer {
       }
     }
 
-    private void addSuperMethodFromTarget(DexClassAndMethod method) {
+    private void addSuperMethodFromTarget(
+        DexClassAndMethod method, DefinitionContext referencedFrom) {
       assert !method.isProgramMethod();
       assert isTargetType(method.getHolderType());
 
@@ -195,7 +196,7 @@ public class Tracer {
       // - The holder type is registered from visiting the extends/implements clause of the sub
       //   class.
 
-      TracedMethodImpl tracedMethod = new TracedMethodImpl(method);
+      TracedMethodImpl tracedMethod = new TracedMethodImpl(method, referencedFrom);
       if (isTargetType(method.getHolderType())) {
         consumer.acceptMethod(tracedMethod, diagnostics);
         if (method.getAccessFlags().isVisibilityDependingOnPackage()) {
@@ -227,38 +228,20 @@ public class Tracer {
       collectMissing(tracedMethod, missingMethods);
     }
 
-    private void reportMissingDefinitions() {
-      if (missingClasses.size() > 0 || missingFields.size() > 0 || missingMethods.size() > 0) {
-        MissingDefinitionsDiagnosticImpl.Builder diagnosticBuilder =
-            MissingDefinitionsDiagnosticImpl.builder();
-        missingClasses.forEach(
-            classReference ->
-                diagnosticBuilder.addMissingDefinitionInfo(
-                    MissingClassInfoImpl.builder().setClass(classReference).build()));
-        missingFields.forEach(
-            fieldReference ->
-                diagnosticBuilder.addMissingDefinitionInfo(
-                    MissingFieldInfoImpl.builder().setField(fieldReference).build()));
-        missingMethods.forEach(
-            methodReference ->
-                diagnosticBuilder.addMissingDefinitionInfo(
-                    MissingMethodInfoImpl.builder().setMethod(methodReference).build()));
-        diagnostics.error(diagnosticBuilder.build());
-      }
-    }
-
-    private void registerField(DexEncodedField field) {
-      addType(field.getType());
+    private void registerField(ProgramField field) {
+      DefinitionContext referencedFrom = DefinitionContextUtils.create(field);
+      addType(field.getType(), referencedFrom);
     }
 
     private void registerMethod(ProgramMethod method) {
-      addTypes(method.getParameters());
-      addType(method.getReturnType());
+      DefinitionContext referencedFrom = DefinitionContextUtils.create(method);
+      addTypes(method.getParameters(), referencedFrom);
+      addType(method.getReturnType(), referencedFrom);
       for (DexAnnotation annotation : method.getDefinition().annotations().annotations) {
         if (annotation.getAnnotationType() == appInfo.dexItemFactory().annotationThrows) {
           DexValueArray dexValues = annotation.annotation.elements[0].value.asDexValueArray();
           for (DexValue dexValType : dexValues.getValues()) {
-            addType(dexValType.asDexValueType().value);
+            addType(dexValType.asDexValueType().value, referencedFrom);
           }
         }
       }
@@ -270,7 +253,7 @@ public class Tracer {
       if (superTarget != null
           && !superTarget.isProgramMethod()
           && isTargetType(superTarget.getHolderType())) {
-        addSuperMethodFromTarget(superTarget);
+        addSuperMethodFromTarget(superTarget, referencedFrom);
       }
     }
 
@@ -278,8 +261,9 @@ public class Tracer {
       method.registerCodeReferences(new MethodUseCollector(method, graphLens, initClassLens));
     }
 
-    private void registerSuperType(DexProgramClass clazz, DexType superType) {
-      addType(superType);
+    private void registerSuperType(
+        DexProgramClass clazz, DexType superType, DefinitionContext referencedFrom) {
+      addType(superType, referencedFrom);
       // If clazz overrides any methods in superType, we should keep those as well.
       clazz.forEachMethod(
           method -> {
@@ -290,7 +274,7 @@ public class Tracer {
             if (resolvedMethod != null
                 && !resolvedMethod.isProgramMethod()
                 && isTargetType(resolvedMethod.getHolderType())) {
-              addSuperMethodFromTarget(resolvedMethod);
+              addSuperMethodFromTarget(resolvedMethod, referencedFrom);
             }
           });
     }
@@ -300,6 +284,7 @@ public class Tracer {
       private final ProgramMethod context;
       private final GraphLens graphLens;
       private final InitClassLens initClassLens;
+      private final DefinitionContext referencedFrom;
 
       public MethodUseCollector(
           ProgramMethod context, GraphLens graphLens, InitClassLens initClassLens) {
@@ -307,6 +292,7 @@ public class Tracer {
         this.context = context;
         this.graphLens = graphLens;
         this.initClassLens = initClassLens;
+        this.referencedFrom = DefinitionContextUtils.create(context);
       }
 
       // Method references.
@@ -358,7 +344,7 @@ public class Tracer {
         DexMethod method = lookupResult.getReference();
         if (method.getHolderType().isArrayType()) {
           assert lookupResult.getType().isVirtual();
-          addType(method.getHolderType());
+          addType(method.getHolderType(), referencedFrom);
           return;
         }
         assert lookupResult.getType().isInterface() || lookupResult.getType().isVirtual();
@@ -374,15 +360,15 @@ public class Tracer {
       private void handleRewrittenMethodReference(
           DexMethod method, DexClassAndMethod resolvedMethod) {
         assert resolvedMethod == null || resolvedMethod.getReference().match(method);
-        addType(method.getHolderType());
-        addTypes(method.getParameters());
-        addType(method.getReturnType());
+        addType(method.getHolderType(), referencedFrom);
+        addTypes(method.getParameters(), referencedFrom);
+        addType(method.getReturnType(), referencedFrom);
         if (resolvedMethod != null) {
           if (isTargetType(resolvedMethod.getHolderType())) {
             if (resolvedMethod.getHolderType() != method.getHolderType()) {
-              addType(resolvedMethod.getHolderType());
+              addType(resolvedMethod.getHolderType(), referencedFrom);
             }
-            TracedMethodImpl tracedMethod = new TracedMethodImpl(resolvedMethod);
+            TracedMethodImpl tracedMethod = new TracedMethodImpl(resolvedMethod, referencedFrom);
             consumer.acceptMethod(tracedMethod, diagnostics);
             if (resolvedMethod.getAccessFlags().isVisibilityDependingOnPackage()) {
               consumer.acceptPackage(
@@ -391,7 +377,7 @@ public class Tracer {
             }
           }
         } else {
-          TracedMethodImpl tracedMethod = new TracedMethodImpl(method);
+          TracedMethodImpl tracedMethod = new TracedMethodImpl(method, referencedFrom);
           collectMissingMethod(tracedMethod);
           consumer.acceptMethod(tracedMethod, diagnostics);
         }
@@ -432,16 +418,16 @@ public class Tracer {
       }
 
       private void handleRewrittenFieldReference(DexField field) {
-        addType(field.getHolderType());
-        addType(field.getType());
+        addType(field.getHolderType(), referencedFrom);
+        addType(field.getType(), referencedFrom);
 
         DexClassAndField resolvedField = appInfo.resolveField(field).getResolutionPair();
         if (resolvedField != null) {
           if (isTargetType(resolvedField.getHolderType())) {
             if (resolvedField.getHolderType() != field.getHolderType()) {
-              addClass(resolvedField.getHolder());
+              addClass(resolvedField.getHolder(), referencedFrom);
             }
-            TracedFieldImpl tracedField = new TracedFieldImpl(resolvedField);
+            TracedFieldImpl tracedField = new TracedFieldImpl(resolvedField, referencedFrom);
             consumer.acceptField(tracedField, diagnostics);
             if (resolvedField.getAccessFlags().isVisibilityDependingOnPackage()) {
               consumer.acceptPackage(
@@ -450,7 +436,7 @@ public class Tracer {
             }
           }
         } else {
-          TracedFieldImpl tracedField = new TracedFieldImpl(field);
+          TracedFieldImpl tracedField = new TracedFieldImpl(field, referencedFrom);
           collectMissingField(tracedField);
           consumer.acceptField(tracedField, diagnostics);
         }
@@ -460,7 +446,7 @@ public class Tracer {
 
       @Override
       public void registerTypeReference(DexType type) {
-        addType(graphLens.lookupType(type));
+        addType(graphLens.lookupType(type), referencedFrom);
       }
     }
   }
