@@ -94,6 +94,11 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     if (mode != Mode.COLLECT) {
       return;
     }
+
+    if (appView.appInfo().isMethodTargetedByInvokeDynamic(code.context().getReference())) {
+      abandonCallSitePropagationForMethodAndOverrides(code.context());
+    }
+
     ProgramMethod context = code.context();
     for (Instruction instruction : code.instructions()) {
       if (instruction.isInvokeMethod()) {
@@ -284,6 +289,31 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     } else {
       methods.forEach(method -> method.getDefinition().abandonCallSiteOptimizationInfo());
     }
+  }
+
+  private void abandonCallSitePropagationForMethodAndOverrides(ProgramMethod method) {
+    Set<ProgramMethod> abandonSet = Sets.newIdentityHashSet();
+    if (method.getDefinition().isNonPrivateVirtualMethod()) {
+      SingleResolutionResult resolutionResult =
+          new SingleResolutionResult(
+              method.getHolder(), method.getHolder(), method.getDefinition());
+      resolutionResult
+          .lookupVirtualDispatchTargets(method.getHolder(), appView.appInfo())
+          .forEach(
+              methodTarget -> {
+                if (methodTarget.isProgramMethod()) {
+                  abandonSet.add(methodTarget.asProgramMethod());
+                }
+              },
+              lambdaTarget -> {
+                if (lambdaTarget.getImplementationMethod().isProgramMethod()) {
+                  abandonSet.add(lambdaTarget.getImplementationMethod().asProgramMethod());
+                }
+              });
+    } else {
+      abandonSet.add(method);
+    }
+    abandonCallSitePropagation(abandonSet::forEach);
   }
 
   private CallSiteOptimizationInfo computeCallSiteOptimizationInfoFromArguments(

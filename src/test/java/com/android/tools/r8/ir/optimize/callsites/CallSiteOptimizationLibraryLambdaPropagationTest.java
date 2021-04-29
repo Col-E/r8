@@ -9,55 +9,55 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
+import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class CallSiteOptimizationLambdaPropagationTest extends TestBase {
+public class CallSiteOptimizationLibraryLambdaPropagationTest extends TestBase {
 
   private final TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters()
+        .withCfRuntimes()
+        .withDexRuntimes()
+        .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
+        .build();
   }
 
-  public CallSiteOptimizationLambdaPropagationTest(TestParameters parameters) {
+  public CallSiteOptimizationLibraryLambdaPropagationTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(CallSiteOptimizationLambdaPropagationTest.class)
+        .addInnerClasses(CallSiteOptimizationLibraryLambdaPropagationTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/186729231): Should succeed with "A", "B".
-        .assertSuccessWithOutputLines("A", parameters.isCfRuntime() ? "A" : "B");
+        .assertSuccessWithOutputLines("A", "B");
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
       add(new A());
-      Consumer consumer = TestClass::add;
+      Consumer<Object> consumer = TestClass::add;
       consumer.accept("B");
     }
 
-    // TODO(b/186729231): Incorrectly fail to propagate "B" as an argument to add().
     @NeverInline
     static void add(Object o) {
       System.out.println(o.toString());
     }
-  }
-
-  interface Consumer {
-    void accept(Object o);
   }
 
   @NeverClassInline
