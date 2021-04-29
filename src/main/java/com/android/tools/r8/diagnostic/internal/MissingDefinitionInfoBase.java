@@ -29,23 +29,16 @@ public abstract class MissingDefinitionInfoBase implements MissingDefinitionInfo
     return referencedFromContexts;
   }
 
-  public abstract static class Builder<B extends Builder<B>> {
+  public abstract static class Builder {
 
     final ImmutableList.Builder<DefinitionContext> referencedFromContextsBuilder =
         ImmutableList.builder();
 
     Builder() {}
 
-    public B addReferencedFromContext(DefinitionContext missingDefinitionContext) {
+    public Builder addReferencedFromContext(DefinitionContext missingDefinitionContext) {
       referencedFromContextsBuilder.add(missingDefinitionContext);
-      return self();
+      return this;
     }
-
-    public B addReferencedFromContexts(Iterable<DefinitionContext> missingDefinitionContexts) {
-      missingDefinitionContexts.forEach(this::addReferencedFromContext);
-      return self();
-    }
-
-    abstract B self();
   }
 }

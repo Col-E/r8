@@ -7,7 +7,6 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringConsumer.FileConsumer;
-import com.android.tools.r8.tracereferences.internal.TraceReferencesResult;
 import java.nio.file.Path;
 
 /**

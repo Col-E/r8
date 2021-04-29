@@ -29,7 +29,7 @@ public class MissingClassInfoImpl extends MissingDefinitionInfoBase implements M
     return classReference;
   }
 
-  public static class Builder extends MissingDefinitionInfoBase.Builder<Builder> {
+  public static class Builder extends MissingDefinitionInfoBase.Builder {
 
     private ClassReference classReference;
 
@@ -42,11 +42,6 @@ public class MissingClassInfoImpl extends MissingDefinitionInfoBase implements M
 
     public MissingDefinitionInfo build() {
       return new MissingClassInfoImpl(classReference, referencedFromContextsBuilder.build());
-    }
-
-    @Override
-    Builder self() {
-      return this;
     }
   }
 }

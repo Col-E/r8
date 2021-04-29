@@ -1,14 +1,13 @@
-// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.tracereferences.internal;
+package com.android.tools.r8.tracereferences;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.PackageReference;
-import com.android.tools.r8.tracereferences.TraceReferencesConsumer;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedClass;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedField;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedMethod;
@@ -19,10 +18,10 @@ import java.util.Set;
 
 public class TraceReferencesResult {
 
-  private final Set<TracedClass> types;
-  private final Map<ClassReference, Set<TracedField>> fields;
-  private final Map<ClassReference, Set<TracedMethod>> methods;
-  private final Set<PackageReference> keepPackageNames;
+  final Set<TracedClass> types;
+  final Map<ClassReference, Set<TracedField>> fields;
+  final Map<ClassReference, Set<TracedMethod>> methods;
+  final Set<PackageReference> keepPackageNames;
 
   TraceReferencesResult(
       Set<TracedClass> types,
@@ -35,27 +34,11 @@ public class TraceReferencesResult {
     this.keepPackageNames = keepPackageNames;
   }
 
-  public Set<TracedClass> getTracedClasses() {
-    return types;
-  }
-
-  public Map<ClassReference, Set<TracedField>> getTracedFields() {
-    return fields;
-  }
-
-  public Map<ClassReference, Set<TracedMethod>> getTracedMethods() {
-    return methods;
-  }
-
-  public Set<PackageReference> getTracedPackageNames() {
-    return keepPackageNames;
-  }
-
   public static Builder builder() {
     return new Builder();
   }
 
-  public static class Builder implements TraceReferencesConsumer {
+  static class Builder implements TraceReferencesConsumer {
     private final Set<TracedClass> types = new HashSet<>();
     private final Map<ClassReference, Set<TracedField>> fields = new HashMap<>();
     private final Map<ClassReference, Set<TracedMethod>> methods = new HashMap<>();
@@ -86,7 +69,7 @@ public class TraceReferencesResult {
     @Override
     public void finished(DiagnosticsHandler handler) {}
 
-    public TraceReferencesResult build() {
+    TraceReferencesResult build() {
       return new TraceReferencesResult(types, fields, methods, keepPackageNames);
     }
   }

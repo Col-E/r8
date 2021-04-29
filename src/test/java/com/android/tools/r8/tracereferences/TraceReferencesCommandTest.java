@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
-import static com.android.tools.r8.utils.MissingDefinitionsDiagnosticTestUtils.getMissingClassMessage;
-import static com.android.tools.r8.utils.MissingDefinitionsDiagnosticTestUtils.getMissingFieldMessage;
-import static com.android.tools.r8.utils.MissingDefinitionsDiagnosticTestUtils.getMissingMethodMessage;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -20,8 +17,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.diagnostic.DefinitionContext;
-import com.android.tools.r8.diagnostic.internal.DefinitionMethodContextImpl;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -576,23 +571,18 @@ public class TraceReferencesCommandTest extends TestBase {
       System.setOut(originalOut);
     }
 
-    DefinitionContext referencedFrom =
-        DefinitionMethodContextImpl.builder()
-            .setMethodContext(Reference.methodFromMethod(Source.class.getDeclaredMethod("source")))
-            .setOrigin(getOrigin(Source.class))
-            .build();
     assertThat(
         baosErr.toString(Charsets.UTF_8.name()),
         containsString(
             StringUtils.lines(
-                "Warning: "
-                    + getMissingClassMessage(
-                        Reference.classFromClass(Target.class), referencedFrom),
-                getMissingFieldMessage(
-                    FieldReferenceUtils.fieldFromField(Target.class, "field"), referencedFrom),
-                getMissingMethodMessage(
-                    MethodReferenceUtils.methodFromMethod(Target.class, "method", int.class),
-                    referencedFrom))));
+                "Warning: Missing class " + Target.class.getTypeName(),
+                "Missing field "
+                    + FieldReferenceUtils.toSourceString(
+                        FieldReferenceUtils.fieldFromField(Target.class, "field")),
+                "Missing method "
+                    + MethodReferenceUtils.toSourceString(
+                        MethodReferenceUtils.methodFromMethod(
+                            Target.class, "method", int.class)))));
     assertEquals(0, baosOut.size());
   }
 
@@ -631,24 +621,18 @@ public class TraceReferencesCommandTest extends TestBase {
     }
 
     assertEquals(0, baosErr.size());
-
-    DefinitionContext referencedFrom =
-        DefinitionMethodContextImpl.builder()
-            .setMethodContext(Reference.methodFromMethod(Source.class.getDeclaredMethod("source")))
-            .setOrigin(getOrigin(Source.class))
-            .build();
     assertThat(
         baosOut.toString(Charsets.UTF_8.name()),
         containsString(
             StringUtils.lines(
-                "Info: "
-                    + getMissingClassMessage(
-                        Reference.classFromClass(Target.class), referencedFrom),
-                getMissingFieldMessage(
-                    FieldReferenceUtils.fieldFromField(Target.class, "field"), referencedFrom),
-                getMissingMethodMessage(
-                    MethodReferenceUtils.methodFromMethod(Target.class, "method", int.class),
-                    referencedFrom))));
+                "Info: Missing class " + Target.class.getTypeName(),
+                "Missing field "
+                    + FieldReferenceUtils.toSourceString(
+                        FieldReferenceUtils.fieldFromField(Target.class, "field")),
+                "Missing method "
+                    + MethodReferenceUtils.toSourceString(
+                        MethodReferenceUtils.methodFromMethod(
+                            Target.class, "method", int.class)))));
   }
 
   private void checkTargetPartlyMissing(DiagnosticsChecker diagnosticsChecker) {
