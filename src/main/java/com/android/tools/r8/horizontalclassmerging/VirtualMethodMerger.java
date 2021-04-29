@@ -131,8 +131,10 @@ public class VirtualMethodMerger {
     if (result.isBridge() && Iterables.any(allFlags, flags -> !flags.isBridge())) {
       result.unsetBridge();
     }
-    if (result.isFinal() && Iterables.any(allFlags, flags -> !flags.isFinal())) {
-      result.unsetFinal();
+    if (result.isFinal()) {
+      if (methods.size() < group.size() || Iterables.any(allFlags, flags -> !flags.isFinal())) {
+        result.unsetFinal();
+      }
     }
     if (result.isSynthetic() && Iterables.any(allFlags, flags -> !flags.isSynthetic())) {
       result.unsetSynthetic();

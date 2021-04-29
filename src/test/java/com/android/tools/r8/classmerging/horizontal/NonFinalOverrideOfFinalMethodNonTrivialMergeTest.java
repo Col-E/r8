@@ -18,14 +18,15 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
 
-public class NonFinalOverrideOfFinalMethodTest extends HorizontalClassMergingTestBase {
+public class NonFinalOverrideOfFinalMethodNonTrivialMergeTest
+    extends HorizontalClassMergingTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public NonFinalOverrideOfFinalMethodTest(TestParameters parameters) {
+  public NonFinalOverrideOfFinalMethodNonTrivialMergeTest(TestParameters parameters) {
     super(parameters);
   }
 
@@ -39,26 +40,27 @@ public class NonFinalOverrideOfFinalMethodTest extends HorizontalClassMergingTes
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertMergedInto(B.class, A.class))
+            inspector -> inspector.assertIsCompleteMergeGroup(A.class, B.class, C.class))
         .compile()
         .inspect(
             inspector -> {
               ClassSubject classSubject = inspector.clazz(A.class);
               assertThat(classSubject, isPresent());
 
-              MethodSubject methodSubject = classSubject.uniqueMethodWithName("foo");
+              MethodSubject methodSubject = classSubject.uniqueMethodWithName("foo$bridge");
               assertThat(methodSubject, isPresent());
               assertFalse(methodSubject.isFinal());
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("A", "B", "BSub");
+        .assertSuccessWithOutputLines("A", "B", "C", "CSub");
   }
 
   public static class Main {
     public static void main(String[] args) {
       new A().foo();
-      new B().bar();
-      new BSub().foo();
+      new B().foo();
+      new C().bar();
+      new CSub().foo();
     }
   }
 
@@ -72,21 +74,30 @@ public class NonFinalOverrideOfFinalMethodTest extends HorizontalClassMergingTes
   }
 
   @NeverClassInline
-  @NoVerticalClassMerging
   public static class B {
 
     @NeverInline
-    public void bar() {
+    public final void foo() {
       System.out.println("B");
     }
   }
 
   @NeverClassInline
-  public static class BSub extends B {
+  @NoVerticalClassMerging
+  public static class C {
+
+    @NeverInline
+    public void bar() {
+      System.out.println("C");
+    }
+  }
+
+  @NeverClassInline
+  public static class CSub extends C {
 
     @NeverInline
     public void foo() {
-      System.out.println("BSub");
+      System.out.println("CSub");
     }
   }
 }
