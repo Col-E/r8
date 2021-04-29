@@ -7,7 +7,6 @@ package com.android.tools.r8.diagnostic.internal;
 import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionInfo;
 import com.android.tools.r8.diagnostic.MissingMethodInfo;
-import com.android.tools.r8.diagnostic.internal.MissingClassInfoImpl.Builder;
 import com.android.tools.r8.references.MethodReference;
 import java.util.Collection;
 
