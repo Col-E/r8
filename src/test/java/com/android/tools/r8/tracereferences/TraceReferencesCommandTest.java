@@ -241,7 +241,7 @@ public class TraceReferencesCommandTest extends TestBase {
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .addTargetFiles(targetJar)
               .addSourceFiles(sourceJar)
-              .setConsumer(consumer)
+              .setConsumer(new TraceReferencesCheckConsumer(consumer))
               .build());
       assertEquals(expected, stringConsumer.get());
       if (diagnosticsCheckerConsumer != null) {

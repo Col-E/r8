@@ -74,7 +74,8 @@ public class TraceReferencesDiagnosticTest extends TestBase {
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .addSourceFiles(sourceJar)
               .addTargetFiles(targetJar)
-              .setConsumer(TraceReferencesConsumer.emptyConsumer())
+              .setConsumer(
+                  new TraceReferencesCheckConsumer(TraceReferencesConsumer.emptyConsumer()))
               .build());
       fail("Unexpected success");
     } catch (CompilationFailedException e) {
@@ -165,7 +166,8 @@ public class TraceReferencesDiagnosticTest extends TestBase {
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .addSourceFiles(sourceJar)
               .addTargetFiles(targetJar)
-              .setConsumer(TraceReferencesConsumer.emptyConsumer())
+              .setConsumer(
+                  new TraceReferencesCheckConsumer(TraceReferencesConsumer.emptyConsumer()))
               .build());
       fail("Unexpected success");
     } catch (CompilationFailedException e) {
@@ -235,7 +237,8 @@ public class TraceReferencesDiagnosticTest extends TestBase {
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .addSourceFiles(sourceJar)
               .addTargetFiles(targetJar)
-              .setConsumer(TraceReferencesConsumer.emptyConsumer())
+              .setConsumer(
+                  new TraceReferencesCheckConsumer(TraceReferencesConsumer.emptyConsumer()))
               .build());
       fail("Unexpected success");
     } catch (CompilationFailedException e) {

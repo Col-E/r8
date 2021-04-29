@@ -20,7 +20,6 @@ import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.tracereferences.internal.TraceReferencesCheckConsumer;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -331,7 +330,7 @@ public class TraceReferencesCommand {
     }
 
     public Builder setConsumer(TraceReferencesConsumer consumer) {
-      this.consumer = new TraceReferencesCheckConsumer(consumer);
+      this.consumer = consumer;
       return this;
     }
 

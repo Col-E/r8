@@ -2,10 +2,12 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.tracereferences.internal;
+package com.android.tools.r8.tracereferences;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.Keep;
 import com.android.tools.r8.diagnostic.DefinitionContext;
+import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.diagnostic.internal.DefinitionContextUtils;
 import com.android.tools.r8.diagnostic.internal.MissingClassInfoImpl;
 import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
@@ -15,15 +17,18 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.PackageReference;
-import com.android.tools.r8.tracereferences.TraceReferencesConsumer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Collects the set of missing definitions and reports a {@link
- * com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic}, if any missing definitions were
- * found.
+ * A {@link TraceReferencesConsumer.ForwardingConsumer}, which forwards all callbacks to the wrapped
+ * {@link TraceReferencesConsumer}.
+ *
+ * <p>This consumer collects the set of missing definitions and reports a {@link
+ * com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic} as an error, if any missing
+ * definitions were found.
  */
+@Keep
 public class TraceReferencesCheckConsumer extends TraceReferencesConsumer.ForwardingConsumer {
 
   private final Map<ClassReference, Map<Object, DefinitionContext>> missingClassesContexts =
@@ -32,10 +37,6 @@ public class TraceReferencesCheckConsumer extends TraceReferencesConsumer.Forwar
       new ConcurrentHashMap<>();
   private final Map<MethodReference, Map<Object, DefinitionContext>> missingMethodsContexts =
       new ConcurrentHashMap<>();
-
-  public TraceReferencesCheckConsumer() {
-    this(TraceReferencesConsumer.emptyConsumer());
-  }
 
   public TraceReferencesCheckConsumer(TraceReferencesConsumer consumer) {
     super(consumer);
@@ -97,9 +98,18 @@ public class TraceReferencesCheckConsumer extends TraceReferencesConsumer.Forwar
   @Override
   public void finished(DiagnosticsHandler handler) {
     super.finished(handler);
-    if (isEmpty()) {
-      return;
+    if (!isEmpty()) {
+      handler.error(buildDiagnostic());
     }
+  }
+
+  private boolean isEmpty() {
+    return missingClassesContexts.isEmpty()
+        && missingFieldsContexts.isEmpty()
+        && missingMethodsContexts.isEmpty();
+  }
+
+  private MissingDefinitionsDiagnostic buildDiagnostic() {
     MissingDefinitionsDiagnosticImpl.Builder diagnosticBuilder =
         MissingDefinitionsDiagnosticImpl.builder();
     missingClassesContexts.forEach(
@@ -123,12 +133,6 @@ public class TraceReferencesCheckConsumer extends TraceReferencesConsumer.Forwar
                     .setMethod(reference)
                     .addReferencedFromContexts(referencedFrom.values())
                     .build()));
-    handler.error(diagnosticBuilder.build());
-  }
-
-  private boolean isEmpty() {
-    return missingClassesContexts.isEmpty()
-        && missingFieldsContexts.isEmpty()
-        && missingMethodsContexts.isEmpty();
+    return diagnosticBuilder.build();
   }
 }

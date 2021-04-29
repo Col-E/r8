@@ -186,17 +186,19 @@ class TraceReferencesCommandParser {
 
     switch (command) {
       case CHECK:
-        builder.setConsumer(TraceReferencesConsumer.emptyConsumer());
+        builder.setConsumer(
+            new TraceReferencesCheckConsumer(TraceReferencesConsumer.emptyConsumer()));
         break;
       case KEEP_RULES:
         builder.setConsumer(
-            TraceReferencesKeepRules.builder()
-                .setAllowObfuscation(allowObfuscation)
-                .setOutputConsumer(
-                    output != null
-                        ? new FileConsumer(output)
-                        : new WriterConsumer(null, new PrintWriter(System.out)))
-                .build());
+            new TraceReferencesCheckConsumer(
+                TraceReferencesKeepRules.builder()
+                    .setAllowObfuscation(allowObfuscation)
+                    .setOutputConsumer(
+                        output != null
+                            ? new FileConsumer(output)
+                            : new WriterConsumer(null, new PrintWriter(System.out)))
+                    .build()));
         break;
       default:
         throw new Unreachable();

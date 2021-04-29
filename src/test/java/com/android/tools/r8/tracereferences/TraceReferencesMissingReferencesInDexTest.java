@@ -76,7 +76,7 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
           TraceReferencesCommand.builder(diagnosticsChecker)
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .addSourceFiles(sourceDex)
-              .setConsumer(consumer)
+              .setConsumer(new TraceReferencesCheckConsumer(consumer))
               .build());
       fail("Expected compilation to fail");
     } catch (CompilationFailedException e) {
@@ -113,7 +113,7 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
           TraceReferencesCommand.builder(diagnosticsChecker)
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .addSourceFiles(sourceDex)
-              .setConsumer(consumer)
+              .setConsumer(new TraceReferencesCheckConsumer(consumer))
               .build());
       fail("Expected compilation to fail");
     } catch (CompilationFailedException e) {
