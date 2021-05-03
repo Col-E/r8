@@ -35,7 +35,7 @@ public class InterfaceInitializedByInvokeStaticTest
     testForDesugaring(parameters)
         .addInnerClasses(getClass())
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("I");
+        .assertSuccessWithOutputLines("I", "J");
   }
 
   @Test
@@ -47,7 +47,7 @@ public class InterfaceInitializedByInvokeStaticTest
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("I");
+        .assertSuccessWithOutputLines("I", "J");
   }
 
   @Test
@@ -68,12 +68,14 @@ public class InterfaceInitializedByInvokeStaticTest
                 .build(),
             TestClass.class);
     assertMayHaveClassInitializationSideEffects(appView, I.class);
+    assertMayHaveClassInitializationSideEffects(appView, J.class);
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
       I.greet();
+      J.greet();
     }
   }
 
@@ -84,10 +86,21 @@ public class InterfaceInitializedByInvokeStaticTest
     static void greet() {}
   }
 
+  interface J {
+
+    long value = new Greeter("J").longValue();
+
+    static void greet() {}
+  }
+
   static class Greeter {
 
     Greeter(String greeting) {
       System.out.println(greeting);
+    }
+
+    long longValue() {
+      return 42;
     }
   }
 }

@@ -233,12 +233,14 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     CfCode code =
         new CfCode(
             companionType,
-            1,
+            clinitField.getType().isWideType() ? 2 : 1,
             0,
             ImmutableList.of(
                 new CfFieldInstruction(
                     Opcodes.GETSTATIC, clinitField.getReference(), clinitField.getReference()),
-                new CfStackInstruction(Opcode.Pop),
+                clinitField.getType().isWideType()
+                    ? new CfStackInstruction(Opcode.Pop2)
+                    : new CfStackInstruction(Opcode.Pop),
                 new CfReturnVoid()),
             ImmutableList.of(),
             ImmutableList.of());
