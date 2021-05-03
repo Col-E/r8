@@ -149,7 +149,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
     Deque<SortedProgramMethodSet> waves = new ArrayDeque<>();
     int waveCount = 1;
     while (!callGraph.isEmpty()) {
-      SortedProgramMethodSet wave = callGraph.extractRoots();
+      SortedProgramMethodSet wave = callGraph.extractLeaves();
       waves.addLast(wave);
       if (Log.ENABLED && Log.isLoggingEnabledFor(PostMethodProcessor.class)) {
         Log.info(getClass(), "Wave #%d: %d", waveCount++, wave.size());
