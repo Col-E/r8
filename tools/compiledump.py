@@ -176,11 +176,10 @@ def read_dump(args, temp):
     return Dump(args.dump)
   dump_file = zipfile.ZipFile(os.path.abspath(args.dump), 'r')
   with utils.ChangedWorkingDirectory(temp):
-    if args.override or not os.path.isfile(
-        os.path.join(temp, 'r8-version')):
+    if args.override or not os.path.isfile('r8-version'):
       print("Extracting into: %s" % temp)
       dump_file.extractall()
-      if not os.path.isfile(os.path.join(temp, 'r8-version')):
+      if not os.path.isfile('r8-version'):
         error("Did not extract into %s. Either the zip file is invalid or the "
               "dump is missing files" % temp)
     return Dump(temp)
