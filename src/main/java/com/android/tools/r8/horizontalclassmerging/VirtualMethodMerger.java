@@ -101,7 +101,7 @@ public class VirtualMethodMerger {
   private DexMethod moveMethod(ClassMethodsBuilder classMethodsBuilder, ProgramMethod oldMethod) {
     DexMethod oldMethodReference = oldMethod.getReference();
     DexMethod method =
-        dexItemFactory.createFreshMethodName(
+        dexItemFactory.createFreshMethodNameWithHolder(
             oldMethodReference.name.toSourceString(),
             oldMethod.getHolderType(),
             oldMethodReference.proto,
@@ -261,9 +261,8 @@ public class VirtualMethodMerger {
     DexMethod originalMethodReference =
         appView.graphLens().getOriginalMethodSignature(representative.getReference());
     DexMethod bridgeMethodReference =
-        dexItemFactory.createFreshMethodName(
+        dexItemFactory.createFreshMethodNameWithoutHolder(
             originalMethodReference.getName().toSourceString() + "$bridge",
-            null,
             originalMethodReference.proto,
             originalMethodReference.getHolderType(),
             classMethodsBuilder::isFresh);

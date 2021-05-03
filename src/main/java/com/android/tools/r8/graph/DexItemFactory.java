@@ -2136,7 +2136,31 @@ public class DexItemFactory {
    *
    * @param holder indicates where the method originates from.
    */
-  public DexMethod createFreshMethodName(
+  public DexMethod createFreshMethodNameWithHolder(
+      String baseName,
+      DexType holder,
+      DexProto proto,
+      DexType target,
+      Predicate<DexMethod> isFresh) {
+    assert holder != null;
+    return internalCreateFreshMethodNameWithHolder(baseName, holder, proto, target, isFresh);
+  }
+
+  /**
+   * Tries to find a method name for insertion into the class {@code target} of the form baseName$n,
+   * where {@code baseName} is supplied by the user, and {@code n} is picked to be the first number
+   * so that {@code isFresh.apply(method)} returns {@code true}.
+   */
+  public DexMethod createFreshMethodNameWithoutHolder(
+      String baseName, DexProto proto, DexType target, Predicate<DexMethod> isFresh) {
+    return internalCreateFreshMethodNameWithHolder(baseName, null, proto, target, isFresh);
+  }
+
+  /**
+   * Used to find a fresh method name of the from {@code baseName$n}, or {@code baseName$holder$n}
+   * if {@param holder} is non-null.
+   */
+  private DexMethod internalCreateFreshMethodNameWithHolder(
       String baseName,
       DexType holder,
       DexProto proto,

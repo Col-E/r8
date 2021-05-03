@@ -254,9 +254,8 @@ class TreeFixer extends TreeFixerBase {
             Collections.nCopies(extraNulls, new ExtraUnusedNullParameter()));
       } else {
         newMethodReference =
-            dexItemFactory.createFreshMethodName(
+            dexItemFactory.createFreshMethodNameWithoutHolder(
                 newMethodReference.getName().toSourceString(),
-                null,
                 newMethodReference.proto,
                 newMethodReference.holder,
                 tryMethod ->
