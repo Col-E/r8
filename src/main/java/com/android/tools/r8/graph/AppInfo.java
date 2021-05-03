@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.origin.Origin;
@@ -130,7 +131,8 @@ public class AppInfo implements DexDefinitionSupplier {
   public void addSynthesizedClass(DexProgramClass clazz, ProgramDefinition context) {
     assert checkIfObsolete();
     assert context != null;
-    syntheticItems.addLegacySyntheticClass(clazz, context);
+    syntheticItems.addLegacySyntheticClass(
+        clazz, context, ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap());
   }
 
   public void addSynthesizedClass(DexProgramClass clazz, Iterable<DexProgramClass> contexts) {

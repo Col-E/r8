@@ -3,25 +3,28 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramDefinition;
+import com.android.tools.r8.utils.IterableUtils;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LegacySyntheticDefinition {
   private final DexProgramClass clazz;
-  private final Map<DexType, DexType> contexts = new ConcurrentHashMap<>();
+  private final Map<DexType, FeatureSplit> contexts = new ConcurrentHashMap<>();
 
   public LegacySyntheticDefinition(DexProgramClass clazz) {
     this.clazz = clazz;
   }
 
-  public void addContext(ProgramDefinition clazz) {
+  public void addContext(ProgramDefinition clazz, FeatureSplit featureSplit) {
     DexType type = clazz.getContextType();
-    contexts.put(type, type);
+    contexts.put(type, featureSplit);
   }
 
   public Set<DexType> getContexts() {
@@ -29,7 +32,22 @@ public class LegacySyntheticDefinition {
   }
 
   public LegacySyntheticReference toReference() {
-    return new LegacySyntheticReference(clazz.getType(), ImmutableSet.copyOf(contexts.keySet()));
+    return new LegacySyntheticReference(
+        clazz.getType(), ImmutableSet.copyOf(contexts.keySet()), getFeatureSplit());
+  }
+
+  public FeatureSplit getFeatureSplit() {
+    assert verifyConsistentFeatures();
+    if (contexts.isEmpty()) {
+      return FeatureSplit.BASE;
+    }
+    return IterableUtils.first(contexts.values());
+  }
+
+  private boolean verifyConsistentFeatures() {
+    HashSet<FeatureSplit> features = new HashSet<>(contexts.values());
+    assert features.size() < 2;
+    return true;
   }
 
   public DexProgramClass getDefinition() {

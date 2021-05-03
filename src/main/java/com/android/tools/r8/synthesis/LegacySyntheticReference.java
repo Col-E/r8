@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import java.util.Set;
@@ -10,10 +11,12 @@ import java.util.Set;
 public class LegacySyntheticReference implements Rewritable<LegacySyntheticReference> {
   private final DexType type;
   private final Set<DexType> contexts;
+  private final FeatureSplit featureSplit;
 
-  public LegacySyntheticReference(DexType type, Set<DexType> contexts) {
+  public LegacySyntheticReference(DexType type, Set<DexType> contexts, FeatureSplit featureSplit) {
     this.type = type;
     this.contexts = contexts;
+    this.featureSplit = featureSplit;
   }
 
   @Override
@@ -25,6 +28,10 @@ public class LegacySyntheticReference implements Rewritable<LegacySyntheticRefer
     return contexts;
   }
 
+  public FeatureSplit getFeatureSplit() {
+    return featureSplit;
+  }
+
   @Override
   public LegacySyntheticReference rewrite(NonIdentityGraphLens lens) {
     DexType rewrittenType = lens.lookupType(type);
@@ -32,6 +39,6 @@ public class LegacySyntheticReference implements Rewritable<LegacySyntheticRefer
     if (type == rewrittenType && contexts.equals(rewrittenContexts)) {
       return this;
     }
-    return new LegacySyntheticReference(rewrittenType, rewrittenContexts);
+    return new LegacySyntheticReference(rewrittenType, rewrittenContexts, featureSplit);
   }
 }

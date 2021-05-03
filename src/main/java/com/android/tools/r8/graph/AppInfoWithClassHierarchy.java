@@ -156,6 +156,13 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return this;
   }
 
+  @Override
+  public void addSynthesizedClass(DexProgramClass clazz, ProgramDefinition context) {
+    assert checkIfObsolete();
+    assert context != null;
+    getSyntheticItems().addLegacySyntheticClass(clazz, context, classToFeatureSplitMap);
+  }
+
   /**
    * Primitive traversal over all supertypes of a given type.
    *
