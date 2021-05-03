@@ -80,11 +80,7 @@ public class CompileToInvalidFileTest extends TestBase {
   }
 
   private void checkDiagnostics(TestDiagnosticMessages diagnostics, boolean isD8) {
-    if (classFileConsumer && isD8) {
-      diagnostics.assertWarningsMatch(cfD8NotSupportedDiagnostic);
-    } else {
-      diagnostics.assertOnlyErrors();
-    }
+    diagnostics.assertOnlyErrors();
     diagnostics.assertAllErrorsMatch(diagnosticMessage(containsString(INVALID_FILE.toString())));
   }
 

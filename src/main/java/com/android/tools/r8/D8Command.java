@@ -241,9 +241,6 @@ public final class D8Command extends BaseCompilerCommand {
         return;
       }
       Reporter reporter = getReporter();
-      if (getProgramConsumer() instanceof ClassFileConsumer) {
-        reporter.warning("Compiling to Java class files with D8 is not officially supported");
-      }
       if (getAppBuilder().hasMainDexList()) {
         if (intermediate) {
           reporter.error("Option --main-dex-list cannot be used with --intermediate");

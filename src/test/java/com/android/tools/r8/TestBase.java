@@ -4,11 +4,9 @@
 
 package com.android.tools.r8;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.TestBuilder.getTestingAnnotations;
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static com.google.common.collect.Lists.cartesianProduct;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -121,7 +119,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import org.hamcrest.Matcher;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -1818,9 +1815,4 @@ public class TestBase {
         extractor, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
     return extractor.getClassFileVersion();
   }
-
-  // Default messages
-  protected final Matcher<Diagnostic> cfD8NotSupportedDiagnostic =
-      diagnosticMessage(
-          containsString("Compiling to Java class files with D8 is not officially supported"));
 }
