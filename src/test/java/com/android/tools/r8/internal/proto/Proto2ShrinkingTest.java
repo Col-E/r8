@@ -5,6 +5,7 @@
 package com.android.tools.r8.internal.proto;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -248,7 +249,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
           isPresent());
       assertThat(
           generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber2"),
-          not(isPresent()));
+          notIf(isPresent(), parameters.isCfRuntime()));
     }
 
     // Verify that unused extensions have been removed with -allowaccessmodification.
