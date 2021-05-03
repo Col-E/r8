@@ -350,7 +350,10 @@ public class EnumUnboxer {
       markEnumAsUnboxable(Reason.CONST_CLASS, enumClass);
       return;
     }
-    for (Instruction user : constClass.outValue().uniqueUsers()) {
+    for (Instruction user : constClass.outValue().aliasedUsers()) {
+      if (user.isAssume()) {
+        continue;
+      }
       if (user.isInvokeVirtual()
           && isUnboxableNameMethod(user.asInvokeVirtual().getInvokedMethod())) {
         continue;

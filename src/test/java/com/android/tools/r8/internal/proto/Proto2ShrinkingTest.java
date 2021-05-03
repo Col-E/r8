@@ -249,7 +249,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
           isPresent());
       assertThat(
           generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber2"),
-          notIf(isPresent(), parameters.isCfRuntime()));
+          notIf(isPresent(), enableMinification));
     }
 
     // Verify that unused extensions have been removed with -allowaccessmodification.

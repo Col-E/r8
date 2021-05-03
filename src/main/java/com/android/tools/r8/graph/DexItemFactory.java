@@ -780,6 +780,7 @@ public class DexItemFactory {
               classMethods.getName,
               classMethods.getSimpleName,
               classMethods.forName,
+              objectMembers.getClass,
               objectsMethods.requireNonNull,
               objectsMethods.requireNonNullWithMessage,
               objectsMethods.requireNonNullWithMessageSupplier,
