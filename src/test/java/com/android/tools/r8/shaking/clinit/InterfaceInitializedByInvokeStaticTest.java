@@ -56,7 +56,7 @@ public class InterfaceInitializedByInvokeStaticTest
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("I");
+        .assertSuccessWithOutputLines("I", "J");
   }
 
   @Test
