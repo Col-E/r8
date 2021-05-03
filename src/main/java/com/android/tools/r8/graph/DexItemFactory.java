@@ -2298,8 +2298,10 @@ public class DexItemFactory {
   }
 
   private DexType createStaticallyKnownType(Class<?> clazz) {
+    // This uses Class.getName() and not Class.getTypeName(), as the compilers are also
+    // running on Art versions where Class.getTypeName() is not present (7.0 and before).
     return createStaticallyKnownType(
-        createString(DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName())));
+        createString(DescriptorUtils.javaTypeToDescriptor(clazz.getName())));
   }
 
   private DexType createStaticallyKnownType(DexString descriptor) {
