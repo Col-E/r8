@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.horizontalclassmerging.code.ClassInitializerSynthesizedCode;
 import com.android.tools.r8.ir.analysis.value.NumberFromIntervalValue;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;

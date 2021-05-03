@@ -2,11 +2,12 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.horizontalclassmerging;
+package com.android.tools.r8.horizontalclassmerging.code;
 
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.horizontalclassmerging.ConstructorEntryPoint;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.function.Consumer;

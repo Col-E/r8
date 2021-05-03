@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.horizontalclassmerging.code.VirtualMethodEntryPointSynthesizedCode;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;

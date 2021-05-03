@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.horizontalclassmerging.code.ConstructorEntryPointSynthesizedCode;
 import com.android.tools.r8.ir.conversion.ExtraConstantIntParameter;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
