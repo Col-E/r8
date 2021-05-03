@@ -190,14 +190,17 @@ public class AnnotationRemover {
 
   public void run() {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      stripAttributes(clazz);
+      boolean enclosingMethodPinned = enclosingMethodPinned(appView, clazz);
+      stripAttributes(clazz, enclosingMethodPinned);
       clazz.setAnnotations(
           clazz.annotations().rewrite(annotation -> rewriteAnnotation(clazz, annotation)));
       // Kotlin properties are split over fields and methods. Check if any is pinned before pruning
       // the information.
       Set<KotlinPropertyInfo> pinnedKotlinProperties = Sets.newIdentityHashSet();
-      clazz.forEachMethod(method -> processMethod(method, clazz, pinnedKotlinProperties));
-      clazz.forEachField(field -> processField(field, clazz, pinnedKotlinProperties));
+      clazz.forEachMethod(
+          method -> processMethod(method, clazz, pinnedKotlinProperties, enclosingMethodPinned));
+      clazz.forEachField(
+          field -> processField(field, clazz, pinnedKotlinProperties, enclosingMethodPinned));
       clazz.forEachProgramMember(
           member -> {
             KotlinMemberLevelInfo kotlinInfo = member.getKotlinInfo();
@@ -212,13 +215,14 @@ public class AnnotationRemover {
   private void processMethod(
       DexEncodedMethod method,
       DexProgramClass clazz,
-      Set<KotlinPropertyInfo> pinnedKotlinProperties) {
+      Set<KotlinPropertyInfo> pinnedKotlinProperties,
+      boolean enclosingMethodPinned) {
     method.setAnnotations(
         method.annotations().rewrite(annotation -> rewriteAnnotation(method, annotation)));
     method.parameterAnnotationsList =
         method.parameterAnnotationsList.keepIf(this::filterParameterAnnotations);
     KeepMethodInfo methodInfo = appView.getKeepInfo().getMethodInfo(method, clazz);
-    if (methodInfo.isAllowSignatureAttributeRemovalAllowed(options)) {
+    if (!enclosingMethodPinned && methodInfo.isAllowSignatureAttributeRemovalAllowed(options)) {
       method.clearGenericSignature();
     }
     if (!methodInfo.isPinned() && method.getKotlinInfo().isFunction()) {
@@ -232,11 +236,12 @@ public class AnnotationRemover {
   private void processField(
       DexEncodedField field,
       DexProgramClass clazz,
-      Set<KotlinPropertyInfo> pinnedKotlinProperties) {
+      Set<KotlinPropertyInfo> pinnedKotlinProperties,
+      boolean enclosingMethodPinned) {
     field.setAnnotations(
         field.annotations().rewrite(annotation -> rewriteAnnotation(field, annotation)));
     KeepFieldInfo fieldInfo = appView.getKeepInfo().getFieldInfo(field, clazz);
-    if (fieldInfo.isAllowSignatureAttributeRemovalAllowed(options)) {
+    if (!enclosingMethodPinned && fieldInfo.isAllowSignatureAttributeRemovalAllowed(options)) {
       field.clearGenericSignature();
     }
     if (fieldInfo.isPinned() && field.getKotlinInfo().isProperty()) {
@@ -302,7 +307,7 @@ public class AnnotationRemover {
     return false;
   }
 
-  private void stripAttributes(DexProgramClass clazz) {
+  private void stripAttributes(DexProgramClass clazz, boolean enclosingMethodPinned) {
     // If [clazz] is mentioned by a keep rule, it could be used for reflection, and we therefore
     // need to keep the enclosing method and inner classes attributes, if requested. In Proguard
     // compatibility mode we keep these attributes independent of whether the given class is kept.
@@ -311,7 +316,7 @@ public class AnnotationRemover {
     // is kept.
     boolean keptAnyway =
         appView.appInfo().isPinned(clazz.type)
-            || enclosingMethodPinned(appView, clazz)
+            || enclosingMethodPinned
             || appView.options().forceProguardCompatibility;
     boolean keepForThisInnerClass = false;
     boolean keepForThisEnclosingClass = false;
@@ -356,10 +361,12 @@ public class AnnotationRemover {
       clazz.clearEnclosingMethodAttribute();
       clazz.clearInnerClasses();
     }
-    if (appView
-        .getKeepInfo()
-        .getClassInfo(clazz)
-        .isAllowSignatureAttributeRemovalAllowed(options)) {
+    if (!enclosingMethodPinned
+        && clazz.getClassSignature().isValid()
+        && appView
+            .getKeepInfo()
+            .getClassInfo(clazz)
+            .isAllowSignatureAttributeRemovalAllowed(options)) {
       clazz.clearClassSignature();
     }
   }

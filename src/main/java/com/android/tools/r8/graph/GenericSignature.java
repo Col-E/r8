@@ -98,10 +98,26 @@ import java.util.function.Predicate;
  */
 public class GenericSignature {
 
-  static final List<FormalTypeParameter> EMPTY_TYPE_PARAMS = ImmutableList.of();
-  static final List<FieldTypeSignature> EMPTY_TYPE_ARGUMENTS = ImmutableList.of();
-  static final List<ClassTypeSignature> EMPTY_SUPER_INTERFACES = ImmutableList.of();
-  static final List<TypeSignature> EMPTY_TYPE_SIGNATURES = ImmutableList.of();
+  private static final List<FormalTypeParameter> EMPTY_TYPE_PARAMS = ImmutableList.of();
+  private static final List<FieldTypeSignature> EMPTY_TYPE_ARGUMENTS = ImmutableList.of();
+  private static final List<ClassTypeSignature> EMPTY_SUPER_INTERFACES = ImmutableList.of();
+  private static final List<TypeSignature> EMPTY_TYPE_SIGNATURES = ImmutableList.of();
+
+  public static List<FormalTypeParameter> getEmptyTypeParams() {
+    return EMPTY_TYPE_PARAMS;
+  }
+
+  public static List<FieldTypeSignature> getEmptyTypeArguments() {
+    return EMPTY_TYPE_ARGUMENTS;
+  }
+
+  public static List<ClassTypeSignature> getEmptySuperInterfaces() {
+    return EMPTY_SUPER_INTERFACES;
+  }
+
+  public static List<TypeSignature> getEmptyTypeSignatures() {
+    return EMPTY_TYPE_SIGNATURES;
+  }
 
   interface DexDefinitionSignature<T extends DexDefinition> {
 
@@ -561,10 +577,11 @@ public class GenericSignature {
       if (visitedType == null) {
         return null;
       }
-      List<FieldTypeSignature> rewrittenArguments = visitor.visitTypeArguments(typeArguments);
+      List<FieldTypeSignature> rewrittenArguments =
+          visitor.visitTypeArguments(visitedType, typeArguments);
       ClassTypeSignature rewrittenOuter = null;
       if (enclosingTypeSignature != null) {
-        rewrittenOuter = visitor.visitSimpleClass(enclosingTypeSignature);
+        rewrittenOuter = visitor.visitEnclosing(enclosingTypeSignature, this);
       }
       if (type == visitedType
           && typeArguments == rewrittenArguments

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_ARGUMENTS;
+import static com.android.tools.r8.graph.GenericSignature.getEmptyTypeArguments;
 import static com.google.common.base.Predicates.alwaysFalse;
 
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
@@ -48,7 +48,7 @@ public class GenericSignatureTypeRewriter {
     this.wasPruned = wasPruned;
     this.lookupType = lookupType;
     this.context = context;
-    objectTypeSignature = new ClassTypeSignature(factory.objectType, EMPTY_TYPE_ARGUMENTS);
+    objectTypeSignature = new ClassTypeSignature(factory.objectType, getEmptyTypeArguments());
   }
 
   public ClassSignature rewrite(ClassSignature classSignature) {
@@ -138,9 +138,7 @@ public class GenericSignatureTypeRewriter {
     @Override
     public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
       ClassTypeSignature rewritten = classTypeSignature.visit(this);
-      return rewritten == null || rewritten.type() == context
-          ? new ClassTypeSignature(factory.objectType, EMPTY_TYPE_ARGUMENTS)
-          : rewritten;
+      return rewritten == null || rewritten.type() == context ? objectTypeSignature : rewritten;
     }
 
     @Override
@@ -216,12 +214,14 @@ public class GenericSignatureTypeRewriter {
     }
 
     @Override
-    public ClassTypeSignature visitSimpleClass(ClassTypeSignature classTypeSignature) {
-      return classTypeSignature.visit(this);
+    public ClassTypeSignature visitEnclosing(
+        ClassTypeSignature enclosingSignature, ClassTypeSignature enclosedSignature) {
+      return enclosingSignature.visit(this);
     }
 
     @Override
-    public List<FieldTypeSignature> visitTypeArguments(List<FieldTypeSignature> typeArguments) {
+    public List<FieldTypeSignature> visitTypeArguments(
+        DexType type, List<FieldTypeSignature> typeArguments) {
       if (typeArguments.isEmpty()) {
         return typeArguments;
       }

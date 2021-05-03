@@ -84,9 +84,10 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
   public boolean isAllowSignatureAttributeRemovalAllowed(
       GlobalKeepInfoConfiguration configuration) {
-    // TODO(b/172999267): For full mode we should be able to remove for not pinned items if
-    //  java reflect will not throw up.
-    return !configuration.isKeepAttributesSignatureEnabled();
+    if (!configuration.isKeepAttributesSignatureEnabled()) {
+      return true;
+    }
+    return !(configuration.isForceProguardCompatibilityEnabled() || isPinned());
   }
 
   public abstract boolean isTop();

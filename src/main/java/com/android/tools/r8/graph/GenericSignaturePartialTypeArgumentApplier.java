@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.graph.GenericSignature.getEmptyTypeArguments;
+
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
@@ -14,31 +16,66 @@ import com.android.tools.r8.graph.GenericSignature.StarFieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.graph.GenericSignature.WildcardIndicator;
 import com.android.tools.r8.utils.ListUtils;
-import java.util.HashSet;
+import com.google.common.collect.ImmutableSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 
 public class GenericSignaturePartialTypeArgumentApplier implements GenericSignatureVisitor {
 
   private final Map<String, DexType> substitutions;
+  private final Set<String> liveTypeVariables;
   private final DexType objectType;
-  private final Set<String> introducedClassTypeVariables = new HashSet<>();
-  private final Set<String> introducedMethodTypeVariables = new HashSet<>();
+  private final BiPredicate<DexType, DexType> enclosingPruned;
+  private final Predicate<DexType> hasGenericTypeParameters;
 
   private GenericSignaturePartialTypeArgumentApplier(
-      Map<String, DexType> substitutions, DexType objectType) {
+      Map<String, DexType> substitutions,
+      Set<String> liveTypeVariables,
+      DexType objectType,
+      BiPredicate<DexType, DexType> enclosingPruned,
+      Predicate<DexType> hasGenericTypeParameters) {
     this.substitutions = substitutions;
+    this.liveTypeVariables = liveTypeVariables;
     this.objectType = objectType;
+    this.enclosingPruned = enclosingPruned;
+    this.hasGenericTypeParameters = hasGenericTypeParameters;
   }
 
   public static GenericSignaturePartialTypeArgumentApplier build(
-      DexType objectType, ClassSignature classSignature, Map<String, DexType> substitutions) {
-    GenericSignaturePartialTypeArgumentApplier applier =
-        new GenericSignaturePartialTypeArgumentApplier(substitutions, objectType);
-    classSignature.formalTypeParameters.forEach(
-        parameter -> applier.introducedClassTypeVariables.add(parameter.name));
-    return applier;
+      DexType objectType,
+      BiPredicate<DexType, DexType> enclosingPruned,
+      Predicate<DexType> hasGenericTypeParameters) {
+    return new GenericSignaturePartialTypeArgumentApplier(
+        Collections.emptyMap(),
+        Collections.emptySet(),
+        objectType,
+        enclosingPruned,
+        hasGenericTypeParameters);
+  }
+
+  public GenericSignaturePartialTypeArgumentApplier addSubstitutionsAndVariables(
+      Map<String, DexType> substitutions, Set<String> liveTypeVariables) {
+    return new GenericSignaturePartialTypeArgumentApplier(
+        substitutions, liveTypeVariables, objectType, enclosingPruned, hasGenericTypeParameters);
+  }
+
+  public GenericSignaturePartialTypeArgumentApplier buildForMethod(
+      List<FormalTypeParameter> formals) {
+    if (formals.isEmpty()) {
+      return this;
+    }
+    ImmutableSet.Builder<String> liveVariablesBuilder = ImmutableSet.builder();
+    liveVariablesBuilder.addAll(liveTypeVariables);
+    formals.forEach(
+        formal -> {
+          liveVariablesBuilder.add(formal.name);
+        });
+    return new GenericSignaturePartialTypeArgumentApplier(
+        substitutions, liveTypeVariables, objectType, enclosingPruned, hasGenericTypeParameters);
   }
 
   @Override
@@ -48,12 +85,7 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
 
   @Override
   public MethodTypeSignature visitMethodSignature(MethodTypeSignature methodSignature) {
-    assert introducedMethodTypeVariables.isEmpty();
-    methodSignature.formalTypeParameters.forEach(
-        parameter -> introducedMethodTypeVariables.add(parameter.name));
-    MethodTypeSignature rewritten = methodSignature.visit(this);
-    introducedMethodTypeVariables.clear();
-    return rewritten;
+    return methodSignature.visit(this);
   }
 
   @Override
@@ -96,9 +128,10 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
   }
 
   @Override
-  public List<FieldTypeSignature> visitTypeArguments(List<FieldTypeSignature> typeArguments) {
-    if (typeArguments.isEmpty()) {
-      return typeArguments;
+  public List<FieldTypeSignature> visitTypeArguments(
+      DexType type, List<FieldTypeSignature> typeArguments) {
+    if (typeArguments.isEmpty() || !hasGenericTypeParameters.test(type)) {
+      return getEmptyTypeArguments();
     }
     // Wildcards can only be called be used in certain positions:
     // https://docs.oracle.com/javase/tutorial/java/generics/wildcards.html
@@ -121,8 +154,13 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
   }
 
   @Override
-  public ClassTypeSignature visitSimpleClass(ClassTypeSignature classTypeSignature) {
-    return classTypeSignature.visit(this);
+  public ClassTypeSignature visitEnclosing(
+      ClassTypeSignature enclosingSignature, ClassTypeSignature enclosedSignature) {
+    if (enclosingPruned.test(enclosingSignature.type(), enclosedSignature.type())) {
+      return null;
+    } else {
+      return enclosingSignature.visit(this);
+    }
   }
 
   @Override
@@ -185,8 +223,7 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
       assert fieldSignature.isTypeVariableSignature();
       String typeVariableName = fieldSignature.asTypeVariableSignature().typeVariable();
       if (substitutions.containsKey(typeVariableName)
-          && !introducedClassTypeVariables.contains(typeVariableName)
-          && !introducedMethodTypeVariables.contains(typeVariableName)) {
+          && !liveTypeVariables.contains(typeVariableName)) {
         DexType substitution = substitutions.get(typeVariableName);
         if (substitution == null) {
           substitution = objectType;

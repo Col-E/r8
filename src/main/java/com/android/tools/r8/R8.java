@@ -32,6 +32,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.GenericSignatureTypeVariableRemover;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.PrunedItems;
@@ -376,6 +377,10 @@ public class R8 {
           appView.withGeneratedExtensionRegistryShrinker(
               shrinker -> shrinker.run(Mode.INITIAL_TREE_SHAKING));
 
+          // Build enclosing information and type-paramter information before pruning.
+          GenericSignatureTypeVariableRemover typeVariableRemover =
+              GenericSignatureTypeVariableRemover.create(appView, appView.appInfo().classes());
+
           TreePruner pruner = new TreePruner(appViewWithLiveness);
           DirectMappedDexApplication prunedApp = pruner.run(executorService);
 
@@ -402,6 +407,7 @@ public class R8 {
           annotationRemover.ensureValid().run();
           classesToRetainInnerClassAttributeFor =
               annotationRemover.getClassesToRetainInnerClassAttributeFor();
+          typeVariableRemover.removeDeadGenericSignatureTypeVariables(appView);
           new GenericSignatureRewriter(appView, NamingLens.getIdentityLens())
               .run(appView.appInfo().classes(), executorService);
         }
@@ -611,6 +617,9 @@ public class R8 {
                     shrinker -> shrinker.run(enqueuer.getMode()),
                     DefaultTreePrunerConfiguration.getInstance());
 
+            GenericSignatureTypeVariableRemover typeVariableRemover =
+                GenericSignatureTypeVariableRemover.create(appView, appView.appInfo().classes());
+
             TreePruner pruner = new TreePruner(appViewWithLiveness, treePrunerConfiguration);
             DirectMappedDexApplication application = pruner.run(executorService);
             Set<DexType> removedClasses = pruner.getRemovedClasses();
@@ -652,6 +661,7 @@ public class R8 {
                 .setClassesToRetainInnerClassAttributeFor(classesToRetainInnerClassAttributeFor)
                 .build(appView.withLiveness(), removedClasses)
                 .run();
+            typeVariableRemover.removeDeadGenericSignatureTypeVariables(appView);
             // Synthesize fields for triggering class initializers.
             new ClassInitFieldSynthesizer(appViewWithLiveness).run(executorService);
           }

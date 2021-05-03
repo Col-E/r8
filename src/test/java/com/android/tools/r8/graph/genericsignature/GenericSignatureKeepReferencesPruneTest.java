@@ -43,6 +43,14 @@ public class GenericSignatureKeepReferencesPruneTest extends TestBase {
         "Hello world"
       };
 
+  private final String[] EXPECTED_FULL_MODE =
+      new String[] {
+        "class " + Foo.class.getTypeName(),
+        "interface " + I.class.getTypeName(),
+        "interface " + I.class.getTypeName(),
+        "Hello world"
+      };
+
   private final TestParameters parameters;
   private final boolean isCompat;
 
@@ -79,34 +87,37 @@ public class GenericSignatureKeepReferencesPruneTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .noMinification()
+        .compile()
+        .inspect(this::inspectSignatures)
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/184927364): Should have different output due to pruning the inner class.
-        .assertSuccessWithOutputLines(EXPECTED)
-        .inspect(this::inspectSignatures);
+        .assertSuccessWithOutputLines(isCompat ? EXPECTED : EXPECTED_FULL_MODE);
   }
 
   private void inspectSignatures(CodeInspector inspector) {
     ClassSubject fooClass = inspector.clazz(Foo.class);
     assertThat(fooClass, isPresent());
-    // TODO(b/184927364): Fullmode should not keep the interface bound.
     assertEquals(
-        "<T::Ljava/lang/Comparable<TT;>;>Ljava/lang/Object;",
+        isCompat ? "<T::Ljava/lang/Comparable<TT;>;>Ljava/lang/Object;" : null,
         fooClass.getFinalSignatureAttribute());
     ClassSubject iClass = inspector.clazz(I.class);
     assertThat(iClass, isPresent());
-    // TODO(b/184927364): Fullmode should not keep the interface and class bound.
     assertEquals(
-        "<T::Ljava/lang/Comparable<TT;>;R:L" + binaryName(Foo.class) + "<TT;>;>Ljava/lang/Object;",
+        isCompat
+            ? "<T::Ljava/lang/Comparable<TT;>;R:L"
+                + binaryName(Foo.class)
+                + "<TT;>;>Ljava/lang/Object;"
+            : null,
         iClass.getFinalSignatureAttribute());
     ClassSubject fooInnerClass = inspector.clazz(Main.class.getTypeName() + "$1");
     assertThat(fooInnerClass, isPresent());
-    // TODO(b/184927364): Fullmode should completely remove this signature
     assertEquals(
-        "Ljava/lang/Object;L"
-            + binaryName(I.class)
-            + "<Ljava/lang/String;L"
-            + binaryName(Foo.class)
-            + "<Ljava/lang/String;>;>;",
+        isCompat
+            ? "Ljava/lang/Object;L"
+                + binaryName(I.class)
+                + "<Ljava/lang/String;L"
+                + binaryName(Foo.class)
+                + "<Ljava/lang/String;>;>;"
+            : null,
         fooInnerClass.getFinalSignatureAttribute());
   }
 }

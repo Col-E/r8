@@ -296,7 +296,7 @@ public class MinifierFieldSignatureTest extends TestBase {
 
   @Test
   public void classNotFound() throws Exception {
-    String signature = "LNotFound<TX;>.InnerNotFound.InnerAlsoNotFound;";
+    String signature = "LNotFound$InnerNotFound$InnerAlsoNotFound;";
     testSingleField(
         "anX",
         signature,

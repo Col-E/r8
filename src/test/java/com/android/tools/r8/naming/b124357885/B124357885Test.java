@@ -49,15 +49,7 @@ public class B124357885Test extends TestBase {
   private void checkSignature(CodeInspector inspector, String signature) {
     String fooImplFinalDescriptor =
         DescriptorUtils.javaTypeToDescriptor(inspector.clazz(FooImpl.class).getFinalName());
-    StringBuilder expected =
-        new StringBuilder()
-            .append("()")
-            // Remove the final ; from the descriptor to add the generic type.
-            .append(fooImplFinalDescriptor.substring(0, fooImplFinalDescriptor.length() - 1))
-            .append("<Ljava/lang/String;>")
-            // Add the ; after the generic type.
-            .append(";");
-    assertEquals(expected.toString(), signature);
+    assertEquals("()" + fooImplFinalDescriptor, signature);
   }
 
   @Test
@@ -98,9 +90,14 @@ public class B124357885Test extends TestBase {
   public static class Main {
     public static void main(String... args) throws Exception {
       Method method = Service.class.getMethod("fooList");
-      ParameterizedType type = (ParameterizedType) method.getGenericReturnType();
-      Class<?> rawType = (Class<?>) type.getRawType();
-      System.out.println(rawType.getName());
+
+      try {
+        ParameterizedType type = (ParameterizedType) method.getGenericReturnType();
+        Class<?> rawType = (Class<?>) type.getRawType();
+        System.out.println(rawType.getName());
+      } catch (ClassCastException e) {
+        System.out.println(((Class<?>) method.getGenericReturnType()).getName());
+      }
 
       // Convince R8 we only use subtypes to get class merging of Foo into FooImpl.
       Foo<String> foo = new FooImpl<>();

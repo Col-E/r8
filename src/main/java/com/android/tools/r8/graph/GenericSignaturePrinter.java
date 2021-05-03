@@ -138,13 +138,15 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
   }
 
   @Override
-  public ClassTypeSignature visitSimpleClass(ClassTypeSignature classTypeSignature) {
-    printFieldTypeSignature(classTypeSignature, true);
-    return classTypeSignature;
+  public ClassTypeSignature visitEnclosing(
+      ClassTypeSignature enclosingSignature, ClassTypeSignature enclosedSignature) {
+    printFieldTypeSignature(enclosingSignature, true);
+    return enclosingSignature;
   }
 
   @Override
-  public List<FieldTypeSignature> visitTypeArguments(List<FieldTypeSignature> typeArguments) {
+  public List<FieldTypeSignature> visitTypeArguments(
+      DexType type, List<FieldTypeSignature> typeArguments) {
     if (typeArguments.isEmpty()) {
       return typeArguments;
     }
@@ -185,7 +187,7 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
       }
       // Visit enclosing before printing the type name to ensure we
       if (classTypeSignature.enclosingTypeSignature != null) {
-        visitSimpleClass(classTypeSignature.enclosingTypeSignature);
+        visitEnclosing(classTypeSignature.enclosingTypeSignature, classTypeSignature);
       }
       String renamedString = namingLens.lookupDescriptor(classTypeSignature.type).toString();
       if (classTypeSignature.enclosingTypeSignature == null) {
@@ -205,7 +207,7 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
         }
         sb.append(".").append(innerClassName);
       }
-      visitTypeArguments(classTypeSignature.typeArguments);
+      visitTypeArguments(null, classTypeSignature.typeArguments);
       if (!printingOuter) {
         sb.append(";");
       }

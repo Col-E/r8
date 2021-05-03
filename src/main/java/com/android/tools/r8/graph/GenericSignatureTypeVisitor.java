@@ -116,8 +116,9 @@ class GenericSignatureTypeVisitor implements GenericSignatureVisitor {
   }
 
   @Override
-  public ClassTypeSignature visitSimpleClass(ClassTypeSignature classTypeSignature) {
-    return classTypeSignature.visit(this);
+  public ClassTypeSignature visitEnclosing(
+      ClassTypeSignature enclosingSignature, ClassTypeSignature enclosedSignature) {
+    return enclosingSignature.visit(this);
   }
 
   @Override
@@ -142,7 +143,8 @@ class GenericSignatureTypeVisitor implements GenericSignatureVisitor {
   }
 
   @Override
-  public List<FieldTypeSignature> visitTypeArguments(List<FieldTypeSignature> typeArguments) {
+  public List<FieldTypeSignature> visitTypeArguments(
+      DexType type, List<FieldTypeSignature> typeArguments) {
     typeArguments.forEach(this::visitFieldTypeSignature);
     return typeArguments;
   }

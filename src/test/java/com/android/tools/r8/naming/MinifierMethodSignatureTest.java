@@ -103,7 +103,7 @@ public class MinifierMethodSignatureTest extends TestBase {
 
   @Test
   public void classNotFound() throws Exception {
-    String signature = "<T:LNotFound;>(TT;LAlsoNotFound<TT;>.InnerNotFound.InnerAlsoNotFound;)TT;";
+    String signature = "<T:LNotFound;>(TT;LAlsoNotFound$InnerNotFound$InnerAlsoNotFound;)TT;";
     testSingleMethod(
         "generic",
         signature,

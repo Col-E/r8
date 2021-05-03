@@ -66,7 +66,8 @@ public interface GenericSignatureVisitor {
     throw new Unreachable("Implement if visited");
   }
 
-  default ClassTypeSignature visitSimpleClass(ClassTypeSignature classTypeSignature) {
+  default ClassTypeSignature visitEnclosing(
+      ClassTypeSignature enclosingSignature, ClassTypeSignature enclosedSignature) {
     throw new Unreachable("Implement if visited");
   }
 
@@ -82,7 +83,8 @@ public interface GenericSignatureVisitor {
     throw new Unreachable("Implement if visited");
   }
 
-  default List<FieldTypeSignature> visitTypeArguments(List<FieldTypeSignature> typeArguments) {
+  default List<FieldTypeSignature> visitTypeArguments(
+      DexType type, List<FieldTypeSignature> typeArguments) {
     throw new Unreachable("Implement if visited");
   }
 

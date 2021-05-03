@@ -5,7 +5,6 @@
 package com.android.tools.r8.graph.genericsignature;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -48,12 +47,13 @@ public class GenericSignatureReflectiveInnerTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .addKeepAttributeSignature()
+        .addKeepClassRules(Foo.Bar.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED)
         .inspect(
             inspector -> {
-              assertThat(inspector.clazz(Foo.class), not(isPresent()));
+              assertThat(inspector.clazz(Foo.class), isPresent());
               assertThat(inspector.clazz(Foo.Bar.class), isPresent());
             });
   }
