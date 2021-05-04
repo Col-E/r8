@@ -5,7 +5,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AccessFlags;
+import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
@@ -115,7 +115,7 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
-  public AccessFlags<?> getAccessFlags() {
+  public ClassAccessFlags getAccessFlags() {
     throw new Unreachable("Absent class has no access flags");
   }
 

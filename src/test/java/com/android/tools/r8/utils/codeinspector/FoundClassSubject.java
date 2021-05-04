@@ -11,7 +11,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.graph.AccessFlags;
+import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -356,7 +356,7 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
-  public AccessFlags<?> getAccessFlags() {
+  public ClassAccessFlags getAccessFlags() {
     return getDexProgramClass().getAccessFlags();
   }
 

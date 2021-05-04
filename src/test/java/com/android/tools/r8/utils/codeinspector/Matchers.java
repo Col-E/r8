@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.Collectors;
 import com.android.tools.r8.errors.Unreachable;
@@ -93,6 +94,28 @@ public class Matchers {
 
       @Override
       public void describeMismatchSafely(final MethodSubject subject, Description description) {
+        description
+            .appendText(type(subject) + " ")
+            .appendValue(name(subject))
+            .appendText(" was not");
+      }
+    };
+  }
+
+  public static Matcher<ClassSubject> isInterface() {
+    return new TypeSafeMatcher<ClassSubject>() {
+      @Override
+      public boolean matchesSafely(ClassSubject subject) {
+        return subject.isPresent() && subject.getAccessFlags().isInterface();
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("interface");
+      }
+
+      @Override
+      public void describeMismatchSafely(ClassSubject subject, Description description) {
         description
             .appendText(type(subject) + " ")
             .appendValue(name(subject))
@@ -495,6 +518,22 @@ public class Matchers {
             .appendText(item.getOriginalSignature().toString())
             .appendText(" is not an array of type ")
             .appendText(type.toSourceString());
+      }
+    };
+  }
+
+  public static Matcher<ClassSubject> isImplementing(ClassSubject interfaceSubject) {
+    assertThat(interfaceSubject, isPresent());
+    assertThat(interfaceSubject, isInterface());
+    return new TypeSafeMatcher<ClassSubject>() {
+      @Override
+      public boolean matchesSafely(ClassSubject subject) {
+        return subject.isPresent() && subject.isImplementing(interfaceSubject);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("implements ").appendText(interfaceSubject.getOriginalName());
       }
     };
   }
