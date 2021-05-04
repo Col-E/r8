@@ -298,23 +298,18 @@ class CommittedSyntheticsCollection {
   }
 
   CommittedSyntheticsCollection rewriteWithLens(NonIdentityGraphLens lens) {
+    ImmutableSet.Builder<DexType> syntheticInputsBuilder = ImmutableSet.builder();
     return new CommittedSyntheticsCollection(
-        rewriteItems(legacyTypes, lens),
-        rewriteItems(nonLegacyMethods, lens),
-        rewriteItems(nonLegacyClasses, lens),
-        rewriteItems(syntheticInputs, lens));
-  }
-
-  private static ImmutableSet<DexType> rewriteItems(Set<DexType> items, NonIdentityGraphLens lens) {
-    ImmutableSet.Builder<DexType> rewrittenItems = ImmutableSet.builder();
-    for (DexType item : items) {
-      rewrittenItems.add(lens.lookupType(item));
-    }
-    return rewrittenItems.build();
+        rewriteItems(legacyTypes, lens, syntheticInputsBuilder),
+        rewriteItems(nonLegacyMethods, lens, syntheticInputsBuilder),
+        rewriteItems(nonLegacyClasses, lens, syntheticInputsBuilder),
+        syntheticInputsBuilder.build());
   }
 
   private <R extends Rewritable<R>> ImmutableMap<DexType, List<R>> rewriteItems(
-      Map<DexType, List<R>> items, NonIdentityGraphLens lens) {
+      Map<DexType, List<R>> items,
+      NonIdentityGraphLens lens,
+      ImmutableSet.Builder<DexType> syntheticInputsBuilder) {
     Map<DexType, List<R>> rewrittenItems = new IdentityHashMap<>();
     for (R reference : IterableUtils.flatten(items.values())) {
       R rewritten = reference.rewrite(lens);
@@ -322,6 +317,9 @@ class CommittedSyntheticsCollection {
         rewrittenItems
             .computeIfAbsent(rewritten.getHolder(), ignore -> new ArrayList<>())
             .add(rewritten);
+        if (syntheticInputs.contains(reference.getHolder())) {
+          syntheticInputsBuilder.add(rewritten.getHolder());
+        }
       }
     }
     return ImmutableMap.copyOf(rewrittenItems);

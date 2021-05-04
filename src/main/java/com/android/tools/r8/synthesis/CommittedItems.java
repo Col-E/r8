@@ -38,7 +38,7 @@ public class CommittedItems implements SyntheticDefinitionsProvider {
     this.application = application;
     this.committed = committed;
     this.committedProgramTypes = committedProgramTypes;
-    committed.verifyTypesAreInApp(application);
+    assert committed.verifyTypesAreInApp(application);
   }
 
   // Conversion to a mutable synthetic items collection. Should only be used in AppInfo creation.
