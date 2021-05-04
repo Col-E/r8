@@ -249,7 +249,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   public boolean isSubjectToKeepRules(DexProgramClass clazz) {
     assert isSyntheticClass(clazz);
-    return committed.containsSyntheticInput(clazz.getType());
+    return isSyntheticInput(clazz);
   }
 
   public boolean isSyntheticClass(DexType type) {
@@ -258,6 +258,10 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   public boolean isSyntheticClass(DexProgramClass clazz) {
     return isSyntheticClass(clazz.type);
+  }
+
+  boolean isSyntheticInput(DexProgramClass clazz) {
+    return committed.containsSyntheticInput(clazz.getType());
   }
 
   public FeatureSplit getContextualFeatureSplit(DexType type) {

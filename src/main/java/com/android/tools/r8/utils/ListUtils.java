@@ -135,6 +135,12 @@ public class ListUtils {
     return mapOrElse(list, fn, list);
   }
 
+  public static <T> ArrayList<T> newArrayList(T element) {
+    ArrayList<T> list = new ArrayList<>();
+    list.add(element);
+    return list;
+  }
+
   public static <T> ArrayList<T> newArrayList(ForEachable<T> forEachable) {
     ArrayList<T> list = new ArrayList<>();
     forEachable.forEach(list::add);
@@ -153,6 +159,10 @@ public class ListUtils {
       return Optional.of(list.remove(index));
     }
     return Optional.empty();
+  }
+
+  public static <T> T removeLast(List<T> list) {
+    return list.remove(list.size() - 1);
   }
 
   public static <T extends Comparable<T>> boolean verifyListIsOrdered(List<T> list) {

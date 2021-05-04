@@ -92,17 +92,15 @@ abstract class SyntheticDefinition<
       D other,
       boolean includeContext,
       GraphLens graphLens,
-      ClassToFeatureSplitMap classToFeatureSplitMap,
-      SyntheticItems syntheticItems) {
-    return compareTo(other, includeContext, graphLens, classToFeatureSplitMap, syntheticItems) == 0;
+      ClassToFeatureSplitMap classToFeatureSplitMap) {
+    return compareTo(other, includeContext, graphLens, classToFeatureSplitMap) == 0;
   }
 
   int compareTo(
       D other,
       boolean includeContext,
       GraphLens graphLens,
-      ClassToFeatureSplitMap classToFeatureSplitMap,
-      SyntheticItems syntheticItems) {
+      ClassToFeatureSplitMap classToFeatureSplitMap) {
     DexType thisType = getHolder().getType();
     DexType otherType = other.getHolder().getType();
     if (getKind().isFixedSuffixSynthetic) {

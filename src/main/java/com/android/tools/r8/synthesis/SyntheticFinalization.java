@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -24,10 +25,12 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
@@ -36,6 +39,7 @@ import com.android.tools.r8.utils.structural.RepresentativeMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import java.util.ArrayList;
@@ -47,6 +51,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class SyntheticFinalization {
 
@@ -120,43 +126,6 @@ public class SyntheticFinalization {
         return null;
       }
       return new SyntheticFinalizationGraphLens(appView, fieldMap, methodMap, typeMap);
-    }
-  }
-
-  public static class EquivalenceGroup<T extends SyntheticDefinition<?, T, ?>> {
-    private final List<T> members;
-
-    public EquivalenceGroup(T representative, List<T> members) {
-      assert !members.isEmpty();
-      assert members.get(0) == representative;
-      this.members = members;
-    }
-
-    public T getRepresentative() {
-      return members.get(0);
-    }
-
-    public List<T> getMembers() {
-      return members;
-    }
-
-    public int compareToIncludingContext(
-        EquivalenceGroup<T> other,
-        GraphLens graphLens,
-        ClassToFeatureSplitMap classToFeatureSplitMap,
-        SyntheticItems syntheticItems) {
-      return getRepresentative()
-          .compareTo(
-              other.getRepresentative(), true, graphLens, classToFeatureSplitMap, syntheticItems);
-    }
-
-    @Override
-    public String toString() {
-      return "EquivalenceGroup{ members = "
-          + members.size()
-          + ", repr = "
-          + getRepresentative()
-          + " }";
     }
   }
 
@@ -393,18 +362,16 @@ public class SyntheticFinalization {
           SyntheticMethodDefinition representative = syntheticGroup.getRepresentative();
           SynthesizingContext context = representative.getContext();
           context.registerPrefixRewriting(syntheticType, appView);
-          DexProgramClass representativeClass = representative.getHolder();
-          addSyntheticMarker(representative.getKind(), representativeClass, context, appView);
-          assert representativeClass.getMethodCollection().size() == 1;
-          for (SyntheticMethodDefinition member : syntheticGroup.getMembers()) {
-            if (member != representative) {
-              pruned.add(member.getHolder());
-              deduplicatedClasses.add(member.getHolder());
-            }
-            if (member.getContext().isDerivedFromMainDexList(mainDexInfo)) {
-              derivedMainDexSynthetics.add(syntheticType);
-            }
+          addSyntheticMarker(
+              representative.getKind(), representative.getHolder(), context, appView);
+          if (syntheticGroup.isDerivedFromMainDexList(mainDexInfo)) {
+            derivedMainDexSynthetics.add(syntheticType);
           }
+          syntheticGroup.forEachNonRepresentativeMember(
+              member -> {
+                pruned.add(member.getHolder());
+                deduplicatedClasses.add(member.getHolder());
+              });
         });
 
     syntheticClassGroups.forEach(
@@ -414,16 +381,14 @@ public class SyntheticFinalization {
           context.registerPrefixRewriting(syntheticType, appView);
           addSyntheticMarker(
               representative.getKind(), representative.getHolder(), context, appView);
-          for (SyntheticProgramClassDefinition member : syntheticGroup.getMembers()) {
-            DexProgramClass memberClass = member.getHolder();
-            if (member != representative) {
-              pruned.add(memberClass);
-              deduplicatedClasses.add(memberClass);
-            }
-            if (member.getContext().isDerivedFromMainDexList(mainDexInfo)) {
-              derivedMainDexSynthetics.add(syntheticType);
-            }
+          if (syntheticGroup.isDerivedFromMainDexList(mainDexInfo)) {
+            derivedMainDexSynthetics.add(syntheticType);
           }
+          syntheticGroup.forEachNonRepresentativeMember(
+              member -> {
+                pruned.add(member.getHolder());
+                deduplicatedClasses.add(member.getHolder());
+              });
         });
 
     // Only create a new application if anything changed.
@@ -457,6 +422,8 @@ public class SyntheticFinalization {
     syntheticClassGroups.forEach(
         (syntheticType, syntheticGroup) -> {
           DexProgramClass externalSyntheticClass = appForLookup.programDefinitionFor(syntheticType);
+          assert externalSyntheticClass != null
+              : "Expected definition for " + syntheticType.getTypeName();
           SyntheticProgramClassDefinition representative = syntheticGroup.getRepresentative();
           addFinalSyntheticClass.accept(
               externalSyntheticClass,
@@ -496,10 +463,10 @@ public class SyntheticFinalization {
       boolean verifyNonRepresentativesRemovedFromApplication(
           DexApplication application, Map<DexType, EquivalenceGroup<T>> syntheticGroups) {
     for (EquivalenceGroup<?> syntheticGroup : syntheticGroups.values()) {
-      for (SyntheticDefinition<?, ?, ?> member : syntheticGroup.getMembers()) {
-        assert member == syntheticGroup.getRepresentative()
-            || application.definitionFor(member.getHolder().getType()) == null;
-      }
+      syntheticGroup.forEachNonRepresentativeMember(
+          member -> {
+            assert application.definitionFor(member.getHolder().getType()) == null;
+          });
     }
     return true;
   }
@@ -532,34 +499,35 @@ public class SyntheticFinalization {
           ClassToFeatureSplitMap classToFeatureSplitMap,
           Builder lensBuilder) {
     Map<String, List<EquivalenceGroup<T>>> groupsPerPrefix = new HashMap<>();
+    Map<DexType, EquivalenceGroup<T>> equivalences = new IdentityHashMap<>();
     potentialEquivalences.forEach(
         members -> {
-          List<List<T>> groups =
-              groupEquivalent(
-                  members, intermediate, appView.graphLens(), classToFeatureSplitMap, synthetics);
-          for (List<T> group : groups) {
-            T representative =
-                findDeterministicRepresentative(
-                    group, appView.graphLens(), classToFeatureSplitMap, synthetics);
-            // The representative is required to be the first element of the group.
-            group.remove(representative);
-            group.add(0, representative);
-            groupsPerPrefix
-                .computeIfAbsent(
-                    representative.getPrefixForExternalSyntheticType(), k -> new ArrayList<>())
-                .add(new EquivalenceGroup<>(representative, group));
+          List<EquivalenceGroup<T>> groups =
+              groupEquivalent(appView, members, intermediate, classToFeatureSplitMap);
+          for (EquivalenceGroup<T> group : groups) {
+            // If the group already has a representative, then this representative is pinned.
+            // Otherwise, we select a deterministic representative.
+            if (group.hasRepresentative()) {
+              EquivalenceGroup<T> previous =
+                  equivalences.put(group.getRepresentative().getHolder().getType(), group);
+              assert previous == null;
+            } else {
+              group.selectDeterministicRepresentative();
+              groupsPerPrefix
+                  .computeIfAbsent(
+                      group.getRepresentative().getPrefixForExternalSyntheticType(),
+                      k -> new ArrayList<>())
+                  .add(group);
+            }
           }
         });
-
-    Map<DexType, EquivalenceGroup<T>> equivalences = new IdentityHashMap<>();
     groupsPerPrefix.forEach(
         (externalSyntheticTypePrefix, groups) -> {
           // Sort the equivalence groups that go into 'context' including the context type of the
           // representative which is equal to 'context' here (see assert below).
           groups.sort(
               (a, b) ->
-                  a.compareToIncludingContext(
-                      b, appView.graphLens(), classToFeatureSplitMap, synthetics));
+                  a.compareToIncludingContext(b, appView.graphLens(), classToFeatureSplitMap));
           for (int i = 0; i < groups.size(); i++) {
             EquivalenceGroup<T> group = groups.get(i);
             assert group
@@ -570,84 +538,113 @@ public class SyntheticFinalization {
             // of the synthetic name will be non-deterministic between the two.
             assert i == 0
                 || checkGroupsAreDistinct(
-                    groups.get(i - 1),
-                    group,
-                    appView.graphLens(),
-                    classToFeatureSplitMap,
-                    synthetics);
-            SyntheticKind kind = group.members.get(0).getKind();
+                    groups.get(i - 1), group, appView.graphLens(), classToFeatureSplitMap);
+            SyntheticKind kind = group.getRepresentative().getKind();
             DexType representativeType =
-                createExternalType(kind, externalSyntheticTypePrefix, generators, appView);
+                createExternalType(
+                    kind,
+                    externalSyntheticTypePrefix,
+                    generators,
+                    appView,
+                    equivalences::containsKey);
             equivalences.put(representativeType, group);
-            for (T member : group.getMembers()) {
-              lensBuilder.move(member.getHolder().getType(), representativeType);
-            }
           }
         });
+    equivalences.forEach(
+        (representativeType, group) ->
+            group.forEach(
+                member -> lensBuilder.move(member.getHolder().getType(), representativeType)));
     return equivalences;
   }
 
-  private static <T extends SyntheticDefinition<?, T, ?>> List<List<T>> groupEquivalent(
+  private static <T extends SyntheticDefinition<?, T, ?>> List<EquivalenceGroup<T>> groupEquivalent(
+      AppView<?> appView,
       List<T> potentialEquivalence,
       boolean intermediate,
-      GraphLens graphLens,
-      ClassToFeatureSplitMap classToFeatureSplitMap,
-      SyntheticItems syntheticItems) {
-    List<List<T>> groups = new ArrayList<>();
+      ClassToFeatureSplitMap classToFeatureSplitMap) {
+    List<EquivalenceGroup<T>> groups = new ArrayList<>();
     // Each other member is in a shared group if it is actually equivalent to the first member.
     for (T synthetic : potentialEquivalence) {
-      boolean requireNewGroup = true;
-      for (List<T> group : groups) {
+      boolean mustBeRepresentative = isPinned(appView, synthetic);
+      EquivalenceGroup<T> equivalenceGroup = null;
+      for (EquivalenceGroup<T> group : groups) {
         if (synthetic.isEquivalentTo(
-            group.get(0), intermediate, graphLens, classToFeatureSplitMap, syntheticItems)) {
-          requireNewGroup = false;
-          group.add(synthetic);
+            group.hasRepresentative()
+                ? group.getRepresentative()
+                : group.getFirstNonRepresentativeMember(),
+            intermediate,
+            appView.graphLens(),
+            classToFeatureSplitMap)) {
+          if (mustBeRepresentative && group.hasRepresentative()) {
+            // Check if the current synthetic is smaller than the group's representative. If so,
+            // then replace the representative, to ensure deterministic groups, and create a new
+            // singleton group containing the old representative. Otherwise, just add a singleton
+            // group containing the new synthetic.
+            T representative = group.getRepresentative();
+            if (representative
+                    .toReference()
+                    .getReference()
+                    .compareTo(synthetic.toReference().getReference())
+                > 0) {
+              group.replaceAndRemoveRepresentative(synthetic);
+              synthetic = representative;
+            }
+          }
+          equivalenceGroup = group;
           break;
         }
       }
-      if (requireNewGroup) {
-        List<T> newGroup = new ArrayList<>();
-        newGroup.add(synthetic);
-        groups.add(newGroup);
+      if (equivalenceGroup != null) {
+        equivalenceGroup.add(synthetic, mustBeRepresentative);
+      } else {
+        groups.add(new EquivalenceGroup<>(synthetic, mustBeRepresentative));
       }
     }
     return groups;
+  }
+
+  /**
+   * In R8, keep rules may apply to synthetics from the input, if the input has been compiled using
+   * intermediate mode.
+   */
+  private static <D extends SyntheticDefinition<?, D, ?>> boolean isPinned(
+      AppView<?> appView, D definition) {
+    if (!appView.enableWholeProgramOptimizations()) {
+      return false;
+    }
+    if (!definition.getHolder().isProgramClass()) {
+      return true;
+    }
+    DexProgramClass holder = definition.getHolder().asProgramClass();
+    KeepInfoCollection keepInfo = appView.getKeepInfo();
+    if (keepInfo.getClassInfo(holder).isPinned()) {
+      return true;
+    }
+    for (DexEncodedMember<?, ?> member : holder.members()) {
+      if (keepInfo.getMemberInfo(member, holder).isPinned()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static <T extends SyntheticDefinition<?, T, ?>> boolean checkGroupsAreDistinct(
       EquivalenceGroup<T> g1,
       EquivalenceGroup<T> g2,
       GraphLens graphLens,
-      ClassToFeatureSplitMap classToFeatureSplitMap,
-      SyntheticItems syntheticItems) {
-    int order = g1.compareToIncludingContext(g2, graphLens, classToFeatureSplitMap, syntheticItems);
+      ClassToFeatureSplitMap classToFeatureSplitMap) {
+    int order = g1.compareToIncludingContext(g2, graphLens, classToFeatureSplitMap);
     assert order != 0;
-    assert order
-        != g2.compareToIncludingContext(g1, graphLens, classToFeatureSplitMap, syntheticItems);
+    assert order != g2.compareToIncludingContext(g1, graphLens, classToFeatureSplitMap);
     return true;
-  }
-
-  private static <T extends SyntheticDefinition<?, T, ?>> T findDeterministicRepresentative(
-      List<T> members,
-      GraphLens graphLens,
-      ClassToFeatureSplitMap classToFeatureSplitMap,
-      SyntheticItems syntheticItems) {
-    // Pick a deterministic member as representative.
-    T smallest = members.get(0);
-    for (int i = 1; i < members.size(); i++) {
-      T next = members.get(i);
-      if (next.toReference().getReference().compareTo(smallest.toReference().getReference()) < 0) {
-        smallest = next;
-      }
-    }
-    return smallest;
   }
 
   private DexType createExternalType(
       SyntheticKind kind,
       String externalSyntheticTypePrefix,
       Map<String, NumberGenerator> generators,
-      AppView<?> appView) {
+      AppView<?> appView,
+      Predicate<DexType> reserved) {
     DexItemFactory factory = appView.dexItemFactory();
     if (kind.isFixedSuffixSynthetic) {
       return SyntheticNaming.createExternalType(kind, externalSyntheticTypePrefix, "", factory);
@@ -659,6 +656,12 @@ public class SyntheticFinalization {
       externalType =
           SyntheticNaming.createExternalType(
               kind, externalSyntheticTypePrefix, Integer.toString(generator.next()), factory);
+      // If the generated external type matches an external synthetic from the input, which is kept,
+      // then continue.
+      if (reserved.test(externalType)) {
+        externalType = null;
+        continue;
+      }
       DexClass clazz = appView.appInfo().definitionForWithoutExistenceAssert(externalType);
       if (clazz != null && isNotSyntheticType(clazz.type)) {
         assert options.testing.allowConflictingSyntheticTypes
@@ -726,5 +729,102 @@ public class SyntheticFinalization {
       }
     }
     return definitions;
+  }
+
+  private static class EquivalenceGroup<T extends SyntheticDefinition<?, T, ?>> {
+
+    // The members of the equivalence group, *excluding* the representative.
+    private List<T> members = new ArrayList<>();
+    private T representative;
+
+    EquivalenceGroup(T member, boolean isRepresentative) {
+      add(member, isRepresentative);
+    }
+
+    void add(T member, boolean isRepresentative) {
+      if (isRepresentative) {
+        assert !hasRepresentative();
+        representative = member;
+      } else {
+        members.add(member);
+      }
+    }
+
+    int compareToIncludingContext(
+        EquivalenceGroup<T> other,
+        GraphLens graphLens,
+        ClassToFeatureSplitMap classToFeatureSplitMap) {
+      return getRepresentative()
+          .compareTo(other.getRepresentative(), true, graphLens, classToFeatureSplitMap);
+    }
+
+    public void forEach(Consumer<T> consumer) {
+      consumer.accept(getRepresentative());
+      members.forEach(consumer);
+    }
+
+    public void forEachNonRepresentativeMember(Consumer<T> consumer) {
+      members.forEach(consumer);
+    }
+
+    T getFirstNonRepresentativeMember() {
+      assert !members.isEmpty();
+      return members.get(0);
+    }
+
+    T getRepresentative() {
+      assert hasRepresentative();
+      return representative;
+    }
+
+    boolean hasRepresentative() {
+      return representative != null;
+    }
+
+    boolean isDerivedFromMainDexList(MainDexInfo mainDexInfo) {
+      return getRepresentative().getContext().isDerivedFromMainDexList(mainDexInfo)
+          || Iterables.any(
+              members, member -> member.getContext().isDerivedFromMainDexList(mainDexInfo));
+    }
+
+    void replaceAndRemoveRepresentative(T representative) {
+      assert hasRepresentative();
+      this.representative = representative;
+    }
+
+    void selectDeterministicRepresentative() {
+      // Pick a deterministic member as representative.
+      assert !hasRepresentative();
+      int representativeIndex = 0;
+      for (int i = 1; i < members.size(); i++) {
+        T next = members.get(i);
+        T representative = members.get(representativeIndex);
+        if (next.toReference().getReference().compareTo(representative.toReference().getReference())
+            < 0) {
+          representativeIndex = i;
+        }
+      }
+      T representative = members.get(representativeIndex);
+      members.set(representativeIndex, ListUtils.last(members));
+      ListUtils.removeLast(members);
+      setRepresentative(representative);
+    }
+
+    void setRepresentative(T representative) {
+      assert !hasRepresentative();
+      this.representative = representative;
+    }
+
+    @Override
+    public String toString() {
+      if (hasRepresentative()) {
+        return "EquivalenceGroup{ size = "
+            + (members.size() + 1)
+            + ", repr = "
+            + getRepresentative()
+            + " }";
+      }
+      return "EquivalenceGroup{ size = " + members.size() + " }";
+    }
   }
 }
