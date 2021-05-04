@@ -589,8 +589,9 @@ public class SyntheticFinalization {
               group.replaceAndRemoveRepresentative(synthetic);
               synthetic = representative;
             }
+          } else {
+            equivalenceGroup = group;
           }
-          equivalenceGroup = group;
           break;
         }
       }
