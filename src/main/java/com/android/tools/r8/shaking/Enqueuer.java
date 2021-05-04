@@ -156,6 +156,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
@@ -3065,7 +3066,7 @@ public class Enqueuer {
 
     private final ProcessorContext processorContext;
     private Map<DexMethod, MethodProcessingContext> methodProcessingContexts =
-        new IdentityHashMap<>();
+        new ConcurrentHashMap<>();
 
     List<ProgramMethod> desugaredMethods = new LinkedList<>();
 
