@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -53,6 +54,12 @@ public class SetUtils {
     Set<T> result = newIdentityHashSet(capacity);
     result.add(element);
     return result;
+  }
+
+  public static <T> ImmutableSet<T> newImmutableSet(ForEachable<T> forEachable) {
+    ImmutableSet.Builder<T> builder = ImmutableSet.builder();
+    forEachable.forEach(builder::add);
+    return builder.build();
   }
 
   public static <T, S> Set<T> mapIdentityHashSet(Set<S> set, Function<S, T> fn) {

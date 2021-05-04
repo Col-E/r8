@@ -257,9 +257,15 @@ public class SyntheticFinalization {
 
     SyntheticFinalizationGraphLens syntheticFinalizationGraphLens = lensBuilder.build(appView);
 
-    ImmutableSet.Builder<DexType> finalInputSyntheticsBuilder = ImmutableSet.builder();
-    committed.forEachSyntheticInput(
-        type -> finalInputSyntheticsBuilder.add(syntheticFinalizationGraphLens.lookupType(type)));
+    ImmutableSet<DexType> finalInputSynthetics =
+        syntheticFinalizationGraphLens != null
+            ? SetUtils.newImmutableSet(
+                builder ->
+                    committed.forEachSyntheticInput(
+                        syntheticInputType ->
+                            builder.accept(
+                                syntheticFinalizationGraphLens.lookupType(syntheticInputType))))
+            : committed.syntheticInputs;
 
     // TODO(b/181858113): Remove once deprecated main-dex-list is removed.
     MainDexInfo.Builder mainDexInfoBuilder = appView.appInfo().getMainDexInfo().builderFromCopy();
@@ -270,10 +276,7 @@ public class SyntheticFinalization {
             SyntheticItems.INVALID_ID_AFTER_SYNTHETIC_FINALIZATION,
             application,
             new CommittedSyntheticsCollection(
-                committed.getLegacyTypes(),
-                finalMethods,
-                finalClasses,
-                finalInputSyntheticsBuilder.build()),
+                committed.getLegacyTypes(), finalMethods, finalClasses, finalInputSynthetics),
             ImmutableList.of()),
         syntheticFinalizationGraphLens,
         PrunedItems.builder().setPrunedApp(application).addRemovedClasses(prunedSynthetics).build(),
