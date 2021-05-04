@@ -390,7 +390,7 @@ def main(argv):
 
 def get_version_and_data(options):
   if options.app == 'gmscore':
-    version = options.version or 'v9'
+    version = options.version or gmscore_data.LATEST_VERSION
     data = gmscore_data
   elif options.app == 'nest':
     version = options.version or '20180926'
