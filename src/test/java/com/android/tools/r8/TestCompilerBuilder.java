@@ -65,6 +65,7 @@ public abstract class TestCompilerBuilder<
   private MainDexClassesCollector mainDexClassesCollector;
   private StringConsumer mainDexListConsumer;
   protected int minApiLevel = ToolHelper.getMinApiLevelForDexVm().getLevel();
+  private boolean optimizeMultidexForLinearAlloc = false;
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
   private ByteArrayOutputStream stdout = null;
   private PrintStream oldStdout = null;
@@ -167,6 +168,7 @@ public abstract class TestCompilerBuilder<
           : "Don't set the API level directly through BaseCompilerCommand.Builder in tests";
       builder.setMinApiLevel(minApiLevel);
     }
+    builder.setOptimizeMultidexForLinearAlloc(optimizeMultidexForLinearAlloc);
     if (useDefaultRuntimeLibrary) {
       if (backend == Backend.DEX) {
         assert builder.isMinApiLevelSet();
@@ -305,6 +307,11 @@ public abstract class TestCompilerBuilder<
     if (runtime.isDex()) {
       setMinApi(runtime.asDex().getMinApiLevel());
     }
+    return self();
+  }
+
+  public T setOptimizeMultidexForLinearAlloc() {
+    this.optimizeMultidexForLinearAlloc = true;
     return self();
   }
 

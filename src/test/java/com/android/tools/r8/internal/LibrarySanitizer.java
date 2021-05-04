@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.rules.TemporaryFolder;
 
@@ -54,6 +55,10 @@ public class LibrarySanitizer {
   LibrarySanitizer addProguardConfigurationFiles(List<Path> proguardConfigurationFiles) {
     this.proguardConfigurationFiles.addAll(proguardConfigurationFiles);
     return this;
+  }
+
+  LibrarySanitizer addProguardConfigurationFiles(Path... proguardConfigurationFiles) {
+    return addProguardConfigurationFiles(Arrays.asList(proguardConfigurationFiles));
   }
 
   public Path getSanitizedLibrary() {
