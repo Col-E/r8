@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar.itf;
 
 import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
+import static com.android.tools.r8.ir.code.Invoke.Type.INTERFACE;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 import static com.android.tools.r8.ir.code.Invoke.Type.SUPER;
 import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
@@ -231,8 +232,12 @@ public final class InterfaceMethodRewriter {
       if (clazz != null && clazz.isInterface()) {
         return true;
       }
+      return emulatedMethods.contains(method.getName());
     }
-    return emulatedMethods.contains(method.getName());
+    if (invokeType == VIRTUAL || invokeType == INTERFACE) {
+      return defaultMethodForEmulatedDispatchOrNull(method, invokeType) != null;
+    }
+    return true;
   }
 
   DexType getEmulatedInterface(DexType itf) {
@@ -621,27 +626,41 @@ public final class InterfaceMethodRewriter {
     }
   }
 
-  private void rewriteInvokeInterfaceOrInvokeVirtual(
-      InvokeMethodWithReceiver invoke, InstructionListIterator instructions) {
-    DexMethod invokedMethod = invoke.getInvokedMethod();
-    DexType emulatedItf = maximallySpecificEmulatedInterfaceOrNull(invokedMethod);
+  private DexClassAndMethod defaultMethodForEmulatedDispatchOrNull(
+      DexMethod method, Type invokeType) {
+    assert invokeType == VIRTUAL || invokeType == INTERFACE;
+    boolean interfaceBit = invokeType.isInterface();
+    DexType emulatedItf = maximallySpecificEmulatedInterfaceOrNull(method);
     if (emulatedItf == null) {
-      return;
+      return null;
     }
-
     // The call potentially ends up in a library class, in which case we need to rewrite, since the
     // code may be in the desugared library.
     SingleResolutionResult resolution =
-        appView
-            .appInfoForDesugaring()
-            .resolveMethod(invokedMethod, invoke.getInterfaceBit())
-            .asSingleResolution();
+        appView.appInfoForDesugaring().resolveMethod(method, interfaceBit).asSingleResolution();
     if (resolution != null
         && (resolution.getResolvedHolder().isLibraryClass()
             || appView.options().isDesugaredLibraryCompilation())) {
-      assert needsRewriting(invokedMethod, VIRTUAL);
-      rewriteCurrentInstructionToEmulatedInterfaceCall(
-          emulatedItf, invokedMethod, invoke, instructions);
+      DexClassAndMethod defaultMethod =
+          appView.definitionFor(emulatedItf).lookupClassMethod(method);
+      if (defaultMethod != null && !dontRewrite(defaultMethod)) {
+        assert !defaultMethod.getAccessFlags().isAbstract();
+        return defaultMethod;
+      }
+    }
+    return null;
+  }
+
+  private void rewriteInvokeInterfaceOrInvokeVirtual(
+      InvokeMethodWithReceiver invoke, InstructionListIterator instructions) {
+    DexClassAndMethod defaultMethod =
+        defaultMethodForEmulatedDispatchOrNull(invoke.getInvokedMethod(), invoke.getType());
+    if (defaultMethod != null) {
+      instructions.replaceCurrentInstruction(
+          new InvokeStatic(
+              emulateInterfaceLibraryMethod(defaultMethod, factory),
+              invoke.outValue(),
+              invoke.arguments()));
     }
   }
 
@@ -731,23 +750,6 @@ public final class InterfaceMethodRewriter {
       return singleTarget.getHolderType();
     }
     return null;
-  }
-
-  private void rewriteCurrentInstructionToEmulatedInterfaceCall(
-      DexType emulatedItf,
-      DexMethod invokedMethod,
-      InvokeMethod invokeMethod,
-      InstructionListIterator instructions) {
-    DexClassAndMethod defaultMethod =
-        appView.definitionFor(emulatedItf).lookupClassMethod(invokedMethod);
-    if (defaultMethod != null && !dontRewrite(defaultMethod)) {
-      assert !defaultMethod.getAccessFlags().isAbstract();
-      instructions.replaceCurrentInstruction(
-          new InvokeStatic(
-              emulateInterfaceLibraryMethod(defaultMethod, factory),
-              invokeMethod.outValue(),
-              invokeMethod.arguments()));
-    }
   }
 
   private boolean isNonDesugaredLibraryClass(DexClass clazz) {
