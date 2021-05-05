@@ -126,7 +126,7 @@ def maybe_tag(args, version):
 
 def version_change_diff(diff, old_version, new_version):
   invalid_line = None
-  for line in diff.splitlines():
+  for line in str(diff).splitlines():
     if line.startswith('-  ') and \
         line != '-  public static final String LABEL = "%s";' % old_version:
       invalid_line = line
@@ -634,7 +634,7 @@ def gmaven_publisher_publish(args, release_id):
 
 def branch_change_diff(diff, old_version, new_version):
   invalid_line = None
-  for line in diff.splitlines():
+  for line in str(diff).splitlines():
     if line.startswith('-R8') and \
         line != "-R8_DEV_BRANCH = '%s'" % old_version:
       print(line)
