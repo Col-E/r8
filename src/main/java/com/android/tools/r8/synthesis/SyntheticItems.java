@@ -397,11 +397,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   // TODO(b/158159959): Remove the usage of this direct class addition.
   public void addLegacySyntheticClass(
-      DexProgramClass clazz,
-      ProgramDefinition context,
-      ClassToFeatureSplitMap classToFeatureSplitMap) {
+      DexProgramClass clazz, ProgramDefinition context, FeatureSplit featureSplit) {
     LegacySyntheticDefinition legacyItem = internalAddLegacySyntheticClass(clazz);
-    FeatureSplit featureSplit = classToFeatureSplitMap.getFeatureSplit(context, this);
     legacyItem.addContext(context, featureSplit);
   }
 

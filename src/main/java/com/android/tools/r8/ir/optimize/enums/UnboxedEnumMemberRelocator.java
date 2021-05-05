@@ -179,7 +179,7 @@ public class UnboxedEnumMemberRelocator {
               appView.dexItemFactory().getSkipNameValidationForTesting(),
               DexProgramClass::checksumFromType);
       appBuilder.addSynthesizedClass(syntheticClass);
-      appView.appInfo().addSynthesizedClass(syntheticClass, contexts);
+      appView.appInfo().addSynthesizedClassToBase(syntheticClass, contexts);
       return syntheticClass;
     }
 

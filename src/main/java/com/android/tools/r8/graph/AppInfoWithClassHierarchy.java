@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.utils.TraversalContinuation.BREAK;
 import static com.android.tools.r8.utils.TraversalContinuation.CONTINUE;
 
+import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.ArrayCloneMethodResult;
@@ -160,7 +161,9 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public void addSynthesizedClass(DexProgramClass clazz, ProgramDefinition context) {
     assert checkIfObsolete();
     assert context != null;
-    getSyntheticItems().addLegacySyntheticClass(clazz, context, classToFeatureSplitMap);
+    FeatureSplit featureSplit =
+        classToFeatureSplitMap.getFeatureSplit(context, getSyntheticItems());
+    getSyntheticItems().addLegacySyntheticClass(clazz, context, featureSplit);
   }
 
   /**
