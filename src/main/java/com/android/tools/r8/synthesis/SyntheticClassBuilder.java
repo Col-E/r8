@@ -38,6 +38,7 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
   private Kind originKind;
   private DexType superType;
   private DexTypeList interfaces = DexTypeList.empty();
+  private DexString sourceFile = null;
   private List<DexEncodedField> staticFields = new ArrayList<>();
   private List<DexEncodedField> instanceFields = new ArrayList<>();
   private List<DexEncodedMethod> directMethods = new ArrayList<>();
@@ -81,6 +82,11 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
     return self();
   }
 
+  public B setSourceFile(DexString sourceFile) {
+    this.sourceFile = sourceFile;
+    return self();
+  }
+
   public B setStaticFields(List<DexEncodedField> fields) {
     staticFields.clear();
     staticFields.addAll(fields);
@@ -117,7 +123,6 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
     ClassAccessFlags accessFlags =
         ClassAccessFlags.fromSharedAccessFlags(
             flag | Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
-    DexString sourceFile = null;
     NestHostClassAttribute nestHost = null;
     List<NestMemberClassAttribute> nestMembers = Collections.emptyList();
     EnclosingMethodAttribute enclosingMembers = null;

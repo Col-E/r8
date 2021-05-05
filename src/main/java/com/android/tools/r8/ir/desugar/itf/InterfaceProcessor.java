@@ -17,7 +17,6 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication.Builder;
@@ -28,21 +27,18 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.NestedGraphLens;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
+import com.android.tools.r8.synthesis.SyntheticNaming;
+import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
@@ -53,7 +49,6 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -76,9 +71,6 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   private final Map<DexProgramClass, PostProcessingInterfaceInfo> postProcessingInterfaceInfos =
       new ConcurrentHashMap<>();
 
-  // All created companion classes indexed by interface type.
-  final Map<DexClass, DexProgramClass> syntheticClasses = new ConcurrentHashMap<>();
-
   InterfaceProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
     this.rewriter = rewriter;
@@ -91,7 +83,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     }
     analyzeBridges(iface);
     if (needsCompanionClass(iface)) {
-      synthesizeCompanionClass(iface, synthesizedMethods);
+      ensureCompanionClass(iface, synthesizedMethods);
     }
   }
 
@@ -124,72 +116,54 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     return false;
   }
 
-  private void synthesizeCompanionClass(
+  private DexProgramClass ensureCompanionClass(
       DexProgramClass iface, ProgramMethodSet synthesizedMethods) {
-    // The list of methods to be created in companion class.
-    List<DexEncodedMethod> companionMethods = new ArrayList<>();
 
-    ensureCompanionClassInitializesInterface(iface, companionMethods);
-
-    // Process virtual interface methods first.
-    processVirtualInterfaceMethods(iface, companionMethods);
-
-    // Process static and private methods, move them into companion class as well,
-    // make private instance methods public static.
-    processDirectInterfaceMethods(iface, companionMethods);
-
-    assert !companionMethods.isEmpty();
-
-    ClassAccessFlags companionClassFlags = iface.accessFlags.copy();
-    companionClassFlags.unsetAbstract();
-    companionClassFlags.unsetInterface();
-    companionClassFlags.unsetAnnotation();
-    companionClassFlags.setFinal();
-    companionClassFlags.setSynthetic();
-    // Companion class must be public so moved methods can be called from anywhere.
-    companionClassFlags.setPublic();
-
-    // Create companion class.
-    DexType companionClassType = rewriter.getCompanionClassType(iface.type);
     DexProgramClass companionClass =
-        new DexProgramClass(
-            companionClassType,
-            null,
-            new SynthesizedOrigin("interface desugaring", getClass()),
-            companionClassFlags,
-            rewriter.factory.objectType,
-            DexTypeList.empty(),
-            iface.sourceFile,
-            null,
-            Collections.emptyList(),
-            null,
-            Collections.emptyList(),
-            ClassSignature.noSignature(),
-            DexAnnotationSet.empty(),
-            DexEncodedField.EMPTY_ARRAY,
-            DexEncodedField.EMPTY_ARRAY,
-            companionMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
-            DexEncodedMethod.EMPTY_ARRAY,
-            rewriter.factory.getSkipNameValidationForTesting(),
-            getChecksumSupplier(iface));
-    syntheticClasses.put(iface, companionClass);
+        appView
+            .getSyntheticItems()
+            .ensureFixedClassWhileMigrating(
+                SyntheticNaming.SyntheticKind.COMPANION_CLASS,
+                rewriter.getCompanionClassType(iface.type),
+                iface,
+                appView,
+                builder -> {
+                  builder.setSourceFile(iface.sourceFile);
+                  ensureCompanionClassInitializesInterface(iface, builder);
+                  processVirtualInterfaceMethods(iface, builder);
+                  processDirectInterfaceMethods(iface, builder);
+                });
+
+    assert companionClass.hasMethods();
+
+    // D8 and R8 don't need to optimize the methods since they are just moved from interfaces and
+    // don't need to be re-processed, besides the clinit, which has just been inserted.
     if (companionClass.hasClassInitializer()) {
       synthesizedMethods.add(companionClass.getProgramClassInitializer());
     }
+
+    return companionClass;
   }
 
   private void ensureCompanionClassInitializesInterface(
-      DexProgramClass iface, List<DexEncodedMethod> companionMethods) {
+      DexProgramClass iface, SyntheticProgramClassBuilder builder) {
     if (!hasStaticMethodThatTriggersNonTrivialClassInitializer(iface)) {
       return;
     }
+    DexEncodedField clinitField = ensureStaticClinitFieldToTriggerinterfaceInitialization(iface);
+    builder.addMethod(
+        methodBuilder -> createCompanionClassInitializer(iface, clinitField, methodBuilder));
+  }
+
+  private DexEncodedField ensureStaticClinitFieldToTriggerinterfaceInitialization(
+      DexProgramClass iface) {
     DexEncodedField clinitField =
         findExistingStaticClinitFieldToTriggerInterfaceInitialization(iface);
     if (clinitField == null) {
       clinitField = createStaticClinitFieldToTriggerInterfaceInitialization(iface);
       iface.appendStaticField(clinitField);
     }
-    companionMethods.add(createCompanionClassInitializer(iface, clinitField));
+    return clinitField;
   }
 
   private boolean hasStaticMethodThatTriggersNonTrivialClassInitializer(DexProgramClass iface) {
@@ -226,37 +200,34 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
         DexValueInt.DEFAULT);
   }
 
-  private DexEncodedMethod createCompanionClassInitializer(
-      DexProgramClass iface, DexEncodedField clinitField) {
-    DexType companionType = rewriter.getCompanionClassType(iface.getType());
-    DexMethod clinitMethodReference = appView.dexItemFactory().createClinitMethod(companionType);
-    CfCode code =
-        new CfCode(
-            companionType,
-            clinitField.getType().isWideType() ? 2 : 1,
-            0,
-            ImmutableList.of(
-                new CfFieldInstruction(
-                    Opcodes.GETSTATIC, clinitField.getReference(), clinitField.getReference()),
-                clinitField.getType().isWideType()
-                    ? new CfStackInstruction(Opcode.Pop2)
-                    : new CfStackInstruction(Opcode.Pop),
-                new CfReturnVoid()),
-            ImmutableList.of(),
-            ImmutableList.of());
-    return new DexEncodedMethod(
-        clinitMethodReference,
-        MethodAccessFlags.builder().setConstructor().setPackagePrivate().setStatic().build(),
-        MethodTypeSignature.noSignature(),
-        DexAnnotationSet.empty(),
-        ParameterAnnotationsList.empty(),
-        code,
-        true,
-        iface.getInitialClassFileVersion());
+  private void createCompanionClassInitializer(
+      DexProgramClass iface, DexEncodedField clinitField, SyntheticMethodBuilder methodBuilder) {
+    SyntheticMethodBuilder.SyntheticCodeGenerator codeGenerator =
+        method ->
+            new CfCode(
+                method.holder,
+                clinitField.getType().isWideType() ? 2 : 1,
+                0,
+                ImmutableList.of(
+                    new CfFieldInstruction(
+                        Opcodes.GETSTATIC, clinitField.getReference(), clinitField.getReference()),
+                    clinitField.getType().isWideType()
+                        ? new CfStackInstruction(Opcode.Pop2)
+                        : new CfStackInstruction(Opcode.Pop),
+                    new CfReturnVoid()),
+                ImmutableList.of(),
+                ImmutableList.of());
+    methodBuilder
+        .setName(appView.dexItemFactory().classConstructorMethodName)
+        .setProto(appView.dexItemFactory().createProto(appView.dexItemFactory().voidType))
+        .setAccessFlags(
+            MethodAccessFlags.builder().setConstructor().setPackagePrivate().setStatic().build())
+        .setCode(codeGenerator)
+        .setClassFileVersion(iface.getInitialClassFileVersion());
   }
 
   private void processVirtualInterfaceMethods(
-      DexProgramClass iface, List<DexEncodedMethod> companionMethods) {
+      DexProgramClass iface, SyntheticProgramClassBuilder builder) {
     for (ProgramMethod method : iface.virtualProgramMethods()) {
       DexEncodedMethod virtual = method.getDefinition();
       if (rewriter.isDefaultMethod(virtual)) {
@@ -282,25 +253,29 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
         newFlags.promoteToStatic();
         DexEncodedMethod.setDebugInfoWithFakeThisParameter(
             code, companionMethod.getArity(), appView);
-        DexEncodedMethod implMethod =
-            new DexEncodedMethod(
-                companionMethod,
-                newFlags,
-                virtual.getGenericSignature(),
-                virtual.annotations(),
-                virtual.parameterAnnotationsList,
-                code,
-                true);
-        implMethod.copyMetadata(virtual);
-        companionMethods.add(implMethod);
-        getPostProcessingInterfaceInfo(iface)
-            .mapDefaultMethodToCompanionMethod(virtual, implMethod);
+
+        builder.addMethod(
+            methodBuilder ->
+                methodBuilder
+                    .setName(companionMethod.getName())
+                    .setProto(companionMethod.getProto())
+                    .setAccessFlags(newFlags)
+                    .setGenericSignature(virtual.getGenericSignature())
+                    .setAnnotations(virtual.annotations())
+                    .setParameterAnnotationsList(virtual.getParameterAnnotations())
+                    .setCode(ignored -> virtual.getCode())
+                    .setOnBuildConsumer(
+                        implMethod -> {
+                          implMethod.copyMetadata(virtual);
+                          getPostProcessingInterfaceInfo(iface)
+                              .mapDefaultMethodToCompanionMethod(virtual, implMethod);
+                        }));
       }
     }
   }
 
   private void processDirectInterfaceMethods(
-      DexProgramClass iface, List<DexEncodedMethod> companionMethods) {
+      DexProgramClass iface, SyntheticProgramClassBuilder builder) {
     for (ProgramMethod method : iface.directProgramMethods()) {
       DexEncodedMethod definition = method.getDefinition();
       if (definition.isClassInitializer()) {
@@ -330,17 +305,22 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                 + "either be public or private in "
                 + iface.origin;
         DexMethod companionMethod = rewriter.staticAsMethodOfCompanionClass(method);
-        DexEncodedMethod implMethod =
-            new DexEncodedMethod(
-                companionMethod,
-                newFlags,
-                definition.getGenericSignature(),
-                definition.annotations(),
-                definition.parameterAnnotationsList,
-                definition.getCode(),
-                true);
-        implMethod.copyMetadata(definition);
-        companionMethods.add(implMethod);
+
+        builder.addMethod(
+            methodBuilder ->
+                methodBuilder
+                    .setName(companionMethod.getName())
+                    .setProto(companionMethod.getProto())
+                    .setAccessFlags(newFlags)
+                    .setGenericSignature(definition.getGenericSignature())
+                    .setAnnotations(definition.annotations())
+                    .setParameterAnnotationsList(definition.getParameterAnnotations())
+                    .setCode(ignored -> definition.getCode())
+                    .setOnBuildConsumer(
+                        implMethod -> {
+                          implMethod.copyMetadata(definition);
+                        }));
+
         getPostProcessingInterfaceInfo(iface).moveMethod(oldMethod, companionMethod);
         continue;
       }
@@ -361,19 +341,25 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                 + oldMethod.toSourceString(),
             iface.origin);
       }
+
       DexEncodedMethod.setDebugInfoWithFakeThisParameter(code, companionMethod.getArity(), appView);
-      DexEncodedMethod implMethod =
-          new DexEncodedMethod(
-              companionMethod,
-              newFlags,
-              definition.getGenericSignature(),
-              definition.annotations(),
-              definition.parameterAnnotationsList,
-              code,
-              true);
-      implMethod.copyMetadata(definition);
-      companionMethods.add(implMethod);
-      getPostProcessingInterfaceInfo(iface).moveMethod(oldMethod, companionMethod);
+
+      builder.addMethod(
+          methodBuilder ->
+              methodBuilder
+                  .setName(companionMethod.getName())
+                  .setProto(companionMethod.getProto())
+                  .setAccessFlags(newFlags)
+                  .setGenericSignature(definition.getGenericSignature())
+                  .setAnnotations(definition.annotations())
+                  .setParameterAnnotationsList(definition.getParameterAnnotations())
+                  .setCode(ignored -> definition.getCode())
+                  .setOnBuildConsumer(
+                      implMethod -> {
+                        implMethod.copyMetadata(definition);
+                        getPostProcessingInterfaceInfo(iface)
+                            .moveMethod(oldMethod, companionMethod);
+                      }));
     }
   }
 
@@ -385,14 +371,6 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     } else {
       methodCollection.clearDirectMethods();
     }
-  }
-
-  private ChecksumSupplier getChecksumSupplier(DexProgramClass iface) {
-    if (!appView.options().encodeChecksums) {
-      return DexProgramClass::invalidChecksumRequest;
-    }
-    long checksum = iface.getChecksum();
-    return c -> 7 * checksum;
   }
 
   private boolean canMoveToCompanionClass(DexEncodedMethod method) {
@@ -525,13 +503,6 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     if (appView.enableWholeProgramOptimizations() && graphLens != null) {
       appView.setGraphLens(graphLens);
     }
-    syntheticClasses.forEach(
-        (interfaceClass, synthesizedClass) -> {
-          // Don't need to optimize synthesized class since all of its methods
-          // are just moved from interfaces and don't need to be re-processed.
-          builder.addSynthesizedClass(synthesizedClass);
-          appView.appInfo().addSynthesizedClass(synthesizedClass, interfaceClass.asProgramClass());
-        });
     new InterfaceMethodRewriterFixup(appView, graphLens).run();
   }
 

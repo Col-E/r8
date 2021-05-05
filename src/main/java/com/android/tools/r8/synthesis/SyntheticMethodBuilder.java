@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import java.util.function.Consumer;
 
 public class SyntheticMethodBuilder {
 
@@ -29,6 +30,10 @@ public class SyntheticMethodBuilder {
   private CfVersion classFileVersion;
   private SyntheticCodeGenerator codeGenerator = null;
   private MethodAccessFlags accessFlags = null;
+  private MethodTypeSignature genericSignature = MethodTypeSignature.noSignature();
+  private DexAnnotationSet annotations = DexAnnotationSet.empty();
+  private ParameterAnnotationsList parameterAnnotationsList = ParameterAnnotationsList.empty();
+  private Consumer<DexEncodedMethod> onBuildConsumer = null;
 
   SyntheticMethodBuilder(SyntheticClassBuilder<?, ?> parent) {
     this.factory = parent.getFactory();
@@ -71,6 +76,27 @@ public class SyntheticMethodBuilder {
     return this;
   }
 
+  public SyntheticMethodBuilder setGenericSignature(MethodTypeSignature genericSignature) {
+    this.genericSignature = genericSignature;
+    return this;
+  }
+
+  public SyntheticMethodBuilder setAnnotations(DexAnnotationSet annotations) {
+    this.annotations = annotations;
+    return this;
+  }
+
+  public SyntheticMethodBuilder setParameterAnnotationsList(
+      ParameterAnnotationsList parameterAnnotationsList) {
+    this.parameterAnnotationsList = parameterAnnotationsList;
+    return this;
+  }
+
+  public SyntheticMethodBuilder setOnBuildConsumer(Consumer<DexEncodedMethod> onBuildConsumer) {
+    this.onBuildConsumer = onBuildConsumer;
+    return this;
+  }
+
   DexEncodedMethod build() {
     assert name != null;
     boolean isCompilerSynthesized = true;
@@ -79,13 +105,19 @@ public class SyntheticMethodBuilder {
         new DexEncodedMethod(
             methodSignature,
             getAccessFlags(),
-            MethodTypeSignature.noSignature(),
-            DexAnnotationSet.empty(),
-            ParameterAnnotationsList.empty(),
+            genericSignature,
+            annotations,
+            parameterAnnotationsList,
             getCodeObject(methodSignature),
             isCompilerSynthesized,
             classFileVersion);
-    assert isValidSyntheticMethod(method);
+    // Companion class method may have different properties.
+    assert isValidSyntheticMethod(method)
+        || SyntheticNaming.isSynthetic(
+            holderType.asClassReference(), null, SyntheticNaming.SyntheticKind.COMPANION_CLASS);
+    if (onBuildConsumer != null) {
+      onBuildConsumer.accept(method);
+    }
     return method;
   }
 
