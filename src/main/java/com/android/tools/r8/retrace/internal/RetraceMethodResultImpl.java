@@ -152,7 +152,7 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
 
     @Override
     public RetracedMethodReference getRetracedMethod() {
-      return null;
+      return methodReference;
     }
 
     @Override
