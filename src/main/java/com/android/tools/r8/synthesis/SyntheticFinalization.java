@@ -478,7 +478,11 @@ public class SyntheticFinalization {
       AppView<?> appView) {
     if (shouldAnnotateSynthetics(appView.options())) {
       SyntheticMarker.addMarkerToClass(
-          externalSyntheticClass, kind, context, appView.dexItemFactory());
+          externalSyntheticClass,
+          kind,
+          context,
+          appView.dexItemFactory(),
+          appView.options().forceAnnotateSynthetics);
     }
   }
 

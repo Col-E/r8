@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 
 public class SyntheticMarker {
@@ -20,21 +21,23 @@ public class SyntheticMarker {
       DexProgramClass clazz,
       SyntheticKind kind,
       SynthesizingContext context,
-      DexItemFactory factory) {
+      DexItemFactory factory,
+      boolean dontRecordSynthesizingContext) {
     clazz.setAnnotations(
         clazz
             .annotations()
             .getWithAddedOrReplaced(
                 DexAnnotation.createAnnotationSynthesizedClass(
-                    kind, context.getSynthesizingContextType(), factory)));
+                    kind,
+                    dontRecordSynthesizingContext ? null : context.getSynthesizingContextType(),
+                    factory)));
   }
 
   public static SyntheticMarker stripMarkerFromClass(DexProgramClass clazz, AppView<?> appView) {
     SyntheticMarker marker = internalStripMarkerFromClass(clazz, appView);
     assert marker != NO_MARKER
-        || DexAnnotation.getSynthesizedClassAnnotationContextType(
-                clazz.annotations(), appView.dexItemFactory())
-            == null;
+        || !DexAnnotation.hasSynthesizedClassAnnotation(
+            clazz.annotations(), appView.dexItemFactory());
     return marker;
   }
 
@@ -67,6 +70,18 @@ public class SyntheticMarker {
       }
     }
     clazz.setAnnotations(DexAnnotationSet.empty());
+    if (context == null) {
+      // If the class is marked as synthetic but has no synthesizing context, then we read the
+      // context type as the prefix. This happens for desugared library builds where the context of
+      // the generated
+      // synthetics becomes themselves. Using the original context could otherwise have referenced
+      // a type in the non-rewritten library and cause an non-rewritten output type.
+      String prefix = SyntheticNaming.getPrefixForExternalSyntheticType(kind, clazz.type);
+      context =
+          appView
+              .dexItemFactory()
+              .createType(DescriptorUtils.getDescriptorFromClassBinaryName(prefix));
+    }
     return new SyntheticMarker(
         kind, SynthesizingContext.fromSyntheticInputClass(clazz, context, appView));
   }

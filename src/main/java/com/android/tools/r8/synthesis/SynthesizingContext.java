@@ -67,7 +67,6 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
 
   static SynthesizingContext fromSyntheticInputClass(
       DexProgramClass clazz, DexType synthesizingContextType, AppView<?> appView) {
-    assert synthesizingContextType != null;
     // A context that is itself synthetic must denote a synthesizing context from which to ensure
     // hygiene. This synthesizing context type is encoded on the synthetic for intermediate builds.
     FeatureSplit featureSplit =

@@ -366,11 +366,15 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
             new DexValueString(dexItemFactory.createString(kind.descriptor)));
     DexAnnotationElement typeElement =
         new DexAnnotationElement(dexItemFactory.valueString, new DexValueType(synthesizingContext));
+    DexAnnotationElement[] elements;
+    if (synthesizingContext == null) {
+      elements = new DexAnnotationElement[] {kindElement};
+    } else {
+      elements = new DexAnnotationElement[] {kindElement, typeElement};
+    }
     return new DexAnnotation(
         VISIBILITY_BUILD,
-        new DexEncodedAnnotation(
-            dexItemFactory.annotationSynthesizedClass,
-            new DexAnnotationElement[] {kindElement, typeElement}));
+        new DexEncodedAnnotation(dexItemFactory.annotationSynthesizedClass, elements));
   }
 
   public static boolean hasSynthesizedClassAnnotation(
@@ -387,7 +391,8 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     if (annotation.annotation.type != factory.annotationSynthesizedClass) {
       return null;
     }
-    if (annotation.annotation.elements.length != 2) {
+    int length = annotation.annotation.elements.length;
+    if (length != 1 && length != 2) {
       return null;
     }
     assert factory.kindString.isLessThan(factory.valueString);
@@ -403,6 +408,9 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
             kindElement.value.asDexValueString().getValue().toString());
     if (kind == null) {
       return null;
+    }
+    if (length != 2) {
+      return new Pair<>(kind, null);
     }
     DexAnnotationElement valueElement = annotation.annotation.elements[1];
     if (valueElement.name != factory.valueString) {
