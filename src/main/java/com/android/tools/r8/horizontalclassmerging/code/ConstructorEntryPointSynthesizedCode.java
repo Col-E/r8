@@ -31,7 +31,7 @@ public class ConstructorEntryPointSynthesizedCode extends AbstractSynthesizedCod
 
   @Override
   public SourceCodeProvider getSourceCodeProvider() {
-    return callerPosition ->
+    return (ignored, callerPosition) ->
         new ConstructorEntryPoint(
             typeConstructors, newConstructor, classIdField, callerPosition, originalMethod);
   }

@@ -5,7 +5,9 @@
 package com.android.tools.r8.horizontalclassmerging.code;
 
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.horizontalclassmerging.VirtualMethodEntryPoint;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
@@ -15,18 +17,36 @@ import java.util.function.Consumer;
 public class VirtualMethodEntryPointSynthesizedCode extends SynthesizedCode {
   private final Int2ReferenceSortedMap<DexMethod> mappedMethods;
 
+  private final DexItemFactory factory;
+
   public VirtualMethodEntryPointSynthesizedCode(
       Int2ReferenceSortedMap<DexMethod> mappedMethods,
       DexField classIdField,
       DexMethod superMethod,
       DexMethod method,
-      DexMethod originalMethod) {
+      DexMethod originalMethod,
+      DexItemFactory factory) {
     super(
-        position ->
+        (context, position) ->
             new VirtualMethodEntryPoint(
-                mappedMethods, classIdField, superMethod, method, position, originalMethod));
-
+                mappedMethods,
+                classIdField,
+                computeSuperMethodTarget(superMethod, context, factory),
+                method,
+                position,
+                originalMethod));
+    this.factory = factory;
     this.mappedMethods = mappedMethods;
+  }
+
+  private static DexMethod computeSuperMethodTarget(
+      DexMethod superMethod, ProgramMethod method, DexItemFactory factory) {
+    // We are only using superMethod as a bit but if this is changed to generate CfCode directly,
+    // the superMethod needs to be computed by mapping through the lens.
+    if (superMethod == null) {
+      return null;
+    }
+    return method.getReference().withHolder(method.getHolder().superType, factory);
   }
 
   @Override

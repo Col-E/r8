@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 public abstract class AbstractSynthesizedCode extends Code {
 
   public interface SourceCodeProvider {
-    SourceCode get(Position callerPosition);
+    SourceCode get(ProgramMethod context, Position callerPosition);
   }
 
   public abstract SourceCodeProvider getSourceCodeProvider();
@@ -39,7 +39,7 @@ public abstract class AbstractSynthesizedCode extends Code {
 
   @Override
   public final IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
-    return IRBuilder.create(method, appView, getSourceCodeProvider().get(null), origin)
+    return IRBuilder.create(method, appView, getSourceCodeProvider().get(method, null), origin)
         .build(method);
   }
 
@@ -55,7 +55,7 @@ public abstract class AbstractSynthesizedCode extends Code {
     return IRBuilder.createForInlining(
             method,
             appView,
-            getSourceCodeProvider().get(callerPosition),
+            getSourceCodeProvider().get(context, callerPosition),
             origin,
             methodProcessor,
             valueNumberGenerator)

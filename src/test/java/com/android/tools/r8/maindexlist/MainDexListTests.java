@@ -854,7 +854,7 @@ public class MainDexListTests extends TestBase {
                 DexString.EMPTY_ARRAY);
         Code code =
             new SynthesizedCode(
-                callerPosition -> new ReturnVoidCode(voidReturnMethod, callerPosition));
+                (ignored, callerPosition) -> new ReturnVoidCode(voidReturnMethod, callerPosition));
         DexEncodedMethod method =
             new DexEncodedMethod(
                 voidReturnMethod,

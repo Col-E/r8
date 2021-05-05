@@ -275,7 +275,8 @@ public class VirtualMethodMerger {
             group.getClassIdField(),
             superMethod,
             newMethodReference,
-            bridgeMethodReference);
+            bridgeMethodReference,
+            appView.dexItemFactory());
     DexEncodedMethod newMethod =
         new DexEncodedMethod(
             newMethodReference,

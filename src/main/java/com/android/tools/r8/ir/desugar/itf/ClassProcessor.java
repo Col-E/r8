@@ -765,7 +765,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
             new SynthesizedCode(
-                callerPosition ->
+                (ignored, callerPosition) ->
                     new ExceptionThrowingSourceCode(clazz.type, method, callerPosition, errorType)),
             true);
     addSyntheticMethod(clazz.asProgramClass(), newEncodedMethod);

@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.synthetic;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.Position;
@@ -86,7 +87,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
       return this;
     }
 
-    public ForwardMethodSourceCode build(Position callerPosition) {
+    public ForwardMethodSourceCode build(ProgramMethod context, Position callerPosition) {
       return new ForwardMethodSourceCode(
           receiver,
           method,
