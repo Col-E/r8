@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -42,17 +43,19 @@ import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.AsmUtils;
+import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.PredicateUtils;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-import com.google.common.collect.Sets;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
-import java.util.SortedSet;
 import java.util.function.Predicate;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
@@ -236,12 +239,10 @@ public class CfApplicationWriter {
       writeField(field, writer);
     }
     if (options.desugarSpecificOptions().sortMethodsOnCfOutput) {
-      SortedSet<ProgramMethod> programMethodSortedSet =
-          Sets.newTreeSet(
-              (a, b) ->
-                  a.getDefinition().getReference().compareTo(b.getDefinition().getReference()));
-      clazz.forEachProgramMethod(programMethodSortedSet::add);
-      programMethodSortedSet.forEach(
+      List<ProgramMethod> programMethodSorted = new ArrayList<>();
+      clazz.forEachProgramMethod(programMethodSorted::add);
+      programMethodSorted.sort(this::compareMethodsThroughLens);
+      programMethodSorted.forEach(
           method -> writeMethod(method, version, rewriter, writer, defaults));
     } else {
       clazz.forEachProgramMethod(
@@ -261,6 +262,26 @@ public class CfApplicationWriter {
     }
     ExceptionUtils.withConsumeResourceHandler(
         options.reporter, handler -> consumer.accept(ByteDataView.of(result), desc, handler));
+  }
+
+  private int compareTypesThroughLens(DexType a, DexType b) {
+    return namingLens.lookupDescriptor(a).compareTo(namingLens.lookupDescriptor(b));
+  }
+
+  private DexString returnTypeThroughLens(DexMethod method) {
+    return namingLens.lookupDescriptor(method.getReturnType());
+  }
+
+  private int compareMethodsThroughLens(ProgramMethod a, ProgramMethod b) {
+    // When writing class files, methods are only compared within the same class.
+    assert a.getHolder().equals(b.getHolder());
+    return Comparator.comparing(this::returnTypeThroughLens)
+        .thenComparing(DexMethod::getName)
+        // .thenComparingInt(m -> m.getProto().getArity()) // Done in arrayComp below.
+        .thenComparing(
+            m -> m.getProto().parameters.values,
+            ComparatorUtils.arrayComparator(this::compareTypesThroughLens))
+        .compare(a.getReference(), b.getReference());
   }
 
   private CfVersion getClassFileVersion(DexEncodedMethod method) {
