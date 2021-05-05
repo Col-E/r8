@@ -432,6 +432,10 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
       }
     }
     if (method.accessFlags.isBridge()) {
+      if (appView.options().cfToCfDesugar) {
+        // TODO(b/187176895): Find the compilation causing this to not be removed.
+        return false;
+      }
       Deque<Pair<DexClass, DexType>> worklist = new ArrayDeque<>();
       Set<DexType> seenBefore = new HashSet<>();
       addSuperTypes(iface, worklist);
