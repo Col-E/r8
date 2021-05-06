@@ -160,7 +160,6 @@ public final class L8Command extends BaseCompilerCommand {
     assert !internal.minimalMainDex;
     internal.minApiLevel = getMinApiLevel();
     assert !internal.intermediate;
-    internal.intermediate = true;
     assert internal.readCompileTimeAnnotations;
     internal.programConsumer = getProgramConsumer();
     assert internal.programConsumer instanceof ClassFileConsumer;
