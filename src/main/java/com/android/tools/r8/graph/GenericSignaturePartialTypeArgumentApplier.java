@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.ReturnType;
-import com.android.tools.r8.graph.GenericSignature.StarFieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.graph.GenericSignature.WildcardIndicator;
 import com.android.tools.r8.utils.ListUtils;
@@ -133,9 +132,7 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
     if (typeArguments.isEmpty() || !hasGenericTypeParameters.test(type)) {
       return getEmptyTypeArguments();
     }
-    // Wildcards can only be called be used in certain positions:
-    // https://docs.oracle.com/javase/tutorial/java/generics/wildcards.html
-    return ListUtils.mapOrElse(typeArguments, arg -> visitFieldTypeSignature(arg, true));
+    return ListUtils.mapOrElse(typeArguments, this::visitFieldTypeSignature);
   }
 
   @Override
@@ -208,11 +205,6 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
 
   @Override
   public FieldTypeSignature visitFieldTypeSignature(FieldTypeSignature fieldSignature) {
-    return visitFieldTypeSignature(fieldSignature, false);
-  }
-
-  private FieldTypeSignature visitFieldTypeSignature(
-      FieldTypeSignature fieldSignature, boolean canUseWildcardInArguments) {
     if (fieldSignature.isStar()) {
       return fieldSignature;
     } else if (fieldSignature.isClassTypeSignature()) {
@@ -228,9 +220,7 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
         if (substitution == null) {
           substitution = objectType;
         }
-        return substitution == objectType && canUseWildcardInArguments
-            ? StarFieldTypeSignature.getStarFieldTypeSignature()
-            : new ClassTypeSignature(substitution).asArgument(WildcardIndicator.NONE);
+        return new ClassTypeSignature(substitution).asArgument(WildcardIndicator.NONE);
       }
       return fieldSignature;
     }

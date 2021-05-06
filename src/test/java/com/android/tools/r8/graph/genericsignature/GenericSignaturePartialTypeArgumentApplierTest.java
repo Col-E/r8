@@ -67,7 +67,7 @@ public class GenericSignaturePartialTypeArgumentApplierTest extends TestBase {
             BiPredicateUtils.alwaysFalse(),
             alwaysTrue(),
             "(LList<TT;>;)LList<TR;>;",
-            "(LList<*>;)LList<*>;")
+            "(LList<Ljava/lang/Object;>;)LList<Ljava/lang/Object;>;")
         .assertNoMessages();
   }
 

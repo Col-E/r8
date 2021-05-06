@@ -55,18 +55,15 @@ public class GenericSignaturePrunedOuterTest extends TestBase {
   public void checkSignatures(CodeInspector inspector) {
     checkSignature(
         inspector.clazz(Bar.class.getTypeName() + "$1"),
-        "L" + binaryName(Foo.class) + "<*" + descriptor(Main.class) + ">;");
+        "L" + binaryName(Foo.class) + "<Ljava/lang/Object;" + descriptor(Main.class) + ">;");
     checkSignature(
-        inspector.clazz(Bar.class.getTypeName() + "$2"), "L" + binaryName(Foo.class) + "<**>;");
+        inspector.clazz(Bar.class.getTypeName() + "$2"),
+        "L" + binaryName(Foo.class) + "<Ljava/lang/Object;Ljava/lang/Object;>;");
   }
 
   private void checkSignature(ClassSubject classSubject, String expectedSignature) {
     assertThat(classSubject, isPresent());
-    // TODO(b/185098797): Make sure to work for full mode.
-    if (!isCompat) {
-      return;
-    }
-    assertEquals(expectedSignature, classSubject.getFinalSignatureAttribute());
+    assertEquals(isCompat ? expectedSignature : null, classSubject.getFinalSignatureAttribute());
   }
 
   public abstract static class Foo<T, R> {

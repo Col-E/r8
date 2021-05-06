@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.ReturnType;
-import com.android.tools.r8.graph.GenericSignature.StarFieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
+import com.android.tools.r8.graph.GenericSignature.WildcardIndicator;
 import com.android.tools.r8.utils.ListUtils;
 import java.util.List;
 import java.util.function.Function;
@@ -230,7 +230,7 @@ public class GenericSignatureTypeRewriter {
           fieldTypeSignature -> {
             FieldTypeSignature rewrittenSignature = visitFieldTypeSignature(fieldTypeSignature);
             return rewrittenSignature == null
-                ? StarFieldTypeSignature.getStarFieldTypeSignature()
+                ? objectTypeSignature.asArgument(WildcardIndicator.NONE)
                 : rewrittenSignature;
           });
     }
