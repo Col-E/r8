@@ -23,7 +23,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class CollisionWithDefaultMethodOutsideMergeGroupTest extends TestBase {
+public class CollisionWithDefaultMethodOutsideMergeGroupClassTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -32,7 +32,7 @@ public class CollisionWithDefaultMethodOutsideMergeGroupTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public CollisionWithDefaultMethodOutsideMergeGroupTest(TestParameters parameters) {
+  public CollisionWithDefaultMethodOutsideMergeGroupClassTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 

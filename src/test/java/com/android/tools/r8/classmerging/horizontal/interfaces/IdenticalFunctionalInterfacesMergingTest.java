@@ -14,7 +14,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class DisjointFunctionalInterfacesMergingTest extends TestBase {
+public class IdenticalFunctionalInterfacesMergingTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -23,7 +23,7 @@ public class DisjointFunctionalInterfacesMergingTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public DisjointFunctionalInterfacesMergingTest(TestParameters parameters) {
+  public IdenticalFunctionalInterfacesMergingTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -32,6 +32,7 @@ public class DisjointFunctionalInterfacesMergingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        // TODO(b/173990042): I and J should be merged.
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertClassesNotMerged(I.class, J.class))
         .enableNoUnusedInterfaceRemovalAnnotations()
@@ -46,7 +47,7 @@ public class DisjointFunctionalInterfacesMergingTest extends TestBase {
 
     public static void main(String[] args) {
       ((I) () -> System.out.println("I")).f();
-      ((J) () -> System.out.println("J")).g();
+      ((J) () -> System.out.println("J")).f();
     }
   }
 
@@ -59,6 +60,6 @@ public class DisjointFunctionalInterfacesMergingTest extends TestBase {
   @NoUnusedInterfaceRemoval
   @NoVerticalClassMerging
   interface J {
-    void g();
+    void f();
   }
 }
