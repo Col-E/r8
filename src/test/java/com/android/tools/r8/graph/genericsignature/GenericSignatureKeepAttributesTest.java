@@ -107,8 +107,13 @@ public class GenericSignatureKeepAttributesTest extends TestBase {
     assertThat(innerClass, isPresent());
     MethodSubject testMethod = innerClass.uniqueMethodWithName("test");
     assertThat(testMethod, isPresent());
-    // TODO(b/184927364): TO; should be replaced with Supplier
-    assertEquals("(TO;TM;)TI;", testMethod.getFinalSignatureAttribute());
+    if (isCompat) {
+      assertEquals("(TO;TM;)TI;", testMethod.getFinalSignatureAttribute());
+    } else {
+      assertEquals(
+          "(" + descriptor(Supplier.class) + descriptor(Predicate.class) + ")TI;",
+          testMethod.getFinalSignatureAttribute());
+    }
   }
 
   public interface Supplier<T> {}

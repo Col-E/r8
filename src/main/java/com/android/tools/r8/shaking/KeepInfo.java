@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.shaking.KeepInfo.Builder;
 
 /** Keep information that can be associated with any item, i.e., class, method or field. */
@@ -82,12 +84,45 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     return allowAccessModification;
   }
 
-  public boolean isAllowSignatureAttributeRemovalAllowed(
-      GlobalKeepInfoConfiguration configuration) {
+  public boolean isSignatureAttributeRemovalAllowed(GlobalKeepInfoConfiguration configuration) {
     if (!configuration.isKeepAttributesSignatureEnabled()) {
       return true;
     }
     return !(configuration.isForceProguardCompatibilityEnabled() || isPinned());
+  }
+
+  public boolean isEnclosingMethodAttributeRemovalAllowed(
+      GlobalKeepInfoConfiguration configuration,
+      EnclosingMethodAttribute enclosingMethodAttribute,
+      AppView<AppInfoWithLiveness> appView) {
+    if (!configuration.isKeepEnclosingMethodAttributeEnabled()) {
+      return true;
+    }
+    if (configuration.isForceProguardCompatibilityEnabled()) {
+      return false;
+    }
+    return !isPinned() || !enclosingMethodAttribute.isEnclosingPinned(appView);
+  }
+
+  public boolean isInnerClassesAttributeRemovalAllowed(GlobalKeepInfoConfiguration configuration) {
+    if (!configuration.isKeepInnerClassesAttributeEnabled()) {
+      return true;
+    }
+    return !(configuration.isForceProguardCompatibilityEnabled() || isPinned());
+  }
+
+  public boolean isInnerClassesAttributeRemovalAllowed(
+      GlobalKeepInfoConfiguration configuration,
+      EnclosingMethodAttribute enclosingMethodAttribute) {
+    if (!configuration.isKeepInnerClassesAttributeEnabled()) {
+      return true;
+    }
+    if (configuration.isForceProguardCompatibilityEnabled()) {
+      return false;
+    }
+    // The inner class is dependent on the enclosingMethodAttribute and since it has been pruned
+    // we can also remove this inner class relationship.
+    return enclosingMethodAttribute == null || !isPinned();
   }
 
   public abstract boolean isTop();

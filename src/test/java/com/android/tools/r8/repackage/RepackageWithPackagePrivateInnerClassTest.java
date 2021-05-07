@@ -7,8 +7,10 @@ package com.android.tools.r8.repackage;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.repackage.RepackageWithPackagePrivateInnerClassTest.IneligibleForRepackaging.NonPublicKeptClass;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -26,29 +28,45 @@ public class RepackageWithPackagePrivateInnerClassTest extends RepackageTestBase
   }
 
   @Test
-  public void test() throws Exception {
-    testForR8(parameters.getBackend())
+  public void testCompat() throws Exception {
+    test(
+        testForR8Compat(parameters.getBackend()).addKeepClassRules(NonPublicKeptClass.class),
+        false);
+  }
+
+  @Test
+  public void testFull() throws Exception {
+    test(testForR8(parameters.getBackend()).addKeepClassRules(NonPublicKeptClass.class), true);
+  }
+
+  private void test(R8TestBuilder<?> builder, boolean expectRepackaged) throws Exception {
+    builder
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
-        .addKeepClassRules(NonPublicKeptClass.class)
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspect(this::inspect)
+        .inspect(inspector -> inspect(inspector, expectRepackaged))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");
   }
 
-  private void inspect(CodeInspector inspector) {
+  private void inspect(CodeInspector inspector, boolean expectRepackaged) {
     ClassSubject classSubject = inspector.clazz(IneligibleForRepackaging.class);
     assertThat(classSubject, isPresent());
 
     // Verify that the class was not repackaged.
-    assertEquals(
-        IneligibleForRepackaging.class.getPackage().getName(),
-        classSubject.getDexProgramClass().getType().getPackageName());
+    if (expectRepackaged) {
+      assertNotEquals(
+          IneligibleForRepackaging.class.getPackage().getName(),
+          classSubject.getDexProgramClass().getType().getPackageName());
+    } else {
+      assertEquals(
+          IneligibleForRepackaging.class.getPackage().getName(),
+          classSubject.getDexProgramClass().getType().getPackageName());
+    }
   }
 
   public static class TestClass {

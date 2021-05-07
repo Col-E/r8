@@ -102,12 +102,7 @@ public class KotlinLambdaMergingKeepAttributesKotlinStyleTest extends KotlinTest
     assertEquals(24, lambdasInInput.getNumberOfKStyleLambdas());
 
     // All K-style Kotlin lambdas are merged if no attributes are kept.
-    if (attributes.isEmpty()) {
-      inspector.assertClassReferencesMerged(lambdasInInput.getKStyleLambdas());
-    } else {
-      // TODO(b/179018501): allow merging classes with inner/outer classes.
-      inspector.assertClassReferencesNotMerged(lambdasInInput.getKStyleLambdas());
-    }
+    inspector.assertClassReferencesMerged(lambdasInInput.getKStyleLambdas());
   }
 
   private String getExpectedOutput() {

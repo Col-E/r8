@@ -4,10 +4,15 @@
 
 package com.android.tools.r8.repackage;
 
+import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
+import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
@@ -15,13 +20,27 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class RepackageWithCollisionsTest extends RepackageTestBase {
 
+  @Parameters(name = "{1}, kind: {0}, isCompat: {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        ImmutableList.of(FLATTEN_PACKAGE_HIERARCHY, REPACKAGE_CLASSES),
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        BooleanUtils.values());
+  }
+
+  private final boolean isCompat;
+
   public RepackageWithCollisionsTest(
-      String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
+      String flattenPackageHierarchyOrRepackageClasses,
+      TestParameters parameters,
+      boolean isCompat) {
     super(flattenPackageHierarchyOrRepackageClasses, parameters);
+    this.isCompat = isCompat;
   }
 
   @Override
@@ -34,7 +53,7 @@ public class RepackageWithCollisionsTest extends RepackageTestBase {
 
   @Test
   public void test() throws Exception {
-    testForR8(parameters.getBackend())
+    (isCompat ? testForR8Compat(parameters.getBackend()) : testForR8(parameters.getBackend()))
         .addInnerClasses(getClass())
         .addProgramClasses(getTestClasses())
         .addKeepMainRule(TestClass.class)
@@ -63,22 +82,22 @@ public class RepackageWithCollisionsTest extends RepackageTestBase {
     Iterator<Class<?>> testClassesIterator = getTestClasses().iterator();
 
     Class<?> firstFoo = testClassesIterator.next();
-    assertThat(firstFoo, isRepackagedAsExpected(inspector, "a"));
+    isRepackagedOrAbsentInFullMode(inspector, firstFoo, "a");
 
     Class<?> firstFooBar = testClassesIterator.next();
     assertThat(firstFooBar, isRepackagedAsExpected(inspector, "a"));
 
     Class<?> firstFirstFoo = testClassesIterator.next();
-    assertThat(firstFirstFoo, isRepackagedAsExpected(inspector, "b"));
+    isRepackagedOrAbsentInFullMode(inspector, firstFirstFoo, "b");
 
     Class<?> firstFirstFooBar = testClassesIterator.next();
-    assertThat(firstFirstFooBar, isRepackagedAsExpected(inspector, "b"));
+    isRepackagedOrAbsentInFullMode(inspector, firstFirstFooBar, "b");
 
     Class<?> secondFoo = testClassesIterator.next();
-    assertThat(secondFoo, isRepackagedAsExpected(inspector, "c"));
+    isRepackagedOrAbsentInFullMode(inspector, secondFoo, "c");
 
     Class<?> secondBar = testClassesIterator.next();
-    assertThat(secondBar, isRepackagedAsExpected(inspector, "c"));
+    isRepackagedOrAbsentInFullMode(inspector, secondBar, "c");
 
     Class<?> destinationFoo = testClassesIterator.next();
     assertThat(inspector.clazz(destinationFoo), isPresentAndNotRenamed());
@@ -91,6 +110,15 @@ public class RepackageWithCollisionsTest extends RepackageTestBase {
 
     Class<?> destinationFirstBar = testClassesIterator.next();
     assertThat(inspector.clazz(destinationFirstBar), isPresentAndNotRenamed());
+  }
+
+  private void isRepackagedOrAbsentInFullMode(
+      CodeInspector inspector, Class<?> clazz, String packageName) {
+    if (isCompat) {
+      assertThat(clazz, isRepackagedAsExpected(inspector, packageName));
+    } else {
+      assertThat(inspector.clazz(clazz), not(isPresent()));
+    }
   }
 
   private static List<Class<?>> getTestClasses() {

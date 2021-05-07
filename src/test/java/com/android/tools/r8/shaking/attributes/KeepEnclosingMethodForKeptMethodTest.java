@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.shaking.attributes;
 
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
@@ -19,6 +18,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class KeepEnclosingMethodForKeptMethodTest extends TestBase {
 
   private final TestParameters parameters;
+
   private final String[] EXPECTED = {
     "null",
     "class com.android.tools.r8.shaking.attributes.KeepEnclosingMethodForKeptMethodTest"
@@ -28,13 +28,8 @@ public class KeepEnclosingMethodForKeptMethodTest extends TestBase {
     "public"
         + " com.android.tools.r8.shaking.attributes.KeepEnclosingMethodForKeptMethodTest$KeptClass()"
   };
-  private final String[] R8_OUTPUT = {
-    "null",
-    "class com.android.tools.r8.shaking.attributes.KeepEnclosingMethodForKeptMethodTest"
-        + "$KeptClass",
-    "null",
-    "null"
-  };
+
+  private final String[] EXPECTED_FULL = {"null", "null", "null", "null"};
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -58,8 +53,7 @@ public class KeepEnclosingMethodForKeptMethodTest extends TestBase {
 
   @Test
   public void testR8Full() throws Exception {
-    // TODO(b/171194649): This should output EXPECTED.
-    runTest(testForR8(parameters.getBackend())).assertSuccessWithOutputLines(R8_OUTPUT);
+    runTest(testForR8(parameters.getBackend())).assertSuccessWithOutputLines(EXPECTED_FULL);
   }
 
   @Test
@@ -78,7 +72,6 @@ public class KeepEnclosingMethodForKeptMethodTest extends TestBase {
         .addKeepMainRule(KeptClass.class)
         .addKeepClassAndMembersRules(KeptClass.class)
         .setMinApi(parameters.getApiLevel())
-        .enableInliningAnnotations()
         .run(parameters.getRuntime(), KeptClass.class);
   }
 
@@ -116,7 +109,6 @@ public class KeepEnclosingMethodForKeptMethodTest extends TestBase {
       new KeptClass().instanceField.foo();
     }
 
-    @NeverInline
     public static I enclosingFromKeptMethod() {
       return new I() {
         @Override

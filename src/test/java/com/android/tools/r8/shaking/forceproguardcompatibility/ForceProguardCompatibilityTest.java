@@ -455,7 +455,12 @@ public class ForceProguardCompatibilityTest extends TestBase {
               .enableSideEffectAnnotations()
               .setMinApi(parameters.getApiLevel())
               .run(parameters.getRuntime(), TestKeepAttributes.class)
-              .assertSuccessWithOutput(innerClasses || enclosingMethod ? "1" : "0")
+              .applyIf(
+                  forceProguardCompatibility && (innerClasses || enclosingMethod),
+                  result -> result.assertSuccessWithOutput("1"))
+              .applyIf(
+                  !forceProguardCompatibility || !(innerClasses || enclosingMethod),
+                  result -> result.assertSuccessWithOutput("0"))
               .inspector();
     } catch (CompilationFailedException e) {
       assertTrue(!forceProguardCompatibility && (!innerClasses || !enclosingMethod));
@@ -464,7 +469,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
     ClassSubject clazz = inspector.clazz(TestKeepAttributes.class);
     assertThat(clazz, isPresent());
-    if (innerClasses || enclosingMethod) {
+    if (forceProguardCompatibility && (innerClasses || enclosingMethod)) {
       assertFalse(clazz.getDexProgramClass().getInnerClasses().isEmpty());
     } else {
       assertTrue(clazz.getDexProgramClass().getInnerClasses().isEmpty());

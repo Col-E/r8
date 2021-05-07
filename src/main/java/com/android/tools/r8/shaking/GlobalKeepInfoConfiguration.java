@@ -17,4 +17,8 @@ public interface GlobalKeepInfoConfiguration {
   boolean isForceProguardCompatibilityEnabled();
 
   boolean isKeepAttributesSignatureEnabled();
+
+  boolean isKeepEnclosingMethodAttributeEnabled();
+
+  boolean isKeepInnerClassesAttributeEnabled();
 }

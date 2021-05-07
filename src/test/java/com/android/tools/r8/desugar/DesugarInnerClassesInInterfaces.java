@@ -4,7 +4,6 @@
 package com.android.tools.r8.desugar;
 
 import com.android.tools.r8.DesugarTestConfiguration;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -19,18 +18,18 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class DesugarInnerClassesInInterfaces extends TestBase {
 
-  private List<String> EXPECTED_RESULT_WITHOUT_DESUGARING =
+  private final List<String> EXPECTED_RESULT_WITHOUT_DESUGARING =
       ImmutableList.of(
           WithAnonymousInner.class.getName(), "true", WithLocalInner.class.getName(), "true");
 
-  private List<String> EXPECTED_RESULT_WITH_DESUGARING =
+  private final List<String> EXPECTED_RESULT_WITH_DESUGARING =
       ImmutableList.of(
           WithAnonymousInner.class.getName() + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX,
           "true",
           WithLocalInner.class.getName() + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX,
           "true");
 
-  private List<String> EXPECTED_RESULT_WITH_DESUGARING_B168697955 =
+  private final List<String> EXPECTED_RESULT_WITH_DESUGARING_B168697955 =
       ImmutableList.of(
           WithAnonymousInner.class.getName() + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX,
           "false",
@@ -68,44 +67,58 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
   }
 
   @Test
-  public void testR8() throws Exception {
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(DesugarInnerClassesInInterfaces.class)
-            .setMinApi(parameters.getApiLevel())
-            .addKeepRules("-keep class * { *; }")
-            .addKeepAttributes("InnerClasses", "EnclosingMethod")
-            .compile()
-            .run(parameters.getRuntime(), TestClass.class);
-    if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
-      result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITHOUT_DESUGARING);
-    } else {
-      // The static method which is moved to the companion class is inlined and causing
-      // this different output. The rule "-keep class * { *; }" does not keep the static
-      // method from being inlined after it has moved. Turning off inlining produces the
-      // expected result. The inlining cause the getEnclosingClass() to return null.
-      // See b/168697955.
-      result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITH_DESUGARING_B168697955);
-    }
+  public void testR8Compat() throws Exception {
+    testForR8Compat(parameters.getBackend())
+        .addInnerClasses(DesugarInnerClassesInInterfaces.class)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepAllClassesRule()
+        .addKeepAttributeInnerClassesAndEnclosingMethod()
+        .compile()
+        .run(parameters.getRuntime(), TestClass.class)
+        .applyIf(
+            parameters.canUseDefaultAndStaticInterfaceMethods(),
+            result -> result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITHOUT_DESUGARING),
+            // The static method which is moved to the companion class is inlined and causing
+            // this different output. The rule "-keep class * { *; }" does not keep the static
+            // method from being inlined after it has moved. Turning off inlining produces the
+            // expected result. The inlining cause the getEnclosingClass() to return null.
+            // See b/168697955.
+            result ->
+                result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITH_DESUGARING_B168697955));
   }
 
   @Test
   public void testR8_B168697955() throws Exception {
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(DesugarInnerClassesInInterfaces.class)
-            .setMinApi(parameters.getApiLevel())
-            .addKeepRules("-keep class * { *; }")
-            .addKeepAttributes("InnerClasses", "EnclosingMethod")
-            // With inlining turned off we get the expected result.
-            .addOptionsModification(options -> options.enableInlining = false)
-            .compile()
-            .run(parameters.getRuntime(), TestClass.class);
-    if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
-      result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITHOUT_DESUGARING);
-    } else {
-      result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITH_DESUGARING);
-    }
+    testForR8(parameters.getBackend())
+        .addInnerClasses(DesugarInnerClassesInInterfaces.class)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepAllClassesRule()
+        .addKeepAttributeInnerClassesAndEnclosingMethod()
+        // With inlining turned off we get the expected result.
+        .addOptionsModification(options -> options.enableInlining = false)
+        .compile()
+        .run(parameters.getRuntime(), TestClass.class)
+        .applyIf(
+            parameters.canUseDefaultAndStaticInterfaceMethods(),
+            result -> result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITHOUT_DESUGARING),
+            // TODO(b/187377562): We remove the attribute due to not pinning the moved methods.
+            result -> result.assertFailureWithErrorThatThrows(NullPointerException.class));
+  }
+
+  @Test
+  public void testR8Full() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(DesugarInnerClassesInInterfaces.class)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepAllClassesRule()
+        .addKeepAttributeInnerClassesAndEnclosingMethod()
+        .compile()
+        .run(parameters.getRuntime(), TestClass.class)
+        .applyIf(
+            parameters.canUseDefaultAndStaticInterfaceMethods(),
+            result -> result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITHOUT_DESUGARING),
+            // TODO(b/187377562): We remove the attribute due to not pinning the moved methods.
+            result -> result.assertFailureWithErrorThatThrows(NullPointerException.class));
   }
 
   interface WithAnonymousInner {

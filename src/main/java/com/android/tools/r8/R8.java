@@ -322,7 +322,6 @@ public class R8 {
 
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
       timing.begin("Strip unused code");
-      Set<DexType> classesToRetainInnerClassAttributeFor = null;
       RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder =
           new RuntimeTypeCheckInfo.Builder(appView.dexItemFactory());
       try {
@@ -402,11 +401,8 @@ public class R8 {
 
           AnnotationRemover annotationRemover =
               annotationRemoverBuilder
-                  .computeClassesToRetainInnerClassAttributeFor(appViewWithLiveness)
                   .build(appViewWithLiveness, removedClasses);
           annotationRemover.ensureValid().run();
-          classesToRetainInnerClassAttributeFor =
-              annotationRemover.getClassesToRetainInnerClassAttributeFor();
           typeVariableRemover.removeDeadGenericSignatureTypeVariables(appView);
           new GenericSignatureRewriter(appView, NamingLens.getIdentityLens())
               .run(appView.appInfo().classes(), executorService);
@@ -656,9 +652,7 @@ public class R8 {
                 executorService);
 
             // Remove annotations that refer to types that no longer exist.
-            assert classesToRetainInnerClassAttributeFor != null;
             AnnotationRemover.builder()
-                .setClassesToRetainInnerClassAttributeFor(classesToRetainInnerClassAttributeFor)
                 .build(appView.withLiveness(), removedClasses)
                 .run();
             typeVariableRemover.removeDeadGenericSignatureTypeVariables(appView);

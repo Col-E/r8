@@ -969,7 +969,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
   }
 
   public void removeInnerClasses(Predicate<InnerClassAttribute> predicate) {
-    innerClasses.removeIf(predicate::test);
+    innerClasses.removeIf(predicate);
   }
 
   public InnerClassAttribute getInnerClassAttributeForThisClass() {

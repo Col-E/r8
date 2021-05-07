@@ -11,10 +11,8 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -114,41 +112,26 @@ class Outer {
 }
 
 public class GetSimpleNameTest extends GetNameTestBase {
-  private Collection<Path> classPaths;
-  private static final String JAVA_OUTPUT = StringUtils.lines(
-      "Local_t03",
-      "InnerLocal",
-      "$",
-      "$$",
-      "Local[][][]",
-      "[][][]",
-      "Inner",
-      "Inner"
-  );
-  // JDK8 computes the simple name differently: some assumptions about non-member classes,
-  // e.g., 1 or more digits (followed by the simple name if it's local).
-  // Since JDK9, the simple name is computed by stripping off the package name.
-  // See b/132808897 for more details.
-  private static final String RENAMED_OUTPUT_JDK8 = StringUtils.lines(
-      "d",
-      "a",
-      "a",
-      "a",
-      "c[][][]",
-      "b[][][]",
-      "a",
-      "a"
-  );
-  private static final String RENAMED_OUTPUT = StringUtils.lines(
-      "d",
-      "a",
-      "a",
-      "a",
-      "c[][][]",
-      "[][][]",
-      "a",
-      "a"
-  );
+  private final Collection<Path> classPaths;
+  private static final String JVM_OUTPUT =
+      StringUtils.lines(
+          "Local_t03", "InnerLocal", "$", "$$", "Local[][][]", "[][][]", "Inner", "Inner");
+
+  // When removing the class attributes the simple name of a class becomes prepended with the
+  // outer class.
+  private static final String OUTPUT_NO_ATTRIBUTES =
+      StringUtils.lines(
+          "ClassGetSimpleName$1Local_t03",
+          "InnerLocal",
+          "ClassGetSimpleName$1$",
+          "$$",
+          "ClassGetSimpleName$1Local[][][]",
+          "ClassGetSimpleName$1[][][]",
+          "Inner",
+          "Inner");
+
+  private static final String RENAMED_OUTPUT =
+      StringUtils.lines("d", "a", "a", "a", "c[][][]", "b[][][]", "a", "a");
   private static final Class<?> MAIN = ClassGetSimpleName.class;
 
   public GetSimpleNameTest(TestParameters parameters, boolean enableMinification) throws Exception {
@@ -169,10 +152,11 @@ public class GetSimpleNameTest extends GetNameTestBase {
     assumeTrue(
         "Only run JVM reference on CF runtimes",
         parameters.isCfRuntime() && !enableMinification);
+    CodeInspector inspector = new CodeInspector(classPaths);
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+        .assertSuccessWithOutput(JVM_OUTPUT);
   }
 
   private void test(SingleTestRunResult<?> result) throws Exception {
@@ -194,7 +178,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
-            .assertSuccessWithOutput(JAVA_OUTPUT);
+            .assertSuccessWithOutput(JVM_OUTPUT);
     test(result);
 
     result =
@@ -204,61 +188,67 @@ public class GetSimpleNameTest extends GetNameTestBase {
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
-            .assertSuccessWithOutput(JAVA_OUTPUT);
+            .assertSuccessWithOutput(JVM_OUTPUT);
     test(result);
+  }
+
+  @Test
+  public void testR8_pin_all() throws Exception {
+    // Pinning the test class.
+    testForR8(parameters.getBackend())
+        .addProgramFiles(classPaths)
+        .addForceInliningAnnotations()
+        .enableInliningAnnotations()
+        .addKeepAllClassesRule()
+        .addKeepAttributeInnerClassesAndEnclosingMethod()
+        .minification(enableMinification)
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(this::configure)
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JVM_OUTPUT)
+        .apply(this::test);
   }
 
   @Test
   public void testR8_pinning() throws Exception {
     // Pinning the test class.
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .addProgramFiles(classPaths)
-            .enableForceInliningAnnotations()
-            .enableInliningAnnotations()
-            .addKeepMainRule(MAIN)
-            .addKeepRules("-keep class **.ClassGetSimpleName*")
-            .addKeepRules("-keep class **.Outer*")
-            .addKeepAttributes("InnerClasses", "EnclosingMethod")
-            .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
-            .minification(enableMinification)
-            .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(this::configure)
-            .run(parameters.getRuntime(), MAIN)
-            .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result);
+    testForR8(parameters.getBackend())
+        .addProgramFiles(classPaths)
+        .enableForceInliningAnnotations()
+        .enableInliningAnnotations()
+        .addKeepMainRule(MAIN)
+        .addKeepRules("-keep class **.ClassGetSimpleName*")
+        .addKeepRules("-keep class **.Outer*")
+        .addKeepAttributeInnerClassesAndEnclosingMethod()
+        .minification(enableMinification)
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(this::configure)
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(OUTPUT_NO_ATTRIBUTES)
+        .apply(this::test);
   }
 
   @Test
   public void testR8_shallow_pinning() throws Exception {
     // Shallow pinning the test class.
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .addProgramFiles(classPaths)
-            .enableInliningAnnotations()
-            .addKeepMainRule(MAIN)
-            .addKeepRules("-keep,allowobfuscation class **.ClassGetSimpleName*")
-            // See b/119471127: some old VMs are not resilient to broken attributes.
-            // Comment out the following line to reproduce b/120130435
-            // then use OUTPUT_WITH_SHRUNK_ATTRIBUTES
-            .addKeepRules("-keep,allowobfuscation class **.Outer*")
-            .addKeepAttributes("InnerClasses", "EnclosingMethod")
-            .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
-            .enableForceInliningAnnotations()
-            .minification(enableMinification)
-            .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(this::configure)
-            .run(parameters.getRuntime(), MAIN);
-    if (enableMinification) {
-      if (parameters.isCfRuntime()
-          && parameters.getRuntime().asCf().getVm().lessThanOrEqual(CfVm.JDK8)) {
-        result.assertSuccessWithOutput(RENAMED_OUTPUT_JDK8);
-      } else {
-        result.assertSuccessWithOutput(RENAMED_OUTPUT);
-      }
-    } else {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
-    }
-    test(result);
+    testForR8(parameters.getBackend())
+        .addProgramFiles(classPaths)
+        .enableForceInliningAnnotations()
+        .enableInliningAnnotations()
+        .addKeepMainRule(MAIN)
+        .addKeepRules("-keep,allowobfuscation class **.ClassGetSimpleName*")
+        // See b/119471127: some old VMs are not resilient to broken attributes.
+        // Comment out the following line to reproduce b/120130435
+        // then use OUTPUT_WITH_SHRUNK_ATTRIBUTES
+        .addKeepRules("-keep,allowobfuscation class **.Outer*")
+        .addKeepAttributeInnerClassesAndEnclosingMethod()
+        .minification(enableMinification)
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(this::configure)
+        .run(parameters.getRuntime(), MAIN)
+        .applyIf(enableMinification, result -> result.assertSuccessWithOutput(RENAMED_OUTPUT))
+        .applyIf(
+            !enableMinification, result -> result.assertSuccessWithOutput(OUTPUT_NO_ATTRIBUTES))
+        .apply(this::test);
   }
 }

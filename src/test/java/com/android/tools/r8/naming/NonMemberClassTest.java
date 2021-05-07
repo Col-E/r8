@@ -74,23 +74,16 @@ public class NonMemberClassTest extends TestBase {
     }
 
     public String getExpectedOutput(TestParameters parameters, boolean isFullMode) {
+      // In full mode, we remove all attributes since nothing pinned, i.e., no reflection uses.
+      if (isFullMode) {
+        return "";
+      }
       switch (this) {
         case KEEP_INNER_CLASSES:
+        case NO_KEEP_NO_MINIFICATION:
           return JVM_OUTPUT;
         case KEEP_ALLOW_MINIFICATION:
-          if (parameters.isCfRuntime()
-              && parameters.getRuntime().asCf().getVm().lessThanOrEqual(CfVm.JDK8)) {
-            return MINIFIED_OUTPUT_JDK8;
-          }
-          return JVM_OUTPUT;
-        case NO_KEEP_NO_MINIFICATION:
-          // In full mode, we remove all attributes since nothing pinned, i.e., no reflection uses.
-          return isFullMode ? "" : JVM_OUTPUT;
         case NO_KEEP_MINIFICATION:
-          // In full mode, we remove all attributes since nothing pinned, i.e., no reflection uses.
-          if (isFullMode) {
-            return "";
-          }
           if (parameters.isCfRuntime()
               && parameters.getRuntime().asCf().getVm().lessThanOrEqual(CfVm.JDK8)) {
             return MINIFIED_OUTPUT_JDK8;
@@ -102,19 +95,7 @@ public class NonMemberClassTest extends TestBase {
     }
 
     public void inspect(boolean isFullMode, CodeInspector inspector) {
-      int expectedNumberOfNonMemberInnerClasses;
-      switch (this) {
-        case KEEP_INNER_CLASSES:
-        case KEEP_ALLOW_MINIFICATION:
-          expectedNumberOfNonMemberInnerClasses = 2;
-          break;
-        case NO_KEEP_NO_MINIFICATION:
-        case NO_KEEP_MINIFICATION:
-          expectedNumberOfNonMemberInnerClasses = isFullMode ? 0 : 2;
-          break;
-        default:
-          throw new Unreachable();
-      }
+      int expectedNumberOfNonMemberInnerClasses = isFullMode ? 0 : 2;
       assertEquals(
           expectedNumberOfNonMemberInnerClasses,
           inspector.allClasses().stream()
@@ -190,7 +171,8 @@ public class NonMemberClassTest extends TestBase {
         .addInnerClasses(NonMemberClassTest.class)
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRules())
-        .addKeepAttributes("Signature", "InnerClasses", "EnclosingMethod")
+        .addKeepAttributeInnerClassesAndEnclosingMethod()
+        .addKeepAttributeSignature()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(options -> options.enableClassInlining = false)

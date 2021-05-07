@@ -5,33 +5,51 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.BooleanUtils;
+import java.util.List;
 import org.junit.Test;
+import org.junit.runners.Parameterized;
 
 public class InnerOuterClassesTest extends HorizontalClassMergingTestBase {
-  public InnerOuterClassesTest(TestParameters parameters) {
+
+  @Parameterized.Parameters(name = "{0}, isCompat: {1}")
+  public static List<Object[]> newData() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+  }
+
+  private final boolean isCompat;
+
+  public InnerOuterClassesTest(TestParameters parameters, boolean isCompat) {
     super(parameters);
+    this.isCompat = isCompat;
   }
 
   @Test
   public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
+    (isCompat ? testForR8Compat(parameters.getBackend()) : testForR8(parameters.getBackend()))
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableNeverClassInliningAnnotations()
-        .addKeepAttributes("InnerClasses", "EnclosingMethod")
+        .addKeepAttributeInnerClassesAndEnclosingMethod()
         .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(
+            options ->
+                options.testing.horizontalClassMergingTarget =
+                    (candidates, target) -> candidates.iterator().next())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("a", "b", "c", "d")
         .inspect(
             codeInspector -> {
-              assertThat(codeInspector.clazz(A.class), isPresent());
+              assertThat(codeInspector.clazz(A.class), onlyIf(isCompat, isPresent()));
               assertThat(codeInspector.clazz(A.B.class), isPresent());
-              assertThat(codeInspector.clazz(C.class), isPresent());
-              assertThat(codeInspector.clazz(A.D.class), isPresent());
+              assertThat(codeInspector.clazz(C.class), onlyIf(isCompat, isPresent()));
+              assertThat(codeInspector.clazz(A.D.class), onlyIf(isCompat, isPresent()));
             });
   }
 

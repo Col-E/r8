@@ -6,12 +6,13 @@ package com.android.tools.r8.desugar.enclosingmethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -72,6 +73,8 @@ public class EnclosingMethodRewriteTest extends TestBase {
         "interface " + A.class.getTypeName(), "public int " + A.class.getTypeName() + ".def()", "42"
       };
 
+  private final String[] EXPECTED_FULL = new String[] {"null", "null", "42"};
+
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
@@ -91,15 +94,15 @@ public class EnclosingMethodRewriteTest extends TestBase {
   }
 
   @Test
-  public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
+  public void testR8Compat() throws Exception {
+    testForR8Compat(parameters.getBackend())
         .addProgramClassesAndInnerClasses(A.class)
         .addProgramClasses(C.class, MAIN)
         .addKeepAllClassesRule()
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspect(this::inspect)
+        .inspect(inspector -> inspect(inspector, true))
         .run(parameters.getRuntime(), MAIN)
         .applyIf(
             parameters.canUseDefaultAndStaticInterfaceMethods(),
@@ -114,7 +117,32 @@ public class EnclosingMethodRewriteTest extends TestBase {
             result -> result.assertSuccessWithOutputLines(EXPECTED_CC));
   }
 
-  private void inspect(CodeInspector inspector) {
+  @Test
+  public void testR8Full() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClassesAndInnerClasses(A.class)
+        .addProgramClasses(C.class, MAIN)
+        .addKeepAllClassesRule()
+        .addKeepAttributeInnerClassesAndEnclosingMethod()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(
+            inspector -> inspect(inspector, parameters.canUseDefaultAndStaticInterfaceMethods()))
+        .run(parameters.getRuntime(), MAIN)
+        .applyIf(
+            parameters.canUseDefaultAndStaticInterfaceMethods(),
+            result -> {
+              if (!parameters.isCfRuntime()
+                  && parameters.getApiLevel().isEqualTo(AndroidApiLevel.N)) {
+                result.assertSuccessWithOutputLines(EXPECTED_NOUGAT);
+              } else {
+                result.assertSuccessWithOutputLines(EXPECTED);
+              }
+            },
+            result -> result.assertSuccessWithOutputLines(EXPECTED_FULL));
+  }
+
+  private void inspect(CodeInspector inspector, boolean hasEnclosingMethod) {
     ClassSubject cImplSubject = inspector.clazz(A.class.getTypeName() + "$1");
     assertThat(cImplSubject, isPresent());
     ClassSubject enclosingClassSubject =
@@ -122,9 +150,14 @@ public class EnclosingMethodRewriteTest extends TestBase {
             ? inspector.clazz(A.class.getTypeName())
             : inspector.clazz(A.class.getTypeName() + "$-CC");
     assertThat(enclosingClassSubject, isPresent());
-    DexMethod enclosingMethod =
-        cImplSubject.getDexProgramClass().getEnclosingMethodAttribute().getEnclosingMethod();
-    assertEquals(
-        enclosingClassSubject.getDexProgramClass().getType(), enclosingMethod.getHolderType());
+    EnclosingMethodAttribute enclosingMethodAttribute =
+        cImplSubject.getDexProgramClass().getEnclosingMethodAttribute();
+    if (hasEnclosingMethod) {
+      assertEquals(
+          enclosingClassSubject.getDexProgramClass().getType(),
+          enclosingMethodAttribute.getEnclosingMethod().getHolderType());
+    } else {
+      assertNull(enclosingMethodAttribute);
+    }
   }
 }

@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import org.objectweb.asm.ClassWriter;
 
 /**
@@ -88,5 +89,15 @@ public final class EnclosingMethodAttribute {
         + ", enclosingMethod: "
         + (enclosingMethod == null ? "null" : enclosingMethod.toSourceString())
         + "]";
+  }
+
+  public boolean isEnclosingPinned(AppView<AppInfoWithLiveness> appView) {
+    if (enclosingMethod != null) {
+      return appView.appInfo().isPinned(enclosingMethod);
+    }
+    if (enclosingClass != null) {
+      return appView.appInfo().isPinned(enclosingClass);
+    }
+    return false;
   }
 }

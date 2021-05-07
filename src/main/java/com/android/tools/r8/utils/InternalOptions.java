@@ -602,6 +602,16 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return proguardConfiguration.getKeepAttributes().signature;
   }
 
+  @Override
+  public boolean isKeepEnclosingMethodAttributeEnabled() {
+    return proguardConfiguration.getKeepAttributes().enclosingMethod;
+  }
+
+  @Override
+  public boolean isKeepInnerClassesAttributeEnabled() {
+    return proguardConfiguration.getKeepAttributes().innerClasses;
+  }
+
   /**
    * If any non-static class merging is enabled, information about types referred to by instanceOf
    * and check cast instructions needs to be collected.
