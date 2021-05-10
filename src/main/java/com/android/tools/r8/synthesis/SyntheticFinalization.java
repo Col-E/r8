@@ -362,8 +362,7 @@ public class SyntheticFinalization {
           SyntheticMethodDefinition representative = syntheticGroup.getRepresentative();
           SynthesizingContext context = representative.getContext();
           context.registerPrefixRewriting(syntheticType, appView);
-          addSyntheticMarker(
-              representative.getKind(), representative.getHolder(), context, appView);
+          addSyntheticMarker(representative.getKind(), representative.getHolder(), appView);
           if (syntheticGroup.isDerivedFromMainDexList(mainDexInfo)) {
             derivedMainDexSynthetics.add(syntheticType);
           }
@@ -379,8 +378,7 @@ public class SyntheticFinalization {
           SyntheticProgramClassDefinition representative = syntheticGroup.getRepresentative();
           SynthesizingContext context = representative.getContext();
           context.registerPrefixRewriting(syntheticType, appView);
-          addSyntheticMarker(
-              representative.getKind(), representative.getHolder(), context, appView);
+          addSyntheticMarker(representative.getKind(), representative.getHolder(), appView);
           if (syntheticGroup.isDerivedFromMainDexList(mainDexInfo)) {
             derivedMainDexSynthetics.add(syntheticType);
           }
@@ -474,24 +472,16 @@ public class SyntheticFinalization {
   private static void addSyntheticMarker(
       SyntheticKind kind,
       DexProgramClass externalSyntheticClass,
-      SynthesizingContext context,
       AppView<?> appView) {
     if (shouldAnnotateSynthetics(appView.options())) {
-      SyntheticMarker.addMarkerToClass(
-          externalSyntheticClass,
-          kind,
-          context,
-          appView.dexItemFactory(),
-          appView.options().forceAnnotateSynthetics);
+      SyntheticMarker.addMarkerToClass(externalSyntheticClass, kind, appView.options());
     }
   }
 
   private static boolean shouldAnnotateSynthetics(InternalOptions options) {
     // Only intermediate builds have annotated synthetics to allow later sharing.
-    // This is currently also disabled on non-L8 CF to CF desugaring to avoid missing class
-    // references to the annotated classes.
-    // TODO(b/147485959): Find an alternative encoding for synthetics to avoid missing-class refs.
-    return options.intermediate && (!options.cfToCfDesugar || options.forceAnnotateSynthetics);
+    // Also, CF builds are marked in the writer using an attribute.
+    return options.intermediate && options.isGeneratingDex();
   }
 
   private <T extends SyntheticDefinition<?, T, ?>>

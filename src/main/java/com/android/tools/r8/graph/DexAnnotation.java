@@ -359,19 +359,12 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
   }
 
   public static DexAnnotation createAnnotationSynthesizedClass(
-      SyntheticKind kind, DexType synthesizingContext, DexItemFactory dexItemFactory) {
+      SyntheticKind kind, DexItemFactory dexItemFactory) {
     DexAnnotationElement kindElement =
         new DexAnnotationElement(
             dexItemFactory.kindString,
             new DexValueString(dexItemFactory.createString(kind.descriptor)));
-    DexAnnotationElement typeElement =
-        new DexAnnotationElement(dexItemFactory.valueString, new DexValueType(synthesizingContext));
-    DexAnnotationElement[] elements;
-    if (synthesizingContext == null) {
-      elements = new DexAnnotationElement[] {kindElement};
-    } else {
-      elements = new DexAnnotationElement[] {kindElement, typeElement};
-    }
+    DexAnnotationElement[] elements = new DexAnnotationElement[] {kindElement};
     return new DexAnnotation(
         VISIBILITY_BUILD,
         new DexEncodedAnnotation(dexItemFactory.annotationSynthesizedClass, elements));
@@ -379,10 +372,10 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
 
   public static boolean hasSynthesizedClassAnnotation(
       DexAnnotationSet annotations, DexItemFactory factory) {
-    return getSynthesizedClassAnnotationContextType(annotations, factory) != null;
+    return getSynthesizedClassAnnotationInfo(annotations, factory) != null;
   }
 
-  public static Pair<SyntheticKind, DexType> getSynthesizedClassAnnotationContextType(
+  public static SyntheticKind getSynthesizedClassAnnotationInfo(
       DexAnnotationSet annotations, DexItemFactory factory) {
     if (annotations.size() != 1) {
       return null;
@@ -392,7 +385,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
       return null;
     }
     int length = annotation.annotation.elements.length;
-    if (length != 1 && length != 2) {
+    if (length != 1) {
       return null;
     }
     assert factory.kindString.isLessThan(factory.valueString);
@@ -406,20 +399,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     SyntheticKind kind =
         SyntheticNaming.SyntheticKind.fromDescriptor(
             kindElement.value.asDexValueString().getValue().toString());
-    if (kind == null) {
-      return null;
-    }
-    if (length != 2) {
-      return new Pair<>(kind, null);
-    }
-    DexAnnotationElement valueElement = annotation.annotation.elements[1];
-    if (valueElement.name != factory.valueString) {
-      return null;
-    }
-    if (!valueElement.value.isDexValueType()) {
-      return null;
-    }
-    return new Pair<>(kind, valueElement.value.asDexValueType().getValue());
+    return kind;
   }
 
   public DexAnnotation rewrite(Function<DexEncodedAnnotation, DexEncodedAnnotation> rewriter) {

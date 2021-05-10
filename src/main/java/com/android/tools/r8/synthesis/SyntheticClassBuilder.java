@@ -160,6 +160,7 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
             directMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
             virtualMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
             factory.getSkipNameValidationForTesting(),
-            c -> checksum);
+            c -> checksum,
+            null);
   }
 }

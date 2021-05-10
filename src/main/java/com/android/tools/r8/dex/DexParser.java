@@ -819,7 +819,8 @@ public class DexParser<T extends DexClass> {
               directMethods,
               virtualMethods,
               dexItemFactory.getSkipNameValidationForTesting(),
-              checksumSupplier);
+              checksumSupplier,
+              null);
       classCollection.accept(clazz);  // Update the application object.
     }
   }

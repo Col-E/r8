@@ -30,6 +30,7 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import org.objectweb.asm.ClassWriter;
 
 public class SyntheticItems implements SyntheticDefinitionsProvider {
 
@@ -119,12 +121,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     assert synthetics.nextSyntheticId == 0;
     assert synthetics.committed.isEmpty();
     assert synthetics.pending.isEmpty();
-    if (appView.options().intermediate) {
-      // If the compilation is in intermediate mode the synthetics should just be passed through.
-      return;
-    }
     CommittedSyntheticsCollection.Builder builder = synthetics.committed.builder();
-    // TODO(b/158159959): Consider identifying synthetics in the input reader to speed this up.
+    // TODO(b/158159959): Consider populating the input synthetics when identified.
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       SyntheticMarker marker = SyntheticMarker.stripMarkerFromClass(clazz, appView);
       if (marker.isSyntheticMethods()) {
@@ -659,6 +657,23 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       assert app.programDefinitionFor(clazz.type) != null : "Missing synthetic: " + clazz.type;
     }
     return true;
+  }
+
+  public void writeAttributeIfIntermediateSyntheticClass(
+      ClassWriter writer, DexProgramClass clazz, AppView<?> appView) {
+    if (!appView.options().intermediate || !appView.options().isGeneratingClassFiles()) {
+      return;
+    }
+    Iterator<SyntheticReference<?, ?, ?>> it =
+        committed.getNonLegacyItems(clazz.getType()).iterator();
+    if (it.hasNext()) {
+      SyntheticKind kind = it.next().getKind();
+      // When compiling intermediates there should not be any mergings as they may invalidate the
+      // single kind of a synthetic which is required for marking synthetics. This check could be
+      // relaxed to ensure that all kinds are equivalent if merging is possible.
+      assert !it.hasNext();
+      SyntheticMarker.writeMarkerAttribute(writer, kind);
+    }
   }
 
   // Finalization of synthetic items.

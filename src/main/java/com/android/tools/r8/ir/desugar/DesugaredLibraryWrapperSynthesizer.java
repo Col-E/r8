@@ -244,7 +244,8 @@ public class DesugaredLibraryWrapperSynthesizer {
         },
         virtualMethods,
         factory.getSkipNameValidationForTesting(),
-        DexProgramClass::checksumFromType);
+        DexProgramClass::checksumFromType,
+        null);
   }
 
   private DexEncodedMethod[] synthesizeVirtualMethodsForVivifiedTypeWrapper(

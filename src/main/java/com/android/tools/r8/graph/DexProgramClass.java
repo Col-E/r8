@@ -19,6 +19,7 @@ import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.synthesis.SyntheticMarker;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -53,6 +54,8 @@ public class DexProgramClass extends DexClass
 
   private final ChecksumSupplier checksumSupplier;
 
+  private SyntheticMarker syntheticMarker;
+
   public DexProgramClass(
       DexType type,
       Kind originKind,
@@ -72,7 +75,8 @@ public class DexProgramClass extends DexClass
       DexEncodedMethod[] directMethods,
       DexEncodedMethod[] virtualMethods,
       boolean skipNameValidationForTesting,
-      ChecksumSupplier checksumSupplier) {
+      ChecksumSupplier checksumSupplier,
+      SyntheticMarker syntheticMarker) {
     super(
         sourceFile,
         interfaces,
@@ -95,6 +99,50 @@ public class DexProgramClass extends DexClass
     assert classAnnotations != null;
     this.originKind = originKind;
     this.checksumSupplier = checksumSupplier;
+    this.syntheticMarker = syntheticMarker;
+  }
+
+  public DexProgramClass(
+      DexType type,
+      Kind originKind,
+      Origin origin,
+      ClassAccessFlags accessFlags,
+      DexType superType,
+      DexTypeList interfaces,
+      DexString sourceFile,
+      NestHostClassAttribute nestHost,
+      List<NestMemberClassAttribute> nestMembers,
+      EnclosingMethodAttribute enclosingMember,
+      List<InnerClassAttribute> innerClasses,
+      ClassSignature classSignature,
+      DexAnnotationSet classAnnotations,
+      DexEncodedField[] staticFields,
+      DexEncodedField[] instanceFields,
+      DexEncodedMethod[] directMethods,
+      DexEncodedMethod[] virtualMethods,
+      boolean skipNameValidationForTesting,
+      ChecksumSupplier checksumSupplier) {
+    this(
+        type,
+        originKind,
+        origin,
+        accessFlags,
+        superType,
+        interfaces,
+        sourceFile,
+        nestHost,
+        nestMembers,
+        enclosingMember,
+        innerClasses,
+        classSignature,
+        classAnnotations,
+        staticFields,
+        instanceFields,
+        directMethods,
+        virtualMethods,
+        skipNameValidationForTesting,
+        checksumSupplier,
+        null);
   }
 
   @Override
@@ -118,6 +166,15 @@ public class DexProgramClass extends DexClass
   @Override
   public StructuralMapping<DexProgramClass> getStructuralMapping() {
     return DexProgramClass::specify;
+  }
+
+  public SyntheticMarker stripSyntheticInputMarker() {
+    SyntheticMarker marker = syntheticMarker;
+    // The synthetic input marker is "read once". It is stored only for identifying the input as
+    // synthetic and amending it to the SyntheticItems collection. After identification this field
+    // should not be used.
+    syntheticMarker = null;
+    return marker;
   }
 
   private static void specify(StructuralSpecification<DexProgramClass, ?> spec) {

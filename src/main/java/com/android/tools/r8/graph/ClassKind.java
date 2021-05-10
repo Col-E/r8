@@ -8,13 +8,56 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.synthesis.SyntheticMarker;
 import java.util.List;
 import java.util.function.Predicate;
 
 /** Kind of the application class. Can be program, classpath or library. */
 public class ClassKind<C extends DexClass> {
   public static ClassKind<DexProgramClass> PROGRAM =
-      new ClassKind<>(DexProgramClass::new, DexClass::isProgramClass);
+      new ClassKind<>(
+          (type,
+              originKind,
+              origin,
+              accessFlags,
+              superType,
+              interfaces,
+              sourceFile,
+              nestHost,
+              nestMembers,
+              enclosingMember,
+              innerClasses,
+              classSignature,
+              classAnnotations,
+              staticFields,
+              instanceFields,
+              directMethods,
+              virtualMethods,
+              skipNameValidationForTesting,
+              checksumSupplier,
+              syntheticMarker) ->
+              new DexProgramClass(
+                  type,
+                  originKind,
+                  origin,
+                  accessFlags,
+                  superType,
+                  interfaces,
+                  sourceFile,
+                  nestHost,
+                  nestMembers,
+                  enclosingMember,
+                  innerClasses,
+                  classSignature,
+                  classAnnotations,
+                  staticFields,
+                  instanceFields,
+                  directMethods,
+                  virtualMethods,
+                  skipNameValidationForTesting,
+                  checksumSupplier,
+                  syntheticMarker),
+          DexClass::isProgramClass);
   public static ClassKind<DexClasspathClass> CLASSPATH =
       new ClassKind<>(
           (type,
@@ -35,7 +78,8 @@ public class ClassKind<C extends DexClass> {
               directMethods,
               virtualMethods,
               skipNameValidationForTesting,
-              checksumSupplier) ->
+              checksumSupplier,
+              syntheticMarker) ->
               new DexClasspathClass(
                   type,
                   kind,
@@ -76,7 +120,8 @@ public class ClassKind<C extends DexClass> {
               directMethods,
               virtualMethods,
               skipNameValidationForTesting,
-              checksumSupplier) ->
+              checksumSupplier,
+              syntheticMarker) ->
               new DexLibraryClass(
                   type,
                   kind,
@@ -118,7 +163,8 @@ public class ClassKind<C extends DexClass> {
         DexEncodedMethod[] directMethods,
         DexEncodedMethod[] virtualMethods,
         boolean skipNameValidationForTesting,
-        ChecksumSupplier checksumSupplier);
+        ChecksumSupplier checksumSupplier,
+        SyntheticMarker syntheticMarker);
   }
 
   private final Factory<C> factory;
@@ -148,7 +194,8 @@ public class ClassKind<C extends DexClass> {
       DexEncodedMethod[] directMethods,
       DexEncodedMethod[] virtualMethods,
       boolean skipNameValidationForTesting,
-      ChecksumSupplier checksumSupplier) {
+      ChecksumSupplier checksumSupplier,
+      SyntheticMarker syntheticMarker) {
     return factory.create(
         type,
         kind,
@@ -168,7 +215,8 @@ public class ClassKind<C extends DexClass> {
         directMethods,
         virtualMethods,
         skipNameValidationForTesting,
-        checksumSupplier);
+        checksumSupplier,
+        syntheticMarker);
   }
 
   public boolean isOfKind(DexClass clazz) {

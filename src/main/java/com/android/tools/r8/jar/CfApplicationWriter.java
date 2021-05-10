@@ -199,6 +199,7 @@ public class CfApplicationWriter {
     }
     assert SyntheticNaming.verifyNotInternalSynthetic(name);
     writer.visit(version.raw(), access, name, signature, superName, interfaces);
+    appView.getSyntheticItems().writeAttributeIfIntermediateSyntheticClass(writer, clazz, appView);
     writeAnnotations(writer::visitAnnotation, clazz.annotations().annotations);
     ImmutableMap<DexString, DexValue> defaults = getAnnotationDefaults(clazz.annotations());
 

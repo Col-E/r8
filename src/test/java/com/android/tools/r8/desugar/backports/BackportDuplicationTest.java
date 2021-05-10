@@ -91,9 +91,6 @@ public class BackportDuplicationTest extends TestBase {
 
   @Test
   public void testD8Merging() throws Exception {
-    assumeTrue(
-        "b/147485959: Merging does not happen for CF due to lack of synthetic annotations",
-        parameters.isDexRuntime());
     boolean intermediate = true;
     runD8Merging(intermediate);
   }

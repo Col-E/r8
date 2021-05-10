@@ -37,6 +37,7 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.synthesis.SyntheticMarker;
 import com.android.tools.r8.utils.AsmUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -58,6 +59,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.zip.CRC32;
 import org.objectweb.asm.AnnotationVisitor;
+import org.objectweb.asm.Attribute;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
@@ -119,6 +121,7 @@ public class JarClassFileReader<T extends DexClass> {
     }
     reader.accept(
         new CreateDexClassVisitor<>(origin, classKind, reader.b, application, classConsumer),
+        new Attribute[] {SyntheticMarker.getMarkerAttributePrototype()},
         parsingOptions);
 
     // Read marker.
@@ -219,6 +222,7 @@ public class JarClassFileReader<T extends DexClass> {
     private final List<DexEncodedMethod> virtualMethods = new ArrayList<>();
     private final Set<Wrapper<DexMethod>> methodSignatures = new HashSet<>();
     private boolean hasReachabilitySensitiveMethod = false;
+    private SyntheticMarker syntheticMarker = null;
 
     public CreateDexClassVisitor(
         Origin origin,
@@ -232,6 +236,15 @@ public class JarClassFileReader<T extends DexClass> {
       this.classConsumer = classConsumer;
       this.context.classCache = classCache;
       this.application = application;
+    }
+
+    @Override
+    public void visitAttribute(Attribute attribute) {
+      SyntheticMarker marker = SyntheticMarker.readMarkerAttribute(attribute);
+      if (marker != null) {
+        assert syntheticMarker == null;
+        syntheticMarker = marker;
+      }
     }
 
     @Override
@@ -452,7 +465,8 @@ public class JarClassFileReader<T extends DexClass> {
               directMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
               virtualMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
               application.getFactory().getSkipNameValidationForTesting(),
-              getChecksumSupplier(classKind));
+              getChecksumSupplier(classKind),
+              syntheticMarker);
       InnerClassAttribute innerClassAttribute = clazz.getInnerClassAttributeForThisClass();
       // A member class should not be a local or anonymous class.
       if (innerClassAttribute != null && innerClassAttribute.getOuter() != null) {
