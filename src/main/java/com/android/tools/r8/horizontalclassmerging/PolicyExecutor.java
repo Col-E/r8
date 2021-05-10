@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
-import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -17,15 +17,16 @@ import java.util.LinkedList;
  */
 public class PolicyExecutor {
 
-  // TODO(b/165506334): if performing mutable operation ensure that linked lists are used
   private void applySingleClassPolicy(SingleClassPolicy policy, LinkedList<MergeGroup> groups) {
     Iterator<MergeGroup> i = groups.iterator();
     while (i.hasNext()) {
       MergeGroup group = i.next();
-      int previousNumberOfClasses = group.size();
+      boolean isInterfaceGroup = group.isInterfaceGroup();
+      int previousGroupSize = group.size();
       group.removeIf(clazz -> !policy.canMerge(clazz));
-      policy.numberOfRemovedClasses += previousNumberOfClasses - group.size();
-      if (group.size() < 2) {
+      assert policy.recordRemovedClassesForDebugging(
+          isInterfaceGroup, previousGroupSize, ImmutableList.of(group));
+      if (group.isTrivial()) {
         i.remove();
       }
     }
@@ -37,11 +38,30 @@ public class PolicyExecutor {
     LinkedList<MergeGroup> newGroups = new LinkedList<>();
     groups.forEach(
         group -> {
-          int previousNumberOfClasses = group.size();
+          boolean isInterfaceGroup = group.isInterfaceGroup();
+          int previousGroupSize = group.size();
           Collection<MergeGroup> policyGroups = policy.apply(group);
           policyGroups.forEach(newGroup -> newGroup.applyMetadataFrom(group));
-          policy.numberOfRemovedClasses +=
-              previousNumberOfClasses - IterableUtils.sumInt(policyGroups, MergeGroup::size);
+          assert policy.recordRemovedClassesForDebugging(
+              isInterfaceGroup, previousGroupSize, policyGroups);
+          newGroups.addAll(policyGroups);
+        });
+    return newGroups;
+  }
+
+  private <T> LinkedList<MergeGroup> applyMultiClassPolicyWithPreprocessing(
+      MultiClassPolicyWithPreprocessing<T> policy, LinkedList<MergeGroup> groups) {
+    // For each group apply the multi class policy and add all the new groups together.
+    T data = policy.preprocess(groups);
+    LinkedList<MergeGroup> newGroups = new LinkedList<>();
+    groups.forEach(
+        group -> {
+          boolean isInterfaceGroup = group.isInterfaceGroup();
+          int previousGroupSize = group.size();
+          Collection<MergeGroup> policyGroups = policy.apply(group, data);
+          policyGroups.forEach(newGroup -> newGroup.applyMetadataFrom(group));
+          assert policy.recordRemovedClassesForDebugging(
+              isInterfaceGroup, previousGroupSize, policyGroups);
           newGroups.addAll(policyGroups);
         });
     return newGroups;
@@ -68,11 +88,15 @@ public class PolicyExecutor {
       }
 
       timing.begin(policy.getName());
-      if (policy instanceof SingleClassPolicy) {
-        applySingleClassPolicy((SingleClassPolicy) policy, linkedGroups);
+      if (policy.isSingleClassPolicy()) {
+        applySingleClassPolicy(policy.asSingleClassPolicy(), linkedGroups);
+      } else if (policy.isMultiClassPolicy()) {
+        linkedGroups = applyMultiClassPolicy(policy.asMultiClassPolicy(), linkedGroups);
       } else {
-        assert policy instanceof MultiClassPolicy;
-        linkedGroups = applyMultiClassPolicy((MultiClassPolicy) policy, linkedGroups);
+        assert policy.isMultiClassPolicyWithPreprocessing();
+        linkedGroups =
+            applyMultiClassPolicyWithPreprocessing(
+                policy.asMultiClassPolicyWithPreprocessing(), linkedGroups);
       }
       timing.end();
 

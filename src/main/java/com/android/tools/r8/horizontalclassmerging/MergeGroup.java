@@ -125,6 +125,11 @@ public class MergeGroup implements Collection<DexProgramClass> {
     return size() < 2;
   }
 
+  public boolean isNonTrivial() {
+    return !isTrivial();
+  }
+
+  @Override
   public boolean isEmpty() {
     return classes.isEmpty();
   }
@@ -140,6 +145,7 @@ public class MergeGroup implements Collection<DexProgramClass> {
     return classes.iterator();
   }
 
+  @Override
   public int size() {
     return classes.size();
   }

@@ -13,4 +13,14 @@ public abstract class SingleClassPolicy extends Policy {
    * @return {@code false} if the class should not be merged, otherwise {@code true}.
    */
   public abstract boolean canMerge(DexProgramClass program);
+
+  @Override
+  public boolean isSingleClassPolicy() {
+    return true;
+  }
+
+  @Override
+  public SingleClassPolicy asSingleClassPolicy() {
+    return this;
+  }
 }

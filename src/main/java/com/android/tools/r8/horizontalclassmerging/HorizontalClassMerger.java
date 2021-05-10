@@ -17,21 +17,23 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotationClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassAnnotationCollisions;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassInitializerWithObservableSideEffects;
 import com.android.tools.r8.horizontalclassmerging.policies.NoDeadEnumLiteMaps;
+import com.android.tools.r8.horizontalclassmerging.policies.NoDefaultInterfaceMethodCollisions;
+import com.android.tools.r8.horizontalclassmerging.policies.NoDefaultInterfaceMethodMerging;
 import com.android.tools.r8.horizontalclassmerging.policies.NoDirectRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoEnums;
 import com.android.tools.r8.horizontalclassmerging.policies.NoIndirectRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInnerClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInstanceFieldAnnotations;
-import com.android.tools.r8.horizontalclassmerging.policies.NoInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKeepRules;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKotlinMetadata;
 import com.android.tools.r8.horizontalclassmerging.policies.NoNativeMethods;
 import com.android.tools.r8.horizontalclassmerging.policies.NoServiceLoaders;
 import com.android.tools.r8.horizontalclassmerging.policies.NotMatchedByNoHorizontalClassMerging;
 import com.android.tools.r8.horizontalclassmerging.policies.NotVerticallyMergedIntoSubtype;
+import com.android.tools.r8.horizontalclassmerging.policies.OnlyDirectlyConnectedOrUnrelatedInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.PreserveMethodCharacteristics;
+import com.android.tools.r8.horizontalclassmerging.policies.PreventClassMethodAndDefaultMethodCollisions;
 import com.android.tools.r8.horizontalclassmerging.policies.PreventMergeIntoDifferentMainDexGroups;
-import com.android.tools.r8.horizontalclassmerging.policies.PreventMethodImplementation;
 import com.android.tools.r8.horizontalclassmerging.policies.RespectPackageBoundaries;
 import com.android.tools.r8.horizontalclassmerging.policies.SameFeatureSplit;
 import com.android.tools.r8.horizontalclassmerging.policies.SameInstanceFields;
@@ -45,7 +47,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 public class HorizontalClassMerger {
@@ -68,12 +70,9 @@ public class HorizontalClassMerger {
   }
 
   public HorizontalClassMergerResult run(RuntimeTypeCheckInfo runtimeTypeCheckInfo, Timing timing) {
-    MergeGroup initialGroup = new MergeGroup(appView.appInfo().classesWithDeterministicOrder());
-
     // Run the policies on all program classes to produce a final grouping.
     List<Policy> policies = getPolicies(runtimeTypeCheckInfo);
-    Collection<MergeGroup> groups =
-        new PolicyExecutor().run(Collections.singletonList(initialGroup), policies, timing);
+    Collection<MergeGroup> groups = new PolicyExecutor().run(getInitialGroups(), policies, timing);
 
     // If there are no groups, then end horizontal class merging.
     if (groups.isEmpty()) {
@@ -126,6 +125,25 @@ public class HorizontalClassMerger {
     return builder.build();
   }
 
+  private List<MergeGroup> getInitialGroups() {
+    MergeGroup initialClassGroup = new MergeGroup();
+    MergeGroup initialInterfaceGroup = new MergeGroup();
+    for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
+      if (clazz.isInterface()) {
+        if (appView.options().horizontalClassMergerOptions().isInterfaceMergingEnabled()) {
+          initialInterfaceGroup.add(clazz);
+        }
+      } else {
+        initialClassGroup.add(clazz);
+      }
+    }
+    List<MergeGroup> initialGroups = new LinkedList<>();
+    initialGroups.add(initialClassGroup);
+    initialGroups.add(initialInterfaceGroup);
+    initialGroups.removeIf(MergeGroup::isTrivial);
+    return initialGroups;
+  }
+
   private List<Policy> getPolicies(RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
     AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
     List<SingleClassPolicy> singleClassPolicies =
@@ -136,23 +154,22 @@ public class HorizontalClassMerger {
             new NoEnums(appView),
             new NoInnerClasses(),
             new NoInstanceFieldAnnotations(),
-            new NoInterfaces(),
             new NoClassInitializerWithObservableSideEffects(),
             new NoNativeMethods(),
             new NoKeepRules(appView),
             new NoKotlinMetadata(),
             new NoServiceLoaders(appView),
             new NotVerticallyMergedIntoSubtype(appView),
-            new NoDirectRuntimeTypeChecks(runtimeTypeCheckInfo),
+            new NoDirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
             new DontInlinePolicy(appViewWithLiveness));
-    List<MultiClassPolicy> multiClassPolicies =
+    List<Policy> multiClassPolicies =
         ImmutableList.of(
             new SameInstanceFields(appView),
             new NoClassAnnotationCollisions(),
             new CheckAbstractClasses(appView),
             new SyntheticItemsPolicy(appView),
             new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
-            new PreventMethodImplementation(appView),
+            new PreventClassMethodAndDefaultMethodCollisions(appView),
             new PreventMergeIntoDifferentMainDexGroups(appView),
             new AllInstantiatedOrUninstantiated(appViewWithLiveness),
             new SameParentClass(),
@@ -162,6 +179,9 @@ public class HorizontalClassMerger {
             new RespectPackageBoundaries(appView),
             new DontMergeSynchronizedClasses(appViewWithLiveness),
             new MinimizeFieldCasts(),
+            new OnlyDirectlyConnectedOrUnrelatedInterfaces(appView),
+            new NoDefaultInterfaceMethodMerging(appView),
+            new NoDefaultInterfaceMethodCollisions(appView),
             new LimitGroups(appView));
     return ImmutableList.<Policy>builder()
         .addAll(singleClassPolicies)

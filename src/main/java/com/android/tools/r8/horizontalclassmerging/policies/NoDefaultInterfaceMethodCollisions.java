@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 
@@ -197,7 +198,7 @@ public class NoDefaultInterfaceMethodCollisions
             });
     inheritedClassMethodsPerClass
         .keySet()
-        .removeIf(type -> !appView.definitionFor(type).isProgramClass());
+        .removeIf(type -> asProgramClassOrNull(appView.definitionFor(type)) == null);
     return inheritedClassMethodsPerClass;
   }
 
@@ -252,7 +253,7 @@ public class NoDefaultInterfaceMethodCollisions
             });
     inheritedDefaultMethodsPerType
         .keySet()
-        .removeIf(type -> !appView.definitionFor(type).isProgramClass());
+        .removeIf(type -> asProgramClassOrNull(appView.definitionFor(type)) == null);
     return inheritedDefaultMethodsPerType;
   }
 
@@ -296,7 +297,7 @@ public class NoDefaultInterfaceMethodCollisions
             });
     defaultMethodsInheritedBySubclassesPerClass
         .keySet()
-        .removeIf(type -> !appView.definitionFor(type).isProgramClass());
+        .removeIf(type -> asProgramClassOrNull(appView.definitionFor(type)) == null);
     return defaultMethodsInheritedBySubclassesPerClass;
   }
 

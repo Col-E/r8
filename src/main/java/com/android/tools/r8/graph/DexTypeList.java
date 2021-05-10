@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -64,6 +65,14 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
       return DexTypeList.create(filtered);
     }
     return this;
+  }
+
+  public DexTypeList map(Function<DexType, DexType> fn) {
+    if (isEmpty()) {
+      return DexTypeList.empty();
+    }
+    DexType[] newTypes = ArrayUtils.map(values, fn, DexType.EMPTY_ARRAY);
+    return newTypes != values ? create(newTypes) : this;
   }
 
   public DexTypeList removeIf(Predicate<DexType> predicate) {

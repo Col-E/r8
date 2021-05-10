@@ -93,10 +93,21 @@ public class ArrayUtils {
    * @param clazz target type's Class to cast
    * @param original an array of original elements
    * @param mapper a mapper that rewrites an original element to a new one, maybe `null`
-   * @param <T> target type
    * @return an array with written elements
    */
   public static <T> T[] map(Class<T[]> clazz, T[] original, Function<T, T> mapper) {
+    return map(original, mapper, clazz.cast(Array.newInstance(clazz.getComponentType(), 0)));
+  }
+
+  /**
+   * Rewrites the input array based on the given function.
+   *
+   * @param original an array of original elements
+   * @param mapper a mapper that rewrites an original element to a new one, maybe `null`
+   * @param emptyArray an empty array
+   * @return an array with written elements
+   */
+  public static <T> T[] map(T[] original, Function<T, T> mapper, T[] emptyArray) {
     ArrayList<T> results = null;
     for (int i = 0; i < original.length; i++) {
       T oldOne = original[i];
@@ -117,11 +128,7 @@ public class ArrayUtils {
         }
       }
     }
-    if (results == null) {
-      return original;
-    }
-    return results.toArray(
-        clazz.cast(Array.newInstance(clazz.getComponentType(), results.size())));
+    return results != null ? results.toArray(emptyArray) : original;
   }
 
   public static int[] createIdentityArray(int size) {

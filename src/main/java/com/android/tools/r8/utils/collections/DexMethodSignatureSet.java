@@ -44,6 +44,7 @@ public class DexMethodSignatureSet implements Collection<DexMethodSignature> {
     return EMPTY;
   }
 
+  @Override
   public boolean add(DexMethodSignature signature) {
     return backing.add(signature);
   }
@@ -133,10 +134,6 @@ public class DexMethodSignatureSet implements Collection<DexMethodSignature> {
   @Override
   public boolean removeAll(Collection<?> collection) {
     return backing.removeAll(collection);
-  }
-
-  public void removeAll(Iterable<DexMethodSignature> signatures) {
-    signatures.forEach(this::remove);
   }
 
   public void removeAllMethods(Iterable<DexEncodedMethod> methods) {

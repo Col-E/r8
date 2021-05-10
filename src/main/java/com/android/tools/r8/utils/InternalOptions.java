@@ -1200,6 +1200,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
             || System.getProperty("com.android.tools.r8.disableHorizontalClassMerging") == null;
     private boolean enableConstructorMerging = true;
     private boolean enableInterfaceMerging = false;
+    private boolean ignoreRuntimeTypeChecksForTesting = false;
 
     public int maxGroupSize = 30;
 
@@ -1213,6 +1214,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public void enableIf(boolean enable) {
       this.enable = enable;
+    }
+
+    public void enableInterfaceMerging() {
+      enableInterfaceMerging = true;
     }
 
     public int getMaxGroupSize() {
@@ -1231,8 +1236,16 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return enable;
     }
 
+    public boolean isIgnoreRuntimeTypeChecksForTestingEnabled() {
+      return ignoreRuntimeTypeChecksForTesting;
+    }
+
     public boolean isInterfaceMergingEnabled() {
       return enableInterfaceMerging;
+    }
+
+    public void setIgnoreRuntimeTypeChecksForTesting() {
+      ignoreRuntimeTypeChecksForTesting = true;
     }
   }
 

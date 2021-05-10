@@ -17,6 +17,7 @@ import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.horizontalclassmerging.SubtypingForrestForClasses;
 import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -48,7 +49,7 @@ import java.util.Map;
  *
  * <p>See: https://docs.oracle.com/javase/specs/jvms/se15/html/jvms-5.html#jvms-5.4.3.3)
  */
-public class PreventMethodImplementation extends MultiClassPolicy {
+public class PreventClassMethodAndDefaultMethodCollisions extends MultiClassPolicy {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final SubtypingForrestForClasses subtypingForrestForClasses;
@@ -62,7 +63,7 @@ public class PreventMethodImplementation extends MultiClassPolicy {
 
   @Override
   public String getName() {
-    return "PreventMethodImplementation";
+    return "PreventClassMethodAndDefaultMethodCollisions";
   }
 
   private abstract static class SignaturesCache<C extends DexClass> {
@@ -124,7 +125,8 @@ public class PreventMethodImplementation extends MultiClassPolicy {
     }
   }
 
-  public PreventMethodImplementation(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public PreventClassMethodAndDefaultMethodCollisions(
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
     this.subtypingForrestForClasses = new SubtypingForrestForClasses(appView);
   }
@@ -150,6 +152,11 @@ public class PreventMethodImplementation extends MultiClassPolicy {
 
   @Override
   public Collection<MergeGroup> apply(MergeGroup group) {
+    // This policy is specific to issues that may arise from merging (non-interface) classes.
+    if (group.isInterfaceGroup()) {
+      return ImmutableList.of(group);
+    }
+
     DexMethodSignatureSet signatures = DexMethodSignatureSet.createLinked();
     for (DexProgramClass clazz : group) {
       signatures.addAllMethods(clazz.methods());

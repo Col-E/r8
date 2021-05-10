@@ -20,4 +20,14 @@ public abstract class MultiClassPolicyWithPreprocessing<T> extends Policy {
   public abstract Collection<MergeGroup> apply(MergeGroup group, T data);
 
   public abstract T preprocess(Collection<MergeGroup> groups);
+
+  @Override
+  public boolean isMultiClassPolicyWithPreprocessing() {
+    return true;
+  }
+
+  @Override
+  public MultiClassPolicyWithPreprocessing<?> asMultiClassPolicyWithPreprocessing() {
+    return this;
+  }
 }

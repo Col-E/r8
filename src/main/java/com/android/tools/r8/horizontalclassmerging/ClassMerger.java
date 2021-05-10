@@ -35,6 +35,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.KeepClassInfo;
 import com.android.tools.r8.utils.IterableUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -247,10 +248,25 @@ public class ClassMerger {
   private void mergeInterfaces() {
     DexTypeList previousInterfaces = group.getTarget().getInterfaces();
     Set<DexType> interfaces = Sets.newLinkedHashSet(previousInterfaces);
-    group.forEachSource(clazz -> Iterables.addAll(interfaces, clazz.getInterfaces()));
-    if (interfaces.size() > previousInterfaces.size()) {
-      group.getTarget().setInterfaces(new DexTypeList(interfaces));
+    if (group.isInterfaceGroup()) {
+      // Add all implemented interfaces from the merge group to the target class, ignoring
+      // implemented interfaces that are part of the merge group.
+      Set<DexType> groupTypes =
+          SetUtils.newImmutableSet(
+              builder -> group.forEach(clazz -> builder.accept(clazz.getType())));
+      group.forEachSource(
+          clazz -> {
+            for (DexType itf : clazz.getInterfaces()) {
+              if (!groupTypes.contains(itf)) {
+                interfaces.add(itf);
+              }
+            }
+          });
+    } else {
+      // Add all implemented interfaces from the merge group to the target class.
+      group.forEachSource(clazz -> Iterables.addAll(interfaces, clazz.getInterfaces()));
     }
+    group.getTarget().setInterfaces(DexTypeList.create(interfaces));
   }
 
   void mergeInstanceFields() {

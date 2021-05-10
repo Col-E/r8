@@ -4,14 +4,19 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
+import com.android.tools.r8.utils.InternalOptions;
 
 public class NoDirectRuntimeTypeChecks extends SingleClassPolicy {
+
+  private final InternalOptions options;
   private final RuntimeTypeCheckInfo runtimeTypeCheckInfo;
 
-  public NoDirectRuntimeTypeChecks(RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
+  public NoDirectRuntimeTypeChecks(AppView<?> appView, RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
+    this.options = appView.options();
     this.runtimeTypeCheckInfo = runtimeTypeCheckInfo;
   }
 
@@ -23,5 +28,10 @@ public class NoDirectRuntimeTypeChecks extends SingleClassPolicy {
   @Override
   public String getName() {
     return "NoDirectRuntimeTypeChecks";
+  }
+
+  @Override
+  public boolean shouldSkipPolicy() {
+    return options.horizontalClassMergerOptions().isIgnoreRuntimeTypeChecksForTestingEnabled();
   }
 }
