@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.classmerging.horizontal.interfaces;
 
+import static org.junit.Assert.assertFalse;
+
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -35,6 +37,11 @@ public class IdenticalFunctionalInterfacesWithIntersectionMergingTest extends Te
         // TODO(b/173990042): I and J should be merged.
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertClassesNotMerged(I.class, J.class))
+        .addOptionsModification(
+            options -> {
+              assertFalse(options.horizontalClassMergerOptions().isInterfaceMergingEnabled());
+              options.horizontalClassMergerOptions().enableInterfaceMerging();
+            })
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())

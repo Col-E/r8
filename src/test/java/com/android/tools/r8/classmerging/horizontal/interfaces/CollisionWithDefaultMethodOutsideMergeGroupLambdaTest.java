@@ -7,6 +7,7 @@ package com.android.tools.r8.classmerging.horizontal.interfaces;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isImplementing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -17,7 +18,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -44,7 +44,19 @@ public class CollisionWithDefaultMethodOutsideMergeGroupLambdaTest extends TestB
         // I and J are not eligible for merging, since the lambda that implements I & J inherits a
         // default m() method from K, which is also on J.
         .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+            inspector -> {
+              if (parameters.isCfRuntime()) {
+                inspector.assertIsCompleteMergeGroup(I.class, J.class);
+              } else {
+                inspector.assertNoClassesMerged();
+              }
+            })
+        .addOptionsModification(
+            options -> {
+              assertFalse(options.horizontalClassMergerOptions().isInterfaceMergingEnabled());
+              options.horizontalClassMergerOptions().enableInterfaceMerging();
+              options.horizontalClassMergerOptions().setIgnoreRuntimeTypeChecksForTesting();
+            })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -56,10 +68,18 @@ public class CollisionWithDefaultMethodOutsideMergeGroupLambdaTest extends TestB
             inspector -> {
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              assertThat(aClassSubject, isImplementing(inspector.clazz(J.class)));
+              if (parameters.isCfRuntime()) {
+                assertThat(aClassSubject, isImplementing(inspector.clazz(I.class)));
+              } else {
+                assertThat(aClassSubject, isImplementing(inspector.clazz(J.class)));
+              }
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("K", "J");
+        // TODO(b/173990042): Should succeed with "K", "J".
+        .applyIf(
+            parameters.isCfRuntime(),
+            builder -> builder.assertSuccessWithOutputLines("J", "J"),
+            builder -> builder.assertSuccessWithOutputLines("K", "J"));
   }
 
   static class Main {

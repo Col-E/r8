@@ -7,6 +7,7 @@ package com.android.tools.r8.classmerging.horizontal.interfaces;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isImplementing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -49,7 +50,13 @@ public class CollisionWithDefaultMethodOutsideMergeGroupAfterSubclassMergingTest
                 inspector
                     .assertIsCompleteMergeGroup(A.class, B.class)
                     .assertMergedInto(B.class, A.class)
-                    .assertClassesNotMerged(I.class, J.class, K.class))
+                    .assertIsCompleteMergeGroup(I.class, J.class)
+                    .assertClassesNotMerged(K.class))
+        .addOptionsModification(
+            options -> {
+              assertFalse(options.horizontalClassMergerOptions().isInterfaceMergingEnabled());
+              options.horizontalClassMergerOptions().enableInterfaceMerging();
+            })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -66,10 +73,15 @@ public class CollisionWithDefaultMethodOutsideMergeGroupAfterSubclassMergingTest
 
               ClassSubject bClassSubject = inspector.clazz(C.class);
               assertThat(bClassSubject, isPresent());
-              assertThat(bClassSubject, isImplementing(inspector.clazz(J.class)));
+              assertThat(bClassSubject, isImplementing(inspector.clazz(I.class)));
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("A", "K", "J");
+        // TODO(b/173990042): Should succeed with "A", "K", "J".
+        .applyIf(
+            parameters.isCfRuntime() || parameters.canUseDefaultAndStaticInterfaceMethods(),
+            builder -> builder.assertSuccessWithOutputLines("A", "J", "J"),
+            builder ->
+                builder.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class));
   }
 
   static class Main {

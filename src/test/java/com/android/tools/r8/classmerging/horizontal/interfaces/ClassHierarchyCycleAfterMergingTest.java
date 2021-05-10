@@ -9,20 +9,20 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 
-import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class DisjointInterfacesWithDefaultMethodsMergingTest extends TestBase {
+public class ClassHierarchyCycleAfterMergingTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -31,7 +31,7 @@ public class DisjointInterfacesWithDefaultMethodsMergingTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public DisjointInterfacesWithDefaultMethodsMergingTest(TestParameters parameters) {
+  public ClassHierarchyCycleAfterMergingTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -40,55 +40,45 @@ public class DisjointInterfacesWithDefaultMethodsMergingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        // I and J are not eligible for merging since that would lead to a cycle in the class
+        // hierarchy.
         .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertIsCompleteMergeGroup(I.class, J.class))
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .addOptionsModification(
             options -> {
               assertFalse(options.horizontalClassMergerOptions().isInterfaceMergingEnabled());
               options.horizontalClassMergerOptions().enableInterfaceMerging();
             })
-        .enableInliningAnnotations()
-        .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             inspector -> {
-              ClassSubject aClassSubject = inspector.clazz(A.class);
-              assertThat(aClassSubject, isPresent());
-              assertThat(aClassSubject, isImplementing(inspector.clazz(I.class)));
+              ClassSubject mainClassSubject = inspector.clazz(Main.class);
+              assertThat(mainClassSubject, isPresent());
+              assertThat(mainClassSubject, isImplementing(inspector.clazz(K.class)));
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("I", "J");
+        .assertSuccessWithEmptyOutput();
   }
 
-  static class Main {
+  static class Main implements K {
 
-    public static void main(String[] args) {
-      new A().f();
-      new A().g();
-    }
+    public static void main(String[] args) {}
   }
 
   @NoUnusedInterfaceRemoval
   @NoVerticalClassMerging
-  interface I {
-    @NeverInline
-    default void f() {
-      System.out.println("I");
-    }
-  }
+  interface I {}
+
+  @NoHorizontalClassMerging
+  @NoUnusedInterfaceRemoval
+  @NoVerticalClassMerging
+  interface J extends I {}
 
   @NoUnusedInterfaceRemoval
   @NoVerticalClassMerging
-  interface J {
-    @NeverInline
-    default void g() {
-      System.out.println("J");
-    }
-  }
-
-  @NeverClassInline
-  static class A implements I, J {}
+  interface K extends J {}
 }
