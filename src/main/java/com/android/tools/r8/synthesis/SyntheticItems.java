@@ -333,6 +333,23 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     Set<DexReference> getSynthesizingContexts(DexProgramClass clazz);
   }
 
+  public boolean isSyntheticMethodThatShouldNotBeDoubleProcessed(ProgramMethod method) {
+    for (SyntheticMethodReference reference :
+        committed
+            .getNonLegacyMethods()
+            .getOrDefault(method.getHolderType(), Collections.emptyList())) {
+      if (reference.getKind() == SyntheticKind.STATIC_INTERFACE_CALL) {
+        return true;
+      }
+    }
+    SyntheticDefinition<?, ?, ?> definition =
+        pending.nonLegacyDefinitions.get(method.getHolderType());
+    if (definition != null) {
+      return definition.getKind() == SyntheticKind.STATIC_INTERFACE_CALL;
+    }
+    return false;
+  }
+
   // The compiler should not inspect the kind of a synthetic, so this provided only as a assertion
   // utility.
   public boolean verifySyntheticLambdaProperty(

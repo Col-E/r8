@@ -581,6 +581,7 @@ public class IRConverter {
     } else {
       NeedsIRDesugarUseRegistry useRegistry =
           new NeedsIRDesugarUseRegistry(
+              method,
               appView,
               desugaredLibraryRetargeter,
               interfaceMethodRewriter,

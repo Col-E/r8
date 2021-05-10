@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
@@ -24,16 +25,19 @@ import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 class NeedsIRDesugarUseRegistry extends UseRegistry {
 
   private boolean needsDesugaring = false;
+  private final ProgramMethod context;
   private final DesugaredLibraryRetargeter desugaredLibraryRetargeter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
 
   public NeedsIRDesugarUseRegistry(
+      ProgramMethod method,
       AppView<?> appView,
       DesugaredLibraryRetargeter desugaredLibraryRetargeter,
       InterfaceMethodRewriter interfaceMethodRewriter,
       DesugaredLibraryAPIConverter desugaredLibraryAPIConverter) {
     super(appView.dexItemFactory());
+    this.context = method;
     this.desugaredLibraryRetargeter = desugaredLibraryRetargeter;
     this.interfaceMethodRewriter = interfaceMethodRewriter;
     this.desugaredLibraryAPIConverter = desugaredLibraryAPIConverter;
@@ -70,7 +74,7 @@ class NeedsIRDesugarUseRegistry extends UseRegistry {
     if (!needsDesugaring) {
       needsDesugaring =
           interfaceMethodRewriter != null
-              && interfaceMethodRewriter.needsRewriting(method, invokeType);
+              && interfaceMethodRewriter.needsRewriting(method, invokeType, context);
     }
   }
 

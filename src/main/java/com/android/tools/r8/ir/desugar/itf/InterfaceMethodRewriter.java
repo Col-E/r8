@@ -226,7 +226,12 @@ public final class InterfaceMethodRewriter {
     return emulatedInterfaces.containsKey(itf);
   }
 
-  public boolean needsRewriting(DexMethod method, Type invokeType) {
+  public boolean needsRewriting(DexMethod method, Type invokeType, ProgramMethod context) {
+    return !isSyntheticMethodThatShouldNotBeDoubleProcessed(context)
+        && invokeNeedsRewriting(method, invokeType);
+  }
+
+  private boolean invokeNeedsRewriting(DexMethod method, Type invokeType) {
     if (invokeType == SUPER || invokeType == STATIC || invokeType == DIRECT) {
       DexClass clazz = appView.appInfo().definitionFor(method.getHolderType());
       if (clazz != null && clazz.isInterface()) {
@@ -267,7 +272,7 @@ public final class InterfaceMethodRewriter {
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     ProgramMethod context = code.context();
-    if (synthesizedMethods.contains(context)) {
+    if (isSyntheticMethodThatShouldNotBeDoubleProcessed(code.context())) {
       return;
     }
 
@@ -332,6 +337,10 @@ public final class InterfaceMethodRewriter {
     assert code.isConsistentSSA();
   }
 
+  private boolean isSyntheticMethodThatShouldNotBeDoubleProcessed(ProgramMethod method) {
+    return appView.getSyntheticItems().isSyntheticMethodThatShouldNotBeDoubleProcessed(method);
+  }
+
   private void rewriteInvokeCustom(InvokeCustom invoke, ProgramMethod context) {
     // Check that static interface methods are not referenced from invoke-custom instructions via
     // method handles.
@@ -375,7 +384,7 @@ public final class InterfaceMethodRewriter {
       // This can be a private instance method call. Note that the referenced
       // method is expected to be in the current class since it is private, but desugaring
       // may move some methods or their code into other classes.
-      assert needsRewriting(method, DIRECT);
+      assert invokeNeedsRewriting(method, DIRECT);
       instructions.replaceCurrentInstruction(
           new InvokeStatic(
               directTarget.getDefinition().isPrivateMethod()
@@ -389,7 +398,7 @@ public final class InterfaceMethodRewriter {
           appView.appInfoForDesugaring().lookupMaximallySpecificMethod(clazz, method);
       if (virtualTarget != null) {
         // This is a invoke-direct call to a virtual method.
-        assert needsRewriting(method, DIRECT);
+        assert invokeNeedsRewriting(method, DIRECT);
         instructions.replaceCurrentInstruction(
             new InvokeStatic(
                 defaultAsMethodOfCompanionClass(virtualTarget),
@@ -472,16 +481,14 @@ public final class InterfaceMethodRewriter {
                                         .setStaticTarget(invokedMethod, true)
                                         .setStaticSource(m)
                                         .build()));
-        assert needsRewriting(invokedMethod, STATIC);
+        assert invokeNeedsRewriting(invokedMethod, STATIC);
         instructions.replaceCurrentInstruction(
             new InvokeStatic(
                 newProgramMethod.getReference(), invoke.outValue(), invoke.arguments()));
-        synchronized (synthesizedMethods) {
-          // The synthetic dispatch class has static interface method invokes, so set
-          // the class file version accordingly.
-          newProgramMethod.getDefinition().upgradeClassFileVersion(CfVersion.V1_8);
-          synthesizedMethods.add(newProgramMethod);
-        }
+        // The synthetic dispatch class has static interface method invokes, so set
+        // the class file version accordingly.
+        newProgramMethod.getDefinition().upgradeClassFileVersion(CfVersion.V1_8);
+        synthesizedMethods.add(newProgramMethod);
       } else {
         // When leaving static interface method invokes upgrade the class file version.
         context.getDefinition().upgradeClassFileVersion(CfVersion.V1_8);
@@ -505,13 +512,13 @@ public final class InterfaceMethodRewriter {
             blocksToRemove,
             methodProcessor,
             methodProcessingContext)) {
-      assert needsRewriting(invoke.getInvokedMethod(), STATIC);
+      assert invokeNeedsRewriting(invoke.getInvokedMethod(), STATIC);
       return;
     }
 
     assert resolutionResult != null;
     assert resolutionResult.getResolvedMethod().isStatic();
-    assert needsRewriting(invokedMethod, STATIC);
+    assert invokeNeedsRewriting(invokedMethod, STATIC);
 
     instructions.replaceCurrentInstruction(
         new InvokeStatic(
@@ -553,7 +560,7 @@ public final class InterfaceMethodRewriter {
             blocksToRemove,
             methodProcessor,
             methodProcessingContext)) {
-      assert needsRewriting(invoke.getInvokedMethod(), SUPER);
+      assert invokeNeedsRewriting(invoke.getInvokedMethod(), SUPER);
       return;
     }
 
@@ -567,7 +574,7 @@ public final class InterfaceMethodRewriter {
       //
       // WARNING: This may result in incorrect code on older platforms!
       // Retarget call to an appropriate method of companion class.
-      assert needsRewriting(invokedMethod, SUPER);
+      assert invokeNeedsRewriting(invokedMethod, SUPER);
       DexMethod amendedMethod = amendDefaultMethod(context.getHolder(), invokedMethod);
       instructions.replaceCurrentInstruction(
           new InvokeStatic(
@@ -583,7 +590,7 @@ public final class InterfaceMethodRewriter {
           if (target != null && target.getDefinition().isDefaultMethod()) {
             DexClass holder = target.getHolder();
             if (holder.isLibraryClass() && holder.isInterface()) {
-              assert needsRewriting(invokedMethod, SUPER);
+              assert invokeNeedsRewriting(invokedMethod, SUPER);
               instructions.replaceCurrentInstruction(
                   new InvokeStatic(
                       defaultAsMethodOfCompanionClass(target),
@@ -613,11 +620,11 @@ public final class InterfaceMethodRewriter {
                     factory.protoWithDifferentFirstParameter(
                         originalCompanionMethod.proto, emulatedItf),
                     originalCompanionMethod.name);
-            assert needsRewriting(invokedMethod, SUPER);
+            assert invokeNeedsRewriting(invokedMethod, SUPER);
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(companionMethod, invoke.outValue(), invoke.arguments()));
           } else {
-            assert needsRewriting(invokedMethod, SUPER);
+            assert invokeNeedsRewriting(invokedMethod, SUPER);
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(retargetMethod, invoke.outValue(), invoke.arguments()));
           }
