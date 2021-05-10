@@ -177,6 +177,10 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     return sourceFile;
   }
 
+  public void setSourceFile(DexString sourceFile) {
+    this.sourceFile = sourceFile;
+  }
+
   public Iterable<DexEncodedField> fields() {
     return fields(Predicates.alwaysTrue());
   }

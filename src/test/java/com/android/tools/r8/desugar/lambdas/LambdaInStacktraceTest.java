@@ -3,11 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.lambdas;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +37,17 @@ public class LambdaInStacktraceTest extends TestBase {
       StringUtils.lines(
           "getStacktraceWithFileNames(" + fileName + ")",
           "lambda$main$0(" + fileName + ")",
+          "call(D8$$SyntheticClass)",
+          "main(" + fileName + ")",
+          "getStacktraceWithFileNames(" + fileName + ")",
+          "lambda$main$1(" + fileName + ")",
+          "call(D8$$SyntheticClass)",
+          "main(" + fileName + ")");
+
+  static final String EXPECTED_D8_ANDROID_O =
+      StringUtils.lines(
+          "getStacktraceWithFileNames(" + fileName + ")",
+          "lambda$main$0(" + fileName + ")",
           "call(NULL)",
           "main(" + fileName + ")",
           "getStacktraceWithFileNames(" + fileName + ")",
@@ -43,6 +56,7 @@ public class LambdaInStacktraceTest extends TestBase {
           "main(" + fileName + ")");
 
   private final TestParameters parameters;
+  private final boolean isAndroidOOrLater;
   private final boolean isDalvik;
 
   @Parameterized.Parameters(name = "{0}")
@@ -53,6 +67,9 @@ public class LambdaInStacktraceTest extends TestBase {
   public LambdaInStacktraceTest(TestParameters parameters) {
     this.parameters = parameters;
     isDalvik = parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isDalvik();
+    isAndroidOOrLater =
+        parameters.isDexRuntime()
+            && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V8_1_0);
   }
 
   @Test
@@ -71,7 +88,26 @@ public class LambdaInStacktraceTest extends TestBase {
         .addInnerClasses(LambdaInStacktraceTest.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestRunner.class, Boolean.toString(isDalvik))
-        .assertSuccessWithOutput(EXPECTED_D8);
+        .assertSuccessWithOutput(isAndroidOOrLater ? EXPECTED_D8_ANDROID_O : EXPECTED_D8);
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    assumeTrue(parameters.getRuntime().isDex());
+    String stdout =
+        testForR8(parameters.getBackend())
+            .addInnerClasses(LambdaInStacktraceTest.class)
+            .setMinApi(parameters.getApiLevel())
+            .addKeepMainRule(TestRunner.class)
+            .addKeepAttributeSourceFile()
+            .addKeepRules("-renamesourcefileattribute SourceFile")
+            .noTreeShaking()
+            .run(parameters.getRuntime(), TestRunner.class, Boolean.toString(isDalvik))
+            .assertSuccess()
+            .getStdOut();
+    assertTrue(
+        StringUtils.splitLines(stdout).stream()
+            .allMatch(s -> s.contains(isAndroidOOrLater ? "NULL" : "SourceFile")));
   }
 
   static class TestRunner {

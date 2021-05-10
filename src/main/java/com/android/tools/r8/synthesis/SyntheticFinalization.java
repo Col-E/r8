@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
@@ -321,6 +322,13 @@ public class SyntheticFinalization {
     return true;
   }
 
+  private static void ensureSourceFile(
+      DexProgramClass externalSyntheticClass, DexString syntheticSourceFileName) {
+    if (externalSyntheticClass.getSourceFile() == null) {
+      externalSyntheticClass.setSourceFile(syntheticSourceFileName);
+    }
+  }
+
   private static DexApplication buildLensAndProgram(
       AppView<?> appView,
       Map<DexType, EquivalenceGroup<SyntheticMethodDefinition>> syntheticMethodGroups,
@@ -415,6 +423,11 @@ public class SyntheticFinalization {
       application = builder.build();
     }
 
+    DexString syntheticSourceFileName =
+        appView.enableWholeProgramOptimizations()
+            ? appView.dexItemFactory().createString("R8$$SyntheticClass")
+            : appView.dexItemFactory().createString("D8$$SyntheticClass");
+
     // Add the synthesized from after repackaging which changed class definitions.
     final DexApplication appForLookup = application;
     syntheticClassGroups.forEach(
@@ -422,6 +435,7 @@ public class SyntheticFinalization {
           DexProgramClass externalSyntheticClass = appForLookup.programDefinitionFor(syntheticType);
           assert externalSyntheticClass != null
               : "Expected definition for " + syntheticType.getTypeName();
+          ensureSourceFile(externalSyntheticClass, syntheticSourceFileName);
           SyntheticProgramClassDefinition representative = syntheticGroup.getRepresentative();
           addFinalSyntheticClass.accept(
               externalSyntheticClass,
@@ -433,6 +447,7 @@ public class SyntheticFinalization {
     syntheticMethodGroups.forEach(
         (syntheticType, syntheticGroup) -> {
           DexProgramClass externalSyntheticClass = appForLookup.programDefinitionFor(syntheticType);
+          ensureSourceFile(externalSyntheticClass, syntheticSourceFileName);
           SyntheticMethodDefinition representative = syntheticGroup.getRepresentative();
           assert externalSyntheticClass.getMethodCollection().size() == 1;
           assert externalSyntheticClass.getMethodCollection().hasDirectMethods();
