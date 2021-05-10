@@ -7,6 +7,7 @@ package com.android.tools.r8.utils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -151,6 +152,18 @@ public class ListUtils {
     ImmutableList.Builder<T> builder = ImmutableList.builder();
     forEachable.forEach(builder::add);
     return builder.build();
+  }
+
+  public static <T> LinkedList<T> newLinkedList(T element) {
+    LinkedList<T> list = new LinkedList<>();
+    list.add(element);
+    return list;
+  }
+
+  public static <T> LinkedList<T> newLinkedList(ForEachable<T> forEachable) {
+    LinkedList<T> list = new LinkedList<>();
+    forEachable.forEach(list::add);
+    return list;
   }
 
   public static <T> Optional<T> removeFirstMatch(List<T> list, Predicate<T> element) {

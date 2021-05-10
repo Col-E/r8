@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class StreamUtils {
+
   /**
    * Read all data from the stream into a byte[], close the stream and return the bytes.
    * @return The bytes of the stream

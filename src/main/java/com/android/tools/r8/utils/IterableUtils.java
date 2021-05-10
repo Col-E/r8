@@ -19,6 +19,25 @@ import java.util.function.Predicate;
 
 public class IterableUtils {
 
+  public static <S, T> boolean allIdentical(Iterable<S> iterable) {
+    return allIdentical(iterable, Function.identity());
+  }
+
+  public static <S, T> boolean allIdentical(Iterable<S> iterable, Function<S, T> fn) {
+    Iterator<S> iterator = iterable.iterator();
+    if (!iterator.hasNext()) {
+      return true;
+    }
+    T first = fn.apply(iterator.next());
+    while (iterator.hasNext()) {
+      T other = fn.apply(iterator.next());
+      if (other != first) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public static <S, T> boolean any(
       Iterable<S> iterable, Function<S, T> transform, Predicate<T> predicate) {
     for (S element : iterable) {

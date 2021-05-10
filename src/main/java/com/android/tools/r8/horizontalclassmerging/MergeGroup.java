@@ -6,8 +6,10 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
@@ -16,7 +18,7 @@ import java.util.LinkedList;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-public class MergeGroup implements Iterable<DexProgramClass> {
+public class MergeGroup implements Collection<DexProgramClass> {
 
   public static class Metadata {}
 
@@ -46,20 +48,33 @@ public class MergeGroup implements Iterable<DexProgramClass> {
     }
   }
 
-  public void add(DexProgramClass clazz) {
-    classes.add(clazz);
+  @Override
+  public boolean add(DexProgramClass clazz) {
+    return classes.add(clazz);
   }
 
-  public void add(MergeGroup group) {
-    classes.addAll(group.getClasses());
+  public boolean add(MergeGroup group) {
+    return classes.addAll(group.getClasses());
   }
 
-  public void addAll(Collection<DexProgramClass> classes) {
-    this.classes.addAll(classes);
+  @Override
+  public boolean addAll(Collection<? extends DexProgramClass> classes) {
+    return this.classes.addAll(classes);
   }
 
-  public void addFirst(DexProgramClass clazz) {
-    classes.addFirst(clazz);
+  @Override
+  public void clear() {
+    classes.clear();
+  }
+
+  @Override
+  public boolean contains(Object o) {
+    return classes.contains(o);
+  }
+
+  @Override
+  public boolean containsAll(Collection<?> collection) {
+    return classes.containsAll(collection);
   }
 
   public void forEachSource(Consumer<DexProgramClass> consumer) {
@@ -114,6 +129,12 @@ public class MergeGroup implements Iterable<DexProgramClass> {
     return classes.isEmpty();
   }
 
+  public boolean isInterfaceGroup() {
+    assert !isEmpty();
+    assert IterableUtils.allIdentical(getClasses(), DexClass::isInterface);
+    return getClasses().getFirst().isInterface();
+  }
+
   @Override
   public Iterator<DexProgramClass> iterator() {
     return classes.iterator();
@@ -123,15 +144,41 @@ public class MergeGroup implements Iterable<DexProgramClass> {
     return classes.size();
   }
 
+  @Override
+  public boolean remove(Object o) {
+    return classes.remove(o);
+  }
+
+  @Override
+  public boolean removeAll(Collection<?> collection) {
+    return classes.removeAll(collection);
+  }
+
   public DexProgramClass removeFirst(Predicate<DexProgramClass> predicate) {
     return IteratorUtils.removeFirst(iterator(), predicate);
   }
 
-  public boolean removeIf(Predicate<DexProgramClass> predicate) {
+  @Override
+  public boolean removeIf(Predicate<? super DexProgramClass> predicate) {
     return classes.removeIf(predicate);
   }
 
   public DexProgramClass removeLast() {
     return classes.removeLast();
+  }
+
+  @Override
+  public boolean retainAll(Collection<?> collection) {
+    return collection.retainAll(collection);
+  }
+
+  @Override
+  public Object[] toArray() {
+    return classes.toArray();
+  }
+
+  @Override
+  public <T> T[] toArray(T[] ts) {
+    return classes.toArray(ts);
   }
 }
