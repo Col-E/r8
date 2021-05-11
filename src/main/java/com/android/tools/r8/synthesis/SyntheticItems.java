@@ -198,12 +198,20 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return committed.containsLegacyType(type);
   }
 
+  private boolean isNonLegacyCommittedSynthetic(DexType type) {
+    return committed.containsNonLegacyType(type);
+  }
+
   public boolean isPendingSynthetic(DexType type) {
     return pending.containsType(type);
   }
 
   private boolean isLegacyPendingSynthetic(DexType type) {
     return pending.legacyClasses.containsKey(type);
+  }
+
+  private boolean isNonLegacyPendingSynthetic(DexType type) {
+    return pending.nonLegacyDefinitions.containsKey(type);
   }
 
   public boolean isLegacySyntheticClass(DexType type) {
@@ -219,7 +227,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   }
 
   public boolean isNonLegacySynthetic(DexType type) {
-    return isCommittedSynthetic(type) || isPendingSynthetic(type);
+    return isNonLegacyCommittedSynthetic(type) || isNonLegacyPendingSynthetic(type);
   }
 
   public boolean isEligibleForClassMerging(DexProgramClass clazz) {
