@@ -61,6 +61,8 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   private List<String> applyMappingMaps = new ArrayList<>();
   private final List<Path> features = new ArrayList<>();
 
+  private boolean createDefaultProguardMapConsumer = true;
+
   @Override
   R8TestCompileResult internalCompile(
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
@@ -69,21 +71,23 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
       builder.addProguardConfiguration(keepRules, Origin.unknown());
     }
     builder.addMainDexRulesFiles(mainDexRulesFiles);
-    StringBuilder proguardMapBuilder = new StringBuilder();
     builder.setDisableTreeShaking(!enableTreeShaking);
     builder.setDisableMinification(!enableMinification);
-    builder.setProguardMapConsumer(
-        new StringConsumer() {
-          @Override
-          public void accept(String string, DiagnosticsHandler handler) {
-            proguardMapBuilder.append(string);
-          }
+    StringBuilder proguardMapBuilder = new StringBuilder();
+    if (createDefaultProguardMapConsumer) {
+      builder.setProguardMapConsumer(
+          new StringConsumer() {
+            @Override
+            public void accept(String string, DiagnosticsHandler handler) {
+              proguardMapBuilder.append(string);
+            }
 
-          @Override
-          public void finished(DiagnosticsHandler handler) {
-            // Nothing to do.
-          }
-        });
+            @Override
+            public void finished(DiagnosticsHandler handler) {
+              // Nothing to do.
+            }
+          });
+    }
 
     if (!applyMappingMaps.isEmpty()) {
       try {
@@ -118,7 +122,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
             app.get(),
             box.proguardConfiguration,
             box.syntheticProguardRules,
-            proguardMapBuilder.toString(),
+            createDefaultProguardMapConsumer ? proguardMapBuilder.toString() : null,
             graphConsumer,
             minApiLevel,
             features);
@@ -659,6 +663,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         builder ->
             splitWithNonJavaFile(builder, path, getState().getTempFolder(), nonJavaFiles, classes));
     features.add(path);
+    return self();
+  }
+
+  public T noDefaultProguardMapConsumer() {
+    createDefaultProguardMapConsumer = false;
     return self();
   }
 }

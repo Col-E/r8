@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.DexDebugEntryBuilder;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -53,11 +52,6 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
     return parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O);
   }
 
-  // TODO(b/37830524): Remove when activated.
-  private void enablePcDebugInfoOutput(InternalOptions options) {
-    options.enablePcDebugInfoOutput = true;
-  }
-
   @Test
   public void testD8Debug() throws Exception {
     testForD8(parameters.getBackend())
@@ -65,7 +59,6 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .addProgramClasses(MAIN)
         .setMinApi(parameters.getApiLevel())
         .internalEnableMappingOutput()
-        .addOptionsModification(this::enablePcDebugInfoOutput)
         .run(parameters.getRuntime(), MAIN)
         // For a debug build we always expect the output to have actual line information.
         .inspectFailure(this::checkHasLineNumberInfo)
@@ -79,7 +72,6 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .addProgramClasses(MAIN)
         .setMinApi(parameters.getApiLevel())
         .internalEnableMappingOutput()
-        .addOptionsModification(this::enablePcDebugInfoOutput)
         .run(parameters.getRuntime(), MAIN)
         .inspectFailure(
             inspector -> {
@@ -98,7 +90,6 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .release()
         .addProgramClasses(MAIN)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(this::enablePcDebugInfoOutput)
         .run(parameters.getRuntime(), MAIN)
         // If compiling without a map output actual debug info should also be retained. Otherwise
         // there would not be any way to obtain the actual lines.
@@ -114,7 +105,6 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .addKeepMainRule(MAIN)
         .addKeepAttributeLineNumberTable()
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(this::enablePcDebugInfoOutput)
         .run(parameters.getRuntime(), MAIN)
         .inspectOriginalStackTrace(
             (stackTrace, inspector) -> {

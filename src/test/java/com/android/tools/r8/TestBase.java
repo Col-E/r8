@@ -1746,6 +1746,10 @@ public class TestBase {
     return AndroidApiLevel.K;
   }
 
+  public static AndroidApiLevel apiLevelWithPcAsLineNumberSupport() {
+    return AndroidApiLevel.O;
+  }
+
   public static boolean canUseJavaUtilObjects(TestParameters parameters) {
     return parameters.isCfRuntime()
         || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K);

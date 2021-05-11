@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -284,11 +285,13 @@ public class StackTrace {
     return new StackTrace(stackTraceLines, stderr);
   }
 
+  private static List<StackTraceLine> internalConvert(Stream<String> lines) {
+    return lines.map(StackTraceLine::parse).collect(Collectors.toList());
+  }
+
   private static List<StackTraceLine> internalExtractFromJvm(String stderr) {
-    return StringUtils.splitLines(stderr).stream()
-        .filter(s -> s.startsWith(TAB_AT_PREFIX))
-        .map(StackTraceLine::parse)
-        .collect(Collectors.toList());
+    return internalConvert(
+        StringUtils.splitLines(stderr).stream().filter(s -> s.startsWith(TAB_AT_PREFIX)));
   }
 
   public static StackTrace extractFromJvm(String stderr) {
@@ -324,7 +327,7 @@ public class StackTrace {
             .build(),
         allowExperimentalMapping);
     // Keep the original stderr in the retraced stacktrace.
-    return new StackTrace(internalExtractFromJvm(StringUtils.lines(box.result)), originalStderr);
+    return new StackTrace(internalConvert(box.result.stream()), originalStderr);
   }
 
   public StackTrace filter(Predicate<StackTraceLine> filter) {

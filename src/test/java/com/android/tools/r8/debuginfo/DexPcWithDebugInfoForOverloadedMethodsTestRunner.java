@@ -70,11 +70,6 @@ public class DexPcWithDebugInfoForOverloadedMethodsTestRunner extends TestBase {
         .addKeepAttributeLineNumberTable()
         .addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(
-            internalOptions -> {
-              // TODO(b/37830524): Remove when activated.
-              internalOptions.enablePcDebugInfoOutput = true;
-            })
         .run(parameters.getRuntime(), MAIN)
         .assertFailureWithErrorThatMatches(containsString(EXPECTED))
         .inspectOriginalStackTrace(

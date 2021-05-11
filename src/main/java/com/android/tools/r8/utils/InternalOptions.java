@@ -321,8 +321,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // TODO(b/138917494): Disable until we have numbers on potential performance penalties.
   public boolean enableRedundantConstNumberOptimization = false;
 
-  public boolean enablePcDebugInfoOutput = false;
-
   public String synthesizedClassPrefix = "";
 
   // Number of threads to use while processing the dex files.
@@ -1559,7 +1557,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseDexPcAsDebugInformation() {
-    return enablePcDebugInfoOutput && !debug && hasMinApi(AndroidApiLevel.O);
+    return !debug && hasMinApi(AndroidApiLevel.O);
   }
 
   public boolean isInterfaceMethodDesugaringEnabled() {

@@ -25,6 +25,7 @@ public abstract class DebugTestConfig {
 
   private Path proguardMap = null;
   private ClassNameMapper.MissingFileAction missingProguardMapAction;
+  private boolean usePcForMissingLineNumberTable = false;
 
   /** The expected runtime kind for the debuggee. */
   public abstract RuntimeKind getRuntimeKind();
@@ -35,6 +36,14 @@ public abstract class DebugTestConfig {
 
   public boolean isDexRuntime() {
     return getRuntimeKind() == RuntimeKind.DEX;
+  }
+
+  public void allowUsingPcForMissingLineNumberTable() {
+    usePcForMissingLineNumberTable = true;
+  }
+
+  public boolean shouldUsePcForMissingLineNumberTable() {
+    return usePcForMissingLineNumberTable;
   }
 
   /** Classpath paths for the debuggee. */

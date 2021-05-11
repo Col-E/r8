@@ -8,16 +8,34 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.DexParser;
 import com.android.tools.r8.dex.DexSection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class CanonicalizeWithInline extends TestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  private final TestParameters parameters;
+
+  public CanonicalizeWithInline(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   private int getNumberOfDebugInfos(Path file) throws IOException {
     DexSection[] dexSections = DexParser.parseMapFrom(file);
@@ -36,6 +54,7 @@ public class CanonicalizeWithInline extends TestBase {
 
     R8TestCompileResult result =
         testForR8(Backend.DEX)
+            .setMinApi(AndroidApiLevel.B)
             .addProgramClasses(clazzA, clazzB)
             .addKeepRules(
                 "-keepattributes SourceFile,LineNumberTable",

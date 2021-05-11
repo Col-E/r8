@@ -6,25 +6,22 @@ package com.android.tools.r8.debuginfo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
+import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
-import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.debuginfo.InliningWithoutPositionsTestSourceDump.Location;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.naming.Range;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -39,12 +36,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class InliningWithoutPositionsTestRunner {
-
-  enum Backend {
-    CF,
-    DEX
-  }
+public class InliningWithoutPositionsTestRunner extends TestBase {
 
   private static final String TEST_CLASS = "InliningWithoutPositionsTestSource";
   private static final String TEST_PACKAGE = "com.android.tools.r8.debuginfo";
@@ -52,7 +44,7 @@ public class InliningWithoutPositionsTestRunner {
 
   @ClassRule public static TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
-  private final Backend backend;
+  private final TestParameters parameters;
   private final boolean mainPos;
   private final boolean foo1Pos;
   private final boolean barPos;
@@ -62,13 +54,14 @@ public class InliningWithoutPositionsTestRunner {
   @Parameters(name = "{0}: main/foo1/bar/foo2 positions: {1}/{2}/{3}/{4}, throwLocation: {5}")
   public static Collection<Object[]> data() {
     List<Object[]> testCases = new ArrayList<>();
-    for (Backend backend : Backend.values()) {
+    for (TestParameters parameters :
+        TestParametersBuilder.builder().withAllRuntimes().withApiLevel(AndroidApiLevel.B).build()) {
     for (int i = 0; i < 16; ++i) {
       for (Location throwLocation : Location.values()) {
         if (throwLocation != Location.MAIN) {
             testCases.add(
                 new Object[] {
-                  backend, (i & 1) != 0, (i & 2) != 0, (i & 4) != 0, (i & 8) != 0, throwLocation
+                  parameters, (i & 1) != 0, (i & 2) != 0, (i & 4) != 0, (i & 8) != 0, throwLocation
                 });
         }
       }
@@ -78,13 +71,13 @@ public class InliningWithoutPositionsTestRunner {
   }
 
   public InliningWithoutPositionsTestRunner(
-      Backend backend,
+      TestParameters parameters,
       boolean mainPos,
       boolean foo1Pos,
       boolean barPos,
       boolean foo2Pos,
       Location throwLocation) {
-    this.backend = backend;
+    this.parameters = parameters;
     this.mainPos = mainPos;
     this.foo1Pos = foo1Pos;
     this.barPos = barPos;
@@ -97,54 +90,23 @@ public class InliningWithoutPositionsTestRunner {
     // See InliningWithoutPositionsTestSourceDump for the code compiled here.
     Path testClassDir = temp.newFolder().toPath();
     Path testClassPath = testClassDir.resolve(TEST_CLASS + ".class");
-    Path outputPath = temp.newFolder().toPath();
-
     Files.write(
         testClassPath,
         InliningWithoutPositionsTestSourceDump.dump(
             mainPos, foo1Pos, barPos, foo2Pos, throwLocation));
 
-    Path proguardMapPath = testClassDir.resolve("proguard.map");
-
-    R8Command.Builder builder =
-        R8Command.builder()
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .setMinApi(parameters.getApiLevel())
             .addProgramFiles(testClassPath)
             .setMode(CompilationMode.RELEASE)
-            .setProguardMapOutputPath(proguardMapPath);
-    if (backend == Backend.DEX) {
-      AndroidApiLevel minSdk = ToolHelper.getMinApiLevelForDexVm();
-      builder
-          .setMinApiLevel(minSdk.getLevel())
-          .addLibraryFiles(ToolHelper.getAndroidJar(minSdk))
-          .setOutput(outputPath, OutputMode.DexIndexed);
-    } else {
-      assert (backend == Backend.CF);
-      builder
-          .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-          .setOutput(outputPath, OutputMode.ClassFile);
-    }
-    builder
-        .addProguardConfiguration(
-            ImmutableList.of(
-                "-keep class " + MAIN_CLASS + " { public static void main(java.lang.String[]); }"),
-            Origin.unknown())
-        .setDisableMinification(true)
-        .addProguardConfiguration(
-            ImmutableList.of("-keepattributes SourceFile,LineNumberTable"), Origin.unknown());
-
-    ToolHelper.runR8(builder.build(), options -> options.inliningInstructionLimit = 40);
-
-    ProcessResult result;
-    if (backend == Backend.DEX) {
-      ArtCommandBuilder artCommandBuilder = new ArtCommandBuilder();
-      artCommandBuilder.appendClasspath(outputPath.resolve("classes.dex").toString());
-      artCommandBuilder.setMainClass(MAIN_CLASS);
-
-      result = ToolHelper.runArtRaw(artCommandBuilder);
-    } else {
-      result = ToolHelper.runJava(outputPath, MAIN_CLASS);
-    }
-    assertNotEquals(result.exitCode, 0);
+            .addKeepMainRule(MAIN_CLASS)
+            .noMinification()
+            .addKeepAttributeSourceFile()
+            .addKeepAttributeLineNumberTable()
+            .addOptionsModification(options -> options.inliningInstructionLimit = 40)
+            .run(parameters.getRuntime(), MAIN_CLASS)
+            .assertFailure();
 
     // Verify stack trace.
     // result.stderr looks like this:
@@ -152,7 +114,7 @@ public class InliningWithoutPositionsTestRunner {
     //     Exception in thread "main" java.lang.RuntimeException: <FOO1-exception>
     //       at
     // com.android.tools.r8.debuginfo.InliningWithoutPositionsTestSource.main(InliningWithoutPositionsTestSource.java:1)
-    String[] lines = result.stderr.split("\n");
+    String[] lines = result.getStdErr().split("\n");
 
     // The line containing 'java.lang.RuntimeException' should contain the expected message, which
     // is "LOCATIONCODE-exception>"
@@ -189,7 +151,7 @@ public class InliningWithoutPositionsTestRunner {
     //     1:1:void bar():0:0 -> main
     //     1:1:void foo(boolean):0 -> main
     //     1:1:void main(java.lang.String[]):0 -> main
-    ClassNameMapper mapper = ClassNameMapper.mapperFromFile(proguardMapPath);
+    ClassNameMapper mapper = ClassNameMapper.mapperFromString(result.proguardMap());
     assertNotNull(mapper);
 
     ClassNamingForNameMapper classNaming = mapper.getClassNaming(TEST_PACKAGE + "." + TEST_CLASS);

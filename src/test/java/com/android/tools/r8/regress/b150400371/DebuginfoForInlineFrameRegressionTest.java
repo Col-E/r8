@@ -5,6 +5,7 @@
 package com.android.tools.r8.regress.b150400371;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -44,8 +45,12 @@ public class DebuginfoForInlineFrameRegressionTest extends TestBase {
             (inspector) -> {
               MethodSubject main =
                   inspector.method(InlineInto.class.getDeclaredMethod("main", String[].class));
-              IntSet lines = new IntArraySet(main.getLineNumberTable().getLines());
-              assertEquals(2, lines.size());
+              if (parameters.getApiLevel().isLessThan(apiLevelWithPcAsLineNumberSupport())) {
+                IntSet lines = new IntArraySet(main.getLineNumberTable().getLines());
+                assertEquals(2, lines.size());
+              } else {
+                assertNull(main.getLineNumberTable());
+              }
             });
   }
 

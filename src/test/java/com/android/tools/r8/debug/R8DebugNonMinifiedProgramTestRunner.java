@@ -6,6 +6,7 @@ package com.android.tools.r8.debug;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
@@ -69,6 +70,13 @@ public class R8DebugNonMinifiedProgramTestRunner extends DebugTestBase {
             });
   }
 
+  private void assumeMappingIsNotToPCs() {
+    assumeTrue(
+        "Ignoring test when the line number table is removed.",
+        parameters.isCfRuntime()
+            || parameters.getApiLevel().isLessThan(apiLevelWithPcAsLineNumberSupport()));
+  }
+
   @Test
   public void testDebugMode() throws Throwable {
     runTest(compiledDebug.apply(parameters.getBackend(), parameters.getApiLevel()));
@@ -76,6 +84,7 @@ public class R8DebugNonMinifiedProgramTestRunner extends DebugTestBase {
 
   @Test
   public void testNoOptimizationAndNoMinification() throws Throwable {
+    assumeMappingIsNotToPCs();
     runTest(compiledNoOptNoMinify.apply(parameters.getBackend(), parameters.getApiLevel()));
   }
 

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.attributes;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -62,6 +63,11 @@ public class KeepAttributesTest extends TestBase {
     assertFalse(mainMethod.hasLocalVariableTable());
   }
 
+  private boolean doesNotHavePcSupport() {
+    return parameters.isCfRuntime()
+        || parameters.getApiLevel().isLessThan(apiLevelWithPcAsLineNumberSupport());
+  }
+
   @Test
   public void keepLineNumberTable()
       throws CompilationFailedException, IOException, ExecutionException {
@@ -69,7 +75,7 @@ public class KeepAttributesTest extends TestBase {
         "-keepattributes " + ProguardKeepAttributes.LINE_NUMBER_TABLE
     );
     MethodSubject mainMethod = compileRunAndGetMain(keepRules, CompilationMode.RELEASE);
-    assertTrue(mainMethod.hasLineNumberTable());
+    assertEquals(doesNotHavePcSupport(), mainMethod.hasLineNumberTable());
     assertFalse(mainMethod.hasLocalVariableTable());
   }
 
@@ -83,7 +89,7 @@ public class KeepAttributesTest extends TestBase {
             + ProguardKeepAttributes.LOCAL_VARIABLE_TABLE
     );
     MethodSubject mainMethod = compileRunAndGetMain(keepRules, CompilationMode.RELEASE);
-    assertTrue(mainMethod.hasLineNumberTable());
+    assertEquals(doesNotHavePcSupport(), mainMethod.hasLineNumberTable());
     // Locals are never included in release builds.
     assertFalse(mainMethod.hasLocalVariableTable());
   }

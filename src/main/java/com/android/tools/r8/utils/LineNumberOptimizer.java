@@ -358,7 +358,7 @@ public class LineNumberOptimizer {
           if (code != null) {
             if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
               if (appView.options().canUseDexPcAsDebugInformation() && methods.size() == 1) {
-                optimizeDexCodePositionsForPc(method, kotlinRemapper, mappedPositions);
+                optimizeDexCodePositionsForPc(method, appView, kotlinRemapper, mappedPositions);
               } else {
                 optimizeDexCodePositions(
                     method, appView, kotlinRemapper, mappedPositions, identityMapping);
@@ -761,6 +761,7 @@ public class LineNumberOptimizer {
 
   private static void optimizeDexCodePositionsForPc(
       DexEncodedMethod method,
+      AppView<?> appView,
       PositionRemapper positionRemapper,
       List<MappedPosition> mappedPositions) {
     // Do the actual processing for each method.
@@ -770,7 +771,9 @@ public class LineNumberOptimizer {
     Pair<Integer, Position> lastPosition = new Pair<>();
 
     DexDebugEventVisitor visitor =
-        new DexDebugPositionState(debugInfo.startLine, method.getReference()) {
+        new DexDebugPositionState(
+            debugInfo.startLine,
+            appView.graphLens().getOriginalMethodSignature(method.getReference())) {
           @Override
           public void visit(Default defaultEvent) {
             super.visit(defaultEvent);

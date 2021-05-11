@@ -52,7 +52,6 @@ public class SyntheticInitClassPositionTest extends TestBase {
         .addKeepAttributeLineNumberTable()
         .addKeepAttributeSourceFile()
         .setMinApi(parameters.getApiLevel())
-        .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(ExceptionInInitializerError.class)
         .inspectStackTrace(stackTrace -> assertThat(stackTrace, isSame(expectedStackTrace)));

@@ -652,9 +652,22 @@ public abstract class DebugTestBase extends TestBase {
 
       String getObfuscatedMethodName(
           String originalClassName, String originalMethodName, String methodSignature);
+
+      boolean canUsePcForMissingLineNumberTable();
     }
 
     private class IdentityTranslator implements Translator {
+
+      private final boolean usePcForMissingLineTable;
+
+      public IdentityTranslator(boolean usePcForMissingLineNumberTable) {
+        this.usePcForMissingLineTable = usePcForMissingLineNumberTable;
+      }
+
+      @Override
+      public boolean canUsePcForMissingLineNumberTable() {
+        return usePcForMissingLineTable;
+      }
 
       @Override
       public String getOriginalClassName(String obfuscatedClassName) {
@@ -709,7 +722,9 @@ public abstract class DebugTestBase extends TestBase {
     private class ClassNameMapperTranslator extends IdentityTranslator {
       private final ClassNameMapper classNameMapper;
 
-      public ClassNameMapperTranslator(ClassNameMapper classNameMapper) {
+      public ClassNameMapperTranslator(
+          ClassNameMapper classNameMapper, boolean usePcForMissingLineTable) {
+        super(usePcForMissingLineTable);
         this.classNameMapper = classNameMapper;
       }
 
@@ -872,9 +887,11 @@ public abstract class DebugTestBase extends TestBase {
       this.debuggeeClassName = debuggeeClassName;
       this.commandsQueue = new ArrayDeque<>(commands);
       if (classNameMapper == null) {
-        this.translator = new IdentityTranslator();
+        this.translator = new IdentityTranslator(config.shouldUsePcForMissingLineNumberTable());
       } else {
-        this.translator = new ClassNameMapperTranslator(classNameMapper);
+        this.translator =
+            new ClassNameMapperTranslator(
+                classNameMapper, config.shouldUsePcForMissingLineNumberTable());
       }
     }
 
@@ -1161,6 +1178,9 @@ public abstract class DebugTestBase extends TestBase {
           long startCodeIndex = reply.getNextValueAsLong();
           long endCodeIndex = reply.getNextValueAsLong();
           int lines = reply.getNextValueAsInt();
+          if (lines == 0 && translator.canUsePcForMissingLineNumberTable()) {
+            return (int) location.index;
+          }
           int line = -1;
           long previousLineCodeIndex = -1;
           for (int i = 0; i < lines; ++i) {
