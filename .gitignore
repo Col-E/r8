@@ -29,6 +29,8 @@ tests/2016-12-19/art
 tests/2016-12-19/art.tar.gz
 tests/2017-10-04/art
 tests/2017-10-04/art.tar.gz
+third_party/api-outlining/simple-app-dump
+third_party/api-outlining/simple-app-dump.tar.gz
 third_party/android_cts_baseline
 third_party/android_cts_baseline.tar.gz
 third_party/clank/clank_google3_prebuilt

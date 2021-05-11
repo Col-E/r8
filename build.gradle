@@ -315,6 +315,7 @@ def cloudDependencies = [
                 "android_jar/lib-v29",
                 "android_jar/lib-v30",
                 "android_jar/lib-v31",
+                "api-outlining/simple-app-dump",
                 "core-lambda-stubs",
                 "dart-sdk",
                 "ddmlib",
