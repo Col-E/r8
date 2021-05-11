@@ -9,6 +9,7 @@ import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
@@ -473,13 +474,14 @@ public final class D8Command extends BaseCompilerCommand {
     // Assert some of R8 optimizations are disabled.
     assert !internal.enableInlining;
     assert !internal.enableClassInlining;
-    assert internal.horizontalClassMergerOptions().isDisabled();
     assert !internal.enableVerticalClassMerging;
     assert !internal.enableClassStaticizer;
     assert !internal.enableEnumValueOptimization;
     assert !internal.outline.enabled;
     assert !internal.enableValuePropagation;
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
+    assert !internal.horizontalClassMergerOptions().isEnabled(HorizontalClassMerger.Mode.INITIAL);
+    assert !internal.horizontalClassMergerOptions().isEnabled(HorizontalClassMerger.Mode.FINAL);
 
     internal.desugarState = getDesugarState();
     internal.encodeChecksums = getIncludeClassesChecksum();

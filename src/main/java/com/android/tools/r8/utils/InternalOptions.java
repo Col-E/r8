@@ -40,6 +40,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
@@ -614,8 +615,16 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
    * If any non-static class merging is enabled, information about types referred to by instanceOf
    * and check cast instructions needs to be collected.
    */
-  public boolean isClassMergingExtensionRequired() {
-    return horizontalClassMergerOptions.isEnabled() || enableVerticalClassMerging;
+  public boolean isClassMergingExtensionRequired(Enqueuer.Mode mode) {
+    if (mode.isInitialTreeShaking()) {
+      return horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.INITIAL)
+          || enableVerticalClassMerging;
+    }
+    if (mode.isFinalTreeShaking()) {
+      return horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.FINAL);
+    }
+    assert false;
+    return false;
   }
 
   @Override
@@ -1190,7 +1199,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
   }
 
-  public static class HorizontalClassMergerOptions {
+  public class HorizontalClassMergerOptions {
 
     // TODO(b/138781768): Set enable to true when this bug is resolved.
     private boolean enable =
@@ -1226,12 +1235,16 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return enableConstructorMerging;
     }
 
-    public boolean isDisabled() {
-      return !isEnabled();
-    }
-
-    public boolean isEnabled() {
-      return enable;
+    public boolean isEnabled(HorizontalClassMerger.Mode mode) {
+      if (!enable || debug || intermediate) {
+        return false;
+      }
+      if (mode.isInitial()) {
+        return enableInlining && isShrinking();
+      }
+      assert mode.isFinal();
+      // TODO(b/187496738): Enable final class merging.
+      return false;
     }
 
     public boolean isIgnoreRuntimeTypeChecksForTestingEnabled() {

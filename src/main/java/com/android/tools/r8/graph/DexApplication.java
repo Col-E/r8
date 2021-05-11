@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Predicate;
 
 public abstract class DexApplication {
 
@@ -174,6 +175,11 @@ public abstract class DexApplication {
     public synchronized T setProguardMap(ClassNameMapper proguardMap) {
       assert this.proguardMap == null;
       this.proguardMap = proguardMap;
+      return self();
+    }
+
+    public synchronized T removeProgramClasses(Predicate<DexProgramClass> predicate) {
+      this.programClasses.removeIf(predicate);
       return self();
     }
 

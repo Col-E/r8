@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -33,18 +34,25 @@ public class RuntimeTypeCheckInfo {
       implements EnqueuerInstanceOfAnalysis,
           EnqueuerCheckCastAnalysis,
           EnqueuerExceptionGuardAnalysis {
+
+    private final GraphLens appliedGraphLens;
     private final DexItemFactory factory;
 
     private final Set<DexType> instanceOfTypes = Sets.newIdentityHashSet();
     private final Set<DexType> checkCastTypes = Sets.newIdentityHashSet();
     private final Set<DexType> exceptionGuardTypes = Sets.newIdentityHashSet();
 
-    public Builder(DexItemFactory factory) {
-      this.factory = factory;
+    public Builder(AppView<?> appView) {
+      this.appliedGraphLens = appView.graphLens();
+      this.factory = appView.dexItemFactory();
     }
 
-    public RuntimeTypeCheckInfo build() {
-      return new RuntimeTypeCheckInfo(instanceOfTypes, checkCastTypes, exceptionGuardTypes);
+    public RuntimeTypeCheckInfo build(GraphLens graphLens) {
+      RuntimeTypeCheckInfo runtimeTypeCheckInfo =
+          new RuntimeTypeCheckInfo(instanceOfTypes, checkCastTypes, exceptionGuardTypes);
+      return graphLens.isNonIdentityLens() && graphLens != appliedGraphLens
+          ? runtimeTypeCheckInfo.rewriteWithLens(graphLens.asNonIdentityLens())
+          : runtimeTypeCheckInfo;
     }
 
     @Override

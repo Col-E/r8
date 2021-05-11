@@ -21,6 +21,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -66,7 +67,7 @@ public class LambdaGroupGCLimitTest extends TestBase {
             .addHorizontallyMergedClassesInspector(
                 inspector -> {
                   HorizontalClassMergerOptions defaultHorizontalClassMergerOptions =
-                      new HorizontalClassMergerOptions();
+                      new InternalOptions().horizontalClassMergerOptions();
                   assertEquals(4833, inspector.getSources().size());
                   assertEquals(167, inspector.getTargets().size());
                   assertTrue(

@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis.InitializedClassesInInstanceMethods;
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraintFactory;
 import com.android.tools.r8.ir.analysis.proto.EnumLiteProtoShrinker;
@@ -505,6 +506,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return collection;
   }
 
+  public boolean hasHorizontallyMergedClasses() {
+    return horizontallyMergedClasses != null;
+  }
+
   /**
    * Get the result of horizontal class merging. Returns null if horizontal class merging has not
    * been run.
@@ -513,10 +518,18 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return horizontallyMergedClasses;
   }
 
-  public void setHorizontallyMergedClasses(HorizontallyMergedClasses horizontallyMergedClasses) {
-    assert this.horizontallyMergedClasses == null;
-    this.horizontallyMergedClasses = horizontallyMergedClasses;
-    testing().horizontallyMergedClassesConsumer.accept(dexItemFactory(), horizontallyMergedClasses);
+  public void setHorizontallyMergedClasses(
+      HorizontallyMergedClasses horizontallyMergedClasses, HorizontalClassMerger.Mode mode) {
+    if (mode.isInitial()) {
+      assert !hasHorizontallyMergedClasses();
+      this.horizontallyMergedClasses = horizontallyMergedClasses;
+      testing()
+          .horizontallyMergedClassesConsumer
+          .accept(dexItemFactory(), horizontallyMergedClasses);
+    } else {
+      // TODO(b/187496738): Enable final class merging.
+      assert horizontallyMergedClasses.isEmpty();
+    }
   }
 
   /**

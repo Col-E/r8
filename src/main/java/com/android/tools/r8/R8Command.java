@@ -12,6 +12,7 @@ import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
@@ -32,6 +33,7 @@ import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
+import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -854,8 +856,12 @@ public final class R8Command extends BaseCompilerCommand {
             ? LineNumberOptimization.ON
             : LineNumberOptimization.OFF;
 
+    HorizontalClassMergerOptions horizontalClassMergerOptions =
+        internal.horizontalClassMergerOptions();
     assert proguardConfiguration.isOptimizing()
-        || internal.horizontalClassMergerOptions().isDisabled();
+        || (!horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.INITIAL)
+            && !horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.FINAL));
+
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
     assert internal.enableVerticalClassMerging || !proguardConfiguration.isOptimizing();
     if (internal.debug) {
@@ -864,24 +870,17 @@ public final class R8Command extends BaseCompilerCommand {
       internal.getProguardConfiguration().getKeepAttributes().localVariableTypeTable = true;
       internal.enableInlining = false;
       internal.enableClassInlining = false;
-      internal.horizontalClassMergerOptions().disable();
       internal.enableVerticalClassMerging = false;
       internal.enableClassStaticizer = false;
       internal.outline.enabled = false;
       internal.enableEnumUnboxing = false;
     }
+
     if (!internal.isShrinking()) {
       // If R8 is not shrinking, there is no point in running various optimizations since the
       // optimized classes will still remain in the program (the application size could increase).
       internal.enableEnumUnboxing = false;
-      internal.horizontalClassMergerOptions().disable();
       internal.enableVerticalClassMerging = false;
-    }
-
-    if (!internal.enableInlining) {
-      // If R8 cannot perform inlining, then the synthetic constructors would not inline the called
-      // constructors, producing invalid code.
-      internal.horizontalClassMergerOptions().disable();
     }
 
     // Amend the proguard-map consumer with options from the proguard configuration.
@@ -939,7 +938,7 @@ public final class R8Command extends BaseCompilerCommand {
     if (internal.isGeneratingClassFiles()) {
       internal.outline.enabled = false;
       internal.enableEnumUnboxing = false;
-      internal.horizontalClassMergerOptions().disable();
+      horizontalClassMergerOptions.disable();
     }
 
     // EXPERIMENTAL flags.
