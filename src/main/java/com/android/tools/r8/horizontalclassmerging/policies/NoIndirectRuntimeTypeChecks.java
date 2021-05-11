@@ -54,7 +54,8 @@ public class NoIndirectRuntimeTypeChecks extends MultiClassSameReferencePolicy<D
       cache.put(type, true);
       return true;
     }
-    if (runtimeTypeCheckInfo.isRuntimeCheckType(clazz.asProgramClass())) {
+    if (runtimeTypeCheckInfo == null
+        || runtimeTypeCheckInfo.isRuntimeCheckType(clazz.asProgramClass())) {
       cache.put(type, true);
       return true;
     }

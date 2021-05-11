@@ -14,10 +14,10 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-public class DontMergeSynchronizedClasses extends MultiClassPolicy {
+public class NoDeadLocks extends MultiClassPolicy {
   private final AppView<AppInfoWithLiveness> appView;
 
-  public DontMergeSynchronizedClasses(AppView<AppInfoWithLiveness> appView) {
+  public NoDeadLocks(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 
@@ -59,6 +59,6 @@ public class DontMergeSynchronizedClasses extends MultiClassPolicy {
 
   @Override
   public String getName() {
-    return "DontMergeSynchronizedClasses";
+    return "NoDeadLocks";
   }
 }

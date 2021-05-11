@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
 import com.android.tools.r8.horizontalclassmerging.policies.SameInstanceFields.InstanceFieldInfo;
 import com.google.common.collect.HashMultiset;
@@ -20,16 +21,24 @@ import java.util.Objects;
 public class SameInstanceFields extends MultiClassSameReferencePolicy<Multiset<InstanceFieldInfo>> {
 
   private final DexItemFactory dexItemFactory;
+  private final Mode mode;
 
-  public SameInstanceFields(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public SameInstanceFields(AppView<? extends AppInfoWithClassHierarchy> appView, Mode mode) {
     this.dexItemFactory = appView.dexItemFactory();
+    this.mode = mode;
   }
 
   @Override
   public Multiset<InstanceFieldInfo> getMergeKey(DexProgramClass clazz) {
     Multiset<InstanceFieldInfo> fields = HashMultiset.create();
     for (DexEncodedField field : clazz.instanceFields()) {
-      fields.add(InstanceFieldInfo.createRelaxed(field, dexItemFactory));
+      // We do not allow merging fields with different types in the final round of horizontal class
+      // merging, since that requires inserting check-cast instructions at reads.
+      InstanceFieldInfo instanceFieldInfo =
+          mode.isInitial()
+              ? InstanceFieldInfo.createRelaxed(field, dexItemFactory)
+              : InstanceFieldInfo.createExact(field);
+      fields.add(instanceFieldInfo);
     }
     return fields;
   }

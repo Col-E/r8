@@ -5,16 +5,23 @@
 package com.android.tools.r8.horizontalclassmerging.policies;
 
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 
-public class NoClassAnnotationCollisions extends AtMostOneClassThatMatchesPolicy {
+public class AtMostOneClassInitializer extends AtMostOneClassThatMatchesPolicy {
+
+  public AtMostOneClassInitializer(Mode mode) {
+    // TODO(b/182124475): Allow merging groups with multiple <clinit> methods in the final round of
+    //  merging.
+    assert mode.isFinal();
+  }
 
   @Override
   boolean atMostOneOf(DexProgramClass clazz) {
-    return clazz.hasAnnotations();
+    return clazz.hasClassInitializer();
   }
 
   @Override
   public String getName() {
-    return "NoClassAnnotationCollisions";
+    return "AtMostOneClassInitializer";
   }
 }

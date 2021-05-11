@@ -9,40 +9,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.PrunedItems;
-import com.android.tools.r8.horizontalclassmerging.policies.AllInstantiatedOrUninstantiated;
-import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses;
-import com.android.tools.r8.horizontalclassmerging.policies.DontInlinePolicy;
-import com.android.tools.r8.horizontalclassmerging.policies.DontMergeSynchronizedClasses;
-import com.android.tools.r8.horizontalclassmerging.policies.LimitGroups;
-import com.android.tools.r8.horizontalclassmerging.policies.MinimizeInstanceFieldCasts;
-import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotationClasses;
-import com.android.tools.r8.horizontalclassmerging.policies.NoClassAnnotationCollisions;
-import com.android.tools.r8.horizontalclassmerging.policies.NoClassInitializerWithObservableSideEffects;
-import com.android.tools.r8.horizontalclassmerging.policies.NoDeadEnumLiteMaps;
-import com.android.tools.r8.horizontalclassmerging.policies.NoDefaultInterfaceMethodCollisions;
-import com.android.tools.r8.horizontalclassmerging.policies.NoDefaultInterfaceMethodMerging;
-import com.android.tools.r8.horizontalclassmerging.policies.NoDirectRuntimeTypeChecks;
-import com.android.tools.r8.horizontalclassmerging.policies.NoEnums;
-import com.android.tools.r8.horizontalclassmerging.policies.NoIndirectRuntimeTypeChecks;
-import com.android.tools.r8.horizontalclassmerging.policies.NoInnerClasses;
-import com.android.tools.r8.horizontalclassmerging.policies.NoInstanceFieldAnnotations;
-import com.android.tools.r8.horizontalclassmerging.policies.NoInterfaces;
-import com.android.tools.r8.horizontalclassmerging.policies.NoKeepRules;
-import com.android.tools.r8.horizontalclassmerging.policies.NoKotlinMetadata;
-import com.android.tools.r8.horizontalclassmerging.policies.NoNativeMethods;
-import com.android.tools.r8.horizontalclassmerging.policies.NoServiceLoaders;
-import com.android.tools.r8.horizontalclassmerging.policies.NotMatchedByNoHorizontalClassMerging;
-import com.android.tools.r8.horizontalclassmerging.policies.NotVerticallyMergedIntoSubtype;
-import com.android.tools.r8.horizontalclassmerging.policies.OnlyDirectlyConnectedOrUnrelatedInterfaces;
-import com.android.tools.r8.horizontalclassmerging.policies.PreserveMethodCharacteristics;
-import com.android.tools.r8.horizontalclassmerging.policies.PreventClassMethodAndDefaultMethodCollisions;
-import com.android.tools.r8.horizontalclassmerging.policies.RespectPackageBoundaries;
-import com.android.tools.r8.horizontalclassmerging.policies.SameFeatureSplit;
-import com.android.tools.r8.horizontalclassmerging.policies.SameInstanceFields;
-import com.android.tools.r8.horizontalclassmerging.policies.SameMainDexGroup;
-import com.android.tools.r8.horizontalclassmerging.policies.SameNestHost;
-import com.android.tools.r8.horizontalclassmerging.policies.SameParentClass;
-import com.android.tools.r8.horizontalclassmerging.policies.SyntheticItemsPolicy;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -50,7 +16,6 @@ import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -103,7 +68,7 @@ public class HorizontalClassMerger {
 
   private void run(RuntimeTypeCheckInfo runtimeTypeCheckInfo, Timing timing) {
     // Run the policies on all program classes to produce a final grouping.
-    List<Policy> policies = getPolicies(runtimeTypeCheckInfo);
+    List<Policy> policies = PolicyScheduler.getPolicies(appView, mode, runtimeTypeCheckInfo);
     Collection<MergeGroup> groups = new PolicyExecutor().run(getInitialGroups(), policies, timing);
 
     // If there are no groups, then end horizontal class merging.
@@ -208,52 +173,6 @@ public class HorizontalClassMerger {
     initialGroups.add(initialInterfaceGroup);
     initialGroups.removeIf(MergeGroup::isTrivial);
     return initialGroups;
-  }
-
-  private List<Policy> getPolicies(RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
-    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-    List<SingleClassPolicy> singleClassPolicies =
-        ImmutableList.of(
-            new NotMatchedByNoHorizontalClassMerging(appViewWithLiveness),
-            new NoDeadEnumLiteMaps(appViewWithLiveness, mode),
-            new NoAnnotationClasses(),
-            new NoEnums(appView),
-            new NoInterfaces(appView, mode),
-            new NoInnerClasses(),
-            new NoInstanceFieldAnnotations(),
-            new NoClassInitializerWithObservableSideEffects(),
-            new NoNativeMethods(),
-            new NoKeepRules(appView),
-            new NoKotlinMetadata(),
-            new NoServiceLoaders(appView),
-            new NotVerticallyMergedIntoSubtype(appView, mode),
-            new NoDirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
-            new DontInlinePolicy(appViewWithLiveness, mode));
-    List<Policy> multiClassPolicies =
-        ImmutableList.of(
-            new SameFeatureSplit(appView),
-            new SameInstanceFields(appView),
-            new SameMainDexGroup(appView),
-            new SameNestHost(appView),
-            new SameParentClass(),
-            new NoClassAnnotationCollisions(),
-            new CheckAbstractClasses(appView),
-            new SyntheticItemsPolicy(appView),
-            new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
-            new PreventClassMethodAndDefaultMethodCollisions(appView),
-            new AllInstantiatedOrUninstantiated(appViewWithLiveness, mode),
-            new PreserveMethodCharacteristics(appViewWithLiveness, mode),
-            new RespectPackageBoundaries(appView),
-            new DontMergeSynchronizedClasses(appViewWithLiveness),
-            new MinimizeInstanceFieldCasts(),
-            new OnlyDirectlyConnectedOrUnrelatedInterfaces(appView, mode),
-            new NoDefaultInterfaceMethodMerging(appView, mode),
-            new NoDefaultInterfaceMethodCollisions(appView, mode),
-            new LimitGroups(appView));
-    return ImmutableList.<Policy>builder()
-        .addAll(singleClassPolicies)
-        .addAll(multiClassPolicies)
-        .build();
   }
 
   /**

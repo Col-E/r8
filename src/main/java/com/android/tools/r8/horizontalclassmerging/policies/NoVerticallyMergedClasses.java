@@ -4,17 +4,16 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
-public class NotVerticallyMergedIntoSubtype extends SingleClassPolicy {
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+public class NoVerticallyMergedClasses extends SingleClassPolicy {
+  private final AppView<AppInfoWithLiveness> appView;
 
-  public NotVerticallyMergedIntoSubtype(
-      AppView<? extends AppInfoWithClassHierarchy> appView, Mode mode) {
+  public NoVerticallyMergedClasses(AppView<AppInfoWithLiveness> appView, Mode mode) {
     // This policy is only relevant for the initial round, since all vertically merged classes have
     // been removed from the application in the final round of horizontal class merging.
     assert mode.isInitial();

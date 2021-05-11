@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.synthesis.SyntheticFinalization.Result;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.IterableUtils;
@@ -230,7 +231,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return isNonLegacyCommittedSynthetic(type) || isNonLegacyPendingSynthetic(type);
   }
 
-  public boolean isEligibleForClassMerging(DexProgramClass clazz) {
+  public boolean isEligibleForClassMerging(DexProgramClass clazz, HorizontalClassMerger.Mode mode) {
+    // TODO(b/187496738): Allow merging all synthetics in the final round of class merging.
     assert isSyntheticClass(clazz);
     return isSyntheticLambda(clazz);
   }

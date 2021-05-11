@@ -37,9 +37,9 @@ public class MergeGroup implements Collection<DexProgramClass> {
     add(clazz);
   }
 
-  public MergeGroup(Collection<DexProgramClass> classes) {
+  public MergeGroup(Iterable<DexProgramClass> classes) {
     this();
-    addAll(classes);
+    Iterables.addAll(this.classes, classes);
   }
 
   public void applyMetadataFrom(MergeGroup group) {
