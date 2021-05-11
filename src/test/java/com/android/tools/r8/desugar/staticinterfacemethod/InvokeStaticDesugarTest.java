@@ -6,14 +6,25 @@ package com.android.tools.r8.desugar.staticinterfacemethod;
 
 import static com.android.tools.r8.desugar.staticinterfacemethod.InvokeStaticDesugarTest.Library.foo;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 
+import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.IntBox;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -23,19 +34,26 @@ import org.junit.runners.Parameterized.Parameters;
 public class InvokeStaticDesugarTest extends TestBase {
 
   private final TestParameters parameters;
+  private final boolean intermediate;
   private final String EXPECTED = "Hello World!";
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+  @Parameters(name = "{0}, intermediate in first step: {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        BooleanUtils.values());
   }
 
-  public InvokeStaticDesugarTest(TestParameters parameters) {
+  public InvokeStaticDesugarTest(TestParameters parameters, boolean intermediate) {
     this.parameters = parameters;
+    this.intermediate = intermediate;
   }
 
   @Test
   public void testDesugar() throws Exception {
+    // Intermediate not used in this test.
+    assumeFalse(intermediate);
+
     final TestRunResult<?> runResult =
         testForDesugaring(parameters)
             .addLibraryClasses(Library.class)
@@ -48,6 +66,57 @@ public class InvokeStaticDesugarTest extends TestBase {
     } else {
       runResult.assertSuccessWithOutputLines(EXPECTED);
     }
+  }
+
+  @Test
+  public void testDoubleDesugar() throws Exception {
+    // Desugar using API level that cannot leave static interface invokes.
+    Path jar =
+        testForD8(Backend.CF)
+            .addLibraryClasses(Library.class)
+            .addProgramClasses(Main.class)
+            .setMinApi(AndroidApiLevel.B)
+            .setIntermediate(intermediate)
+            .compile()
+            .inspect(i -> assertEquals(1, getSyntheticMethods(i).size()))
+            .writeToZip();
+
+    testForDesugaring(parameters)
+        .addLibraryClasses(Library.class)
+        .addProgramFiles(jar)
+        .addRunClasspathFiles(compileRunClassPath())
+        .run(parameters.getRuntime(), Main.class)
+        .applyIf(
+            // When double desugaring to API level below L two synthetics are seen.
+            c ->
+                DesugarTestConfiguration.isDesugared(c)
+                    && (parameters.isCfRuntime()
+                        || parameters
+                            .getRuntime()
+                            .asDex()
+                            .getVm()
+                            .isNewerThan(DexVm.ART_4_4_4_HOST))
+                    && parameters.getApiLevel().isLessThan(AndroidApiLevel.L),
+            r -> {
+              assertEquals(intermediate ? 1 : 2, countSynthetics(r));
+              r.assertSuccessWithOutputLines(EXPECTED);
+            },
+            // Don't inspect failing code, as inspection is only supported when run succeeds,
+            // and testForDesugaring does not have separate compile where the code can be
+            // inspected before running.
+            c ->
+                parameters.isDexRuntime()
+                    && parameters
+                        .getRuntime()
+                        .asDex()
+                        .getVm()
+                        .isOlderThanOrEqual(DexVm.ART_4_4_4_HOST),
+            r -> r.assertFailureWithErrorThatMatches(containsString("java.lang.VerifyError")),
+            // When double desugaring to API level L and above one synthetics seen.
+            r -> {
+              assertEquals(1, countSynthetics(r));
+              r.assertSuccessWithOutputLines(EXPECTED);
+            });
   }
 
   private Path compileRunClassPath() throws Exception {
@@ -66,6 +135,28 @@ public class InvokeStaticDesugarTest extends TestBase {
           .compile()
           .writeToZip();
     }
+  }
+
+  private int countSynthetics(TestRunResult<?> r) {
+    IntBox box = new IntBox();
+    try {
+      r.inspect(inspector -> box.set(getSyntheticMethods(inspector).size()));
+    } catch (Exception e) {
+      box.set(-1);
+      fail();
+    }
+    return box.get();
+  }
+
+  private Set<MethodReference> getSyntheticMethods(CodeInspector inspector) {
+    Set<MethodReference> methods = new HashSet<>();
+    inspector.allClasses().stream()
+        .filter(c -> !Main.class.getTypeName().equals(c.getFinalName()))
+        .forEach(
+            c ->
+                c.allMethods(m -> !m.isInstanceInitializer())
+                    .forEach(m -> methods.add(m.asMethodReference())));
+    return methods;
   }
 
   public interface Library {

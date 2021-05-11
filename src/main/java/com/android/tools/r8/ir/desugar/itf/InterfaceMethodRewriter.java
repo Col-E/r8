@@ -273,6 +273,9 @@ public final class InterfaceMethodRewriter {
       MethodProcessingContext methodProcessingContext) {
     ProgramMethod context = code.context();
     if (isSyntheticMethodThatShouldNotBeDoubleProcessed(code.context())) {
+      // As the synthetics for dispatching to static interface methods are not desugared again
+      // this can leave a static invoke to a static method on an interface.
+      leavingStaticInvokeToInterface(context.asProgramMethod());
       return;
     }
 
