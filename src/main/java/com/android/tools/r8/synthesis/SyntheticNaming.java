@@ -199,7 +199,7 @@ public class SyntheticNaming {
       return clazz.getBinaryName().endsWith(kind.descriptor);
     }
     String separator = getPhaseSeparator(phase);
-    int i = typeName.indexOf(separator);
+    int i = typeName.lastIndexOf(separator);
     return i >= 0 && checkMatchFrom(kind, typeName, i, separator, phase == Phase.EXTERNAL);
   }
 

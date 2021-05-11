@@ -16,6 +16,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IntBox;
@@ -150,8 +151,14 @@ public class InvokeStaticDesugarTest extends TestBase {
 
   private Set<MethodReference> getSyntheticMethods(CodeInspector inspector) {
     Set<MethodReference> methods = new HashSet<>();
+    assert inspector.allClasses().stream()
+        .allMatch(
+            c ->
+                !SyntheticItemsTestUtils.isExternalSynthetic(c.getFinalReference())
+                    || SyntheticItemsTestUtils.isExternalStaticInterfaceCall(
+                        c.getFinalReference()));
     inspector.allClasses().stream()
-        .filter(c -> !Main.class.getTypeName().equals(c.getFinalName()))
+        .filter(c -> SyntheticItemsTestUtils.isExternalStaticInterfaceCall(c.getFinalReference()))
         .forEach(
             c ->
                 c.allMethods(m -> !m.isInstanceInitializer())

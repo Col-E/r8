@@ -65,6 +65,24 @@ public class SyntheticItemsTestUtils {
         originalMethod.getMethodDescriptor());
   }
 
+  public static boolean isExternalSynthetic(ClassReference reference) {
+    for (SyntheticKind kind : SyntheticKind.values()) {
+      if (kind == SyntheticKind.RECORD_TAG) {
+        continue;
+      }
+      if (kind.isFixedSuffixSynthetic) {
+        if (SyntheticNaming.isSynthetic(reference, null, kind)) {
+          return true;
+        }
+      } else {
+        if (SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, kind)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   public static boolean isInternalLambda(ClassReference reference) {
     return SyntheticNaming.isSynthetic(reference, Phase.INTERNAL, SyntheticKind.LAMBDA);
   }
