@@ -14,7 +14,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses
 import com.android.tools.r8.horizontalclassmerging.policies.DontInlinePolicy;
 import com.android.tools.r8.horizontalclassmerging.policies.DontMergeSynchronizedClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.LimitGroups;
-import com.android.tools.r8.horizontalclassmerging.policies.MinimizeFieldCasts;
+import com.android.tools.r8.horizontalclassmerging.policies.MinimizeInstanceFieldCasts;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotationClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassAnnotationCollisions;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassInitializerWithObservableSideEffects;
@@ -36,10 +36,10 @@ import com.android.tools.r8.horizontalclassmerging.policies.NotVerticallyMergedI
 import com.android.tools.r8.horizontalclassmerging.policies.OnlyDirectlyConnectedOrUnrelatedInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.PreserveMethodCharacteristics;
 import com.android.tools.r8.horizontalclassmerging.policies.PreventClassMethodAndDefaultMethodCollisions;
-import com.android.tools.r8.horizontalclassmerging.policies.PreventMergeIntoDifferentMainDexGroups;
 import com.android.tools.r8.horizontalclassmerging.policies.RespectPackageBoundaries;
 import com.android.tools.r8.horizontalclassmerging.policies.SameFeatureSplit;
 import com.android.tools.r8.horizontalclassmerging.policies.SameInstanceFields;
+import com.android.tools.r8.horizontalclassmerging.policies.SameMainDexGroup;
 import com.android.tools.r8.horizontalclassmerging.policies.SameNestHost;
 import com.android.tools.r8.horizontalclassmerging.policies.SameParentClass;
 import com.android.tools.r8.horizontalclassmerging.policies.SyntheticItemsPolicy;
@@ -209,10 +209,10 @@ public class HorizontalClassMerger {
     List<SingleClassPolicy> singleClassPolicies =
         ImmutableList.of(
             new NotMatchedByNoHorizontalClassMerging(appViewWithLiveness),
-            new NoDeadEnumLiteMaps(appViewWithLiveness),
+            new NoDeadEnumLiteMaps(appViewWithLiveness, mode),
             new NoAnnotationClasses(),
             new NoEnums(appView),
-            new NoInterfaces(appView),
+            new NoInterfaces(appView, mode),
             new NoInnerClasses(),
             new NoInstanceFieldAnnotations(),
             new NoClassInitializerWithObservableSideEffects(),
@@ -220,29 +220,29 @@ public class HorizontalClassMerger {
             new NoKeepRules(appView),
             new NoKotlinMetadata(),
             new NoServiceLoaders(appView),
-            new NotVerticallyMergedIntoSubtype(appView),
+            new NotVerticallyMergedIntoSubtype(appView, mode),
             new NoDirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
-            new DontInlinePolicy(appViewWithLiveness));
+            new DontInlinePolicy(appViewWithLiveness, mode));
     List<Policy> multiClassPolicies =
         ImmutableList.of(
+            new SameFeatureSplit(appView),
             new SameInstanceFields(appView),
+            new SameMainDexGroup(appView),
+            new SameNestHost(appView),
+            new SameParentClass(),
             new NoClassAnnotationCollisions(),
             new CheckAbstractClasses(appView),
             new SyntheticItemsPolicy(appView),
             new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
             new PreventClassMethodAndDefaultMethodCollisions(appView),
-            new PreventMergeIntoDifferentMainDexGroups(appView),
-            new AllInstantiatedOrUninstantiated(appViewWithLiveness),
-            new SameParentClass(),
-            new SameNestHost(appView),
-            new PreserveMethodCharacteristics(appViewWithLiveness),
-            new SameFeatureSplit(appView),
+            new AllInstantiatedOrUninstantiated(appViewWithLiveness, mode),
+            new PreserveMethodCharacteristics(appViewWithLiveness, mode),
             new RespectPackageBoundaries(appView),
             new DontMergeSynchronizedClasses(appViewWithLiveness),
-            new MinimizeFieldCasts(),
-            new OnlyDirectlyConnectedOrUnrelatedInterfaces(appView),
-            new NoDefaultInterfaceMethodMerging(appView),
-            new NoDefaultInterfaceMethodCollisions(appView),
+            new MinimizeInstanceFieldCasts(),
+            new OnlyDirectlyConnectedOrUnrelatedInterfaces(appView, mode),
+            new NoDefaultInterfaceMethodMerging(appView, mode),
+            new NoDefaultInterfaceMethodCollisions(appView, mode),
             new LimitGroups(appView));
     return ImmutableList.<Policy>builder()
         .addAll(singleClassPolicies)
@@ -257,15 +257,11 @@ public class HorizontalClassMerger {
   private List<ClassMerger> initializeClassMergers(
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       Collection<MergeGroup> groups) {
-    List<ClassMerger> classMergers = new ArrayList<>();
-
-    // TODO(b/166577694): Replace Collection<DexProgramClass> with MergeGroup
+    List<ClassMerger> classMergers = new ArrayList<>(groups.size());
     for (MergeGroup group : groups) {
-      assert !group.isEmpty();
-      ClassMerger merger = new ClassMerger.Builder(appView, group).build(lensBuilder);
-      classMergers.add(merger);
+      assert group.isNonTrivial();
+      classMergers.add(new ClassMerger.Builder(appView, group).setMode(mode).build(lensBuilder));
     }
-
     return classMergers;
   }
 

@@ -7,6 +7,7 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.utils.InternalOptions;
@@ -28,9 +29,11 @@ import java.util.Map.Entry;
  */
 public class NoDefaultInterfaceMethodMerging extends MultiClassPolicy {
 
+  private final Mode mode;
   private final InternalOptions options;
 
-  public NoDefaultInterfaceMethodMerging(AppView<?> appView) {
+  public NoDefaultInterfaceMethodMerging(AppView<?> appView, Mode mode) {
+    this.mode = mode;
     this.options = appView.options();
   }
 
@@ -76,6 +79,6 @@ public class NoDefaultInterfaceMethodMerging extends MultiClassPolicy {
 
   @Override
   public boolean shouldSkipPolicy() {
-    return !options.horizontalClassMergerOptions().isInterfaceMergingEnabled();
+    return !options.horizontalClassMergerOptions().isInterfaceMergingEnabled(mode);
   }
 }

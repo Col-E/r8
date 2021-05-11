@@ -7,14 +7,17 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 
 public class NoInterfaces extends SingleClassPolicy {
 
+  private final Mode mode;
   private final HorizontalClassMergerOptions options;
 
-  public NoInterfaces(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public NoInterfaces(AppView<? extends AppInfoWithClassHierarchy> appView, Mode mode) {
+    this.mode = mode;
     this.options = appView.options().horizontalClassMergerOptions();
   }
 
@@ -25,7 +28,7 @@ public class NoInterfaces extends SingleClassPolicy {
 
   @Override
   public boolean shouldSkipPolicy() {
-    return options.isInterfaceMergingEnabled();
+    return options.isInterfaceMergingEnabled(mode);
   }
 
   @Override

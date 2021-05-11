@@ -53,8 +53,8 @@ public class VirtualMethodMerger {
   public static class Builder {
     private final List<ProgramMethod> methods = new ArrayList<>();
 
-    public Builder add(ProgramMethod constructor) {
-      methods.add(constructor);
+    public Builder add(ProgramMethod method) {
+      methods.add(method);
       return this;
     }
 

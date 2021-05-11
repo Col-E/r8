@@ -12,14 +12,12 @@ import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.shaking.MainDexInfo.MainDexGroup;
 import com.android.tools.r8.synthesis.SyntheticItems;
 
-public class PreventMergeIntoDifferentMainDexGroups
-    extends MultiClassSameReferencePolicy<MainDexGroup> {
+public class SameMainDexGroup extends MultiClassSameReferencePolicy<MainDexGroup> {
 
   private final MainDexInfo mainDexInfo;
   private final SyntheticItems synthetics;
 
-  public PreventMergeIntoDifferentMainDexGroups(
-      AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public SameMainDexGroup(AppView<? extends AppInfoWithClassHierarchy> appView) {
     mainDexInfo = appView.appInfo().getMainDexInfo();
     synthetics = appView.getSyntheticItems();
   }
@@ -33,6 +31,6 @@ public class PreventMergeIntoDifferentMainDexGroups
 
   @Override
   public String getName() {
-    return "PreventMergeIntoDifferentMainDexGroups";
+    return "SameMainDexGroup";
   }
 }

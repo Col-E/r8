@@ -17,8 +17,7 @@ public class NoServiceLoaders extends SingleClassPolicy {
 
   public NoServiceLoaders(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
-
-    allServiceImplementations = appView.appServices().computeAllServiceImplementations();
+    this.allServiceImplementations = appView.appServices().computeAllServiceImplementations();
   }
 
   @Override

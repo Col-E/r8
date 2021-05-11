@@ -17,7 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MinimizeFieldCasts extends MultiClassPolicy {
+public class MinimizeInstanceFieldCasts extends MultiClassPolicy {
 
   @Override
   public final Collection<MergeGroup> apply(MergeGroup group) {

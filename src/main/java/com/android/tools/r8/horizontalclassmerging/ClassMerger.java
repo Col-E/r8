@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.code.ClassInitializerSynthesizedCode;
 import com.android.tools.r8.ir.analysis.value.NumberFromIntervalValue;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -62,6 +63,7 @@ public class ClassMerger {
   private static final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final Mode mode;
   private final MergeGroup group;
   private final DexItemFactory dexItemFactory;
   private final ClassInitializerSynthesizedCode classInitializerSynthesizedCode;
@@ -76,12 +78,14 @@ public class ClassMerger {
 
   private ClassMerger(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      Mode mode,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       MergeGroup group,
       Collection<VirtualMethodMerger> virtualMethodMergers,
       Collection<ConstructorMerger> constructorMergers,
       ClassInitializerSynthesizedCode classInitializerSynthesizedCode) {
     this.appView = appView;
+    this.mode = mode;
     this.lensBuilder = lensBuilder;
     this.group = group;
     this.virtualMethodMergers = virtualMethodMergers;
@@ -194,6 +198,7 @@ public class ClassMerger {
 
   void appendClassIdField() {
     assert appView.hasLiveness();
+    assert mode.isInitial();
 
     boolean deprecated = false;
     boolean d8R8Synthesized = true;
@@ -298,11 +303,17 @@ public class ClassMerger {
 
   public static class Builder {
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
+    private Mode mode;
     private final MergeGroup group;
 
     public Builder(AppView<? extends AppInfoWithClassHierarchy> appView, MergeGroup group) {
       this.appView = appView;
       this.group = group;
+    }
+
+    Builder setMode(Mode mode) {
+      this.mode = mode;
+      return this;
     }
 
     private void selectTarget() {
@@ -417,6 +428,7 @@ public class ClassMerger {
 
       return new ClassMerger(
           appView,
+          mode,
           lensBuilder,
           group,
           virtualMethodMergers,

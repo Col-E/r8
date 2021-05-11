@@ -7,7 +7,6 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMember;
-import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
@@ -29,20 +28,20 @@ public class NoKeepRules extends SingleClassPolicy {
     appView.appInfo().classes().forEach(this::processClass);
   }
 
-  private void processClass(DexProgramClass programClass) {
-    DexType type = programClass.getType();
-    boolean pinProgramClass = keepInfo.isPinned(type, appView);
-    for (DexEncodedMember<?, ?> member : programClass.members()) {
-      DexMember<?, ?> reference = member.getReference();
-      if (keepInfo.isPinned(reference, appView)) {
-        pinProgramClass = true;
+  private void processClass(DexProgramClass clazz) {
+    DexType type = clazz.getType();
+    boolean pinHolder = keepInfo.getClassInfo(clazz).isPinned();
+    for (DexEncodedMember<?, ?> member : clazz.members()) {
+      if (keepInfo.getMemberInfo(member, clazz).isPinned()) {
+        pinHolder = true;
         Iterables.addAll(
             dontMergeTypes,
             Iterables.filter(
-                reference.getReferencedBaseTypes(appView.dexItemFactory()), DexType::isClassType));
+                member.getReference().getReferencedBaseTypes(appView.dexItemFactory()),
+                DexType::isClassType));
       }
     }
-    if (pinProgramClass) {
+    if (pinHolder) {
       dontMergeTypes.add(type);
     }
   }

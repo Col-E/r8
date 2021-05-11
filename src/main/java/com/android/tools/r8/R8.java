@@ -798,7 +798,6 @@ public class R8 {
           .runIfNecessary(timing);
 
       // Generate the resulting application resources.
-      // TODO(b/165783399): Apply the graph lens to all instructions in the CF and DEX backends.
       writeApplication(
           executorService,
           appView,

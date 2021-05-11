@@ -1252,6 +1252,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
 
     public boolean isInterfaceMergingEnabled() {
+      return isInterfaceMergingEnabled(HorizontalClassMerger.Mode.INITIAL)
+          || isInterfaceMergingEnabled(HorizontalClassMerger.Mode.FINAL);
+    }
+
+    public boolean isInterfaceMergingEnabled(HorizontalClassMerger.Mode mode) {
+      // TODO(b/187496738): Only run interface merging during final class merging.
       return enableInterfaceMerging;
     }
 

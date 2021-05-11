@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.utils.WorkList;
@@ -55,10 +56,12 @@ import java.util.function.Consumer;
 public class OnlyDirectlyConnectedOrUnrelatedInterfaces extends MultiClassPolicy {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final Mode mode;
 
   public OnlyDirectlyConnectedOrUnrelatedInterfaces(
-      AppView<? extends AppInfoWithClassHierarchy> appView) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, Mode mode) {
     this.appView = appView;
+    this.mode = mode;
   }
 
   @Override
@@ -181,6 +184,6 @@ public class OnlyDirectlyConnectedOrUnrelatedInterfaces extends MultiClassPolicy
 
   @Override
   public boolean shouldSkipPolicy() {
-    return !appView.options().horizontalClassMergerOptions().isInterfaceMergingEnabled();
+    return !appView.options().horizontalClassMergerOptions().isInterfaceMergingEnabled(mode);
   }
 }
