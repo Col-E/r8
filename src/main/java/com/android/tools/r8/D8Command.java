@@ -25,6 +25,7 @@ import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
+import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -480,8 +481,13 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.outline.enabled;
     assert !internal.enableValuePropagation;
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
-    assert !internal.horizontalClassMergerOptions().isEnabled(HorizontalClassMerger.Mode.INITIAL);
-    assert !internal.horizontalClassMergerOptions().isEnabled(HorizontalClassMerger.Mode.FINAL);
+
+    // TODO(b/187675788): Enable class merging for synthetics in D8.
+    HorizontalClassMergerOptions horizontalClassMergerOptions =
+        internal.horizontalClassMergerOptions();
+    horizontalClassMergerOptions.disable();
+    assert !horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.INITIAL);
+    assert !horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.FINAL);
 
     internal.desugarState = getDesugarState();
     internal.encodeChecksums = getIncludeClassesChecksum();

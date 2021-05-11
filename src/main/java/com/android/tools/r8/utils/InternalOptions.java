@@ -210,7 +210,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     enableClassInlining = false;
     enableClassStaticizer = false;
     enableDevirtualization = false;
-    horizontalClassMergerOptions.disable();
     enableVerticalClassMerging = false;
     enableEnumUnboxing = false;
     enableUninstantiatedTypeOptimization = false;
@@ -220,6 +219,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     enableSideEffectAnalysis = false;
     enableTreeShakingOfLibraryMethodOverrides = false;
     callSiteOptimizationOptions.disableOptimization();
+    horizontalClassMergerOptions.setRestrictToSynthetics();
   }
 
   public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;
@@ -559,6 +559,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   private final boolean enableTreeShaking;
   private final boolean enableMinification;
 
+  public boolean isOptimizing() {
+    return hasProguardConfiguration() && getProguardConfiguration().isOptimizing();
+  }
+
   public boolean isRelease() {
     return !debug;
   }
@@ -617,11 +621,13 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
    */
   public boolean isClassMergingExtensionRequired(Enqueuer.Mode mode) {
     if (mode.isInitialTreeShaking()) {
-      return horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.INITIAL)
+      return (horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.INITIAL)
+              && !horizontalClassMergerOptions.isRestrictedToSynthetics())
           || enableVerticalClassMerging;
     }
     if (mode.isFinalTreeShaking()) {
-      return horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.FINAL);
+      return horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.FINAL)
+          && !horizontalClassMergerOptions.isRestrictedToSynthetics();
     }
     assert false;
     return false;
@@ -1205,9 +1211,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     private boolean enable =
         !Version.isDevelopmentVersion()
             || System.getProperty("com.android.tools.r8.disableHorizontalClassMerging") == null;
-    private boolean enableConstructorMerging = true;
     private boolean enableInterfaceMerging = false;
     private boolean ignoreRuntimeTypeChecksForTesting = false;
+    private boolean restrictToSynthetics = false;
 
     public int maxGroupSize = 30;
 
@@ -1232,7 +1238,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
 
     public boolean isConstructorMergingEnabled() {
-      return enableConstructorMerging;
+      return true;
     }
 
     public boolean isEnabled(HorizontalClassMerger.Mode mode) {
@@ -1261,8 +1267,16 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return enableInterfaceMerging;
     }
 
+    public boolean isRestrictedToSynthetics() {
+      return restrictToSynthetics || !isOptimizing() || !isShrinking();
+    }
+
     public void setIgnoreRuntimeTypeChecksForTesting() {
       ignoreRuntimeTypeChecksForTesting = true;
+    }
+
+    public void setRestrictToSynthetics() {
+      restrictToSynthetics = true;
     }
   }
 

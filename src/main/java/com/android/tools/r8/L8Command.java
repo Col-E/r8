@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
+import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -179,8 +180,12 @@ public final class L8Command extends BaseCompilerCommand {
     assert !internal.outline.enabled;
     assert !internal.enableValuePropagation;
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
-    assert !internal.horizontalClassMergerOptions().isEnabled(HorizontalClassMerger.Mode.INITIAL);
-    assert !internal.horizontalClassMergerOptions().isEnabled(HorizontalClassMerger.Mode.FINAL);
+
+    HorizontalClassMergerOptions horizontalClassMergerOptions =
+        internal.horizontalClassMergerOptions();
+    horizontalClassMergerOptions.disable();
+    assert !horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.INITIAL);
+    assert !horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.FINAL);
 
     assert internal.desugarState == DesugarState.ON;
     assert internal.enableInheritanceClassInDexDistributor;

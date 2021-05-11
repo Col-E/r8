@@ -12,7 +12,6 @@ import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
@@ -859,8 +858,7 @@ public final class R8Command extends BaseCompilerCommand {
     HorizontalClassMergerOptions horizontalClassMergerOptions =
         internal.horizontalClassMergerOptions();
     assert proguardConfiguration.isOptimizing()
-        || (!horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.INITIAL)
-            && !horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.FINAL));
+        || horizontalClassMergerOptions.isRestrictedToSynthetics();
 
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
     assert internal.enableVerticalClassMerging || !proguardConfiguration.isOptimizing();
