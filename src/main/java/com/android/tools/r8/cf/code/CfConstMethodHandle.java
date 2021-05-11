@@ -5,6 +5,7 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -90,7 +91,7 @@ public class CfConstMethodHandle extends CfInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, ProgramMethod context) {
+      InliningConstraints inliningConstraints, CfCode code, ProgramMethod context) {
     return inliningConstraints.forConstMethodHandle();
   }
 

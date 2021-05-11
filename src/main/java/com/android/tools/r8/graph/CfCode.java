@@ -675,7 +675,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
     for (CfInstruction insn : instructions) {
       constraint =
           ConstraintWithTarget.meet(
-              constraint, insn.inliningConstraint(inliningConstraints, context), appView);
+              constraint, insn.inliningConstraint(inliningConstraints, this, context), appView);
       if (constraint == ConstraintWithTarget.NEVER) {
         return constraint;
       }

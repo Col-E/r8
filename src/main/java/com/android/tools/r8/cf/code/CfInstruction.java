@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -282,7 +283,7 @@ public abstract class CfInstruction implements CfOrDexInstruction {
   }
 
   public abstract ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, ProgramMethod context);
+      InliningConstraints inliningConstraints, CfCode code, ProgramMethod context);
 
   public abstract void evaluate(
       CfFrameVerificationHelper frameBuilder,

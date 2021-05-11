@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.BiPredicateUtils.or;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
@@ -165,7 +166,7 @@ public class CfFieldInstruction extends CfInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, ProgramMethod context) {
+      InliningConstraints inliningConstraints, CfCode code, ProgramMethod context) {
     switch (opcode) {
       case Opcodes.GETSTATIC:
         return inliningConstraints.forStaticGet(field, context);

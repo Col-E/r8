@@ -8,6 +8,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -33,6 +34,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Arrays;
@@ -239,13 +241,9 @@ public class CfInvoke extends CfInstruction {
           // Using invoke-super should therefore observe the correct semantics since we cannot
           // target less specific targets (up in the hierarchy).
           canonicalMethod = method;
-          if (method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)) {
-            type = Type.DIRECT;
-          } else if (code.getOriginalHolder() == method.holder) {
-            type = invokeTypeForInvokeSpecialToNonInitMethodOnHolder(builder.appView, code);
-          } else {
-            type = Type.SUPER;
-          }
+          type =
+              computeInvokeTypeForInvokeSpecial(
+                  builder.appView, method, code.getOriginalHolder(), code.getOrigin());
           break;
         }
       case Opcodes.INVOKESTATIC:
@@ -277,7 +275,7 @@ public class CfInvoke extends CfInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, ProgramMethod context) {
+      InliningConstraints inliningConstraints, CfCode code, ProgramMethod context) {
     GraphLens graphLens = inliningConstraints.getGraphLens();
     AppView<?> appView = inliningConstraints.getAppView();
     DexMethod target = method;
@@ -292,23 +290,11 @@ public class CfInvoke extends CfInstruction {
         break;
 
       case Opcodes.INVOKESPECIAL:
-        if (appView.dexItemFactory().isConstructor(target)) {
-          type = Type.DIRECT;
-          assert noNeedToUseGraphLens(target, context.getReference(), type, graphLens);
-        } else if (target.holder == context.getHolderType()) {
-          // The method could have been publicized.
-          type = graphLens.lookupMethod(target, context.getReference(), Type.DIRECT).getType();
-          assert type == Type.DIRECT || type == Type.VIRTUAL;
-        } else {
-          // This is a super call. Note that the vertical class merger translates some invoke-super
-          // instructions to invoke-direct. However, when that happens, the invoke instruction and
-          // the target method end up being in the same class, and therefore, we will allow inlining
-          // it. The result of using type=SUPER below will be the same, since it leads to the
-          // inlining constraint SAMECLASS.
-          // TODO(christofferqa): Consider using graphLens.lookupMethod (to do this, we need the
-          // context for the graph lens, though).
-          type = Type.SUPER;
-          assert noNeedToUseGraphLens(target, context.getReference(), type, graphLens);
+        {
+          Type actualInvokeType =
+              computeInvokeTypeForInvokeSpecial(
+                  appView, method, code.getOriginalHolder(), context.getOrigin());
+          type = graphLens.lookupMethod(target, context.getReference(), actualInvokeType).getType();
         }
         break;
 
@@ -371,14 +357,19 @@ public class CfInvoke extends CfInstruction {
     }
   }
 
-  private static boolean noNeedToUseGraphLens(
-      DexMethod method, DexMethod context, Invoke.Type type, GraphLens graphLens) {
-    assert graphLens.lookupMethod(method, context, type).getType() == type;
-    return true;
+  private Type computeInvokeTypeForInvokeSpecial(
+      AppView<?> appView, DexMethod method, DexType originalHolder, Origin origin) {
+    if (appView.dexItemFactory().isConstructor(method)) {
+      return Type.DIRECT;
+    }
+    if (originalHolder == method.holder) {
+      return invokeTypeForInvokeSpecialToNonInitMethodOnHolder(appView, origin);
+    }
+    return Type.SUPER;
   }
 
   private Type invokeTypeForInvokeSpecialToNonInitMethodOnHolder(
-      AppView<?> appView, CfSourceCode code) {
+      AppView<?> appView, Origin origin) {
     boolean desugaringEnabled = appView.options().isInterfaceMethodDesugaringEnabled();
     MethodLookupResult lookupResult = appView.graphLens().lookupMethod(method, method, Type.DIRECT);
     if (lookupResult.getType() == Type.VIRTUAL) {
@@ -408,8 +399,7 @@ public class CfInvoke extends CfInstruction {
     }
     // We cannot emulate the semantics of invoke-special in this case and should throw a compilation
     // error.
-    throw new CompilationError(
-        "Failed to compile unsupported use of invokespecial", code.getOrigin());
+    throw new CompilationError("Failed to compile unsupported use of invokespecial", origin);
   }
 
   private DexEncodedMethod lookupMethodOnHolder(AppView<?> appView, DexMethod method) {

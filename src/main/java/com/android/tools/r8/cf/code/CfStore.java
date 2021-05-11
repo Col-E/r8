@@ -9,6 +9,7 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -115,7 +116,7 @@ public class CfStore extends CfInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, ProgramMethod context) {
+      InliningConstraints inliningConstraints, CfCode code, ProgramMethod context) {
     return inliningConstraints.forStore();
   }
 
