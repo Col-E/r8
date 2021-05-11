@@ -146,6 +146,11 @@ public class HorizontallyMergedClassesInspector {
         Stream.of(classes).map(Reference::classFromClass).collect(Collectors.toList()));
   }
 
+  public HorizontallyMergedClassesInspector assertIsCompleteMergeGroup(
+      ClassReference... classReferences) {
+    return assertIsCompleteMergeGroup(Arrays.asList(classReferences));
+  }
+
   public HorizontallyMergedClassesInspector assertIsCompleteMergeGroup(String... typeNames) {
     return assertIsCompleteMergeGroup(
         Stream.of(typeNames).map(Reference::classFromTypeName).collect(Collectors.toList()));

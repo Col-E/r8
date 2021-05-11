@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AnnotationFixer;
@@ -116,6 +117,7 @@ class TreeFixer extends TreeFixerBase {
   public HorizontalClassMergerGraphLens fixupTypeReferences() {
     List<DexProgramClass> classes = appView.appInfo().classesWithDeterministicOrder();
     Iterables.filter(classes, DexProgramClass::isInterface).forEach(this::fixupInterfaceClass);
+    classes.forEach(this::fixupAttributes);
     classes.forEach(this::fixupProgramClassSuperTypes);
     SubtypingForrestForClasses subtypingForrest = new SubtypingForrestForClasses(appView);
     // TODO(b/170078037): parallelize this code segment.
@@ -125,6 +127,21 @@ class TreeFixer extends TreeFixerBase {
     HorizontalClassMergerGraphLens lens = lensBuilder.build(appView, mergedClasses);
     new AnnotationFixer(lens).run(appView.appInfo().classes());
     return lens;
+  }
+
+  private void fixupAttributes(DexProgramClass clazz) {
+    if (clazz.hasEnclosingMethodAttribute()) {
+      EnclosingMethodAttribute enclosingMethodAttribute = clazz.getEnclosingMethodAttribute();
+      if (mergedClasses.hasBeenMergedIntoDifferentType(
+          enclosingMethodAttribute.getEnclosingType())) {
+        clazz.clearEnclosingMethodAttribute();
+      } else {
+        clazz.setEnclosingMethodAttribute(fixupEnclosingMethodAttribute(enclosingMethodAttribute));
+      }
+    }
+    clazz.setInnerClasses(fixupInnerClassAttributes(clazz.getInnerClasses()));
+    clazz.setNestHostAttribute(fixupNestHost(clazz.getNestHostClassAttribute()));
+    clazz.setNestMemberAttributes(fixupNestMemberAttributes(clazz.getNestMembersClassAttributes()));
   }
 
   private void fixupProgramClassSuperTypes(DexProgramClass clazz) {

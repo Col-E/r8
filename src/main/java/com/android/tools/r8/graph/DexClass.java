@@ -76,7 +76,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
    */
   private NestHostClassAttribute nestHost;
 
-  private final List<NestMemberClassAttribute> nestMembers;
+  private List<NestMemberClassAttribute> nestMembers;
 
   /** Generic signature information if the attribute is present in the input */
   protected ClassSignature classSignature;
@@ -1042,6 +1042,10 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     this.nestHost = new NestHostClassAttribute(type);
   }
 
+  public void setNestHostAttribute(NestHostClassAttribute nestHostAttribute) {
+    this.nestHost = nestHostAttribute;
+  }
+
   public boolean isNestHost() {
     return !nestMembers.isEmpty();
   }
@@ -1069,8 +1073,20 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     return nestHost;
   }
 
+  public boolean hasNestMemberAttributes() {
+    return nestMembers != null && !nestMembers.isEmpty();
+  }
+
   public List<NestMemberClassAttribute> getNestMembersClassAttributes() {
     return nestMembers;
+  }
+
+  public void setNestMemberAttributes(List<NestMemberClassAttribute> nestMemberAttributes) {
+    this.nestMembers = nestMemberAttributes;
+  }
+
+  public void removeNestMemberAttributes(Predicate<NestMemberClassAttribute> predicate) {
+    nestMembers.removeIf(predicate);
   }
 
   /** Returns kotlin class info if the class is synthesized by kotlin compiler. */

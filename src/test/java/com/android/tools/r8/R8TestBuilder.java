@@ -493,6 +493,13 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return addInternalKeepRules("-nohorizontalclassmerging class " + clazz);
   }
 
+  public T addNoHorizontalClassMergingRule(String... classes) {
+    for (String clazz : classes) {
+      addNoHorizontalClassMergingRule(clazz);
+    }
+    return self();
+  }
+
   public T enableMemberValuePropagationAnnotations() {
     return enableMemberValuePropagationAnnotations(true);
   }

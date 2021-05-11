@@ -48,6 +48,10 @@ public final class EnclosingMethodAttribute {
     }
   }
 
+  public boolean hasEnclosingMethod() {
+    return enclosingMethod != null;
+  }
+
   public DexMethod getEnclosingMethod() {
     return enclosingMethod;
   }

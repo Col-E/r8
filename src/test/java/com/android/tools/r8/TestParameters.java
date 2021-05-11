@@ -43,6 +43,11 @@ public class TestParameters {
         .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport());
   }
 
+  public boolean canUseNestBasedAccesses() {
+    assert isCfRuntime() || isDexRuntime();
+    return isCfRuntime() && getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11);
+  }
+
   // Convenience predicates.
   public boolean isDexRuntime() {
     return runtime.isDex();

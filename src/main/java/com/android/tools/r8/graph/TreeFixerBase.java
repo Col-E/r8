@@ -141,7 +141,7 @@ public abstract class TreeFixerBase {
     return newClass;
   }
 
-  private EnclosingMethodAttribute fixupEnclosingMethodAttribute(
+  protected EnclosingMethodAttribute fixupEnclosingMethodAttribute(
       EnclosingMethodAttribute enclosingMethodAttribute) {
     if (enclosingMethodAttribute == null) {
       return null;
@@ -190,7 +190,7 @@ public abstract class TreeFixerBase {
     return dexItemFactory.createField(newHolder, newType, field.name);
   }
 
-  private List<InnerClassAttribute> fixupInnerClassAttributes(
+  protected List<InnerClassAttribute> fixupInnerClassAttributes(
       List<InnerClassAttribute> innerClassAttributes) {
     if (innerClassAttributes.isEmpty()) {
       return innerClassAttributes;
@@ -240,13 +240,13 @@ public abstract class TreeFixerBase {
         fixupType(method.holder), fixupProto(method.proto), method.name);
   }
 
-  private NestHostClassAttribute fixupNestHost(NestHostClassAttribute nestHostClassAttribute) {
+  protected NestHostClassAttribute fixupNestHost(NestHostClassAttribute nestHostClassAttribute) {
     return nestHostClassAttribute != null
         ? new NestHostClassAttribute(fixupType(nestHostClassAttribute.getNestHost()))
         : null;
   }
 
-  private List<NestMemberClassAttribute> fixupNestMemberAttributes(
+  protected List<NestMemberClassAttribute> fixupNestMemberAttributes(
       List<NestMemberClassAttribute> nestMemberAttributes) {
     if (nestMemberAttributes.isEmpty()) {
       return nestMemberAttributes;

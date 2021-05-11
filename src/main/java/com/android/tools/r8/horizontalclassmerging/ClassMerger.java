@@ -240,6 +240,24 @@ public class ClassMerger {
     }
   }
 
+  void fixNestMemberAttributes() {
+    if (group.getTarget().isInANest() && !group.getTarget().hasNestMemberAttributes()) {
+      for (DexProgramClass clazz : group.getSources()) {
+        if (clazz.hasNestMemberAttributes()) {
+          // The nest host has been merged into a nest member.
+          group.getTarget().clearNestHost();
+          group.getTarget().setNestMemberAttributes(clazz.getNestMembersClassAttributes());
+          group
+              .getTarget()
+              .removeNestMemberAttributes(
+                  nestMemberAttribute ->
+                      nestMemberAttribute.getNestMember() == group.getTarget().getType());
+          break;
+        }
+      }
+    }
+  }
+
   private void mergeAnnotations() {
     assert group.getClasses().stream().filter(DexDefinition::hasAnnotations).count() <= 1;
     for (DexProgramClass clazz : group.getSources()) {
@@ -285,6 +303,7 @@ public class ClassMerger {
 
   public void mergeGroup(SyntheticArgumentClass syntheticArgumentClass) {
     fixAccessFlags();
+    fixNestMemberAttributes();
 
     if (group.hasClassIdField()) {
       appendClassIdField();
