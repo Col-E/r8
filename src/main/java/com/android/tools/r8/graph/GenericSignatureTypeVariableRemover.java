@@ -151,51 +151,28 @@ public class GenericSignatureTypeVariableRemover {
     }
     DexType contextType = reference.getContextType();
     // TODO(b/187035453): We should visit generic signatures in the enqueuer.
-    DexClass clazz =
-        appView.appInfo().definitionForWithoutExistenceAssert(reference.getContextType());
+    DexClass clazz = appView.appInfo().definitionForWithoutExistenceAssert(contextType);
     boolean prunedHere = seenPruned || clazz == null;
     if (appView.hasLiveness()
-        && appView
-            .withLiveness()
-            .appInfo()
-            .getMissingClasses()
-            .contains(reference.getContextType())) {
+        && appView.withLiveness().appInfo().getMissingClasses().contains(contextType)) {
       prunedHere = seenPruned;
     }
-    if (reference.isDexMethod()) {
-      TypeParameterSubstitutions typeParameterSubstitutions = formalsInfo.get(reference);
-      if (clazz != null) {
-        assert clazz.isProgramClass();
-        DexEncodedMethod method = clazz.lookupMethod(reference.asDexMethod());
-        if (method == null) {
-          prunedHere = true;
-        } else if (method.isStatic()) {
-          // Static methods define their own scope.
-          return empty().combine(typeParameterSubstitutions, seenPruned);
-        }
-      }
-      // Lookup the formals in the enclosing context.
-      return computeTypeParameterContext(
-              appView,
-              contextType,
-              wasPruned,
-              prunedHere
-                  || hasPrunedRelationship(
-                      appView, enclosingInfo.get(contextType), contextType, wasPruned))
-          // Add the formals for the class.
-          .combine(formalsInfo.get(contextType), prunedHere)
-          // Add the formals for the method.
-          .combine(formalsInfo.get(reference), prunedHere);
+    // Lookup the formals in the enclosing context.
+    TypeParameterContext typeParameterContext =
+        computeTypeParameterContext(
+                appView,
+                enclosingInfo.get(contextType),
+                wasPruned,
+                prunedHere
+                    || hasPrunedRelationship(
+                        appView, enclosingInfo.get(contextType), contextType, wasPruned))
+            // Add formals for the context
+            .combine(formalsInfo.get(contextType), prunedHere);
+    if (!reference.isDexMethod()) {
+      return typeParameterContext;
     }
-    assert reference.isDexType();
-    return computeTypeParameterContext(
-            appView,
-            enclosingInfo.get(reference),
-            wasPruned,
-            prunedHere
-                || hasPrunedRelationship(
-                    appView, enclosingInfo.get(reference), contextType, wasPruned))
-        .combine(formalsInfo.get(reference), prunedHere);
+    prunedHere = prunedHere || clazz == null || clazz.lookupMethod(reference.asDexMethod()) == null;
+    return typeParameterContext.combine(formalsInfo.get(reference), prunedHere);
   }
 
   private static boolean hasPrunedRelationship(
@@ -273,17 +250,12 @@ public class GenericSignatureTypeVariableRemover {
                         MethodTypeSignature methodSignature = method.getGenericSignature();
                         if (methodSignature.hasSignature()
                             && method.getGenericSignature().isValid()) {
-                          if (method.isStatic()) {
-                            method.setGenericSignature(
-                                baseArgumentApplier
-                                    .buildForMethod(methodSignature.getFormalTypeParameters())
-                                    .visitMethodSignature(methodSignature));
-                          } else {
-                            method.setGenericSignature(
-                                classArgumentApplier
-                                    .buildForMethod(methodSignature.getFormalTypeParameters())
-                                    .visitMethodSignature(methodSignature));
-                          }
+                          // The reflection api do not distinguish static methods context from
+                          // virtual methods.
+                          method.setGenericSignature(
+                              classArgumentApplier
+                                  .buildForMethod(methodSignature.getFormalTypeParameters())
+                                  .visitMethodSignature(methodSignature));
                         }
                       });
               clazz
