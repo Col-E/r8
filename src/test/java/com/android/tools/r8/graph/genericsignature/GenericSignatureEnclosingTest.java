@@ -4,13 +4,19 @@
 
 package com.android.tools.r8.graph.genericsignature;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static org.hamcrest.CoreMatchers.containsString;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.graph.genericsignature.GenericSignatureEnclosingTest.Bar.Inner;
+import com.android.tools.r8.graph.genericsignature.GenericSignatureEnclosingTest.Bar.SubInner;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,6 +28,7 @@ public class GenericSignatureEnclosingTest extends TestBase {
 
   private final TestParameters parameters;
   private final boolean isCompat;
+  private final String objectDescriptor = "Ljava/lang/Object;";
 
   @Parameters(name = "{0}, isCompat: {1}")
   public static List<Object[]> data() {
@@ -34,23 +41,50 @@ public class GenericSignatureEnclosingTest extends TestBase {
     this.isCompat = isCompat;
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test()
   public void testR8() throws Exception {
     (isCompat ? testForR8Compat(parameters.getBackend()) : testForR8(parameters.getBackend()))
         .addInnerClasses(getClass())
-        .addKeepClassAndMembersRules(Foo.class, Bar.class)
+        .addKeepClassAndMembersRules(Foo.class, Bar.class, Bar.Inner.class, Bar.SubInner.class)
         .addKeepMainRule(Main.class)
-        // TODO(b/186630805): We should be able to compile with signature and not inner classes.
+        .addKeepClassRules(Foo.class)
         .addKeepAttributeSignature()
         .setMinApi(parameters.getApiLevel())
-        // When this test can compile, we should assert that the generic signatures for Bar$1 and
-        // Bar$2 are not on enclosing form, even though Bar is kept.
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertErrorThatMatches(
-                  diagnosticMessage(
-                      containsString("Attribute Signature requires InnerClasses attribute")));
+        .addOptionsModification(
+            options -> {
+              options.horizontalClassMergerOptions().disable();
+            })
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(
+            "Bar::enclosingMethod", "Hello World", "Bar::enclosingMethod2", "Hello World")
+        .inspect(
+            inspector -> {
+              inspectEnclosingClass(inspector, "$1", descriptor(Main.class));
+              inspectEnclosingClass(inspector, "$2", objectDescriptor);
+
+              ClassSubject inner = inspector.clazz(Inner.class);
+              assertThat(inner, isPresent());
+              assertTrue(inner.getDexProgramClass().getInnerClasses().isEmpty());
+              assertEquals(
+                  "<T:" + objectDescriptor + ">" + objectDescriptor,
+                  inner.getFinalSignatureAttribute());
+
+              ClassSubject subInner = inspector.clazz(SubInner.class);
+              assertThat(subInner, isPresent());
+              assertTrue(subInner.getDexProgramClass().getInnerClasses().isEmpty());
+              assertEquals(
+                  "L" + binaryName(Bar.Inner.class) + "<Ljava/lang/String;>;",
+                  subInner.getFinalSignatureAttribute());
             });
+  }
+
+  private void inspectEnclosingClass(CodeInspector inspector, String suffix, String secondArg) {
+    ClassSubject enclosing = inspector.clazz(Bar.class.getTypeName() + suffix);
+    assertThat(enclosing, isPresent());
+    assertNull(enclosing.getDexProgramClass().getEnclosingMethodAttribute());
+    assertEquals(
+        isCompat ? "L" + binaryName(Foo.class) + "<Ljava/lang/Object;" + secondArg + ">;" : null,
+        enclosing.getFinalSignatureAttribute());
   }
 
   public abstract static class Foo<T, R> {
@@ -61,7 +95,11 @@ public class GenericSignatureEnclosingTest extends TestBase {
     }
   }
 
-  public static class Bar {
+  public static class Bar<S> {
+
+    public class Inner<T> {}
+
+    public class SubInner extends Bar<Integer>.Inner<String> {}
 
     public static <T, R extends Main> Foo<T, R> enclosingMethod() {
       return new Foo<T, R>() {

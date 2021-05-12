@@ -152,9 +152,6 @@ public class ProguardKeepAttributes {
     } else if (!innerClasses && enclosingMethod) {
       throw new CompilationError("Attribute EnclosingMethod requires InnerClasses attribute. "
           + "Check -keepattributes directive.");
-    } else if (signature && !innerClasses) {
-      throw new CompilationError("Attribute Signature requires InnerClasses attribute. Check "
-          + "-keepattributes directive.");
     }
     if (forceProguardCompatibility && localVariableTable && !lineNumberTable) {
       // If locals are kept, assume line numbers should be kept too.
