@@ -59,8 +59,9 @@ public class SyntheticMarker {
         char[] charBuffer,
         int codeAttributeOffset,
         Label[] labels) {
-      String kindDescriptor = classReader.readUTF8(offset, charBuffer);
-      SyntheticKind kind = SyntheticKind.fromDescriptor(kindDescriptor);
+      short id = classReader.readShort(offset);
+      assert id >= 0;
+      SyntheticKind kind = SyntheticKind.fromId(id);
       return new MarkerAttribute(kind);
     }
 
@@ -68,7 +69,8 @@ public class SyntheticMarker {
     protected ByteVector write(
         ClassWriter classWriter, byte[] code, int codeLength, int maxStack, int maxLocals) {
       ByteVector byteVector = new ByteVector();
-      byteVector.putShort(classWriter.newUTF8(kind.descriptor));
+      assert 0 <= kind.id && kind.id <= Short.MAX_VALUE;
+      byteVector.putShort(kind.id);
       return byteVector;
     }
   }

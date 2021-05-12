@@ -23,47 +23,53 @@ public class SyntheticNaming {
    */
   public enum SyntheticKind {
     // Class synthetics.
-    RECORD_TAG("", false, true, true),
-    COMPANION_CLASS("-CC", false, true),
-    EMULATED_INTERFACE_CLASS("-EL", false, true),
-    LAMBDA("Lambda", false),
-    INIT_TYPE_ARGUMENT("-IA", false, true),
-    HORIZONTAL_INIT_TYPE_ARGUMENT_1(SYNTHETIC_CLASS_SEPARATOR + "IA$1", false, true),
-    HORIZONTAL_INIT_TYPE_ARGUMENT_2(SYNTHETIC_CLASS_SEPARATOR + "IA$2", false, true),
-    HORIZONTAL_INIT_TYPE_ARGUMENT_3(SYNTHETIC_CLASS_SEPARATOR + "IA$3", false, true),
+    RECORD_TAG("", 1, false, true, true),
+    COMPANION_CLASS("-CC", 2, false, true),
+    EMULATED_INTERFACE_CLASS("-EL", 3, false, true),
+    LAMBDA("Lambda", 4, false),
+    INIT_TYPE_ARGUMENT("-IA", 5, false, true),
+    HORIZONTAL_INIT_TYPE_ARGUMENT_1(SYNTHETIC_CLASS_SEPARATOR + "IA$1", 6, false, true),
+    HORIZONTAL_INIT_TYPE_ARGUMENT_2(SYNTHETIC_CLASS_SEPARATOR + "IA$2", 7, false, true),
+    HORIZONTAL_INIT_TYPE_ARGUMENT_3(SYNTHETIC_CLASS_SEPARATOR + "IA$3", 8, false, true),
     // Method synthetics.
-    RECORD_HELPER("Record", true),
-    BACKPORT("Backport", true),
-    STATIC_INTERFACE_CALL("StaticInterfaceCall", true),
-    TO_STRING_IF_NOT_NULL("ToStringIfNotNull", true),
-    THROW_CCE_IF_NOT_NULL("ThrowCCEIfNotNull", true),
-    THROW_IAE("ThrowIAE", true),
-    THROW_ICCE("ThrowICCE", true),
-    THROW_NSME("ThrowNSME", true),
-    TWR_CLOSE_RESOURCE("TwrCloseResource", true),
-    SERVICE_LOADER("ServiceLoad", true),
-    OUTLINE("Outline", true);
+    RECORD_HELPER("Record", 9, true),
+    BACKPORT("Backport", 10, true),
+    STATIC_INTERFACE_CALL("StaticInterfaceCall", 11, true),
+    TO_STRING_IF_NOT_NULL("ToStringIfNotNull", 12, true),
+    THROW_CCE_IF_NOT_NULL("ThrowCCEIfNotNull", 13, true),
+    THROW_IAE("ThrowIAE", 14, true),
+    THROW_ICCE("ThrowICCE", 15, true),
+    THROW_NSME("ThrowNSME", 16, true),
+    TWR_CLOSE_RESOURCE("TwrCloseResource", 17, true),
+    SERVICE_LOADER("ServiceLoad", 18, true),
+    OUTLINE("Outline", 19, true);
 
     public final String descriptor;
+    public final int id;
     public final boolean isSingleSyntheticMethod;
     public final boolean isFixedSuffixSynthetic;
     public final boolean mayOverridesNonProgramType;
 
-    SyntheticKind(String descriptor, boolean isSingleSyntheticMethod) {
-      this(descriptor, isSingleSyntheticMethod, false);
-    }
-
-    SyntheticKind(
-        String descriptor, boolean isSingleSyntheticMethod, boolean isFixedSuffixSynthetic) {
-      this(descriptor, isSingleSyntheticMethod, isFixedSuffixSynthetic, false);
+    SyntheticKind(String descriptor, int id, boolean isSingleSyntheticMethod) {
+      this(descriptor, id, isSingleSyntheticMethod, false);
     }
 
     SyntheticKind(
         String descriptor,
+        int id,
+        boolean isSingleSyntheticMethod,
+        boolean isFixedSuffixSynthetic) {
+      this(descriptor, id, isSingleSyntheticMethod, isFixedSuffixSynthetic, false);
+    }
+
+    SyntheticKind(
+        String descriptor,
+        int id,
         boolean isSingleSyntheticMethod,
         boolean isFixedSuffixSynthetic,
         boolean mayOverridesNonProgramType) {
       this.descriptor = descriptor;
+      this.id = id;
       this.isSingleSyntheticMethod = isSingleSyntheticMethod;
       this.isFixedSuffixSynthetic = isFixedSuffixSynthetic;
       this.mayOverridesNonProgramType = mayOverridesNonProgramType;
@@ -76,6 +82,15 @@ public class SyntheticNaming {
     public static SyntheticKind fromDescriptor(String descriptor) {
       for (SyntheticKind kind : values()) {
         if (kind.descriptor.equals(descriptor)) {
+          return kind;
+        }
+      }
+      return null;
+    }
+
+    public static SyntheticKind fromId(int id) {
+      for (SyntheticKind kind : values()) {
+        if (kind.id == id) {
           return kind;
         }
       }
