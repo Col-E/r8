@@ -244,8 +244,10 @@ public class RedundantFieldLoadElimination {
               killNonFinalActiveFields(staticPut);
               ExistingValue value = new ExistingValue(staticPut.value());
               if (isFinal(field)) {
-                assert !field.getDefinition().isFinal()
-                    || method.getDefinition().isClassInitializer();
+                assert appView.checkForTesting(
+                    () ->
+                        !field.getDefinition().isFinal()
+                            || method.getDefinition().isClassInitializer());
                 activeState.putFinalStaticField(reference, value);
               } else {
                 activeState.putNonFinalStaticField(reference, value);
