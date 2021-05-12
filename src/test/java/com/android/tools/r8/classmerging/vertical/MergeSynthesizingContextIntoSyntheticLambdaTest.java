@@ -7,7 +7,6 @@ package com.android.tools.r8.classmerging.vertical;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,28 +27,24 @@ public class MergeSynthesizingContextIntoSyntheticLambdaTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    AssertUtils.assertFailsCompilationIf(
-        parameters.isDexRuntime(),
-        () -> {
-          testForR8(parameters.getBackend())
-              .addInnerClasses(getClass())
-              .addKeepMainRule(Main.class)
-              // Disable inlining to ensure that the synthetic lambdas remain in the residual
-              // program.
-              .addOptionsModification(options -> options.enableInlining = false)
-              .addVerticallyMergedClassesInspector(
-                  inspector -> {
-                    if (parameters.isCfRuntime()) {
-                      inspector.assertNoClassesMerged();
-                    } else {
-                      inspector.assertMergedIntoSubtype(I.class);
-                    }
-                  })
-              .setMinApi(parameters.getApiLevel())
-              .compile()
-              .run(parameters.getRuntime(), Main.class)
-              .assertSuccessWithOutputLines("I", "J");
-        });
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        // Disable inlining to ensure that the synthetic lambdas remain in the residual
+        // program.
+        .addOptionsModification(options -> options.enableInlining = false)
+        .addVerticallyMergedClassesInspector(
+            inspector -> {
+              if (parameters.isCfRuntime()) {
+                inspector.assertNoClassesMerged();
+              } else {
+                inspector.assertMergedIntoSubtype(I.class);
+              }
+            })
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("I", "J");
   }
 
   static class Main {

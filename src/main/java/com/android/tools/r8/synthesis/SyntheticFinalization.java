@@ -28,7 +28,9 @@ import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.synthesis.SyntheticNaming.Phase;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
@@ -186,7 +188,7 @@ public class SyntheticFinalization {
   }
 
   Result computeFinalSynthetics(AppView<?> appView) {
-    assert verifyNoNestedSynthetics();
+    assert verifyNoNestedSynthetics(appView.dexItemFactory());
     assert verifyOneSyntheticPerSyntheticClass();
     DexApplication application;
     Builder lensBuilder = new Builder();
@@ -286,12 +288,19 @@ public class SyntheticFinalization {
     return !committed.containsNonLegacyType(type);
   }
 
-  private boolean verifyNoNestedSynthetics() {
-    // Check that a context is never itself synthetic class.
+  private boolean verifyNoNestedSynthetics(DexItemFactory dexItemFactory) {
+    // Check that the prefix of each synthetic is never itself synthetic.
     committed.forEachNonLegacyItem(
         item -> {
-          assert isNotSyntheticType(item.getContext().getSynthesizingContextType())
-              || item.getKind().allowSyntheticContext();
+          if (item.getKind().allowSyntheticContext()) {
+            return;
+          }
+          String prefix =
+              SyntheticNaming.getPrefixForExternalSyntheticType(item.getKind(), item.getHolder());
+          assert !prefix.contains(SyntheticNaming.getPhaseSeparator(Phase.INTERNAL));
+          DexType context =
+              dexItemFactory.createType(DescriptorUtils.getDescriptorFromClassBinaryName(prefix));
+          assert isNotSyntheticType(context);
         });
     return true;
   }
