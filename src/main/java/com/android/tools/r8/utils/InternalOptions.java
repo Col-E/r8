@@ -1424,6 +1424,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean checkForNotExpandingMainDexTracingResult = false;
     public Set<String> allowedUnusedDontWarnPatterns = new HashSet<>();
     public boolean repackageWithNoMinification = false;
+    public boolean enableTestAssertions =
+        System.getProperty("com.android.tools.r8.enableTestAssertions") != null;
+    public boolean testEnableTestAssertions = false;
 
     public boolean allowConflictingSyntheticTypes = false;
 

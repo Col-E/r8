@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.D8Command.USAGE_MESSAGE;
+import static com.android.tools.r8.utils.AssertionUtils.forTesting;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.dex.ApplicationReader;
@@ -185,6 +186,9 @@ public final class D8 {
     try {
       // Disable global optimizations.
       options.disableGlobalOptimizations();
+
+      // Synthetic assertion to check that testing assertions works and can be enabled.
+      assert forTesting(options, () -> !options.testing.testEnableTestAssertions);
 
       AppView<AppInfo> appView = readApp(inputApp, options, executor, timing);
       SyntheticItems.collectSyntheticInputs(appView);

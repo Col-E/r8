@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.R8Command.USAGE_MESSAGE;
+import static com.android.tools.r8.utils.AssertionUtils.forTesting;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -280,6 +281,8 @@ public class R8 {
           new StringDiagnostic(
               "Running R8 version " + Version.LABEL + " with assertions enabled."));
     }
+    // Synthetic assertion to check that testing assertions works and can be enabled.
+    assert forTesting(options, () -> !options.testing.testEnableTestAssertions);
     try {
       AppView<AppInfoWithClassHierarchy> appView;
       {

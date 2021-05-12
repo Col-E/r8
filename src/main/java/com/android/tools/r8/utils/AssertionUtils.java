@@ -4,10 +4,16 @@
 
 package com.android.tools.r8.utils;
 
+import java.util.function.Supplier;
+
 public class AssertionUtils {
 
   public static boolean assertNotNull(Object o) {
     assert o != null;
     return true;
+  }
+
+  public static boolean forTesting(InternalOptions options, Supplier<Boolean> test) {
+    return options.testing.enableTestAssertions ? test.get() : true;
   }
 }

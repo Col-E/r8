@@ -47,6 +47,7 @@ public abstract class TestCompilerBuilder<
 
   public static final Consumer<InternalOptions> DEFAULT_OPTIONS =
       options -> {
+        options.testing.enableTestAssertions = true;
         options.testing.allowUnusedDontWarnRules = false;
         options.testing.allowUnnecessaryDontWarnWildcards = false;
         options.testing.reportUnusedProguardConfigurationRules = true;
