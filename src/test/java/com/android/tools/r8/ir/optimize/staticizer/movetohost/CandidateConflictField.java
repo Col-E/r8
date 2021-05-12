@@ -6,7 +6,9 @@ package com.android.tools.r8.ir.optimize.staticizer.movetohost;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoHorizontalClassMerging;
 
+@NoHorizontalClassMerging
 public class CandidateConflictField {
 
   @NeverPropagateValue

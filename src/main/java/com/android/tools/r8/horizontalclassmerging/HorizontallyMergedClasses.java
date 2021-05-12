@@ -32,6 +32,24 @@ public class HorizontallyMergedClasses implements MergedClasses {
     return new HorizontallyMergedClasses(new EmptyBidirectionalOneToOneMap<>());
   }
 
+  public HorizontallyMergedClasses extend(HorizontallyMergedClasses newHorizontallyMergedClasses) {
+    if (isEmpty()) {
+      return newHorizontallyMergedClasses;
+    }
+    if (newHorizontallyMergedClasses.isEmpty()) {
+      return this;
+    }
+    Builder builder = builder();
+    forEachMergeGroup(
+        (sources, target) -> {
+          DexType rewrittenTarget = newHorizontallyMergedClasses.getMergeTargetOrDefault(target);
+          sources.forEach(source -> builder.add(source, rewrittenTarget));
+        });
+    newHorizontallyMergedClasses.forEachMergeGroup(
+        (sources, target) -> sources.forEach(source -> builder.add(source, target)));
+    return builder.build();
+  }
+
   @Override
   public void forEachMergeGroup(BiConsumer<Set<DexType>, DexType> consumer) {
     mergedClasses.forEachManyToOneMapping(consumer);
@@ -91,8 +109,13 @@ public class HorizontallyMergedClasses implements MergedClasses {
     private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedClasses =
         BidirectionalManyToOneHashMap.newIdentityHashMap();
 
+    void add(DexType source, DexType target) {
+      assert !mergedClasses.containsKey(source);
+      mergedClasses.put(source, target);
+    }
+
     void addMergeGroup(MergeGroup group) {
-      group.forEachSource(clazz -> mergedClasses.put(clazz.getType(), group.getTarget().getType()));
+      group.forEachSource(clazz -> add(clazz.getType(), group.getTarget().getType()));
     }
 
     Builder addMergeGroups(Iterable<MergeGroup> groups) {

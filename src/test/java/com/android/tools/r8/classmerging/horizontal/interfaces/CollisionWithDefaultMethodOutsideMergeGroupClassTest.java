@@ -18,7 +18,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,7 +44,13 @@ public class CollisionWithDefaultMethodOutsideMergeGroupClassTest extends TestBa
         // I and J are not eligible for merging, since class A (implements I) inherits a default m()
         // method from K, which is also on J.
         .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+            inspector -> {
+              if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                inspector.assertNoClassesMerged();
+              } else {
+                inspector.assertIsCompleteMergeGroup(I.class, J.class);
+              }
+            })
         .addOptionsModification(
             options -> {
               assertFalse(options.horizontalClassMergerOptions().isInterfaceMergingEnabled());
@@ -67,7 +72,13 @@ public class CollisionWithDefaultMethodOutsideMergeGroupClassTest extends TestBa
 
               ClassSubject bClassSubject = inspector.clazz(B.class);
               assertThat(bClassSubject, isPresent());
-              assertThat(bClassSubject, isImplementing(inspector.clazz(J.class)));
+              assertThat(
+                  bClassSubject,
+                  isImplementing(
+                      inspector.clazz(
+                          parameters.canUseDefaultAndStaticInterfaceMethods()
+                              ? J.class
+                              : I.class)));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("K", "J");

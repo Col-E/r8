@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldResolutionResult;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.InstantiatedSubTypeInfo;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
@@ -1094,7 +1095,26 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         prunedTypes,
         lens.rewriteFieldKeys(switchMaps),
         lens.rewriteTypes(lockCandidates),
-        lens.rewriteTypeKeys(initClassReferences));
+        rewriteInitClassReferences(lens));
+  }
+
+  public Map<DexType, Visibility> rewriteInitClassReferences(GraphLens lens) {
+    return lens.rewriteTypeKeys(
+        initClassReferences,
+        (minimumRequiredVisibilityForCurrentMethod,
+            otherMinimumRequiredVisibilityForCurrentMethod) -> {
+          assert !minimumRequiredVisibilityForCurrentMethod.isPrivate();
+          assert !otherMinimumRequiredVisibilityForCurrentMethod.isPrivate();
+          if (minimumRequiredVisibilityForCurrentMethod.isPublic()
+              || otherMinimumRequiredVisibilityForCurrentMethod.isPublic()) {
+            return Visibility.PUBLIC;
+          }
+          if (minimumRequiredVisibilityForCurrentMethod.isProtected()
+              || otherMinimumRequiredVisibilityForCurrentMethod.isProtected()) {
+            return Visibility.PROTECTED;
+          }
+          return Visibility.PACKAGE_PRIVATE;
+        });
   }
 
   /**

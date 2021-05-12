@@ -13,7 +13,11 @@ import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.classmerging.horizontal.HorizontalClassMergingTestBase;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
+import com.android.tools.r8.classmerging.horizontal.dispatch.OverrideDefaultMethodTest.A;
+import com.android.tools.r8.classmerging.horizontal.dispatch.OverrideDefaultMethodTest.B;
+import com.android.tools.r8.classmerging.horizontal.dispatch.OverrideDefaultMethodTest.I;
+import com.android.tools.r8.classmerging.horizontal.dispatch.OverrideDefaultMethodTest.J;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import org.junit.Test;
 
 public class OverrideDefaultOnSuperMethodTest extends HorizontalClassMergingTestBase {
@@ -32,7 +36,17 @@ public class OverrideDefaultOnSuperMethodTest extends HorizontalClassMergingTest
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+            inspector -> {
+              if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                inspector.assertNoClassesMerged();
+              } else {
+                inspector
+                    .assertClassesNotMerged(A.class, B.class)
+                    .assertIsCompleteMergeGroup(
+                        SyntheticItemsTestUtils.syntheticCompanionClass(I.class),
+                        SyntheticItemsTestUtils.syntheticCompanionClass(J.class));
+              }
+            })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("I", "B", "J")
         .inspect(

@@ -17,6 +17,7 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -78,7 +79,11 @@ public class CollisionWithDefaultMethodOutsideMergeGroupLambdaTest extends TestB
         // TODO(b/173990042): Should succeed with "K", "J".
         .applyIf(
             parameters.isCfRuntime(),
-            builder -> builder.assertSuccessWithOutputLines("J", "J"),
+            builder ->
+                builder.assertFailureWithErrorThatThrows(
+                    parameters.isCfRuntime(CfVm.JDK11)
+                        ? AbstractMethodError.class
+                        : IncompatibleClassChangeError.class),
             builder -> builder.assertSuccessWithOutputLines("K", "J"));
   }
 

@@ -444,6 +444,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
+  public T noClassInliningOfSynthetics() {
+    return addOptionsModification(
+        options -> options.testing.allowClassInliningOfSynthetics = false);
+  }
+
   public T noClassStaticizing() {
     return noClassStaticizing(true);
   }
@@ -467,8 +472,21 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   public T noHorizontalClassMerging(Class<?> clazz) {
-    return addKeepRules(
-        "-" + NoHorizontalClassMergingRule.RULE_NAME + " class " + clazz.getTypeName());
+    return noHorizontalClassMerging(clazz.getTypeName());
+  }
+
+  public T noHorizontalClassMerging(String typeName) {
+    return addKeepRules("-" + NoHorizontalClassMergingRule.RULE_NAME + " class " + typeName)
+        .enableProguardTestOptions();
+  }
+
+  public T noHorizontalClassMergingOfSynthetics() {
+    return addOptionsModification(
+        options -> options.horizontalClassMergerOptions().disableSyntheticMerging());
+  }
+
+  public T noInliningOfSynthetics() {
+    return addOptionsModification(options -> options.testing.allowInliningOfSynthetics = false);
   }
 
   public T enableNoUnusedInterfaceRemovalAnnotations() {

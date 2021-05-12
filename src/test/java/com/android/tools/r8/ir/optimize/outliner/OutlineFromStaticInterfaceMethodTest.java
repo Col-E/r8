@@ -15,6 +15,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
@@ -49,8 +50,11 @@ public class OutlineFromStaticInterfaceMethodTest extends TestBase {
               options.outline.threshold = 2;
               options.outline.minSize = 2;
             })
+        .addHorizontallyMergedClassesInspector(
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .noHorizontalClassMergingOfSynthetics()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

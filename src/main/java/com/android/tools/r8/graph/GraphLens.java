@@ -23,11 +23,13 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -579,10 +581,16 @@ public abstract class GraphLens {
     return builder.build();
   }
 
-  public <T> ImmutableMap<DexType, T> rewriteTypeKeys(Map<DexType, T> map) {
-    ImmutableMap.Builder<DexType, T> builder = ImmutableMap.builder();
-    map.forEach((type, value) -> builder.put(lookupType(type), value));
-    return builder.build();
+  public <T> Map<DexType, T> rewriteTypeKeys(Map<DexType, T> map, BiFunction<T, T, T> merge) {
+    Map<DexType, T> newMap = new IdentityHashMap<>();
+    map.forEach(
+        (type, value) -> {
+          DexType rewrittenType = lookupType(type);
+          T previousValue = newMap.get(rewrittenType);
+          newMap.put(
+              rewrittenType, previousValue != null ? merge.apply(value, previousValue) : value);
+        });
+    return Collections.unmodifiableMap(newMap);
   }
 
   public boolean verifyMappingToOriginalProgram(

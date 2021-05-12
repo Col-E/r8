@@ -92,7 +92,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private boolean allCodeProcessed = false;
   private Predicate<DexType> classesEscapingIntoLibrary = Predicates.alwaysTrue();
   private InitializedClassesInInstanceMethods initializedClassesInInstanceMethods;
-  private HorizontallyMergedClasses horizontallyMergedClasses;
+  private HorizontallyMergedClasses horizontallyMergedClasses = HorizontallyMergedClasses.empty();
   private VerticallyMergedClasses verticallyMergedClasses;
   private EnumDataMap unboxedEnums = EnumDataMap.empty();
   // TODO(b/169115389): Remove
@@ -497,7 +497,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public MergedClassesCollection allMergedClasses() {
     MergedClassesCollection collection = new MergedClassesCollection();
-    if (horizontallyMergedClasses != null) {
+    if (hasHorizontallyMergedClasses()) {
       collection.add(horizontallyMergedClasses);
     }
     if (verticallyMergedClasses != null) {
@@ -507,7 +507,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public boolean hasHorizontallyMergedClasses() {
-    return horizontallyMergedClasses != null;
+    return !horizontallyMergedClasses.isEmpty();
   }
 
   /**
@@ -520,15 +520,12 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public void setHorizontallyMergedClasses(
       HorizontallyMergedClasses horizontallyMergedClasses, HorizontalClassMerger.Mode mode) {
-    if (mode.isInitial()) {
-      assert !hasHorizontallyMergedClasses();
-      this.horizontallyMergedClasses = horizontallyMergedClasses;
+    assert !hasHorizontallyMergedClasses() || mode.isFinal();
+    this.horizontallyMergedClasses = horizontallyMergedClasses().extend(horizontallyMergedClasses);
+    if (mode.isFinal()) {
       testing()
           .horizontallyMergedClassesConsumer
-          .accept(dexItemFactory(), horizontallyMergedClasses);
-    } else {
-      // TODO(b/187496738): Enable final class merging.
-      assert horizontallyMergedClasses.isEmpty();
+          .accept(dexItemFactory(), horizontallyMergedClasses());
     }
   }
 
@@ -650,7 +647,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public void rewriteWithLens(NonIdentityGraphLens lens) {
     if (lens != null) {
-      rewriteWithLens(lens, appInfo().app().asDirect(), withLiveness(), lens.getPrevious());
+      rewriteWithLens(lens, appInfo().app().asDirect(), withClassHierarchy(), lens.getPrevious());
     }
   }
 
@@ -663,13 +660,13 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       NonIdentityGraphLens lens, DirectMappedDexApplication application, GraphLens appliedLens) {
     assert lens != null;
     assert application != null;
-    rewriteWithLens(lens, application, withLiveness(), appliedLens);
+    rewriteWithLens(lens, application, withClassHierarchy(), appliedLens);
   }
 
   private static void rewriteWithLens(
       NonIdentityGraphLens lens,
       DirectMappedDexApplication application,
-      AppView<AppInfoWithLiveness> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       GraphLens appliedLens) {
     if (lens == null) {
       return;
@@ -701,7 +698,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     firstUnappliedLens.withAlternativeParentLens(
         newMemberRebindingLens,
         () -> {
-          appView.setAppInfo(appView.appInfo().rewrittenWithLens(application, lens));
+          if (appView.hasLiveness()) {
+            appView
+                .withLiveness()
+                .setAppInfo(appView.appInfoWithLiveness().rewrittenWithLens(application, lens));
+          }
           appView.setAppServices(appView.appServices().rewrittenWithLens(lens));
           if (appView.hasInitClassLens()) {
             appView.setInitClassLens(appView.initClassLens().rewrittenWithLens(lens));

@@ -141,6 +141,11 @@ public class Inliner implements PostOptimization {
       return !singleTarget.getDefinition().getOptimizationInfo().forceInline();
     }
 
+    if (!appView.testing().allowInliningOfSynthetics
+        && appView.getSyntheticItems().isSyntheticClass(singleTarget.getHolder())) {
+      return true;
+    }
+
     return false;
   }
 

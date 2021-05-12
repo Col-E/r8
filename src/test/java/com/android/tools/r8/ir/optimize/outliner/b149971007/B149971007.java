@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.outliner.b149971007;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
@@ -25,7 +26,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,18 +66,23 @@ public class B149971007 extends SplitterTestBase {
     return false;
   }
 
-  private void checkOutlineFromFeature(CodeInspector inspector) {
-    // There are two expected outlines, each is currently in its own class.
-    List<FoundMethodSubject> allMethods = new ArrayList<>();
-    for (int i = 0; i < 2; i++) {
-      ClassSubject clazz =
-          inspector.clazz(SyntheticItemsTestUtils.syntheticOutlineClass(FeatureClass.class, i));
-      assertThat(clazz, isPresent());
-      assertEquals(1, clazz.allMethods().size());
-      allMethods.addAll(clazz.allMethods());
-    }
+  private ClassSubject checkOutlineFromFeature(CodeInspector inspector) {
+    // There are two expected outlines, in a single single class after horizontal class merging.
+    ClassSubject classSubject0 =
+        inspector.clazz(SyntheticItemsTestUtils.syntheticOutlineClass(FeatureClass.class, 0));
+    ClassSubject classSubject1 =
+        inspector.clazz(SyntheticItemsTestUtils.syntheticOutlineClass(FeatureClass.class, 1));
+    assertThat(classSubject1, notIf(isPresent(), classSubject0.isPresent()));
+
+    ClassSubject classSubject = classSubject0.isPresent() ? classSubject0 : classSubject1;
+
+    List<FoundMethodSubject> allMethods = classSubject.allMethods();
+    assertEquals(2, allMethods.size());
+
     // One of the methods is StringBuilder the other references the feature.
     assertTrue(allMethods.stream().anyMatch(this::referenceFeatureClass));
+
+    return classSubject;
   }
 
   @Test
@@ -89,33 +94,24 @@ public class B149971007 extends SplitterTestBase {
             .addKeepClassAndMembersRules(FeatureClass.class)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(options -> options.outline.threshold = 2)
-            .compile()
-            .inspect(this::checkOutlineFromFeature);
+            .compile();
+
+    CodeInspector inspector = compileResult.inspector();
+    ClassSubject outlineClass = checkOutlineFromFeature(inspector);
 
     // Check that parts of method1, ..., method4 in FeatureClass was outlined.
-    ClassSubject featureClass = compileResult.inspector().clazz(FeatureClass.class);
+    ClassSubject featureClass = inspector.clazz(FeatureClass.class);
     assertThat(featureClass, isPresent());
 
     // Find the final names of the two outline classes.
-    String outlineClassName0 =
-        ClassNameMapper.mapperFromString(compileResult.getProguardMap())
-            .getObfuscatedToOriginalMapping()
-            .inverse
-            .get(
-                SyntheticItemsTestUtils.syntheticOutlineClass(FeatureClass.class, 0).getTypeName());
-    String outlineClassName1 =
-        ClassNameMapper.mapperFromString(compileResult.getProguardMap())
-            .getObfuscatedToOriginalMapping()
-            .inverse
-            .get(
-                SyntheticItemsTestUtils.syntheticOutlineClass(FeatureClass.class, 1).getTypeName());
+    String outlineClassName = outlineClass.getFinalName();
 
     // Verify they are called from the feature methods.
     // Note: should the choice of synthetic grouping change these expectations will too.
-    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method1"), outlineClassName0));
-    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method2"), outlineClassName0));
-    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method3"), outlineClassName1));
-    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method4"), outlineClassName1));
+    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method1"), outlineClassName));
+    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method2"), outlineClassName));
+    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method3"), outlineClassName));
+    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method4"), outlineClassName));
 
     compileResult.run(parameters.getRuntime(), TestClass.class).assertSuccessWithOutput("123456");
   }

@@ -30,6 +30,8 @@ public class MergedConstructorForwardingTest extends HorizontalClassMergingTestB
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertIsCompleteMergeGroup(A.class, B.class))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -37,27 +39,25 @@ public class MergedConstructorForwardingTest extends HorizontalClassMergingTestB
         .assertSuccessWithOutputLines("42", "13", "21", "39", "print a", "print b")
         .inspect(
             codeInspector -> {
-                ClassSubject aClassSubject = codeInspector.clazz(A.class);
-                assertThat(aClassSubject, isPresent());
-                FieldSubject classIdFieldSubject =
-                    aClassSubject.uniqueFieldWithName(ClassMerger.CLASS_ID_FIELD_NAME);
-                assertThat(classIdFieldSubject, isPresent());
+              ClassSubject aClassSubject = codeInspector.clazz(A.class);
+              assertThat(aClassSubject, isPresent());
+              FieldSubject classIdFieldSubject =
+                  aClassSubject.uniqueFieldWithName(ClassMerger.CLASS_ID_FIELD_NAME);
+              assertThat(classIdFieldSubject, isPresent());
 
-                MethodSubject firstInitSubject = aClassSubject.init("int");
-                assertThat(firstInitSubject, isPresent());
-                assertThat(
-                    firstInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
+              MethodSubject firstInitSubject = aClassSubject.init("int");
+              assertThat(firstInitSubject, isPresent());
+              assertThat(firstInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
 
-                MethodSubject otherInitSubject = aClassSubject.init("long", "int");
-                assertThat(otherInitSubject, isPresent());
-                assertThat(
-                    otherInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
+              MethodSubject otherInitSubject = aClassSubject.init("long", "int");
+              assertThat(otherInitSubject, isPresent());
+              assertThat(otherInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
 
-                MethodSubject printSubject = aClassSubject.method("void", "print$bridge");
-                assertThat(printSubject, isPresent());
-                assertThat(printSubject, readsInstanceField(classIdFieldSubject.getDexField()));
+              MethodSubject printSubject = aClassSubject.method("void", "print$bridge");
+              assertThat(printSubject, isPresent());
+              assertThat(printSubject, readsInstanceField(classIdFieldSubject.getDexField()));
 
-                assertThat(codeInspector.clazz(B.class), not(isPresent()));
+              assertThat(codeInspector.clazz(B.class), not(isPresent()));
             });
   }
 

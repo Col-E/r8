@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -45,6 +46,7 @@ public class InvokeStaticWithNullOutvalueTest extends TestBase {
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("Companion#boo", "Companion#foo")
@@ -79,6 +81,7 @@ public class InvokeStaticWithNullOutvalueTest extends TestBase {
   static class Host {
     private static final Companion companion = new Companion();
 
+    @NoHorizontalClassMerging
     static class Companion {
       @NeverInline
       private static Object boo() {

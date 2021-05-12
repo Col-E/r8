@@ -34,9 +34,8 @@ public class IdenticalFunctionalInterfacesWithIntersectionMergingTest extends Te
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        // TODO(b/173990042): I and J should be merged.
         .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertClassesNotMerged(I.class, J.class))
+            inspector -> inspector.assertIsCompleteMergeGroup(I.class, J.class))
         .addOptionsModification(
             options -> {
               assertFalse(options.horizontalClassMergerOptions().isInterfaceMergingEnabled());
@@ -44,6 +43,8 @@ public class IdenticalFunctionalInterfacesWithIntersectionMergingTest extends Te
             })
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
+        .noClassInliningOfSynthetics()
+        .noInliningOfSynthetics()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)

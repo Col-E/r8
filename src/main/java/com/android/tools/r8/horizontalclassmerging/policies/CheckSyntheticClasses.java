@@ -9,22 +9,31 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 
-public class OnlySyntheticClasses extends SingleClassPolicy {
+public class CheckSyntheticClasses extends SingleClassPolicy {
 
+  private final HorizontalClassMergerOptions options;
   private final SyntheticItems syntheticItems;
 
-  public OnlySyntheticClasses(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public CheckSyntheticClasses(AppView<? extends AppInfoWithClassHierarchy> appView) {
+    this.options = appView.options().horizontalClassMergerOptions();
     this.syntheticItems = appView.getSyntheticItems();
   }
 
   @Override
   public boolean canMerge(DexProgramClass clazz) {
-    return syntheticItems.isSyntheticClass(clazz);
+    if (!options.isSyntheticMergingEnabled() && syntheticItems.isSyntheticClass(clazz)) {
+      return false;
+    }
+    if (options.isRestrictedToSynthetics() && !syntheticItems.isSyntheticClass(clazz)) {
+      return false;
+    }
+    return true;
   }
 
   @Override
   public String getName() {
-    return "OnlySyntheticClasses";
+    return "CheckSyntheticClasses";
   }
 }

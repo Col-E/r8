@@ -9,6 +9,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -102,9 +103,8 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
               // R8 will optimize the generated methods for the two cases below where the thrown
               // exception is known or not, thus the synthetic methods will be 2.
               int expectedSynthetics =
-                  parameters.getApiLevel().isLessThan(apiLevelWithTwrCloseResourceSupport())
-                      ? 2
-                      : 0;
+                  BooleanUtils.intValue(
+                      parameters.getApiLevel().isLessThan(apiLevelWithTwrCloseResourceSupport()));
               List<FoundClassSubject> foundClassSubjects = inspector.allClasses();
               assertEquals(INPUT_CLASSES + expectedSynthetics, foundClassSubjects.size());
             });

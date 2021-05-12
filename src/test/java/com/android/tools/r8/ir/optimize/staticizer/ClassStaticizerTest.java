@@ -14,7 +14,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8TestRunResult;
-import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -117,6 +116,7 @@ public class ClassStaticizerTest extends TestBase {
         .addKeepAttributes("InnerClasses", "EnclosingMethod")
         .addOptionsModification(this::configure)
         .enableInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), main)
         .assertSuccessWithOutput(EXPECTED);
@@ -124,10 +124,11 @@ public class ClassStaticizerTest extends TestBase {
 
   @Test
   public void testTrivial() throws Exception {
-    SingleTestRunResult result =
+    R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
             .addKeepMainRule(main)
             .noMinification()
             .addKeepAttributes("InnerClasses", "EnclosingMethod")
@@ -241,7 +242,7 @@ public class ClassStaticizerTest extends TestBase {
         HostOkFieldOnly.class,
         CandidateOkFieldOnly.class
     };
-    SingleTestRunResult result =
+    R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()
@@ -282,6 +283,7 @@ public class ClassStaticizerTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
             .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(main)
@@ -405,7 +407,7 @@ public class ClassStaticizerTest extends TestBase {
         Candidate.class
     };
     String javaOutput = runOnJava(main);
-    SingleTestRunResult result =
+    R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()

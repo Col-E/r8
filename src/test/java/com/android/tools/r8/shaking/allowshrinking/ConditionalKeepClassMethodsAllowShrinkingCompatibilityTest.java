@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
@@ -61,9 +62,12 @@ public class ConditionalKeepClassMethodsAllowShrinkingCompatibilityTest extends 
   @Test
   public void test() throws Exception {
     if (shrinker.isR8()) {
-      run(testForR8(parameters.getBackend()));
+      run(testForR8(parameters.getBackend()).enableNoHorizontalClassMergingAnnotations());
     } else {
-      run(testForProguard(shrinker.getProguardVersion()).addDontWarn(getClass()));
+      run(
+          testForProguard(shrinker.getProguardVersion())
+              .addDontWarn(getClass())
+              .addNoHorizontalClassMergingAnnotations());
     }
   }
 
@@ -113,6 +117,7 @@ public class ConditionalKeepClassMethodsAllowShrinkingCompatibilityTest extends 
     }
   }
 
+  @NoHorizontalClassMerging
   static class B {
     public String foo() {
       return "B::foo";

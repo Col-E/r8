@@ -232,12 +232,10 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   }
 
   public boolean isEligibleForClassMerging(DexProgramClass clazz, HorizontalClassMerger.Mode mode) {
-    // TODO(b/187496738): Allow merging all synthetics in the final round of class merging.
     assert isSyntheticClass(clazz);
-    return isSyntheticLambda(clazz);
+    return mode.isFinal() || isSyntheticLambda(clazz);
   }
 
-  // TODO(b/186211926): Allow merging of legacy synthetics.
   private boolean isSyntheticLambda(DexProgramClass clazz) {
     if (!isNonLegacySynthetic(clazz)) {
       return false;

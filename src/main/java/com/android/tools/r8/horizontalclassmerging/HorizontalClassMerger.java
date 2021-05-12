@@ -13,7 +13,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
-import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.Timing;
 import java.util.ArrayList;
@@ -156,12 +155,7 @@ public class HorizontalClassMerger {
   private List<MergeGroup> getInitialGroups() {
     MergeGroup initialClassGroup = new MergeGroup();
     MergeGroup initialInterfaceGroup = new MergeGroup();
-    HorizontalClassMergerOptions options = appView.options().horizontalClassMergerOptions();
-    SyntheticItems syntheticItems = appView.getSyntheticItems();
     for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
-      if (options.isRestrictedToSynthetics() && !syntheticItems.isSyntheticClass(clazz)) {
-        continue;
-      }
       if (clazz.isInterface()) {
         initialInterfaceGroup.add(clazz);
       } else {

@@ -10,7 +10,7 @@ import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -117,8 +117,7 @@ public class ClassMerger {
     }
 
     DexMethod newClinit = dexItemFactory.createClassInitializer(group.getTarget().getType());
-
-    CfCode code = classInitializerSynthesizedCode.synthesizeCode(group.getTarget().getType());
+    Code code = classInitializerSynthesizedCode.getOrCreateCode(group.getTarget().getType());
     if (!group.getTarget().hasClassInitializer()) {
       classMethodsBuilder.addDirectMethod(
           new DexEncodedMethod(
@@ -134,9 +133,11 @@ public class ClassMerger {
     } else {
       DexEncodedMethod clinit = group.getTarget().getClassInitializer();
       clinit.setCode(code, appView);
-      CfVersion cfVersion = classInitializerSynthesizedCode.getCfVersion();
-      if (cfVersion != null) {
-        clinit.upgradeClassFileVersion(cfVersion);
+      if (code.isCfCode()) {
+        CfVersion cfVersion = classInitializerSynthesizedCode.getCfVersion();
+        if (cfVersion != null) {
+          clinit.upgradeClassFileVersion(cfVersion);
+        }
       }
       classMethodsBuilder.addDirectMethod(clinit);
     }

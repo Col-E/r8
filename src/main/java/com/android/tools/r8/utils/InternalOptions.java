@@ -1212,6 +1212,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         !Version.isDevelopmentVersion()
             || System.getProperty("com.android.tools.r8.disableHorizontalClassMerging") == null;
     private boolean enableInterfaceMerging = false;
+    private boolean enableSyntheticMerging = true;
     private boolean ignoreRuntimeTypeChecksForTesting = false;
     private boolean restrictToSynthetics = false;
 
@@ -1219,6 +1220,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public void disable() {
       enable = false;
+    }
+
+    public void disableSyntheticMerging() {
+      enableSyntheticMerging = false;
     }
 
     public void enable() {
@@ -1249,8 +1254,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         return enableInlining && isShrinking();
       }
       assert mode.isFinal();
-      // TODO(b/187496738): Enable final class merging.
-      return false;
+      return true;
     }
 
     public boolean isIgnoreRuntimeTypeChecksForTestingEnabled() {
@@ -1258,13 +1262,16 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
 
     public boolean isInterfaceMergingEnabled() {
-      return isInterfaceMergingEnabled(HorizontalClassMerger.Mode.INITIAL)
-          || isInterfaceMergingEnabled(HorizontalClassMerger.Mode.FINAL);
+      assert !isInterfaceMergingEnabled(HorizontalClassMerger.Mode.INITIAL);
+      return isInterfaceMergingEnabled(HorizontalClassMerger.Mode.FINAL);
+    }
+
+    public boolean isSyntheticMergingEnabled() {
+      return enableSyntheticMerging;
     }
 
     public boolean isInterfaceMergingEnabled(HorizontalClassMerger.Mode mode) {
-      // TODO(b/187496738): Only run interface merging during final class merging.
-      return enableInterfaceMerging;
+      return enableInterfaceMerging && mode.isFinal();
     }
 
     public boolean isRestrictedToSynthetics() {
@@ -1367,7 +1374,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean addCallEdgesForLibraryInvokes = false;
 
     public boolean allowCheckDiscardedErrors = false;
+    public boolean allowClassInliningOfSynthetics = true;
     public boolean allowInjectedAnnotationMethods = false;
+    public boolean allowInliningOfSynthetics = true;
     public boolean allowTypeErrors =
         !Version.isDevelopmentVersion()
             || System.getProperty("com.android.tools.r8.allowTypeErrors") != null;

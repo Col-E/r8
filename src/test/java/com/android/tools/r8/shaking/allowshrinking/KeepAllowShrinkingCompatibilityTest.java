@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
@@ -64,9 +65,13 @@ public class KeepAllowShrinkingCompatibilityTest extends TestBase {
       run(
           testForR8(parameters.getBackend())
               // Allowing all of shrinking, optimization and obfuscation will amount to a nop rule.
-              .allowUnusedProguardConfigurationRules(allowOptimization && allowObfuscation));
+              .allowUnusedProguardConfigurationRules(allowOptimization && allowObfuscation)
+              .enableNoHorizontalClassMergingAnnotations());
     } else {
-      run(testForProguard(shrinker.getProguardVersion()).addDontWarn(getClass()));
+      run(
+          testForProguard(shrinker.getProguardVersion())
+              .addDontWarn(getClass())
+              .addNoHorizontalClassMergingAnnotations());
     }
   }
 
@@ -107,6 +112,7 @@ public class KeepAllowShrinkingCompatibilityTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   static class B {
     public String foo() {
       return "B::foo";

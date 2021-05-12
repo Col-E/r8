@@ -5,7 +5,9 @@
 package com.android.tools.r8.ir.optimize.staticizer.trivial;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 
+@NoHorizontalClassMerging
 public class SimpleWithGetter {
   private static SimpleWithGetter INSTANCE = new SimpleWithGetter();
 

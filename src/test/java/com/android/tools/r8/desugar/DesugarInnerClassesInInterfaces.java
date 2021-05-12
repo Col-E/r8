@@ -73,6 +73,7 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepAttributeInnerClassesAndEnclosingMethod()
+        .noHorizontalClassMergingOfSynthetics()
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
@@ -125,7 +126,7 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
     static Callable<Class<?>> staticOuter() {
       return new Callable<Class<?>>() {
         @Override
-        public Class<?> call() throws Exception {
+        public Class<?> call() {
           return getClass().getEnclosingClass();
         }
       };
@@ -134,7 +135,7 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
     default Callable<Class<?>> defaultOuter() {
       return new Callable<Class<?>>() {
         @Override
-        public Class<?> call() throws Exception {
+        public Class<?> call() {
           return getClass().getEnclosingClass();
         }
       };
@@ -145,7 +146,7 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
     static Callable<Class<?>> staticOuter() {
       class Local implements Callable<Class<?>> {
         @Override
-        public Class<?> call() throws Exception {
+        public Class<?> call() {
           return getClass().getEnclosingClass();
         }
       }
@@ -155,7 +156,7 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
     default Callable<Class<?>> defaultOuter() {
       class Local implements Callable<Class<?>> {
         @Override
-        public Class<?> call() throws Exception {
+        public Class<?> call() {
           return getClass().getEnclosingClass();
         }
       }

@@ -37,6 +37,7 @@ public class CollisionWithDefaultMethodOutsideMergeGroupAfterSubclassMergingTest
     this.parameters = parameters;
   }
 
+  // TODO(b/173990042): Disallow merging of A and B in the first round of class merging.
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
@@ -46,12 +47,20 @@ public class CollisionWithDefaultMethodOutsideMergeGroupAfterSubclassMergingTest
         // contributes the default method K.m() to A, and the merging of J into I would contribute
         // the default method J.m() to A.
         .addHorizontallyMergedClassesInspector(
-            inspector ->
+            inspector -> {
+              if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                inspector
+                    .assertIsCompleteMergeGroup(A.class, B.class)
+                    .assertMergedInto(B.class, A.class)
+                    .assertClassesNotMerged(I.class, J.class, K.class);
+              } else {
                 inspector
                     .assertIsCompleteMergeGroup(A.class, B.class)
                     .assertMergedInto(B.class, A.class)
                     .assertIsCompleteMergeGroup(I.class, J.class)
-                    .assertClassesNotMerged(K.class))
+                    .assertClassesNotMerged(K.class);
+              }
+            })
         .addOptionsModification(
             options -> {
               assertFalse(options.horizontalClassMergerOptions().isInterfaceMergingEnabled());
@@ -73,15 +82,16 @@ public class CollisionWithDefaultMethodOutsideMergeGroupAfterSubclassMergingTest
 
               ClassSubject bClassSubject = inspector.clazz(C.class);
               assertThat(bClassSubject, isPresent());
-              assertThat(bClassSubject, isImplementing(inspector.clazz(I.class)));
+              assertThat(
+                  bClassSubject,
+                  isImplementing(
+                      inspector.clazz(
+                          parameters.canUseDefaultAndStaticInterfaceMethods()
+                              ? J.class
+                              : I.class)));
             })
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/173990042): Should succeed with "A", "K", "J".
-        .applyIf(
-            parameters.isCfRuntime() || parameters.canUseDefaultAndStaticInterfaceMethods(),
-            builder -> builder.assertSuccessWithOutputLines("A", "J", "J"),
-            builder ->
-                builder.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class));
+        .assertSuccessWithOutputLines("A", "K", "J");
   }
 
   static class Main {

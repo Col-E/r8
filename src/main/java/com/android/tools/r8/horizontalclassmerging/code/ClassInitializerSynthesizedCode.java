@@ -13,6 +13,7 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.CfVersionUtils;
@@ -58,7 +59,13 @@ public class ClassInitializerSynthesizedCode {
     }
   }
 
-  public CfCode synthesizeCode(DexType originalHolder) {
+  public Code getOrCreateCode(DexType originalHolder) {
+    assert !staticClassInitializers.isEmpty();
+
+    if (staticClassInitializers.size() == 1) {
+      return staticClassInitializers.get(0).getCode();
+    }
+
     // Building the instructions will adjust maxStack and maxLocals. Build it here before invoking
     // the CfCode constructor to ensure that the value passed in is the updated values.
     List<CfInstruction> instructions = buildInstructions();
@@ -83,6 +90,11 @@ public class ClassInitializerSynthesizedCode {
   }
 
   public CfVersion getCfVersion() {
+    if (staticClassInitializers.size() == 1) {
+      DexEncodedMethod method = staticClassInitializers.get(0);
+      return method.hasClassFileVersion() ? method.getClassFileVersion() : null;
+    }
+    assert staticClassInitializers.stream().allMatch(method -> method.getCode().isCfCode());
     return CfVersionUtils.max(staticClassInitializers);
   }
 
@@ -92,7 +104,6 @@ public class ClassInitializerSynthesizedCode {
     public void add(DexEncodedMethod method) {
       assert method.isClassInitializer();
       assert method.hasCode();
-      assert method.getCode().isCfCode();
       staticClassInitializers.add(method);
     }
 

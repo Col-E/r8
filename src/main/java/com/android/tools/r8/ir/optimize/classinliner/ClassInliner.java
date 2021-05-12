@@ -300,6 +300,12 @@ public final class ClassInliner {
     if (clazz.classInitializationMayHaveSideEffects(appView)) {
       return EligibilityStatus.NOT_ELIGIBLE;
     }
+
+    if (!appView.testing().allowClassInliningOfSynthetics
+        && appView.getSyntheticItems().isSyntheticClass(clazz)) {
+      return EligibilityStatus.NOT_ELIGIBLE;
+    }
+
     return EligibilityStatus.ELIGIBLE;
   }
 }

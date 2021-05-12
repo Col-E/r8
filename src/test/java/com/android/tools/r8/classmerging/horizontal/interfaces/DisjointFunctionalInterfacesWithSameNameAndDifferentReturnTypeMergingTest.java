@@ -45,6 +45,9 @@ public class DisjointFunctionalInterfacesWithSameNameAndDifferentReturnTypeMergi
             })
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
+        .noClassInliningOfSynthetics()
+        .noHorizontalClassMergingOfSynthetics()
+        .noInliningOfSynthetics()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
@@ -54,8 +57,8 @@ public class DisjointFunctionalInterfacesWithSameNameAndDifferentReturnTypeMergi
   static class Main {
 
     public static void main(String[] args) {
-      System.out.println(((I) () -> "I").f());
-      System.out.println(((J) () -> "J").f());
+      System.out.println(((I) () -> System.currentTimeMillis() > 0 ? "I" : null).f());
+      System.out.println(((J) () -> System.currentTimeMillis() > 0 ? "J" : null).f());
     }
   }
 

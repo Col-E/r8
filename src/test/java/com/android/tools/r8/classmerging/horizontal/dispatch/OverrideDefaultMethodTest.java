@@ -12,7 +12,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.classmerging.horizontal.HorizontalClassMergingTestBase;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import org.junit.Test;
 
 public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
@@ -30,7 +30,17 @@ public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+            inspector -> {
+              if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                inspector.assertNoClassesMerged();
+              } else {
+                inspector
+                    .assertClassesNotMerged(A.class, B.class)
+                    .assertIsCompleteMergeGroup(
+                        SyntheticItemsTestUtils.syntheticCompanionClass(I.class),
+                        SyntheticItemsTestUtils.syntheticCompanionClass(J.class));
+              }
+            })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("I", "B", "J")
         .inspect(
