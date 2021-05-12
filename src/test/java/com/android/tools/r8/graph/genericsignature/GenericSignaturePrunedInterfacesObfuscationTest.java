@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph.genericsignature;
 
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -14,34 +15,31 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class GenericSignaturePrunedInterfacesKeepTest extends TestBase {
+public class GenericSignaturePrunedInterfacesObfuscationTest extends TestBase {
 
   private final TestParameters parameters;
-  private final String[] EXPECTED =
-      new String[] {
-        "interface com.android.tools.r8.graph.genericsignature"
-            + ".GenericSignaturePrunedInterfacesKeepTest$J",
-        "com.android.tools.r8.graph.genericsignature"
-            + ".GenericSignaturePrunedInterfacesKeepTest$J<java.lang.Object>"
-      };
+  private final String[] EXPECTED = new String[] {"interface a.b", "a.b<java.lang.Object>"};
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public GenericSignaturePrunedInterfacesKeepTest(TestParameters parameters) {
+  public GenericSignaturePrunedInterfacesObfuscationTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
+    testForR8Compat(parameters.getBackend())
         .addInnerClasses(getClass())
         .setMinApi(parameters.getApiLevel())
-        .addKeepAllClassesRule()
+        .addKeepMainRule(Main.class)
+        .addKeepClassRules(I.class, A.class)
+        .addKeepClassRulesWithAllowObfuscation(J.class)
         .addKeepAttributeSignature()
         .addKeepAttributeInnerClassesAndEnclosingMethod()
+        .enableInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }
@@ -54,6 +52,7 @@ public class GenericSignaturePrunedInterfacesKeepTest extends TestBase {
 
   public static class B extends A implements I, J<Object> {
 
+    @NeverInline
     public static void foo() {
       for (Type genericInterface : B.class.getInterfaces()) {
         System.out.println(genericInterface);

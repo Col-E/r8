@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignaturePrinter;
 import com.android.tools.r8.graph.GenericSignatureTypeRewriter;
 import com.android.tools.r8.naming.NamingLens;
@@ -162,30 +163,29 @@ public class ClassSignatureTest extends TestBase {
   public void testPruningInterfaceBound() {
     DexItemFactory factory = new DexItemFactory();
     DexType context = factory.createType("Lj$/util/stream/Node$OfPrimitive;");
-    String className = "j$.util.stream.Node$OfPrimitive";
+    String methodName = "j$.util.stream.Node$OfPrimitive.foo()";
     TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
-    ClassSignature parsedClassSignature =
-        GenericSignature.parseClassSignature(
-            className,
-            "<T_SPLITR::Lj$/util/Spliterator$OfPrimitive;T_NODE:Ljava/lang/Object;>"
-                + "Ljava/lang/Object;",
+    MethodTypeSignature parsedMethodSignature =
+        GenericSignature.parseMethodSignature(
+            methodName,
+            "<T_SPLITR::Lj$/util/Spliterator$OfPrimitive;T_NODE:Ljava/lang/Object;>()V",
             Origin.unknown(),
             factory,
             testDiagnosticMessages);
     testDiagnosticMessages.assertNoMessages();
-    assertTrue(parsedClassSignature.hasSignature());
+    assertTrue(parsedMethodSignature.hasSignature());
     GenericSignatureTypeRewriter rewriter =
         new GenericSignatureTypeRewriter(
             factory,
             dexType -> dexType.toDescriptorString().equals("Lj$/util/Spliterator$OfPrimitive;"),
             Function.identity(),
-            context);
-    ClassSignature rewritten = rewriter.rewrite(parsedClassSignature);
+            null);
+    MethodTypeSignature rewritten = rewriter.rewrite(parsedMethodSignature);
     assertNotNull(rewritten);
     assertTrue(rewritten.hasSignature());
-    ClassSignature reparsed =
-        GenericSignature.parseClassSignature(
-            className, rewritten.toString(), Origin.unknown(), factory, testDiagnosticMessages);
+    MethodTypeSignature reparsed =
+        GenericSignature.parseMethodSignature(
+            methodName, rewritten.toString(), Origin.unknown(), factory, testDiagnosticMessages);
     assertTrue(reparsed.hasSignature());
     testDiagnosticMessages.assertNoMessages();
     assertEquals(rewritten.toString(), reparsed.toString());

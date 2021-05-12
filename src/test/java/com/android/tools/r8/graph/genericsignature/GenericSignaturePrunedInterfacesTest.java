@@ -22,8 +22,6 @@ public class GenericSignaturePrunedInterfacesTest extends TestBase {
       new String[] {
         "interface com.android.tools.r8.graph.genericsignature"
             + ".GenericSignaturePrunedInterfacesTest$J",
-        "interface com.android.tools.r8.graph.genericsignature"
-            + ".GenericSignaturePrunedInterfacesTest$I",
         "com.android.tools.r8.graph.genericsignature"
             + ".GenericSignaturePrunedInterfacesTest$J<java.lang.Object>"
       };

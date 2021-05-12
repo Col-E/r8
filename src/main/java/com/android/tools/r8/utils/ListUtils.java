@@ -51,6 +51,11 @@ public class ListUtils {
     return list.get(0);
   }
 
+  public static <T> T firstMatching(List<T> list, Predicate<T> tester) {
+    int i = firstIndexMatching(list, tester);
+    return i >= 0 ? list.get(i) : null;
+  }
+
   public static <T> int firstIndexMatching(List<T> list, Predicate<T> tester) {
     for (int i = 0; i < list.size(); i++) {
       if (tester.test(list.get(i))) {

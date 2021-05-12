@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.graph.GenericSignature.WildcardIndicator;
 import com.android.tools.r8.utils.ListUtils;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -25,7 +26,7 @@ public class GenericSignatureTypeRewriter {
   private final DexItemFactory factory;
   private final Predicate<DexType> wasPruned;
   private final Function<DexType, DexType> lookupType;
-  private final DexType context;
+  private final DexProgramClass context;
 
   private final ClassTypeSignature objectTypeSignature;
 
@@ -36,14 +37,14 @@ public class GenericSignatureTypeRewriter {
             ? appView.appInfo().withLiveness()::wasPruned
             : alwaysFalse(),
         appView.graphLens()::lookupType,
-        context.getType());
+        context);
   }
 
   public GenericSignatureTypeRewriter(
       DexItemFactory factory,
       Predicate<DexType> wasPruned,
       Function<DexType, DexType> lookupType,
-      DexType context) {
+      DexProgramClass context) {
     this.factory = factory;
     this.wasPruned = wasPruned;
     this.lookupType = lookupType;
@@ -138,7 +139,9 @@ public class GenericSignatureTypeRewriter {
     @Override
     public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
       ClassTypeSignature rewritten = classTypeSignature.visit(this);
-      return rewritten == null || rewritten.type() == context ? objectTypeSignature : rewritten;
+      return rewritten == null || rewritten.type() == context.type
+          ? objectTypeSignature
+          : rewritten;
     }
 
     @Override
@@ -147,13 +150,25 @@ public class GenericSignatureTypeRewriter {
       if (interfaceSignatures.isEmpty()) {
         return interfaceSignatures;
       }
-      return ListUtils.mapOrElse(interfaceSignatures, this::visitSuperInterface);
+      List<ClassTypeSignature> rewrittenInterfaces =
+          ListUtils.mapOrElse(interfaceSignatures, this::visitSuperInterface);
+      // Map against the actual interfaces implemented on the class for us to still preserve
+      // type arguments.
+      List<ClassTypeSignature> finalInterfaces = new ArrayList<>(rewrittenInterfaces.size());
+      context.interfaces.forEach(
+          iface -> {
+            ClassTypeSignature rewrittenSignature =
+                ListUtils.firstMatching(rewrittenInterfaces, rewritten -> rewritten.type == iface);
+            finalInterfaces.add(
+                rewrittenSignature != null ? rewrittenSignature : new ClassTypeSignature(iface));
+          });
+      return finalInterfaces;
     }
 
     @Override
     public ClassTypeSignature visitSuperInterface(ClassTypeSignature classTypeSignature) {
       ClassTypeSignature rewritten = classTypeSignature.visit(this);
-      return rewritten == null || rewritten.type() == context ? null : rewritten;
+      return rewritten == null || rewritten.type() == context.type ? null : rewritten;
     }
 
     @Override
