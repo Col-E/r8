@@ -62,7 +62,7 @@ public class B112247415 extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -80,23 +80,26 @@ public class B112247415 extends TestBase {
           .assertSuccessWithOutput(EXPECTED);
     }
 
-    CodeInspector inspector = testForR8(parameters.getBackend())
-        .noMinification()
-        .setMinApi(parameters.getRuntime())
-        .addProgramClassesAndInnerClasses(TestClass.class)
-        .addKeepMainRule(TestClass.class)
-        .addOptionsModification(options -> {
-          if (parameters.isCfRuntime()) {
-            assert !options.outline.enabled;
-            options.outline.enabled = true;
-          }
-          // To trigger outliner, set # of expected outline candidate as threshold.
-          options.outline.threshold = 2;
-          options.enableInlining = false;
-        })
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED)
-        .inspector();
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .noMinification()
+            .setMinApi(parameters.getApiLevel())
+            .addProgramClassesAndInnerClasses(TestClass.class)
+            .addKeepMainRule(TestClass.class)
+            .addOptionsModification(
+                options -> {
+                  if (parameters.isCfRuntime()) {
+                    assert !options.outline.enabled;
+                    options.outline.enabled = true;
+                  }
+                  // To trigger outliner, set # of expected outline candidate as threshold.
+                  options.outline.threshold = 2;
+                  options.enableInlining = false;
+                })
+            .noHorizontalClassMergingOfSynthetics()
+            .run(parameters.getRuntime(), TestClass.class)
+            .assertSuccessWithOutput(EXPECTED)
+            .inspector();
 
     for (FoundClassSubject clazz : inspector.allClasses()) {
       if (!SyntheticItemsTestUtils.isExternalOutlineClass(clazz.getFinalReference())) {
