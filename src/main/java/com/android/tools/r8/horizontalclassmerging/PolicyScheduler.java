@@ -100,7 +100,10 @@ public class PolicyScheduler {
   private static void addRequiredSingleClassPolicies(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ImmutableList.Builder<SingleClassPolicy> builder) {
-    builder.add(new CheckSyntheticClasses(appView), new NoKeepRules(appView));
+    builder.add(
+        new CheckSyntheticClasses(appView),
+        new NoKeepRules(appView),
+        new NoClassInitializerWithObservableSideEffects());
   }
 
   private static void addSingleClassPoliciesForMergingNonSyntheticClasses(
@@ -111,7 +114,6 @@ public class PolicyScheduler {
     builder.add(
         new NotMatchedByNoHorizontalClassMerging(appView),
         new NoAnnotationClasses(),
-        new NoClassInitializerWithObservableSideEffects(),
         new NoDirectRuntimeTypeChecks(appView, mode, runtimeTypeCheckInfo),
         new NoEnums(appView),
         new NoInterfaces(appView, mode),
@@ -129,7 +131,6 @@ public class PolicyScheduler {
     List<SingleClassPolicy> policies =
         ImmutableList.of(
             new NoAnnotationClasses(),
-            new NoClassInitializerWithObservableSideEffects(),
             new NoDirectRuntimeTypeChecks(appView, mode),
             new NoEnums(appView),
             new NoInterfaces(appView, mode),
