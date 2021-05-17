@@ -51,6 +51,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.repackaging.Repackaging.DefaultRepackagingConfiguration;
 import com.android.tools.r8.repackaging.Repackaging.RepackagingConfiguration;
@@ -347,6 +348,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   // Contain the contents of the build properties file from the compiler command.
   public DumpOptions dumpOptions;
+
+  // A mapping from methods to the api-level introducing them.
+  public Map<MethodReference, AndroidApiLevel> methodApiMapping = new HashMap<>();
 
   // Hidden marker for classes.dex
   private boolean hasMarker = false;
