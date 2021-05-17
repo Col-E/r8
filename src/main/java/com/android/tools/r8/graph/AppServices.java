@@ -40,11 +40,15 @@ public class AppServices {
 
   private final AppView<?> appView;
 
+  // The graph lens that was previously used to rewrite this instance.
+  private final GraphLens applied;
+
   // Mapping from service types to service implementation types.
   private final Map<DexType, Map<FeatureSplit, List<DexType>>> services;
 
   private AppServices(AppView<?> appView, Map<DexType, Map<FeatureSplit, List<DexType>>> services) {
     this.appView = appView;
+    this.applied = appView.graphLens();
     this.services = services;
   }
 
@@ -123,14 +127,15 @@ public class AppServices {
     ImmutableMap.Builder<DexType, Map<FeatureSplit, List<DexType>>> rewrittenFeatureMappings =
         ImmutableMap.builder();
     for (Entry<DexType, Map<FeatureSplit, List<DexType>>> entry : services.entrySet()) {
-      DexType rewrittenServiceType = graphLens.lookupType(entry.getKey());
+      DexType rewrittenServiceType = graphLens.lookupClassType(entry.getKey(), applied);
       ImmutableMap.Builder<FeatureSplit, List<DexType>> rewrittenFeatureImplementations =
           ImmutableMap.builder();
       for (Entry<FeatureSplit, List<DexType>> featureSplitImpls : entry.getValue().entrySet()) {
         ImmutableList.Builder<DexType> rewrittenServiceImplementationTypes =
             ImmutableList.builder();
         for (DexType serviceImplementationType : featureSplitImpls.getValue()) {
-          rewrittenServiceImplementationTypes.add(graphLens.lookupType(serviceImplementationType));
+          rewrittenServiceImplementationTypes.add(
+              graphLens.lookupClassType(serviceImplementationType, applied));
         }
         rewrittenFeatureImplementations.put(
             featureSplitImpls.getKey(), rewrittenServiceImplementationTypes.build());
@@ -173,12 +178,12 @@ public class AppServices {
     return new AppServices(appView, rewrittenServicesBuilder.build());
   }
 
-  private boolean verifyRewrittenWithLens() {
+  public boolean verifyRewrittenWithLens() {
     for (Entry<DexType, Map<FeatureSplit, List<DexType>>> entry : services.entrySet()) {
-      assert entry.getKey() == appView.graphLens().lookupType(entry.getKey());
+      assert entry.getKey() == appView.graphLens().lookupClassType(entry.getKey(), applied);
       for (Entry<FeatureSplit, List<DexType>> featureEntry : entry.getValue().entrySet()) {
         for (DexType type : featureEntry.getValue()) {
-          assert type == appView.graphLens().lookupType(type);
+          assert type == appView.graphLens().lookupClassType(type, applied);
         }
       }
     }

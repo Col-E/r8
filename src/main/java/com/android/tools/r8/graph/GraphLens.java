@@ -338,9 +338,17 @@ public abstract class GraphLens {
 
   public abstract String lookupPackageName(String pkg);
 
-  public abstract DexType lookupClassType(DexType type);
+  public DexType lookupClassType(DexType type) {
+    return lookupClassType(type, getIdentityLens());
+  }
 
-  public abstract DexType lookupType(DexType type);
+  public abstract DexType lookupClassType(DexType type, GraphLens applied);
+
+  public DexType lookupType(DexType type) {
+    return lookupType(type, getIdentityLens());
+  }
+
+  public abstract DexType lookupType(DexType type, GraphLens applied);
 
   // This overload can be used when the graph lens is known to be context insensitive.
   public final DexMethod lookupMethod(DexMethod method) {
@@ -703,7 +711,10 @@ public abstract class GraphLens {
     }
 
     @Override
-    public final DexType lookupType(DexType type) {
+    public final DexType lookupType(DexType type, GraphLens applied) {
+      if (this == applied) {
+        return type;
+      }
       if (type.isPrimitiveType() || type.isVoidType() || type.isNullValueType()) {
         return type;
       }
@@ -721,8 +732,11 @@ public abstract class GraphLens {
     }
 
     @Override
-    public final DexType lookupClassType(DexType type) {
+    public final DexType lookupClassType(DexType type, GraphLens applied) {
       assert type.isClassType() : "Expected class type, but was `" + type.toSourceString() + "`";
+      if (this == applied) {
+        return type;
+      }
       return internalDescribeLookupClassType(getPrevious().lookupClassType(type));
     }
 
@@ -824,12 +838,12 @@ public abstract class GraphLens {
     }
 
     @Override
-    public DexType lookupType(DexType type) {
+    public DexType lookupType(DexType type, GraphLens applied) {
       return type;
     }
 
     @Override
-    public DexType lookupClassType(DexType type) {
+    public DexType lookupClassType(DexType type, GraphLens applied) {
       assert type.isClassType();
       return type;
     }
