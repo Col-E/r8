@@ -54,7 +54,7 @@ public class RetraceCommandLineTests {
 
   private final boolean testExternal;
 
-  @Parameters(name = "{0}")
+  @Parameters(name = "external: {0}")
   public static Boolean[] data() {
     return BooleanUtils.values();
   }
@@ -93,6 +93,13 @@ public class RetraceCommandLineTests {
         containsString("Unable to parse mapping file"),
         mappingFile.toString(),
         stackTraceFile.toString());
+  }
+
+  @Test
+  public void testMissingStackTraceFile() throws IOException {
+    Path mappingFile = folder.newFile("mapping.txt").toPath();
+    Files.write(mappingFile, "foo.bar.baz -> foo:".getBytes());
+    runAbortTest(containsString("NoSuchFileException"), mappingFile.toString(), "stacktrace.txt");
   }
 
   @Test

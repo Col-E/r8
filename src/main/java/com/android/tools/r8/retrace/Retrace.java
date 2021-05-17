@@ -131,7 +131,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
     try {
       return Files.readAllLines(Paths.get(stackTracePath), Charsets.UTF_8);
     } catch (IOException e) {
-      diagnostics.error(new StringDiagnostic("Could not find stack trace file: " + stackTracePath));
+      diagnostics.error(new ExceptionDiagnostic(e));
       throw new RetraceAbortException();
     }
   }
