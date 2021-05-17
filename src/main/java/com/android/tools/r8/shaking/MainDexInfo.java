@@ -276,7 +276,7 @@ public class MainDexInfo {
     }
   }
 
-  public MainDexInfo rewrittenWithLens(GraphLens lens) {
+  public MainDexInfo rewrittenWithLens(SyntheticItems syntheticItems, GraphLens lens) {
     Set<DexType> modifiedClassList = Sets.newIdentityHashSet();
     classList.forEach(
         type -> rewriteAndApplyIfNotPrimitiveType(lens, type, modifiedClassList::add));
@@ -289,6 +289,9 @@ public class MainDexInfo {
             // Synthetic finalization is allowed to merge identical classes into the same class. The
             // rewritten type of a traced dependency can therefore be finalized with a traced root.
             rewriteAndApplyIfNotPrimitiveType(lens, type, builder::addDependencyIfNotRoot);
+          } else if (syntheticItems.isFinalized()) {
+            rewriteAndApplyIfNotPrimitiveType(
+                lens, type, builder.addDependencyAllowSyntheticRoot(syntheticItems));
           } else {
             rewriteAndApplyIfNotPrimitiveType(lens, type, builder::addDependency);
           }
@@ -340,6 +343,13 @@ public class MainDexInfo {
     public void addDependency(DexType type) {
       assert !roots.contains(type);
       dependencies.add(type);
+    }
+
+    public Consumer<DexType> addDependencyAllowSyntheticRoot(SyntheticItems syntheticItems) {
+      return type -> {
+        assert !roots.contains(type) || syntheticItems.isCommittedSynthetic(type);
+        addDependencyIfNotRoot(type);
+      };
     }
 
     public void addDependencyIfNotRoot(DexType type) {

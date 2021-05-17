@@ -153,7 +153,10 @@ public class SyntheticFinalization {
           appView
               .appInfo()
               .rebuildWithMainDexInfo(
-                  appView.appInfo().getMainDexInfo().rewrittenWithLens(result.lens)));
+                  appView
+                      .appInfo()
+                      .getMainDexInfo()
+                      .rewrittenWithLens(appView.getSyntheticItems(), result.lens)));
       appView.setGraphLens(result.lens);
     }
     appView.pruneItems(result.prunedItems);
@@ -170,7 +173,10 @@ public class SyntheticFinalization {
           appView
               .appInfo()
               .rebuildWithMainDexInfo(
-                  appView.appInfo().getMainDexInfo().rewrittenWithLens(result.lens)));
+                  appView
+                      .appInfo()
+                      .getMainDexInfo()
+                      .rewrittenWithLens(appView.getSyntheticItems(), result.lens)));
     }
     appView.pruneItems(result.prunedItems);
   }

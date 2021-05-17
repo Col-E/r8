@@ -183,6 +183,10 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return baseDefinitionFor.apply(type);
   }
 
+  public boolean isFinalized() {
+    return nextSyntheticId == INVALID_ID_AFTER_SYNTHETIC_FINALIZATION;
+  }
+
   public boolean hasPendingSyntheticClasses() {
     return !pending.isEmpty();
   }
@@ -191,7 +195,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return pending.getAllProgramClasses();
   }
 
-  private boolean isCommittedSynthetic(DexType type) {
+  public boolean isCommittedSynthetic(DexType type) {
     return committed.containsType(type);
   }
 

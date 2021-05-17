@@ -1056,7 +1056,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return new AppInfoWithLiveness(
         committedItems,
         getClassToFeatureSplitMap().rewrittenWithLens(lens),
-        getMainDexInfo().rewrittenWithLens(lens),
+        getMainDexInfo().rewrittenWithLens(getSyntheticItems(), lens),
         deadProtoTypes,
         getMissingClasses().commitSyntheticItems(committedItems),
         lens.rewriteTypes(liveTypes),
