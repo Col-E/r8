@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
+import static junit.framework.TestCase.fail;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -64,8 +65,7 @@ public class Java11D8CompilationTest extends TestBase {
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setMinApi(AndroidApiLevel.B)
             .compile()
-            // TODO(b/188075969): Enable this. Left out for now to enable the iteration below.
-            // .inspect(Java11D8CompilationTest::assertNoNests)
+            .inspect(Java11D8CompilationTest::assertNoNests)
             .writeToZip();
 
     // Check that the desugared classes has the expected class file versions and that no nest
@@ -116,16 +116,16 @@ public class Java11D8CompilationTest extends TestBase {
 
       @Override
       public void visitNestHost(String nestHost) {
-        // ASM will report the NestHost attribute independently of class file version.
-        // TODO(b/188075969): Enable this.
-        // assert false;
+        // ASM will always report the NestHost attribute if present (independently of class
+        // file version).
+        fail();
       }
 
       @Override
       public void visitNestMember(String nestMember) {
-        // ASM will report the NestMembers attribute independently of class file version.
-        // TODO(b/188075969): Enable this.
-        // assert false;
+        // ASM will always report the NestHost attribute if present (independently of class
+        // file version).
+        fail();
       }
     }
 

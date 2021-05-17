@@ -55,6 +55,17 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
         });
   }
 
+  public void clearNestAttributes() {
+    forEachNest(
+        nest -> {
+          nest.getHostClass().clearNestMembers();
+          nest.getMembers().forEach(DexClass::clearNestHost);
+        },
+        classWithoutHost -> {
+          // Do Nothing
+        });
+  }
+
   public void synthesizeBridgesForNestBasedAccessesOnClasspath(
       MethodProcessor methodProcessor, ExecutorService executorService) throws ExecutionException {
     List<DexClasspathClass> classpathClassesInNests = new ArrayList<>();

@@ -367,6 +367,11 @@ public class IRConverter {
         D8NestBasedAccessDesugaring::reportDesugarDependencies);
   }
 
+  private void clearNestAttributes() {
+    instructionDesugaring.withD8NestBasedAccessDesugaring(
+        D8NestBasedAccessDesugaring::clearNestAttributes);
+  }
+
   private void staticizeClasses(
       OptimizationFeedback feedback, ExecutorService executorService, GraphLens applied)
       throws ExecutionException {
@@ -424,6 +429,7 @@ public class IRConverter {
     convertClasses(executor);
 
     reportNestDesugarDependencies();
+    clearNestAttributes();
 
     if (appView.getSyntheticItems().hasPendingSyntheticClasses()) {
       appView.setAppInfo(
