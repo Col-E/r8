@@ -14,6 +14,7 @@ import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.DumpInputFlags;
@@ -160,7 +161,7 @@ public final class L8Command extends BaseCompilerCommand {
     internal.debug = getMode() == CompilationMode.DEBUG;
     assert internal.mainDexListConsumer == null;
     assert !internal.minimalMainDex;
-    internal.minApiLevel = getMinApiLevel();
+    internal.minApiLevel = AndroidApiLevel.getAndroidApiLevel(getMinApiLevel());
     assert !internal.intermediate;
     assert internal.readCompileTimeAnnotations;
     internal.programConsumer = getProgramConsumer();

@@ -64,6 +64,10 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
     return AndroidApiLevel.B;
   }
 
+  public AndroidApiLevel max(AndroidApiLevel other) {
+    return Ordered.max(this, other);
+  }
+
   public DexVersion getDexVersion() {
     return DexVersion.getDexVersion(this);
   }

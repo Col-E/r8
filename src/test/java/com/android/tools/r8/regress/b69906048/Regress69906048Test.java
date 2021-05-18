@@ -15,15 +15,16 @@ public class Regress69906048Test extends TestBase {
 
   @Test
   public void buildWithD8AndRunWithDalvikOrArt() throws Exception {
-    AndroidApp androidApp = ToolHelper.runR8(
-        ToolHelper.prepareR8CommandBuilder(
-            readClasses(ClassWithAnnotations.class, AnAnnotation.class))
-            .setDisableTreeShaking(true)
-            .setDisableMinification(true)
-            .addProguardConfiguration(
-                ImmutableList.of("-keepattributes *Annotation*"), Origin.unknown())
-            .build(),
-        options -> options.minApiLevel = ToolHelper.getMinApiLevelForDexVm().getLevel());
+    AndroidApp androidApp =
+        ToolHelper.runR8(
+            ToolHelper.prepareR8CommandBuilder(
+                    readClasses(ClassWithAnnotations.class, AnAnnotation.class))
+                .setDisableTreeShaking(true)
+                .setDisableMinification(true)
+                .addProguardConfiguration(
+                    ImmutableList.of("-keepattributes *Annotation*"), Origin.unknown())
+                .build(),
+            options -> options.minApiLevel = ToolHelper.getMinApiLevelForDexVm());
     String result = runOnArt(androidApp, ClassWithAnnotations.class);
     Assert.assertEquals("@" + AnAnnotation.class.getCanonicalName() + "()", result);
   }

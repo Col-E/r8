@@ -108,7 +108,7 @@ public class Smali {
     SingleFileConsumer consumer = new SingleFileConsumer();
     AndroidApp app = AndroidApp.builder().addDexProgramData(data, Origin.unknown()).build();
     InternalOptions options = new InternalOptions();
-    options.minApiLevel = apiLevel;
+    options.minApiLevel = AndroidApiLevel.getAndroidApiLevel(apiLevel);
     options.programConsumer = consumer;
     ExecutorService executor = ThreadUtils.getExecutorService(1);
     try {

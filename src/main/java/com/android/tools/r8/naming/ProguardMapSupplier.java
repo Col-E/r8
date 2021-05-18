@@ -93,7 +93,7 @@ public class ProguardMapSupplier {
             + Version.LABEL
             + "\n");
     if (options.isGeneratingDex()) {
-      builder.append("# " + MARKER_KEY_MIN_API + ": " + options.minApiLevel + "\n");
+      builder.append("# " + MARKER_KEY_MIN_API + ": " + options.minApiLevel.getLevel() + "\n");
     }
     if (Version.isDevelopmentVersion()) {
       builder.append(

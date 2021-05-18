@@ -27,7 +27,7 @@ public class TrivialArrayCheckCastTest extends TestBase {
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
 
     InternalOptions options = new InternalOptions();
-    options.minApiLevel = AndroidApiLevel.I_MR1.getLevel();
+    options.minApiLevel = AndroidApiLevel.I_MR1;
     assert options.canHaveArtCheckCastVerifierBug();
 
     testForR8(Backend.DEX)
