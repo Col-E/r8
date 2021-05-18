@@ -305,15 +305,8 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
   @Override
   public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
     assert !instruction.isInitClass();
-    // TODO(b/179146128): This is a temporary work-around to test desugaring of records
-    // without rewriting the record invoke-custom. This should be removed when the record support
-    // is complete.
-    if (instruction.isInvokeDynamic()
-        && context.getHolder().superType == factory.recordType
-        && (context.getName() == factory.toStringMethodName
-            || context.getName() == factory.hashCodeMethodName
-            || context.getName() == factory.equalsMethodName)) {
-      return true;
+    if (instruction.isInvokeDynamic()) {
+      return needsDesugaring(instruction.asInvokeDynamic(), context);
     }
     if (instruction.isInvoke()) {
       CfInvoke cfInvoke = instruction.asInvoke();

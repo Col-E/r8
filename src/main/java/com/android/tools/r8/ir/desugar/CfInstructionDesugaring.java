@@ -36,4 +36,14 @@ public interface CfInstructionDesugaring {
    * <p>This should return true if-and-only-if {@link #desugarInstruction} returns non-null.
    */
   boolean needsDesugaring(CfInstruction instruction, ProgramMethod context);
+
+  /**
+   * Returns true if and only if needsDesugaring() answering true implies a desugaring is needed.
+   * Some optimizations may have some heuristics, so that needsDesugaring() answers true in rare
+   * case even if no desugaring is needed.
+   */
+  // TODO(b/187913003): Fixing interface desugaring should eliminate the need for this.
+  default boolean hasPreciseNeedsDesugaring() {
+    return true;
+  }
 }

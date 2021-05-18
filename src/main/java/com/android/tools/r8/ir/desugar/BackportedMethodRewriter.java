@@ -87,8 +87,11 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
 
   @Override
   public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return instruction.isInvoke()
-        && getMethodProviderOrNull(instruction.asInvoke().getMethod()) != null;
+    return instruction.isInvoke() && methodIsBackport(instruction.asInvoke().getMethod());
+  }
+
+  public boolean methodIsBackport(DexMethod method) {
+    return getMethodProviderOrNull(method) != null;
   }
 
   public static List<DexMethod> generateListOfBackportedMethods(
