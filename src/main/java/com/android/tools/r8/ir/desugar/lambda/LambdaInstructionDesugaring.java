@@ -158,11 +158,6 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
 
   @Override
   public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return isLambdaInvoke(instruction, context, appView);
-  }
-
-  public static boolean isLambdaInvoke(
-      CfInstruction instruction, ProgramMethod context, AppView<?> appView) {
     return instruction.isInvokeDynamic()
         && LambdaDescriptor.tryInfer(
                 instruction.asInvokeDynamic().getCallSite(),

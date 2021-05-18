@@ -144,9 +144,7 @@ public class CfInvoke extends CfInstruction {
     }
   }
 
-  // We should avoid interpreting a CF invoke using DEX semantics.
-  @Deprecated
-  public Invoke.Type getInvokeType(DexClassAndMethod context) {
+  private Invoke.Type getInvokeType(DexClassAndMethod context) {
     switch (opcode) {
       case Opcodes.INVOKEINTERFACE:
         return Type.INTERFACE;
@@ -173,12 +171,10 @@ public class CfInvoke extends CfInstruction {
     return getMethod().isInstanceInitializer(dexItemFactory);
   }
 
-  // We should avoid interpreting a CF invoke using DEX semantics.
-  @Deprecated
   public boolean isInvokeSuper(DexType clazz) {
-    return opcode == Opcodes.INVOKESPECIAL
-        && method.holder != clazz
-        && !method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME);
+    return opcode == Opcodes.INVOKESPECIAL &&
+        method.holder != clazz &&
+        !method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME);
   }
 
   @Override
