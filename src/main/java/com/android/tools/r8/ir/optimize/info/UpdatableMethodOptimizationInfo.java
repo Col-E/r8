@@ -145,6 +145,7 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     instanceInitializerInfoCollection = template.instanceInitializerInfoCollection;
     nonNullParamOrThrow = template.nonNullParamOrThrow;
     nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
+    classInlinerConstraint = template.classInlinerConstraint;
   }
 
   public UpdatableMethodOptimizationInfo fixupClassTypeReferences(
