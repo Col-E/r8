@@ -1475,8 +1475,7 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after class inlining (SSA)", previous);
 
-    // TODO(b/183998768): Enable interface method rewriter cf to cf also in R8.
-    if (interfaceMethodRewriter != null && appView.enableWholeProgramOptimizations()) {
+    if (interfaceMethodRewriter != null) {
       timing.begin("Rewrite interface methods");
       interfaceMethodRewriter.rewriteMethodReferences(
           code, methodProcessor, methodProcessingContext);
