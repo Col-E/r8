@@ -26,7 +26,7 @@ public class AvailableApiExceptions {
   private final Set<DexType> exceptions;
 
   public AvailableApiExceptions(InternalOptions options) {
-    assert options.minApiLevel.isLessThan(AndroidApiLevel.L);
+    assert options.minApiLevel < AndroidApiLevel.L.getLevel();
     exceptions = build(options.itemFactory, options.minApiLevel);
   }
 
@@ -35,9 +35,9 @@ public class AvailableApiExceptions {
   }
 
   /** The content of this method can be regenerated with GenerateAvailableExceptions.main. */
-  public static Set<DexType> build(DexItemFactory factory, AndroidApiLevel minApiLevel) {
+  public static Set<DexType> build(DexItemFactory factory, int minApiLevel) {
     Set<DexType> types = SetUtils.newIdentityHashSet(333);
-    if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.B)) {
+    if (minApiLevel >= 1) {
       types.add(factory.createType("Landroid/app/PendingIntent$CanceledException;"));
       types.add(factory.createType("Landroid/content/ActivityNotFoundException;"));
       types.add(factory.createType("Landroid/content/IntentFilter$MalformedMimeTypeException;"));
@@ -305,17 +305,17 @@ public class AvailableApiExceptions {
       types.add(factory.createType("Lorg/xml/sax/SAXParseException;"));
       types.add(factory.createType("Lorg/xmlpull/v1/XmlPullParserException;"));
     }
-    if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.D)) {
+    if (minApiLevel >= 4) {
       types.add(factory.createType("Landroid/content/IntentSender$SendIntentException;"));
     }
-    if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.E)) {
+    if (minApiLevel >= 5) {
       types.add(factory.createType("Landroid/accounts/AccountsException;"));
       types.add(factory.createType("Landroid/accounts/AuthenticatorException;"));
       types.add(factory.createType("Landroid/accounts/NetworkErrorException;"));
       types.add(factory.createType("Landroid/accounts/OperationCanceledException;"));
       types.add(factory.createType("Landroid/content/OperationApplicationException;"));
     }
-    if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.F)) {
+    if (minApiLevel >= 8) {
       types.add(factory.createType("Ljavax/xml/datatype/DatatypeConfigurationException;"));
       types.add(factory.createType("Ljavax/xml/transform/TransformerConfigurationException;"));
       types.add(factory.createType("Ljavax/xml/transform/TransformerException;"));
@@ -326,7 +326,7 @@ public class AvailableApiExceptions {
       types.add(factory.createType("Ljavax/xml/xpath/XPathFunctionException;"));
       types.add(factory.createType("Lorg/w3c/dom/ls/LSException;"));
     }
-    if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.G)) {
+    if (minApiLevel >= 9) {
       types.add(factory.createType("Landroid/net/sip/SipException;"));
       types.add(factory.createType("Landroid/nfc/FormatException;"));
       types.add(factory.createType("Ljava/io/IOError;"));
@@ -346,10 +346,10 @@ public class AvailableApiExceptions {
       types.add(factory.createType("Ljava/util/ServiceConfigurationError;"));
       types.add(factory.createType("Ljava/util/zip/ZipError;"));
     }
-    if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.G_MR1)) {
+    if (minApiLevel >= 10) {
       types.add(factory.createType("Landroid/nfc/TagLostException;"));
     }
-    if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.H)) {
+    if (minApiLevel >= 11) {
       types.add(factory.createType("Landroid/app/Fragment$InstantiationException;"));
       types.add(factory.createType("Landroid/database/sqlite/SQLiteAccessPermException;"));
       types.add(
@@ -372,28 +372,28 @@ public class AvailableApiExceptions {
       types.add(factory.createType("Landroid/util/MalformedJsonException;"));
       types.add(factory.createType("Landroid/view/KeyCharacterMap$UnavailableException;"));
     }
-    if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.I)) {
+    if (minApiLevel >= 14) {
       types.add(factory.createType("Landroid/security/KeyChainException;"));
       types.add(factory.createType("Landroid/util/NoSuchPropertyException;"));
     }
-    if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.I_MR1)) {
+    if (minApiLevel >= 15) {
       types.add(factory.createType("Landroid/os/TransactionTooLargeException;"));
     }
-    if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.J)) {
+    if (minApiLevel >= 16) {
       types.add(factory.createType("Landroid/media/MediaCodec$CryptoException;"));
       types.add(factory.createType("Landroid/media/MediaCryptoException;"));
       types.add(factory.createType("Landroid/os/OperationCanceledException;"));
     }
-    if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.J_MR1)) {
+    if (minApiLevel >= 17) {
       types.add(factory.createType("Landroid/view/WindowManager$InvalidDisplayException;"));
     }
-    if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.J_MR2)) {
+    if (minApiLevel >= 18) {
       types.add(factory.createType("Landroid/media/DeniedByServerException;"));
       types.add(factory.createType("Landroid/media/MediaDrmException;"));
       types.add(factory.createType("Landroid/media/NotProvisionedException;"));
       types.add(factory.createType("Landroid/media/UnsupportedSchemeException;"));
     }
-    if (minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.K)) {
+    if (minApiLevel >= 19) {
       types.add(factory.createType("Landroid/media/ResourceBusyException;"));
       types.add(
           factory.createType("Landroid/os/ParcelFileDescriptor$FileDescriptorDetachedException;"));

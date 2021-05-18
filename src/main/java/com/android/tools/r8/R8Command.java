@@ -833,10 +833,7 @@ public final class R8Command extends BaseCompilerCommand {
     assert !internal.debug;
     internal.debug = getMode() == CompilationMode.DEBUG;
     internal.programConsumer = getProgramConsumer();
-    internal.minApiLevel =
-        getMinApiLevel() < 0
-            ? AndroidApiLevel.B
-            : AndroidApiLevel.getAndroidApiLevel(getMinApiLevel());
+    internal.minApiLevel = getMinApiLevel();
     internal.desugarState = getDesugarState();
     assert internal.isShrinking() == getEnableTreeShaking();
     assert internal.isMinifying() == getEnableMinification();

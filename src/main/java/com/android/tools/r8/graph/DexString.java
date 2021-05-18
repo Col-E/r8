@@ -399,9 +399,9 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
     }
   }
 
-  public static boolean isValidSimpleName(AndroidApiLevel apiLevel, String string) {
+  public static boolean isValidSimpleName(int apiLevel, String string) {
     // space characters are not allowed prior to Android R
-    if (apiLevel.isLessThan(AndroidApiLevel.R)) {
+    if (apiLevel < AndroidApiLevel.R.getLevel()) {
       int cp;
       for (int i = 0; i < string.length(); ) {
         cp = string.codePointAt(i);
@@ -414,9 +414,9 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
     return true;
   }
 
-  public boolean isValidSimpleName(AndroidApiLevel apiLevel) {
+  public boolean isValidSimpleName(int apiLevel) {
     // space characters are not allowed prior to Android R
-    if (apiLevel.isLessThan(AndroidApiLevel.R)) {
+    if (apiLevel < AndroidApiLevel.R.getLevel()) {
       try {
         return isValidSimpleName(apiLevel, decode());
       } catch (UTFDataFormatException e) {
