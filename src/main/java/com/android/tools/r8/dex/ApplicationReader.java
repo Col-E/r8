@@ -261,7 +261,7 @@ public class ApplicationReader {
       return true;
     }
     AndroidApiLevel nativeMultiDex = AndroidApiLevel.L;
-    if (options.minApiLevel.isLessThan(nativeMultiDex)) {
+    if (options.minApiLevel < nativeMultiDex.getLevel()) {
       return true;
     }
     assert options.mainDexKeepRules.isEmpty();
@@ -270,12 +270,13 @@ public class ApplicationReader {
     return true;
   }
 
-  private AndroidApiLevel validateOrComputeMinApiLevel(
-      AndroidApiLevel computedMinApiLevel, DexReader dexReader) {
+  private int validateOrComputeMinApiLevel(int computedMinApiLevel, DexReader dexReader) {
     DexVersion version = dexReader.getDexVersion();
-    if (options.minApiLevel == AndroidApiLevel.getDefault()) {
-      computedMinApiLevel = computedMinApiLevel.max(AndroidApiLevel.getMinAndroidApiLevel(version));
-    } else if (!version.matchesApiLevel(options.minApiLevel)) {
+    if (options.minApiLevel == AndroidApiLevel.getDefault().getLevel()) {
+      computedMinApiLevel = Math
+          .max(computedMinApiLevel, AndroidApiLevel.getMinAndroidApiLevel(version).getLevel());
+    } else if (!version
+        .matchesApiLevel(AndroidApiLevel.getAndroidApiLevel(options.minApiLevel))) {
       throw new CompilationError("Dex file with version '" + version.getIntValue() +
           "' cannot be used with min sdk level '" + options.minApiLevel + "'.");
     }
@@ -339,7 +340,7 @@ public class ApplicationReader {
       }
       hasReadProgramResourceFromDex = true;
       List<DexParser<DexProgramClass>> dexParsers = new ArrayList<>(dexSources.size());
-      AndroidApiLevel computedMinApiLevel = options.minApiLevel;
+      int computedMinApiLevel = options.minApiLevel;
       for (ProgramResource input : dexSources) {
         DexReader dexReader = new DexReader(input);
         if (options.passthroughDexCode) {

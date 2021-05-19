@@ -39,7 +39,7 @@ public class TestBackportedNotPresentInAndroidJar extends TestBase {
       // android.jar for that level.
       CodeInspector inspector = new CodeInspector(ToolHelper.getAndroidJar(apiLevel));
       InternalOptions options = new InternalOptions();
-      options.minApiLevel = apiLevel;
+      options.minApiLevel = apiLevel.getLevel();
       List<DexMethod> backportedMethods =
           BackportedMethodRewriter.generateListOfBackportedMethods(
               AndroidApp.builder().build(), options, ThreadUtils.getExecutorService(options));
