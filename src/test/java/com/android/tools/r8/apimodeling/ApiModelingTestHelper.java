@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.apioutlining;
+package com.android.tools.r8.apimodeling;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
@@ -19,7 +19,7 @@ import com.android.tools.r8.utils.codeinspector.CodeMatchers;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Method;
 
-public abstract class ApiOutliningTestHelper {
+public abstract class ApiModelingTestHelper {
 
   static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
       ThrowableConsumer<T> setMockApiLevelForMethod(Method method, AndroidApiLevel apiLevel) {
@@ -31,17 +31,16 @@ public abstract class ApiOutliningTestHelper {
     };
   }
 
-  static ApiOutliningMethodVerificationHelper verifyThat(TestParameters parameters, Method method) {
-    return new ApiOutliningMethodVerificationHelper(parameters, method);
+  static ApiModelingMethodVerificationHelper verifyThat(TestParameters parameters, Method method) {
+    return new ApiModelingMethodVerificationHelper(parameters, method);
   }
 
-  public static class ApiOutliningMethodVerificationHelper {
+  public static class ApiModelingMethodVerificationHelper {
 
     private final Method methodOfInterest;
     private final TestParameters parameters;
 
-    public ApiOutliningMethodVerificationHelper(
-        TestParameters parameters, Method methodOfInterest) {
+    public ApiModelingMethodVerificationHelper(TestParameters parameters, Method methodOfInterest) {
       this.methodOfInterest = methodOfInterest;
       this.parameters = parameters;
     }
@@ -63,7 +62,7 @@ public abstract class ApiOutliningTestHelper {
       };
     }
 
-    private ThrowingConsumer<CodeInspector, Exception> inlinedInto(Method method) {
+    public ThrowingConsumer<CodeInspector, Exception> inlinedInto(Method method) {
       return inspector -> {
         MethodSubject candidate = inspector.method(methodOfInterest);
         if (!candidate.isPresent()) {
