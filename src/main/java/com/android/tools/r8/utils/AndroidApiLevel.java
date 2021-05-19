@@ -40,7 +40,8 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   P(28),
   Q(29),
   R(30),
-  S(31);
+  S(31),
+  UNKNOWN(10000);
 
   public static final AndroidApiLevel LATEST = S;
 
@@ -62,6 +63,10 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
 
   public static AndroidApiLevel getDefault() {
     return AndroidApiLevel.B;
+  }
+
+  public AndroidApiLevel max(AndroidApiLevel other) {
+    return Ordered.max(this, other);
   }
 
   public DexVersion getDexVersion() {
@@ -88,10 +93,9 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   }
 
   public static AndroidApiLevel getAndroidApiLevel(int apiLevel) {
+    assert apiLevel > 0;
+    assert UNKNOWN.isGreaterThan(LATEST);
     switch (apiLevel) {
-      case 0:
-        // 0 is not supported, it should not happen
-        throw new Unreachable();
       case 1:
         return B;
       case 2:
@@ -152,8 +156,12 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
         return Q;
       case 30:
         return R;
+      case 31:
+        return S;
       default:
-        return LATEST;
+        // This has to be updated when we add new api levels.
+        assert S == LATEST;
+        return UNKNOWN;
     }
   }
 }

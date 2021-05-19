@@ -27,17 +27,19 @@ public class DoNotCrashOnAccessToThisRunner extends DebugTestBase {
     DelayedDebugTestConfig cf =
         temp -> new CfDebugTestConfig().addPaths(ToolHelper.getClassPathForTests());
     DelayedDebugTestConfig d8 =
-        temp -> new D8DebugTestConfig().compileAndAdd(
-            temp,
-            ImmutableList.of(ToolHelper.getClassFileForTestClass(CLASS)),
-            options -> {
-              // Release mode so receiver can be clobbered.
-              options.debug = false;
-              // Api level M so that the workarounds for Lollipop verifier doesn't
-              // block the receiver register. We want to check b/116683601 which
-              // happens on at least 7.0.0.
-              options.minApiLevel = AndroidApiLevel.M.getLevel();
-            });
+        temp ->
+            new D8DebugTestConfig()
+                .compileAndAdd(
+                    temp,
+                    ImmutableList.of(ToolHelper.getClassFileForTestClass(CLASS)),
+                    options -> {
+                      // Release mode so receiver can be clobbered.
+                      options.debug = false;
+                      // Api level M so that the workarounds for Lollipop verifier doesn't
+                      // block the receiver register. We want to check b/116683601 which
+                      // happens on at least 7.0.0.
+                      options.minApiLevel = AndroidApiLevel.M;
+                    });
     return ImmutableList.of(new Object[]{"CF", cf}, new Object[]{"D8", d8});
   }
 

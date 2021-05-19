@@ -105,7 +105,6 @@ import com.android.tools.r8.shaking.VerticalClassMergerGraphLens;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.synthesis.SyntheticItems;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.CollectionUtils;
@@ -332,7 +331,7 @@ public class R8 {
               options.itemFactory, options.getProguardConfiguration().getRules())) {
             synthesizedProguardRules.add(
                 ProguardConfigurationUtils.buildAssumeNoSideEffectsRuleForApiLevel(
-                    options.itemFactory, AndroidApiLevel.getAndroidApiLevel(options.minApiLevel)));
+                    options.itemFactory, options.minApiLevel));
           }
         }
         SubtypingInfo subtypingInfo = new SubtypingInfo(appView);

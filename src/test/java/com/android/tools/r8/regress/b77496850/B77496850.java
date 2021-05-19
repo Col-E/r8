@@ -456,10 +456,10 @@ public class B77496850 extends TestBase {
       throws Exception {
     AndroidApp app = readClasses(Path.class, Log.class, testClass);
     if (compiler == Tool.D8) {
-      app = compileWithD8(app, o -> o.minApiLevel = apiLevel.getLevel());
+      app = compileWithD8(app, o -> o.minApiLevel = apiLevel);
     } else {
       assert compiler == Tool.R8;
-      app = compileWithR8(app, "-keep class * { *; }", o -> o.minApiLevel = apiLevel.getLevel());
+      app = compileWithR8(app, "-keep class * { *; }", o -> o.minApiLevel = apiLevel);
     }
     checkPathParserMethods(app, testClass, a, b);
   }
@@ -479,10 +479,10 @@ public class B77496850 extends TestBase {
       throws Exception {
     AndroidApp app = readClasses(testClass);
     if (compiler == Tool.D8) {
-      app = compileWithD8(app, o -> o.minApiLevel = apiLevel.getLevel());
+      app = compileWithD8(app, o -> o.minApiLevel = apiLevel);
     } else {
       assert compiler == Tool.R8;
-      app = compileWithR8(app, "-keep class * { *; }", o -> o.minApiLevel = apiLevel.getLevel());
+      app = compileWithR8(app, "-keep class * { *; }", o -> o.minApiLevel = apiLevel);
     }
     CodeInspector inspector = new CodeInspector(app);
     DexItemFactory factory = inspector.getFactory();

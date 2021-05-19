@@ -103,7 +103,7 @@ public class ZipFileInstanceOfAutoCloseableTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     // Set the min API and create the raw app.
     InternalOptions options = new InternalOptions();
-    options.minApiLevel = parameters.getApiLevel().getLevel();
+    options.minApiLevel = parameters.getApiLevel();
     DirectMappedDexApplication application =
         new ApplicationReader(
                 AndroidApp.builder()

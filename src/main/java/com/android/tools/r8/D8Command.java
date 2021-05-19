@@ -458,7 +458,7 @@ public final class D8Command extends BaseCompilerCommand {
     internal.mainDexListConsumer = getMainDexListConsumer();
     internal.minimalMainDex = internal.debug || minimalMainDex;
     internal.enableMainDexListCheck = enableMainDexListCheck;
-    internal.minApiLevel = getMinApiLevel();
+    internal.minApiLevel = AndroidApiLevel.getAndroidApiLevel(getMinApiLevel());
     internal.intermediate = intermediate;
     internal.readCompileTimeAnnotations = intermediate;
     internal.desugarGraphConsumer = desugarGraphConsumer;

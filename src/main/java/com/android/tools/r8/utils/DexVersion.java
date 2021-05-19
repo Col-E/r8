@@ -38,6 +38,9 @@ public enum DexVersion {
 
   public static DexVersion getDexVersion(AndroidApiLevel androidApiLevel) {
     switch (androidApiLevel) {
+        // UNKNOWN is an unknown higher api version we therefore choose the highest known
+        // version.
+      case UNKNOWN:
       case S:
       case R:
       case Q:
