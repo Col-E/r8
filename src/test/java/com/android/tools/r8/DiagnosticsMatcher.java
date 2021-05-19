@@ -100,6 +100,16 @@ public abstract class DiagnosticsMatcher extends TypeSafeMatcher<Diagnostic> {
     explain(description.appendText("a diagnostic "));
   }
 
+  @Override
+  protected void describeMismatchSafely(Diagnostic item, Description mismatchDescription) {
+    mismatchDescription
+        .appendText("was ")
+        .appendText(item.getClass().getName())
+        .appendText(" with message(")
+        .appendValue(item.getDiagnosticMessage())
+        .appendText(")");
+  }
+
   protected abstract boolean eval(Diagnostic diagnostic);
 
   protected abstract void explain(Description description);

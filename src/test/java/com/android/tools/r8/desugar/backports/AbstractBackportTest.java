@@ -4,14 +4,18 @@
 
 package com.android.tools.r8.desugar.backports;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static java.util.stream.Collectors.toList;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -148,7 +152,23 @@ abstract class AbstractBackportTest extends TestBase {
           .setMinApi(parameters.getApiLevel())
           .apply(this::configureProgram)
           .setIncludeClassesChecksum(true)
-          .compile()
+          .compileWithExpectedDiagnostics(
+              diagnostics -> {
+                if (diagnostics.getWarnings().isEmpty()) {
+                  diagnostics.assertNoMessages();
+                  return;
+                }
+                // When compiling with an old android.jar some tests refer to non-present types.
+                // Check only java.util types are missing and that none of them are about the target
+                // type that is being backported.
+                diagnostics
+                    .assertOnlyWarnings()
+                    .assertAllWarningsMatch(
+                        diagnosticType(InterfaceDesugarMissingTypeDiagnostic.class))
+                    .assertAllWarningsMatch(diagnosticMessage(containsString("java.util")))
+                    .assertNoWarningsMatch(
+                        diagnosticMessage(containsString(targetClass.getName())));
+              })
           .run(parameters.getRuntime(), testClassName)
           .assertSuccess()
           .inspect(this::assertDesugaring);
