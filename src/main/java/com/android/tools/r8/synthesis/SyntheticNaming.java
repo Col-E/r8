@@ -207,6 +207,11 @@ public class SyntheticNaming {
         createDescriptor(EXTERNAL_SYNTHETIC_CLASS_SEPARATOR, kind, context.getBinaryName(), id));
   }
 
+  public static boolean isInternalStaticInterfaceCall(ClassReference reference) {
+    return SyntheticNaming.isSynthetic(
+        reference, Phase.INTERNAL, SyntheticKind.STATIC_INTERFACE_CALL);
+  }
+
   static boolean isSynthetic(ClassReference clazz, Phase phase, SyntheticKind kind) {
     String typeName = clazz.getTypeName();
     if (kind.isFixedSuffixSynthetic) {

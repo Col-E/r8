@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.conversion.D8MethodProcessor;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethodDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialBridgeInfo;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.itf.InterfaceMethodDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsumer;
@@ -40,7 +41,8 @@ public abstract class CfInstructionDesugaringEventConsumer
         LambdaDesugaringEventConsumer,
         NestBasedAccessDesugaringEventConsumer,
         RecordDesugaringEventConsumer,
-        TwrCloseResourceDesugaringEventConsumer {
+        TwrCloseResourceDesugaringEventConsumer,
+        InterfaceMethodDesugaringEventConsumer {
 
   public static D8CfInstructionDesugaringEventConsumer createForD8(
       D8MethodProcessor methodProcessor) {
@@ -57,6 +59,17 @@ public abstract class CfInstructionDesugaringEventConsumer
 
   public static CfInstructionDesugaringEventConsumer createForDesugaredCode() {
     return new CfInstructionDesugaringEventConsumer() {
+
+      @Override
+      public void acceptThrowMethod(ProgramMethod method, ProgramMethod context) {
+        assert false;
+      }
+
+      @Override
+      public void acceptInvokeStaticInterfaceOutliningMethod(
+          ProgramMethod method, ProgramMethod context) {
+        assert false;
+      }
 
       @Override
       public void acceptRecordClass(DexProgramClass recordClass) {
@@ -168,6 +181,17 @@ public abstract class CfInstructionDesugaringEventConsumer
       methodProcessor.scheduleDesugaredMethodForProcessing(closeMethod);
     }
 
+    @Override
+    public void acceptThrowMethod(ProgramMethod method, ProgramMethod context) {
+      methodProcessor.scheduleDesugaredMethodForProcessing(method);
+    }
+
+    @Override
+    public void acceptInvokeStaticInterfaceOutliningMethod(
+        ProgramMethod method, ProgramMethod context) {
+      methodProcessor.scheduleDesugaredMethodForProcessing(method);
+    }
+
     public List<ProgramMethod> finalizeDesugaring(
         AppView<?> appView, ClassConverterResult.Builder classConverterResultBuilder) {
       List<ProgramMethod> needsProcessing = new ArrayList<>();
@@ -254,6 +278,17 @@ public abstract class CfInstructionDesugaringEventConsumer
     @Override
     public void acceptRecordMethod(ProgramMethod method) {
       assert false : "TODO(b/179146128): To be implemented";
+    }
+
+    @Override
+    public void acceptThrowMethod(ProgramMethod method, ProgramMethod context) {
+      assert false : "TODO(b/183998768): To be implemented";
+    }
+
+    @Override
+    public void acceptInvokeStaticInterfaceOutliningMethod(
+        ProgramMethod method, ProgramMethod context) {
+      assert false : "TODO(b/183998768): To be implemented";
     }
 
     @Override

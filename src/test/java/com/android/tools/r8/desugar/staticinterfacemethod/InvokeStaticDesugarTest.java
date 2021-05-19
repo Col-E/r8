@@ -15,12 +15,12 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -149,8 +149,8 @@ public class InvokeStaticDesugarTest extends TestBase {
     return box.get();
   }
 
-  private Set<MethodReference> getSyntheticMethods(CodeInspector inspector) {
-    Set<MethodReference> methods = new HashSet<>();
+  private Set<FoundMethodSubject> getSyntheticMethods(CodeInspector inspector) {
+    Set<FoundMethodSubject> methods = new HashSet<>();
     assert inspector.allClasses().stream()
         .allMatch(
             c ->
@@ -159,10 +159,7 @@ public class InvokeStaticDesugarTest extends TestBase {
                         c.getFinalReference()));
     inspector.allClasses().stream()
         .filter(c -> SyntheticItemsTestUtils.isExternalStaticInterfaceCall(c.getFinalReference()))
-        .forEach(
-            c ->
-                c.allMethods(m -> !m.isInstanceInitializer())
-                    .forEach(m -> methods.add(m.asMethodReference())));
+        .forEach(c -> methods.addAll(c.allMethods(m -> !m.isInstanceInitializer())));
     return methods;
   }
 

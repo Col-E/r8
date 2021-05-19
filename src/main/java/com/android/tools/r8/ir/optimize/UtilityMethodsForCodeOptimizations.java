@@ -177,6 +177,10 @@ public class UtilityMethodsForCodeOptimizations {
       return method;
     }
 
+    public ProgramMethod uncheckedGetMethod() {
+      return method;
+    }
+
     public void optimize(MethodProcessor methodProcessor) {
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
       optimized = true;

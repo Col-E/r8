@@ -216,13 +216,17 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
 
   @Override
   public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return instruction.isInvokeDynamic()
-        && needsDesugaring(instruction.asInvokeDynamic().getCallSite());
+    return isStringConcatInvoke(instruction, factory);
   }
 
-  private boolean needsDesugaring(DexCallSite callSite) {
+  public static boolean isStringConcatInvoke(CfInstruction instruction, DexItemFactory factory) {
+    CfInvokeDynamic invoke = instruction.asInvokeDynamic();
+    if (invoke == null) {
+      return false;
+    }
     // We are interested in bootstrap methods StringConcatFactory::makeConcat
     // and StringConcatFactory::makeConcatWithConstants, both are static.
+    DexCallSite callSite = invoke.getCallSite();
     if (callSite.bootstrapMethod.type.isInvokeStatic()) {
       DexMethod bootstrapMethod = callSite.bootstrapMethod.asMethod();
       return bootstrapMethod == factory.stringConcatFactoryMembers.makeConcat
