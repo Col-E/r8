@@ -165,19 +165,19 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
 
       DexItemFactory factory = options.itemFactory;
 
-      if (options.minApiLevel < AndroidApiLevel.K.getLevel()) {
+      if (options.minApiLevel.isLessThan(AndroidApiLevel.K)) {
         initializeAndroidKMethodProviders(factory);
       }
-      if (options.minApiLevel < AndroidApiLevel.N.getLevel()) {
+      if (options.minApiLevel.isLessThan(AndroidApiLevel.N)) {
         initializeAndroidNMethodProviders(factory);
       }
-      if (options.minApiLevel < AndroidApiLevel.O.getLevel()) {
+      if (options.minApiLevel.isLessThan(AndroidApiLevel.O)) {
         initializeAndroidOMethodProviders(factory);
       }
-      if (options.minApiLevel < AndroidApiLevel.R.getLevel()) {
+      if (options.minApiLevel.isLessThan(AndroidApiLevel.R)) {
         initializeAndroidRMethodProviders(factory);
       }
-      if (options.minApiLevel < AndroidApiLevel.S.getLevel()) {
+      if (options.minApiLevel.isLessThan(AndroidApiLevel.S)) {
         initializeAndroidSMethodProviders(factory);
       }
 
@@ -186,13 +186,13 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       // libraries or natively. If Optional/Stream class is not present, we do not desugar to
       // avoid confusion in error messages.
       if (appView.rewritePrefix.hasRewrittenType(factory.optionalType, appView)
-          || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
+          || options.minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
         initializeJava9OptionalMethodProviders(factory);
         initializeJava10OptionalMethodProviders(factory);
         initializeJava11OptionalMethodProviders(factory);
       }
       if (appView.rewritePrefix.hasRewrittenType(factory.streamType, appView)
-          || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
+          || options.minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
         initializeStreamMethodProviders(factory);
       }
 
