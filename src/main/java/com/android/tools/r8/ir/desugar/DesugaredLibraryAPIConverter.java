@@ -190,10 +190,10 @@ public class DesugaredLibraryAPIConverter {
         && appView.options().isDesugaredLibraryCompilation()) {
       return false;
     }
-    return overridesLibraryMethod(method);
+    return overridesNonFinalLibraryMethod(method);
   }
 
-  private boolean overridesLibraryMethod(ProgramMethod method) {
+  private boolean overridesNonFinalLibraryMethod(ProgramMethod method) {
     // We look up everywhere to see if there is a supertype/interface implementing the method...
     DexProgramClass holder = method.getHolder();
     WorkList<DexType> workList = WorkList.newIdentityWorkList();
@@ -223,6 +223,11 @@ public class DesugaredLibraryAPIConverter {
       if (dexEncodedMethod != null) {
         // In this case, the object will be wrapped.
         if (appView.rewritePrefix.hasRewrittenType(dexClass.type, appView)) {
+          return false;
+        }
+        if (dexEncodedMethod.isFinal()) {
+          // We do not introduce overrides of final methods, in this case, the runtime always
+          // execute the default behavior in the final method.
           return false;
         }
         foundOverrideToRewrite = true;
