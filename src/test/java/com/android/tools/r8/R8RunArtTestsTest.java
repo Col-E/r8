@@ -191,6 +191,9 @@ public abstract class R8RunArtTestsTest {
   // TODO(zerny): Amend flaky tests with an expected flaky result to track issues.
   private static Multimap<String, TestCondition> flakyRunWithArt =
       new ImmutableListMultimap.Builder<String, TestCondition>()
+          // Sometime output also appends "Actually slept about X msec..."
+          // So far only seen on the 5.1.1 runtime.
+          .put("002-sleep", TestCondition.match(TestCondition.runtimes(DexVm.Version.V5_1_1)))
           // Can crash but mostly passes
           // Crashes:
           // check_reference_map_visitor.h:44] At Main.f
