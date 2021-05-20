@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -43,6 +44,7 @@ public class ClassInitializationTriggersIndirectInterfaceInitializationTest exte
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -79,6 +81,7 @@ public class ClassInitializationTriggersIndirectInterfaceInitializationTest exte
     }
   }
 
+  @NoHorizontalClassMerging
   @NoUnusedInterfaceRemoval
   @NoVerticalClassMerging
   interface I {
@@ -94,6 +97,7 @@ public class ClassInitializationTriggersIndirectInterfaceInitializationTest exte
     }
   }
 
+  @NoHorizontalClassMerging
   @NoUnusedInterfaceRemoval
   @NoVerticalClassMerging
   interface J extends I {}

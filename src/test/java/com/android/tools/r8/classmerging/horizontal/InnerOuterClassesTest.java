@@ -41,7 +41,7 @@ public class InnerOuterClassesTest extends HorizontalClassMergingTestBase {
         .addOptionsModification(
             options ->
                 options.testing.horizontalClassMergingTarget =
-                    (candidates, target) -> candidates.iterator().next())
+                    (appView, candidates, target) -> candidates.iterator().next())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("a", "b", "c", "d")
         .inspect(

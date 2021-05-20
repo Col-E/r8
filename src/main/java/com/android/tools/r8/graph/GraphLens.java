@@ -9,6 +9,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
+import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
+import com.android.tools.r8.optimize.MemberRebindingLens;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.IterableUtils;
@@ -457,6 +459,18 @@ public abstract class GraphLens {
     return false;
   }
 
+  public MemberRebindingLens asMemberRebindingLens() {
+    return null;
+  }
+
+  public boolean isMemberRebindingIdentityLens() {
+    return false;
+  }
+
+  public MemberRebindingIdentityLens asMemberRebindingIdentityLens() {
+    return null;
+  }
+
   public abstract boolean isNonIdentityLens();
 
   public NonIdentityGraphLens asNonIdentityLens() {
@@ -671,7 +685,8 @@ public abstract class GraphLens {
     }
 
     @SuppressWarnings("unchecked")
-    public final <T extends GraphLens> T findPrevious(Predicate<NonIdentityGraphLens> predicate) {
+    public final <T extends NonIdentityGraphLens> T findPrevious(
+        Predicate<NonIdentityGraphLens> predicate) {
       GraphLens current = getPrevious();
       while (current.isNonIdentityLens()) {
         NonIdentityGraphLens nonIdentityGraphLens = current.asNonIdentityLens();

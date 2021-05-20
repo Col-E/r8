@@ -72,3 +72,4 @@
 -neverinline class * {
   @classmerging.NeverInline <methods>;
 }
+-nohorizontalclassmerging @classmerging.NoHorizontalClassMerging class *

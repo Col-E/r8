@@ -21,6 +21,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -31,6 +32,8 @@ public class HorizontallyMergedClassesInspector {
 
   private final DexItemFactory dexItemFactory;
   private final HorizontallyMergedClasses horizontallyMergedClasses;
+
+  private final Set<ClassReference> seen = new HashSet<>();
 
   public HorizontallyMergedClassesInspector(
       DexItemFactory dexItemFactory, HorizontallyMergedClasses horizontallyMergedClasses) {
@@ -102,6 +105,7 @@ public class HorizontallyMergedClassesInspector {
             + StringUtils.join(", ", unmerged, DexType::getTypeName),
         0,
         unmerged.size());
+    seen.addAll(types.stream().map(DexType::asClassReference).collect(Collectors.toList()));
     return this;
   }
 
@@ -114,6 +118,17 @@ public class HorizontallyMergedClassesInspector {
               + " -> "
               + getTarget(source).getTypeName());
     }
+    return this;
+  }
+
+  public HorizontallyMergedClassesInspector assertNoOtherClassesMerged() {
+    horizontallyMergedClasses.forEachMergeGroup(
+        (sources, target) -> {
+          for (DexType source : sources) {
+            assertTrue(source.getTypeName(), seen.contains(source.asClassReference()));
+          }
+          assertTrue(target.getTypeName(), seen.contains(target.asClassReference()));
+        });
     return this;
   }
 
@@ -145,6 +160,7 @@ public class HorizontallyMergedClassesInspector {
       assertTrue(type.isClassType());
       assertFalse(horizontallyMergedClasses.hasBeenMergedOrIsMergeTarget(type));
     }
+    seen.addAll(types.stream().map(DexType::asClassReference).collect(Collectors.toList()));
     return this;
   }
 
@@ -204,6 +220,7 @@ public class HorizontallyMergedClassesInspector {
         classReferences.size() - 1,
         sources.size());
     assertTrue(types.containsAll(sources));
+    seen.addAll(classReferences);
     return this;
   }
 

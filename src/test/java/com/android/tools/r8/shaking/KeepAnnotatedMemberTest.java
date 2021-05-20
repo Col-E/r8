@@ -12,21 +12,26 @@ import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -204,6 +209,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .addKeepRules("-keepclassmembers class * { @" + PRESENT_ANNOTATION + " *** *(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
+            .apply(this::configureHorizontalClassMerging)
             .compile()
             .graphInspector();
 
@@ -222,6 +228,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** *(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
+            .apply(this::configureHorizontalClassMerging)
             .compile()
             .graphInspector();
     assertRetainedClassesEqual(referenceInspector, ifThenKeepClassMembersInspector);
@@ -241,6 +248,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** *(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
+            .apply(this::configureHorizontalClassMerging)
             .compile()
             .graphInspector();
     assertRetainedClassesEqual(referenceInspector, ifThenKeepClassesWithMembersInspector);
@@ -262,9 +270,25 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** <2>(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
+            .apply(this::configureHorizontalClassMerging)
             .compile()
             .graphInspector();
     assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector);
+  }
+
+  private void configureHorizontalClassMerging(R8FullTestBuilder testBuilder) {
+    // Attempt to ensure similar class merging across different builds by choosing the merge target
+    // as the class with the lexicographically smallest original name.
+    testBuilder.addOptionsModification(
+        options ->
+            options.testing.horizontalClassMergingTarget =
+                (appView, candidates, target) -> {
+                  List<DexProgramClass> classes = Lists.newArrayList(candidates);
+                  classes.sort(
+                      Comparator.comparing(
+                          clazz -> appView.graphLens().getOriginalType(clazz.getType())));
+                  return ListUtils.first(classes);
+                });
   }
 
   private void assertRetainedClassesEqual(
