@@ -212,15 +212,12 @@ public class GenericSignatureTypeRewriter {
 
     @Override
     public FieldTypeSignature visitClassBound(FieldTypeSignature fieldSignature) {
-      if (fieldSignature.hasNoSignature()) {
-        return fieldSignature;
-      }
       return visitFieldTypeSignature(fieldSignature);
     }
 
     @Override
     public List<FieldTypeSignature> visitInterfaceBounds(List<FieldTypeSignature> fieldSignatures) {
-      if (fieldSignatures.isEmpty()) {
+      if (fieldSignatures == null || fieldSignatures.isEmpty()) {
         return fieldSignatures;
       }
       return ListUtils.mapOrElse(fieldSignatures, this::visitFieldTypeSignature);

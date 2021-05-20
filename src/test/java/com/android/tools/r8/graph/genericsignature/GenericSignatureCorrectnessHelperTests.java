@@ -14,7 +14,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.GenericSignatureContextBuilder;
 import com.android.tools.r8.graph.GenericSignatureCorrectnessHelper;
 import com.android.tools.r8.graph.GenericSignatureCorrectnessHelper.SignatureEvaluationResult;
 import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
@@ -45,10 +44,9 @@ public class GenericSignatureCorrectnessHelperTests extends TestBase {
             buildInnerClasses(GenericSignatureCorrectnessHelperTests.class)
                 .addLibraryFile(ToolHelper.getJava8RuntimeJar())
                 .build());
-    GenericSignatureContextBuilder contextBuilder =
-        GenericSignatureContextBuilder.create(appView.appInfo().classes());
-    GenericSignatureCorrectnessHelper.createForVerification(appView, contextBuilder)
-        .run(appView.appInfo().classes());
+    GenericSignatureCorrectnessHelper check =
+        GenericSignatureCorrectnessHelper.createForVerification(appView);
+    check.run();
   }
 
   @Test
@@ -141,7 +139,7 @@ public class GenericSignatureCorrectnessHelperTests extends TestBase {
                     })
                 .transform()),
         ClassWithInvalidArgumentCount.class,
-        SignatureEvaluationResult.VALID);
+        SignatureEvaluationResult.INVALID_APPLICATION_COUNT);
   }
 
   @Test
@@ -184,10 +182,8 @@ public class GenericSignatureCorrectnessHelperTests extends TestBase {
                 .addClassProgramData(transformations)
                 .addLibraryFile(ToolHelper.getJava8RuntimeJar())
                 .build());
-    GenericSignatureContextBuilder contextBuilder =
-        GenericSignatureContextBuilder.create(appView.appInfo().classes());
     GenericSignatureCorrectnessHelper check =
-        GenericSignatureCorrectnessHelper.createForInitialCheck(appView, contextBuilder);
+        GenericSignatureCorrectnessHelper.createForInitialCheck(appView);
     DexProgramClass clazz =
         appView
             .definitionFor(

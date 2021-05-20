@@ -20,7 +20,6 @@ import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
@@ -131,7 +130,7 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
             .addKeepAllClassesRule()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .setMinApi(parameters.getApiLevel())
-            .allowDiagnosticMessages()
+            .allowDiagnosticWarningMessages()
             .allowUnusedDontWarnKotlinReflectJvmInternal(
                 kotlinParameters.getCompiler().isNot(KOTLINC_1_3_72));
     KeepRuleConsumer keepRuleConsumer = null;
@@ -142,8 +141,6 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
     R8TestCompileResult compileResult =
         testBuilder
             .compile()
-            .assertNoErrorMessages()
-            .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
             .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib);
     if (desugarLibrary) {
       assertNotNull(keepRuleConsumer);

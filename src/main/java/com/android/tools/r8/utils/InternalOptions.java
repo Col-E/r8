@@ -657,7 +657,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean ignoreMissingClasses = false;
   public boolean reportMissingClassesInEnclosingMethodAttribute = false;
   public boolean reportMissingClassesInInnerClassAttributes = false;
-  public boolean disableGenericSignatureValidation = false;
 
   // EXPERIMENTAL flag to get behaviour as close to Proguard as possible.
   public boolean forceProguardCompatibility = false;

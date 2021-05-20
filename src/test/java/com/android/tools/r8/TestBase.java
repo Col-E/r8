@@ -7,7 +7,6 @@ package com.android.tools.r8;
 import static com.android.tools.r8.TestBuilder.getTestingAnnotations;
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static com.google.common.collect.Lists.cartesianProduct;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -1827,23 +1826,5 @@ public class TestBase {
     reader.accept(
         extractor, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
     return extractor.getClassFileVersion();
-  }
-
-  public static void verifyAllInfoFromGenericSignatureTypeParameterValidation(
-      TestCompileResult<?, ?> compileResult) {
-    compileResult.assertAtLeastOneInfoMessage();
-    compileResult.assertAllInfoMessagesMatch(containsString("A type variable is not in scope"));
-  }
-
-  public static void verifyHasInfoFromGenericSignatureTypeParameterValidation(
-      TestCompileResult<?, ?> compileResult) {
-    compileResult.assertInfoMessageThatMatches(containsString("A type variable is not in scope"));
-  }
-
-  public static void verifyExpectedInfoFromGenericSignatureSuperTypeValidation(
-      TestCompileResult<?, ?> compileResult) {
-    compileResult.assertAtLeastOneInfoMessage();
-    compileResult.assertAllInfoMessagesMatch(
-        containsString("The generic super type is not the same as the class super type"));
   }
 }

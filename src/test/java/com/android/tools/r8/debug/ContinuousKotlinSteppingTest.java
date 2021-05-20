@@ -17,7 +17,7 @@ public class ContinuousKotlinSteppingTest extends DebugTestBase {
 
   private static final String MAIN_METHOD_NAME = "main";
 
-  @Parameters(name = "{0}, {1}")
+  @Parameters(name = "{0}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),

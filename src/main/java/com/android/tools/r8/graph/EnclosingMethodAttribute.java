@@ -52,10 +52,6 @@ public final class EnclosingMethodAttribute {
     return enclosingMethod != null;
   }
 
-  public boolean hasEnclosingClass() {
-    return enclosingClass != null;
-  }
-
   public DexMethod getEnclosingMethod() {
     return enclosingMethod;
   }

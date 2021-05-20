@@ -330,6 +330,7 @@ public class MinifierClassSignatureTest extends TestBase {
                     internalOptions.testing.disableMappingToOriginalProgramVerification = true)
             .compile();
 
+    compileResult.assertNoInfoMessages();
     compileResult.assertNoErrorMessages();
 
     CodeInspector inspector = compileResult.inspector();
@@ -414,6 +415,28 @@ public class MinifierClassSignatureTest extends TestBase {
   }
 
   @Test
+  public void classSignatureOuter_valid() throws Exception {
+    // class Outer<T extends Simple> extends Base<T>
+    String signature = "<T:LSimple;>LBase<TT;>;";
+    testSingleClass(
+        "Outer",
+        signature,
+        TestDiagnosticMessages::assertNoWarnings,
+        inspector -> {
+          ClassSubject outer = inspector.clazz("Outer");
+          ClassSubject simple = inspector.clazz("Simple");
+          ClassSubject base = inspector.clazz("Base");
+          String baseDescriptorWithoutSemicolon =
+              base.getFinalDescriptor().substring(0, base.getFinalDescriptor().length() - 1);
+          String minifiedSignature =
+              "<T:" + simple.getFinalDescriptor() + ">" + baseDescriptorWithoutSemicolon + "<TT;>;";
+          assertEquals(minifiedSignature, outer.getFinalSignatureAttribute());
+          assertEquals(signature, outer.getOriginalSignatureAttribute());
+        },
+        false);
+  }
+
+  @Test
   public void classSignatureExtendsInner_valid() throws Exception {
     String signature = "LOuter<TT;>.Inner;";
     testSingleClass(
@@ -446,9 +469,9 @@ public class MinifierClassSignatureTest extends TestBase {
         inspector -> {
           assertThat(inspector.clazz("NotFound"), not(isPresent()));
           ClassSubject outer = inspector.clazz("Outer");
-          assertNull(outer.getOriginalSignatureAttribute());
+          assertEquals(signature, outer.getOriginalSignatureAttribute());
         },
-        true);
+        false);
   }
 
   @Test
@@ -461,8 +484,8 @@ public class MinifierClassSignatureTest extends TestBase {
         inspector -> {
           assertThat(inspector.clazz("NotFound"), not(isPresent()));
           ClassSubject outer = inspector.clazz("Outer$ExtendsInner");
-          // TODO(b/186745999): What to do here.
-          assertNull(outer.getOriginalSignatureAttribute());
+          // TODO(b/1867459990): What to do here.
+          assertEquals("LOuter$NotFound;", outer.getOriginalSignatureAttribute());
         },
         false);
   }
@@ -477,7 +500,7 @@ public class MinifierClassSignatureTest extends TestBase {
         inspector -> {
           assertThat(inspector.clazz("NotFound"), not(isPresent()));
           ClassSubject outer = inspector.clazz("Outer$ExtendsInner");
-          assertNull(outer.getOriginalSignatureAttribute());
+          assertEquals(signature, outer.getOriginalSignatureAttribute());
         },
         false);
   }
@@ -493,13 +516,13 @@ public class MinifierClassSignatureTest extends TestBase {
           assertThat(inspector.clazz("NotFound"), not(isPresent()));
           ClassSubject outer = inspector.clazz("Outer$ExtendsInner");
           // TODO(b/1867459990): What to do here.
-          assertNull(outer.getOriginalSignatureAttribute());
+          assertEquals("LOuter$Inner$NotFound;", outer.getOriginalSignatureAttribute());
         },
         false);
   }
 
   @Test
-  public void classSignatureExtendsInner_multipleNestedInnerClassesNotFound() throws Exception {
+  public void classSignatureExtendsInner_multipleMestedInnerClassesNotFound() throws Exception {
     String signature = "LOuter<TT;>.NotFound.AlsoNotFound;";
     testSingleClass(
         "Outer$ExtendsInner",
@@ -508,7 +531,8 @@ public class MinifierClassSignatureTest extends TestBase {
         inspector -> {
           assertThat(inspector.clazz("NotFound"), not(isPresent()));
           ClassSubject outer = inspector.clazz("Outer$ExtendsInner");
-          assertNull(outer.getOriginalSignatureAttribute());
+          // TODO(b/1867459990): What to do here.
+          assertEquals("LOuter$NotFound$AlsoNotFound;", outer.getOriginalSignatureAttribute());
         },
         false);
   }

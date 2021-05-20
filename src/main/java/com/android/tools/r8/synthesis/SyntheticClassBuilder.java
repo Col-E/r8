@@ -44,7 +44,6 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
   private List<DexEncodedMethod> directMethods = new ArrayList<>();
   private List<DexEncodedMethod> virtualMethods = new ArrayList<>();
   private List<SyntheticMethodBuilder> methods = new ArrayList<>();
-  private ClassSignature signature = ClassSignature.noSignature();
 
   SyntheticClassBuilder(DexType type, SynthesizingContext context, DexItemFactory factory) {
     this.factory = factory;
@@ -85,11 +84,6 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
 
   public B setSourceFile(DexString sourceFile) {
     this.sourceFile = sourceFile;
-    return self();
-  }
-
-  public B setGenericSignature(ClassSignature signature) {
-    this.signature = signature;
     return self();
   }
 
@@ -159,7 +153,7 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
             nestMembers,
             enclosingMembers,
             innerClasses,
-            signature,
+            ClassSignature.noSignature(),
             DexAnnotationSet.empty(),
             staticFields.toArray(DexEncodedField.EMPTY_ARRAY),
             instanceFields.toArray(DexEncodedField.EMPTY_ARRAY),

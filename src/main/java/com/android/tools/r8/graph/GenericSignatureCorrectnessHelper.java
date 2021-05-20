@@ -9,9 +9,7 @@ import static com.android.tools.r8.graph.GenericSignatureCorrectnessHelper.Signa
 import static com.android.tools.r8.graph.GenericSignatureCorrectnessHelper.SignatureEvaluationResult.INVALID_SUPER_TYPE;
 import static com.android.tools.r8.graph.GenericSignatureCorrectnessHelper.SignatureEvaluationResult.INVALID_TYPE_VARIABLE_UNDEFINED;
 import static com.android.tools.r8.graph.GenericSignatureCorrectnessHelper.SignatureEvaluationResult.VALID;
-import static com.google.common.base.Predicates.alwaysFalse;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.DexDefinitionSignature;
@@ -20,9 +18,9 @@ import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
-import com.android.tools.r8.graph.GenericSignatureContextBuilder.TypeParameterContext;
-import com.android.tools.r8.utils.ListUtils;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -31,163 +29,90 @@ public class GenericSignatureCorrectnessHelper {
 
   private enum Mode {
     VERIFY,
-    CLEAR_IF_INVALID;
+    MARK_AS_INVALID;
 
     public boolean doNotVerify() {
-      return clearIfInvalid();
+      return markAsInvalid();
     }
 
-    public boolean clearIfInvalid() {
-      return this == CLEAR_IF_INVALID;
+    public boolean markAsInvalid() {
+      return this == MARK_AS_INVALID;
     }
   }
 
   public enum SignatureEvaluationResult {
     INVALID_SUPER_TYPE,
-    INVALID_INTERFACE_TYPE,
     INVALID_INTERFACE_COUNT,
     INVALID_APPLICATION_COUNT,
     INVALID_TYPE_VARIABLE_UNDEFINED,
     VALID;
 
-    public boolean isValid() {
+    boolean isValid() {
       return this == VALID;
     }
 
-    public boolean isInvalid() {
+    boolean isInvalid() {
       return this != VALID;
-    }
-
-    public SignatureEvaluationResult combine(SignatureEvaluationResult other) {
-      return isInvalid() ? this : other;
-    }
-
-    public String getDescription() {
-      switch (this) {
-        case INVALID_APPLICATION_COUNT:
-          return "The applied generic arguments have different count than the expected formals";
-        case INVALID_INTERFACE_COUNT:
-          return "The generic signature has a different number of interfaces than the class";
-        case INVALID_SUPER_TYPE:
-          return "The generic super type is not the same as the class super type";
-        case INVALID_TYPE_VARIABLE_UNDEFINED:
-          return "A type variable is not in scope";
-        default:
-          assert this.isValid();
-          throw new Unreachable("Should not throw an error for a valid signature");
-      }
     }
   }
 
   private final AppView<?> appView;
   private final Mode mode;
-  private final GenericSignatureContextBuilder contextBuilder;
 
-  private GenericSignatureCorrectnessHelper(
-      AppView<?> appView, GenericSignatureContextBuilder contextBuilder, Mode mode) {
+  private GenericSignatureCorrectnessHelper(AppView<?> appView, Mode mode) {
     this.appView = appView;
-    this.contextBuilder = contextBuilder;
     this.mode = mode;
   }
 
-  public static GenericSignatureCorrectnessHelper createForInitialCheck(
-      AppView<?> appView, GenericSignatureContextBuilder contextBuilder) {
-    return new GenericSignatureCorrectnessHelper(appView, contextBuilder, Mode.CLEAR_IF_INVALID);
+  public static GenericSignatureCorrectnessHelper createForInitialCheck(AppView<?> appView) {
+    return new GenericSignatureCorrectnessHelper(appView, Mode.MARK_AS_INVALID);
   }
 
-  public static GenericSignatureCorrectnessHelper createForVerification(
-      AppView<?> appView, GenericSignatureContextBuilder contextBuilder) {
-    return new GenericSignatureCorrectnessHelper(appView, contextBuilder, Mode.VERIFY);
+  public static GenericSignatureCorrectnessHelper createForVerification(AppView<?> appView) {
+    return new GenericSignatureCorrectnessHelper(appView, Mode.VERIFY);
   }
 
-  public SignatureEvaluationResult run(List<DexProgramClass> programClasses) {
-    if (appView.options().disableGenericSignatureValidation) {
-      return VALID;
-    }
-    for (DexProgramClass clazz : programClasses) {
-      SignatureEvaluationResult evaluationResult = evaluateSignaturesForClass(clazz);
-      if (evaluationResult.isInvalid()) {
-        return evaluationResult;
-      }
-    }
-    return VALID;
+  public void run() {
+    appView.appInfo().classes().forEach(this::evaluateSignaturesForClass);
   }
 
   public SignatureEvaluationResult evaluateSignaturesForClass(DexProgramClass clazz) {
-    if (appView.options().disableGenericSignatureValidation) {
-      return VALID;
-    }
-
-    TypeParameterContext typeParameterContext =
-        contextBuilder.computeTypeParameterContext(appView, clazz.type, alwaysFalse());
-
     GenericSignatureContextEvaluator genericSignatureContextEvaluator =
-        new GenericSignatureContextEvaluator(appView, mode, clazz);
-
-    SignatureEvaluationResult result =
-        genericSignatureContextEvaluator.evaluateClassSignatureForContext(typeParameterContext);
-    if (result.isInvalid() && mode.clearIfInvalid()) {
-      appView
-          .options()
-          .reporter
-          .info(
-              GenericSignatureValidationDiagnostic.invalidClassSignature(
-                  clazz.getClassSignature().toString(),
-                  clazz.getTypeName(),
-                  clazz.getOrigin(),
-                  result));
-      clazz.clearClassSignature();
+        new GenericSignatureContextEvaluator(appView, clazz, mode);
+    ClassSignature classSignature = clazz.getClassSignature();
+    SignatureEvaluationResult result = VALID;
+    if (classSignature.hasNoSignature() || !classSignature.isInvalid()) {
+      result = genericSignatureContextEvaluator.evaluateClassSignature(classSignature);
+      if (result.isInvalid() && mode.markAsInvalid()) {
+        clazz.setClassSignature(classSignature.toInvalid());
+      }
     }
     for (DexEncodedMethod method : clazz.methods()) {
-      result =
-          result.combine(
-              evaluate(
-                  method::getGenericSignature,
-                  methodSignature ->
-                      genericSignatureContextEvaluator.visitMethodSignature(
-                          methodSignature, typeParameterContext),
-                  invalidResult -> {
-                    appView
-                        .options()
-                        .reporter
-                        .info(
-                            GenericSignatureValidationDiagnostic.invalidMethodSignature(
-                                method.getGenericSignature().toString(),
-                                method.toSourceString(),
-                                clazz.getOrigin(),
-                                invalidResult));
-                    method.clearGenericSignature();
-                  }));
+      SignatureEvaluationResult methodResult =
+          evaluate(
+              method::getGenericSignature,
+              genericSignatureContextEvaluator::visitMethodSignature,
+              method::setGenericSignature);
+      if (result.isValid() && methodResult.isInvalid()) {
+        result = methodResult;
+      }
     }
     for (DexEncodedField field : clazz.fields()) {
-      result =
-          result.combine(
-              evaluate(
-                  field::getGenericSignature,
-                  fieldSignature ->
-                      genericSignatureContextEvaluator.visitFieldTypeSignature(
-                          fieldSignature, typeParameterContext),
-                  invalidResult -> {
-                    appView
-                        .options()
-                        .reporter
-                        .info(
-                            GenericSignatureValidationDiagnostic.invalidFieldSignature(
-                                field.getGenericSignature().toString(),
-                                field.toSourceString(),
-                                clazz.getOrigin(),
-                                invalidResult));
-                    field.clearGenericSignature();
-                  }));
+      SignatureEvaluationResult fieldResult =
+          evaluate(
+              field::getGenericSignature,
+              genericSignatureContextEvaluator::visitFieldTypeSignature,
+              field::setGenericSignature);
+      if (result.isValid() && fieldResult.isInvalid()) {
+        result = fieldResult;
+      }
     }
     return result;
   }
 
   @SuppressWarnings("unchecked")
   private <T extends DexDefinitionSignature<?>> SignatureEvaluationResult evaluate(
-      Supplier<T> getter,
-      Function<T, SignatureEvaluationResult> evaluate,
-      Consumer<SignatureEvaluationResult> invalidAction) {
+      Supplier<T> getter, Function<T, SignatureEvaluationResult> evaluate, Consumer<T> setter) {
     T signature = getter.get();
     if (signature.hasNoSignature() || signature.isInvalid()) {
       // Already marked as invalid, do nothing
@@ -195,8 +120,8 @@ public class GenericSignatureCorrectnessHelper {
     }
     SignatureEvaluationResult signatureResult = evaluate.apply(signature);
     assert signatureResult.isValid() || mode.doNotVerify();
-    if (signatureResult.isInvalid() && mode.clearIfInvalid()) {
-      invalidAction.accept(signatureResult);
+    if (signatureResult.isInvalid() && mode.doNotVerify()) {
+      setter.accept((T) signature.toInvalid());
     }
     return signatureResult;
   }
@@ -205,39 +130,39 @@ public class GenericSignatureCorrectnessHelper {
 
     private final AppView<?> appView;
     private final DexProgramClass context;
+    private final Set<String> classFormalTypeParameters = new HashSet<>();
+    private final Set<String> methodTypeArguments = new HashSet<>();
     private final Mode mode;
 
-    private GenericSignatureContextEvaluator(
-        AppView<?> appView, Mode mode, DexProgramClass context) {
+    public GenericSignatureContextEvaluator(
+        AppView<?> appView, DexProgramClass context, Mode mode) {
       this.appView = appView;
-      this.mode = mode;
       this.context = context;
+      this.mode = mode;
     }
 
-    private SignatureEvaluationResult evaluateClassSignatureForContext(
-        TypeParameterContext typeParameterContext) {
-      ClassSignature classSignature = context.classSignature;
-      if (classSignature.hasNoSignature() || classSignature.isInvalid()) {
+    private SignatureEvaluationResult evaluateClassSignature(ClassSignature classSignature) {
+      classSignature
+          .getFormalTypeParameters()
+          .forEach(param -> classFormalTypeParameters.add(param.name));
+      if (classSignature.hasNoSignature()) {
         return VALID;
       }
       SignatureEvaluationResult signatureEvaluationResult =
-          evaluateFormalTypeParameters(classSignature.formalTypeParameters, typeParameterContext);
+          evaluateFormalTypeParameters(classSignature.formalTypeParameters);
       if (signatureEvaluationResult.isInvalid()) {
         return signatureEvaluationResult;
       }
-      if (context.superType == appView.dexItemFactory().objectType
-          && classSignature.superClassSignature().hasNoSignature()) {
-        // We represent no signature as object.
-      } else if (context.superType
-          != appView.graphLens().lookupClassType(classSignature.superClassSignature().type())) {
+      if ((context.superType != appView.dexItemFactory().objectType
+              && context.superType != classSignature.superClassSignature().type())
+          || (context.superType == appView.dexItemFactory().objectType
+              && classSignature.superClassSignature().hasNoSignature())) {
         assert mode.doNotVerify();
         return INVALID_SUPER_TYPE;
       }
       signatureEvaluationResult =
           evaluateTypeArgumentsAppliedToType(
-              classSignature.superClassSignature().typeArguments(),
-              context.superType,
-              typeParameterContext);
+              classSignature.superClassSignature().typeArguments(), context.superType);
       if (signatureEvaluationResult.isInvalid()) {
         return signatureEvaluationResult;
       }
@@ -250,7 +175,7 @@ public class GenericSignatureCorrectnessHelper {
       for (int i = 0; i < actualInterfaces.length; i++) {
         signatureEvaluationResult =
             evaluateTypeArgumentsAppliedToType(
-                superInterfaces.get(i).typeArguments(), actualInterfaces[i], typeParameterContext);
+                superInterfaces.get(i).typeArguments(), actualInterfaces[i]);
         if (signatureEvaluationResult.isInvalid()) {
           return signatureEvaluationResult;
         }
@@ -258,46 +183,37 @@ public class GenericSignatureCorrectnessHelper {
       return VALID;
     }
 
-    private SignatureEvaluationResult visitMethodSignature(
-        MethodTypeSignature methodSignature, TypeParameterContext typeParameterContext) {
-      // If the class context is invalid, we cannot reason about the method signatures.
-      if (context.classSignature.isInvalid()) {
-        return VALID;
-      }
-      TypeParameterContext methodContext =
-          methodSignature.formalTypeParameters.isEmpty()
-              ? typeParameterContext
-              : typeParameterContext.addLiveParameters(
-                  ListUtils.map(
-                      methodSignature.getFormalTypeParameters(), FormalTypeParameter::getName));
+    private SignatureEvaluationResult visitMethodSignature(MethodTypeSignature methodSignature) {
+      methodSignature
+          .getFormalTypeParameters()
+          .forEach(param -> methodTypeArguments.add(param.name));
       SignatureEvaluationResult evaluateResult =
-          evaluateFormalTypeParameters(methodSignature.getFormalTypeParameters(), methodContext);
+          evaluateFormalTypeParameters(methodSignature.getFormalTypeParameters());
       if (evaluateResult.isInvalid()) {
         return evaluateResult;
       }
-      evaluateResult = evaluateTypeArguments(methodSignature.typeSignatures, methodContext);
+      evaluateResult = evaluateTypeArguments(methodSignature.typeSignatures);
       if (evaluateResult.isInvalid()) {
         return evaluateResult;
       }
-      evaluateResult = evaluateTypeArguments(methodSignature.throwsSignatures, methodContext);
+      evaluateResult = evaluateTypeArguments(methodSignature.throwsSignatures);
       if (evaluateResult.isInvalid()) {
         return evaluateResult;
       }
       ReturnType returnType = methodSignature.returnType();
       if (!returnType.isVoidDescriptor()) {
-        evaluateResult = evaluateTypeArgument(returnType.typeSignature(), methodContext);
+        evaluateResult = evaluateTypeArgument(returnType.typeSignature());
         if (evaluateResult.isInvalid()) {
           return evaluateResult;
         }
       }
+      methodTypeArguments.clear();
       return evaluateResult;
     }
 
-    private SignatureEvaluationResult evaluateTypeArguments(
-        List<TypeSignature> typeSignatures, TypeParameterContext typeParameterContext) {
+    private SignatureEvaluationResult evaluateTypeArguments(List<TypeSignature> typeSignatures) {
       for (TypeSignature typeSignature : typeSignatures) {
-        SignatureEvaluationResult signatureEvaluationResult =
-            evaluateTypeArgument(typeSignature, typeParameterContext);
+        SignatureEvaluationResult signatureEvaluationResult = evaluateTypeArgument(typeSignature);
         if (signatureEvaluationResult.isInvalid()) {
           return signatureEvaluationResult;
         }
@@ -305,20 +221,14 @@ public class GenericSignatureCorrectnessHelper {
       return VALID;
     }
 
-    private SignatureEvaluationResult visitFieldTypeSignature(
-        FieldTypeSignature fieldSignature, TypeParameterContext typeParameterContext) {
-      // If the class context is invalid, we cannot reason about the method signatures.
-      if (context.classSignature.isInvalid()) {
-        return VALID;
-      }
-      return evaluateTypeArgument(fieldSignature, typeParameterContext);
+    private SignatureEvaluationResult visitFieldTypeSignature(FieldTypeSignature fieldSignature) {
+      return evaluateTypeArgument(fieldSignature);
     }
 
     private SignatureEvaluationResult evaluateFormalTypeParameters(
-        List<FormalTypeParameter> typeParameters, TypeParameterContext typeParameterContext) {
+        List<FormalTypeParameter> typeParameters) {
       for (FormalTypeParameter typeParameter : typeParameters) {
-        SignatureEvaluationResult evaluationResult =
-            evaluateTypeParameter(typeParameter, typeParameterContext);
+        SignatureEvaluationResult evaluationResult = evaluateTypeParameter(typeParameter);
         if (evaluationResult.isInvalid()) {
           return evaluationResult;
         }
@@ -326,77 +236,64 @@ public class GenericSignatureCorrectnessHelper {
       return VALID;
     }
 
-    private SignatureEvaluationResult evaluateTypeParameter(
-        FormalTypeParameter typeParameter, TypeParameterContext typeParameterContext) {
-      SignatureEvaluationResult evaluationResult =
-          evaluateTypeArgument(typeParameter.classBound, typeParameterContext);
+    private SignatureEvaluationResult evaluateTypeParameter(FormalTypeParameter typeParameter) {
+      SignatureEvaluationResult evaluationResult = evaluateTypeArgument(typeParameter.classBound);
       if (evaluationResult.isInvalid()) {
         return evaluationResult;
       }
-      for (FieldTypeSignature interfaceBound : typeParameter.interfaceBounds) {
-        evaluationResult = evaluateTypeArgument(interfaceBound, typeParameterContext);
-        if (evaluationResult != VALID) {
-          return evaluationResult;
+      if (typeParameter.interfaceBounds != null) {
+        for (FieldTypeSignature interfaceBound : typeParameter.interfaceBounds) {
+          evaluationResult = evaluateTypeArgument(interfaceBound);
+          if (evaluationResult != VALID) {
+            return evaluationResult;
+          }
         }
       }
       return VALID;
     }
 
-    private SignatureEvaluationResult evaluateTypeArgument(
-        TypeSignature typeSignature, TypeParameterContext typeParameterContext) {
+    private SignatureEvaluationResult evaluateTypeArgument(TypeSignature typeSignature) {
       if (typeSignature.isBaseTypeSignature()) {
         return VALID;
       }
       FieldTypeSignature fieldTypeSignature = typeSignature.asFieldTypeSignature();
-      if (fieldTypeSignature.hasNoSignature() || fieldTypeSignature.isStar()) {
+      if (fieldTypeSignature.hasNoSignature()) {
         return VALID;
       }
       if (fieldTypeSignature.isTypeVariableSignature()) {
         // This is in an applied position, just check that the variable is registered.
         String typeVariable = fieldTypeSignature.asTypeVariableSignature().typeVariable();
-        if (typeParameterContext.isLiveParameter(typeVariable)) {
+        if (classFormalTypeParameters.contains(typeVariable)
+            || methodTypeArguments.contains(typeVariable)) {
           return VALID;
         }
         assert mode.doNotVerify();
         return INVALID_TYPE_VARIABLE_UNDEFINED;
       }
       if (fieldTypeSignature.isArrayTypeSignature()) {
-        return evaluateTypeArgument(
-            fieldTypeSignature.asArrayTypeSignature().elementSignature(), typeParameterContext);
+        return evaluateTypeArgument(fieldTypeSignature.asArrayTypeSignature().elementSignature());
       }
       assert fieldTypeSignature.isClassTypeSignature();
-      return evaluateTypeArguments(fieldTypeSignature.asClassTypeSignature(), typeParameterContext);
+      return evaluateTypeArguments(fieldTypeSignature.asClassTypeSignature());
     }
 
-    private SignatureEvaluationResult evaluateTypeArguments(
-        ClassTypeSignature classTypeSignature, TypeParameterContext typeParameterContext) {
+    private SignatureEvaluationResult evaluateTypeArguments(ClassTypeSignature classTypeSignature) {
       return evaluateTypeArgumentsAppliedToType(
-          classTypeSignature.typeArguments, classTypeSignature.type(), typeParameterContext);
+          classTypeSignature.typeArguments, classTypeSignature.type());
     }
 
     private SignatureEvaluationResult evaluateTypeArgumentsAppliedToType(
-        List<FieldTypeSignature> typeArguments,
-        DexType type,
-        TypeParameterContext typeParameterContext) {
+        List<FieldTypeSignature> typeArguments, DexType type) {
       for (FieldTypeSignature typeArgument : typeArguments) {
-        SignatureEvaluationResult evaluationResult =
-            evaluateTypeArgument(typeArgument, typeParameterContext);
+        SignatureEvaluationResult evaluationResult = evaluateTypeArgument(typeArgument);
         if (evaluationResult.isInvalid()) {
           assert mode.doNotVerify();
           return evaluationResult;
         }
       }
-      // TODO(b/187035453): We should visit generic signatures in the enqueuer.
-      DexClass clazz =
-          appView
-              .appInfo()
-              .definitionForWithoutExistenceAssert(appView.graphLens().lookupClassType(type));
+      DexClass clazz = appView.definitionFor(type);
       if (clazz == null) {
         // We do not know if the application of arguments works or not.
-        return VALID;
-      }
-      if (typeArguments.isEmpty()) {
-        // When type arguments are empty we are using the raw type.
         return VALID;
       }
       if (typeArguments.size() != clazz.classSignature.getFormalTypeParameters().size()) {

@@ -173,7 +173,6 @@ public class GenericSignature {
       this.name = name;
       this.classBound = classBound;
       this.interfaceBounds = interfaceBounds;
-      assert classBound != null;
       assert interfaceBounds != null;
     }
 
@@ -190,16 +189,14 @@ public class GenericSignature {
     }
 
     public FormalTypeParameter visit(GenericSignatureVisitor visitor) {
-      FieldTypeSignature rewrittenClassBound = visitor.visitClassBound(classBound);
+      FieldTypeSignature rewrittenClassBound =
+          classBound == null ? null : visitor.visitClassBound(classBound);
       List<FieldTypeSignature> rewrittenInterfaceBounds =
           visitor.visitInterfaceBounds(interfaceBounds);
       if (classBound == rewrittenClassBound && interfaceBounds == rewrittenInterfaceBounds) {
         return this;
       }
-      return new FormalTypeParameter(
-          name,
-          rewrittenClassBound == null ? FieldTypeSignature.noSignature() : rewrittenClassBound,
-          rewrittenInterfaceBounds);
+      return new FormalTypeParameter(name, rewrittenClassBound, rewrittenInterfaceBounds);
     }
   }
 
@@ -288,10 +285,6 @@ public class GenericSignature {
 
     public static ClassSignature noSignature() {
       return NO_CLASS_SIGNATURE;
-    }
-
-    public ClassSignature toObjectBoundWithSameFormals(ClassTypeSignature objectBound) {
-      return new ClassSignature(formalTypeParameters, objectBound, getEmptySuperInterfaces());
     }
   }
 
@@ -656,7 +649,7 @@ public class GenericSignature {
       if (elementSignature == rewrittenElementSignature) {
         return this;
       }
-      return new ArrayTypeSignature(rewrittenElementSignature, getWildcardIndicator());
+      return new ArrayTypeSignature(elementSignature, getWildcardIndicator());
     }
   }
 
@@ -898,7 +891,7 @@ public class GenericSignature {
       return parser.parseClassSignature(signature);
     } catch (GenericSignatureFormatError e) {
       diagnosticsHandler.warning(
-          GenericSignatureFormatDiagnostic.invalidClassSignature(signature, className, origin, e));
+          GenericSignatureDiagnostic.invalidClassSignature(signature, className, origin, e));
       return ClassSignature.NO_CLASS_SIGNATURE;
     }
   }
@@ -917,7 +910,7 @@ public class GenericSignature {
       return parser.parseFieldTypeSignature(signature);
     } catch (GenericSignatureFormatError e) {
       diagnosticsHandler.warning(
-          GenericSignatureFormatDiagnostic.invalidFieldSignature(signature, fieldName, origin, e));
+          GenericSignatureDiagnostic.invalidFieldSignature(signature, fieldName, origin, e));
       return GenericSignature.NO_FIELD_TYPE_SIGNATURE;
     }
   }
@@ -936,8 +929,7 @@ public class GenericSignature {
       return parser.parseMethodTypeSignature(signature);
     } catch (GenericSignatureFormatError e) {
       diagnosticsHandler.warning(
-          GenericSignatureFormatDiagnostic.invalidMethodSignature(
-              signature, methodName, origin, e));
+          GenericSignatureDiagnostic.invalidMethodSignature(signature, methodName, origin, e));
       return MethodTypeSignature.NO_METHOD_TYPE_SIGNATURE;
     }
   }

@@ -14,37 +14,52 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.graph.GenericSignature.WildcardIndicator;
-import com.android.tools.r8.graph.GenericSignatureContextBuilder.TypeParameterContext;
 import com.android.tools.r8.utils.ListUtils;
+import com.google.common.collect.ImmutableSet;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 public class GenericSignaturePartialTypeArgumentApplier implements GenericSignatureVisitor {
 
-  private final TypeParameterContext typeParameterContext;
+  private final Map<String, DexType> substitutions;
+  private final Set<String> liveTypeVariables;
+  private final DexType objectType;
   private final BiPredicate<DexType, DexType> enclosingPruned;
   private final Predicate<DexType> hasGenericTypeParameters;
-  private final AppView<?> appView;
 
   private GenericSignaturePartialTypeArgumentApplier(
-      AppView<?> appView,
-      TypeParameterContext typeParameterContext,
+      Map<String, DexType> substitutions,
+      Set<String> liveTypeVariables,
+      DexType objectType,
       BiPredicate<DexType, DexType> enclosingPruned,
       Predicate<DexType> hasGenericTypeParameters) {
-    this.appView = appView;
-    this.typeParameterContext = typeParameterContext;
+    this.substitutions = substitutions;
+    this.liveTypeVariables = liveTypeVariables;
+    this.objectType = objectType;
     this.enclosingPruned = enclosingPruned;
     this.hasGenericTypeParameters = hasGenericTypeParameters;
   }
 
   public static GenericSignaturePartialTypeArgumentApplier build(
-      AppView<?> appView,
-      TypeParameterContext typeParameterContext,
+      DexType objectType,
       BiPredicate<DexType, DexType> enclosingPruned,
       Predicate<DexType> hasGenericTypeParameters) {
     return new GenericSignaturePartialTypeArgumentApplier(
-        appView, typeParameterContext, enclosingPruned, hasGenericTypeParameters);
+        Collections.emptyMap(),
+        Collections.emptySet(),
+        objectType,
+        enclosingPruned,
+        hasGenericTypeParameters);
+  }
+
+  public GenericSignaturePartialTypeArgumentApplier addSubstitutionsAndVariables(
+      Map<String, DexType> substitutions, Set<String> liveTypeVariables) {
+    return new GenericSignaturePartialTypeArgumentApplier(
+        substitutions, liveTypeVariables, objectType, enclosingPruned, hasGenericTypeParameters);
   }
 
   public GenericSignaturePartialTypeArgumentApplier buildForMethod(
@@ -52,27 +67,23 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
     if (formals.isEmpty()) {
       return this;
     }
+    ImmutableSet.Builder<String> liveVariablesBuilder = ImmutableSet.builder();
+    liveVariablesBuilder.addAll(liveTypeVariables);
+    formals.forEach(
+        formal -> {
+          liveVariablesBuilder.add(formal.name);
+        });
     return new GenericSignaturePartialTypeArgumentApplier(
-        appView,
-        typeParameterContext.addLiveParameters(
-            ListUtils.map(formals, FormalTypeParameter::getName)),
-        enclosingPruned,
-        hasGenericTypeParameters);
+        substitutions, liveTypeVariables, objectType, enclosingPruned, hasGenericTypeParameters);
   }
 
   @Override
   public ClassSignature visitClassSignature(ClassSignature classSignature) {
-    if (classSignature.hasNoSignature() || classSignature.isInvalid()) {
-      return classSignature;
-    }
     return classSignature.visit(this);
   }
 
   @Override
   public MethodTypeSignature visitMethodSignature(MethodTypeSignature methodSignature) {
-    if (methodSignature.hasNoSignature() || methodSignature.isInvalid()) {
-      return methodSignature;
-    }
     return methodSignature.visit(this);
   }
 
@@ -100,7 +111,7 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
 
   @Override
   public List<FieldTypeSignature> visitInterfaceBounds(List<FieldTypeSignature> fieldSignatures) {
-    if (fieldSignatures.isEmpty()) {
+    if (fieldSignatures == null || fieldSignatures.isEmpty()) {
       return fieldSignatures;
     }
     return ListUtils.mapOrElse(fieldSignatures, this::visitFieldTypeSignature);
@@ -131,9 +142,6 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
 
   @Override
   public FieldTypeSignature visitClassBound(FieldTypeSignature fieldSignature) {
-    if (fieldSignature.hasNoSignature()) {
-      return fieldSignature;
-    }
     return visitFieldTypeSignature(fieldSignature);
   }
 
@@ -197,9 +205,6 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
 
   @Override
   public FieldTypeSignature visitFieldTypeSignature(FieldTypeSignature fieldSignature) {
-    if (fieldSignature.hasNoSignature() || fieldSignature.isInvalid()) {
-      return fieldSignature;
-    }
     if (fieldSignature.isStar()) {
       return fieldSignature;
     } else if (fieldSignature.isClassTypeSignature()) {
@@ -209,10 +214,11 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
     } else {
       assert fieldSignature.isTypeVariableSignature();
       String typeVariableName = fieldSignature.asTypeVariableSignature().typeVariable();
-      if (!typeParameterContext.isLiveParameter(typeVariableName)) {
-        DexType substitution = typeParameterContext.getPrunedSubstitution(typeVariableName);
+      if (substitutions.containsKey(typeVariableName)
+          && !liveTypeVariables.contains(typeVariableName)) {
+        DexType substitution = substitutions.get(typeVariableName);
         if (substitution == null) {
-          substitution = appView.dexItemFactory().objectType;
+          substitution = objectType;
         }
         return new ClassTypeSignature(substitution).asArgument(WildcardIndicator.NONE);
       }
