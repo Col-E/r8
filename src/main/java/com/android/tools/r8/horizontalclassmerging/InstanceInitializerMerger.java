@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.code.ConstructorEntryPointSynthesizedCode;
 import com.android.tools.r8.ir.conversion.ExtraConstantIntParameter;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
@@ -28,27 +29,26 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class ConstructorMerger {
-  private final AppView<?> appView;
-  private final MergeGroup group;
-  private final Collection<DexEncodedMethod> constructors;
-  private final DexItemFactory dexItemFactory;
+public class InstanceInitializerMerger {
 
-  ConstructorMerger(
-      AppView<?> appView, MergeGroup group, Collection<DexEncodedMethod> constructors) {
+  private final AppView<?> appView;
+  private final DexItemFactory dexItemFactory;
+  private final MergeGroup group;
+  private final List<ProgramMethod> instanceInitializers;
+
+  InstanceInitializerMerger(
+      AppView<?> appView, MergeGroup group, List<ProgramMethod> instanceInitializers) {
     this.appView = appView;
+    this.dexItemFactory = appView.dexItemFactory();
     this.group = group;
-    this.constructors = constructors;
+    this.instanceInitializers = instanceInitializers;
 
     // Constructors should not be empty and all constructors should have the same prototype.
-    assert !constructors.isEmpty();
-    assert constructors.stream().map(DexEncodedMethod::getProto).distinct().count() == 1;
-
-    this.dexItemFactory = appView.dexItemFactory();
+    assert !instanceInitializers.isEmpty();
+    assert instanceInitializers.stream().map(ProgramMethod::getProto).distinct().count() == 1;
   }
 
   /**
@@ -56,7 +56,7 @@ public class ConstructorMerger {
    * to generate the final reference by appending null arguments until it is fresh.
    */
   private DexMethod generateReferenceMethodTemplate() {
-    DexMethod methodTemplate = constructors.iterator().next().getReference();
+    DexMethod methodTemplate = instanceInitializers.iterator().next().getReference();
     if (!isTrivialMerge()) {
       methodTemplate = dexItemFactory.appendTypeToMethod(methodTemplate, dexItemFactory.intType);
     }
@@ -64,12 +64,12 @@ public class ConstructorMerger {
   }
 
   public int getArity() {
-    return constructors.iterator().next().getReference().getArity();
+    return instanceInitializers.iterator().next().getReference().getArity();
   }
 
   public static class Builder {
     private int estimatedDexCodeSize;
-    private final List<List<DexEncodedMethod>> constructorGroups = new ArrayList<>();
+    private final List<List<ProgramMethod>> instanceInitializerGroups = new ArrayList<>();
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
 
     public Builder(AppView<? extends AppInfoWithClassHierarchy> appView) {
@@ -79,11 +79,12 @@ public class ConstructorMerger {
 
     private void createNewGroup() {
       estimatedDexCodeSize = 0;
-      constructorGroups.add(new ArrayList<>());
+      instanceInitializerGroups.add(new ArrayList<>());
     }
 
-    public Builder add(DexEncodedMethod constructor) {
-      int estimatedMaxSizeInBytes = constructor.getCode().estimatedDexCodeSizeUpperBoundInBytes();
+    public Builder add(ProgramMethod instanceInitializer) {
+      int estimatedMaxSizeInBytes =
+          instanceInitializer.getDefinition().getCode().estimatedDexCodeSizeUpperBoundInBytes();
       // If the constructor gets too large, then the constructor should be merged into a new group.
       if (estimatedDexCodeSize + estimatedMaxSizeInBytes
               > appView.options().minimumVerificationSizeLimitInBytes() / 2
@@ -91,33 +92,36 @@ public class ConstructorMerger {
         createNewGroup();
       }
 
-      ListUtils.last(constructorGroups).add(constructor);
+      ListUtils.last(instanceInitializerGroups).add(instanceInitializer);
       estimatedDexCodeSize += estimatedMaxSizeInBytes;
       return this;
     }
 
-    public List<ConstructorMerger> build(MergeGroup group) {
-      assert constructorGroups.stream().noneMatch(List::isEmpty);
+    public List<InstanceInitializerMerger> build(MergeGroup group) {
+      assert instanceInitializerGroups.stream().noneMatch(List::isEmpty);
       return ListUtils.map(
-          constructorGroups, constructors -> new ConstructorMerger(appView, group, constructors));
+          instanceInitializerGroups,
+          instanceInitializers ->
+              new InstanceInitializerMerger(appView, group, instanceInitializers));
     }
   }
 
   private boolean isTrivialMerge() {
-    return constructors.size() == 1;
+    return instanceInitializers.size() == 1;
   }
 
-  private DexMethod moveConstructor(
-      ClassMethodsBuilder classMethodsBuilder, DexEncodedMethod constructor) {
+  private DexMethod moveInstanceInitializer(
+      ClassMethodsBuilder classMethodsBuilder, ProgramMethod instanceInitializer) {
     DexMethod method =
         dexItemFactory.createFreshMethodNameWithHolder(
             TEMPORARY_INSTANCE_INITIALIZER_PREFIX,
-            constructor.getHolderType(),
-            constructor.getProto(),
+            instanceInitializer.getHolderType(),
+            instanceInitializer.getProto(),
             group.getTarget().getType(),
             classMethodsBuilder::isFresh);
 
-    DexEncodedMethod encodedMethod = constructor.toTypeSubstitutedMethod(method);
+    DexEncodedMethod encodedMethod =
+        instanceInitializer.getDefinition().toTypeSubstitutedMethod(method);
     encodedMethod.getMutableOptimizationInfo().markForceInline();
     encodedMethod.getAccessFlags().unsetConstructor();
     encodedMethod.getAccessFlags().unsetPublic();
@@ -144,12 +148,13 @@ public class ConstructorMerger {
     Int2ReferenceSortedMap<DexMethod> typeConstructorClassMap = new Int2ReferenceAVLTreeMap<>();
 
     CfVersion classFileVersion = null;
-    for (DexEncodedMethod constructor : constructors) {
-      if (constructor.hasClassFileVersion()) {
+    for (ProgramMethod constructor : instanceInitializers) {
+      if (constructor.getDefinition().hasClassFileVersion()) {
         classFileVersion =
-            Ordered.maxIgnoreNull(classFileVersion, constructor.getClassFileVersion());
+            Ordered.maxIgnoreNull(
+                classFileVersion, constructor.getDefinition().getClassFileVersion());
       }
-      DexMethod movedConstructor = moveConstructor(classMethodsBuilder, constructor);
+      DexMethod movedConstructor = moveInstanceInitializer(classMethodsBuilder, constructor);
       lensBuilder.mapMethod(movedConstructor, movedConstructor);
       lensBuilder.recordNewMethodSignature(constructor.getReference(), movedConstructor);
       typeConstructorClassMap.put(
@@ -164,7 +169,7 @@ public class ConstructorMerger {
             classMethodsBuilder::isFresh);
     int extraNulls = newConstructorReference.getArity() - methodReferenceTemplate.getArity();
 
-    DexEncodedMethod representative = constructors.iterator().next();
+    ProgramMethod representative = ListUtils.first(instanceInitializers);
     DexMethod originalConstructorReference =
         appView.graphLens().getOriginalMethodSignature(representative.getReference());
 
@@ -198,15 +203,15 @@ public class ConstructorMerger {
             classFileVersion);
 
     // Map each old constructor to the newly synthesized constructor in the graph lens.
-    for (DexEncodedMethod oldConstructor : constructors) {
+    for (ProgramMethod oldInstanceInitializer : instanceInitializers) {
       List<ExtraParameter> extraParameters = new ArrayList<>();
-      if (constructors.size() > 1) {
-        int classIdentifier = classIdentifiers.getInt(oldConstructor.getHolderType());
+      if (instanceInitializers.size() > 1) {
+        int classIdentifier = classIdentifiers.getInt(oldInstanceInitializer.getHolderType());
         extraParameters.add(new ExtraConstantIntParameter(classIdentifier));
       }
       extraParameters.addAll(Collections.nCopies(extraNulls, new ExtraUnusedNullParameter()));
       lensBuilder.mapMergedConstructor(
-          oldConstructor.getReference(), newConstructorReference, extraParameters);
+          oldInstanceInitializer.getReference(), newConstructorReference, extraParameters);
     }
 
     // Add a mapping from a synthetic name to the synthetic constructor.

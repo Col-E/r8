@@ -5,17 +5,17 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.structural.Ordered;
 import java.util.List;
 
 public class CfVersionUtils {
 
-  public static CfVersion max(List<DexEncodedMethod> methods) {
+  public static CfVersion max(List<ProgramMethod> methods) {
     CfVersion result = null;
-    for (DexEncodedMethod method : methods) {
-      if (method.hasClassFileVersion()) {
-        result = Ordered.maxIgnoreNull(result, method.getClassFileVersion());
+    for (ProgramMethod method : methods) {
+      if (method.getDefinition().hasClassFileVersion()) {
+        result = Ordered.maxIgnoreNull(result, method.getDefinition().getClassFileVersion());
       }
     }
     return result;

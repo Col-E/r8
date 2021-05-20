@@ -16,26 +16,29 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.CfVersionUtils;
+import com.android.tools.r8.utils.ListUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class ClassInitializerSynthesizedCode {
-  private final List<DexEncodedMethod> staticClassInitializers;
+public class ClassInitializerMerger {
+
+  private final List<ProgramMethod> classInitializers;
   private int maxStack = 0;
   private int maxLocals = 0;
 
-  private ClassInitializerSynthesizedCode(List<DexEncodedMethod> staticClassInitializers) {
-    this.staticClassInitializers = staticClassInitializers;
+  private ClassInitializerMerger(List<ProgramMethod> classInitializers) {
+    this.classInitializers = classInitializers;
   }
 
   public boolean isEmpty() {
-    return staticClassInitializers.isEmpty();
+    return classInitializers.isEmpty();
   }
 
-  private void addCfCode(List<CfInstruction> newInstructions, DexEncodedMethod method) {
-    CfCode code = method.getCode().asCfCode();
+  private void addCfCode(List<CfInstruction> newInstructions, ProgramMethod method) {
+    CfCode code = method.getDefinition().getCode().asCfCode();
     maxStack = max(maxStack, code.getMaxStack());
     maxLocals = max(maxLocals, code.getMaxLocals());
 
@@ -60,10 +63,10 @@ public class ClassInitializerSynthesizedCode {
   }
 
   public Code getOrCreateCode(DexType originalHolder) {
-    assert !staticClassInitializers.isEmpty();
+    assert !classInitializers.isEmpty();
 
-    if (staticClassInitializers.size() == 1) {
-      return staticClassInitializers.get(0).getCode();
+    if (classInitializers.size() == 1) {
+      return ListUtils.first(classInitializers).getDefinition().getCode();
     }
 
     // Building the instructions will adjust maxStack and maxLocals. Build it here before invoking
@@ -80,35 +83,33 @@ public class ClassInitializerSynthesizedCode {
 
   private List<CfInstruction> buildInstructions() {
     List<CfInstruction> newInstructions = new ArrayList<>();
-    staticClassInitializers.forEach(apply(this::addCfCode, newInstructions));
+    classInitializers.forEach(apply(this::addCfCode, newInstructions));
     newInstructions.add(new CfReturnVoid());
     return newInstructions;
   }
 
-  public DexEncodedMethod getFirst() {
-    return staticClassInitializers.iterator().next();
-  }
-
   public CfVersion getCfVersion() {
-    if (staticClassInitializers.size() == 1) {
-      DexEncodedMethod method = staticClassInitializers.get(0);
+    if (classInitializers.size() == 1) {
+      DexEncodedMethod method = ListUtils.first(classInitializers).getDefinition();
       return method.hasClassFileVersion() ? method.getClassFileVersion() : null;
     }
-    assert staticClassInitializers.stream().allMatch(method -> method.getCode().isCfCode());
-    return CfVersionUtils.max(staticClassInitializers);
+    assert classInitializers.stream()
+        .allMatch(method -> method.getDefinition().getCode().isCfCode());
+    return CfVersionUtils.max(classInitializers);
   }
 
   public static class Builder {
-    private final List<DexEncodedMethod> staticClassInitializers = new ArrayList<>();
 
-    public void add(DexEncodedMethod method) {
-      assert method.isClassInitializer();
-      assert method.hasCode();
-      staticClassInitializers.add(method);
+    private final List<ProgramMethod> classInitializers = new ArrayList<>();
+
+    public void add(ProgramMethod method) {
+      assert method.getDefinition().isClassInitializer();
+      assert method.getDefinition().hasCode();
+      classInitializers.add(method);
     }
 
-    public ClassInitializerSynthesizedCode build() {
-      return new ClassInitializerSynthesizedCode(staticClassInitializers);
+    public ClassInitializerMerger build() {
+      return new ClassInitializerMerger(classInitializers);
     }
   }
 }
