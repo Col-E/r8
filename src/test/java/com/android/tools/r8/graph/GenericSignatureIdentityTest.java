@@ -78,6 +78,10 @@ public class GenericSignatureIdentityTest extends TestBase {
       if (signature == null) {
         return;
       }
+      if (signature.equals(
+          "<R::Lcom/android/tools/r8/synthesis/Rewritable<TR;>;>Ljava/lang/Object;")) {
+        int xyz = 0;
+      }
       TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
       ClassSignature classSignature =
           GenericSignature.parseClassSignature(

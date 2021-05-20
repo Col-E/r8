@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.graph.GenericSignatureTypeVariableRemover.TypeParameterContext.empty;
-import static com.google.common.base.Predicates.alwaysFalse;
+import static com.android.tools.r8.graph.GenericSignatureContextBuilder.TypeParameterContext.empty;
 
 import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,9 +18,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
-public class GenericSignatureTypeVariableRemover {
+public class GenericSignatureContextBuilder {
 
-  private final DexType objectType;
   private final Map<DexReference, TypeParameterSubstitutions> formalsInfo;
   private final Map<DexReference, DexReference> enclosingInfo;
 
@@ -51,7 +50,7 @@ public class GenericSignatureTypeVariableRemover {
     }
   }
 
-  static class TypeParameterContext {
+  public static class TypeParameterContext {
 
     private static final TypeParameterContext EMPTY =
         new TypeParameterContext(Collections.emptyMap(), Collections.emptySet());
@@ -69,37 +68,99 @@ public class GenericSignatureTypeVariableRemover {
       if (information == null) {
         return this;
       }
-      HashMap<String, DexType> newPruned = new HashMap<>(prunedParametersWithBounds);
-      HashSet<String> newLiveParameters = new HashSet<>(liveParameters);
-      information.parametersWithBounds.forEach(
-          (param, type) -> {
-            if (dead) {
-              newPruned.put(param, type);
-              newLiveParameters.remove(param);
-            } else {
-              newLiveParameters.add(param);
-              newPruned.remove(param);
-            }
-          });
-      return new TypeParameterContext(newPruned, newLiveParameters);
+      return dead
+          ? addPrunedSubstitutions(information.parametersWithBounds)
+          : addLiveParameters(information.parametersWithBounds.keySet());
     }
 
     public static TypeParameterContext empty() {
       return EMPTY;
     }
+
+    public boolean isLiveParameter(String parameterName) {
+      return liveParameters.contains(parameterName);
+    }
+
+    public DexType getPrunedSubstitution(String parameterName) {
+      assert !isLiveParameter(parameterName);
+      return prunedParametersWithBounds.get(parameterName);
+    }
+
+    public TypeParameterContext addLiveParameters(Collection<String> typeParameters) {
+      if (typeParameters.isEmpty()) {
+        return this;
+      }
+      HashSet<String> newLiveParameters = new HashSet<>();
+      newLiveParameters.addAll(liveParameters);
+      newLiveParameters.addAll(typeParameters);
+      HashMap<String, DexType> newPruned = new HashMap<>();
+      prunedParametersWithBounds.forEach(
+          (name, type) -> {
+            if (!typeParameters.contains(name)) {
+              newPruned.put(name, type);
+            }
+          });
+      return new TypeParameterContext(newPruned, newLiveParameters);
+    }
+
+    public TypeParameterContext addPrunedSubstitutions(Map<String, DexType> substitutions) {
+      if (substitutions.isEmpty()) {
+        return this;
+      }
+      HashMap<String, DexType> newPruned = new HashMap<>();
+      newPruned.putAll(prunedParametersWithBounds);
+      newPruned.putAll(substitutions);
+      HashSet<String> newLiveParameters = new HashSet<>();
+      liveParameters.forEach(
+          name -> {
+            if (!substitutions.containsKey(name)) {
+              newLiveParameters.add(name);
+            }
+          });
+      return new TypeParameterContext(newPruned, newLiveParameters);
+    }
   }
 
-  private GenericSignatureTypeVariableRemover(
+  public static class AlwaysLiveTypeParameterContext extends TypeParameterContext {
+
+    private AlwaysLiveTypeParameterContext() {
+      super(Collections.emptyMap(), Collections.emptySet());
+    }
+
+    public static AlwaysLiveTypeParameterContext create() {
+      return new AlwaysLiveTypeParameterContext();
+    }
+
+    @Override
+    public boolean isLiveParameter(String parameterName) {
+      return true;
+    }
+
+    @Override
+    public DexType getPrunedSubstitution(String parameterName) {
+      assert false;
+      return null;
+    }
+
+    @Override
+    public TypeParameterContext addLiveParameters(Collection<String> typeParameters) {
+      return this;
+    }
+
+    @Override
+    public TypeParameterContext addPrunedSubstitutions(Map<String, DexType> substitutions) {
+      return this;
+    }
+  }
+
+  private GenericSignatureContextBuilder(
       Map<DexReference, TypeParameterSubstitutions> formalsInfo,
-      Map<DexReference, DexReference> enclosingInfo,
-      DexType objectType) {
+      Map<DexReference, DexReference> enclosingInfo) {
     this.formalsInfo = formalsInfo;
     this.enclosingInfo = enclosingInfo;
-    this.objectType = objectType;
   }
 
-  public static GenericSignatureTypeVariableRemover create(
-      AppView<?> appView, List<DexProgramClass> programClasses) {
+  public static GenericSignatureContextBuilder create(List<DexProgramClass> programClasses) {
     Map<DexReference, TypeParameterSubstitutions> formalsInfo = new IdentityHashMap<>();
     Map<DexReference, DexReference> enclosingInfo = new IdentityHashMap<>();
     programClasses.forEach(
@@ -137,8 +198,13 @@ public class GenericSignatureTypeVariableRemover {
                     : enclosingMethodAttribute.getEnclosingClass());
           }
         });
-    return new GenericSignatureTypeVariableRemover(
-        formalsInfo, enclosingInfo, appView.dexItemFactory().objectType);
+    return new GenericSignatureContextBuilder(formalsInfo, enclosingInfo);
+  }
+
+  public TypeParameterContext computeTypeParameterContext(
+      AppView<?> appView, DexReference reference, Predicate<DexType> wasPruned) {
+    assert !wasPruned.test(reference.getContextType());
+    return computeTypeParameterContext(appView, reference, wasPruned, false);
   }
 
   private TypeParameterContext computeTypeParameterContext(
@@ -175,7 +241,7 @@ public class GenericSignatureTypeVariableRemover {
     return typeParameterContext.combine(formalsInfo.get(reference), prunedHere);
   }
 
-  private static boolean hasPrunedRelationship(
+  public boolean hasPrunedRelationship(
       AppView<?> appView,
       DexReference enclosingReference,
       DexType enclosedClassType,
@@ -189,8 +255,17 @@ public class GenericSignatureTypeVariableRemover {
     if (wasPruned.test(enclosingReference.getContextType()) || wasPruned.test(enclosedClassType)) {
       return true;
     }
-    DexClass enclosingClass = appView.definitionFor(enclosingReference.getContextType());
-    DexClass enclosedClass = appView.definitionFor(enclosedClassType);
+    // TODO(b/187035453): We should visit generic signatures in the enqueuer.
+    DexClass enclosingClass =
+        appView
+            .appInfo()
+            .definitionForWithoutExistenceAssert(
+                appView.graphLens().lookupClassType(enclosingReference.getContextType()));
+    DexClass enclosedClass =
+        appView
+            .appInfo()
+            .definitionForWithoutExistenceAssert(
+                appView.graphLens().lookupClassType(enclosedClassType));
     if (enclosingClass == null || enclosedClass == null) {
       return true;
     }
@@ -207,68 +282,15 @@ public class GenericSignatureTypeVariableRemover {
     }
   }
 
-  private static boolean hasGenericTypeVariables(
+  public boolean hasGenericTypeVariables(
       AppView<?> appView, DexType type, Predicate<DexType> wasPruned) {
     if (wasPruned.test(type)) {
       return false;
     }
-    DexClass clazz = appView.definitionFor(type);
+    DexClass clazz = appView.definitionFor(appView.graphLens().lookupClassType(type));
     if (clazz == null || clazz.isNotProgramClass() || clazz.getClassSignature().isInvalid()) {
       return true;
     }
     return !clazz.getClassSignature().getFormalTypeParameters().isEmpty();
-  }
-
-  public void removeDeadGenericSignatureTypeVariables(AppView<?> appView) {
-    Predicate<DexType> wasPruned =
-        appView.hasLiveness() ? appView.withLiveness().appInfo()::wasPruned : alwaysFalse();
-    GenericSignaturePartialTypeArgumentApplier baseArgumentApplier =
-        GenericSignaturePartialTypeArgumentApplier.build(
-            objectType,
-            (enclosing, enclosed) -> hasPrunedRelationship(appView, enclosing, enclosed, wasPruned),
-            type -> hasGenericTypeVariables(appView, type, wasPruned));
-    appView
-        .appInfo()
-        .classes()
-        .forEach(
-            clazz -> {
-              if (clazz.getClassSignature().isInvalid()) {
-                return;
-              }
-              TypeParameterContext computedClassFormals =
-                  computeTypeParameterContext(appView, clazz.getType(), wasPruned, false);
-              GenericSignaturePartialTypeArgumentApplier classArgumentApplier =
-                  baseArgumentApplier.addSubstitutionsAndVariables(
-                      computedClassFormals.prunedParametersWithBounds,
-                      computedClassFormals.liveParameters);
-              clazz.setClassSignature(
-                  classArgumentApplier.visitClassSignature(clazz.getClassSignature()));
-              clazz
-                  .methods()
-                  .forEach(
-                      method -> {
-                        MethodTypeSignature methodSignature = method.getGenericSignature();
-                        if (methodSignature.hasSignature()
-                            && method.getGenericSignature().isValid()) {
-                          // The reflection api do not distinguish static methods context from
-                          // virtual methods.
-                          method.setGenericSignature(
-                              classArgumentApplier
-                                  .buildForMethod(methodSignature.getFormalTypeParameters())
-                                  .visitMethodSignature(methodSignature));
-                        }
-                      });
-              clazz
-                  .instanceFields()
-                  .forEach(
-                      field -> {
-                        if (field.getGenericSignature().hasSignature()
-                            && field.getGenericSignature().isValid()) {
-                          field.setGenericSignature(
-                              classArgumentApplier.visitFieldTypeSignature(
-                                  field.getGenericSignature()));
-                        }
-                      });
-            });
   }
 }

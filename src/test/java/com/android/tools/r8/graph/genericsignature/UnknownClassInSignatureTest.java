@@ -7,6 +7,7 @@ package com.android.tools.r8.graph.genericsignature;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -27,7 +28,6 @@ import org.junit.runners.Parameterized.Parameters;
 public class UnknownClassInSignatureTest extends TestBase {
 
   private final TestParameters parameters;
-  private final String NEW_CLASS_SIGNATURE = "<T:LUnknownClass1;>LUnknownClass2<LUnknownClass3;>;";
   private final String NEW_FIELD_SIGNATURE = "LUnknownClass4<LUnknownClass4;>;";
   private final String NEW_METHOD_SIGNATURE = "()LUnkownClass5<LunknownPackage/UnknownClass6;>;";
 
@@ -46,7 +46,7 @@ public class UnknownClassInSignatureTest extends TestBase {
         .addProgramClassFileData(
             transformer(Main.class)
                 .removeInnerClasses()
-                .setGenericSignature(NEW_CLASS_SIGNATURE)
+                .setGenericSignature("<T:LUnknownClass1;>LUnknownClass2<LUnknownClass3;>;")
                 .setGenericSignature(FieldPredicate.onName("field"), NEW_FIELD_SIGNATURE)
                 .setGenericSignature(MethodPredicate.onName("main"), NEW_METHOD_SIGNATURE)
                 .transform())
@@ -56,13 +56,16 @@ public class UnknownClassInSignatureTest extends TestBase {
             ProguardKeepAttributes.ENCLOSING_METHOD,
             ProguardKeepAttributes.INNER_CLASSES)
         .setMinApi(parameters.getApiLevel())
+        .allowDiagnosticInfoMessages()
+        .compile()
+        .apply(TestBase::verifyExpectedInfoFromGenericSignatureSuperTypeValidation)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!")
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(Main.class);
               assertThat(clazz, isPresent());
-              assertEquals(NEW_CLASS_SIGNATURE, clazz.getFinalSignatureAttribute());
+              assertNull(clazz.getFinalSignatureAttribute());
               FieldSubject field = clazz.uniqueFieldWithFinalName("field");
               assertThat(field, isPresent());
               assertEquals(NEW_FIELD_SIGNATURE, field.getFinalSignatureAttribute());

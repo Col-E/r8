@@ -30,7 +30,9 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.FieldAccessFlags;
+import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodCollection;
@@ -70,10 +72,12 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   private final InterfaceMethodRewriter rewriter;
   private final Map<DexProgramClass, PostProcessingInterfaceInfo> postProcessingInterfaceInfos =
       new ConcurrentHashMap<>();
+  private final ClassTypeSignature objectTypeSignature;
 
   InterfaceProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
     this.rewriter = rewriter;
+    this.objectTypeSignature = new ClassTypeSignature(appView.dexItemFactory().objectType);
   }
 
   @Override
@@ -129,6 +133,8 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                 appView,
                 builder -> {
                   builder.setSourceFile(iface.sourceFile);
+                  builder.setGenericSignature(
+                      iface.getClassSignature().toObjectBoundWithSameFormals(objectTypeSignature));
                   ensureCompanionClassInitializesInterface(iface, builder);
                   processVirtualInterfaceMethods(iface, builder);
                   processDirectInterfaceMethods(iface, builder);
@@ -260,7 +266,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                     .setName(companionMethod.getName())
                     .setProto(companionMethod.getProto())
                     .setAccessFlags(newFlags)
-                    .setGenericSignature(virtual.getGenericSignature())
+                    .setGenericSignature(MethodTypeSignature.noSignature())
                     .setAnnotations(virtual.annotations())
                     .setParameterAnnotationsList(virtual.getParameterAnnotations())
                     .setCode(ignored -> virtual.getCode())

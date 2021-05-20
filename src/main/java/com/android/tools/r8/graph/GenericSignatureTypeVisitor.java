@@ -69,14 +69,14 @@ class GenericSignatureTypeVisitor implements GenericSignatureVisitor {
 
   @Override
   public FieldTypeSignature visitClassBound(FieldTypeSignature fieldSignature) {
+    if (fieldSignature.hasNoSignature()) {
+      return fieldSignature;
+    }
     return visitFieldTypeSignature(fieldSignature);
   }
 
   @Override
   public List<FieldTypeSignature> visitInterfaceBounds(List<FieldTypeSignature> fieldSignatures) {
-    if (fieldSignatures == null) {
-      return null;
-    }
     fieldSignatures.forEach(this::visitInterfaceBound);
     return fieldSignatures;
   }

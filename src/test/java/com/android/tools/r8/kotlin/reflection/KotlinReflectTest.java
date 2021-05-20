@@ -10,6 +10,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.kotlin.metadata.KotlinMetadataTestBase;
@@ -91,11 +92,13 @@ public class KotlinReflectTest extends KotlinTestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-        .allowDiagnosticWarningMessages()
+        .allowDiagnosticMessages()
         .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
         .compile()
-        .writeToZip(foo.toPath())
+        .assertNoErrorMessages()
+        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
         .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib)
+        .writeToZip(foo.toPath())
         .run(parameters.getRuntime(), PKG + ".SimpleReflectKt")
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
   }

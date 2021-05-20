@@ -45,6 +45,8 @@ public class ClankDepsTest extends TestBase {
         .allowUnusedProguardConfigurationRules()
         .allowUnnecessaryDontWarnWildcards()
         .setMinApi(AndroidApiLevel.N)
-        .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertOnlyInfos);
+        .allowDiagnosticInfoMessages()
+        .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertOnlyInfos)
+        .apply(TestBase::verifyHasInfoFromGenericSignatureTypeParameterValidation);
   }
 }

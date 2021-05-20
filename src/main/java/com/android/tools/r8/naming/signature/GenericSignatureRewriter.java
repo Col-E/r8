@@ -4,23 +4,37 @@
 
 package com.android.tools.r8.naming.signature;
 
+import static com.google.common.base.Predicates.alwaysFalse;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GenericSignatureContextBuilder;
+import com.android.tools.r8.graph.GenericSignaturePartialTypeArgumentApplier;
 import com.android.tools.r8.graph.GenericSignatureTypeRewriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 
 // TODO(b/169516860): We should generalize this to handle rewriting of attributes in general.
 public class GenericSignatureRewriter {
 
   private final AppView<?> appView;
   private final NamingLens namingLens;
+  private final GenericSignatureContextBuilder contextBuilder;
 
   public GenericSignatureRewriter(AppView<?> appView, NamingLens namingLens) {
+    this(appView, namingLens, null);
+  }
+
+  public GenericSignatureRewriter(
+      AppView<?> appView, NamingLens namingLens, GenericSignatureContextBuilder contextBuilder) {
     this.appView = appView;
     this.namingLens = namingLens;
+    this.contextBuilder = contextBuilder;
   }
 
   public void run(Iterable<? extends DexProgramClass> classes, ExecutorService executorService)
@@ -34,20 +48,54 @@ public class GenericSignatureRewriter {
     // arguments. If that is the case, the ProguardMapMinifier will pass in all classes that is
     // either ProgramClass or has a mapping. This is then transitively called inside the
     // ClassNameMinifier.
+    Predicate<DexType> wasPruned =
+        appView.hasLiveness() ? appView.withLiveness().appInfo()::wasPruned : alwaysFalse();
+    BiPredicate<DexType, DexType> hasPrunedRelationship =
+        (enclosing, enclosed) ->
+            contextBuilder.hasPrunedRelationship(appView, enclosing, enclosed, wasPruned);
+    Predicate<DexType> hasGenericTypeVariables =
+        type -> contextBuilder.hasGenericTypeVariables(appView, type, wasPruned);
     ThreadUtils.processItems(
         classes,
         clazz -> {
+          GenericSignaturePartialTypeArgumentApplier classArgumentApplier =
+              contextBuilder != null
+                  ? GenericSignaturePartialTypeArgumentApplier.build(
+                      appView,
+                      contextBuilder.computeTypeParameterContext(
+                          appView, clazz.getType(), wasPruned),
+                      hasPrunedRelationship,
+                      hasGenericTypeVariables)
+                  : null;
           GenericSignatureTypeRewriter genericSignatureTypeRewriter =
               new GenericSignatureTypeRewriter(appView, clazz);
-          clazz.setClassSignature(genericSignatureTypeRewriter.rewrite(clazz.getClassSignature()));
+          clazz.setClassSignature(
+              genericSignatureTypeRewriter.rewrite(
+                  classArgumentApplier != null
+                      ? classArgumentApplier.visitClassSignature(clazz.getClassSignature())
+                      : clazz.getClassSignature()));
           clazz.forEachField(
               field ->
                   field.setGenericSignature(
-                      genericSignatureTypeRewriter.rewrite(field.getGenericSignature())));
+                      genericSignatureTypeRewriter.rewrite(
+                          classArgumentApplier != null
+                              ? classArgumentApplier.visitFieldTypeSignature(
+                                  field.getGenericSignature())
+                              : field.getGenericSignature())));
           clazz.forEachMethod(
-              method ->
-                  method.setGenericSignature(
-                      genericSignatureTypeRewriter.rewrite(method.getGenericSignature())));
+              method -> {
+                // The reflection api do not distinguish static methods context and
+                // from virtual methods we therefore always base the context for a method on
+                // the class context.
+                method.setGenericSignature(
+                    genericSignatureTypeRewriter.rewrite(
+                        classArgumentApplier != null
+                            ? classArgumentApplier
+                                .buildForMethod(
+                                    method.getGenericSignature().getFormalTypeParameters())
+                                .visitMethodSignature(method.getGenericSignature())
+                            : method.getGenericSignature()));
+              });
         },
         executorService);
   }

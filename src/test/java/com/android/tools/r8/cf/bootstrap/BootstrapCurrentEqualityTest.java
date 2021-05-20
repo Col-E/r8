@@ -105,7 +105,9 @@ public class BootstrapCurrentEqualityTest extends TestBase {
           .setMode(mode)
           .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
           .addKeepRuleFiles(MAIN_KEEP)
+          .allowDiagnosticInfoMessages()
           .compile()
+          .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
           .apply(c -> FileUtils.writeTextFile(map, c.getProguardMap()))
           .writeToZip(jar);
     }
