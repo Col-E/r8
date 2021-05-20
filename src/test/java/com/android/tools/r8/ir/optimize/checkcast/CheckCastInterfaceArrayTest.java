@@ -15,7 +15,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class CheckCastInterfaceArrayTest extends TestBase {
 
-  private static String EXPECTED = StringUtils.lines("A", "B");
+  private static final String EXPECTED = StringUtils.lines("A", "B");
 
   private final TestParameters parameters;
 
@@ -30,18 +30,10 @@ public class CheckCastInterfaceArrayTest extends TestBase {
 
   @Test
   public void testJvmAndD8() throws Exception {
-    if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addInnerClasses(CheckCastInterfaceArrayTest.class)
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutput(EXPECTED);
-    } else {
-      testForD8()
-          .addInnerClasses(CheckCastInterfaceArrayTest.class)
-          .setMinApi(parameters.getApiLevel())
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutput(EXPECTED);
-    }
+    testForRuntime(parameters)
+        .addProgramClasses(I.class, A.class, B.class, TestClass.class)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
@@ -56,6 +48,17 @@ public class CheckCastInterfaceArrayTest extends TestBase {
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
+  public void testJvmAndD8Throwing() throws Exception {
+    testForRuntime(parameters)
+        .addProgramClasses(I.class, A.class, B.class, TestClassError.class)
+        .run(parameters.getRuntime(), TestClassError.class)
+        .applyIf(
+            parameters.isDexRuntime(),
+            result -> result.assertFailureWithErrorThatThrows(VerifyError.class),
+            result -> result.assertSuccessWithOutput(EXPECTED));
   }
 
   interface I {
@@ -87,6 +90,23 @@ public class CheckCastInterfaceArrayTest extends TestBase {
     public static I[] get(I kind) {
       // Work around the ART bug by inserting an explicit check cast (fortunately javac keeps it).
       return (I[]) (kind.id() == A.id ? A.values() : B.values());
+    }
+
+    public static void main(String[] args) {
+      for (I i : get(A.A)) {
+        System.out.println(i);
+      }
+      for (I i : get(B.B)) {
+        System.out.println(i);
+      }
+    }
+  }
+
+  static class TestClassError {
+
+    public static I[] get(I kind) {
+      // Work around the ART bug by inserting an explicit check cast (fortunately javac keeps it).
+      return (kind.id() == A.id ? A.values() : B.values());
     }
 
     public static void main(String[] args) {
