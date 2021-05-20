@@ -722,7 +722,7 @@ public abstract class GraphLens {
 
     @Override
     public String lookupPackageName(String pkg) {
-      return pkg;
+      return getPrevious().lookupPackageName(pkg);
     }
 
     @Override
