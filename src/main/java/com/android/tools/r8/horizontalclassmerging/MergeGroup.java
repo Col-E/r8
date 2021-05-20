@@ -9,6 +9,7 @@ package com.android.tools.r8.horizontalclassmerging;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.Iterables;
@@ -106,6 +107,11 @@ public class MergeGroup implements Collection<DexProgramClass> {
   public Iterable<DexProgramClass> getSources() {
     assert hasTarget();
     return Iterables.filter(classes, clazz -> clazz != target);
+  }
+
+  public DexType getSuperType() {
+    assert IterableUtils.allIdentical(classes, DexClass::getSuperType);
+    return getClasses().getFirst().getSuperType();
   }
 
   public boolean hasTarget() {
