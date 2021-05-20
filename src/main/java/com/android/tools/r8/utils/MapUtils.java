@@ -5,7 +5,6 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.utils.StringUtils.BraceType;
-import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -49,12 +48,6 @@ public class MapUtils {
           }
         });
     return result;
-  }
-
-  public static <K, V> IdentityHashMap<K, V> newIdentityHashMap(BiForEachable<K, V> forEachable) {
-    IdentityHashMap<K, V> map = new IdentityHashMap<>();
-    forEachable.forEach(map::put);
-    return map;
   }
 
   public static <T> void removeIdentityMappings(Map<T, T> map) {

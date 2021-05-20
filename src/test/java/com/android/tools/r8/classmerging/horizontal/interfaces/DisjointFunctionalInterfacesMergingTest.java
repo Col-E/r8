@@ -36,6 +36,11 @@ public class DisjointFunctionalInterfacesMergingTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertIsCompleteMergeGroup(I.class, J.class))
+        .addOptionsModification(
+            options -> {
+              assertFalse(options.horizontalClassMergerOptions().isInterfaceMergingEnabled());
+              options.horizontalClassMergerOptions().enableInterfaceMerging();
+            })
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .noClassInliningOfSynthetics()

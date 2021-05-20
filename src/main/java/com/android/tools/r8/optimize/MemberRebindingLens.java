@@ -6,7 +6,6 @@ package com.android.tools.r8.optimize;
 
 import static com.android.tools.r8.graph.NestedGraphLens.mapVirtualInterfaceInvocationTypes;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -45,11 +44,6 @@ public class MemberRebindingLens extends NonIdentityGraphLens {
   @Override
   public boolean isMemberRebindingLens() {
     return true;
-  }
-
-  @Override
-  public MemberRebindingLens asMemberRebindingLens() {
-    return this;
   }
 
   @Override
@@ -137,8 +131,7 @@ public class MemberRebindingLens extends NonIdentityGraphLens {
   }
 
   public FieldRebindingIdentityLens toRewrittenFieldRebindingLens(
-      AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens lens) {
-    DexItemFactory dexItemFactory = appView.dexItemFactory();
+      DexItemFactory dexItemFactory, GraphLens lens) {
     FieldRebindingIdentityLens.Builder builder = FieldRebindingIdentityLens.builder();
     nonReboundFieldReferenceToDefinitionMap.forEach(
         (nonReboundFieldReference, reboundFieldReference) -> {

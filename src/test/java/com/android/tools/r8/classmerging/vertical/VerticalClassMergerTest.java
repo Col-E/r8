@@ -1052,8 +1052,7 @@ public class VerticalClassMergerTest extends TestBase {
           CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever.class"),
           CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever$SimpleInterfaceImpl.class"),
           CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever$1.class"),
-          CF_DIR.resolve("NeverInline.class"),
-          CF_DIR.resolve("NoHorizontalClassMerging.class")
+          CF_DIR.resolve("NeverInline.class")
         };
     // SimpleInterface cannot be merged into SimpleInterfaceImpl because SimpleInterfaceImpl
     // is in a different package and is not public.

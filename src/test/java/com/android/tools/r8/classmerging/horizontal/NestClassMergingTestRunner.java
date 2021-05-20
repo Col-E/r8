@@ -111,7 +111,7 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
                 .addOptionsModification(
                     options -> {
                       options.testing.horizontalClassMergingTarget =
-                          (appView, canditates, target) -> {
+                          (canditates, target) -> {
                             Set<ClassReference> candidateClassReferences =
                                 Streams.stream(canditates)
                                     .map(DexClass::getClassReference)
@@ -164,7 +164,7 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
                 .addOptionsModification(
                     options -> {
                       options.testing.horizontalClassMergingTarget =
-                          (appView, canditates, target) -> {
+                          (canditates, target) -> {
                             Set<ClassReference> candidateClassReferences =
                                 Streams.stream(canditates)
                                     .map(DexClass::getClassReference)
@@ -217,7 +217,7 @@ public class NestClassMergingTestRunner extends HorizontalClassMergingTestBase {
                 .addOptionsModification(
                     options -> {
                       options.testing.horizontalClassMergingTarget =
-                          (appView, canditates, target) -> {
+                          (canditates, target) -> {
                             Set<ClassReference> candidateClassReferences =
                                 Streams.stream(canditates)
                                     .map(DexClass::getClassReference)

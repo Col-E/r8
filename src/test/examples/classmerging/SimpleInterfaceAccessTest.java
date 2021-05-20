@@ -32,14 +32,12 @@ public class SimpleInterfaceAccessTest {
   }
 
   // Should only be merged into OtherSimpleInterfaceImpl if access modifications are allowed.
-  @NoHorizontalClassMerging
   public interface SimpleInterface {
 
     void foo();
   }
 
   // Should only be merged into OtherSimpleInterfaceImpl if access modifications are allowed.
-  @NoHorizontalClassMerging
   public interface OtherSimpleInterface {
 
     void bar();

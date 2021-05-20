@@ -7,6 +7,7 @@ package com.android.tools.r8.classmerging.horizontal.interfaces;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isImplementing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -15,9 +16,8 @@ import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -25,21 +25,19 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class CollisionWithDefaultMethodOutsideMergeGroupAfterSubclassMergingTest extends TestBase {
 
-  private final boolean enableInterfaceMergingInInitial;
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{1}, enableInterfaceMergingInInitial: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public CollisionWithDefaultMethodOutsideMergeGroupAfterSubclassMergingTest(
-      boolean enableInterfaceMergingInInitial, TestParameters parameters) {
-    this.enableInterfaceMergingInInitial = enableInterfaceMergingInInitial;
+      TestParameters parameters) {
     this.parameters = parameters;
   }
 
+  // TODO(b/173990042): Disallow merging of A and B in the first round of class merging.
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
@@ -50,22 +48,23 @@ public class CollisionWithDefaultMethodOutsideMergeGroupAfterSubclassMergingTest
         // the default method J.m() to A.
         .addHorizontallyMergedClassesInspector(
             inspector -> {
-              inspector
-                  .assertIsCompleteMergeGroup(A.class, B.class)
-                  .assertMergedInto(B.class, A.class);
               if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
-                inspector.assertClassesNotMerged(I.class, J.class, K.class);
+                inspector
+                    .assertIsCompleteMergeGroup(A.class, B.class)
+                    .assertMergedInto(B.class, A.class)
+                    .assertClassesNotMerged(I.class, J.class, K.class);
               } else {
                 inspector
+                    .assertIsCompleteMergeGroup(A.class, B.class)
+                    .assertMergedInto(B.class, A.class)
                     .assertIsCompleteMergeGroup(I.class, J.class)
                     .assertClassesNotMerged(K.class);
               }
             })
         .addOptionsModification(
             options -> {
-              if (enableInterfaceMergingInInitial) {
-                options.horizontalClassMergerOptions().setEnableInterfaceMergingInInitial();
-              }
+              assertFalse(options.horizontalClassMergerOptions().isInterfaceMergingEnabled());
+              options.horizontalClassMergerOptions().enableInterfaceMerging();
             })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
@@ -81,10 +80,10 @@ public class CollisionWithDefaultMethodOutsideMergeGroupAfterSubclassMergingTest
               assertThat(aClassSubject, isImplementing(inspector.clazz(I.class)));
               assertThat(aClassSubject, isImplementing(inspector.clazz(K.class)));
 
-              ClassSubject cClassSubject = inspector.clazz(C.class);
-              assertThat(cClassSubject, isPresent());
+              ClassSubject bClassSubject = inspector.clazz(C.class);
+              assertThat(bClassSubject, isPresent());
               assertThat(
-                  cClassSubject,
+                  bClassSubject,
                   isImplementing(
                       inspector.clazz(
                           parameters.canUseDefaultAndStaticInterfaceMethods()

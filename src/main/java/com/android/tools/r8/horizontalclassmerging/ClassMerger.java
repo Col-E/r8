@@ -270,14 +270,15 @@ public class ClassMerger {
   }
 
   private void mergeInterfaces() {
-    Set<DexType> interfaces = Sets.newLinkedHashSet();
+    DexTypeList previousInterfaces = group.getTarget().getInterfaces();
+    Set<DexType> interfaces = Sets.newLinkedHashSet(previousInterfaces);
     if (group.isInterfaceGroup()) {
       // Add all implemented interfaces from the merge group to the target class, ignoring
       // implemented interfaces that are part of the merge group.
       Set<DexType> groupTypes =
           SetUtils.newImmutableSet(
               builder -> group.forEach(clazz -> builder.accept(clazz.getType())));
-      group.forEach(
+      group.forEachSource(
           clazz -> {
             for (DexType itf : clazz.getInterfaces()) {
               if (!groupTypes.contains(itf)) {
@@ -287,7 +288,7 @@ public class ClassMerger {
           });
     } else {
       // Add all implemented interfaces from the merge group to the target class.
-      group.forEach(clazz -> Iterables.addAll(interfaces, clazz.getInterfaces()));
+      group.forEachSource(clazz -> Iterables.addAll(interfaces, clazz.getInterfaces()));
     }
     group.getTarget().setInterfaces(DexTypeList.create(interfaces));
   }
@@ -354,8 +355,7 @@ public class ClassMerger {
           target = current;
         }
       }
-      group.setTarget(
-          appView.testing().horizontalClassMergingTarget.apply(appView, candidates, target));
+      group.setTarget(appView.testing().horizontalClassMergingTarget.apply(candidates, target));
     }
 
     private ClassInitializerSynthesizedCode createClassInitializerMerger() {

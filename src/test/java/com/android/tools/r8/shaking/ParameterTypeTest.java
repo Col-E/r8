@@ -11,11 +11,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
-import com.android.tools.r8.NoHorizontalClassMerging;
-import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.jasmin.JasminBuilder;
@@ -34,17 +33,14 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-@NoHorizontalClassMerging
 interface B112452064SuperInterface1 {
   void foo();
 }
 
-@NoHorizontalClassMerging
 interface B112452064SuperInterface2 {
   void bar();
 }
 
-@NoHorizontalClassMerging
 interface B112452064SubInterface extends B112452064SuperInterface1, B112452064SuperInterface2 {}
 
 class B112452064TestMain {
@@ -85,8 +81,7 @@ public class ParameterTypeTest extends TestBase {
 
   @Parameters(name = "{1}, argument removal: {0}")
   public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
   }
 
   public ParameterTypeTest(boolean enableArgumentRemoval, TestParameters parameters) {
@@ -132,8 +127,7 @@ public class ParameterTypeTest extends TestBase {
                   options.enableUnusedInterfaceRemoval = enableUnusedInterfaceRemoval;
                   options.enableVerticalClassMerging = enableVerticalClassMerging;
                 })
-            .enableNoHorizontalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters.getRuntime())
             .compile()
             .run(parameters.getRuntime(), B112452064TestMain.class)
             .assertSuccessWithOutput(javaResult.stdout)
@@ -291,6 +285,7 @@ public class ParameterTypeTest extends TestBase {
         "return");
 
     final String mainClassName = mainClass.name;
+    String proguardConfig = keepMainProguardConfiguration(mainClassName, false, false);
 
     // Run input program on java.
     Path outputDirectory = temp.newFolder().toPath();
@@ -300,34 +295,36 @@ public class ParameterTypeTest extends TestBase {
     assertThat(javaResult.stdout, containsString(bar.name));
     assertEquals(-1, javaResult.stderr.indexOf("ClassNotFoundException"));
 
-    testForR8(parameters.getBackend())
-        .addProgramClassFileData(jasminBuilder.buildClasses())
-        .addKeepMainRule(mainClassName)
-        .addOptionsModification(
+    AndroidApp processedApp =
+        compileWithR8(
+            jasminBuilder.build(),
+            proguardConfig,
             options -> {
               // Disable inlining to avoid the (short) tested method from being inlined and removed.
               options.enableInlining = false;
               options.enableArgumentRemoval = enableArgumentRemoval;
-            })
-        .noMinification()
-        .setMinApi(parameters.getApiLevel())
-        .compile()
-        .inspect(
-            inspector -> {
-              ClassSubject subSubject = inspector.clazz(sub.name);
-              assertNotEquals(enableArgumentRemoval, subSubject.isPresent());
-            })
-        .run(parameters.getRuntime(), mainClassName)
-        .applyIf(
-            enableArgumentRemoval || parameters.isCfRuntime(),
-            SingleTestRunResult::assertSuccess,
-            result ->
-                result.assertFailureWithErrorThatMatches(
-                    containsString(
-                        parameters.getDexRuntimeVersion().isNewerThan(Version.V4_4_4)
-                            ? "type Precise Reference: Foo[] but expected Reference: SubInterface[]"
-                            : "[LFoo; is not instance of [LSubInterface;")))
-        .assertStderrMatches(not(containsString("ClassNotFoundException")));
+            });
+
+    // Run processed (output) program on ART
+    ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);
+    if (enableArgumentRemoval) {
+      assertEquals(0, artResult.exitCode);
+    } else {
+      assertNotEquals(0, artResult.exitCode);
+
+      DexVm.Version currentVersion = ToolHelper.getDexVm().getVersion();
+      String errorMessage =
+          currentVersion.isNewerThan(Version.V4_4_4)
+              ? "type Precise Reference: Foo[] but expected Reference: SubInterface[]"
+              : "[LFoo; is not instance of [LSubInterface;";
+      assertThat(artResult.stderr, containsString(errorMessage));
+    }
+
+    assertEquals(-1, artResult.stderr.indexOf("ClassNotFoundException"));
+
+    CodeInspector inspector = new CodeInspector(processedApp);
+    ClassSubject subSubject = inspector.clazz(sub.name);
+    assertNotEquals(enableArgumentRemoval, subSubject.isPresent());
   }
 
   @Test

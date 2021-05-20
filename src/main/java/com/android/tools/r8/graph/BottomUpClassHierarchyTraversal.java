@@ -4,19 +4,17 @@
 
 package com.android.tools.r8.graph;
 
-import java.util.function.Function;
-
 public class BottomUpClassHierarchyTraversal<T extends DexClass>
     extends ClassHierarchyTraversal<T, BottomUpClassHierarchyTraversal<T>> {
 
-  private final Function<DexType, Iterable<DexType>> immediateSubtypesProvider;
+  private final SubtypingInfo subtypingInfo;
 
   private BottomUpClassHierarchyTraversal(
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      Function<DexType, Iterable<DexType>> immediateSubtypesProvider,
+      SubtypingInfo subtypingInfo,
       Scope scope) {
     super(appView, scope);
-    this.immediateSubtypesProvider = immediateSubtypesProvider;
+    this.subtypingInfo = subtypingInfo;
   }
 
   /**
@@ -25,8 +23,7 @@ public class BottomUpClassHierarchyTraversal<T extends DexClass>
    */
   public static BottomUpClassHierarchyTraversal<DexClass> forAllClasses(
       AppView<? extends AppInfoWithClassHierarchy> appView, SubtypingInfo subtypingInfo) {
-    return new BottomUpClassHierarchyTraversal<>(
-        appView, subtypingInfo::allImmediateSubtypes, Scope.ALL_CLASSES);
+    return new BottomUpClassHierarchyTraversal<>(appView, subtypingInfo, Scope.ALL_CLASSES);
   }
 
   /**
@@ -35,18 +32,8 @@ public class BottomUpClassHierarchyTraversal<T extends DexClass>
    */
   public static BottomUpClassHierarchyTraversal<DexProgramClass> forProgramClasses(
       AppView<? extends AppInfoWithClassHierarchy> appView, SubtypingInfo subtypingInfo) {
-    return forProgramClasses(appView, subtypingInfo::allImmediateSubtypes);
-  }
-
-  /**
-   * Returns a visitor that can be used to visit all the program classes that are reachable from a
-   * given set of sources.
-   */
-  public static BottomUpClassHierarchyTraversal<DexProgramClass> forProgramClasses(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
-      Function<DexType, Iterable<DexType>> immediateSubtypesProvider) {
     return new BottomUpClassHierarchyTraversal<>(
-        appView, immediateSubtypesProvider, Scope.ONLY_PROGRAM_CLASSES);
+        appView, subtypingInfo, Scope.ONLY_PROGRAM_CLASSES);
   }
 
   @Override
@@ -70,7 +57,7 @@ public class BottomUpClassHierarchyTraversal<T extends DexClass>
     worklist.addFirst(clazzWithTypeT);
 
     // Add subtypes to worklist.
-    for (DexType subtype : immediateSubtypesProvider.apply(clazz.getType())) {
+    for (DexType subtype : subtypingInfo.allImmediateSubtypes(clazz.type)) {
       DexClass definition = appView.definitionFor(subtype);
       if (definition != null) {
         if (scope != Scope.ONLY_PROGRAM_CLASSES || definition.isProgramClass()) {

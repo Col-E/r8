@@ -8,26 +8,25 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
-import com.android.tools.r8.horizontalclassmerging.MultiClassPolicyWithPreprocessing;
-import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import java.util.ArrayList;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.Consumer;
 
 /**
  * This policy ensures that we do not create cycles in the class hierarchy as a result of interface
@@ -54,14 +53,10 @@ import java.util.function.Function;
  *   interface J extends IK, ... {}
  * </pre>
  */
-public class OnlyDirectlyConnectedOrUnrelatedInterfaces
-    extends MultiClassPolicyWithPreprocessing<SubtypingInfo> {
+public class OnlyDirectlyConnectedOrUnrelatedInterfaces extends MultiClassPolicy {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Mode mode;
-
-  // The interface merge groups that this policy has committed to so far.
-  private final Map<DexProgramClass, MergeGroup> committed = new IdentityHashMap<>();
 
   public OnlyDirectlyConnectedOrUnrelatedInterfaces(
       AppView<? extends AppInfoWithClassHierarchy> appView, Mode mode) {
@@ -70,84 +65,116 @@ public class OnlyDirectlyConnectedOrUnrelatedInterfaces
   }
 
   @Override
-  public Collection<MergeGroup> apply(MergeGroup group, SubtypingInfo subtypingInfo) {
+  public Collection<MergeGroup> apply(MergeGroup group) {
     if (!group.isInterfaceGroup()) {
       return ImmutableList.of(group);
     }
 
-    List<MergeGroupWithInfo> newGroupsWithInfo = new ArrayList<>();
-    for (DexProgramClass clazz : group) {
-      Set<DexProgramClass> superInterfaces = computeSuperInterfaces(clazz);
-      Set<DexProgramClass> subInterfaces = computeSubInterfaces(clazz, subtypingInfo);
-
-      MergeGroupWithInfo newGroup = null;
-      for (MergeGroupWithInfo candidateGroup : newGroupsWithInfo) {
-        // Check if adding `clazz` to `candidateGroup` would introduce a super interface that is
-        // also a sub interface. In that case we must abort since merging would lead to a cycle in
-        // the class hierarchy.
-        if (candidateGroup.isSafeToAddSubAndSuperInterfaces(
-            clazz, subInterfaces, superInterfaces)) {
-          newGroup = candidateGroup;
-          break;
-        }
-      }
-
-      if (newGroup != null) {
-        newGroup.add(clazz, superInterfaces, subInterfaces);
-      } else {
-        newGroupsWithInfo.add(new MergeGroupWithInfo(clazz, superInterfaces, subInterfaces));
-      }
+    Set<DexProgramClass> classes = new LinkedHashSet<>(group.getClasses());
+    Map<DexProgramClass, Set<DexProgramClass>> ineligibleForMerging =
+        computeIneligibleForMergingGraph(classes);
+    if (ineligibleForMerging.isEmpty()) {
+      return ImmutableList.of(group);
     }
 
+    // Extract sub-merge groups from the graph in such a way that all pairs of interfaces in each
+    // merge group are not connected by an edge in the graph.
     List<MergeGroup> newGroups = new LinkedList<>();
-    for (MergeGroupWithInfo newGroupWithInfo : newGroupsWithInfo) {
-      MergeGroup newGroup = newGroupWithInfo.getGroup();
+    while (!classes.isEmpty()) {
+      Iterator<DexProgramClass> iterator = classes.iterator();
+      MergeGroup newGroup = new MergeGroup(iterator.next());
+      Iterators.addAll(
+          newGroup,
+          Iterators.filter(
+              iterator,
+              candidate -> !isConnectedToGroup(candidate, newGroup, ineligibleForMerging)));
       if (!newGroup.isTrivial()) {
         newGroups.add(newGroup);
-        newGroup.forEach(clazz -> committed.put(clazz, newGroup));
       }
+      classes.removeAll(newGroup.getClasses());
     }
     return newGroups;
   }
 
-  private Set<DexProgramClass> computeSuperInterfaces(DexProgramClass clazz) {
-    return computeTransitiveSubOrSuperInterfaces(clazz, DexClass::getInterfaces);
+  /**
+   * Computes an undirected graph, where the nodes are the interfaces from the merge group, and an
+   * edge I <-> J represents that I and J are not eligible for merging.
+   *
+   * <p>We will insert an edge I <-> J, if interface I inherits from interface J, and the path from
+   * I to J in the class hierarchy includes an interface K that is outside the merge group. Note
+   * that if I extends J directly we will not insert an edge I <-> J (unless there are multiple
+   * paths in the class hierarchy from I to J, and one of the paths goes through an interface
+   * outside the merge group).
+   */
+  private Map<DexProgramClass, Set<DexProgramClass>> computeIneligibleForMergingGraph(
+      Set<DexProgramClass> classes) {
+    Map<DexProgramClass, Set<DexProgramClass>> ineligibleForMerging = new IdentityHashMap<>();
+    for (DexProgramClass clazz : classes) {
+      forEachIndirectlyReachableInterfaceInMergeGroup(
+          clazz,
+          classes,
+          other ->
+              ineligibleForMerging
+                  .computeIfAbsent(clazz, ignore -> Sets.newIdentityHashSet())
+                  .add(other));
+    }
+    return ineligibleForMerging;
   }
 
-  private Set<DexProgramClass> computeSubInterfaces(
-      DexProgramClass clazz, SubtypingInfo subtypingInfo) {
-    return computeTransitiveSubOrSuperInterfaces(
-        clazz, definition -> subtypingInfo.allImmediateExtendsSubtypes(definition.getType()));
-  }
-
-  private Set<DexProgramClass> computeTransitiveSubOrSuperInterfaces(
-      DexProgramClass clazz,
-      Function<DexProgramClass, Iterable<DexType>> immediateSubOrSuperInterfacesProvider) {
-    WorkList<DexProgramClass> workList = WorkList.newWorkList(new LinkedHashSet<>());
-    // Intentionally not marking `clazz` as seen, since we only want the strict sub/super types.
-    workList.addIgnoringSeenSet(clazz);
+  private void forEachIndirectlyReachableInterfaceInMergeGroup(
+      DexProgramClass clazz, Set<DexProgramClass> classes, Consumer<DexProgramClass> consumer) {
+    // First find the set of interfaces that can be reached via paths in the class hierarchy from
+    // the given interface, without visiting any interfaces outside the merge group.
+    WorkList<DexType> workList = WorkList.newIdentityWorkList(clazz.getInterfaces());
     while (workList.hasNext()) {
-      DexProgramClass interfaceDefinition = workList.next();
-      MergeGroup group = committed.get(interfaceDefinition);
-      if (group != null) {
-        workList.addIfNotSeen(group);
+      DexProgramClass directlyReachableInterface =
+          asProgramClassOrNull(appView.definitionFor(workList.next()));
+      if (directlyReachableInterface == null) {
+        continue;
       }
-      for (DexType immediateSubOrSuperInterfaceType :
-          immediateSubOrSuperInterfacesProvider.apply(interfaceDefinition)) {
-        DexProgramClass immediateSubOrSuperInterface =
-            asProgramClassOrNull(appView.definitionFor(immediateSubOrSuperInterfaceType));
-        if (immediateSubOrSuperInterface != null) {
-          workList.addIfNotSeen(immediateSubOrSuperInterface);
-        }
+      // If the implemented interface is a member of the merge group, then include it's interfaces.
+      if (classes.contains(directlyReachableInterface)) {
+        workList.addIfNotSeen(directlyReachableInterface.getInterfaces());
       }
     }
-    assert !workList.isSeen(clazz);
-    return workList.getMutableSeenSet();
+
+    // Initialize a new worklist with the first layer of indirectly reachable interface types.
+    Set<DexType> directlyReachableInterfaceTypes = workList.getSeenSet();
+    workList = WorkList.newIdentityWorkList();
+    for (DexType directlyReachableInterfaceType : directlyReachableInterfaceTypes) {
+      DexProgramClass directlyReachableInterface =
+          asProgramClassOrNull(appView.definitionFor(directlyReachableInterfaceType));
+      if (directlyReachableInterface != null) {
+        workList.addIfNotSeen(directlyReachableInterface.getInterfaces());
+      }
+    }
+
+    // Report all interfaces from the merge group that are reachable in the class hierarchy from the
+    // worklist.
+    while (workList.hasNext()) {
+      DexProgramClass indirectlyReachableInterface =
+          asProgramClassOrNull(appView.definitionFor(workList.next()));
+      if (indirectlyReachableInterface == null) {
+        continue;
+      }
+      if (classes.contains(indirectlyReachableInterface)) {
+        consumer.accept(indirectlyReachableInterface);
+      }
+      workList.addIfNotSeen(indirectlyReachableInterface.getInterfaces());
+    }
   }
 
-  @Override
-  public void clear() {
-    committed.clear();
+  private boolean isConnectedToGroup(
+      DexProgramClass clazz,
+      MergeGroup group,
+      Map<DexProgramClass, Set<DexProgramClass>> ineligibleForMerging) {
+    for (DexProgramClass member : group) {
+      if (ineligibleForMerging.getOrDefault(clazz, Collections.emptySet()).contains(member)
+          || ineligibleForMerging.getOrDefault(member, Collections.emptySet()).contains(clazz)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
@@ -156,80 +183,7 @@ public class OnlyDirectlyConnectedOrUnrelatedInterfaces
   }
 
   @Override
-  public SubtypingInfo preprocess(Collection<MergeGroup> groups) {
-    return new SubtypingInfo(appView);
-  }
-
-  @Override
   public boolean shouldSkipPolicy() {
     return !appView.options().horizontalClassMergerOptions().isInterfaceMergingEnabled(mode);
-  }
-
-  static class MergeGroupWithInfo {
-
-    private final MergeGroup group;
-    private final Set<DexProgramClass> members;
-    private final Set<DexProgramClass> superInterfaces;
-    private final Set<DexProgramClass> subInterfaces;
-
-    MergeGroupWithInfo(
-        DexProgramClass clazz,
-        Set<DexProgramClass> superInterfaces,
-        Set<DexProgramClass> subInterfaces) {
-      this.group = new MergeGroup(clazz);
-      this.members = SetUtils.newIdentityHashSet(clazz);
-      this.superInterfaces = superInterfaces;
-      this.subInterfaces = subInterfaces;
-    }
-
-    void add(
-        DexProgramClass clazz,
-        Set<DexProgramClass> newSuperInterfaces,
-        Set<DexProgramClass> newSubInterfaces) {
-      group.add(clazz);
-      members.add(clazz);
-      Iterables.addAll(
-          superInterfaces,
-          Iterables.filter(
-              newSuperInterfaces, superInterface -> !members.contains(superInterface)));
-      superInterfaces.remove(clazz);
-      Iterables.addAll(
-          subInterfaces,
-          Iterables.filter(newSubInterfaces, subInterface -> !members.contains(subInterface)));
-      subInterfaces.remove(clazz);
-    }
-
-    MergeGroup getGroup() {
-      return group;
-    }
-
-    boolean isSafeToAddSubAndSuperInterfaces(
-        DexProgramClass clazz,
-        Set<DexProgramClass> newSubInterfaces,
-        Set<DexProgramClass> newSuperInterfaces) {
-      // Check that adding the new sub and super interfaces to the group is safe.
-      for (DexProgramClass newSubInterface : newSubInterfaces) {
-        if (!group.contains(newSubInterface) && superInterfaces.contains(newSubInterface)) {
-          return false;
-        }
-      }
-      for (DexProgramClass newSuperInterface : newSuperInterfaces) {
-        if (!group.contains(newSuperInterface) && subInterfaces.contains(newSuperInterface)) {
-          return false;
-        }
-      }
-      // Check that adding the sub and super interfaces of the group to the current class is safe.
-      for (DexProgramClass subInterface : subInterfaces) {
-        if (subInterface != clazz && newSuperInterfaces.contains(subInterface)) {
-          return false;
-        }
-      }
-      for (DexProgramClass superInterface : superInterfaces) {
-        if (superInterface != clazz && newSubInterfaces.contains(superInterface)) {
-          return false;
-        }
-      }
-      return true;
-    }
   }
 }

@@ -85,6 +85,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -1214,7 +1215,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     private boolean enable =
         !Version.isDevelopmentVersion()
             || System.getProperty("com.android.tools.r8.disableHorizontalClassMerging") == null;
-    private boolean enableInterfaceMergingInInitial = false;
+    private boolean enableInterfaceMerging = false;
     private boolean enableSyntheticMerging = true;
     private boolean ignoreRuntimeTypeChecksForTesting = false;
     private boolean restrictToSynthetics = false;
@@ -1235,6 +1236,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public void enableIf(boolean enable) {
       this.enable = enable;
+    }
+
+    public void enableInterfaceMerging() {
+      enableInterfaceMerging = true;
     }
 
     public int getMaxGroupSize() {
@@ -1260,24 +1265,21 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return ignoreRuntimeTypeChecksForTesting;
     }
 
+    public boolean isInterfaceMergingEnabled() {
+      assert !isInterfaceMergingEnabled(HorizontalClassMerger.Mode.INITIAL);
+      return isInterfaceMergingEnabled(HorizontalClassMerger.Mode.FINAL);
+    }
+
     public boolean isSyntheticMergingEnabled() {
       return enableSyntheticMerging;
     }
 
     public boolean isInterfaceMergingEnabled(HorizontalClassMerger.Mode mode) {
-      if (mode.isInitial()) {
-        return enableInterfaceMergingInInitial;
-      }
-      assert mode.isFinal();
-      return true;
+      return enableInterfaceMerging && mode.isFinal();
     }
 
     public boolean isRestrictedToSynthetics() {
       return restrictToSynthetics || !isOptimizing() || !isShrinking();
-    }
-
-    public void setEnableInterfaceMergingInInitial() {
-      enableInterfaceMergingInInitial = true;
     }
 
     public void setIgnoreRuntimeTypeChecksForTesting() {
@@ -1349,8 +1351,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public BiConsumer<DexItemFactory, HorizontallyMergedClasses> horizontallyMergedClassesConsumer =
         ConsumerUtils.emptyBiConsumer();
-    public TriFunction<AppView<?>, Iterable<DexProgramClass>, DexProgramClass, DexProgramClass>
-        horizontalClassMergingTarget = (appView, candidates, target) -> target;
+    public BiFunction<Iterable<DexProgramClass>, DexProgramClass, DexProgramClass>
+        horizontalClassMergingTarget = (candidates, target) -> target;
 
     public BiConsumer<DexItemFactory, EnumDataMap> unboxedEnumsConsumer =
         ConsumerUtils.emptyBiConsumer();

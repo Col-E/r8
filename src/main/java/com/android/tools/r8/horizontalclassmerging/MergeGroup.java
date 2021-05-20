@@ -140,10 +140,6 @@ public class MergeGroup implements Collection<DexProgramClass> {
     return classes.isEmpty();
   }
 
-  public boolean isClassGroup() {
-    return !isInterfaceGroup();
-  }
-
   public boolean isInterfaceGroup() {
     assert !isEmpty();
     assert IterableUtils.allIdentical(getClasses(), DexClass::isInterface);
