@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.DexSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.StringUtils;
@@ -232,7 +231,7 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
-      MethodProcessor methodProcessor) {
+      RewrittenPrototypeDescription protoChanges) {
     DexSourceCode source =
         new DexSourceCode(
             this,
@@ -240,7 +239,7 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
             appView.graphLens().getOriginalMethodSignature(method.getReference()),
             callerPosition);
     return IRBuilder.createForInlining(
-            method, appView, source, origin, methodProcessor, valueNumberGenerator)
+            method, appView, source, origin, valueNumberGenerator, protoChanges)
         .build(context);
   }
 

@@ -32,7 +32,6 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -314,7 +313,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
     GraphLens graphLens = appView.graphLens();
-    assert verifyFrames(method.getDefinition(), appView, null, false).isValid()
+    assert verifyFrames(method.getDefinition(), appView, null).isValid()
         : "Could not validate stack map frames";
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     InitClassLens initClassLens = appView.initClassLens();
@@ -416,7 +415,8 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
 
   @Override
   public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
-    verifyFramesOrRemove(method.getDefinition(), appView, origin, true);
+    verifyFramesOrRemove(
+        method.getDefinition(), appView, origin, IRBuilder.lookupPrototypeChanges(appView, method));
     return internalBuildPossiblyWithLocals(method, method, appView, null, null, origin, null);
   }
 
@@ -428,21 +428,21 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
-      MethodProcessor methodProcessor) {
+      RewrittenPrototypeDescription protoChanges) {
     assert valueNumberGenerator != null;
     assert callerPosition != null;
-    verifyFramesOrRemove(
-        method.getDefinition(), appView, origin, methodProcessor.shouldApplyCodeRewritings(method));
+    assert protoChanges != null;
+    verifyFramesOrRemove(method.getDefinition(), appView, origin, protoChanges);
     return internalBuildPossiblyWithLocals(
-        context, method, appView, valueNumberGenerator, callerPosition, origin, methodProcessor);
+        context, method, appView, valueNumberGenerator, callerPosition, origin, protoChanges);
   }
 
   private void verifyFramesOrRemove(
       DexEncodedMethod method,
       AppView<?> appView,
       Origin origin,
-      boolean shouldApplyCodeRewritings) {
-    stackMapStatus = verifyFrames(method, appView, origin, shouldApplyCodeRewritings);
+      RewrittenPrototypeDescription protoChanges) {
+    stackMapStatus = verifyFrames(method, appView, origin, protoChanges);
     if (!stackMapStatus.isValid()) {
       ArrayList<CfInstruction> copy = new ArrayList<>(instructions);
       copy.removeIf(CfInstruction::isFrame);
@@ -458,7 +458,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
-      MethodProcessor methodProcessor) {
+      RewrittenPrototypeDescription protoChanges) {
     if (!method.getDefinition().keepLocals(appView.options())) {
       return internalBuild(
           Collections.emptyList(),
@@ -468,10 +468,10 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
           valueNumberGenerator,
           callerPosition,
           origin,
-          methodProcessor);
+          protoChanges);
     } else {
       return internalBuildWithLocals(
-          context, method, appView, valueNumberGenerator, callerPosition, origin, methodProcessor);
+          context, method, appView, valueNumberGenerator, callerPosition, origin, protoChanges);
     }
   }
 
@@ -483,7 +483,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
-      MethodProcessor methodProcessor) {
+      RewrittenPrototypeDescription protoChanges) {
     try {
       return internalBuild(
           Collections.unmodifiableList(localVariables),
@@ -493,7 +493,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
           valueNumberGenerator,
           callerPosition,
           origin,
-          methodProcessor);
+          protoChanges);
     } catch (InvalidDebugInfoException e) {
       appView.options().warningInvalidDebugInfo(method, origin, e);
       return internalBuild(
@@ -504,7 +504,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
           valueNumberGenerator,
           callerPosition,
           origin,
-          methodProcessor);
+          protoChanges);
     }
   }
 
@@ -517,7 +517,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
-      MethodProcessor methodProcessor) {
+      RewrittenPrototypeDescription protoChanges) {
     CfSourceCode source =
         new CfSourceCode(
             this,
@@ -527,11 +527,15 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
             callerPosition,
             origin,
             appView);
-    IRBuilder builder =
-        methodProcessor == null
-            ? IRBuilder.create(method, appView, source, origin)
-            : IRBuilder.createForInlining(
-                method, appView, source, origin, methodProcessor, valueNumberGenerator);
+    IRBuilder builder;
+    if (valueNumberGenerator == null) {
+      assert protoChanges == null;
+      builder = IRBuilder.create(method, appView, source, origin);
+    } else {
+      builder =
+          IRBuilder.createForInlining(
+              method, appView, source, origin, valueNumberGenerator, protoChanges);
+    }
     return builder.build(context);
   }
 
@@ -716,8 +720,15 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
             thisLocalInfo.index, debugLocalInfo, thisLocalInfo.start, thisLocalInfo.end));
   }
 
+  public StackMapStatus verifyFrames(DexEncodedMethod method, AppView<?> appView, Origin origin) {
+    return verifyFrames(method, appView, origin, RewrittenPrototypeDescription.none());
+  }
+
   public StackMapStatus verifyFrames(
-      DexEncodedMethod method, AppView<?> appView, Origin origin, boolean applyProtoTypeChanges) {
+      DexEncodedMethod method,
+      AppView<?> appView,
+      Origin origin,
+      RewrittenPrototypeDescription protoChanges) {
     if (!appView.options().canUseInputStackMaps()
         || appView.options().testing.disableStackMapVerification) {
       return StackMapStatus.NOT_PRESENT;
@@ -786,14 +797,8 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
     }
     DexType context = appView.graphLens().lookupType(method.getHolderType());
     DexType returnType = appView.graphLens().lookupType(method.getReference().getReturnType());
-    RewrittenPrototypeDescription rewrittenDescription = RewrittenPrototypeDescription.none();
-    if (applyProtoTypeChanges) {
-      rewrittenDescription =
-          appView.graphLens().lookupPrototypeChangesForMethodDefinition(method.getReference());
-      if (!rewrittenDescription.isEmpty()
-          && rewrittenDescription.getRewrittenReturnInfo() != null) {
-        returnType = rewrittenDescription.getRewrittenReturnInfo().getOldType();
-      }
+    if (!protoChanges.isEmpty() && protoChanges.getRewrittenReturnInfo() != null) {
+      returnType = protoChanges.getRewrittenReturnInfo().getOldType();
     }
     CfFrameVerificationHelper builder =
         new CfFrameVerificationHelper(
@@ -809,8 +814,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       builder.checkFrameAndSet(stateMap.get(null));
     } else if (shouldComputeInitialFrame()) {
       builder.checkFrameAndSet(
-          new CfFrame(
-              computeInitialLocals(context, method, rewrittenDescription), new ArrayDeque<>()));
+          new CfFrame(computeInitialLocals(context, method, protoChanges), new ArrayDeque<>()));
     }
     for (int i = 0; i < instructions.size(); i++) {
       CfInstruction instruction = instructions.get(i);

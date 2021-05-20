@@ -57,7 +57,6 @@ import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
@@ -228,16 +227,10 @@ public class LazyCfCode extends Code {
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
-      MethodProcessor methodProcessor) {
+      RewrittenPrototypeDescription protoChanges) {
     return asCfCode()
         .buildInliningIR(
-            context,
-            method,
-            appView,
-            valueNumberGenerator,
-            callerPosition,
-            origin,
-            methodProcessor);
+            context, method, appView, valueNumberGenerator, callerPosition, origin, protoChanges);
   }
 
   @Override

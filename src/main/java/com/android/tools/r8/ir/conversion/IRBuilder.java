@@ -114,7 +114,6 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -444,28 +443,22 @@ public class IRBuilder {
       AppView<?> appView,
       SourceCode source,
       Origin origin,
-      MethodProcessor processor,
-      NumberGenerator valueNumberGenerator) {
-    RewrittenPrototypeDescription protoChanges =
-        processor.shouldApplyCodeRewritings(method)
-            ? lookupPrototypeChanges(appView, method)
-            : RewrittenPrototypeDescription.none();
+      NumberGenerator valueNumberGenerator,
+      RewrittenPrototypeDescription protoChanges) {
     return new IRBuilder(method, appView, source, origin, protoChanges, valueNumberGenerator);
   }
 
-  private static RewrittenPrototypeDescription lookupPrototypeChanges(
+  public static RewrittenPrototypeDescription lookupPrototypeChanges(
       AppView<?> appView, ProgramMethod method) {
-    RewrittenPrototypeDescription prototypeChanges =
-        appView.graphLens().lookupPrototypeChangesForMethodDefinition(method.getReference());
-    if (Log.ENABLED && prototypeChanges.getArgumentInfoCollection().hasRemovedArguments()) {
-      Log.info(
-          IRBuilder.class,
-          "Removed "
-              + prototypeChanges.getArgumentInfoCollection().numberOfRemovedArguments()
-              + " arguments from "
-              + method.toSourceString());
+    return appView.graphLens().lookupPrototypeChangesForMethodDefinition(method.getReference());
+  }
+
+  public static RewrittenPrototypeDescription lookupPrototypeChangesForInlinee(
+      AppView<?> appView, ProgramMethod method, MethodProcessor methodProcessor) {
+    if (methodProcessor.shouldApplyCodeRewritings(method)) {
+      return appView.graphLens().lookupPrototypeChangesForMethodDefinition(method.getReference());
     }
-    return prototypeChanges;
+    return RewrittenPrototypeDescription.none();
   }
 
   private IRBuilder(

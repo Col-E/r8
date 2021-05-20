@@ -8,7 +8,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.kotlin.KotlinMemberLevelInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
@@ -33,10 +32,10 @@ public final class ProgramMethod extends DexClassAndMethod
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
-      MethodProcessor methodProcessor) {
+      RewrittenPrototypeDescription protoChanges) {
     Code code = getDefinition().getCode();
     return code.buildInliningIR(
-        context, this, appView, valueNumberGenerator, callerPosition, origin, methodProcessor);
+        context, this, appView, valueNumberGenerator, callerPosition, origin, protoChanges);
   }
 
   public void collectIndexedItems(

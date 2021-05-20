@@ -180,7 +180,7 @@ public class CfBuilder {
     DexBuilder.removeRedundantDebugPositions(code);
     CfCode code = buildCfCode();
     assert verifyInvokeInterface(code, appView);
-    assert code.verifyFrames(method, appView, this.code.origin, false).isValid();
+    assert code.verifyFrames(method, appView, this.code.origin).isValid();
     return code;
   }
 

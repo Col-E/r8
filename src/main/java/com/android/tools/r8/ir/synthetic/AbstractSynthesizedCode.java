@@ -11,12 +11,12 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.IRBuilder;
-import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
@@ -51,14 +51,14 @@ public abstract class AbstractSynthesizedCode extends Code {
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
-      MethodProcessor methodProcessor) {
+      RewrittenPrototypeDescription protoChanges) {
     return IRBuilder.createForInlining(
             method,
             appView,
             getSourceCodeProvider().get(context, callerPosition),
             origin,
-            methodProcessor,
-            valueNumberGenerator)
+            valueNumberGenerator,
+            protoChanges)
         .build(context);
   }
 
