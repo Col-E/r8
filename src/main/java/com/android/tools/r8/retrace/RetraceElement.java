@@ -3,11 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.retrace;
 
+import com.android.tools.r8.KeepForSubclassing;
+
 /**
  * Base interface for any element in a retrace result.
  *
  * <p>The element represents an unambiguous retracing.
  */
+@KeepForSubclassing
 public interface RetraceElement<R extends RetraceResult<?>> {
 
   R getRetraceResultContext();

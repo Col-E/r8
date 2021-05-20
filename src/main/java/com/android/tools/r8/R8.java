@@ -34,6 +34,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GenericSignatureContextBuilder;
+import com.android.tools.r8.graph.GenericSignatureCorrectnessHelper;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.PrunedItems;
@@ -376,9 +377,14 @@ public class R8 {
           appView.withGeneratedExtensionRegistryShrinker(
               shrinker -> shrinker.run(Mode.INITIAL_TREE_SHAKING));
 
-          // Build enclosing information and type-paramter information before pruning.
-          GenericSignatureContextBuilder typeVariableRemover =
+          // Build enclosing information and type-parameter information before pruning.
+          // TODO(b/187922482): Only consider referenced classes.
+          GenericSignatureContextBuilder genericContextBuilder =
               GenericSignatureContextBuilder.create(appView.appInfo().classes());
+
+          // Compute if all signatures are valid before modifying them.
+          GenericSignatureCorrectnessHelper.createForInitialCheck(appView, genericContextBuilder)
+              .run(appView.appInfo().classes());
 
           TreePruner pruner = new TreePruner(appViewWithLiveness);
           DirectMappedDexApplication prunedApp = pruner.run(executorService);
@@ -403,7 +409,7 @@ public class R8 {
               annotationRemoverBuilder
                   .build(appViewWithLiveness, removedClasses);
           annotationRemover.ensureValid().run();
-          new GenericSignatureRewriter(appView, NamingLens.getIdentityLens(), typeVariableRemover)
+          new GenericSignatureRewriter(appView, NamingLens.getIdentityLens(), genericContextBuilder)
               .run(appView.appInfo().classes(), executorService);
         }
       } finally {
@@ -787,6 +793,16 @@ public class R8 {
       if (options.syntheticProguardRulesConsumer != null) {
         options.syntheticProguardRulesConsumer.accept(synthesizedProguardRules);
       }
+
+      assert appView.checkForTesting(
+              () ->
+                  !options.isShrinking()
+                      || GenericSignatureCorrectnessHelper.createForVerification(
+                              appView,
+                              GenericSignatureContextBuilder.create(appView.appInfo().classes()))
+                          .run(appView.appInfo().classes())
+                          .isValid())
+          : "Could not validate generic signatures";
 
       NamingLens prefixRewritingNamingLens =
           PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);

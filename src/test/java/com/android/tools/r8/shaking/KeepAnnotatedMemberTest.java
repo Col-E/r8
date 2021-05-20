@@ -77,9 +77,10 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .addDontWarnGoogle()
         .addDontWarnJavax()
         .addDontWarn("org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement")
+        .allowDiagnosticInfoMessages()
         .compileWithExpectedDiagnostics(
-            diagnostics ->
-                diagnostics.assertErrorsMatch(diagnosticException(AssertionError.class)));
+            diagnostics -> diagnostics.assertErrorsMatch(diagnosticException(AssertionError.class)))
+        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation);
   }
 
   @Test
@@ -92,7 +93,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .addDontWarnGoogle()
         .addDontWarnJavax()
         .addDontWarn("org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement")
-        .compile();
+        .allowDiagnosticInfoMessages()
+        .compile()
+        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation);
   }
 
   @Test
@@ -101,7 +104,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .addProgramFiles(R8_JAR)
         .allowUnusedProguardConfigurationRules()
         .addKeepRules("-keepclasseswithmembers class * { @" + ABSENT_ANNOTATION + " *; }")
+        .allowDiagnosticInfoMessages()
         .compile()
+        .apply(TestBase::verifyHasInfoFromGenericSignatureTypeParameterValidation)
         .inspect(inspector -> assertEquals(0, inspector.allClasses().size()));
   }
 
@@ -113,7 +118,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .addDontWarnGoogle()
         .addDontWarnJavax()
         .addDontWarn("org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement")
+        .allowDiagnosticInfoMessages()
         .compile()
+        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(CLASS_WITH_ANNOTATED_METHOD);
@@ -129,7 +136,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
         // TODO(b/159971974): Technically this rule does not hit anything and should fail due to
         //  missing allowUnusedProguardConfigurationRules()
         .addKeepRules("-keepclassmembers class * { @" + PRESENT_ANNOTATION + " *** *(...); }")
+        .allowDiagnosticInfoMessages()
         .compile()
+        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
         .inspect(inspector -> assertEquals(0, inspector.allClasses().size()));
   }
 
@@ -139,7 +148,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .addProgramFiles(R8_JAR)
         .addKeepClassRules(CLASS_WITH_ANNOTATED_METHOD)
         .addKeepRules("-keepclassmembers class * { @" + PRESENT_ANNOTATION + " *** *(...); }")
+        .allowDiagnosticInfoMessages()
         .compile()
+        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
         .inspect(
             inspector -> {
               assertEquals(1, inspector.allClasses().size());
@@ -162,7 +173,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .addProgramFiles(R8_JAR)
         .allowUnusedProguardConfigurationRules()
         .addKeepRules("-if class * -keep class <1> { @" + PRESENT_ANNOTATION + " *** *(...); }")
+        .allowDiagnosticInfoMessages()
         .compile()
+        .apply(TestBase::verifyHasInfoFromGenericSignatureTypeParameterValidation)
         .inspect(inspector -> assertEquals(0, inspector.allClasses().size()));
   }
 
@@ -172,7 +185,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .addProgramFiles(R8_JAR)
         .addKeepClassRules(CLASS_WITH_ANNOTATED_METHOD)
         .addKeepRules("-if class * -keep class <1> { @" + PRESENT_ANNOTATION + " *** *(...); }")
+        .allowDiagnosticInfoMessages()
         .compile()
+        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
         .inspect(
             inspector -> {
               assertEquals(1, inspector.allClasses().size());
@@ -204,7 +219,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .addKeepRules("-keepclassmembers class * { @" + PRESENT_ANNOTATION + " *** *(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
+            .allowDiagnosticInfoMessages()
             .compile()
+            .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
             .graphInspector();
 
     GraphInspector ifThenKeepClassMembersInspector =
@@ -222,7 +239,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** *(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
+            .allowDiagnosticInfoMessages()
             .compile()
+            .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
             .graphInspector();
     assertRetainedClassesEqual(referenceInspector, ifThenKeepClassMembersInspector);
 
@@ -241,7 +260,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** *(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
+            .allowDiagnosticInfoMessages()
             .compile()
+            .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
             .graphInspector();
     assertRetainedClassesEqual(referenceInspector, ifThenKeepClassesWithMembersInspector);
 
@@ -262,7 +283,9 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** <2>(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
+            .allowDiagnosticInfoMessages()
             .compile()
+            .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
             .graphInspector();
     assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector);
   }

@@ -77,7 +77,9 @@ public class Java11R8BootstrapTest extends TestBase {
                       options.desugarState = DesugarState.ON;
                       options.cfToCfDesugar = true;
                     }))
+        .allowDiagnosticInfoMessages()
         .compile()
+        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
         .inspect(inspector -> assertNests(inspector, desugar))
         .writeToZip();
   }

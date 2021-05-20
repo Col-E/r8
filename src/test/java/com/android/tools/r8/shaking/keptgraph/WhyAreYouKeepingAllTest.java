@@ -48,7 +48,9 @@ public class WhyAreYouKeepingAllTest extends TestBase {
         .addKeepRuleFiles(MAIN_KEEP)
         .addKeepRules(WHY_ARE_YOU_KEEPING_ALL)
         .collectStdout()
+        .allowDiagnosticInfoMessages()
         .compile()
+        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
         .assertStdoutThatMatches(containsString("referenced in keep rule"))
         // TODO(b/124655065): We should always know the reason for keeping.
         // It is OK if this starts failing while the kept-graph API is incomplete, in which case

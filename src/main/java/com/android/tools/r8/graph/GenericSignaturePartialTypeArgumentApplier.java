@@ -100,7 +100,7 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
 
   @Override
   public List<FieldTypeSignature> visitInterfaceBounds(List<FieldTypeSignature> fieldSignatures) {
-    if (fieldSignatures == null || fieldSignatures.isEmpty()) {
+    if (fieldSignatures.isEmpty()) {
       return fieldSignatures;
     }
     return ListUtils.mapOrElse(fieldSignatures, this::visitFieldTypeSignature);
@@ -131,6 +131,9 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
 
   @Override
   public FieldTypeSignature visitClassBound(FieldTypeSignature fieldSignature) {
+    if (fieldSignature.hasNoSignature()) {
+      return fieldSignature;
+    }
     return visitFieldTypeSignature(fieldSignature);
   }
 

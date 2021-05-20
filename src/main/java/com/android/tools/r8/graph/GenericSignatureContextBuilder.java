@@ -255,11 +255,17 @@ public class GenericSignatureContextBuilder {
     if (wasPruned.test(enclosingReference.getContextType()) || wasPruned.test(enclosedClassType)) {
       return true;
     }
+    // TODO(b/187035453): We should visit generic signatures in the enqueuer.
     DexClass enclosingClass =
-        appView.definitionFor(
-            appView.graphLens().lookupClassType(enclosingReference.getContextType()));
+        appView
+            .appInfo()
+            .definitionForWithoutExistenceAssert(
+                appView.graphLens().lookupClassType(enclosingReference.getContextType()));
     DexClass enclosedClass =
-        appView.definitionFor(appView.graphLens().lookupClassType(enclosedClassType));
+        appView
+            .appInfo()
+            .definitionForWithoutExistenceAssert(
+                appView.graphLens().lookupClassType(enclosedClassType));
     if (enclosingClass == null || enclosedClass == null) {
       return true;
     }

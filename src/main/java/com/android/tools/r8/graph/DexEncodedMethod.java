@@ -1318,6 +1318,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
             !isAbstract(),
             builder ->
                 builder
+                    .setGenericSignature(MethodTypeSignature.noSignature())
                     .setCode(
                         ForwardMethodBuilder.builder(definitions.dexItemFactory())
                             .setStaticSource(newMethod)
@@ -1379,7 +1380,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         builder(this)
             .promoteToStatic()
             .withoutThisParameter()
-            .adjustOptimizationInfoAfterRemovingThisParameter();
+            .adjustOptimizationInfoAfterRemovingThisParameter()
+            .setGenericSignature(MethodTypeSignature.noSignature());
     DexEncodedMethod method = builder.build();
     method.copyMetadata(this);
     setObsolete();
@@ -1510,7 +1512,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
     private DexMethod method;
     private MethodAccessFlags accessFlags;
-    private final MethodTypeSignature genericSignature;
+    private MethodTypeSignature genericSignature;
     private final DexAnnotationSet annotations;
     private OptionalBool isLibraryMethodOverride = OptionalBool.UNKNOWN;
     private ParameterAnnotationsList parameterAnnotations;
@@ -1709,6 +1711,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       }
       buildConsumer.accept(result);
       return result;
+    }
+
+    public Builder setGenericSignature(MethodTypeSignature methodSignature) {
+      this.genericSignature = methodSignature;
+      return this;
     }
   }
 }

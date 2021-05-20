@@ -87,15 +87,15 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
   @Override
   public FieldTypeSignature visitClassBound(FieldTypeSignature fieldSignature) {
     sb.append(":");
+    if (fieldSignature.hasNoSignature()) {
+      return fieldSignature;
+    }
     printFieldTypeSignature(fieldSignature, false);
     return fieldSignature;
   }
 
   @Override
   public List<FieldTypeSignature> visitInterfaceBounds(List<FieldTypeSignature> fieldSignatures) {
-    if (fieldSignatures == null) {
-      return null;
-    }
     fieldSignatures.forEach(this::visitInterfaceBound);
     return fieldSignatures;
   }

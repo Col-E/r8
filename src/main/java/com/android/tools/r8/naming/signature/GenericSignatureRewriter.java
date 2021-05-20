@@ -83,18 +83,19 @@ public class GenericSignatureRewriter {
                                   field.getGenericSignature())
                               : field.getGenericSignature())));
           clazz.forEachMethod(
-              method ->
-                  // The reflection api do not distinguish static methods context and
-                  // from virtual methods we therefore always base the context for a method on
-                  // the class context.
-                  method.setGenericSignature(
-                      genericSignatureTypeRewriter.rewrite(
-                          classArgumentApplier != null
-                              ? classArgumentApplier
-                                  .buildForMethod(
-                                      method.getGenericSignature().getFormalTypeParameters())
-                                  .visitMethodSignature(method.getGenericSignature())
-                              : method.getGenericSignature())));
+              method -> {
+                // The reflection api do not distinguish static methods context and
+                // from virtual methods we therefore always base the context for a method on
+                // the class context.
+                method.setGenericSignature(
+                    genericSignatureTypeRewriter.rewrite(
+                        classArgumentApplier != null
+                            ? classArgumentApplier
+                                .buildForMethod(
+                                    method.getGenericSignature().getFormalTypeParameters())
+                                .visitMethodSignature(method.getGenericSignature())
+                            : method.getGenericSignature()));
+              });
         },
         executorService);
   }

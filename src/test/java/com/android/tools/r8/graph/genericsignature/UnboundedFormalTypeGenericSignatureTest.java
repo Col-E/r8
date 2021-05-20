@@ -6,7 +6,6 @@ package com.android.tools.r8.graph.genericsignature;
 
 import static org.hamcrest.CoreMatchers.containsString;
 
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -87,53 +86,51 @@ public class UnboundedFormalTypeGenericSignatureTest extends TestBase {
 
   @Test
   public void testUnboundParametersInClassR8() throws Exception {
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addProgramClassFileData(
-                transformer(Main.class)
-                    .removeInnerClasses()
-                    .setGenericSignature("L" + SUPER_BINARY_NAME + "<TR;>;")
-                    .transform(),
-                transformer(Super.class).removeInnerClasses().transform())
-            .addKeepAllClassesRule()
-            .addKeepAttributes(
-                ProguardKeepAttributes.SIGNATURE,
-                ProguardKeepAttributes.INNER_CLASSES,
-                ProguardKeepAttributes.ENCLOSING_METHOD)
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), Main.class);
-    if (parameters.isCfRuntime()) {
-      runResult.assertFailureWithErrorThatMatches(containsString("java.lang.NullPointerException"));
-    } else {
-      runResult.assertSuccessWithOutputLines(Super.class.getTypeName() + "<R>", "R", "T");
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(
+            transformer(Main.class)
+                .removeInnerClasses()
+                .setGenericSignature("L" + SUPER_BINARY_NAME + "<TR;>;")
+                .transform(),
+            transformer(Super.class).removeInnerClasses().transform())
+        .addKeepAllClassesRule()
+        .addKeepAttributes(
+            ProguardKeepAttributes.SIGNATURE,
+            ProguardKeepAttributes.INNER_CLASSES,
+            ProguardKeepAttributes.ENCLOSING_METHOD)
+        .setMinApi(parameters.getApiLevel())
+        .allowDiagnosticInfoMessages()
+        .compile()
+        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(
+            "class " + Super.class.getTypeName(), "R", "class java.lang.Object");
   }
 
   @Test
   public void testUnboundParametersInMethodR8() throws Exception {
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addProgramClassFileData(
-                transformer(Main.class)
-                    .removeInnerClasses()
-                    .setGenericSignature(
-                        MethodPredicate.onName("testStatic"), "<R:Ljava/lang/Object;>()TS;")
-                    .setGenericSignature(
-                        MethodPredicate.onName("testVirtual"), "<R:Ljava/lang/Object;>()TQ;")
-                    .transform(),
-                transformer(Super.class).removeInnerClasses().transform())
-            .addKeepAllClassesRule()
-            .addKeepAttributes(
-                ProguardKeepAttributes.SIGNATURE,
-                ProguardKeepAttributes.INNER_CLASSES,
-                ProguardKeepAttributes.ENCLOSING_METHOD)
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), Main.class);
-    if (parameters.isCfRuntime()) {
-      runResult.assertSuccessWithOutputLines(Super.class.getTypeName() + "<T>", "null", "null");
-    } else {
-      runResult.assertSuccessWithOutputLines(Super.class.getTypeName() + "<T>", "S", "Q");
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(
+            transformer(Main.class)
+                .removeInnerClasses()
+                .setGenericSignature(
+                    MethodPredicate.onName("testStatic"), "<R:Ljava/lang/Object;>()TS;")
+                .setGenericSignature(
+                    MethodPredicate.onName("testVirtual"), "<R:Ljava/lang/Object;>()TQ;")
+                .transform(),
+            transformer(Super.class).removeInnerClasses().transform())
+        .addKeepAllClassesRule()
+        .addKeepAttributes(
+            ProguardKeepAttributes.SIGNATURE,
+            ProguardKeepAttributes.INNER_CLASSES,
+            ProguardKeepAttributes.ENCLOSING_METHOD)
+        .setMinApi(parameters.getApiLevel())
+        .allowDiagnosticInfoMessages()
+        .compile()
+        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(
+            Super.class.getTypeName() + "<T>", "class java.lang.Object", "class java.lang.Object");
   }
 
   public static class Super<T> {}

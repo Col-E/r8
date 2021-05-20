@@ -14,6 +14,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
@@ -58,10 +59,12 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
             .addKeepMainRule(mainClassName)
             .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .allowDiagnosticWarningMessages()
+            .allowDiagnosticMessages()
             .setMinApi(parameters.getApiLevel())
             .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
             .compile()
+            .assertNoErrorMessages()
+            .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
             .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib)
             .run(parameters.getRuntime(), mainClassName);
     CodeInspector inspector = result.inspector();
