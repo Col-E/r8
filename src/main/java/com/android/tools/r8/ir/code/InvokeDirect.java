@@ -174,7 +174,8 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   @Override
   public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
     ProgramMethod context = code.context();
-    if (instructionMayHaveSideEffects(appView, context)) {
+    if (instructionMayHaveSideEffects(
+        appView, context, SideEffectAssumption.IGNORE_RECEIVER_FIELD_ASSIGNMENTS)) {
       return DeadInstructionResult.notDead();
     }
     if (!getInvokedMethod().isInstanceInitializer(appView.dexItemFactory())) {

@@ -505,7 +505,15 @@ final class InlineCandidateProcessor {
           method, code, methodCallsOnInstance, inliningIRProvider, Timing.empty());
     } else {
       assert indirectMethodCallsOnInstance.stream()
-          .noneMatch(method -> method.getDefinition().getOptimizationInfo().mayHaveSideEffects());
+          .filter(method -> method.getDefinition().getOptimizationInfo().mayHaveSideEffects())
+          .allMatch(
+              method ->
+                  method.getDefinition().isInstanceInitializer()
+                      && !method
+                          .getDefinition()
+                          .getOptimizationInfo()
+                          .getContextInsensitiveInstanceInitializerInfo()
+                          .mayHaveOtherSideEffectsThanInstanceFieldAssignments());
     }
     return true;
   }

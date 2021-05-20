@@ -259,7 +259,8 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
     DexEncodedMethod singleTargetDefinition = singleTarget.getDefinition();
     MethodOptimizationInfo optimizationInfo = singleTargetDefinition.getOptimizationInfo();
-    if (singleTargetDefinition.isInstanceInitializer()) {
+    if (assumption.canIgnoreInstanceFieldAssignmentsToReceiver()
+        && singleTargetDefinition.isInstanceInitializer()) {
       assert isInvokeDirect();
       InstanceInitializerInfo initializerInfo =
           optimizationInfo.getInstanceInitializerInfo(asInvokeDirect());

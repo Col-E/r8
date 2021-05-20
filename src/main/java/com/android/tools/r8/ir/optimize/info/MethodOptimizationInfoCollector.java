@@ -73,6 +73,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.Instruction.SideEffectAssumption;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -370,7 +371,8 @@ public class MethodOptimizationInfoCollector {
               if (singleTarget == null) {
                 return null;
               }
-              if (singleTarget.isInstanceInitializer() && invoke.getReceiver() == receiver) {
+              if (singleTarget.isInstanceInitializer()
+                  && invoke.getReceiver().getAliasedValue() == receiver) {
                 if (builder.hasParent() && builder.getParent() != singleTarget.getReference()) {
                   return null;
                 }
@@ -927,7 +929,18 @@ public class MethodOptimizationInfoCollector {
       mayHaveSideEffects = false;
       // Otherwise, check if there is an instruction that has side effects.
       for (Instruction instruction : code.instructions()) {
-        if (instruction.instructionMayHaveSideEffects(appView, context)) {
+        if (instruction.isInvokeConstructor(appView.dexItemFactory())
+            && instruction
+                .asInvokeDirect()
+                .getReceiver()
+                .getAliasedValue()
+                .isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
+          if (instruction.instructionMayHaveSideEffects(
+              appView, context, SideEffectAssumption.IGNORE_RECEIVER_FIELD_ASSIGNMENTS)) {
+            mayHaveSideEffects = true;
+            break;
+          }
+        } else if (instruction.instructionMayHaveSideEffects(appView, context)) {
           mayHaveSideEffects = true;
           break;
         }

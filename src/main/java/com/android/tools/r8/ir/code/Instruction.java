@@ -1502,6 +1502,15 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
           }
         };
 
+    public static final SideEffectAssumption IGNORE_RECEIVER_FIELD_ASSIGNMENTS =
+        new SideEffectAssumption() {
+
+          @Override
+          public boolean canIgnoreInstanceFieldAssignmentsToReceiver() {
+            return true;
+          }
+        };
+
     public static final SideEffectAssumption INVOKED_METHOD_DOES_NOT_HAVE_SIDE_EFFECTS =
         new SideEffectAssumption() {
 
@@ -1525,6 +1534,10 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     }
 
     public boolean canAssumeInvokedMethodDoesNotHaveSideEffects() {
+      return false;
+    }
+
+    public boolean canIgnoreInstanceFieldAssignmentsToReceiver() {
       return false;
     }
 

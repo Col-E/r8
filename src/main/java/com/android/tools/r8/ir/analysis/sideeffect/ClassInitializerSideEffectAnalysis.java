@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.analysis.ValueMayDependOnEnvironmentAnalysis;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.Instruction.SideEffectAssumption;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -79,6 +80,14 @@ public class ClassInitializerSideEffectAnalysis {
         }
         controlFlowRequiredToBeIndependentOfControlFlow = true;
         valuesRequiredToBeIndependentOfEnvironment.add(staticPut.value());
+        continue;
+      }
+
+      if (instruction.isInvokeConstructor(appView.dexItemFactory())) {
+        if (instruction.instructionMayHaveSideEffects(
+            appView, context, SideEffectAssumption.IGNORE_RECEIVER_FIELD_ASSIGNMENTS)) {
+          return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
+        }
         continue;
       }
 
