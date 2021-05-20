@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.InnerClassAttribute;
+import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.graph.SortedProgramPackageCollection;
@@ -26,7 +27,6 @@ import com.android.tools.r8.repackaging.RepackagingLens.Builder;
 import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
-import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Timing;
@@ -104,25 +104,22 @@ public class Repackaging {
             assert false;
           }
         }.fixupClasses(appView.appInfo().classesWithDeterministicOrder());
-    CommittedItems committedItems =
+    NestedGraphLens emptyRepackagingLens =
+        new NestedGraphLens(appView) {
+          @Override
+          protected boolean isLegitimateToHaveEmptyMappings() {
+            return true;
+          }
+        };
+    DirectMappedDexApplication newApplication =
         appView
-            .getSyntheticItems()
-            .commit(
-                appView
-                    .appInfo()
-                    .app()
-                    .builder()
-                    .replaceProgramClasses(new ArrayList<>(newProgramClasses))
-                    .build());
-    if (appView.appInfo().hasLiveness()) {
-      appView
-          .withLiveness()
-          .setAppInfo(appView.withLiveness().appInfo().rebuildWithLiveness(committedItems));
-    } else {
-      appView
-          .withClassHierarchy()
-          .setAppInfo(appView.appInfo().rebuildWithClassHierarchy(committedItems));
-    }
+            .appInfo()
+            .app()
+            .asDirect()
+            .builder()
+            .replaceProgramClasses(new ArrayList<>(newProgramClasses))
+            .build();
+    appView.rewriteWithLensAndApplication(emptyRepackagingLens, newApplication);
     return true;
   }
 

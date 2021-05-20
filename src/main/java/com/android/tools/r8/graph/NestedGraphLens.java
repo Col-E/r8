@@ -62,6 +62,14 @@ public class NestedGraphLens extends NonIdentityGraphLens {
     return false;
   }
 
+  public NestedGraphLens(AppView<?> appView) {
+    this(
+        appView,
+        NestedGraphLens.EMPTY_FIELD_MAP,
+        NestedGraphLens.EMPTY_METHOD_MAP,
+        NestedGraphLens.EMPTY_TYPE_MAP);
+  }
+
   public NestedGraphLens(
       AppView<?> appView,
       BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
