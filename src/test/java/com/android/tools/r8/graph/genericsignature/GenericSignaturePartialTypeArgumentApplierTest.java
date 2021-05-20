@@ -13,12 +13,16 @@ import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
+import com.android.tools.r8.graph.GenericSignatureContextBuilder.TypeParameterContext;
 import com.android.tools.r8.graph.GenericSignaturePartialTypeArgumentApplier;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BiPredicateUtils;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
@@ -48,7 +52,7 @@ public class GenericSignaturePartialTypeArgumentApplierTest extends TestBase {
   }
 
   @Test
-  public void testVariablesInOuterPosition() {
+  public void testVariablesInOuterPosition() throws Exception {
     runTest(
             ImmutableMap.of("T", objectType, "R", objectType),
             Collections.emptySet(),
@@ -60,7 +64,7 @@ public class GenericSignaturePartialTypeArgumentApplierTest extends TestBase {
   }
 
   @Test
-  public void testVariablesInInnerPosition() {
+  public void testVariablesInInnerPosition() throws Exception {
     runTest(
             ImmutableMap.of("T", objectType, "R", objectType),
             Collections.emptySet(),
@@ -72,7 +76,7 @@ public class GenericSignaturePartialTypeArgumentApplierTest extends TestBase {
   }
 
   @Test
-  public void testRemovingPrunedLink() {
+  public void testRemovingPrunedLink() throws Exception {
     runTest(
             Collections.emptyMap(),
             Collections.emptySet(),
@@ -85,7 +89,7 @@ public class GenericSignaturePartialTypeArgumentApplierTest extends TestBase {
   }
 
   @Test
-  public void testRemovedGenericArguments() {
+  public void testRemovedGenericArguments() throws Exception {
     runTest(
             Collections.emptyMap(),
             Collections.emptySet(),
@@ -102,11 +106,17 @@ public class GenericSignaturePartialTypeArgumentApplierTest extends TestBase {
       BiPredicate<DexType, DexType> removedLink,
       Predicate<DexType> hasFormalTypeParameters,
       String initialSignature,
-      String expectedRewrittenSignature) {
+      String expectedRewrittenSignature)
+      throws Exception {
+    AppView<AppInfo> appView = computeAppView(AndroidApp.builder().build());
     GenericSignaturePartialTypeArgumentApplier argumentApplier =
         GenericSignaturePartialTypeArgumentApplier.build(
-                objectType, removedLink, hasFormalTypeParameters)
-            .addSubstitutionsAndVariables(substitutions, liveVariables);
+            appView,
+            TypeParameterContext.empty()
+                .addPrunedSubstitutions(substitutions)
+                .addLiveParameters(liveVariables),
+            removedLink,
+            hasFormalTypeParameters);
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
     MethodTypeSignature methodTypeSignature =
         argumentApplier.visitMethodSignature(

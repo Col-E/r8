@@ -33,7 +33,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.GenericSignatureTypeVariableRemover;
+import com.android.tools.r8.graph.GenericSignatureContextBuilder;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.PrunedItems;
@@ -377,8 +377,8 @@ public class R8 {
               shrinker -> shrinker.run(Mode.INITIAL_TREE_SHAKING));
 
           // Build enclosing information and type-paramter information before pruning.
-          GenericSignatureTypeVariableRemover typeVariableRemover =
-              GenericSignatureTypeVariableRemover.create(appView, appView.appInfo().classes());
+          GenericSignatureContextBuilder typeVariableRemover =
+              GenericSignatureContextBuilder.create(appView.appInfo().classes());
 
           TreePruner pruner = new TreePruner(appViewWithLiveness);
           DirectMappedDexApplication prunedApp = pruner.run(executorService);
@@ -403,8 +403,7 @@ public class R8 {
               annotationRemoverBuilder
                   .build(appViewWithLiveness, removedClasses);
           annotationRemover.ensureValid().run();
-          typeVariableRemover.removeDeadGenericSignatureTypeVariables(appView);
-          new GenericSignatureRewriter(appView, NamingLens.getIdentityLens())
+          new GenericSignatureRewriter(appView, NamingLens.getIdentityLens(), typeVariableRemover)
               .run(appView.appInfo().classes(), executorService);
         }
       } finally {
@@ -596,8 +595,8 @@ public class R8 {
                     shrinker -> shrinker.run(enqueuer.getMode()),
                     DefaultTreePrunerConfiguration.getInstance());
 
-            GenericSignatureTypeVariableRemover typeVariableRemover =
-                GenericSignatureTypeVariableRemover.create(appView, appView.appInfo().classes());
+            GenericSignatureContextBuilder genericContextBuilder =
+                GenericSignatureContextBuilder.create(appView.appInfo().classes());
 
             TreePruner pruner = new TreePruner(appViewWithLiveness, treePrunerConfiguration);
             DirectMappedDexApplication application = pruner.run(executorService);
@@ -638,7 +637,10 @@ public class R8 {
             AnnotationRemover.builder()
                 .build(appView.withLiveness(), removedClasses)
                 .run();
-            typeVariableRemover.removeDeadGenericSignatureTypeVariables(appView);
+            new GenericSignatureRewriter(
+                    appView, NamingLens.getIdentityLens(), genericContextBuilder)
+                .run(appView.appInfo().classes(), executorService);
+
             // Synthesize fields for triggering class initializers.
             new ClassInitFieldSynthesizer(appViewWithLiveness).run(executorService);
           }
