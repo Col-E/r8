@@ -22,7 +22,8 @@ import org.objectweb.asm.Label;
 
 public class SyntheticMarker {
 
-  private static final String SYNTHETIC_MARKER_ATTRIBUTE_TYPE_NAME = "R8SynthesizedClass";
+  private static final String SYNTHETIC_MARKER_ATTRIBUTE_TYPE_NAME =
+      "com.android.tools.r8.SynthesizedClass";
 
   public static Attribute getMarkerAttributePrototype() {
     return MarkerAttribute.PROTOTYPE;
