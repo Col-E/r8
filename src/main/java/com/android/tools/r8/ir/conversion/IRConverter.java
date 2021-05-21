@@ -816,7 +816,7 @@ public class IRConverter {
               outliner.applyOutliningCandidate(code);
               printMethod(code, "IR after outlining (SSA)", null);
               removeDeadCodeAndFinalizeIR(
-                  code.context(), code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
+                  code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
             },
             executorService);
         feedback.updateVisibleOptimizationInfo();
@@ -941,8 +941,7 @@ public class IRConverter {
     IRCode code = method.buildIR(appView);
     assert code != null;
     codeRewriter.rewriteMoveResult(code);
-    removeDeadCodeAndFinalizeIR(
-        method, code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
+    removeDeadCodeAndFinalizeIR(code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
   }
 
   private void generateDesugaredLibraryAPIWrappers(
@@ -1663,7 +1662,7 @@ public class IRConverter {
   }
 
   public void removeDeadCodeAndFinalizeIR(
-      ProgramMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
+      IRCode code, OptimizationFeedback feedback, Timing timing) {
     if (stringSwitchRemover != null) {
       stringSwitchRemover.run(code);
     }

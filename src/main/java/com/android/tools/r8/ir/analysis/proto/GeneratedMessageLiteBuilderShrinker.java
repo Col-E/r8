@@ -257,7 +257,7 @@ public class GeneratedMessageLiteBuilderShrinker {
             ImmutableList.of(builderValue, defaultInstanceValue)));
 
     converter.removeDeadCodeAndFinalizeIR(
-        dynamicMethod, code, OptimizationFeedbackSimple.getInstance(), Timing.empty());
+        code, OptimizationFeedbackSimple.getInstance(), Timing.empty());
   }
 
   public static void addInliningHeuristicsForBuilderInlining(

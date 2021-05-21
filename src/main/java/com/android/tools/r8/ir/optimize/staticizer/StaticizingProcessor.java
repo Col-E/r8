@@ -391,7 +391,7 @@ final class StaticizingProcessor {
     IRCode code = method.buildIR(appView);
     codeOptimizations.forEach(codeOptimization -> codeOptimization.accept(code, methodProcessor));
     CodeRewriter.removeAssumeInstructions(appView, code);
-    converter.removeDeadCodeAndFinalizeIR(method, code, feedback, Timing.empty());
+    converter.removeDeadCodeAndFinalizeIR(code, feedback, Timing.empty());
   }
 
   private void insertAssumeInstructions(IRCode code, MethodProcessor methodProcessor) {

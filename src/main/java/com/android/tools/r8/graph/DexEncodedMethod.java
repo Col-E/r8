@@ -98,6 +98,8 @@ import org.objectweb.asm.Opcodes;
 public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMethod>
     implements StructuralItem<DexEncodedMethod> {
 
+  public static final boolean D8_R8_SYNTHESIZED = true;
+
   public static final String CONFIGURATION_DEBUGGING_PREFIX = "Shaking error: Missing method in ";
 
   /**

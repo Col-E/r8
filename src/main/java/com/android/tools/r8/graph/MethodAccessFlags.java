@@ -75,6 +75,10 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
     return this;
   }
 
+  public static MethodAccessFlags createForClassInitializer() {
+    return fromSharedAccessFlags(Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, true);
+  }
+
   public static MethodAccessFlags createPublicStaticSynthetic() {
     return fromSharedAccessFlags(
         Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false);

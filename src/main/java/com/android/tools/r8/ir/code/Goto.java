@@ -22,6 +22,10 @@ public class Goto extends JumpInstruction {
     setBlock(block);
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public int opcode() {
     return Opcodes.GOTO;
@@ -120,5 +124,25 @@ public class Goto extends JumpInstruction {
   @Override
   public boolean isAllowedAfterThrowingInstruction() {
     return true;
+  }
+
+  public static class Builder extends BuilderBase<Builder, Goto> {
+
+    private BasicBlock target;
+
+    public Builder setTarget(BasicBlock target) {
+      this.target = target;
+      return self();
+    }
+
+    @Override
+    public Goto build() {
+      return amend(new Goto(target));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }

@@ -595,6 +595,10 @@ public class BasicBlock {
     return filled;
   }
 
+  public void setFilled() {
+    filled = true;
+  }
+
   public void setFilledForTesting() {
     filled = true;
   }

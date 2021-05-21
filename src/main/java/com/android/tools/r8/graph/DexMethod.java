@@ -292,6 +292,10 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     return dexItemFactory.createMethod(reference.getContextType(), proto, name);
   }
 
+  public DexMethod withName(String name, DexItemFactory dexItemFactory) {
+    return withName(dexItemFactory.createString(name), dexItemFactory);
+  }
+
   public DexMethod withName(DexString name, DexItemFactory dexItemFactory) {
     return dexItemFactory.createMethod(holder, proto, name);
   }

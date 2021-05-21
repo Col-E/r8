@@ -509,7 +509,7 @@ public class R8 {
         }
 
         HorizontalClassMerger.createForInitialClassMerging(appViewWithLiveness)
-            .runIfNecessary(runtimeTypeCheckInfo, timing);
+            .runIfNecessary(runtimeTypeCheckInfo, executorService, timing);
       }
 
       // Clear traced methods roots to not hold on to the main dex live method set.
@@ -728,6 +728,7 @@ public class R8 {
               classMergingEnqueuerExtensionBuilder != null
                   ? classMergingEnqueuerExtensionBuilder.build(appView.graphLens())
                   : null,
+              executorService,
               timing);
 
       // Perform minification.

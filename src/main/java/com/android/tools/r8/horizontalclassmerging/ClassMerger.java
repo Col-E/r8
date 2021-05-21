@@ -6,11 +6,8 @@ package com.android.tools.r8.horizontalclassmerging;
 
 import static com.google.common.base.Predicates.not;
 
-import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -31,6 +28,7 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.code.ClassInitializerMerger;
+import com.android.tools.r8.horizontalclassmerging.code.SyntheticClassInitializerConverter;
 import com.android.tools.r8.ir.analysis.value.NumberFromIntervalValue;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
@@ -104,42 +102,46 @@ public class ClassMerger {
     group.forEachSource(clazz -> classIdentifiers.put(clazz.getType(), classIdentifiers.size()));
   }
 
-  void mergeDirectMethods(SyntheticArgumentClass syntheticArgumentClass) {
-    mergeStaticClassInitializers();
+  void mergeDirectMethods(
+      SyntheticArgumentClass syntheticArgumentClass,
+      SyntheticClassInitializerConverter.Builder syntheticClassInitializerConverterBuilder) {
+    mergeStaticClassInitializers(syntheticClassInitializerConverterBuilder);
     mergeDirectMethods(group.getTarget());
     group.forEachSource(this::mergeDirectMethods);
     mergeConstructors(syntheticArgumentClass);
   }
 
-  void mergeStaticClassInitializers() {
+  void mergeStaticClassInitializers(
+      SyntheticClassInitializerConverter.Builder syntheticClassInitializerConverterBuilder) {
     if (classInitializerMerger.isEmpty()) {
       return;
     }
 
-    DexMethod newClinit = dexItemFactory.createClassInitializer(group.getTarget().getType());
-    Code code = classInitializerMerger.getOrCreateCode(group.getTarget().getType());
-    if (!group.getTarget().hasClassInitializer()) {
-      classMethodsBuilder.addDirectMethod(
-          new DexEncodedMethod(
-              newClinit,
-              MethodAccessFlags.fromSharedAccessFlags(
-                  Constants.ACC_SYNTHETIC | Constants.ACC_STATIC, true),
-              MethodTypeSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              ParameterAnnotationsList.empty(),
-              code,
-              true,
-              classInitializerMerger.getCfVersion()));
-    } else {
-      DexEncodedMethod clinit = group.getTarget().getClassInitializer();
-      clinit.setCode(code, appView);
-      if (code.isCfCode()) {
-        CfVersion cfVersion = classInitializerMerger.getCfVersion();
-        if (cfVersion != null) {
-          clinit.upgradeClassFileVersion(cfVersion);
-        }
-      }
-      classMethodsBuilder.addDirectMethod(clinit);
+    // Synthesize a new class initializer with a fresh synthetic original name.
+    DexMethod newMethodReference =
+        dexItemFactory.createClassInitializer(group.getTarget().getType());
+    DexMethod syntheticMethodReference =
+        newMethodReference.withName("$r8$clinit$synthetic", dexItemFactory);
+    lensBuilder.recordNewMethodSignature(syntheticMethodReference, newMethodReference, true);
+
+    DexEncodedMethod definition =
+        new DexEncodedMethod(
+            newMethodReference,
+            MethodAccessFlags.createForClassInitializer(),
+            MethodTypeSignature.noSignature(),
+            DexAnnotationSet.empty(),
+            ParameterAnnotationsList.empty(),
+            classInitializerMerger.getCode(syntheticMethodReference),
+            DexEncodedMethod.D8_R8_SYNTHESIZED,
+            classInitializerMerger.getCfVersion());
+    classMethodsBuilder.addDirectMethod(definition);
+
+    // In case we didn't synthesize CF code, we register the class initializer for conversion to dex
+    // after merging.
+    if (!definition.getCode().isCfCode()) {
+      assert appView.options().isGeneratingDex();
+      assert mode.isFinal();
+      syntheticClassInitializerConverterBuilder.add(group);
     }
   }
 
@@ -298,7 +300,9 @@ public class ClassMerger {
     group.getTarget().setInstanceFields(classInstanceFieldsMerger.merge());
   }
 
-  public void mergeGroup(SyntheticArgumentClass syntheticArgumentClass) {
+  public void mergeGroup(
+      SyntheticArgumentClass syntheticArgumentClass,
+      SyntheticClassInitializerConverter.Builder syntheticClassInitializerConverterBuilder) {
     fixAccessFlags();
     fixNestMemberAttributes();
 
@@ -310,7 +314,7 @@ public class ClassMerger {
     mergeInterfaces();
 
     mergeVirtualMethods();
-    mergeDirectMethods(syntheticArgumentClass);
+    mergeDirectMethods(syntheticArgumentClass, syntheticClassInitializerConverterBuilder);
     classMethodsBuilder.setClassMethods(group.getTarget());
 
     mergeStaticFields();
@@ -440,6 +444,7 @@ public class ClassMerger {
           virtualMethodMergers.stream()
               .anyMatch(virtualMethodMerger -> !virtualMethodMerger.isNopOrTrivial());
       if (requiresClassIdField) {
+        assert mode.isInitial();
         createClassIdField();
       }
 

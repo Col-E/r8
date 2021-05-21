@@ -28,6 +28,10 @@ public class Return extends JumpInstruction {
     super(value);
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public int opcode() {
     return Opcodes.RETURN;
@@ -125,5 +129,18 @@ public class Return extends JumpInstruction {
   public void buildCf(CfBuilder builder) {
     builder.add(
         isReturnVoid() ? new CfReturnVoid() : new CfReturn(ValueType.fromType(getReturnType())));
+  }
+
+  public static class Builder extends BuilderBase<Builder, Return> {
+
+    @Override
+    public Return build() {
+      return amend(new Return());
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }

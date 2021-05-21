@@ -101,6 +101,10 @@ public class Position implements StructuralItem<Position> {
     return position;
   }
 
+  public boolean hasCallerPosition() {
+    return callerPosition != null;
+  }
+
   @Override
   public Position self() {
     return this;
@@ -131,6 +135,10 @@ public class Position implements StructuralItem<Position> {
       lastPosition = lastPosition.callerPosition;
     }
     return lastPosition;
+  }
+
+  public Position withCallerPosition(Position callerPosition) {
+    return new Position(line, file, method, callerPosition, synthetic);
   }
 
   @Override

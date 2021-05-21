@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.horizontalclassmerging.code.SyntheticClassInitializerConverter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -20,6 +21,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 public class HorizontalClassMerger {
 
@@ -56,17 +59,21 @@ public class HorizontalClassMerger {
     return new HorizontalClassMerger(appView, Mode.FINAL);
   }
 
-  public void runIfNecessary(RuntimeTypeCheckInfo runtimeTypeCheckInfo, Timing timing) {
+  public void runIfNecessary(
+      RuntimeTypeCheckInfo runtimeTypeCheckInfo, ExecutorService executorService, Timing timing)
+      throws ExecutionException {
     if (options.isEnabled(mode)) {
       timing.begin("HorizontalClassMerger (" + mode.toString() + ")");
-      run(runtimeTypeCheckInfo, timing);
+      run(runtimeTypeCheckInfo, executorService, timing);
       timing.end();
     } else {
       appView.setHorizontallyMergedClasses(HorizontallyMergedClasses.empty(), mode);
     }
   }
 
-  private void run(RuntimeTypeCheckInfo runtimeTypeCheckInfo, Timing timing) {
+  private void run(
+      RuntimeTypeCheckInfo runtimeTypeCheckInfo, ExecutorService executorService, Timing timing)
+      throws ExecutionException {
     // Run the policies on all program classes to produce a final grouping.
     List<Policy> policies = PolicyScheduler.getPolicies(appView, mode, runtimeTypeCheckInfo);
     Collection<MergeGroup> groups = new PolicyExecutor().run(getInitialGroups(), policies, timing);
@@ -86,7 +93,17 @@ public class HorizontalClassMerger {
         mode.isInitial()
             ? new SyntheticArgumentClass.Builder(appView.withLiveness()).build(groups)
             : null;
-    applyClassMergers(classMergers, syntheticArgumentClass);
+    SyntheticClassInitializerConverter.Builder syntheticClassInitializerConverterBuilder =
+        SyntheticClassInitializerConverter.builder(appView);
+    applyClassMergers(
+        classMergers, syntheticArgumentClass, syntheticClassInitializerConverterBuilder);
+
+    SyntheticClassInitializerConverter syntheticClassInitializerConverter =
+        syntheticClassInitializerConverterBuilder.build();
+    if (!syntheticClassInitializerConverter.isEmpty()) {
+      assert mode.isFinal();
+      syntheticClassInitializerConverterBuilder.build().convert(executorService);
+    }
 
     // Generate the graph lens.
     HorizontallyMergedClasses mergedClasses =
@@ -189,9 +206,11 @@ public class HorizontalClassMerger {
 
   /** Merges all class groups using {@link ClassMerger}. */
   private void applyClassMergers(
-      Collection<ClassMerger> classMergers, SyntheticArgumentClass syntheticArgumentClass) {
+      Collection<ClassMerger> classMergers,
+      SyntheticArgumentClass syntheticArgumentClass,
+      SyntheticClassInitializerConverter.Builder syntheticClassInitializerConverterBuilder) {
     for (ClassMerger merger : classMergers) {
-      merger.mergeGroup(syntheticArgumentClass);
+      merger.mergeGroup(syntheticArgumentClass, syntheticClassInitializerConverterBuilder);
     }
   }
 
