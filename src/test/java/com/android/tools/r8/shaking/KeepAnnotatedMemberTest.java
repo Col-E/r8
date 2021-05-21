@@ -225,6 +225,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
             .allowDiagnosticInfoMessages()
+            .apply(this::configureHorizontalClassMerging)
             .compile()
             .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
             .graphInspector();
