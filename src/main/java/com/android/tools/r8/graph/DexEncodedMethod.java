@@ -56,6 +56,7 @@ import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationWithMinApiInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
@@ -1455,13 +1456,18 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public synchronized UpdatableMethodOptimizationInfo getMutableOptimizationInfo() {
     checkIfObsolete();
-    if (optimizationInfo == DefaultMethodOptimizationInfo.DEFAULT_INSTANCE) {
-      optimizationInfo = optimizationInfo.mutableCopy();
-    }
-    return (UpdatableMethodOptimizationInfo) optimizationInfo;
+    UpdatableMethodOptimizationInfo updatableMethodOptimizationInfo =
+        optimizationInfo.asUpdatableMethodOptimizationInfo();
+    this.optimizationInfo = updatableMethodOptimizationInfo;
+    return updatableMethodOptimizationInfo;
   }
 
   public void setOptimizationInfo(UpdatableMethodOptimizationInfo info) {
+    checkIfObsolete();
+    optimizationInfo = info;
+  }
+
+  public void setMinApiOptimizationInfo(DefaultMethodOptimizationWithMinApiInfo info) {
     checkIfObsolete();
     optimizationInfo = info;
   }

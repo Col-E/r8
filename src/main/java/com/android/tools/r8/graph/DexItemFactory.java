@@ -29,10 +29,12 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.kotlin.Kotlin;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.LRUCacheTable;
+import com.android.tools.r8.utils.ListUtils;
 import com.google.common.base.Strings;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -2496,6 +2498,22 @@ public class DexItemFactory {
 
   public DexMethod createMethod(DexType holder, DexProto proto, String name) {
     return createMethod(holder, proto, createString(name));
+  }
+
+  public DexMethod createMethod(MethodReference methodReference) {
+    DexString[] formals = new DexString[methodReference.getFormalTypes().size()];
+    ListUtils.forEachWithIndex(
+        methodReference.getFormalTypes(),
+        (formal, index) -> {
+          formals[index] = createString(formal.getDescriptor());
+        });
+    return createMethod(
+        createString(methodReference.getHolderClass().getDescriptor()),
+        createString(methodReference.getMethodName()),
+        methodReference.getReturnType() == null
+            ? voidDescriptor
+            : createString(methodReference.getReturnType().getDescriptor()),
+        formals);
   }
 
   public DexMethodHandle createMethodHandle(

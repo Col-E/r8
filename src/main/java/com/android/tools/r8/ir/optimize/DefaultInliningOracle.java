@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo.isApiSafeForInlining;
 import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.addMonitorEnterValue;
 import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.collectAllMonitorEnterValues;
 
@@ -33,6 +34,7 @@ import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
@@ -121,8 +123,19 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     DexEncodedMethod singleTargetMethod = singleTarget.getDefinition();
-    if (singleTargetMethod.getOptimizationInfo().neverInline()) {
+    MethodOptimizationInfo targetOptimizationInfo = singleTargetMethod.getOptimizationInfo();
+    if (targetOptimizationInfo.neverInline()) {
       whyAreYouNotInliningReporter.reportMarkedAsNeverInline();
+      return false;
+    }
+
+    // Do not inline if the inlinee is greater than the api caller level.
+    MethodOptimizationInfo callerOptimizationInfo = method.getDefinition().getOptimizationInfo();
+    // TODO(b/188498051): We should not force inline lower api method calls.
+    if (reason != Reason.FORCE
+        && isApiSafeForInlining(callerOptimizationInfo, targetOptimizationInfo, appView.options())
+            .isPossiblyFalse()) {
+      whyAreYouNotInliningReporter.reportInlineeHigherApiCall();
       return false;
     }
 
@@ -138,7 +151,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     if (method.getDefinition() == singleTargetMethod) {
       // Cannot handle recursive inlining at this point.
       // Force inlined method should never be recursive.
-      assert !singleTargetMethod.getOptimizationInfo().forceInline();
+      assert !targetOptimizationInfo.forceInline();
       whyAreYouNotInliningReporter.reportRecursiveMethod();
       return false;
     }
