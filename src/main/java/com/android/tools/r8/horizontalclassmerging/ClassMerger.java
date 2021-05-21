@@ -382,7 +382,7 @@ public class ClassMerger {
                         buildersByProto
                             .computeIfAbsent(
                                 method.getDefinition().getProto(),
-                                ignore -> new InstanceInitializerMerger.Builder(appView))
+                                ignore -> new InstanceInitializerMerger.Builder(appView, mode))
                             .add(method)));
         for (InstanceInitializerMerger.Builder builder : buildersByProto.values()) {
           instanceInitializerMergers.addAll(builder.build(group));
@@ -394,7 +394,7 @@ public class ClassMerger {
                     DexEncodedMethod::isInstanceInitializer,
                     method ->
                         instanceInitializerMergers.addAll(
-                            new InstanceInitializerMerger.Builder(appView)
+                            new InstanceInitializerMerger.Builder(appView, mode)
                                 .add(method)
                                 .build(group))));
       }

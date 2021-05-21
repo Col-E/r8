@@ -30,6 +30,11 @@ public class DefaultInstanceInitializerInfo extends InstanceInitializerInfo {
   }
 
   @Override
+  public boolean hasParent() {
+    return false;
+  }
+
+  @Override
   public DexMethod getParent() {
     return null;
   }

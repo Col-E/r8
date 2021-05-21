@@ -25,6 +25,8 @@ public abstract class InstanceInitializerInfo {
     return null;
   }
 
+  public abstract boolean hasParent();
+
   public abstract DexMethod getParent();
 
   public abstract InstanceFieldInitializationInfoCollection fieldInitializationInfos();

@@ -63,6 +63,11 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
   }
 
   @Override
+  public boolean hasParent() {
+    return parent != null;
+  }
+
+  @Override
   public DexMethod getParent() {
     return parent;
   }
