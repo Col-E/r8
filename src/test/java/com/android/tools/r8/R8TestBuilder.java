@@ -5,7 +5,7 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.dexsplitter.SplitterTestBase.simpleSplitProvider;
 import static com.android.tools.r8.dexsplitter.SplitterTestBase.splitWithNonJavaFile;
-import static org.hamcrest.CoreMatchers.containsString;
+import static com.android.tools.r8.utils.codeinspector.Matchers.proguardConfigurationRuleDoesNotMatch;
 
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
@@ -139,8 +139,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
       case NONE:
         if (allowUnusedProguardConfigurationRules) {
           compileResult
-              .assertAllInfoMessagesMatch(
-                  containsString("Proguard configuration rule does not match anything"))
+              .assertAllInfosMatch(proguardConfigurationRuleDoesNotMatch())
               .assertNoErrorMessages()
               .assertNoWarningMessages();
         } else {
@@ -154,11 +153,9 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         throw new Unreachable();
     }
     if (allowUnusedProguardConfigurationRules) {
-      compileResult.assertInfoMessageThatMatches(
-          containsString("Proguard configuration rule does not match anything"));
+      compileResult.assertInfoThatMatches(proguardConfigurationRuleDoesNotMatch());
     } else {
-      compileResult.assertNoInfoMessageThatMatches(
-          containsString("Proguard configuration rule does not match anything"));
+      compileResult.assertNoInfoThatMatches(proguardConfigurationRuleDoesNotMatch());
     }
     return compileResult;
   }

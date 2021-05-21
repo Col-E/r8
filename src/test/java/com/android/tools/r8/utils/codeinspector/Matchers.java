@@ -4,10 +4,13 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.Collectors;
+import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.DexClass;
@@ -218,6 +221,15 @@ public class Matchers {
             .appendText(" was not");
       }
     };
+  }
+
+  public static Matcher<Diagnostic> typeVariableNotInScope() {
+    return DiagnosticsMatcher.diagnosticMessage(containsString("A type variable is not in scope"));
+  }
+
+  public static Matcher<Diagnostic> proguardConfigurationRuleDoesNotMatch() {
+    return DiagnosticsMatcher.diagnosticMessage(
+        containsString("Proguard configuration rule does not match anything"));
   }
 
   public static Matcher<Subject> isSynthetic() {

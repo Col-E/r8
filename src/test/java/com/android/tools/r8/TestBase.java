@@ -1835,11 +1835,6 @@ public class TestBase {
     compileResult.assertAllInfoMessagesMatch(containsString("A type variable is not in scope"));
   }
 
-  public static void verifyHasInfoFromGenericSignatureTypeParameterValidation(
-      TestCompileResult<?, ?> compileResult) {
-    compileResult.assertInfoMessageThatMatches(containsString("A type variable is not in scope"));
-  }
-
   public static void verifyExpectedInfoFromGenericSignatureSuperTypeValidation(
       TestCompileResult<?, ?> compileResult) {
     compileResult.assertAtLeastOneInfoMessage();

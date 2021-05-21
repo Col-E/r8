@@ -5,6 +5,9 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticException;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.proguardConfigurationRuleDoesNotMatch;
+import static com.android.tools.r8.utils.codeinspector.Matchers.typeVariableNotInScope;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -110,8 +113,10 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .allowUnusedProguardConfigurationRules()
         .addKeepRules("-keepclasseswithmembers class * { @" + ABSENT_ANNOTATION + " *; }")
         .allowDiagnosticInfoMessages()
-        .compile()
-        .apply(TestBase::verifyHasInfoFromGenericSignatureTypeParameterValidation)
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics.assertAllInfosMatch(
+                    anyOf(typeVariableNotInScope(), proguardConfigurationRuleDoesNotMatch())))
         .inspect(inspector -> assertEquals(0, inspector.allClasses().size()));
   }
 
@@ -179,8 +184,10 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .allowUnusedProguardConfigurationRules()
         .addKeepRules("-if class * -keep class <1> { @" + PRESENT_ANNOTATION + " *** *(...); }")
         .allowDiagnosticInfoMessages()
-        .compile()
-        .apply(TestBase::verifyHasInfoFromGenericSignatureTypeParameterValidation)
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics.assertAllInfosMatch(
+                    anyOf(typeVariableNotInScope(), proguardConfigurationRuleDoesNotMatch())))
         .inspect(inspector -> assertEquals(0, inspector.allClasses().size()));
   }
 

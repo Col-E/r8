@@ -8,6 +8,9 @@ import static com.android.tools.r8.internal.proto.ProtoShrinkingTestBase.assertR
 import static com.android.tools.r8.internal.proto.ProtoShrinkingTestBase.keepAllProtosRule;
 import static com.android.tools.r8.internal.proto.ProtoShrinkingTestBase.keepDynamicMethodSignatureRule;
 import static com.android.tools.r8.internal.proto.ProtoShrinkingTestBase.keepNewMessageInfoSignatureRule;
+import static com.android.tools.r8.utils.codeinspector.Matchers.proguardConfigurationRuleDoesNotMatch;
+import static com.android.tools.r8.utils.codeinspector.Matchers.typeVariableNotInScope;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -49,7 +52,12 @@ public class ChromeProtoRewritingTest extends ChromeCompilationBase {
         .allowUnusedProguardConfigurationRules()
         .enableProtoShrinking(false)
         .setMinApi(AndroidApiLevel.N)
+        .allowDiagnosticInfoMessages()
         .compile()
+        .inspectDiagnosticMessages(
+            diagnostics ->
+                diagnostics.assertAllInfosMatch(
+                    anyOf(typeVariableNotInScope(), proguardConfigurationRuleDoesNotMatch())))
         .inspect(this::inspect);
   }
 

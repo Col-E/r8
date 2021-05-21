@@ -358,13 +358,28 @@ public abstract class TestCompileResult<
     return self();
   }
 
+  public CR assertInfoThatMatches(Matcher<Diagnostic> matcher) {
+    getDiagnosticMessages().assertInfoThatMatches(matcher);
+    return self();
+  }
+
   public CR assertInfoMessageThatMatches(Matcher<String> matcher) {
     getDiagnosticMessages().assertInfoThatMatches(diagnosticMessage(matcher));
     return self();
   }
 
+  public CR assertAllInfosMatch(Matcher<Diagnostic> matcher) {
+    getDiagnosticMessages().assertNoInfosMatch(not(matcher));
+    return self();
+  }
+
   public CR assertAllInfoMessagesMatch(Matcher<String> matcher) {
     return assertNoInfoMessageThatMatches(not(matcher));
+  }
+
+  public CR assertNoInfoThatMatches(Matcher<Diagnostic> matcher) {
+    getDiagnosticMessages().assertNoInfosMatch(matcher);
+    return self();
   }
 
   public CR assertNoInfoMessageThatMatches(Matcher<String> matcher) {
