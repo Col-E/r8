@@ -311,7 +311,7 @@ class StringSwitchConverter {
 
       private final BasicBlock continuationBlock;
       private final DexItemFactory dexItemFactory;
-      private final Phi idValue;
+      private final Phi intermediateIdValue;
       private final Value stringValue;
 
       Builder(
@@ -321,8 +321,36 @@ class StringSwitchConverter {
           Value stringValue) {
         this.continuationBlock = continuationBlock;
         this.dexItemFactory = dexItemFactory;
-        this.idValue = idValue;
+        this.intermediateIdValue = getIntermediateIdValueOrElse(idValue, idValue);
         this.stringValue = stringValue;
+      }
+
+      // Finds the intermediate id value from the given (non-intermediate) id value. If the non-
+      // intermediate id value v_id has the following structure, then v_id_intermediate is returned.
+      //
+      //   v_id_intermediate = phi(v1(0), v2(1), v_n(n-1))
+      //   v_id = phi(v0(-1), v_id_intermediate)
+      //
+      // Normally, this intermediate value is not present, and the code will have the following
+      // structure:
+      //
+      //   v_id = phi(v0(-1), v1(0), v2(1), v_n(n-1))
+      private Phi getIntermediateIdValueOrElse(Phi idValue, Phi defaultValue) {
+        if (idValue.getOperands().size() != 2) {
+          return defaultValue;
+        }
+        Phi intermediateIdValue = null;
+        for (Value operand : idValue.getOperands()) {
+          if (operand.isPhi()) {
+            if (intermediateIdValue != null) {
+              return defaultValue;
+            }
+            intermediateIdValue = operand.asPhi();
+          }
+        }
+        assert intermediateIdValue == null
+            || intermediateIdValue.getOperands().stream().noneMatch(Value::isPhi);
+        return intermediateIdValue != null ? intermediateIdValue : defaultValue;
       }
 
       // Attempts to build a mapping from strings to their ids starting from the given block. The
@@ -569,17 +597,17 @@ class StringSwitchConverter {
         InstructionIterator instructionIterator = block.iterator();
         ConstNumber constNumberInstruction;
         if (block.isTrivialGoto()) {
-          if (block.getUniqueNormalSuccessor() != idValue.getBlock()) {
+          if (block.getUniqueNormalSuccessor() != intermediateIdValue.getBlock()) {
             return false;
           }
-          int predecessorIndex = idValue.getBlock().getPredecessors().indexOf(block);
+          int predecessorIndex = intermediateIdValue.getBlock().getPredecessors().indexOf(block);
           constNumberInstruction =
-              asConstNumberOrNull(idValue.getOperand(predecessorIndex).definition);
+              asConstNumberOrNull(intermediateIdValue.getOperand(predecessorIndex).definition);
         } else {
           constNumberInstruction = instructionIterator.next().asConstNumber();
         }
         if (constNumberInstruction == null
-            || !idValue.getOperands().contains(constNumberInstruction.outValue())) {
+            || !intermediateIdValue.getOperands().contains(constNumberInstruction.outValue())) {
           return false;
         }
 
