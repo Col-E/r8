@@ -7,22 +7,19 @@ package com.android.tools.r8.classmerging.horizontal.interfaces;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isImplementing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
 
-import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class ClassHierarchyCycleAfterMergingTest extends TestBase {
+public class EmptyInterfaceChainMergingTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -31,7 +28,7 @@ public class ClassHierarchyCycleAfterMergingTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public ClassHierarchyCycleAfterMergingTest(TestParameters parameters) {
+  public EmptyInterfaceChainMergingTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -40,35 +37,36 @@ public class ClassHierarchyCycleAfterMergingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        // I and J are not eligible for merging since that would lead to a cycle in the class
-        // hierarchy.
         .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
-        .enableNoHorizontalClassMergingAnnotations()
+            inspector ->
+                inspector
+                    .assertIsCompleteMergeGroup(I.class, J.class, K.class)
+                    .assertNoOtherClassesMerged())
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             inspector -> {
-              ClassSubject mainClassSubject = inspector.clazz(Main.class);
-              assertThat(mainClassSubject, isPresent());
-              assertThat(mainClassSubject, isImplementing(inspector.clazz(K.class)));
+              ClassSubject aClassSubject = inspector.clazz(A.class);
+              assertThat(aClassSubject, isPresent());
+              assertThat(aClassSubject, isImplementing(inspector.clazz(I.class)));
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithEmptyOutput();
+        .assertSuccess();
   }
 
-  static class Main implements K {
+  static class Main {
 
-    public static void main(String[] args) {}
+    public static void main(String[] args) {
+      System.out.println(A.class);
+    }
   }
 
   @NoUnusedInterfaceRemoval
   @NoVerticalClassMerging
   interface I {}
 
-  @NoHorizontalClassMerging
   @NoUnusedInterfaceRemoval
   @NoVerticalClassMerging
   interface J extends I {}
@@ -76,4 +74,6 @@ public class ClassHierarchyCycleAfterMergingTest extends TestBase {
   @NoUnusedInterfaceRemoval
   @NoVerticalClassMerging
   interface K extends J {}
+
+  static class A implements K {}
 }

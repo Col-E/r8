@@ -11,7 +11,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.AllInstantiatedOrUni
 import com.android.tools.r8.horizontalclassmerging.policies.AtMostOneClassInitializer;
 import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.CheckSyntheticClasses;
-import com.android.tools.r8.horizontalclassmerging.policies.LimitGroups;
+import com.android.tools.r8.horizontalclassmerging.policies.LimitClassGroups;
 import com.android.tools.r8.horizontalclassmerging.policies.MinimizeInstanceFieldCasts;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotationClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassAnnotationCollisions;
@@ -49,6 +49,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.SyntheticItemsPolicy
 import com.android.tools.r8.horizontalclassmerging.policies.VerifyPolicyAlwaysSatisfied;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
+import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
@@ -58,10 +59,13 @@ public class PolicyScheduler {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       Mode mode,
       RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
-    return ImmutableList.<Policy>builder()
-        .addAll(getSingleClassPolicies(appView, mode, runtimeTypeCheckInfo))
-        .addAll(getMultiClassPolicies(appView, mode, runtimeTypeCheckInfo))
-        .build();
+    List<Policy> policies =
+        ImmutableList.<Policy>builder()
+            .addAll(getSingleClassPolicies(appView, mode, runtimeTypeCheckInfo))
+            .addAll(getMultiClassPolicies(appView, mode, runtimeTypeCheckInfo))
+            .build();
+    assert verifyPolicyOrderingConstraints(policies);
+    return policies;
   }
 
   private static List<SingleClassPolicy> getSingleClassPolicies(
@@ -171,7 +175,7 @@ public class PolicyScheduler {
 
     addMultiClassPoliciesForInterfaceMerging(appView, mode, builder);
 
-    return builder.add(new LimitGroups(appView)).build();
+    return builder.add(new LimitClassGroups(appView)).build();
   }
 
   private static void addRequiredMultiClassPolicies(
@@ -204,8 +208,25 @@ public class PolicyScheduler {
       Mode mode,
       ImmutableList.Builder<Policy> builder) {
     builder.add(
-        new OnlyDirectlyConnectedOrUnrelatedInterfaces(appView, mode),
         new NoDefaultInterfaceMethodMerging(appView, mode),
-        new NoDefaultInterfaceMethodCollisions(appView, mode));
+        new NoDefaultInterfaceMethodCollisions(appView, mode),
+        new OnlyDirectlyConnectedOrUnrelatedInterfaces(appView, mode));
+  }
+
+  private static boolean verifyPolicyOrderingConstraints(List<Policy> policies) {
+    // No policies that may split interface groups are allowed to run after the
+    // OnlyDirectlyConnectedOrUnrelatedInterfaces policy. This policy ensures that interface merging
+    // does not lead to any cycles in the interface hierarchy, which may be invalidated if merge
+    // groups are split after the policy has run.
+    int onlyDirectlyConnectedOrUnrelatedInterfacesIndex =
+        ListUtils.lastIndexMatching(
+            policies, policy -> policy instanceof OnlyDirectlyConnectedOrUnrelatedInterfaces);
+    if (onlyDirectlyConnectedOrUnrelatedInterfacesIndex >= 0) {
+      for (Policy successorPolicy :
+          policies.subList(onlyDirectlyConnectedOrUnrelatedInterfacesIndex + 1, policies.size())) {
+        assert successorPolicy.isIdentityForInterfaceGroups();
+      }
+    }
+    return true;
   }
 }

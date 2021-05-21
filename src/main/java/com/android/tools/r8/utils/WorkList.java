@@ -48,12 +48,20 @@ public class WorkList<T> {
     return workList;
   }
 
+  public static <T> WorkList<T> newWorkList(Set<T> seen) {
+    return new WorkList<>(seen);
+  }
+
   private WorkList(EqualityTest equalityTest) {
     this(equalityTest == EqualityTest.HASH ? new HashSet<>() : Sets.newIdentityHashSet());
   }
 
   private WorkList(Set<T> seen) {
     this.seen = seen;
+  }
+
+  public void addIgnoringSeenSet(T item) {
+    workingList.addLast(item);
   }
 
   public void addAllIgnoringSeenSet(Iterable<T> items) {
@@ -86,6 +94,10 @@ public class WorkList<T> {
     return !hasNext();
   }
 
+  public boolean isSeen(T item) {
+    return seen.contains(item);
+  }
+
   public void markAsSeen(T item) {
     seen.add(item);
   }
@@ -101,6 +113,10 @@ public class WorkList<T> {
 
   public Set<T> getSeenSet() {
     return Collections.unmodifiableSet(seen);
+  }
+
+  public Set<T> getMutableSeenSet() {
+    return seen;
   }
 
   public enum EqualityTest {

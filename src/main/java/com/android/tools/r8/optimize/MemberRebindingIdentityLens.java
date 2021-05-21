@@ -41,7 +41,12 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
   }
 
   public static Builder builder(AppView<? extends AppInfoWithClassHierarchy> appView) {
-    return new Builder(appView);
+    return builder(appView, appView.graphLens());
+  }
+
+  public static Builder builder(
+      AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens previousLens) {
+    return new Builder(appView, previousLens);
   }
 
   @Override
@@ -129,16 +134,55 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
     return getPrevious().isContextFreeForMethods();
   }
 
+  @Override
+  public boolean isMemberRebindingIdentityLens() {
+    return true;
+  }
+
+  @Override
+  public MemberRebindingIdentityLens asMemberRebindingIdentityLens() {
+    return this;
+  }
+
+  public MemberRebindingIdentityLens toRewrittenMemberRebindingIdentityLens(
+      AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens lens) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    Builder builder = builder(appView, getIdentityLens());
+    nonReboundFieldReferenceToDefinitionMap.forEach(
+        (nonReboundFieldReference, reboundFieldReference) -> {
+          DexField rewrittenReboundFieldReference = lens.lookupField(reboundFieldReference);
+          DexField rewrittenNonReboundFieldReference =
+              rewrittenReboundFieldReference.withHolder(
+                  lens.lookupType(nonReboundFieldReference.getHolderType()), dexItemFactory);
+          builder.recordNonReboundFieldAccess(
+              rewrittenNonReboundFieldReference, rewrittenReboundFieldReference);
+        });
+    nonReboundMethodReferenceToDefinitionMap.forEach(
+        (nonReboundMethodReference, reboundMethodReference) -> {
+          DexMethod rewrittenReboundMethodReference =
+              lens.getRenamedMethodSignature(reboundMethodReference);
+          DexMethod rewrittenNonReboundMethodReference =
+              rewrittenReboundMethodReference.withHolder(
+                  lens.lookupType(nonReboundMethodReference.getHolderType()), dexItemFactory);
+          builder.recordNonReboundMethodAccess(
+              rewrittenNonReboundMethodReference, rewrittenReboundMethodReference);
+        });
+    return builder.build();
+  }
+
   public static class Builder {
 
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
+    private final GraphLens previousLens;
+
     private final Map<DexField, DexField> nonReboundFieldReferenceToDefinitionMap =
         new IdentityHashMap<>();
     private final Map<DexMethod, DexMethod> nonReboundMethodReferenceToDefinitionMap =
         new IdentityHashMap<>();
 
-    private Builder(AppView<? extends AppInfoWithClassHierarchy> appView) {
+    private Builder(AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens previousLens) {
       this.appView = appView;
+      this.previousLens = previousLens;
     }
 
     void recordNonReboundFieldAccesses(FieldAccessInfo fieldAccessInfo) {
@@ -152,6 +196,12 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
       nonReboundFieldReferenceToDefinitionMap.put(nonReboundFieldReference, reboundFieldReference);
     }
 
+    private void recordNonReboundMethodAccess(
+        DexMethod nonReboundMethodReference, DexMethod reboundMethodReference) {
+      nonReboundMethodReferenceToDefinitionMap.put(
+          nonReboundMethodReference, reboundMethodReference);
+    }
+
     void recordMethodAccess(DexMethod reference) {
       if (reference.getHolderType().isArrayType()) {
         return;
@@ -161,7 +211,7 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
         SingleResolutionResult resolutionResult =
             appView.appInfo().resolveMethodOn(holder, reference).asSingleResolution();
         if (resolutionResult != null && resolutionResult.getResolvedHolder() != holder) {
-          nonReboundMethodReferenceToDefinitionMap.put(
+          recordNonReboundMethodAccess(
               reference, resolutionResult.getResolvedMethod().getReference());
         }
       }
@@ -175,7 +225,7 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
           nonReboundFieldReferenceToDefinitionMap,
           nonReboundMethodReferenceToDefinitionMap,
           appView.dexItemFactory(),
-          appView.graphLens());
+          previousLens);
     }
   }
 }

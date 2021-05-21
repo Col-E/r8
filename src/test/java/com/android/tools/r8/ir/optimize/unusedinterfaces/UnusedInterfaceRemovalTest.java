@@ -85,6 +85,7 @@ public class UnusedInterfaceRemovalTest extends TestBase {
     void foo();
   }
 
+  @NoHorizontalClassMerging
   @NoVerticalClassMerging
   interface J {
 

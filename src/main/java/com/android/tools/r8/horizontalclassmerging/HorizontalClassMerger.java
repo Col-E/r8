@@ -15,6 +15,7 @@ import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -94,6 +95,8 @@ public class HorizontalClassMerger {
 
     HorizontalClassMergerGraphLens horizontalClassMergerGraphLens =
         createLens(mergedClasses, lensBuilder, syntheticArgumentClass);
+
+    assert verifyNoCyclesInInterfaceHierarchies(groups);
 
     // Prune keep info.
     KeepInfoCollection keepInfo = appView.getKeepInfo();
@@ -202,5 +205,24 @@ public class HorizontalClassMerger {
       SyntheticArgumentClass syntheticArgumentClass) {
     return new TreeFixer(appView, mergedClasses, lensBuilder, syntheticArgumentClass)
         .fixupTypeReferences();
+  }
+
+  private boolean verifyNoCyclesInInterfaceHierarchies(Collection<MergeGroup> groups) {
+    for (MergeGroup group : groups) {
+      if (group.isClassGroup()) {
+        continue;
+      }
+      DexProgramClass interfaceClass = group.getTarget();
+      appView
+          .appInfo()
+          .traverseSuperTypes(
+              interfaceClass,
+              (superType, subclass, isInterface) -> {
+                assert superType != interfaceClass.getType()
+                    : "Interface " + interfaceClass.getTypeName() + " inherits from itself";
+                return TraversalContinuation.CONTINUE;
+              });
+    }
+    return true;
   }
 }

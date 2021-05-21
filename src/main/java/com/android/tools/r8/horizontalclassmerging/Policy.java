@@ -22,6 +22,10 @@ public abstract class Policy {
 
   public abstract String getName();
 
+  public boolean isIdentityForInterfaceGroups() {
+    return false;
+  }
+
   public boolean isSingleClassPolicy() {
     return false;
   }

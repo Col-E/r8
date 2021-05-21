@@ -63,7 +63,7 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
                 .addOptionsModification(
                     options ->
                         options.testing.horizontalClassMergingTarget =
-                            (candidates, target) -> candidates.iterator().next())
+                            (appView, candidates, target) -> candidates.iterator().next())
                 .addHorizontallyMergedClassesInspector(
                     inspector ->
                         inspector.assertMergedInto(BaseWithStatic.class, AFeatureWithStatic.class))

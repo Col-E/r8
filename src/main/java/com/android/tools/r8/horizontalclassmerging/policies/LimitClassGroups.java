@@ -13,18 +13,18 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 
-public class LimitGroups extends MultiClassPolicy {
+public class LimitClassGroups extends MultiClassPolicy {
 
   private final int maxGroupSize;
 
-  public LimitGroups(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public LimitClassGroups(AppView<? extends AppInfoWithClassHierarchy> appView) {
     maxGroupSize = appView.options().horizontalClassMergerOptions().getMaxGroupSize();
     assert maxGroupSize >= 2;
   }
 
   @Override
   public Collection<MergeGroup> apply(MergeGroup group) {
-    if (group.size() <= maxGroupSize) {
+    if (group.size() <= maxGroupSize || group.isInterfaceGroup()) {
       return Collections.singletonList(group);
     }
 
@@ -56,5 +56,10 @@ public class LimitGroups extends MultiClassPolicy {
   @Override
   public String getName() {
     return "LimitGroups";
+  }
+
+  @Override
+  public boolean isIdentityForInterfaceGroups() {
+    return true;
   }
 }

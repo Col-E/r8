@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -42,6 +43,7 @@ public class UnusedInterfaceWithDefaultMethodTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -86,6 +88,7 @@ public class UnusedInterfaceWithDefaultMethodTest extends TestBase {
     void m();
   }
 
+  @NoHorizontalClassMerging
   @NoVerticalClassMerging
   interface J extends I {
 

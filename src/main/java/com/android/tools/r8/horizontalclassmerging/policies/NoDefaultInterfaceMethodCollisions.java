@@ -22,11 +22,13 @@ import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicyWithPreprocessing;
 import com.android.tools.r8.horizontalclassmerging.policies.NoDefaultInterfaceMethodCollisions.InterfaceInfo;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,6 +36,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * This policy prevents that interface merging changes semantics of invoke-interface/invoke-virtual
@@ -153,7 +156,7 @@ public class NoDefaultInterfaceMethodCollisions
     Map<DexType, Map<DexMethodSignature, Set<DexMethod>>>
         defaultMethodsInheritedBySubclassesPerClass =
             computeDefaultMethodsInheritedBySubclassesPerProgramClass(
-                classesOfInterest, inheritedDefaultMethodsPerClass, subtypingInfo);
+                classesOfInterest, inheritedDefaultMethodsPerClass, groups, subtypingInfo);
 
     // Store the computed information for each interface that is subject to merging.
     Map<DexType, InterfaceInfo> infos = new IdentityHashMap<>();
@@ -270,7 +273,16 @@ public class NoDefaultInterfaceMethodCollisions
       computeDefaultMethodsInheritedBySubclassesPerProgramClass(
           Collection<DexProgramClass> classesOfInterest,
           Map<DexType, Map<DexMethodSignature, Set<DexMethod>>> inheritedDefaultMethodsPerClass,
+          Collection<MergeGroup> groups,
           SubtypingInfo subtypingInfo) {
+    // Build a mapping from class types to their merge group.
+    Map<DexType, Iterable<DexProgramClass>> classGroupsByType =
+        MapUtils.newIdentityHashMap(
+            builder ->
+                Iterables.filter(groups, MergeGroup::isClassGroup)
+                    .forEach(
+                        group -> group.forEach(clazz -> builder.accept(clazz.getType(), group))));
+
     // Copy the map from classes to their inherited default methods.
     Map<DexType, Map<DexMethodSignature, Set<DexMethod>>>
         defaultMethodsInheritedBySubclassesPerClass =
@@ -279,7 +291,28 @@ public class NoDefaultInterfaceMethodCollisions
                 new HashMap<>(),
                 outerValue ->
                     MapUtils.clone(outerValue, new HashMap<>(), SetUtils::newIdentityHashSet));
-    BottomUpClassHierarchyTraversal.forProgramClasses(appView, subtypingInfo)
+
+    // Propagate data upwards. If classes A and B are in a merge group, we need to push the state
+    // for A to all of B's supertypes, and the state for B to all of A's supertypes.
+    //
+    // Therefore, it is important that we don't process any of A's supertypes until B has been
+    // processed, since that would lead to inadequate upwards propagation. To achieve this, we
+    // simulate that both A and B are subtypes of A's and B's supertypes.
+    Function<DexType, Iterable<DexType>> immediateSubtypesProvider =
+        type -> {
+          Set<DexType> immediateSubtypesAfterClassMerging = Sets.newIdentityHashSet();
+          for (DexType immediateSubtype : subtypingInfo.allImmediateSubtypes(type)) {
+            Iterable<DexProgramClass> group = classGroupsByType.get(immediateSubtype);
+            if (group != null) {
+              group.forEach(member -> immediateSubtypesAfterClassMerging.add(member.getType()));
+            } else {
+              immediateSubtypesAfterClassMerging.add(immediateSubtype);
+            }
+          }
+          return immediateSubtypesAfterClassMerging;
+        };
+
+    BottomUpClassHierarchyTraversal.forProgramClasses(appView, immediateSubtypesProvider)
         .visit(
             classesOfInterest,
             clazz -> {
@@ -287,16 +320,20 @@ public class NoDefaultInterfaceMethodCollisions
               Map<DexMethodSignature, Set<DexMethod>> defaultMethodsToPropagate =
                   defaultMethodsInheritedBySubclassesPerClass.getOrDefault(
                       clazz.getType(), emptyMap());
-              for (DexType supertype : clazz.allImmediateSupertypes()) {
-                Map<DexMethodSignature, Set<DexMethod>>
-                    defaultMethodsInheritedBySubclassesForSupertype =
-                        defaultMethodsInheritedBySubclassesPerClass.computeIfAbsent(
-                            supertype, ignore -> new HashMap<>());
-                defaultMethodsToPropagate.forEach(
-                    (signature, methods) ->
-                        defaultMethodsInheritedBySubclassesForSupertype
-                            .computeIfAbsent(signature, ignore -> Sets.newIdentityHashSet())
-                            .addAll(methods));
+              Iterable<DexProgramClass> group =
+                  classGroupsByType.getOrDefault(clazz.getType(), IterableUtils.singleton(clazz));
+              for (DexProgramClass member : group) {
+                for (DexType supertype : member.allImmediateSupertypes()) {
+                  Map<DexMethodSignature, Set<DexMethod>>
+                      defaultMethodsInheritedBySubclassesForSupertype =
+                          defaultMethodsInheritedBySubclassesPerClass.computeIfAbsent(
+                              supertype, ignore -> new HashMap<>());
+                  defaultMethodsToPropagate.forEach(
+                      (signature, methods) ->
+                          defaultMethodsInheritedBySubclassesForSupertype
+                              .computeIfAbsent(signature, ignore -> Sets.newIdentityHashSet())
+                              .addAll(methods));
+                }
               }
             });
     defaultMethodsInheritedBySubclassesPerClass

@@ -5,6 +5,7 @@
 package com.android.tools.r8.classmerging.horizontal.dispatch;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -36,9 +37,11 @@ public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
               } else {
                 inspector
                     .assertClassesNotMerged(A.class, B.class)
+                    .assertIsCompleteMergeGroup(I.class, J.class)
                     .assertIsCompleteMergeGroup(
                         SyntheticItemsTestUtils.syntheticCompanionClass(I.class),
-                        SyntheticItemsTestUtils.syntheticCompanionClass(J.class));
+                        SyntheticItemsTestUtils.syntheticCompanionClass(J.class))
+                    .assertNoOtherClassesMerged();
               }
             })
         .run(parameters.getRuntime(), Main.class)
@@ -46,7 +49,9 @@ public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(I.class), isPresent());
-              assertThat(codeInspector.clazz(J.class), isPresent());
+              assertThat(
+                  codeInspector.clazz(J.class),
+                  onlyIf(parameters.canUseDefaultAndStaticInterfaceMethods(), isPresent()));
               assertThat(codeInspector.clazz(A.class), isPresent());
               assertThat(codeInspector.clazz(B.class), isPresent());
               assertThat(codeInspector.clazz(C.class), isPresent());
