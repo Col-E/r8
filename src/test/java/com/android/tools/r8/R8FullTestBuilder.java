@@ -24,6 +24,11 @@ public class R8FullTestBuilder extends R8TestBuilder<R8FullTestBuilder> {
   }
 
   @Override
+  public boolean isR8TestBuilder() {
+    return true;
+  }
+
+  @Override
   R8FullTestBuilder self() {
     return this;
   }

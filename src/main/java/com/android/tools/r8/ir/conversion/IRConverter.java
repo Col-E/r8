@@ -182,7 +182,6 @@ public class IRConverter {
    * (i.e., whether we are running R8). See {@link AppView#enableWholeProgramOptimizations()}.
    */
   public IRConverter(AppView<?> appView, Timing timing, CfgPrinter printer) {
-    assert appView.appInfo().hasLiveness() || appView.graphLens().isIdentityLens();
     assert appView.options() != null;
     assert appView.options().programConsumer != null;
     assert timing != null;

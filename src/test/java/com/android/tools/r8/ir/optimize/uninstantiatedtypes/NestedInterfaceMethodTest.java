@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -51,6 +52,7 @@ public class NestedInterfaceMethodTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
             .enableNoVerticalClassMergingAnnotations()
             .addOptionsModification(
                 options -> {
@@ -112,5 +114,6 @@ public class NestedInterfaceMethodTest extends TestBase {
   @NeverClassInline
   static class C extends A {}
 
+  @NoHorizontalClassMerging
   static class Uninstantiated {}
 }

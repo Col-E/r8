@@ -5,7 +5,6 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
-import java.nio.file.Path;
 
 public class R8CompatTestBuilder extends R8TestBuilder<R8CompatTestBuilder> {
 
@@ -18,6 +17,11 @@ public class R8CompatTestBuilder extends R8TestBuilder<R8CompatTestBuilder> {
     CompatProguardCommandBuilder builder =
         new CompatProguardCommandBuilder(forceProguardCompatibility, state.getDiagnosticsHandler());
     return new R8CompatTestBuilder(state, builder, backend);
+  }
+
+  @Override
+  public boolean isR8CompatTestBuilder() {
+    return true;
   }
 
   @Override

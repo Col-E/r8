@@ -721,6 +721,10 @@ public class R8 {
         SyntheticFinalization.finalizeWithClassHierarchy(appView);
       }
 
+      // Clear the reference type lattice element cache. This is required since class merging may
+      // need to build IR.
+      appView.dexItemFactory().clearTypeElementsCache();
+
       // Run horizontal class merging. This runs even if shrinking is disabled to ensure synthetics
       // are always merged.
       HorizontalClassMerger.createForFinalClassMerging(appView)
@@ -918,9 +922,6 @@ public class R8 {
                     DexMethod originalMethod =
                         appView.graphLens().getOriginalMethodSignature(method.getReference());
                     if (originalMethod != method.getReference()) {
-                      DexMethod originalMethod2 =
-                          appView.graphLens().getOriginalMethodSignature(method.getReference());
-                      appView.graphLens().getOriginalMethodSignature(method.getReference());
                       DexEncodedMethod definition = method.getDefinition();
                       Code code = definition.getCode();
                       if (code == null) {

@@ -9,23 +9,34 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class B77836766 extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  public B77836766(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   /**
    * The below Jasmin code mimics the following Kotlin code:
@@ -93,15 +104,18 @@ public class B77836766 extends TestBase {
     ClassBuilder itf2 = jasminBuilder.addInterface("Itf2");
     itf2.addAbstractMethod("foo", ImmutableList.of("Ljava/lang/Integer;"), "V");
 
-    ClassBuilder cls2 = jasminBuilder.addClass("Cls2", absCls.name, itf2.name);
+    ClassBuilder cls2Class = jasminBuilder.addClass("Cls2", absCls.name, itf2.name);
     // Mimic Kotlin's "internal" class
-    cls2.setAccess("");
-    cls2.addBridgeMethod("foo", ImmutableList.of("Ljava/lang/Integer;"), "V",
+    cls2Class.setAccess("");
+    cls2Class.addBridgeMethod(
+        "foo",
+        ImmutableList.of("Ljava/lang/Integer;"),
+        "V",
         ".limit stack 2",
         ".limit locals 2",
         "aload_0",
         "aload_1",
-        "invokevirtual " + cls2.name + "/foo(Ljava/lang/Object;)V",
+        "invokevirtual " + cls2Class.name + "/foo(Ljava/lang/Object;)V",
         "return");
 
     ClassBuilder mainClass = jasminBuilder.addClass("Main");
@@ -115,54 +129,66 @@ public class B77836766 extends TestBase {
         "aload_0",
         "ldc \"Hello\"",
         "invokevirtual " + cls1.name + "/foo(Ljava/lang/String;)V",
-        "new " + cls2.name,
+        "new " + cls2Class.name,
         "dup",
-        "invokespecial " + cls2.name + "/<init>()V",
+        "invokespecial " + cls2Class.name + "/<init>()V",
         "astore_0",
         "aload_0",
         "iconst_0",
         "invokestatic java/lang/Integer/valueOf(I)Ljava/lang/Integer;",
-        "invokevirtual " + cls2.name + "/foo(Ljava/lang/Integer;)V",
-        "return"
-    );
+        "invokevirtual " + cls2Class.name + "/foo(Ljava/lang/Integer;)V",
+        "return");
 
-    final String mainClassName = mainClass.name;
-    String proguardConfig = keepMainProguardConfiguration(mainClass.name, false, false);
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(jasminBuilder.buildClasses())
+        .addKeepMainRule(mainClass.name)
+        .addOptionsModification(this::configure)
+        .noHorizontalClassMerging(cls2Class.name)
+        .noMinification()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject absSubject = inspector.clazz(absCls.name);
+              assertThat(absSubject, isPresent());
+              ClassSubject cls1Subject = inspector.clazz(cls1.name);
+              assertThat(cls1Subject, isPresent());
+              ClassSubject cls2Subject = inspector.clazz(cls2Class.name);
+              assertThat(cls2Subject, isPresent());
 
-    AndroidApp processedApp = runAndVerifyOnJvmAndArt(jasminBuilder, mainClassName, proguardConfig);
+              // Cls1#foo and Cls2#foo should not refer to each other.
+              // They can invoke their own bridge method or AbsCls#foo (via member rebinding).
 
-    CodeInspector inspector = new CodeInspector(processedApp);
-    ClassSubject absSubject = inspector.clazz(absCls.name);
-    assertThat(absSubject, isPresent());
-    ClassSubject cls1Subject = inspector.clazz(cls1.name);
-    assertThat(cls1Subject, isPresent());
-    ClassSubject cls2Subject = inspector.clazz(cls2.name);
-    assertThat(cls2Subject, isPresent());
+              // Cls2#foo has been moved to AbsCls#foo as a result of bridge hoisting.
+              MethodSubject fooInCls2 = cls2Subject.method("void", "foo", "java.lang.Integer");
+              assertThat(fooInCls2, not(isPresent()));
 
-    // Cls1#foo and Cls2#foo should not refer to each other.
-    // They can invoke their own bridge method or AbsCls#foo (via member rebinding).
+              MethodSubject fooFromCls2InAbsCls =
+                  absSubject.method("void", "foo", "java.lang.Integer");
+              assertThat(fooFromCls2InAbsCls, isPresent());
 
-    // Cls2#foo has been moved to AbsCls#foo as a result of bridge hoisting.
-    MethodSubject fooInCls2 = cls2Subject.method("void", "foo", "java.lang.Integer");
-    assertThat(fooInCls2, not(isPresent()));
+              // Cls1#foo has been moved to AbsCls#foo as a result of bridge hoisting.
+              MethodSubject fooInCls1 = cls1Subject.method("void", "foo", "java.lang.String");
+              assertThat(fooInCls1, not(isPresent()));
 
-    MethodSubject fooFromCls2InAbsCls = absSubject.method("void", "foo", "java.lang.Integer");
-    assertThat(fooFromCls2InAbsCls, isPresent());
-    DexCode code = fooFromCls2InAbsCls.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
-    InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
-    assertEquals(absSubject.getDexProgramClass().type, invoke.getMethod().holder);
+              MethodSubject fooFromCls1InAbsCls =
+                  absSubject.method("void", "foo", "java.lang.String");
+              assertThat(fooFromCls1InAbsCls, isPresent());
 
-    // Cls1#foo has been moved to AbsCls#foo as a result of bridge hoisting.
-    MethodSubject fooInCls1 = cls1Subject.method("void", "foo", "java.lang.String");
-    assertThat(fooInCls1, not(isPresent()));
+              if (parameters.isDexRuntime()) {
+                DexCode code = fooFromCls2InAbsCls.getMethod().getCode().asDexCode();
+                checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
+                InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
+                assertEquals(absSubject.getDexProgramClass().type, invoke.getMethod().holder);
 
-    MethodSubject fooFromCls1InAbsCls = absSubject.method("void", "foo", "java.lang.String");
-    assertThat(fooFromCls1InAbsCls, isPresent());
-    code = fooFromCls1InAbsCls.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
-    invoke = (InvokeVirtual) code.instructions[0];
-    assertEquals(absSubject.getDexProgramClass().type, invoke.getMethod().holder);
+                code = fooFromCls1InAbsCls.getMethod().getCode().asDexCode();
+                checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
+                invoke = (InvokeVirtual) code.instructions[0];
+                assertEquals(absSubject.getDexProgramClass().type, invoke.getMethod().holder);
+              }
+            })
+        .run(parameters.getRuntime(), mainClass.name)
+        .assertSuccessWithOutput("Hello0");
   }
 
   /**
@@ -199,13 +225,17 @@ public class B77836766 extends TestBase {
     ClassBuilder itf = jasminBuilder.addInterface("ItfInteger");
     itf.addAbstractMethod("foo", ImmutableList.of("Ljava/lang/Integer;"), "V");
 
-    ClassBuilder cls1 = jasminBuilder.addClass("DerivedInteger", baseCls.name, itf.name);
-    cls1.addBridgeMethod("foo", ImmutableList.of("Ljava/lang/Integer;"), "V",
+    ClassBuilder derivedIntegerClass =
+        jasminBuilder.addClass("DerivedInteger", baseCls.name, itf.name);
+    derivedIntegerClass.addBridgeMethod(
+        "foo",
+        ImmutableList.of("Ljava/lang/Integer;"),
+        "V",
         ".limit stack 2",
         ".limit locals 2",
         "aload_0",
         "aload_1",
-        "invokevirtual " + cls1.name + "/foo(Ljava/lang/Object;)V",
+        "invokevirtual " + derivedIntegerClass.name + "/foo(Ljava/lang/Object;)V",
         "return");
 
     ClassBuilder cls2 = jasminBuilder.addClass("DerivedString", baseCls.name);
@@ -221,14 +251,14 @@ public class B77836766 extends TestBase {
     mainClass.addMainMethod(
         ".limit stack 5",
         ".limit locals 2",
-        "new " + cls1.name,
+        "new " + derivedIntegerClass.name,
         "dup",
-        "invokespecial " + cls1.name + "/<init>()V",
+        "invokespecial " + derivedIntegerClass.name + "/<init>()V",
         "astore_0",
         "aload_0",
         "iconst_0",
         "invokestatic java/lang/Integer/valueOf(I)Ljava/lang/Integer;",
-        "invokevirtual " + cls1.name + "/foo(Ljava/lang/Integer;)V",
+        "invokevirtual " + derivedIntegerClass.name + "/foo(Ljava/lang/Integer;)V",
         "new " + cls2.name,
         "dup",
         "invokespecial " + cls2.name + "/<init>()V",
@@ -236,41 +266,51 @@ public class B77836766 extends TestBase {
         "aload_0",
         "ldc \"Bar\"",
         "invokevirtual " + cls2.name + "/bar(Ljava/lang/String;)V",
-        "return"
-    );
+        "return");
 
-    final String mainClassName = mainClass.name;
-    String proguardConfig = keepMainProguardConfiguration(mainClass.name, false, false);
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(jasminBuilder.buildClasses())
+        .addKeepMainRule(mainClass.name)
+        .addOptionsModification(this::configure)
+        .noHorizontalClassMerging(derivedIntegerClass.name)
+        .noMinification()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject baseSubject = inspector.clazz(baseCls.name);
+              assertThat(baseSubject, isPresent());
+              ClassSubject cls1Subject = inspector.clazz(derivedIntegerClass.name);
+              assertThat(cls1Subject, isPresent());
+              ClassSubject cls2Subject = inspector.clazz(cls2.name);
+              assertThat(cls2Subject, isPresent());
 
-    AndroidApp processedApp = runAndVerifyOnJvmAndArt(jasminBuilder, mainClassName, proguardConfig);
+              // Cls1#foo and Cls2#bar should refer to Base#foo.
 
-    CodeInspector inspector = new CodeInspector(processedApp);
-    ClassSubject baseSubject = inspector.clazz(baseCls.name);
-    assertThat(baseSubject, isPresent());
-    ClassSubject cls1Subject = inspector.clazz(cls1.name);
-    assertThat(cls1Subject, isPresent());
-    ClassSubject cls2Subject = inspector.clazz(cls2.name);
-    assertThat(cls2Subject, isPresent());
+              MethodSubject barInCls2 = cls2Subject.method("void", "bar", "java.lang.String");
+              assertThat(barInCls2, isPresent());
 
-    // Cls1#foo and Cls2#bar should refer to Base#foo.
+              // Cls1#foo has been moved to Base#foo as a result of bridge hoisting.
+              MethodSubject fooInCls1 = cls1Subject.method("void", "foo", "java.lang.Integer");
+              assertThat(fooInCls1, not(isPresent()));
 
-    MethodSubject barInCls2 = cls2Subject.method("void", "bar", "java.lang.String");
-    assertThat(barInCls2, isPresent());
-    DexCode code = barInCls2.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
-    InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
-    assertEquals(baseSubject.getDexProgramClass().type, invoke.getMethod().holder);
+              MethodSubject fooInBase = baseSubject.method("void", "foo", "java.lang.Integer");
+              assertThat(fooInBase, isPresent());
 
-    // Cls1#foo has been moved to Base#foo as a result of bridge hoisting.
-    MethodSubject fooInCls1 = cls1Subject.method("void", "foo", "java.lang.Integer");
-    assertThat(fooInCls1, not(isPresent()));
+              if (parameters.isDexRuntime()) {
+                DexCode code = barInCls2.getMethod().getCode().asDexCode();
+                checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
+                InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
+                assertEquals(baseSubject.getDexProgramClass().type, invoke.getMethod().holder);
 
-    MethodSubject fooInBase = baseSubject.method("void", "foo", "java.lang.Integer");
-    assertThat(fooInBase, isPresent());
-    code = fooInBase.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
-    invoke = (InvokeVirtual) code.instructions[0];
-    assertEquals(baseSubject.getDexProgramClass().type, invoke.getMethod().holder);
+                code = fooInBase.getMethod().getCode().asDexCode();
+                checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
+                invoke = (InvokeVirtual) code.instructions[0];
+                assertEquals(baseSubject.getDexProgramClass().type, invoke.getMethod().holder);
+              }
+            })
+        .run(parameters.getRuntime(), mainClass.name)
+        .assertSuccessWithOutput("0Bar");
   }
 
   /**
@@ -337,25 +377,34 @@ public class B77836766 extends TestBase {
         "return"
     );
 
-    final String mainClassName = mainClass.name;
-    String proguardConfig = keepMainProguardConfiguration(mainClass.name, false, false);
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(jasminBuilder.buildClasses())
+        .addKeepMainRule(mainClass.name)
+        .addOptionsModification(this::configure)
+        .noMinification()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject baseSubject = inspector.clazz(baseCls.name);
+              assertThat(baseSubject, isPresent());
+              ClassSubject subSubject = inspector.clazz(subCls.name);
+              assertThat(subSubject, isPresent());
 
-    AndroidApp processedApp = runAndVerifyOnJvmAndArt(jasminBuilder, mainClassName, proguardConfig);
+              // DerivedString2#bar should refer to Base#foo.
 
-    CodeInspector inspector = new CodeInspector(processedApp);
-    ClassSubject baseSubject = inspector.clazz(baseCls.name);
-    assertThat(baseSubject, isPresent());
-    ClassSubject subSubject = inspector.clazz(subCls.name);
-    assertThat(subSubject, isPresent());
+              MethodSubject barInSub = subSubject.method("void", "bar", "java.lang.String");
+              assertThat(barInSub, isPresent());
 
-    // DerivedString2#bar should refer to Base#foo.
-
-    MethodSubject barInSub = subSubject.method("void", "bar", "java.lang.String");
-    assertThat(barInSub, isPresent());
-    DexCode code = barInSub.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
-    InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
-    assertEquals(baseSubject.getDexProgramClass().type, invoke.getMethod().holder);
+              if (parameters.isDexRuntime()) {
+                DexCode code = barInSub.getMethod().getCode().asDexCode();
+                checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
+                InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
+                assertEquals(baseSubject.getDexProgramClass().type, invoke.getMethod().holder);
+              }
+            })
+        .run(parameters.getRuntime(), mainClass.name)
+        .assertSuccessWithOutput("0Bar");
   }
 
   /*
@@ -413,40 +462,33 @@ public class B77836766 extends TestBase {
         "invokevirtual " + cls.name + "/bar(Ljava/lang/String;)V",
         "return"
     );
-    final String mainClassName = mainClass.name;
-    String proguardConfig = keepMainProguardConfiguration(mainClass.name, false, false);
-    AndroidApp processedApp = runAndVerifyOnJvmAndArt(jasminBuilder, mainClassName, proguardConfig);
 
-    CodeInspector inspector = new CodeInspector(processedApp);
-    ClassSubject baseSubject = inspector.clazz(cls.name);
-    assertThat(baseSubject, isPresent());
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(jasminBuilder.buildClasses())
+        .addKeepMainRule(mainClass.name)
+        .addOptionsModification(this::configure)
+        .noMinification()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject baseSubject = inspector.clazz(cls.name);
+              assertThat(baseSubject, isPresent());
 
-    // Base#bar should remain as-is, i.e., refer to Base#foo(Object).
+              // Base#bar should remain as-is, i.e., refer to Base#foo(Object).
 
-    MethodSubject barInSub = baseSubject.method("void", "bar", "java.lang.String");
-    assertThat(barInSub, isPresent());
-    DexCode code = barInSub.getMethod().getCode().asDexCode();
-    checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
-    InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
-    assertEquals(baseSubject.getDexProgramClass().type, invoke.getMethod().holder);
-  }
+              MethodSubject barInSub = baseSubject.method("void", "bar", "java.lang.String");
+              assertThat(barInSub, isPresent());
 
-  private AndroidApp runAndVerifyOnJvmAndArt(
-      JasminBuilder jasminBuilder, String mainClassName, String proguardConfig) throws Exception {
-    // Run input program on java.
-    Path outputDirectory = temp.newFolder().toPath();
-    jasminBuilder.writeClassFiles(outputDirectory);
-    ProcessResult javaResult = ToolHelper.runJava(outputDirectory, mainClassName);
-    assertEquals(0, javaResult.exitCode);
-
-    AndroidApp processedApp = compileWithR8(jasminBuilder.build(), proguardConfig, this::configure);
-
-    // Run processed (output) program on ART
-    ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);
-    assertEquals(javaResult.stdout, artResult.stdout);
-    assertEquals(-1, artResult.stderr.indexOf("VerifyError"));
-
-    return processedApp;
+              if (parameters.isDexRuntime()) {
+                DexCode code = barInSub.getMethod().getCode().asDexCode();
+                checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
+                InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
+                assertEquals(baseSubject.getDexProgramClass().type, invoke.getMethod().holder);
+              }
+            })
+        .run(parameters.getRuntime(), mainClass.name)
+        .assertSuccessWithOutput("0Bar");
   }
 
   private void configure(InternalOptions options) {

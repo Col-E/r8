@@ -44,6 +44,14 @@ public abstract class TestShrinkerBuilder<
     return false;
   }
 
+  public boolean isR8TestBuilder() {
+    return false;
+  }
+
+  public boolean isR8CompatTestBuilder() {
+    return false;
+  }
+
   @Override
   public boolean isTestShrinkerBuilder() {
     return true;

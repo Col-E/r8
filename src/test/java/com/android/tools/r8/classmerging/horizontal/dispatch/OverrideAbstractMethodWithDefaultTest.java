@@ -6,6 +6,7 @@ package com.android.tools.r8.classmerging.horizontal.dispatch;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -26,13 +27,18 @@ public class OverrideAbstractMethodWithDefaultTest extends HorizontalClassMergin
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        .addHorizontallyMergedClassesInspector(
+            inspector ->
+                inspector
+                    .assertIsCompleteMergeGroup(I.class, J.class)
+                    .applyIf(
+                        !parameters.canUseDefaultAndStaticInterfaceMethods(),
+                        i -> i.assertIsCompleteMergeGroup(B1.class, B2.class))
+                    .assertNoOtherClassesMerged())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspector(
-            inspector ->
-                inspector.assertIsCompleteMergeGroup(I.class, J.class).assertNoOtherClassesMerged())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("J", "B2")
         .inspect(
@@ -41,7 +47,9 @@ public class OverrideAbstractMethodWithDefaultTest extends HorizontalClassMergin
               assertThat(codeInspector.clazz(J.class), isAbsent());
               assertThat(codeInspector.clazz(A.class), isPresent());
               assertThat(codeInspector.clazz(B1.class), isPresent());
-              assertThat(codeInspector.clazz(B2.class), isPresent());
+              assertThat(
+                  codeInspector.clazz(B2.class),
+                  onlyIf(parameters.canUseDefaultAndStaticInterfaceMethods(), isPresent()));
               assertThat(codeInspector.clazz(C1.class), isPresent());
               assertThat(codeInspector.clazz(C2.class), isPresent());
             });

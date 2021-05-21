@@ -325,6 +325,10 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       return false;
     }
     ProgramMethod context = code.context();
+    if (!toBeReplaced.instructionMayHaveSideEffects(appView, context)) {
+      removeOrReplaceByDebugLocalRead();
+      return true;
+    }
     if (toBeReplaced.instructionMayHaveSideEffects(
         appView, context, Instruction.SideEffectAssumption.CLASS_ALREADY_INITIALIZED)) {
       return false;

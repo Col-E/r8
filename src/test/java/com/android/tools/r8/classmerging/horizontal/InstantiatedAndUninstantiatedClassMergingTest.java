@@ -5,13 +5,13 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 
 public class InstantiatedAndUninstantiatedClassMergingTest extends HorizontalClassMergingTestBase {
@@ -36,14 +36,14 @@ public class InstantiatedAndUninstantiatedClassMergingTest extends HorizontalCla
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             inspector -> {
               assertThat(inspector.clazz(Instantiated.class), isPresent());
-              assertThat(inspector.clazz(Uninstantiated.class), isPresent());
+              assertThat(
+                  inspector.clazz(Uninstantiated.class),
+                  notIf(isPresent(), testBuilder.isR8CompatTestBuilder()));
             })
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Instantiated", "Uninstantiated");

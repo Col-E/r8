@@ -118,10 +118,6 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
           for (DataEntryResource dataResource : getOriginalDataResources()) {
             ImmutableList<String> object =
                 dataResourceConsumer.get(getExpectedRenamingFor(dataResource.getName(), mapper));
-            if (object == null) {
-              object =
-                  dataResourceConsumer.get(getExpectedRenamingFor(dataResource.getName(), mapper));
-            }
             assertNotNull("Resource not renamed as expected: " + dataResource.getName(), object);
           }
         });

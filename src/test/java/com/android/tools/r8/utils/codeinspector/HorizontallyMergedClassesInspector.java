@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
@@ -66,6 +67,14 @@ public class HorizontallyMergedClassesInspector {
 
   public Set<DexType> getTargets() {
     return horizontallyMergedClasses.getTargets();
+  }
+
+  public HorizontallyMergedClassesInspector applyIf(
+      boolean condition, ThrowableConsumer<HorizontallyMergedClassesInspector> consumer) {
+    if (condition) {
+      consumer.acceptWithRuntimeException(this);
+    }
+    return this;
   }
 
   public HorizontallyMergedClassesInspector assertMergedInto(Class<?> from, Class<?> target) {
