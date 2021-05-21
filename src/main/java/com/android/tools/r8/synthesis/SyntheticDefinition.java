@@ -71,6 +71,7 @@ abstract class SyntheticDefinition<
       ClassToFeatureSplitMap classToFeatureSplitMap,
       SyntheticItems syntheticItems) {
     Hasher hasher = Hashing.murmur3_128().newHasher();
+    hasher.putInt(kind.id);
     if (getKind().isFixedSuffixSynthetic) {
       // Fixed synthetics are non-shareable. Its unique type is used as the hash key.
       getHolder().getType().hash(hasher);
@@ -101,6 +102,12 @@ abstract class SyntheticDefinition<
       boolean includeContext,
       GraphLens graphLens,
       ClassToFeatureSplitMap classToFeatureSplitMap) {
+    {
+      int order = kind.compareTo(other.getKind());
+      if (order != 0) {
+        return order;
+      }
+    }
     DexType thisType = getHolder().getType();
     DexType otherType = other.getHolder().getType();
     if (getKind().isFixedSuffixSynthetic) {

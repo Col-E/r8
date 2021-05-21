@@ -7,6 +7,7 @@ package com.android.tools.r8.utils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -208,5 +209,37 @@ public class ListUtils {
 
   public interface ReferenceAndIntConsumer<T> {
     void accept(T item, int index);
+  }
+
+  public static <T> void destructiveSort(List<T> items, Comparator<T> comparator) {
+    items.sort(comparator);
+  }
+
+  // Utility to add a slow verification of a comparator as part of sorting. Note that this
+  // should not generally be used in asserts unless the quadratic behavior can be tolerated.
+  public static <T> void destructiveSortAndVerify(List<T> items, Comparator<T> comparator) {
+    destructiveSort(items, comparator);
+    assert verifyComparatorOnSortedList(items, comparator);
+  }
+
+  private static <T> boolean verifyComparatorOnSortedList(List<T> items, Comparator<T> comparator) {
+    for (int i = 0; i < items.size(); i++) {
+      boolean allowEqual = true;
+      for (int j = i; j < items.size(); j++) {
+        T a = items.get(i);
+        T b = items.get(j);
+        int result1 = comparator.compare(a, b);
+        int result2 = comparator.compare(b, a);
+        boolean isEqual = result1 == 0 && result2 == 0;
+        if (i == j) {
+          assert isEqual;
+        } else if (!allowEqual || !isEqual) {
+          allowEqual = false;
+          assert result1 < 0;
+          assert result2 > 0;
+        }
+      }
+    }
+    return true;
   }
 }

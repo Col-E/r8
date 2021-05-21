@@ -48,6 +48,7 @@ import com.google.common.hash.HashCode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -549,9 +550,9 @@ public class SyntheticFinalization {
         (externalSyntheticTypePrefix, groups) -> {
           // Sort the equivalence groups that go into 'context' including the context type of the
           // representative which is equal to 'context' here (see assert below).
-          groups.sort(
-              (a, b) ->
-                  a.compareToIncludingContext(b, appView.graphLens(), classToFeatureSplitMap));
+          Comparator<EquivalenceGroup<T>> comparator =
+              (a, b) -> a.compareToIncludingContext(b, appView.graphLens(), classToFeatureSplitMap);
+          ListUtils.destructiveSort(groups, comparator);
           for (int i = 0; i < groups.size(); i++) {
             EquivalenceGroup<T> group = groups.get(i);
             assert group
