@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNot.not;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestParameters;
@@ -15,6 +15,7 @@ import com.android.tools.r8.classmerging.horizontal.testclasses.B;
 import org.junit.Test;
 
 public class PackagePrivateMemberAccessTest extends HorizontalClassMergingTestBase {
+
   public PackagePrivateMemberAccessTest(TestParameters parameters) {
     super(parameters);
   }
@@ -23,10 +24,8 @@ public class PackagePrivateMemberAccessTest extends HorizontalClassMergingTestBa
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        .addProgramClasses(A.class)
-        .addProgramClasses(B.class)
+        .addProgramClasses(A.class, B.class)
         .addKeepMainRule(Main.class)
-        .allowAccessModification(false)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -34,9 +33,9 @@ public class PackagePrivateMemberAccessTest extends HorizontalClassMergingTestBa
         .assertSuccessWithOutputLines("foo", "B", "bar", "5", "foobar")
         .inspect(
             codeInspector -> {
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), not(isPresent()));
-                assertThat(codeInspector.clazz(C.class), isPresent());
+              assertThat(codeInspector.clazz(A.class), isAbsent());
+              assertThat(codeInspector.clazz(B.class), isAbsent());
+              assertThat(codeInspector.clazz(C.class), isPresent());
             });
   }
 
