@@ -6,11 +6,11 @@ package com.android.tools.r8.apimodeling;
 
 import static com.android.tools.r8.apimodeling.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.apimodeling.ApiModelingTestHelper.verifyThat;
+import static org.junit.Assert.assertThrows;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
-import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -22,7 +22,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ApiModelNoInliningOfHigherApiLevelSuperTest extends TestBase {
+public class ApiModelingNoInliningOfHigherApiLevelSuperTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -31,7 +31,7 @@ public class ApiModelNoInliningOfHigherApiLevelSuperTest extends TestBase {
     return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
-  public ApiModelNoInliningOfHigherApiLevelSuperTest(TestParameters parameters) {
+  public ApiModelingNoInliningOfHigherApiLevelSuperTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -47,19 +47,30 @@ public class ApiModelNoInliningOfHigherApiLevelSuperTest extends TestBase {
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
-        .enableNoVerticalClassMergingAnnotations()
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
-        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()
         .inspect(
-            verifyThat(parameters, apiCaller)
-                .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1))
+            inspector -> {
+              if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L_MR1)) {
+                verifyThat(parameters, apiCaller)
+                    .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1)
+                    .accept(inspector);
+              } else {
+                // TODO(b/188388130): Should only inline on minApi >= 22.
+                assertThrows(
+                    AssertionError.class,
+                    () ->
+                        verifyThat(parameters, apiCaller)
+                            .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1)
+                            .accept(inspector));
+              }
+            })
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A::noApiCall", "ApiCaller::apiLevel22", "Api::apiLevel22");
   }
 
-  @NoVerticalClassMerging
+  @NoHorizontalClassMerging
   public static class Api {
 
     void apiLevel22() {

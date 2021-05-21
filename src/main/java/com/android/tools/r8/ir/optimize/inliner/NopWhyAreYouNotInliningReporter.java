@@ -58,9 +58,6 @@ public class NopWhyAreYouNotInliningReporter extends WhyAreYouNotInliningReporte
   public void reportInlineeNotSimple() {}
 
   @Override
-  public void reportInlineeHigherApiCall() {}
-
-  @Override
   public void reportInlineeRefersToClassesNotInMainDex() {}
 
   @Override

@@ -120,11 +120,6 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
-  public void reportInlineeHigherApiCall() {
-    print("inlinee having a higher api call than caller context.");
-  }
-
-  @Override
   public void reportInlineeRefersToClassesNotInMainDex() {
     print(
         "inlining could increase the main dex size "

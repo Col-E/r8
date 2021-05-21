@@ -6,16 +6,13 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.utils.AndroidApiLevel;
-import java.util.Map;
+import com.android.tools.r8.graph.UseRegistry;
 
 public interface EnqueuerUseRegistryFactory {
 
-  DefaultEnqueuerUseRegistry create(
+  UseRegistry create(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramMethod currentMethod,
-      Enqueuer enqueuer,
-      Map<DexReference, AndroidApiLevel> apiLevelReferenceMap);
+      Enqueuer enqueuer);
 }

@@ -11,16 +11,13 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoEnqueuerExtension;
 import com.android.tools.r8.shaking.DefaultEnqueuerUseRegistry;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerUseRegistryFactory;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.ListIterator;
-import java.util.Map;
 
 public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
 
@@ -31,9 +28,8 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
   public ProtoEnqueuerUseRegistry(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramMethod currentMethod,
-      Enqueuer enqueuer,
-      Map<DexReference, AndroidApiLevel> apiLevelReferenceMap) {
-    super(appView, currentMethod, enqueuer, apiLevelReferenceMap);
+      Enqueuer enqueuer) {
+    super(appView, currentMethod, enqueuer);
     this.references = appView.protoShrinker().references;
   }
 
