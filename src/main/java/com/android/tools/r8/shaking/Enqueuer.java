@@ -102,6 +102,8 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.R8Cf
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
+import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationWithMinApiInfo;
 import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
@@ -120,6 +122,7 @@ import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.synthesis.SyntheticItems.SynthesizingContextOracle;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
@@ -253,6 +256,8 @@ public class Enqueuer {
   private final Map<DexCallSite, ProgramMethodSet> callSites = new IdentityHashMap<>();
 
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
+
+  private final Map<DexReference, AndroidApiLevel> referenceToApiLevelMap;
 
   /**
    * Tracks the dependency between a method and the super-method it calls, if any. Used to make
@@ -462,6 +467,17 @@ public class Enqueuer {
       registerInvokeAnalysis(desugaredLibraryWrapperAnalysis);
     } else {
       desugaredLibraryWrapperAnalysis = null;
+    }
+    referenceToApiLevelMap = new IdentityHashMap<>();
+    if (options.apiModelingOptions().enableApiCallerIdentification) {
+      options
+          .apiModelingOptions()
+          .methodApiMapping
+          .forEach(
+              (methodReference, apiLevel) -> {
+                referenceToApiLevelMap.put(
+                    options.dexItemFactory().createMethod(methodReference), apiLevel);
+              });
     }
   }
 
@@ -3895,7 +3911,22 @@ public class Enqueuer {
   }
 
   void traceCode(ProgramMethod method) {
-    method.registerCodeReferences(useRegistryFactory.create(appView, method, this));
+    DefaultEnqueuerUseRegistry registry =
+        useRegistryFactory.create(appView, method, this, referenceToApiLevelMap);
+    method.registerCodeReferences(registry);
+    DexEncodedMethod methodDefinition = method.getDefinition();
+    AndroidApiLevel maxApiReferenceLevel = registry.getMaxApiReferenceLevel();
+    assert maxApiReferenceLevel.isGreaterThanOrEqualTo(options.minApiLevel);
+    // To not have mutable update information for all methods that all has min api level we
+    // swap the default optimization info for one with that marks the api level to be min api.
+    if (methodDefinition.getOptimizationInfo() == DefaultMethodOptimizationInfo.getInstance()
+        && maxApiReferenceLevel == options.minApiLevel) {
+      methodDefinition.setMinApiOptimizationInfo(
+          DefaultMethodOptimizationWithMinApiInfo.getInstance());
+      return;
+    }
+    methodDefinition.setOptimizationInfo(
+        methodDefinition.getMutableOptimizationInfo().setApiReferenceLevel(maxApiReferenceLevel));
   }
 
   private void checkMemberForSoftPinning(ProgramMember<?, ?> member) {

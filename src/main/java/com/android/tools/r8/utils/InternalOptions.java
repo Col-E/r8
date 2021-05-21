@@ -348,9 +348,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Contain the contents of the build properties file from the compiler command.
   public DumpOptions dumpOptions;
 
-  // A mapping from methods to the api-level introducing them.
-  public Map<MethodReference, AndroidApiLevel> methodApiMapping = new HashMap<>();
-
   // Hidden marker for classes.dex
   private boolean hasMarker = false;
   private Marker marker;
@@ -675,6 +672,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   private final ProtoShrinkingOptions protoShrinking = new ProtoShrinkingOptions();
   private final KotlinOptimizationOptions kotlinOptimizationOptions =
       new KotlinOptimizationOptions();
+  private final ApiModelTestingOptions apiModelTestingOptions = new ApiModelTestingOptions();
   private final DesugarSpecificOptions desugarSpecificOptions = new DesugarSpecificOptions();
   public final TestingOptions testing = new TestingOptions();
 
@@ -705,6 +703,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public KotlinOptimizationOptions kotlinOptimizationOptions() {
     return kotlinOptimizationOptions;
+  }
+
+  public ApiModelTestingOptions apiModelingOptions() {
+    return apiModelTestingOptions;
   }
 
   public DesugarSpecificOptions desugarSpecificOptions() {
@@ -1288,6 +1290,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public void setRestrictToSynthetics() {
       restrictToSynthetics = true;
     }
+  }
+
+  public static class ApiModelTestingOptions {
+
+    // A mapping from methods to the api-level introducing them.
+    public Map<MethodReference, AndroidApiLevel> methodApiMapping = new HashMap<>();
+
+    public boolean enableApiCallerIdentification = false;
   }
 
   public static class ProtoShrinkingOptions {

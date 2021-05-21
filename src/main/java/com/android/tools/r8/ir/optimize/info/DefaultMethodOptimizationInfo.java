@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMeth
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableSet;
 import java.util.BitSet;
 import java.util.Set;
@@ -38,8 +39,9 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   static boolean UNKNOWN_RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS = false;
   static BitSet NO_NULL_PARAMETER_OR_THROW_FACTS = null;
   static BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
+  static AndroidApiLevel UNKNOWN_API_REFERENCE_LEVEL = null;
 
-  private DefaultMethodOptimizationInfo() {}
+  protected DefaultMethodOptimizationInfo() {}
 
   public static DefaultMethodOptimizationInfo getInstance() {
     return DEFAULT_INSTANCE;
@@ -57,7 +59,7 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
 
   @Override
   public UpdatableMethodOptimizationInfo asUpdatableMethodOptimizationInfo() {
-    return null;
+    return mutableCopy();
   }
 
   @Override
@@ -188,6 +190,16 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
 
   @Override
   public boolean returnValueHasBeenPropagated() {
+    return false;
+  }
+
+  @Override
+  public AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApi) {
+    return UNKNOWN_API_REFERENCE_LEVEL;
+  }
+
+  @Override
+  public boolean hasApiReferenceLevel() {
     return false;
   }
 

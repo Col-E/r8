@@ -20,16 +20,16 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ApiModelingNoInliningOfHigherApiLevelIntoLowerDirectTest extends TestBase {
+public class ApiModelNoInliningOfHigherApiLevelIntoLowerDirectTest extends TestBase {
 
   private final TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public ApiModelingNoInliningOfHigherApiLevelIntoLowerDirectTest(TestParameters parameters) {
+  public ApiModelNoInliningOfHigherApiLevelIntoLowerDirectTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -45,6 +45,7 @@ public class ApiModelingNoInliningOfHigherApiLevelIntoLowerDirectTest extends Te
         .enableNoHorizontalClassMergingAnnotations()
         .apply(setMockApiLevelForMethod(apiLevel21, AndroidApiLevel.L))
         .apply(setMockApiLevelForMethod(apiLevel22, AndroidApiLevel.L_MR1))
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A::apiLevel21", "B::apiLevel22")
         .inspect(verifyThat(parameters, apiLevel22).inlinedInto(apiLevel21));

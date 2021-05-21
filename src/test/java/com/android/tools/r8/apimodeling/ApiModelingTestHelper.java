@@ -26,9 +26,19 @@ public abstract class ApiModelingTestHelper {
     return compilerBuilder -> {
       compilerBuilder.addOptionsModification(
           options -> {
-            options.methodApiMapping.put(Reference.methodFromMethod(method), apiLevel);
+            options
+                .apiModelingOptions()
+                .methodApiMapping
+                .put(Reference.methodFromMethod(method), apiLevel);
           });
     };
+  }
+
+  static void enableApiCallerIdentification(TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
+    compilerBuilder.addOptionsModification(
+        options -> {
+          options.apiModelingOptions().enableApiCallerIdentification = true;
+        });
   }
 
   static ApiModelingMethodVerificationHelper verifyThat(TestParameters parameters, Method method) {
@@ -47,7 +57,7 @@ public abstract class ApiModelingTestHelper {
 
     protected ThrowingConsumer<CodeInspector, Exception> inlinedIntoFromApiLevel(
         Method method, AndroidApiLevel apiLevel) {
-      return parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevel)
+      return parameters.isDexRuntime() && parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevel)
           ? inlinedInto(method)
           : notInlinedInto(method);
     }

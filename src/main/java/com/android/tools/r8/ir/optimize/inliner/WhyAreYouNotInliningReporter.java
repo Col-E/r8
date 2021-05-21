@@ -69,6 +69,8 @@ public abstract class WhyAreYouNotInliningReporter {
 
   public abstract void reportInlineeNotSimple();
 
+  public abstract void reportInlineeHigherApiCall();
+
   public abstract void reportInlineeRefersToClassesNotInMainDex();
 
   public abstract void reportInliningAcrossFeatureSplit();

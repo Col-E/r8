@@ -13,25 +13,33 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.ListIterator;
+import java.util.Map;
 
 public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
   protected final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final ProgramMethod context;
   protected final Enqueuer enqueuer;
+  private final Map<DexReference, AndroidApiLevel> apiReferenceMapping;
+  private AndroidApiLevel maxApiReferenceLevel;
 
   public DefaultEnqueuerUseRegistry(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramMethod context,
-      Enqueuer enqueuer) {
+      Enqueuer enqueuer,
+      Map<DexReference, AndroidApiLevel> apiReferenceMapping) {
     super(appView.dexItemFactory());
     this.appView = appView;
     this.context = context;
     this.enqueuer = enqueuer;
+    this.apiReferenceMapping = apiReferenceMapping;
+    this.maxApiReferenceLevel = appView.options().minApiLevel;
   }
 
   public ProgramMethod getContext() {
@@ -53,26 +61,31 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
   @Override
   public void registerInvokeVirtual(DexMethod invokedMethod) {
+    setMaxApiReferenceLevel(invokedMethod);
     enqueuer.traceInvokeVirtual(invokedMethod, context);
   }
 
   @Override
   public void registerInvokeDirect(DexMethod invokedMethod) {
+    setMaxApiReferenceLevel(invokedMethod);
     enqueuer.traceInvokeDirect(invokedMethod, context);
   }
 
   @Override
   public void registerInvokeStatic(DexMethod invokedMethod) {
+    setMaxApiReferenceLevel(invokedMethod);
     enqueuer.traceInvokeStatic(invokedMethod, context);
   }
 
   @Override
   public void registerInvokeInterface(DexMethod invokedMethod) {
+    setMaxApiReferenceLevel(invokedMethod);
     enqueuer.traceInvokeInterface(invokedMethod, context);
   }
 
   @Override
   public void registerInvokeSuper(DexMethod invokedMethod) {
+    setMaxApiReferenceLevel(invokedMethod);
     enqueuer.traceInvokeSuper(invokedMethod, context);
   }
 
@@ -157,5 +170,15 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
   public void registerCallSite(DexCallSite callSite) {
     super.registerCallSite(callSite);
     enqueuer.traceCallSite(callSite, context);
+  }
+
+  private void setMaxApiReferenceLevel(DexMethod invokedMethod) {
+    this.maxApiReferenceLevel =
+        maxApiReferenceLevel.max(
+            apiReferenceMapping.getOrDefault(invokedMethod, maxApiReferenceLevel));
+  }
+
+  public AndroidApiLevel getMaxApiReferenceLevel() {
+    return maxApiReferenceLevel;
   }
 }

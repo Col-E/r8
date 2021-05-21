@@ -6,11 +6,9 @@ package com.android.tools.r8.apimodeling;
 
 import static com.android.tools.r8.apimodeling.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.apimodeling.ApiModelingTestHelper.verifyThat;
-import static org.junit.Assert.assertThrows;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -22,16 +20,16 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ApiModelingNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
+public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
 
   private final TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
-  public ApiModelingNoInliningOfHigherApiLevelInterfaceTest(TestParameters parameters) {
+  public ApiModelNoInliningOfHigherApiLevelInterfaceTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -40,31 +38,21 @@ public class ApiModelingNoInliningOfHigherApiLevelInterfaceTest extends TestBase
     Method apiMethod = Api.class.getDeclaredMethod("apiLevel22");
     Method apiCaller = ApiCaller.class.getDeclaredMethod("callInterfaceMethod", Api.class);
     Method apiCallerCaller = A.class.getDeclaredMethod("noApiCall");
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(Main.class, A.class, ApiCaller.class)
-            .addLibraryClasses(Api.class)
-            .addDefaultRuntimeLibrary(parameters)
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(Main.class)
-            .enableInliningAnnotations()
-            .enableNoHorizontalClassMergingAnnotations()
-            .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
-            .run(parameters.getRuntime(), Main.class)
-            .assertSuccessWithOutputLines("A::noApiCall", "ApiCaller::callInterfaceMethod");
-    if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L_MR1)) {
-      runResult.inspect(
-          verifyThat(parameters, apiCaller)
-              .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1));
-    } else {
-      // TODO(b/188388130): Should only inline on minApi >= 22.
-      assertThrows(
-          AssertionError.class,
-          () ->
-              runResult.inspect(
-                  verifyThat(parameters, apiCaller)
-                      .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1)));
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Main.class, A.class, ApiCaller.class)
+        .addLibraryClasses(Api.class)
+        .addDefaultRuntimeLibrary(parameters)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .enableInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
+        .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("A::noApiCall", "ApiCaller::callInterfaceMethod")
+        .inspect(
+            verifyThat(parameters, apiCaller)
+                .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1));
   }
 
   public interface Api {

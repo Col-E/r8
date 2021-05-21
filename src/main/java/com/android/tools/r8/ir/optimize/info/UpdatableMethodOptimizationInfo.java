@@ -22,8 +22,10 @@ import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.BitSet;
+import java.util.Optional;
 import java.util.Set;
 
 public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
@@ -65,6 +67,8 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
 
   private SimpleInliningConstraint simpleInliningConstraint =
       NeverSimpleInliningConstraint.getInstance();
+
+  private Optional<AndroidApiLevel> apiReferenceLevel = null;
 
   // To reduce the memory footprint of UpdatableMethodOptimizationInfo, all the boolean fields are
   // merged into a flag int field. The various static final FLAG fields indicate which bit is
@@ -146,6 +150,7 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     nonNullParamOrThrow = template.nonNullParamOrThrow;
     nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
     classInlinerConstraint = template.classInlinerConstraint;
+    apiReferenceLevel = template.apiReferenceLevel;
   }
 
   public UpdatableMethodOptimizationInfo fixupClassTypeReferences(
@@ -492,6 +497,23 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
   @Override
   public boolean returnValueHasBeenPropagated() {
     return isFlagSet(RETURN_VALUE_HAS_BEEN_PROPAGATED_FLAG);
+  }
+
+  @Override
+  public AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApi) {
+    assert hasApiReferenceLevel();
+    return apiReferenceLevel.orElse(minApi);
+  }
+
+  @SuppressWarnings("OptionalAssignedToNull")
+  @Override
+  public boolean hasApiReferenceLevel() {
+    return apiReferenceLevel != null;
+  }
+
+  public UpdatableMethodOptimizationInfo setApiReferenceLevel(AndroidApiLevel apiReferenceLevel) {
+    this.apiReferenceLevel = Optional.ofNullable(apiReferenceLevel);
+    return this;
   }
 
   @Override
