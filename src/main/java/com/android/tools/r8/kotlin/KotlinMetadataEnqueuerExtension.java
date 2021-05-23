@@ -10,6 +10,7 @@ import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -100,7 +101,20 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
       }
       appView.setCfByteCodePassThrough(keepByteCodeFunctions);
     } else {
-      assert verifyKotlinMetadataModeledForAllClasses(enqueuer, keepMetadata);
+      assert enqueuer.getMode().isFinalTreeShaking();
+      enqueuer.forAllLiveClasses(
+          clazz -> {
+            if (!enqueuer.isPinned(clazz.getType())) {
+              clazz.setKotlinInfo(getNoKotlinInfo());
+              clazz.members().forEach(DexEncodedMember::clearKotlinInfo);
+              clazz.removeAnnotations(
+                  annotation -> annotation.getAnnotationType() == kotlinMetadataType);
+            } else {
+              assert !hasKotlinClassMetadataAnnotation(clazz, definitionsForContext(clazz))
+                  || !keepMetadata
+                  || clazz.getKotlinInfo() != getNoKotlinInfo();
+            }
+          });
     }
     // Trace through the modeled kotlin metadata.
     enqueuer.forAllLiveClasses(
@@ -110,19 +124,6 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
               member ->
                   member.getDefinition().getKotlinInfo().trace(definitionsForContext(member)));
         });
-  }
-
-  private boolean verifyKotlinMetadataModeledForAllClasses(
-      Enqueuer enqueuer, boolean keepMetadata) {
-    enqueuer.forAllLiveClasses(
-        clazz -> {
-          // Trace through class and member definitions
-          assert !hasKotlinClassMetadataAnnotation(clazz, definitionsForContext(clazz))
-              || !keepMetadata
-              || !enqueuer.isPinned(clazz.type)
-              || clazz.getKotlinInfo() != getNoKotlinInfo();
-        });
-    return true;
   }
 
   public class KotlinMetadataDefinitionSupplier implements DexDefinitionSupplier {

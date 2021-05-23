@@ -2977,7 +2977,8 @@ public class Enqueuer {
       RootSet rootSet, ExecutorService executorService, Timing timing) throws ExecutionException {
     this.rootSet = rootSet;
     // Translate the result of root-set computation into enqueuer actions.
-    if (appView.options().getProguardConfiguration() != null
+    if (mode.isTreeShaking()
+        && appView.options().hasProguardConfiguration()
         && !options.kotlinOptimizationOptions().disableKotlinSpecificOptimizations) {
       registerAnalysis(
           new KotlinMetadataEnqueuerExtension(
