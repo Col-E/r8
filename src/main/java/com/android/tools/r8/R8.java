@@ -914,28 +914,27 @@ public class R8 {
   private static boolean verifyMovedMethodsHaveOriginalMethodPosition(
       AppView<?> appView, DirectMappedDexApplication application) {
     application
-        .classes()
+        .classesWithDeterministicOrder()
         .forEach(
-            clazz -> {
-              clazz.forEachProgramMethod(
-                  method -> {
-                    DexMethod originalMethod =
-                        appView.graphLens().getOriginalMethodSignature(method.getReference());
-                    if (originalMethod != method.getReference()) {
-                      DexEncodedMethod definition = method.getDefinition();
-                      Code code = definition.getCode();
-                      if (code == null) {
-                        return;
+            clazz ->
+                clazz.forEachProgramMethod(
+                    method -> {
+                      DexMethod originalMethod =
+                          appView.graphLens().getOriginalMethodSignature(method.getReference());
+                      if (originalMethod != method.getReference()) {
+                        DexEncodedMethod definition = method.getDefinition();
+                        Code code = definition.getCode();
+                        if (code == null) {
+                          return;
+                        }
+                        if (code.isCfCode()) {
+                          assert verifyOriginalMethodInPosition(code.asCfCode(), originalMethod);
+                        } else {
+                          assert code.isDexCode();
+                          assert verifyOriginalMethodInDebugInfo(code.asDexCode(), originalMethod);
+                        }
                       }
-                      if (code.isCfCode()) {
-                        assert verifyOriginalMethodInPosition(code.asCfCode(), originalMethod);
-                      } else {
-                        assert code.isDexCode();
-                        assert verifyOriginalMethodInDebugInfo(code.asDexCode(), originalMethod);
-                      }
-                    }
-                  });
-            });
+                    }));
     return true;
   }
 

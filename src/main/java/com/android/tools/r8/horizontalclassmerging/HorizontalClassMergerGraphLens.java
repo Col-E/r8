@@ -149,10 +149,12 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
     }
 
     void moveMethod(DexMethod from, DexMethod to) {
-      if (from != to) {
-        mapMethod(from, to);
-        recordNewMethodSignature(from, to);
-      }
+      moveMethod(from, to, false);
+    }
+
+    void moveMethod(DexMethod from, DexMethod to, boolean isRepresentative) {
+      mapMethod(from, to);
+      recordNewMethodSignature(from, to, isRepresentative);
     }
 
     void recordNewMethodSignature(DexMethod oldMethodSignature, DexMethod newMethodSignature) {

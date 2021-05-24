@@ -292,11 +292,8 @@ public class InstanceInitializerMerger {
         representative.getReference().withHolder(group.getTarget(), dexItemFactory);
 
     for (ProgramMethod constructor : instanceInitializers) {
-      if (constructor == representative) {
-        lensBuilder.moveMethod(constructor.getReference(), newMethodReference);
-      } else {
-        lensBuilder.mapMethod(constructor.getReference(), newMethodReference);
-      }
+      boolean isRepresentative = constructor == representative;
+      lensBuilder.moveMethod(constructor.getReference(), newMethodReference, isRepresentative);
     }
 
     DexEncodedMethod newMethod =

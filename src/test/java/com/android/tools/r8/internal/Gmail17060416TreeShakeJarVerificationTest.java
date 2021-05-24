@@ -4,6 +4,8 @@
 package com.android.tools.r8.internal;
 
 import static com.android.tools.r8.ToolHelper.isLocalDevelopment;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -20,16 +22,14 @@ import org.junit.runners.Parameterized.Parameters;
 public class Gmail17060416TreeShakeJarVerificationTest extends GmailCompilationBase {
   private static final int MAX_SIZE = 20000000;
 
-  private final TestParameters parameters;
-
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   public Gmail17060416TreeShakeJarVerificationTest(TestParameters parameters) {
     super(170604, 16);
-    this.parameters = parameters;
+    assert parameters.isNoneRuntime();
   }
 
   @Test
@@ -37,13 +37,24 @@ public class Gmail17060416TreeShakeJarVerificationTest extends GmailCompilationB
     assumeTrue(isLocalDevelopment());
 
     R8TestCompileResult compileResult =
-        testForR8(parameters.getBackend())
+        testForR8(Backend.DEX)
             .addKeepRuleFiles(Paths.get(base).resolve(BASE_PG_CONF))
+            .allowDiagnosticMessages()
+            .allowUnusedDontWarnPatterns()
             .allowUnusedProguardConfigurationRules()
-            .compile();
+            .compile()
+            .assertAllInfoMessagesMatch(
+                anyOf(
+                    containsString("Ignoring option: -optimizations"),
+                    containsString("Proguard configuration rule does not match anything"),
+                    containsString("Invalid signature"),
+                    containsString("Validation error: A type variable is not in scope")))
+            .assertAllWarningMessagesMatch(
+                anyOf(
+                    containsString("Ignoring option: -outjars"),
+                    containsString("Cannot determine what identifier string flows to")));
 
     int appSize = compileResult.app.applicationSize();
     assertTrue("Expected max size of " + MAX_SIZE+ ", got " + appSize, appSize < MAX_SIZE);
   }
-
 }

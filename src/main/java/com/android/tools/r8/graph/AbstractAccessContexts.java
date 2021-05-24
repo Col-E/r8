@@ -308,7 +308,9 @@ public abstract class AbstractAccessContexts {
                 newAccessesWithContexts.computeIfAbsent(
                     lens.lookupField(access), ignore -> ProgramMethodSet.create());
             for (ProgramMethod context : contexts) {
-              newContexts.add(lens.mapProgramMethod(context, definitions));
+              ProgramMethod newContext = lens.mapProgramMethod(context, definitions);
+              assert newContext != null : "Unable to map context: " + context.toSourceString();
+              newContexts.add(newContext);
             }
           });
       return new ConcreteAccessContexts(newAccessesWithContexts);
