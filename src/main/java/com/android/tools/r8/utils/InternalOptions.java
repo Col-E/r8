@@ -1218,6 +1218,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         !Version.isDevelopmentVersion()
             || System.getProperty("com.android.tools.r8.disableHorizontalClassMerging") == null;
     private boolean enableInterfaceMergingInInitial = false;
+    private boolean enableInterfaceMergingInFinal = false;
     private boolean enableSyntheticMerging = true;
     private boolean ignoreRuntimeTypeChecksForTesting = false;
     private boolean restrictToSynthetics = false;
@@ -1272,7 +1273,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         return enableInterfaceMergingInInitial;
       }
       assert mode.isFinal();
-      return true;
+      return enableInterfaceMergingInFinal;
     }
 
     public boolean isRestrictedToSynthetics() {
@@ -1281,6 +1282,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public void setEnableInterfaceMergingInInitial() {
       enableInterfaceMergingInInitial = true;
+    }
+
+    public void setEnableInterfaceMergingInFinal() {
+      enableInterfaceMergingInFinal = true;
     }
 
     public void setIgnoreRuntimeTypeChecksForTesting() {

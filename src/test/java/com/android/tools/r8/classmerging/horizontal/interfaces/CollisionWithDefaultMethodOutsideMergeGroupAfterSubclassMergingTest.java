@@ -66,6 +66,7 @@ public class CollisionWithDefaultMethodOutsideMergeGroupAfterSubclassMergingTest
               if (enableInterfaceMergingInInitial) {
                 options.horizontalClassMergerOptions().setEnableInterfaceMergingInInitial();
               }
+              options.horizontalClassMergerOptions().setEnableInterfaceMergingInFinal();
             })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

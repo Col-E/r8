@@ -7,7 +7,6 @@ package com.android.tools.r8.classmerging.horizontal.interfaces;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isImplementing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
@@ -40,6 +39,8 @@ public class EmptyInterfacesMergingTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertIsCompleteMergeGroup(I.class, J.class))
+        .addOptionsModification(
+            options -> options.horizontalClassMergerOptions().setEnableInterfaceMergingInFinal())
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
