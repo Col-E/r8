@@ -11,7 +11,6 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.Pair;
 import kotlinx.metadata.KmLambda;
 import kotlinx.metadata.jvm.KotlinClassHeader;
-import kotlinx.metadata.jvm.KotlinClassMetadata;
 import kotlinx.metadata.jvm.KotlinClassMetadata.SyntheticClass;
 import kotlinx.metadata.jvm.KotlinClassMetadata.SyntheticClass.Writer;
 
@@ -55,21 +54,13 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
             ? KotlinLambdaInfo.create(
                 clazz, lambda, appView.dexItemFactory(), appView.reporter(), extensionInformation)
             : null,
-        getFlavour(syntheticClass, clazz, kotlin),
+        getFlavour(clazz, kotlin),
         packageName,
         metadataVersion);
   }
 
   public boolean isLambda() {
     return lambda != null && flavour != Flavour.Unclassified;
-  }
-
-  public boolean isKotlinStyleLambda() {
-    return flavour == Flavour.KotlinStyleLambda;
-  }
-
-  public boolean isJavaStyleLambda() {
-    return flavour == Flavour.JavaStyleLambda;
   }
 
   @Override
@@ -112,23 +103,17 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
     return metadataVersion;
   }
 
-  public static Flavour getFlavour(
-      KotlinClassMetadata.SyntheticClass metadata, DexClass clazz, Kotlin kotlin) {
-    // Returns KotlinStyleLambda if the given clazz is a Kotlin-style lambda:
-    //   a class that
-    //     1) is recognized as lambda in its Kotlin metadata;
-    //     2) directly extends kotlin.jvm.internal.Lambda
-    if (metadata.isLambda() && clazz.superType == kotlin.functional.lambdaType) {
+  public static Flavour getFlavour(DexClass clazz, Kotlin kotlin) {
+    // Returns KotlinStyleLambda if the given clazz has shape of a Kotlin-style lambda:
+    //   a class that directly extends kotlin.jvm.internal.Lambda
+    if (clazz.superType == kotlin.functional.lambdaType) {
       return Flavour.KotlinStyleLambda;
     }
-    // Returns JavaStyleLambda if the given clazz is a Java-style lambda:
+    // Returns JavaStyleLambda if the given clazz has shape of a Java-style lambda:
     //  a class that
-    //    1) is recognized as lambda in its Kotlin metadata;
-    //    2) doesn't extend any other class;
-    //    3) directly implements only one Java SAM.
-    if (metadata.isLambda()
-        && clazz.superType == kotlin.factory.objectType
-        && clazz.interfaces.size() == 1) {
+    //    1) doesn't extend any other class;
+    //    2) directly implements only one Java SAM.
+    if (clazz.superType == kotlin.factory.objectType && clazz.interfaces.size() == 1) {
       return Flavour.JavaStyleLambda;
     }
     return Flavour.Unclassified;
