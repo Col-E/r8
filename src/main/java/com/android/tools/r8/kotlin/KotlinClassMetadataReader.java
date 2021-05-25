@@ -33,8 +33,6 @@ import kotlinx.metadata.jvm.KotlinClassMetadata.SyntheticClass;
 
 public final class KotlinClassMetadataReader {
 
-  private static final int SYNTHETIC_CLASS_KIND = 3;
-
   public static KotlinClassLevelInfo getKotlinInfo(
       DexClass clazz, AppView<?> appView, Consumer<DexEncodedMethod> keepByteCode) {
     DexAnnotation meta =
@@ -77,25 +75,16 @@ public final class KotlinClassMetadataReader {
   public static boolean isLambda(AppView<?> appView, DexClass clazz) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     Kotlin kotlin = dexItemFactory.kotlin;
-    Flavour flavour = getFlavour(clazz, kotlin);
-    if (flavour == Flavour.Unclassified) {
-      return false;
-    }
     DexAnnotation metadataAnnotation =
         clazz.annotations().getFirstMatching(dexItemFactory.kotlinMetadataType);
-    if (metadataAnnotation == null) {
-      return false;
-    }
-    Map<DexString, DexAnnotationElement> elementMap = toElementMap(metadataAnnotation.annotation);
-    if (getKind(kotlin, elementMap) == SYNTHETIC_CLASS_KIND) {
-      KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, elementMap);
+    if (metadataAnnotation != null) {
+      KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, metadataAnnotation.annotation);
       if (kMetadata instanceof SyntheticClass) {
-        return ((SyntheticClass) kMetadata).isLambda();
+        SyntheticClass syntheticClass = (SyntheticClass) kMetadata;
+        return syntheticClass.isLambda()
+            && getFlavour(syntheticClass, clazz, kotlin) != Flavour.Unclassified;
       }
     }
-    assert toKotlinClassMetadata(kotlin, elementMap) instanceof SyntheticClass
-            == (getKind(kotlin, elementMap) == SYNTHETIC_CLASS_KIND)
-        : "Synthetic class kinds should agree";
     return false;
   }
 
@@ -109,21 +98,16 @@ public final class KotlinClassMetadataReader {
 
   public static KotlinClassMetadata toKotlinClassMetadata(
       Kotlin kotlin, DexEncodedAnnotation metadataAnnotation) {
-    return toKotlinClassMetadata(kotlin, toElementMap(metadataAnnotation));
-  }
-
-  private static Map<DexString, DexAnnotationElement> toElementMap(
-      DexEncodedAnnotation metadataAnnotation) {
     Map<DexString, DexAnnotationElement> elementMap = new IdentityHashMap<>();
     for (DexAnnotationElement element : metadataAnnotation.elements) {
       elementMap.put(element.name, element);
     }
-    return elementMap;
-  }
 
-  private static KotlinClassMetadata toKotlinClassMetadata(
-      Kotlin kotlin, Map<DexString, DexAnnotationElement> elementMap) {
-    int k = getKind(kotlin, elementMap);
+    DexAnnotationElement kind = elementMap.get(kotlin.metadata.kind);
+    if (kind == null) {
+      throw new MetadataError("element 'k' is missing.");
+    }
+    Integer k = (Integer) kind.value.getBoxedValue();
     DexAnnotationElement metadataVersion = elementMap.get(kotlin.metadata.metadataVersion);
     int[] mv = metadataVersion == null ? null : getUnboxedIntArray(metadataVersion.value, "mv");
     DexAnnotationElement bytecodeVersion = elementMap.get(kotlin.metadata.bytecodeVersion);
@@ -141,14 +125,6 @@ public final class KotlinClassMetadataReader {
 
     KotlinClassHeader header = new KotlinClassHeader(k, mv, bv, d1, d2, xs, pn, xi);
     return KotlinClassMetadata.read(header);
-  }
-
-  private static int getKind(Kotlin kotlin, Map<DexString, DexAnnotationElement> elementMap) {
-    DexAnnotationElement kind = elementMap.get(kotlin.metadata.kind);
-    if (kind == null) {
-      throw new MetadataError("element 'k' is missing.");
-    }
-    return (Integer) kind.value.getBoxedValue();
   }
 
   public static KotlinClassLevelInfo createKotlinInfo(
