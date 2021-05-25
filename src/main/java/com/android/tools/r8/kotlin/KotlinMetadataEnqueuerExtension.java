@@ -54,9 +54,14 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
         appView.appInfo().definitionForWithoutExistenceAssert(kotlinMetadataType);
     // In the first round of tree shaking build up all metadata such that it can be traced later.
     boolean keepMetadata =
-        kotlinMetadataClass == null
-            || kotlinMetadataClass.isNotProgramClass()
-            || enqueuer.isPinned(kotlinMetadataType);
+        (kotlinMetadataClass == null
+                || kotlinMetadataClass.isNotProgramClass()
+                || enqueuer.isPinned(kotlinMetadataType))
+            && appView
+                .options()
+                .getProguardConfiguration()
+                .getKeepAttributes()
+                .runtimeVisibleAnnotations;
     if (enqueuer.getMode().isInitialTreeShaking()) {
       Set<DexMethod> keepByteCodeFunctions = Sets.newIdentityHashSet();
       Set<DexProgramClass> localOrAnonymousClasses = Sets.newIdentityHashSet();
@@ -110,9 +115,10 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
               clazz.removeAnnotations(
                   annotation -> annotation.getAnnotationType() == kotlinMetadataType);
             } else {
-              assert !hasKotlinClassMetadataAnnotation(clazz, definitionsForContext(clazz))
-                  || !keepMetadata
-                  || clazz.getKotlinInfo() != getNoKotlinInfo();
+              boolean shouldNotHaveKotlinInfo =
+                  !(keepMetadata
+                      && hasKotlinClassMetadataAnnotation(clazz, definitionsForContext(clazz)));
+              assert clazz.getKotlinInfo().isNoKotlinInformation() == shouldNotHaveKotlinInfo;
             }
           });
     }
