@@ -1072,9 +1072,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         objectAllocationInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         lens.rewriteCallSites(callSites, definitionSupplier),
         keepInfo.rewrite(lens, application.options),
-        lens.rewriteReferenceKeys(mayHaveSideEffects),
-        lens.rewriteReferenceKeys(noSideEffects),
-        lens.rewriteReferenceKeys(assumedValues),
+        // Take any rule in case of collisions.
+        lens.rewriteReferenceKeys(mayHaveSideEffects, ListUtils::first),
+        // Drop assume rules in case of collisions.
+        lens.rewriteReferenceKeys(noSideEffects, rules -> null),
+        lens.rewriteReferenceKeys(assumedValues, rules -> null),
         lens.rewriteMethods(alwaysInline),
         lens.rewriteMethods(forceInline),
         lens.rewriteMethods(neverInline),

@@ -148,6 +148,13 @@ public class ListUtils {
     return list;
   }
 
+  public static <T> ArrayList<T> newArrayList(T element, T other) {
+    ArrayList<T> list = new ArrayList<>();
+    list.add(element);
+    list.add(other);
+    return list;
+  }
+
   public static <T> ArrayList<T> newArrayList(ForEachable<T> forEachable) {
     ArrayList<T> list = new ArrayList<>();
     forEachable.forEach(list::add);

@@ -14,6 +14,7 @@ import com.android.tools.r8.optimize.MemberRebindingLens;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.IterableUtils;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
@@ -559,10 +560,34 @@ public abstract class GraphLens {
     return result;
   }
 
-  public <R extends DexReference, T> ImmutableMap<R, T> rewriteReferenceKeys(Map<R, T> map) {
-    ImmutableMap.Builder<R, T> builder = ImmutableMap.builder();
-    map.forEach((reference, value) -> builder.put(rewriteReference(reference), value));
-    return builder.build();
+  public <R extends DexReference, T> Map<R, T> rewriteReferenceKeys(
+      Map<R, T> map, Function<List<T>, T> merge) {
+    Map<R, T> result = new IdentityHashMap<>();
+    Map<R, List<T>> needsMerge = new IdentityHashMap<>();
+    map.forEach(
+        (reference, value) -> {
+          R rewrittenReference = rewriteReference(reference);
+          List<T> unmergedValues = needsMerge.get(rewrittenReference);
+          if (unmergedValues != null) {
+            unmergedValues.add(value);
+          } else {
+            T existingValue = result.put(rewrittenReference, value);
+            if (existingValue != null) {
+              // Remove this for now and let the merge function decide when all colliding values are
+              // known.
+              needsMerge.put(rewrittenReference, ListUtils.newArrayList(existingValue, value));
+              result.remove(rewrittenReference);
+            }
+          }
+        });
+    needsMerge.forEach(
+        (rewrittenReference, unmergedValues) -> {
+          T mergedValue = merge.apply(unmergedValues);
+          if (mergedValue != null) {
+            result.put(rewrittenReference, mergedValue);
+          }
+        });
+    return result;
   }
 
   public Object2BooleanMap<DexReference> rewriteReferenceKeys(Object2BooleanMap<DexReference> map) {
