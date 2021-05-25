@@ -16,6 +16,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.io.IOException;
@@ -51,14 +52,16 @@ public class MethodParametersTest extends TestBase {
   }
 
   @Test
-  public void testKeepingMethodParametersR8()
-      throws ExecutionException, CompilationFailedException, IOException {
+  public void testKeepingMethodParametersR8() throws Exception {
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(MethodParametersTestDump.dump())
             .addKeepClassAndMembersRulesWithAllowObfuscation(MethodParametersTest.class)
             .addKeepMainRule(MethodParametersTest.class)
-            .addKeepRules(keepMethodParameters ? "-keepattributes MethodParameters" : "")
+            .addKeepAttributeSourceFile()
+            .applyIf(
+                keepMethodParameters,
+                builder -> builder.addKeepAttributes(ProguardKeepAttributes.METHOD_PARAMETERS))
             .setMinApi(keepMethodParameters ? AndroidApiLevel.O : AndroidApiLevel.L)
             // java.lang.reflect.Parameter was introduced in API level 26 (O).
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O))
