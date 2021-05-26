@@ -126,9 +126,8 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     DexProgramClass companionClass =
         appView
             .getSyntheticItems()
-            .ensureFixedClassWhileMigrating(
+            .ensureFixedClass(
                 SyntheticNaming.SyntheticKind.COMPANION_CLASS,
-                rewriter.getCompanionClassType(iface.type),
                 iface,
                 appView,
                 builder -> {
@@ -139,7 +138,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                   processVirtualInterfaceMethods(iface, builder);
                   processDirectInterfaceMethods(iface, builder);
                 });
-
+    assert companionClass.getType() == rewriter.getCompanionClassType(iface.type);
     assert companionClass.hasMethods();
 
     // D8 and R8 don't need to optimize the methods since they are just moved from interfaces and

@@ -24,8 +24,8 @@ public class SyntheticNaming {
   public enum SyntheticKind {
     // Class synthetics.
     RECORD_TAG("", 1, false, true, true),
-    COMPANION_CLASS("-CC", 2, false, true),
-    EMULATED_INTERFACE_CLASS("-EL", 3, false, true),
+    COMPANION_CLASS("$-CC", 2, false, true),
+    EMULATED_INTERFACE_CLASS("$-EL", 3, false, true),
     LAMBDA("Lambda", 4, false),
     INIT_TYPE_ARGUMENT("-IA", 5, false, true),
     HORIZONTAL_INIT_TYPE_ARGUMENT_1(SYNTHETIC_CLASS_SEPARATOR + "IA$1", 6, false, true),

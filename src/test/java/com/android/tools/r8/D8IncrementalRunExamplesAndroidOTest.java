@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.D8Command.Builder;
+import com.android.tools.r8.Disassemble.DisassembleCommand;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unimplemented;
@@ -20,6 +21,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.OffOrAuto;
+import com.android.tools.r8.utils.StringUtils;
 import com.beust.jcommander.internal.Lists;
 import com.google.common.io.ByteStreams;
 import java.io.File;
@@ -291,6 +293,16 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     Path out2 = temp.newFolder().toPath().resolve("out-separate.zip");
     mergedFromCompiledSeparately.writeToZip(out2, OutputMode.DexIndexed);
     ToolHelper.runArtNoVerificationErrors(out2.toString(), testPackage + "." + mainClass);
+
+    Path dissasemble1 = temp.newFolder().toPath().resolve("disassemble1.txt");
+    Path dissasemble2 = temp.newFolder().toPath().resolve("disassemble2.txt");
+    Disassemble.disassemble(
+        DisassembleCommand.builder().addProgramFiles(out1).setOutputPath(dissasemble1).build());
+    Disassemble.disassemble(
+        DisassembleCommand.builder().addProgramFiles(out2).setOutputPath(dissasemble2).build());
+    String content1 = StringUtils.join("\n", Files.readAllLines(dissasemble1));
+    String content2 = StringUtils.join("\n", Files.readAllLines(dissasemble2));
+    assertEquals(content1, content2);
 
     Assert.assertArrayEquals(
         readResource(mergedFromCompiledSeparately.getDexProgramResourcesForTesting().get(0)),

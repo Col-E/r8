@@ -139,15 +139,11 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
   DexProgramClass ensureEmulateInterfaceLibrary(
       DexProgramClass emulatedInterface, ProgramMethodSet synthesizedMethods) {
     assert rewriter.isEmulatedInterface(emulatedInterface.type);
-    DexType emulateLibraryClassType =
-        InterfaceMethodRewriter.getEmulateLibraryInterfaceClassType(
-            emulatedInterface.type, appView.dexItemFactory());
     DexProgramClass emulateInterfaceClass =
         appView
             .getSyntheticItems()
-            .ensureFixedClassWhileMigrating(
+            .ensureFixedClass(
                 SyntheticNaming.SyntheticKind.EMULATED_INTERFACE_CLASS,
-                emulateLibraryClassType,
                 emulatedInterface,
                 appView,
                 builder ->
@@ -159,6 +155,9 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
                                     synthesizeEmulatedInterfaceMethod(
                                         method, emulatedInterface, methodBuilder))));
     emulateInterfaceClass.forEachProgramMethod(synthesizedMethods::add);
+    assert emulateInterfaceClass.getType()
+        == InterfaceMethodRewriter.getEmulateLibraryInterfaceClassType(
+            emulatedInterface.type, appView.dexItemFactory());
     return emulateInterfaceClass;
   }
 
