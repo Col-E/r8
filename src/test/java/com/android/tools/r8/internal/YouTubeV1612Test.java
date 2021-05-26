@@ -130,7 +130,8 @@ public class YouTubeV1612Test extends YouTubeCompilationTestBase {
         .assertAllInfoMessagesMatch(
             anyOf(
                 containsString("Ignoring option: -optimizations"),
-                containsString("Proguard configuration rule does not match anything")))
+                containsString("Proguard configuration rule does not match anything"),
+                containsString("Invalid signature")))
         .apply(this::printProtoStats);
   }
 
