@@ -3,14 +3,24 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.backports;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.ByteDataView;
+import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
+import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.desugar.backports.AbstractBackportTest.MiniAssert;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
@@ -24,6 +34,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -189,6 +200,63 @@ public class BackportDuplicationTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkNoOriginalsAndNoInternalSynthetics)
         .inspect(this::checkExpectedSynthetics);
+  }
+
+  @Test
+  public void testPerFileIntermediate() throws Exception {
+    ProcessResult result = runDoublePerFileCompilation(true);
+    // TODO(b/189196772): Should run with the expected output.
+    assertEquals(result.toString(), 1, result.exitCode);
+    assertNotEquals(EXPECTED, result.stdout);
+  }
+
+  @Test
+  public void testPerFileNonIntermediate() throws Exception {
+    try {
+      runDoublePerFileCompilation(false);
+      // TODO(b/189196772): Should expect the compilation to fail.
+    } catch (CompilationFailedException e) {
+      assertThat(
+          e.getMessage(),
+          containsString("Attempt at merging intermediate artifact without its context"));
+    }
+  }
+
+  public ProcessResult runDoublePerFileCompilation(boolean intermediate) throws Exception {
+    List<byte[]> outputsRoundOne = new ArrayList<>();
+    testForD8(Backend.CF)
+        .addProgramClasses(CLASSES)
+        .setMinApi(parameters.getApiLevel())
+        .setIntermediate(true /* First round is always intermediate. */)
+        .setProgramConsumer(
+            new ClassFileConsumer.ForwardingConsumer(null) {
+              @Override
+              public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+                outputsRoundOne.add(data.copyByteData());
+              }
+            })
+        .compile();
+
+    List<Path> outputsRoundTwo = new ArrayList<>();
+    for (byte[] bytes : outputsRoundOne) {
+      outputsRoundTwo.add(
+          testForD8(parameters.getBackend())
+              .addProgramClassFileData(bytes)
+              .setMinApi(parameters.getApiLevel())
+              .setIntermediate(intermediate)
+              .compile()
+              .writeToZip());
+    }
+
+    if (parameters.isCfRuntime()) {
+      return ToolHelper.runJava(
+          parameters.getRuntime().asCf(), outputsRoundTwo, TestClass.class.getTypeName());
+    } else {
+      ArtCommandBuilder builder = new ArtCommandBuilder();
+      builder.setMainClass(TestClass.class.getTypeName());
+      outputsRoundTwo.forEach(p -> builder.appendClasspath(p.toAbsolutePath().toString()));
+      return ToolHelper.runArtRaw(builder);
+    }
   }
 
   private void checkNoOriginalsAndNoInternalSynthetics(CodeInspector inspector) {
