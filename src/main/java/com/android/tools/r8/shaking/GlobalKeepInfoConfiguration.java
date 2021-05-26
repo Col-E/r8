@@ -21,4 +21,6 @@ public interface GlobalKeepInfoConfiguration {
   boolean isKeepEnclosingMethodAttributeEnabled();
 
   boolean isKeepInnerClassesAttributeEnabled();
+
+  boolean isKeepRuntimeVisibleAnnotationsEnabled();
 }

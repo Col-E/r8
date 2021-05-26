@@ -650,10 +650,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     this.kotlinMemberInfo = kotlinMemberInfo;
   }
 
-  public void clearKotlinMemberInfo() {
-    kotlinMemberInfo = getNoKotlinInfo();
-  }
-
   public boolean isKotlinFunction() {
     return kotlinMemberInfo.isFunction();
   }
@@ -1504,6 +1500,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     this.genericSignature = genericSignature;
   }
 
+  @Override
   public void clearGenericSignature() {
     this.genericSignature = MethodTypeSignature.noSignature();
   }

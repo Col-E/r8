@@ -472,8 +472,12 @@ public class DexProgramClass extends DexClass
 
   public void setKotlinInfo(KotlinClassLevelInfo kotlinInfo) {
     assert kotlinInfo != null;
-    assert this.kotlinInfo == getNoKotlinInfo() || kotlinInfo == getNoKotlinInfo();
+    assert this.kotlinInfo == getNoKotlinInfo();
     this.kotlinInfo = kotlinInfo;
+  }
+
+  public void clearKotlinInfo() {
+    this.kotlinInfo = getNoKotlinInfo();
   }
 
   @Override
