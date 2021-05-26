@@ -115,10 +115,11 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
               clazz.removeAnnotations(
                   annotation -> annotation.getAnnotationType() == kotlinMetadataType);
             } else {
-              boolean shouldNotHaveKotlinInfo =
-                  !(keepMetadata
-                      && hasKotlinClassMetadataAnnotation(clazz, definitionsForContext(clazz)));
-              assert clazz.getKotlinInfo().isNoKotlinInformation() == shouldNotHaveKotlinInfo;
+              boolean shouldHaveKotlinInfo =
+                  keepMetadata
+                      && hasKotlinClassMetadataAnnotation(clazz, definitionsForContext(clazz));
+              boolean hasKotlinInfo = clazz.getKotlinInfo() != getNoKotlinInfo();
+              assert hasKotlinInfo == shouldHaveKotlinInfo;
             }
           });
     }
