@@ -35,8 +35,6 @@ public class OverrideAbstractMethodWithDefaultTest extends HorizontalClassMergin
                         !parameters.canUseDefaultAndStaticInterfaceMethods(),
                         i -> i.assertIsCompleteMergeGroup(B1.class, B2.class))
                     .assertNoOtherClassesMerged())
-        .addOptionsModification(
-            options -> options.horizontalClassMergerOptions().setEnableInterfaceMergingInFinal())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()

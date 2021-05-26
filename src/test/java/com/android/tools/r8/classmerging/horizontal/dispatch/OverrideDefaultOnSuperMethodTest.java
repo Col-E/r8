@@ -31,8 +31,6 @@ public class OverrideDefaultOnSuperMethodTest extends HorizontalClassMergingTest
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options -> options.horizontalClassMergerOptions().setEnableInterfaceMergingInFinal())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()

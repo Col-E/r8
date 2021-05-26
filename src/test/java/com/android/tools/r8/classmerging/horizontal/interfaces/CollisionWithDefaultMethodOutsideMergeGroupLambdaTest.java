@@ -51,8 +51,6 @@ public class CollisionWithDefaultMethodOutsideMergeGroupLambdaTest extends TestB
                 inspector.assertNoClassesMerged();
               }
             })
-        .addOptionsModification(
-            options -> options.horizontalClassMergerOptions().setEnableInterfaceMergingInFinal())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()

@@ -37,8 +37,6 @@ public class DisjointFunctionalInterfacesWithSameNameAndDifferentParametersMergi
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertIsCompleteMergeGroup(I.class, J.class))
-        .addOptionsModification(
-            options -> options.horizontalClassMergerOptions().setEnableInterfaceMergingInFinal())
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .noClassInliningOfSynthetics()

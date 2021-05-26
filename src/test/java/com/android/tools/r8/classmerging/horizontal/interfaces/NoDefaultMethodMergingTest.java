@@ -49,8 +49,6 @@ public class NoDefaultMethodMergingTest extends TestBase {
                 inspector.assertIsCompleteMergeGroup(I.class, J.class);
               }
             })
-        .addOptionsModification(
-            options -> options.horizontalClassMergerOptions().setEnableInterfaceMergingInFinal())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()

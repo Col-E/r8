@@ -95,16 +95,20 @@ public class OnlyDirectlyConnectedOrUnrelatedInterfaces
       if (newGroup != null) {
         newGroup.add(clazz, superInterfaces, subInterfaces);
       } else {
-        newGroupsWithInfo.add(new MergeGroupWithInfo(clazz, superInterfaces, subInterfaces));
+        newGroup = new MergeGroupWithInfo(clazz, superInterfaces, subInterfaces);
+        newGroupsWithInfo.add(newGroup);
       }
+      committed.put(clazz, newGroup.getGroup());
     }
 
     List<MergeGroup> newGroups = new LinkedList<>();
     for (MergeGroupWithInfo newGroupWithInfo : newGroupsWithInfo) {
       MergeGroup newGroup = newGroupWithInfo.getGroup();
-      if (!newGroup.isTrivial()) {
+      if (newGroup.isTrivial()) {
+        assert !newGroup.isEmpty();
+        committed.remove(newGroup.getClasses().getFirst());
+      } else {
         newGroups.add(newGroup);
-        newGroup.forEach(clazz -> committed.put(clazz, newGroup));
       }
     }
     return newGroups;

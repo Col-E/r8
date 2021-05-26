@@ -50,8 +50,6 @@ public class CollisionWithDefaultMethodOutsideMergeGroupClassTest extends TestBa
                 inspector.assertIsCompleteMergeGroup(I.class, J.class);
               }
             })
-        .addOptionsModification(
-            options -> options.horizontalClassMergerOptions().setEnableInterfaceMergingInFinal())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()

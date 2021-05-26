@@ -42,8 +42,6 @@ public class EmptyInterfaceChainMergingTest extends TestBase {
                 inspector
                     .assertIsCompleteMergeGroup(I.class, J.class, K.class)
                     .assertNoOtherClassesMerged())
-        .addOptionsModification(
-            options -> options.horizontalClassMergerOptions().setEnableInterfaceMergingInFinal())
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())

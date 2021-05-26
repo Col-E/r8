@@ -53,8 +53,6 @@ public class StaticClassMergerInterfaceTest extends TestBase {
                     .assertNoOtherClassesMerged();
               }
             })
-        .addOptionsModification(
-            options -> options.horizontalClassMergerOptions().setEnableInterfaceMergingInFinal())
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
