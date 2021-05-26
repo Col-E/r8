@@ -566,12 +566,16 @@ public class SyntheticFinalization {
                     groups.get(i - 1), group, appView.graphLens(), classToFeatureSplitMap);
             SyntheticKind kind = group.getRepresentative().getKind();
             DexType representativeType =
-                createExternalType(
-                    kind,
-                    externalSyntheticTypePrefix,
-                    generators,
-                    appView,
-                    equivalences::containsKey);
+                intermediate
+                        && synthetics.isSyntheticInput(
+                            group.getRepresentative().getHolder().asProgramClass())
+                    ? group.getRepresentative().getHolder().getType()
+                    : createExternalType(
+                        kind,
+                        externalSyntheticTypePrefix,
+                        generators,
+                        appView,
+                        equivalences::containsKey);
             equivalences.put(representativeType, group);
           }
         });

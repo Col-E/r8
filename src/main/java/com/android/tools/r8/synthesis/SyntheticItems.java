@@ -26,6 +26,7 @@ import com.android.tools.r8.synthesis.SyntheticFinalization.Result;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -126,6 +127,21 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     // TODO(b/158159959): Consider populating the input synthetics when identified.
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       SyntheticMarker marker = SyntheticMarker.stripMarkerFromClass(clazz, appView);
+      if (!appView.options().intermediate && marker.getContext() != null) {
+        DexClass contextClass =
+            appView
+                .appInfo()
+                .definitionForWithoutExistenceAssert(
+                    marker.getContext().getSynthesizingContextType());
+        if (contextClass == null || contextClass.isNotProgramClass()) {
+          appView
+              .reporter()
+              .error(
+                  new StringDiagnostic(
+                      "Attempt at compiling intermediate artifact without its context",
+                      clazz.getOrigin()));
+        }
+      }
       if (marker.isSyntheticMethods()) {
         clazz.forEachProgramMethod(
             // TODO(b/158159959): Support having multiple methods per class.

@@ -6,8 +6,8 @@ package com.android.tools.r8.desugar.backports;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ByteDataView;
@@ -205,20 +205,19 @@ public class BackportDuplicationTest extends TestBase {
   @Test
   public void testPerFileIntermediate() throws Exception {
     ProcessResult result = runDoublePerFileCompilation(true);
-    // TODO(b/189196772): Should run with the expected output.
-    assertEquals(result.toString(), 1, result.exitCode);
-    assertNotEquals(EXPECTED, result.stdout);
+    assertEquals(result.toString(), 0, result.exitCode);
+    assertEquals(EXPECTED, result.stdout);
   }
 
   @Test
   public void testPerFileNonIntermediate() throws Exception {
     try {
       runDoublePerFileCompilation(false);
-      // TODO(b/189196772): Should expect the compilation to fail.
+      fail("Should expect the compilation to fail.");
     } catch (CompilationFailedException e) {
       assertThat(
-          e.getMessage(),
-          containsString("Attempt at merging intermediate artifact without its context"));
+          e.getCause().getMessage(),
+          containsString("Attempt at compiling intermediate artifact without its context"));
     }
   }
 
