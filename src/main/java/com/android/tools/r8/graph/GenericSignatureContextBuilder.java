@@ -269,16 +269,13 @@ public class GenericSignatureContextBuilder {
     if (enclosingClass == null || enclosedClass == null) {
       return true;
     }
-    if (enclosingReference.isDexMethod()) {
-      return enclosedClass.getEnclosingMethodAttribute() == null
-          || enclosedClass.getEnclosingMethodAttribute().getEnclosingMethod() != enclosingReference;
+    if (enclosedClass.getEnclosingMethodAttribute() != null) {
+      return enclosingReference.isDexMethod()
+          ? enclosedClass.getEnclosingMethodAttribute().getEnclosingMethod() != enclosingReference
+          : enclosedClass.getEnclosingMethodAttribute().getEnclosingClass() != enclosingReference;
     } else {
       InnerClassAttribute innerClassAttribute = enclosedClass.getInnerClassAttributeForThisClass();
-      if (innerClassAttribute != null) {
-        return innerClassAttribute.getOuter() != enclosingReference;
-      }
-      return enclosedClass.getEnclosingMethodAttribute() == null
-          || enclosedClass.getEnclosingMethodAttribute().getEnclosingClass() != enclosingReference;
+      return innerClassAttribute == null || innerClassAttribute.getOuter() != enclosingReference;
     }
   }
 
