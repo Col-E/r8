@@ -38,6 +38,8 @@ public class ResourceShrinkerTest extends TestBase {
     Set<String> strings = Sets.newHashSet();
     List<List<String>> fields = Lists.newArrayList();
     List<List<String>> methods = Lists.newArrayList();
+    int methodsVisited = 0;
+    int classesVisited = 0;
 
     @Override
     public boolean shouldProcess(String internalName) {
@@ -67,6 +69,22 @@ public class ResourceShrinkerTest extends TestBase {
       }
       methods.add(Lists.newArrayList(internalName, methodName, methodDescriptor));
     }
+
+    @Override
+    public void startMethodVisit() {
+      methodsVisited++;
+    }
+
+    @Override
+    public void endMethodVisit() {}
+
+    @Override
+    public void startClassVisit() {
+      classesVisited++;
+    }
+
+    @Override
+    public void endClassVisit() {}
   }
 
   private static class EmptyClass {
@@ -131,6 +149,24 @@ public class ResourceShrinkerTest extends TestBase {
     assertThat(analysis.strings, hasItems("staticValue", "a", "b", "c"));
     assertThat(analysis.fields, is(Lists.newArrayList()));
     assertThat(analysis.methods, is(Lists.newArrayList()));
+  }
+
+  @SuppressWarnings("unused")
+  private static class ClassesAndMethodsVisited {
+    final int value = getValue();
+
+    int getValue() {
+      return true ? 0 : 1;
+    }
+  }
+
+  @Test
+  public void testNumberOfMethodsAndClassesVisited()
+      throws CompilationFailedException, IOException, ExecutionException {
+    TrackAll analysis = runAnalysis(ClassesAndMethodsVisited.class);
+
+    assertThat(analysis.methodsVisited, is(2));
+    assertThat(analysis.classesVisited, is(1));
   }
 
   @Retention(RetentionPolicy.RUNTIME)

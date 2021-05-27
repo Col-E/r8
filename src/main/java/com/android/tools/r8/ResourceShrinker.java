@@ -140,6 +140,14 @@ final public class ResourceShrinker {
     void referencedStaticField(String internalName, String fieldName);
 
     void referencedMethod(String internalName, String methodName, String methodDescriptor);
+
+    default void startMethodVisit() {}
+
+    default void endMethodVisit() {}
+
+    default void startClassVisit() {}
+
+    default void endClassVisit() {}
   }
 
   private static final class DexClassUsageVisitor {
@@ -153,6 +161,7 @@ final public class ResourceShrinker {
     }
 
     public void visit() {
+      callback.startClassVisit();
       if (!callback.shouldProcess(classDef.type.getInternalName())) {
         return;
       }
@@ -165,12 +174,15 @@ final public class ResourceShrinker {
       }
 
       for (DexEncodedMethod method : classDef.allMethodsSorted()) {
+        callback.startMethodVisit();
         processMethod(method);
+        callback.endMethodVisit();
       }
 
       if (classDef.hasClassOrMemberAnnotations()) {
         processAnnotations(classDef);
       }
+      callback.endClassVisit();
     }
 
     private void processFieldValue(DexValue value) {
