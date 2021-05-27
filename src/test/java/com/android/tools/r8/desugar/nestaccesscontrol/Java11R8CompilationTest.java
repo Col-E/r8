@@ -50,9 +50,7 @@ public class Java11R8CompilationTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR)
         .addKeepRuleFiles(MAIN_KEEP)
-        .allowDiagnosticInfoMessages()
         .compile()
-        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
         .inspect(this::assertNotEmpty)
         .inspect(Java11R8CompilationTest::assertNoNests);
   }
