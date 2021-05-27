@@ -5,6 +5,7 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.KotlinClassMetadataReader.hasKotlinClassMetadataAnnotation;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -22,7 +23,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.EnqueuerDefinitionSupplier;
-import com.android.tools.r8.shaking.KeepClassInfo;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -49,31 +49,33 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
 
   @Override
   public void done(Enqueuer enqueuer) {
+    DexType kotlinMetadataType = appView.dexItemFactory().kotlinMetadataType;
+    DexClass kotlinMetadataClass =
+        appView.appInfo().definitionForWithoutExistenceAssert(kotlinMetadataType);
     // In the first round of tree shaking build up all metadata such that it can be traced later.
-    boolean keepKotlinMetadata =
-        KeepClassInfo.isKotlinMetadataClassKept(
-            appView.dexItemFactory(),
-            appView.appInfo()::definitionForWithoutExistenceAssert,
-            enqueuer::getKeepInfo);
-    // In the first round of tree shaking build up all metadata such that it can be traced later.
+    boolean keepMetadata =
+        (kotlinMetadataClass == null
+                || kotlinMetadataClass.isNotProgramClass()
+                || enqueuer.isPinned(kotlinMetadataType))
+            && appView
+                .options()
+                .getProguardConfiguration()
+                .getKeepAttributes()
+                .runtimeVisibleAnnotations;
     if (enqueuer.getMode().isInitialTreeShaking()) {
       Set<DexMethod> keepByteCodeFunctions = Sets.newIdentityHashSet();
       Set<DexProgramClass> localOrAnonymousClasses = Sets.newIdentityHashSet();
       enqueuer.forAllLiveClasses(
           clazz -> {
             assert clazz.getKotlinInfo().isNoKotlinInformation();
-            if (enqueuer
-                .getKeepInfo(clazz)
-                .isKotlinMetadataRemovalAllowed(appView.options(), keepKotlinMetadata)) {
+            if (!keepMetadata || !enqueuer.isPinned(clazz.getType())) {
               if (KotlinClassMetadataReader.isLambda(appView, clazz)
                   && clazz.hasClassInitializer()) {
                 feedback.classInitializerMayBePostponed(clazz.getClassInitializer());
               }
-              clazz.clearKotlinInfo();
+              clazz.setKotlinInfo(getNoKotlinInfo());
               clazz.removeAnnotations(
-                  annotation ->
-                      annotation.getAnnotationType()
-                          == appView.dexItemFactory().kotlinMetadataType);
+                  annotation -> annotation.getAnnotationType() == kotlinMetadataType);
             } else {
               clazz.setKotlinInfo(
                   KotlinClassMetadataReader.getKotlinInfo(
@@ -107,18 +109,17 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
       assert enqueuer.getMode().isFinalTreeShaking();
       enqueuer.forAllLiveClasses(
           clazz -> {
-            if (enqueuer
-                .getKeepInfo(clazz)
-                .isKotlinMetadataRemovalAllowed(appView.options(), keepKotlinMetadata)) {
-              clazz.clearKotlinInfo();
+            if (!enqueuer.isPinned(clazz.getType())) {
+              clazz.setKotlinInfo(getNoKotlinInfo());
               clazz.members().forEach(DexEncodedMember::clearKotlinInfo);
               clazz.removeAnnotations(
-                  annotation ->
-                      annotation.getAnnotationType()
-                          == appView.dexItemFactory().kotlinMetadataType);
+                  annotation -> annotation.getAnnotationType() == kotlinMetadataType);
             } else {
-              assert hasKotlinClassMetadataAnnotation(clazz, definitionsForContext(clazz))
-                  == !clazz.getKotlinInfo().isNoKotlinInformation();
+              boolean shouldHaveKotlinInfo =
+                  keepMetadata
+                      && hasKotlinClassMetadataAnnotation(clazz, definitionsForContext(clazz));
+              boolean hasKotlinInfo = clazz.getKotlinInfo() != getNoKotlinInfo();
+              assert hasKotlinInfo == shouldHaveKotlinInfo;
             }
           });
     }

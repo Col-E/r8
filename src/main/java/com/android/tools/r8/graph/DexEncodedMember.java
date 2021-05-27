@@ -28,8 +28,6 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
 
   public abstract void clearKotlinInfo();
 
-  public abstract void clearGenericSignature();
-
   public DexType getHolderType() {
     return getReference().getHolderType();
   }

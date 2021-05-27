@@ -346,7 +346,6 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     this.genericSignature = genericSignature;
   }
 
-  @Override
   public void clearGenericSignature() {
     this.genericSignature = FieldTypeSignature.noSignature();
   }
