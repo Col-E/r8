@@ -46,7 +46,7 @@ public class GenericSignatureAllowShrinkingTest extends TestBase {
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .inspect(inspector -> inspect(inspector, true))
+        .inspect(this::inspect)
         .assertSuccessWithOutputLines(EXPECTED);
   }
 
@@ -62,26 +62,20 @@ public class GenericSignatureAllowShrinkingTest extends TestBase {
                 + " { *; }")
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepMainRule(Main.class)
-        .compile()
-        // TODO(b/189443104): Should keep signature.
-        .inspect(inspector -> inspect(inspector, false))
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/189443104): Should succeed.
-        .assertFailureWithErrorThatThrows(ClassCastException.class);
+        .inspect(this::inspect)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  private void inspect(CodeInspector inspector, boolean keptSignature) {
+  private void inspect(CodeInspector inspector) {
     ClassSubject foo = inspector.clazz(Foo.class);
     assertThat(foo, isPresent());
-    assertEquals(
-        keptSignature ? "<T:Ljava/lang/Object;>Ljava/lang/Object;" : null,
-        foo.getFinalSignatureAttribute());
+    assertEquals("<T:Ljava/lang/Object;>Ljava/lang/Object;", foo.getFinalSignatureAttribute());
 
     ClassSubject main$1 = inspector.clazz(Main.class.getTypeName() + "$1");
     assertThat(main$1, isPresent());
     assertEquals(
-        keptSignature ? "L" + binaryName(Foo.class) + "<Ljava/lang/String;>;" : null,
-        main$1.getFinalSignatureAttribute());
+        "L" + binaryName(Foo.class) + "<Ljava/lang/String;>;", main$1.getFinalSignatureAttribute());
   }
 
   public static class Foo<T> {

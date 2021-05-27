@@ -5,7 +5,6 @@
 package com.android.tools.r8.shaking.allowshrinking;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -54,11 +53,10 @@ public class KeepClassAllowShrinkingCompatibilityTest extends TestBase {
         .compile()
         .inspect(
             inspector -> {
-              // TODO(b/189443104): Should keep A and B.
               ClassSubject aSubject = inspector.clazz(A.class);
-              assertThat(aSubject, shrinker.isR8() ? not(isPresent()) : isPresent());
+              assertThat(aSubject, isPresent());
               ClassSubject bSubject = inspector.clazz(B.class);
-              assertThat(bSubject, shrinker.isR8() ? not(isPresent()) : isPresent());
+              assertThat(bSubject, isPresent());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithEmptyOutput();
