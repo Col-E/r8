@@ -227,6 +227,12 @@ public class Matchers {
     return DiagnosticsMatcher.diagnosticMessage(containsString("A type variable is not in scope"));
   }
 
+  public static Matcher<Diagnostic> invalidGenericArgumentApplicationCount() {
+    return DiagnosticsMatcher.diagnosticMessage(
+        containsString(
+            "The applied generic arguments have different count than the expected formals"));
+  }
+
   public static Matcher<Diagnostic> proguardConfigurationRuleDoesNotMatch() {
     return DiagnosticsMatcher.diagnosticMessage(
         containsString("Proguard configuration rule does not match anything"));
