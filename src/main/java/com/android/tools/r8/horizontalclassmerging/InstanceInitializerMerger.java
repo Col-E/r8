@@ -43,14 +43,25 @@ public class InstanceInitializerMerger {
   private final DexItemFactory dexItemFactory;
   private final MergeGroup group;
   private final List<ProgramMethod> instanceInitializers;
+  private final InstanceInitializerDescription instanceInitializerDescription;
   private final Mode mode;
 
   InstanceInitializerMerger(
       AppView<?> appView, MergeGroup group, List<ProgramMethod> instanceInitializers, Mode mode) {
+    this(appView, group, instanceInitializers, mode, null);
+  }
+
+  InstanceInitializerMerger(
+      AppView<?> appView,
+      MergeGroup group,
+      List<ProgramMethod> instanceInitializers,
+      Mode mode,
+      InstanceInitializerDescription instanceInitializerDescription) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.group = group;
     this.instanceInitializers = instanceInitializers;
+    this.instanceInitializerDescription = instanceInitializerDescription;
     this.mode = mode;
 
     // Constructors should not be empty and all constructors should have the same prototype.
@@ -72,6 +83,14 @@ public class InstanceInitializerMerger {
 
   public int getArity() {
     return instanceInitializers.iterator().next().getReference().getArity();
+  }
+
+  public List<ProgramMethod> getInstanceInitializers() {
+    return instanceInitializers;
+  }
+
+  public int size() {
+    return instanceInitializers.size();
   }
 
   public static class Builder {
@@ -107,12 +126,26 @@ public class InstanceInitializerMerger {
       return this;
     }
 
+    public Builder addEquivalent(ProgramMethod instanceInitializer) {
+      ListUtils.last(instanceInitializerGroups).add(instanceInitializer);
+      return this;
+    }
+
     public List<InstanceInitializerMerger> build(MergeGroup group) {
       assert instanceInitializerGroups.stream().noneMatch(List::isEmpty);
       return ListUtils.map(
           instanceInitializerGroups,
           instanceInitializers ->
               new InstanceInitializerMerger(appView, group, instanceInitializers, mode));
+    }
+
+    public InstanceInitializerMerger buildSingle(
+        MergeGroup group, InstanceInitializerDescription instanceInitializerDescription) {
+      assert instanceInitializerGroups.stream().noneMatch(List::isEmpty);
+      assert instanceInitializerGroups.size() == 1;
+      List<ProgramMethod> instanceInitializers = ListUtils.first(instanceInitializerGroups);
+      return new InstanceInitializerMerger(
+          appView, group, instanceInitializers, mode, instanceInitializerDescription);
     }
   }
 
@@ -198,6 +231,8 @@ public class InstanceInitializerMerger {
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       Reference2IntMap<DexType> classIdentifiers,
       SyntheticArgumentClass syntheticArgumentClass) {
+    // TODO(b/189296638): Handle merging of equivalent constructors when
+    //  `instanceInitializerDescription` is set.
     if (isTrivialMerge(classMethodsBuilder)) {
       mergeTrivial(classMethodsBuilder, lensBuilder);
       return;

@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
@@ -54,6 +55,17 @@ public class ClassInitializerMerger {
 
   private ClassInitializerMerger(ImmutableList<ProgramMethod> classInitializers) {
     this.classInitializers = classInitializers;
+  }
+
+  public static ClassInitializerMerger create(MergeGroup group) {
+    ClassInitializerMerger.Builder builder = new ClassInitializerMerger.Builder();
+    group.forEach(
+        clazz -> {
+          if (clazz.hasClassInitializer()) {
+            builder.add(clazz.getProgramClassInitializer());
+          }
+        });
+    return builder.build();
   }
 
   public boolean isEmpty() {
