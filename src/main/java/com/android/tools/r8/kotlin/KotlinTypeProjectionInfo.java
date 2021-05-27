@@ -42,10 +42,10 @@ public class KotlinTypeProjectionInfo implements EnqueuerMetadataTraceable {
       NamingLens namingLens) {
     if (isStarProjection()) {
       starProjectionProvider.get();
+      return false;
     } else {
-      typeInfo.rewrite(flags -> visitorProvider.get(flags, variance), appView, namingLens);
+      return typeInfo.rewrite(flags -> visitorProvider.get(flags, variance), appView, namingLens);
     }
-    return false;
   }
 
   @Override

@@ -179,7 +179,11 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
     }
     for (DexEncodedMethod method : clazz.methods()) {
       if (method.getKotlinInfo().isFunction()) {
-        method.getKotlinInfo().asFunction().rewrite(functionProvider, method, appView, namingLens);
+        rewritten |=
+            method
+                .getKotlinInfo()
+                .asFunction()
+                .rewrite(functionProvider, method, appView, namingLens);
         continue;
       }
       KotlinPropertyInfo kotlinPropertyInfo = method.getKotlinInfo().asProperty();

@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinClassMetadataReader.toKotlinClassMetadata;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getInvalidKotlinInfo;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
+import static com.android.tools.r8.kotlin.KotlinMetadataWriter.kotlinMetadataToString;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -160,6 +162,15 @@ public class KotlinMetadataRewriter {
       // TODO(b/185756596): Remove when special handling is no longer needed.
       if (!kotlinClassHeader.getSecond() && !appView.enableWholeProgramOptimizations()) {
         // No rewrite occurred and the data is the same as before.
+        assert appView.checkForTesting(
+            () ->
+                verifyRewrittenMetadataIsEquivalent(
+                    clazz.annotations().getFirstMatching(factory.kotlinMetadataType),
+                    createKotlinMetadataAnnotation(
+                        kotlinClassHeader.getFirst(),
+                        kotlinInfo.getPackageName(),
+                        getMaxVersion(METADATA_VERSION_1_4, kotlinInfo.getMetadataVersion()),
+                        writeMetadataFieldInfo)));
         return;
       }
       DexAnnotation newMeta =
@@ -175,6 +186,16 @@ public class KotlinMetadataRewriter {
           .reporter
           .warning(KotlinMetadataDiagnostic.unexpectedErrorWhenRewriting(clazz.type, t));
     }
+  }
+
+  private boolean verifyRewrittenMetadataIsEquivalent(
+      DexAnnotation original, DexAnnotation rewritten) {
+    String originalMetadata =
+        kotlinMetadataToString("", toKotlinClassMetadata(kotlin, original.annotation));
+    String rewrittenMetadata =
+        kotlinMetadataToString("", toKotlinClassMetadata(kotlin, rewritten.annotation));
+    assert originalMetadata.equals(rewrittenMetadata) : "The metadata should be equivalent";
+    return true;
   }
 
   private boolean kotlinMetadataFieldExists(
