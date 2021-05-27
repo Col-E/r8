@@ -26,17 +26,19 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
 
+  private static final String PKG_NESTED_REFLECT = PKG + ".nested_reflect";
   private static final String EXPECTED =
       StringUtils.lines(
-          "fun <init>(kotlin.Int):"
-              + " com.android.tools.r8.kotlin.metadata.nested_reflect.Outer.Nested",
-          "fun com.android.tools.r8.kotlin.metadata.nested_reflect.Outer.Inner.<init>(kotlin.Int):"
-              + " com.android.tools.r8.kotlin.metadata.nested_reflect.Outer.Inner");
+          "fun <init>(kotlin.Int): " + PKG_NESTED_REFLECT + ".Outer.Nested",
+          "fun "
+              + PKG_NESTED_REFLECT
+              + ".Outer.Inner.<init>(kotlin.Int): "
+              + PKG_NESTED_REFLECT
+              + ".Outer.Inner");
   private static final String EXPECTED_OUTER_RENAMED =
       StringUtils.lines(
-          "fun <init>(kotlin.Int): com.android.tools.r8.kotlin.metadata.nested_reflect.Nested",
-          "fun <init>(kotlin.Int): com.android.tools.r8.kotlin.metadata.nested_reflect.Inner");
-  private static final String PKG_NESTED_REFLECT = PKG + ".nested_reflect";
+          "fun <init>(kotlin.Int): " + PKG_NESTED_REFLECT + ".`Outer$Nested`",
+          "fun <init>(kotlin.Int): " + PKG_NESTED_REFLECT + ".`Outer$Inner`");
 
   private final TestParameters parameters;
 

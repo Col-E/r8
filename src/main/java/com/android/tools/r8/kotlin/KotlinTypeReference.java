@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getKotlinLocalOrAnonymousNameFromDescriptor;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -79,6 +81,14 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
     String renamedString = namingLens.lookupDescriptor(rewrittenType).toString();
     rewrittenConsumer.accept(renamedString);
     return !known.toDescriptorString().equals(renamedString);
+  }
+
+  String toKotlinClassifier(boolean isLocalOrAnonymous) {
+    if (known == null) {
+      return unknown;
+    }
+    return getKotlinLocalOrAnonymousNameFromDescriptor(
+        known.toDescriptorString(), isLocalOrAnonymous);
   }
 
   boolean toRenamedBinaryNameOrDefault(
