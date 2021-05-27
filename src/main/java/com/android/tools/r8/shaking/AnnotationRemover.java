@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
-import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -168,11 +168,12 @@ public class AnnotationRemover {
       stripAttributes(clazz);
       clazz.setAnnotations(
           clazz.annotations().rewrite(annotation -> rewriteAnnotation(clazz, annotation)));
-      // Kotlin properties are split over fields and methods. Check if any is pinned before pruning
-      // the information.
+      // Kotlin metadata for classes are removed in the KotlinMetadataEnqueuerExtension. Kotlin
+      // properties are split over fields and methods. Check if any is pinned before pruning the
+      // information.
       Set<KotlinPropertyInfo> pinnedKotlinProperties = Sets.newIdentityHashSet();
-      clazz.forEachMethod(method -> processMethod(method, clazz, pinnedKotlinProperties));
-      clazz.forEachField(field -> processField(field, clazz, pinnedKotlinProperties));
+      clazz.forEachProgramMember(
+          member -> processMember(member.getDefinition(), clazz, pinnedKotlinProperties));
       clazz.forEachProgramMember(
           member -> {
             KotlinMemberLevelInfo kotlinInfo = member.getKotlinInfo();
@@ -182,40 +183,43 @@ public class AnnotationRemover {
             }
           });
     }
+    assert verifyNoKeptKotlinMembersForClassesWithNoKotlinInfo();
   }
 
-  private void processMethod(
-      DexEncodedMethod method,
-      DexProgramClass clazz,
-      Set<KotlinPropertyInfo> pinnedKotlinProperties) {
-    method.setAnnotations(
-        method.annotations().rewrite(annotation -> rewriteAnnotation(method, annotation)));
-    method.parameterAnnotationsList =
-        method.parameterAnnotationsList.keepIf(this::filterParameterAnnotations);
-    KeepMethodInfo methodInfo = appView.getKeepInfo().getMethodInfo(method, clazz);
-    if (methodInfo.isSignatureAttributeRemovalAllowed(options)) {
-      method.clearGenericSignature();
+  private boolean verifyNoKeptKotlinMembersForClassesWithNoKotlinInfo() {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      if (clazz.getKotlinInfo().isNoKotlinInformation()) {
+        clazz.forEachProgramMember(
+            member -> {
+              assert member.getKotlinInfo().isNoKotlinInformation()
+                  : "Should have pruned kotlin info";
+            });
+      }
     }
-    if (!methodInfo.isPinned() && method.getKotlinInfo().isFunction()) {
-      method.clearKotlinMemberInfo();
-    }
-    if (methodInfo.isPinned() && method.getKotlinInfo().isProperty()) {
-      pinnedKotlinProperties.add(method.getKotlinInfo().asProperty());
-    }
+    return true;
   }
 
-  private void processField(
-      DexEncodedField field,
+  private void processMember(
+      DexEncodedMember<?, ?> member,
       DexProgramClass clazz,
       Set<KotlinPropertyInfo> pinnedKotlinProperties) {
-    field.setAnnotations(
-        field.annotations().rewrite(annotation -> rewriteAnnotation(field, annotation)));
-    KeepFieldInfo fieldInfo = appView.getKeepInfo().getFieldInfo(field, clazz);
-    if (fieldInfo.isSignatureAttributeRemovalAllowed(options)) {
-      field.clearGenericSignature();
+    member.setAnnotations(
+        member.annotations().rewrite(annotation -> rewriteAnnotation(member, annotation)));
+    if (member.isDexEncodedMethod()) {
+      DexEncodedMethod method = member.asDexEncodedMethod();
+      method.parameterAnnotationsList =
+          method.parameterAnnotationsList.keepIf(this::filterParameterAnnotations);
     }
-    if (fieldInfo.isPinned() && field.getKotlinInfo().isProperty()) {
-      pinnedKotlinProperties.add(field.getKotlinInfo().asProperty());
+    KeepMemberInfo<?, ?> memberInfo = appView.getKeepInfo().getMemberInfo(member, clazz);
+    if (memberInfo.isSignatureAttributeRemovalAllowed(options)) {
+      member.clearGenericSignature();
+    }
+    if (!member.getKotlinInfo().isProperty() && memberInfo.isKotlinMetadataRemovalAllowed(clazz)) {
+      member.clearKotlinInfo();
+    }
+    // Postpone removal of kotlin property info until we have seen all fields, setters and getters.
+    if (member.getKotlinInfo().isProperty() && !memberInfo.isKotlinMetadataRemovalAllowed(clazz)) {
+      pinnedKotlinProperties.add(member.getKotlinInfo().asProperty());
     }
   }
 
@@ -266,20 +270,18 @@ public class AnnotationRemover {
     // need to keep the enclosing method and inner classes attributes, if requested. In Proguard
     // compatibility mode we keep these attributes independent of whether the given class is kept.
     // In full mode we remove the attribute if not both sides are kept.
+    KeepClassInfo keepInfo = appView.getKeepInfo().getClassInfo(clazz);
     clazz.removeEnclosingMethodAttribute(
         enclosingMethodAttribute ->
-            appView
-                .getKeepInfo()
-                .getClassInfo(clazz)
-                .isEnclosingMethodAttributeRemovalAllowed(
-                    options, enclosingMethodAttribute, appView));
+            keepInfo.isEnclosingMethodAttributeRemovalAllowed(
+                options, enclosingMethodAttribute, appView));
     // It is important that the call to getEnclosingMethodAttribute is done after we potentially
     // pruned it above.
     clazz.removeInnerClasses(
         attribute ->
             canRemoveInnerClassAttribute(clazz, attribute, clazz.getEnclosingMethodAttribute()));
     if (clazz.getClassSignature().isValid()
-        && appView.getKeepInfo().getClassInfo(clazz).isSignatureAttributeRemovalAllowed(options)) {
+        && keepInfo.isSignatureAttributeRemovalAllowed(options)) {
       clazz.clearClassSignature();
     }
   }

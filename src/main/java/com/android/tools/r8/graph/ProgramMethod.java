@@ -101,7 +101,7 @@ public final class ProgramMethod extends DexClassAndMethod
 
   @Override
   public void clearKotlinInfo() {
-    getDefinition().clearKotlinMemberInfo();
+    getDefinition().clearKotlinInfo();
   }
 
   public MethodPosition getPosition() {

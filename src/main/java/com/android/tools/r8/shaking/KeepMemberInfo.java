@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.shaking.KeepInfo.Builder;
 
 /** Immutable keep requirements for a member. */
@@ -17,5 +18,11 @@ public abstract class KeepMemberInfo<B extends Builder<B, K>, K extends KeepInfo
   public boolean isRepackagingAllowed(GlobalKeepInfoConfiguration configuration) {
     return configuration.isRepackagingEnabled()
         && !internalIsAccessModificationRequiredForRepackaging();
+  }
+
+  public boolean isKotlinMetadataRemovalAllowed(DexProgramClass holder) {
+    // Checking the holder for missing kotlin information relies on the holder being processed
+    // before members.
+    return holder.getKotlinInfo().isNoKotlinInformation() || !isPinned();
   }
 }

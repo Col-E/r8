@@ -653,8 +653,8 @@ public class Enqueuer {
     return clazz;
   }
 
-  public boolean isPinned(DexType type) {
-    return keepInfo.isPinned(type, appInfo);
+  public KeepClassInfo getKeepInfo(DexProgramClass clazz) {
+    return keepInfo.getClassInfo(clazz);
   }
 
   private void addLiveNonProgramType(
