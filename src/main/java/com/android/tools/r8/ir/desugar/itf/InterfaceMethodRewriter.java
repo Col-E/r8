@@ -345,8 +345,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       // behavior.
       if (cfInvoke.isInterface()) {
         leavingStaticInvokeToInterface(context);
+        warnMissingType(context, invokedMethod.holder);
       }
-      warnMissingType(context, invokedMethod.holder);
       return;
     }
 
