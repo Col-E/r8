@@ -5,11 +5,9 @@ package com.android.tools.r8.d8;
 
 import static org.hamcrest.CoreMatchers.containsString;
 
-import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -25,7 +23,7 @@ public class NonNamedMemberClassTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public NonNamedMemberClassTest(TestParameters parameters) {
@@ -34,17 +32,12 @@ public class NonNamedMemberClassTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    D8TestCompileResult result =
-        testForD8()
-            .addProgramClassFileData(Dump.dump())
-            .setMinApi(parameters.getRuntime())
-            .compile();
-    if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_6_0_1_HOST)) {
-      result.assertWarningMessageThatMatches(containsString("desugaring"));
-    } else {
-      result.assertOnlyInfos();
-    }
-    result.assertInfoMessageThatMatches(containsString("missing EnclosingMethod"));
+    testForD8()
+        .addProgramClassFileData(Dump.dump())
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .assertOnlyInfos()
+        .assertInfoMessageThatMatches(containsString("missing EnclosingMethod"));
   }
 
   // Compiled the following kt code:
