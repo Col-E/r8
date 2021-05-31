@@ -286,6 +286,12 @@ public class DesugaredLibraryRetargeter {
       DexType newHolder = backportCoreLibraryMembers.get(method.holder);
       return appView.dexItemFactory().createMethod(newHolder, method.proto, method.name);
     }
+    DexClassAndMethod emulatedMethod = emulatedDispatchMethods.get(method);
+    if (emulatedMethod != null) {
+      assert !emulatedMethod.getAccessFlags().isStatic();
+      DexType newHolder = ensureEmulatedHolderDispatchMethod(emulatedMethod).type;
+      return computeRetargetMethod(method, emulatedMethod.getAccessFlags().isStatic(), newHolder);
+    }
     return retargetLibraryMember.get(method);
   }
 
@@ -302,6 +308,12 @@ public class DesugaredLibraryRetargeter {
     return false;
   }
 
+  DexMethod computeRetargetMethod(DexMethod method, boolean isStatic, DexType newHolder) {
+    DexItemFactory factory = appView.dexItemFactory();
+    DexProto newProto = isStatic ? method.getProto() : factory.prependHolderToProto(method);
+    return factory.createMethod(newHolder, newProto, method.getName());
+  }
+
   private class RetargetingSetup {
 
     private void setUpRetargeting() {
@@ -316,6 +328,7 @@ public class DesugaredLibraryRetargeter {
             DexType newHolder = retargetCoreLibMember.get(methodName).get(inType);
             List<DexClassAndMethod> found = findMethodsWithName(methodName, typeClass);
             for (DexClassAndMethod method : found) {
+              boolean emulatedDispatch = false;
               DexMethod methodReference = method.getReference();
               if (!typeClass.isFinal()) {
                 nonFinalHolderRewrites.putIfAbsent(method.getName(), new ArrayList<>());
@@ -328,12 +341,16 @@ public class DesugaredLibraryRetargeter {
                     // Virtual rewrites require emulated dispatch for inheritance.
                     // The call is rewritten to the dispatch holder class instead.
                     emulatedDispatchMethods.add(method);
-                    // TODO(b/188767735): Postpone until needed.
-                    newHolder = ensureEmulatedHolderDispatchMethod(method).type;
+                    emulatedDispatch = true;
                   }
                 }
               }
-              retargetLibraryMember.put(methodReference, computeRetargetMethod(method, newHolder));
+              if (!emulatedDispatch) {
+                retargetLibraryMember.put(
+                    methodReference,
+                    computeRetargetMethod(
+                        methodReference, method.getAccessFlags().isStatic(), newHolder));
+              }
             }
           }
         }
@@ -350,13 +367,12 @@ public class DesugaredLibraryRetargeter {
             itemFactory.createMethod(
                 itemFactory.createType(itemFactory.arraysDescriptor), proto, name);
         DexMethod target =
-            itemFactory.createMethod(
-                itemFactory.createType("Ljava/util/DesugarArrays;"), proto, name);
+            computeRetargetMethod(
+                source, true, itemFactory.createType("Ljava/util/DesugarArrays;"));
         retargetLibraryMember.put(source, target);
 
         // TODO(b/181629049): This is only a workaround rewriting invokes of
         //  j.u.TimeZone.getTimeZone taking a java.time.ZoneId.
-        // to j.u.DesugarArrays.deepEquals0.
         name = itemFactory.createString("getTimeZone");
         proto =
             itemFactory.createProto(
@@ -365,8 +381,8 @@ public class DesugaredLibraryRetargeter {
         source =
             itemFactory.createMethod(itemFactory.createType("Ljava/util/TimeZone;"), proto, name);
         target =
-            itemFactory.createMethod(
-                itemFactory.createType("Ljava/util/DesugarTimeZone;"), proto, name);
+            computeRetargetMethod(
+                source, true, itemFactory.createType("Ljava/util/DesugarTimeZone;"));
         retargetLibraryMember.put(source, target);
       }
     }
@@ -400,15 +416,6 @@ public class DesugaredLibraryRetargeter {
             });
       }
       return false;
-    }
-
-    private DexMethod computeRetargetMethod(DexClassAndMethod method, DexType newHolder) {
-      DexItemFactory factory = appView.dexItemFactory();
-      DexProto newProto =
-          method.getAccessFlags().isStatic()
-              ? method.getProto()
-              : factory.prependHolderToProto(method.getReference());
-      return factory.createMethod(newHolder, newProto, method.getName());
     }
 
     private List<DexClassAndMethod> findMethodsWithName(DexString methodName, DexClass clazz) {
@@ -648,7 +655,6 @@ public class DesugaredLibraryRetargeter {
         return;
       }
       for (DexClassAndMethod emulatedDispatchMethod : emulatedDispatchMethods) {
-        ensureEmulatedInterfaceDispatchMethod(emulatedDispatchMethod);
         ensureEmulatedHolderDispatchMethod(emulatedDispatchMethod);
       }
     }
