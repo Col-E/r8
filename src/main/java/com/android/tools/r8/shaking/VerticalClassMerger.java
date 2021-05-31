@@ -368,6 +368,9 @@ public class VerticalClassMerger {
       }
       return false;
     }
+    if (sourceClass.isAnnotation()) {
+      return false;
+    }
     if (!sourceClass.isInterface()
         && targetClass.isSerializable(appView)
         && !appInfo.isSerializable(sourceClass.type)) {

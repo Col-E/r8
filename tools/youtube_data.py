@@ -15,7 +15,10 @@ V15_33_PREFIX = os.path.join(V15_33_BASE, 'YouTubeRelease')
 V16_12_BASE = os.path.join(BASE, 'youtube.android_16.12')
 V16_12_PREFIX = os.path.join(V16_12_BASE, 'YouTubeRelease')
 
-LATEST_VERSION = '16.12'
+V16_20_BASE = os.path.join(BASE, 'youtube.android_16.20')
+V16_20_PREFIX = os.path.join(V16_20_BASE, 'YouTubeRelease')
+
+LATEST_VERSION = '16.20'
 
 VERSIONS = {
   '15.33': {
@@ -77,6 +80,37 @@ VERSIONS = {
     'proguarded' : {
       'inputs': ['%s_proguard.jar' % V16_12_PREFIX],
       'pgmap': '%s_proguard.map' % V16_12_PREFIX,
+      'min-api' : ANDROID_L_API,
+    }
+  },
+  '16.20': {
+    'deploy' : {
+      'sanitize_libraries': False,
+      'inputs': ['%s_deploy.jar' % V16_20_PREFIX],
+      'libraries' : [
+          os.path.join(
+              V16_20_BASE,
+              'legacy_YouTubeRelease_combined_library_jars_filtered.jar')],
+      'pgconf': [
+          '%s_proguard.config' % V16_20_PREFIX,
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY,
+          utils.IGNORE_WARNINGS_RULES],
+      'min-api' : ANDROID_L_API,
+      'android_java8_libs': {
+        'config': '%s/desugar_jdk_libs/full_desugar_jdk_libs.json' % V16_20_BASE,
+        # Intentionally not adding desugar_jdk_libs_configuration.jar since it
+        # is part of jdk_libs_to_desugar.jar in YouTube 16.20.
+        'program': ['%s/desugar_jdk_libs/jdk_libs_to_desugar.jar' % V16_20_BASE],
+        'library': '%s/android_jar/lib-v30/android.jar' % utils.THIRD_PARTY,
+        'pgconf': [
+          '%s/desugar_jdk_libs/base.pgcfg' % V16_20_BASE,
+          '%s/desugar_jdk_libs/minify_desugar_jdk_libs.pgcfg' % V16_20_BASE
+        ]
+      }
+    },
+    'proguarded' : {
+      'inputs': ['%s_proguard.jar' % V16_20_PREFIX],
+      'pgmap': '%s_proguard.map' % V16_20_PREFIX,
       'min-api' : ANDROID_L_API,
     }
   },
