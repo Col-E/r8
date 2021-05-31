@@ -7,6 +7,7 @@ import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTL
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0_M2;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
+import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -100,6 +101,7 @@ public class ToolHelper {
   public static final String THIRD_PARTY_DIR = "third_party/";
   public static final String TOOLS_DIR = "tools/";
   public static final String TESTS_DIR = "src/test/";
+  public static final String TESTS_SOURCE_DIR = "src/test/java";
   public static final String EXAMPLES_DIR = TESTS_DIR + "examples/";
   public static final String EXAMPLES_ANDROID_N_DIR = TESTS_DIR + "examplesAndroidN/";
   public static final String EXAMPLES_ANDROID_O_DIR = TESTS_DIR + "examplesAndroidO/";
@@ -1097,6 +1099,17 @@ public class ToolHelper {
     return Files.walk(directory)
         .filter(path -> path.toString().endsWith(".class") && (filter == null || filter.test(path)))
         .collect(Collectors.toList());
+  }
+
+  public static Path getSourceFileForTestClass(Class<?> clazz) {
+    List<String> parts = getNamePartsForTestClass(clazz);
+    String last = parts.get(parts.size() - 1);
+    assert last.endsWith(CLASS_EXTENSION);
+    parts.set(
+        parts.size() - 1,
+        last.substring(0, last.length() - CLASS_EXTENSION.length()) + JAVA_EXTENSION);
+    return Paths.get(TESTS_SOURCE_DIR)
+        .resolve(Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY)));
   }
 
   public static Path getClassFileForTestClass(Class<?> clazz) {
