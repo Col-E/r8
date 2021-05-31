@@ -28,7 +28,7 @@ import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfThrow;
-import com.android.tools.r8.code.Const;
+import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.InstanceOf;
 import com.android.tools.r8.code.Instruction;
@@ -1011,7 +1011,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public DexCode buildEmptyThrowingDexCode() {
-    Instruction[] insn = {new Const(0, 0), new Throw(0)};
+    Instruction[] insn = {new Const4(0, 0), new Throw(0)};
     return generateCodeFromTemplate(1, 0, insn);
   }
 
