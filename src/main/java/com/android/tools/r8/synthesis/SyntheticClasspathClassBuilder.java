@@ -8,13 +8,17 @@ import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 
 public class SyntheticClasspathClassBuilder
     extends SyntheticClassBuilder<SyntheticClasspathClassBuilder, DexClasspathClass> {
 
   SyntheticClasspathClassBuilder(
-      DexType type, SynthesizingContext context, DexItemFactory factory) {
-    super(type, context, factory);
+      DexType type,
+      SyntheticKind syntheticKind,
+      SynthesizingContext context,
+      DexItemFactory factory) {
+    super(type, syntheticKind, context, factory);
     setOriginKind(Kind.CF);
   }
 

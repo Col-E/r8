@@ -128,7 +128,7 @@ public class SyntheticMarker {
         return NO_MARKER;
       }
       for (DexEncodedMethod method : clazz.methods()) {
-        if (!SyntheticMethodBuilder.isValidSyntheticMethod(method)) {
+        if (!SyntheticMethodBuilder.isValidSingleSyntheticMethod(method)) {
           return NO_MARKER;
         }
       }

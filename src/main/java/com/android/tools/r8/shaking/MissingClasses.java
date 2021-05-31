@@ -5,7 +5,6 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.DESCRIPTOR_VIVIFIED_PREFIX;
-import static com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter.getRetargetPackageAndClassPrefixDescriptor;
 import static com.android.tools.r8.utils.collections.IdentityHashSetFromMap.newProgramDerivedContextSet;
 
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
@@ -23,7 +22,6 @@ import com.android.tools.r8.graph.ProgramDerivedContext;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems.SynthesizingContextOracle;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -280,15 +278,10 @@ public class MissingClasses {
     private static Predicate<DexType> getIsCompilerSynthesizedAllowedMissingClassesPredicate(
         AppView<?> appView) {
       DexItemFactory dexItemFactory = appView.dexItemFactory();
-      InternalOptions options = appView.options();
-      DexString retargetPackageAndClassPrefixDescriptor =
-          dexItemFactory.createString(
-              getRetargetPackageAndClassPrefixDescriptor(options.desugaredLibraryConfiguration));
       DexString vivifiedClassNamePrefix = dexItemFactory.createString(DESCRIPTOR_VIVIFIED_PREFIX);
       return type -> {
         DexString descriptor = type.getDescriptor();
-        return descriptor.startsWith(retargetPackageAndClassPrefixDescriptor)
-            || descriptor.startsWith(vivifiedClassNamePrefix);
+        return descriptor.startsWith(vivifiedClassNamePrefix);
       };
     }
 

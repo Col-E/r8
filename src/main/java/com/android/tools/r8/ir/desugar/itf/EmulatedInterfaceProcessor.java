@@ -21,7 +21,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -308,19 +307,11 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
           && !rewriter.isEmulatedInterface(clazz.type)
           && !appView.rewritePrefix.hasRewrittenType(clazz.type, appView)
           && isEmulatedInterfaceSubInterface(clazz)) {
-        String prefix =
-            DescriptorUtils.getJavaTypeFromBinaryName(
-                appView
-                    .options()
-                    .desugaredLibraryConfiguration
-                    .getSynthesizedLibraryClassesPackagePrefix());
-        String interfaceType = clazz.type.toString();
-        // TODO(b/183918843): We are currently computing a new name for the companion class
-        // by replacing the initial package prefix by the synthesized library class package
-        // prefix, it would be better to make the rewriting explicit in the desugared library
-        // json file.
-        int firstPackage = interfaceType.indexOf('.');
-        String newName = prefix + interfaceType.substring(firstPackage + 1);
+        String newName =
+            appView
+                .options()
+                .desugaredLibraryConfiguration
+                .convertJavaNameToDesugaredLibrary(clazz.type);
         rewriter.addCompanionClassRewriteRule(clazz.type, newName);
       } else {
         filteredProgramClasses.add(clazz);

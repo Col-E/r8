@@ -397,10 +397,9 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeRetargetClass(Builder<?> builder, ExecutorService executorService)
-      throws ExecutionException {
+  private void synthesizeRetargetClass(ExecutorService executorService) throws ExecutionException {
     if (desugaredLibraryRetargeter != null) {
-      desugaredLibraryRetargeter.synthesizeRetargetClasses(builder, executorService, this);
+      desugaredLibraryRetargeter.synthesizeRetargetClasses(executorService, this);
     }
   }
 
@@ -442,7 +441,7 @@ public class IRConverter {
     Builder<?> builder = application.builder().setHighestSortingString(highestSortingString);
 
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
-    synthesizeRetargetClass(builder, executor);
+    synthesizeRetargetClass(executor);
     processCovariantReturnTypeAnnotations(builder);
     generateDesugaredLibraryAPIWrappers(builder, executor);
 
@@ -780,7 +779,7 @@ public class IRConverter {
     feedback.updateVisibleOptimizationInfo();
 
     printPhase("Utility classes synthesis");
-    synthesizeRetargetClass(builder, executorService);
+    synthesizeRetargetClass(executorService);
     synthesizeEnumUnboxingUtilityMethods(executorService);
 
     printPhase("Desugared library API Conversion finalization");

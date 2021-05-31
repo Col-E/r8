@@ -7,12 +7,17 @@ import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 
 public class SyntheticProgramClassBuilder
     extends SyntheticClassBuilder<SyntheticProgramClassBuilder, DexProgramClass> {
 
-  SyntheticProgramClassBuilder(DexType type, SynthesizingContext context, DexItemFactory factory) {
-    super(type, context, factory);
+  SyntheticProgramClassBuilder(
+      DexType type,
+      SyntheticKind syntheticKind,
+      SynthesizingContext context,
+      DexItemFactory factory) {
+    super(type, syntheticKind, context, factory);
   }
 
   @Override

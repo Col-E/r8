@@ -462,7 +462,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       DexType type,
       DexItemFactory factory) {
     SyntheticProgramClassBuilder classBuilder =
-        new SyntheticProgramClassBuilder(type, outerContext, factory);
+        new SyntheticProgramClassBuilder(type, kind, outerContext, factory);
     fn.accept(classBuilder);
     DexProgramClass clazz = classBuilder.build();
     addPendingDefinition(new SyntheticProgramClassDefinition(kind, outerContext, clazz));
@@ -503,16 +503,19 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
    */
   public DexProgramClass ensureFixedClass(
       SyntheticKind kind,
-      DexProgramClass context,
+      DexClass context,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> fn) {
     assert kind.isFixedSuffixSynthetic;
     // Obtain the outer synthesizing context in the case the context itself is synthetic.
     // This is to ensure a flat input-type -> synthetic-item mapping.
-    SynthesizingContext outerContext = getSynthesizingContext(context, appView);
+    SynthesizingContext outerContext =
+        context.isProgramClass()
+            ? getSynthesizingContext(context.asProgramClass(), appView)
+            : SynthesizingContext.fromNonSyntheticInputContext(context.asClasspathOrLibraryClass());
     DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
     // Fast path is that the synthetic is already present. If so it must be a program class.
-    DexClass clazz = appView.definitionFor(type, context);
+    DexClass clazz = appView.definitionFor(type);
     if (clazz != null) {
       assert isSyntheticClass(type);
       assert clazz.isProgramClass();
@@ -521,7 +524,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     // Slow path creates the class using the context to make it thread safe.
     synchronized (context) {
       // Recheck if it is present now the lock is held.
-      clazz = appView.definitionFor(type, context);
+      clazz = appView.definitionFor(type);
       if (clazz != null) {
         assert isSyntheticClass(type);
         assert clazz.isProgramClass();
@@ -539,10 +542,39 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     SynthesizingContext outerContext = SynthesizingContext.fromNonSyntheticInputContext(context);
     DexType type = SyntheticNaming.createFixedType(kind, outerContext, factory);
     SyntheticClasspathClassBuilder classBuilder =
-        new SyntheticClasspathClassBuilder(type, outerContext, factory);
+        new SyntheticClasspathClassBuilder(type, kind, outerContext, factory);
     DexClasspathClass clazz = classBuilder.build();
     addPendingDefinition(new SyntheticClasspathClassDefinition(kind, outerContext, clazz));
     return clazz;
+  }
+
+  public DexClasspathClass ensureFixedClasspathClass(
+      SyntheticKind kind,
+      ClasspathOrLibraryClass context,
+      AppView<?> appView,
+      Consumer<SyntheticClasspathClassBuilder> classConsumer) {
+    SynthesizingContext outerContext = SynthesizingContext.fromNonSyntheticInputContext(context);
+    DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
+    DexClass dexClass = appView.appInfo().definitionForWithoutExistenceAssert(type);
+    if (dexClass != null) {
+      assert dexClass.isClasspathClass();
+      return dexClass.asClasspathClass();
+    }
+    synchronized (context) {
+      dexClass = appView.appInfo().definitionForWithoutExistenceAssert(type);
+      if (dexClass != null) {
+        assert dexClass.isClasspathClass();
+        return dexClass.asClasspathClass();
+      }
+      // Obtain the outer synthesizing context in the case the context itself is synthetic.
+      // This is to ensure a flat input-type -> synthetic-item mapping.
+      SyntheticClasspathClassBuilder classBuilder =
+          new SyntheticClasspathClassBuilder(type, kind, outerContext, appView.dexItemFactory());
+      classConsumer.accept(classBuilder);
+      DexClasspathClass clazz = classBuilder.build();
+      addPendingDefinition(new SyntheticClasspathClassDefinition(kind, outerContext, clazz));
+      return clazz;
+    }
   }
 
   // This is a temporary API for migration to the hygienic synthetic, the classes created behave
@@ -560,7 +592,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       // This is to ensure a flat input-type -> synthetic-item mapping.
       SynthesizingContext outerContext = SynthesizingContext.fromNonSyntheticInputContext(context);
       SyntheticClasspathClassBuilder classBuilder =
-          new SyntheticClasspathClassBuilder(legacyType, outerContext, appView.dexItemFactory());
+          new SyntheticClasspathClassBuilder(
+              legacyType, kind, outerContext, appView.dexItemFactory());
       DexClasspathClass clazz = classBuilder.build();
       addPendingDefinition(new SyntheticClasspathClassDefinition(kind, outerContext, clazz));
       return clazz;
@@ -584,7 +617,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         return;
       }
       SyntheticMethodBuilder syntheticMethodBuilder =
-          new SyntheticMethodBuilder(appView.dexItemFactory(), syntheticClass.type);
+          new SyntheticMethodBuilder(appView.dexItemFactory(), syntheticClass.type, kind);
       builderConsumer.accept(syntheticMethodBuilder);
       syntheticClass.addDirectMethod(syntheticMethodBuilder.build());
     }
@@ -625,7 +658,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         SyntheticNaming.createInternalType(
             kind, outerContext, syntheticIdSupplier.get(), appView.dexItemFactory());
     SyntheticProgramClassBuilder classBuilder =
-        new SyntheticProgramClassBuilder(type, outerContext, appView.dexItemFactory());
+        new SyntheticProgramClassBuilder(type, kind, outerContext, appView.dexItemFactory());
     DexProgramClass clazz =
         classBuilder
             .addMethod(fn.andThen(m -> m.setName(SyntheticNaming.INTERNAL_SYNTHETIC_METHOD_PREFIX)))

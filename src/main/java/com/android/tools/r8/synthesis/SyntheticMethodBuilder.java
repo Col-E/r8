@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import java.util.function.Consumer;
 
 public class SyntheticMethodBuilder {
@@ -25,6 +26,7 @@ public class SyntheticMethodBuilder {
 
   private final DexItemFactory factory;
   private final DexType holderType;
+  private final SyntheticKind syntheticKind;
   private DexString name = null;
   private DexProto proto = null;
   private CfVersion classFileVersion;
@@ -38,11 +40,13 @@ public class SyntheticMethodBuilder {
   SyntheticMethodBuilder(SyntheticClassBuilder<?, ?> parent) {
     this.factory = parent.getFactory();
     this.holderType = parent.getType();
+    this.syntheticKind = parent.getSyntheticKind();
   }
 
-  SyntheticMethodBuilder(DexItemFactory factory, DexType holderType) {
+  SyntheticMethodBuilder(DexItemFactory factory, DexType holderType, SyntheticKind syntheticKind) {
     this.factory = factory;
     this.holderType = holderType;
+    this.syntheticKind = syntheticKind;
   }
 
   public SyntheticMethodBuilder setName(String name) {
@@ -101,20 +105,18 @@ public class SyntheticMethodBuilder {
     assert name != null;
     boolean isCompilerSynthesized = true;
     DexMethod methodSignature = getMethodSignature();
+    MethodAccessFlags accessFlags = getAccessFlags();
     DexEncodedMethod method =
         new DexEncodedMethod(
             methodSignature,
-            getAccessFlags(),
+            accessFlags,
             genericSignature,
             annotations,
             parameterAnnotationsList,
-            getCodeObject(methodSignature),
+            accessFlags.isAbstract() ? null : getCodeObject(methodSignature),
             isCompilerSynthesized,
             classFileVersion);
-    // Companion class method may have different properties.
-    assert isValidSyntheticMethod(method)
-        || SyntheticNaming.isSynthetic(
-            holderType.asClassReference(), null, SyntheticNaming.SyntheticKind.COMPANION_CLASS);
+    assert isValidSyntheticMethod(method, syntheticKind);
     if (onBuildConsumer != null) {
       onBuildConsumer.accept(method);
     }
@@ -126,8 +128,16 @@ public class SyntheticMethodBuilder {
    *
    * <p>This method is used when identifying synthetic methods in the program input and should be as
    * narrow as possible.
+   *
+   * <p>Methods in fixed suffix synthetics are identified differently (through the class name) and
+   * can have different properties.
    */
-  public static boolean isValidSyntheticMethod(DexEncodedMethod method) {
+  public static boolean isValidSyntheticMethod(
+      DexEncodedMethod method, SyntheticKind syntheticKind) {
+    return isValidSingleSyntheticMethod(method) || syntheticKind.isFixedSuffixSynthetic;
+  }
+
+  public static boolean isValidSingleSyntheticMethod(DexEncodedMethod method) {
     return method.isStatic()
         && method.isNonAbstractNonNativeMethod()
         && method.isPublic()

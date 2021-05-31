@@ -153,6 +153,17 @@ public class DesugaredLibraryConfiguration {
     return synthesizedLibraryClassesPackagePrefix;
   }
 
+  // TODO(b/183918843): We are currently computing a new name for the class by replacing the
+  //  initial package prefix by the synthesized library class package prefix, it would be better
+  //  to make the rewriting explicit in the desugared library json file.
+  public String convertJavaNameToDesugaredLibrary(DexType type) {
+    String prefix =
+        DescriptorUtils.getJavaTypeFromBinaryName(getSynthesizedLibraryClassesPackagePrefix());
+    String interfaceType = type.toString();
+    int firstPackage = interfaceType.indexOf('.');
+    return prefix + interfaceType.substring(firstPackage + 1);
+  }
+
   public String getIdentifier() {
     return identifier;
   }

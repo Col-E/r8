@@ -70,7 +70,7 @@ class SyntheticMethodDefinition
 
   @Override
   public boolean isValid() {
-    return SyntheticMethodBuilder.isValidSyntheticMethod(method.getDefinition());
+    return SyntheticMethodBuilder.isValidSyntheticMethod(method.getDefinition(), getKind());
   }
 
   @Override

@@ -22,19 +22,23 @@ import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestHostClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
-abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C extends DexClass> {
+public abstract class SyntheticClassBuilder<
+    B extends SyntheticClassBuilder<B, C>, C extends DexClass> {
 
   private final DexItemFactory factory;
 
   private final DexType type;
+  private final SyntheticKind syntheticKind;
   private final Origin origin;
 
   private boolean isAbstract = false;
+  private boolean isInterface = false;
   private Kind originKind;
   private DexType superType;
   private DexTypeList interfaces = DexTypeList.empty();
@@ -46,9 +50,14 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
   private List<SyntheticMethodBuilder> methods = new ArrayList<>();
   private ClassSignature signature = ClassSignature.noSignature();
 
-  SyntheticClassBuilder(DexType type, SynthesizingContext context, DexItemFactory factory) {
+  SyntheticClassBuilder(
+      DexType type,
+      SyntheticKind syntheticKind,
+      SynthesizingContext context,
+      DexItemFactory factory) {
     this.factory = factory;
     this.type = type;
+    this.syntheticKind = syntheticKind;
     this.origin = context.getInputContextOrigin();
     this.superType = factory.objectType;
   }
@@ -65,6 +74,10 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
     return type;
   }
 
+  public SyntheticKind getSyntheticKind() {
+    return syntheticKind;
+  }
+
   public B setInterfaces(List<DexType> interfaces) {
     this.interfaces =
         interfaces.isEmpty()
@@ -75,6 +88,12 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
 
   public B setAbstract() {
     isAbstract = true;
+    return self();
+  }
+
+  public B setInterface() {
+    setAbstract();
+    isInterface = true;
     return self();
   }
 
@@ -126,9 +145,11 @@ abstract class SyntheticClassBuilder<B extends SyntheticClassBuilder<B, C>, C ex
 
   public C build() {
     int flag = isAbstract ? Constants.ACC_ABSTRACT : Constants.ACC_FINAL;
+    int itfFlag = isInterface ? Constants.ACC_INTERFACE : 0;
+    assert !isInterface || isAbstract;
     ClassAccessFlags accessFlags =
         ClassAccessFlags.fromSharedAccessFlags(
-            flag | Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
+            flag | itfFlag | Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
     NestHostClassAttribute nestHost = null;
     List<NestMemberClassAttribute> nestMembers = Collections.emptyList();
     EnclosingMethodAttribute enclosingMembers = null;
