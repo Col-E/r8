@@ -378,14 +378,14 @@ public class ProguardConfiguration {
         // For Proguard -keepattributes are only applicable when obfuscating.
         keepAttributePatterns.addAll(ProguardKeepAttributes.KEEP_ALL);
       }
-      // If either of the flags -dontshrink, -dontobfuscate or -dontoptimize is passed, or
-      // shrinking or minification is turned off through the API, then add a match all rule
-      // which will apply that.
-      if (!isShrinking() || !isObfuscating() || !isOptimizing()) {
+      // If either of the flags -dontshrink or -dontobfuscate, or shrinking or minification is
+      // turned off through the API, then add a match all rule which will apply that.
+      if (!isShrinking() || !isObfuscating()) {
         ProguardKeepRule rule =
             ProguardKeepRule.defaultKeepAllRule(
                 modifiers -> {
                   modifiers.setAllowsShrinking(isShrinking());
+                  // TODO(b/189807246): This should be removed.
                   modifiers.setAllowsOptimization(isOptimizing());
                   modifiers.setAllowsObfuscation(isObfuscating());
                 });
