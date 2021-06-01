@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -168,13 +169,15 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
     super.prepareForWaveExtensionProcessing();
   }
 
-  void forEachWaveWithExtension(OptimizationFeedback feedback, ExecutorService executorService)
+  void forEachWaveWithExtension(
+      OptimizationFeedbackDelayed feedback, ExecutorService executorService)
       throws ExecutionException {
     while (!waves.isEmpty()) {
       wave = waves.removeFirst();
       assert !wave.isEmpty();
       assert waveExtension.isEmpty();
       do {
+        assert feedback.noUpdatesLeft();
         ThreadUtils.processItems(
             wave,
             method -> {
@@ -184,6 +187,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
               forEachMethod(method, codeOptimizations, feedback);
             },
             executorService);
+        feedback.updateVisibleOptimizationInfo();
         processed.addAll(wave);
         prepareForWaveExtensionProcessing();
       } while (!wave.isEmpty());

@@ -32,6 +32,14 @@ public class KotlinTestParameters {
     return targetVersion;
   }
 
+  public boolean is(KotlinCompilerVersion compilerVersion) {
+    return kotlinc.is(compilerVersion);
+  }
+
+  public boolean is(KotlinCompilerVersion compilerVersion, KotlinTargetVersion targetVersion) {
+    return is(compilerVersion) && this.targetVersion == targetVersion;
+  }
+
   public boolean isFirst() {
     return index == 0;
   }
