@@ -594,10 +594,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return (accessFlags.isPrivate() || accessFlags.isConstructor()) && !accessFlags.isStatic();
   }
 
-  public boolean isInstance() {
-    return !isStatic();
-  }
-
   @Override
   public boolean isStatic() {
     checkIfObsolete();
@@ -896,6 +892,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public String toSmaliString(ClassNameMapper naming) {
+    return toSmaliString(naming, true);
+  }
+
+  public String toSmaliString(ClassNameMapper naming, boolean writeCode) {
     checkIfObsolete();
     StringBuilder builder = new StringBuilder();
     builder.append(".method ");
@@ -904,7 +904,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     builder.append(getReference().name.toSmaliString());
     builder.append(getReference().proto.toSmaliString());
     builder.append("\n");
-    if (code != null) {
+    if (writeCode && hasCode()) {
       DexCode dexCode = code.asDexCode();
       builder.append("    .registers ");
       builder.append(dexCode.registerSize);

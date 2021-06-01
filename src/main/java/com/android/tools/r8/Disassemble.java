@@ -243,7 +243,7 @@ public class Disassemble {
           new ApplicationReader(app, options, timing).read(command.proguardMap, executor);
       DexByteCodeWriter writer =
           command.useSmali()
-              ? new SmaliWriter(application, options)
+              ? new SmaliWriter(application, options, !command.noCode())
               : new AssemblyWriter(
                   application, options, command.allInfo, command.useIr(), !command.noCode());
       if (command.getOutputPath() != null) {

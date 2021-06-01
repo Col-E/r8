@@ -57,6 +57,10 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
     return this;
   }
 
+  public final boolean isInstance() {
+    return !isStatic();
+  }
+
   public final boolean isPrivate() {
     return getAccessFlags().isPrivate();
   }
