@@ -12,10 +12,13 @@ import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
@@ -533,6 +536,33 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       assert !isSyntheticClass(type);
       return internalCreateClass(kind, fn, outerContext, type, appView.dexItemFactory());
     }
+  }
+
+  public ProgramMethod ensureFixedClassMethod(
+      DexString name,
+      DexProto proto,
+      SyntheticKind kind,
+      DexProgramClass context,
+      AppView<?> appView,
+      Consumer<SyntheticProgramClassBuilder> buildClassCallback,
+      Consumer<SyntheticMethodBuilder> buildMethodCallback) {
+    DexProgramClass clazz = ensureFixedClass(kind, context, appView, buildClassCallback);
+    DexMethod methodReference = appView.dexItemFactory().createMethod(clazz.getType(), proto, name);
+    DexEncodedMethod methodDefinition = clazz.getMethodCollection().getMethod(methodReference);
+    if (methodDefinition != null) {
+      return new ProgramMethod(clazz, methodDefinition);
+    }
+    // TODO(b/183998768): Make this thread safe and safe to use for recursive definitions.
+    SyntheticMethodBuilder builder =
+        new SyntheticMethodBuilder(appView.dexItemFactory(), clazz.getType());
+    builder.setName(name);
+    builder.setProto(proto);
+    buildMethodCallback.accept(builder);
+    DexEncodedMethod method = builder.build();
+    assert method.getName() == name;
+    assert method.getProto() == proto;
+    clazz.addMethod(method);
+    return new ProgramMethod(clazz, method);
   }
 
   public DexClasspathClass createFixedClasspathClass(
