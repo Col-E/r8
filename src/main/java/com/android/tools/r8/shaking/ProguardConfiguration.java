@@ -386,7 +386,7 @@ public class ProguardConfiguration {
                 modifiers -> {
                   modifiers.setAllowsShrinking(isShrinking());
                   // TODO(b/189807246): This should be removed.
-                  modifiers.setAllowsOptimization(isOptimizing());
+                  modifiers.setAllowsOptimization(true);
                   modifiers.setAllowsObfuscation(isObfuscating());
                 });
         addRule(rule);
