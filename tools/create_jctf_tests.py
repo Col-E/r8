@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
@@ -9,7 +9,7 @@ from itertools import chain
 from os import makedirs
 from os.path import exists, join, dirname
 from shutil import rmtree
-from string import Template, upper
+from string import Template
 import os
 import re
 import sys
