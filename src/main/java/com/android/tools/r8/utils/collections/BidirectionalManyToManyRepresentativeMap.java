@@ -14,6 +14,8 @@ package com.android.tools.r8.utils.collections;
 public interface BidirectionalManyToManyRepresentativeMap<K, V>
     extends BidirectionalManyToManyMap<K, V> {
 
+  boolean hasExplicitRepresentativeKey(V value);
+
   K getRepresentativeKey(V value);
 
   default K getRepresentativeKeyOrDefault(V value, K defaultValue) {

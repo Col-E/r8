@@ -125,6 +125,14 @@ public class SyntheticFinalization {
       methodMap.put(from, to);
     }
 
+    void setRepresentative(DexField field, DexField representative) {
+      fieldMap.setRepresentative(field, representative);
+    }
+
+    void setRepresentative(DexMethod method, DexMethod representative) {
+      methodMap.setRepresentative(method, representative);
+    }
+
     SyntheticFinalizationGraphLens build(AppView<?> appView) {
       if (typeMap.isEmpty() && fieldMap.isEmpty() && methodMap.isEmpty()) {
         return null;
@@ -476,6 +484,26 @@ public class SyntheticFinalization {
                   representative.getContext(),
                   syntheticMethodDefinition.getReference()));
         });
+
+    Iterables.<EquivalenceGroup<? extends SyntheticDefinition<?, ?, DexProgramClass>>>concat(
+            syntheticClassGroups.values(), syntheticMethodGroups.values())
+        .forEach(
+            syntheticGroup ->
+                syntheticGroup
+                    .getRepresentative()
+                    .getHolder()
+                    .forEachProgramMember(
+                        member -> {
+                          if (member.isProgramField()) {
+                            DexField field = member.asProgramField().getReference();
+                            DexField rewrittenField = treeFixer.fixupFieldReference(field);
+                            lensBuilder.setRepresentative(rewrittenField, field);
+                          } else {
+                            DexMethod method = member.asProgramMethod().getReference();
+                            DexMethod rewrittenMethod = treeFixer.fixupMethodReference(method);
+                            lensBuilder.setRepresentative(rewrittenMethod, method);
+                          }
+                        }));
 
     for (DexType key : syntheticMethodGroups.keySet()) {
       assert application.definitionFor(key) != null;

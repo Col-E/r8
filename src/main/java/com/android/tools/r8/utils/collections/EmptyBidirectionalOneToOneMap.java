@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.collections;
 
+import com.android.tools.r8.utils.TriConsumer;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.Collections;
@@ -42,6 +43,11 @@ public class EmptyBidirectionalOneToOneMap<K, V>
   }
 
   @Override
+  public void forEachManyToOneMapping(TriConsumer<? super Set<K>, V, K> consumer) {
+    // Intentionally empty.
+  }
+
+  @Override
   public void forEachValue(Consumer<? super V> consumer) {
     // Intentionally empty.
   }
@@ -64,6 +70,11 @@ public class EmptyBidirectionalOneToOneMap<K, V>
   @Override
   public BiMap<K, V> getForwardMap() {
     return HashBiMap.create();
+  }
+
+  @Override
+  public boolean hasExplicitRepresentativeKey(V value) {
+    return false;
   }
 
   @Override

@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.utils.collections;
 
+import com.android.tools.r8.utils.TriConsumer;
+import java.util.Set;
+
 /**
  * Interface that accommodates many-to-one mappings.
  *
@@ -11,4 +14,7 @@ package com.android.tools.r8.utils.collections;
  * from {@link BidirectionalManyToManyRepresentativeMap}.
  */
 public interface BidirectionalManyToOneRepresentativeMap<K, V>
-    extends BidirectionalManyToOneMap<K, V>, BidirectionalManyToManyRepresentativeMap<K, V> {}
+    extends BidirectionalManyToOneMap<K, V>, BidirectionalManyToManyRepresentativeMap<K, V> {
+
+  void forEachManyToOneMapping(TriConsumer<? super Set<K>, V, K> consumer);
+}

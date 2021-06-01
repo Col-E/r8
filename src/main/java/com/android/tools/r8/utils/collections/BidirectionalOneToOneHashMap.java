@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.collections;
 
+import com.android.tools.r8.utils.TriConsumer;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.Collections;
@@ -61,6 +62,11 @@ public class BidirectionalOneToOneHashMap<K, V>
   }
 
   @Override
+  public void forEachManyToOneMapping(TriConsumer<? super Set<K>, V, K> consumer) {
+    backing.forEach((key, value) -> consumer.accept(Collections.singleton(key), value, key));
+  }
+
+  @Override
   public void forEachValue(Consumer<? super V> consumer) {
     backing.values().forEach(consumer);
   }
@@ -89,6 +95,12 @@ public class BidirectionalOneToOneHashMap<K, V>
   @Override
   public BidirectionalOneToOneHashMap<V, K> getInverseOneToOneMap() {
     return new BidirectionalOneToOneHashMap<>(backing.inverse());
+  }
+
+  @Override
+  public boolean hasExplicitRepresentativeKey(V value) {
+    assert containsValue(value);
+    return true;
   }
 
   @Override

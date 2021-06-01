@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.collections;
 
+import com.android.tools.r8.utils.TriConsumer;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -33,6 +34,12 @@ public class BidirectionalManyToOneRepresentativeHashMap<K, V>
   }
 
   @Override
+  public void forEachManyToOneMapping(TriConsumer<? super Set<K>, V, K> consumer) {
+    forEachManyToOneMapping(
+        (keys, value) -> consumer.accept(keys, value, getRepresentativeKey(value)));
+  }
+
+  @Override
   public K removeRepresentativeFor(V value) {
     return representatives.remove(value);
   }
@@ -43,10 +50,19 @@ public class BidirectionalManyToOneRepresentativeHashMap<K, V>
   }
 
   @Override
+  public boolean hasExplicitRepresentativeKey(V value) {
+    return representatives.containsKey(value);
+  }
+
+  @Override
   public K getRepresentativeKey(V value) {
     Set<K> keys = getKeys(value);
     if (!keys.isEmpty()) {
-      return keys.size() == 1 ? keys.iterator().next() : representatives.get(value);
+      if (keys.size() == 1) {
+        return keys.iterator().next();
+      }
+      assert hasExplicitRepresentativeKey(value);
+      return representatives.get(value);
     }
     return null;
   }
@@ -67,8 +83,10 @@ public class BidirectionalManyToOneRepresentativeHashMap<K, V>
   @Override
   public V remove(K key) {
     V value = super.remove(key);
-    if (getKeys(value).size() <= 1 || getRepresentativeKey(value) == key) {
-      removeRepresentativeFor(value);
+    if (hasExplicitRepresentativeKey(value)) {
+      if (getKeys(value).size() <= 1 || getRepresentativeKey(value) == key) {
+        removeRepresentativeFor(value);
+      }
     }
     return value;
   }

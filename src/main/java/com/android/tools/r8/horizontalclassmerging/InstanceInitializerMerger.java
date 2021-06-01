@@ -325,11 +325,7 @@ public class InstanceInitializerMerger {
     ProgramMethod representative = ListUtils.first(instanceInitializers);
     DexMethod newMethodReference =
         representative.getReference().withHolder(group.getTarget(), dexItemFactory);
-
-    for (ProgramMethod constructor : instanceInitializers) {
-      boolean isRepresentative = constructor == representative;
-      lensBuilder.moveMethod(constructor.getReference(), newMethodReference, isRepresentative);
-    }
+    lensBuilder.moveMethods(instanceInitializers, newMethodReference, representative);
 
     DexEncodedMethod newMethod =
         representative.getHolder() == group.getTarget()

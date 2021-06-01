@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.NestedGraphLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
@@ -103,6 +104,13 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
         AppView<?> appView, HorizontallyMergedClasses mergedClasses) {
       assert pendingMethodMapUpdates.isEmpty();
       assert pendingNewMethodSignatureUpdates.isEmpty();
+      assert newMethodSignatures.values().stream()
+          .allMatch(
+              value -> {
+                assert newMethodSignatures.getKeys(value).size() == 1
+                    || newMethodSignatures.hasExplicitRepresentativeKey(value);
+                return true;
+              });
       return new HorizontalClassMergerGraphLens(
           appView,
           mergedClasses,
@@ -157,6 +165,17 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       recordNewMethodSignature(from, to, isRepresentative);
     }
 
+    void moveMethods(Iterable<ProgramMethod> methods, DexMethod to) {
+      moveMethods(methods, to, null);
+    }
+
+    void moveMethods(Iterable<ProgramMethod> methods, DexMethod to, ProgramMethod representative) {
+      for (ProgramMethod from : methods) {
+        boolean isRepresentative = representative != null && from == representative;
+        moveMethod(from.getReference(), to, isRepresentative);
+      }
+    }
+
     void recordNewMethodSignature(DexMethod oldMethodSignature, DexMethod newMethodSignature) {
       recordNewMethodSignature(oldMethodSignature, newMethodSignature, false);
     }
@@ -194,6 +213,10 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
         for (DexMethod originalMethodSignature : oldMethodSignatures) {
           pendingNewMethodSignatureUpdates.put(originalMethodSignature, newMethodSignature);
         }
+        DexMethod representative = newMethodSignatures.getRepresentativeKey(oldMethodSignature);
+        if (representative != null) {
+          pendingNewMethodSignatureUpdates.setRepresentative(newMethodSignature, representative);
+        }
       }
     }
 
@@ -205,7 +228,13 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
 
       // Commit pending original method signatures updates.
       newMethodSignatures.removeAll(pendingNewMethodSignatureUpdates.keySet());
-      pendingNewMethodSignatureUpdates.forEachManyToOneMapping(newMethodSignatures::put);
+      pendingNewMethodSignatureUpdates.forEachManyToOneMapping(
+          (keys, value, representative) -> {
+            newMethodSignatures.put(keys, value);
+            if (keys.size() > 1) {
+              newMethodSignatures.setRepresentative(value, representative);
+            }
+          });
       pendingNewMethodSignatureUpdates.clear();
     }
 

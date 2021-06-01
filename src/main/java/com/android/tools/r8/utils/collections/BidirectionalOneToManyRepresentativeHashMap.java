@@ -22,6 +22,12 @@ public class BidirectionalOneToManyRepresentativeHashMap<K, V>
   }
 
   @Override
+  public boolean hasExplicitRepresentativeKey(V value) {
+    assert containsValue(value);
+    return true;
+  }
+
+  @Override
   public K getRepresentativeKey(V value) {
     return getKey(value);
   }
