@@ -125,15 +125,17 @@ public class GenericSignatureCorrectnessHelper {
     SignatureEvaluationResult result =
         genericSignatureContextEvaluator.evaluateClassSignatureForContext(typeParameterContext);
     if (result.isInvalid() && mode.clearIfInvalid()) {
-      appView
-          .options()
-          .reporter
-          .info(
-              GenericSignatureValidationDiagnostic.invalidClassSignature(
-                  clazz.getClassSignature().toString(),
-                  clazz.getTypeName(),
-                  clazz.getOrigin(),
-                  result));
+      if (appView.hasLiveness() && appView.getKeepInfo().getClassInfo(clazz).isPinned()) {
+        appView
+            .options()
+            .reporter
+            .info(
+                GenericSignatureValidationDiagnostic.invalidClassSignature(
+                    clazz.getClassSignature().toString(),
+                    clazz.getTypeName(),
+                    clazz.getOrigin(),
+                    result));
+      }
       clazz.clearClassSignature();
     }
     for (DexEncodedMethod method : clazz.methods()) {
@@ -145,15 +147,18 @@ public class GenericSignatureCorrectnessHelper {
                       genericSignatureContextEvaluator.visitMethodSignature(
                           methodSignature, typeParameterContext),
                   invalidResult -> {
-                    appView
-                        .options()
-                        .reporter
-                        .info(
-                            GenericSignatureValidationDiagnostic.invalidMethodSignature(
-                                method.getGenericSignature().toString(),
-                                method.toSourceString(),
-                                clazz.getOrigin(),
-                                invalidResult));
+                    if (appView.hasLiveness()
+                        && appView.getKeepInfo().getMethodInfo(method, clazz).isPinned()) {
+                      appView
+                          .options()
+                          .reporter
+                          .info(
+                              GenericSignatureValidationDiagnostic.invalidMethodSignature(
+                                  method.getGenericSignature().toString(),
+                                  method.toSourceString(),
+                                  clazz.getOrigin(),
+                                  invalidResult));
+                    }
                     method.clearGenericSignature();
                   }));
     }
@@ -166,15 +171,18 @@ public class GenericSignatureCorrectnessHelper {
                       genericSignatureContextEvaluator.visitFieldTypeSignature(
                           fieldSignature, typeParameterContext),
                   invalidResult -> {
-                    appView
-                        .options()
-                        .reporter
-                        .info(
-                            GenericSignatureValidationDiagnostic.invalidFieldSignature(
-                                field.getGenericSignature().toString(),
-                                field.toSourceString(),
-                                clazz.getOrigin(),
-                                invalidResult));
+                    if (appView.hasLiveness()
+                        && appView.getKeepInfo().getFieldInfo(field, clazz).isPinned()) {
+                      appView
+                          .options()
+                          .reporter
+                          .info(
+                              GenericSignatureValidationDiagnostic.invalidFieldSignature(
+                                  field.getGenericSignature().toString(),
+                                  field.toSourceString(),
+                                  clazz.getOrigin(),
+                                  invalidResult));
+                    }
                     field.clearGenericSignature();
                   }));
     }

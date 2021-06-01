@@ -43,9 +43,10 @@ public class GenericSignatureInvalidInfoKeepTest extends TestBase {
                 .transform())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
-        .allowDiagnosticInfoMessages()
         .compile()
-        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
+        // This tests that no info messages are generated due to us removing the generic parameters
+        // K and V from A::base.
+        .assertNoInfoMessages()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A$1::bar")
         .inspect(

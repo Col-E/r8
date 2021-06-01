@@ -11,12 +11,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.KotlinCompilerTool;
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
-import com.android.tools.r8.R8TestBuilder;
-import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -64,18 +60,10 @@ public class KotlinEnumSwitchTest extends KotlinTestBase {
               options.enableEnumValueOptimization = enableSwitchMapRemoval;
               options.enableEnumSwitchMapRemoval = enableSwitchMapRemoval;
             })
-        .applyIf(
-            kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_5_0_M2),
-            R8TestBuilder::allowDiagnosticMessages,
-            R8TestBuilder::allowDiagnosticWarningMessages)
         .setMinApi(parameters.getApiLevel())
         .noMinification()
+        .allowDiagnosticWarningMessages()
         .compile()
-        .assertNoErrorMessages()
-        .applyIf(
-            kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_5_0_M2),
-            TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation,
-            TestCompileResult::assertNoInfoMessages)
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .inspect(
             inspector -> {

@@ -100,20 +100,12 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
 
   @Test
   public void testDontOptimize() throws Exception {
-    test(
-        builder -> {
-          builder.allowDiagnosticInfoMessages();
-          builder.noOptimization();
-        });
+    test(TestShrinkerBuilder::noOptimization);
   }
 
   @Test
   public void testDontObfuscate() throws Exception {
-    test(
-        builder -> {
-          builder.allowDiagnosticInfoMessages();
-          builder.noMinification();
-        });
+    test(TestShrinkerBuilder::noMinification);
   }
 
 }

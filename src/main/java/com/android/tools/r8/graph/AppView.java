@@ -67,7 +67,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private ProguardCompatibilityActions proguardCompatibilityActions;
   private RootSet rootSet;
   private MainDexRootSet mainDexRootSet = null;
-  // This should perferably always be obtained via AppInfoWithLiveness.
+  // This should preferably always be obtained via AppInfoWithLiveness.
   // Currently however the liveness may be downgraded thus loosing the computed keep info.
   private KeepInfoCollection keepInfo = null;
 
