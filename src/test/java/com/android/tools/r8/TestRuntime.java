@@ -12,10 +12,12 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 // Base class for the runtime structure in the test parameters.
@@ -69,6 +71,19 @@ public abstract class TestRuntime {
       Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "openjdk-9.0.4");
   private static final Path JDK11_PATH = Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "jdk-11");
   private static final Path JDK15_PATH = Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "jdk-15");
+  private static final Map<CfVm, Path> jdkPaths =
+      ImmutableMap.of(
+          CfVm.JDK8, JDK8_PATH,
+          CfVm.JDK9, JDK9_PATH,
+          CfVm.JDK11, JDK11_PATH,
+          CfVm.JDK15, JDK15_PATH);
+
+  public static CfRuntime getCheckedInJdk(CfVm vm) {
+    if (vm == CfVm.JDK8) {
+      return getCheckedInJdk8();
+    }
+    return new CfRuntime(vm, getCheckedInJdkHome(vm));
+  }
 
   public static CfRuntime getCheckedInJdk8() {
     Path home;
@@ -83,7 +98,9 @@ public abstract class TestRuntime {
     return new CfRuntime(CfVm.JDK8, home);
   }
 
-  private static Path getCheckedInJdkHome(Path path, CfVm vm) {
+  private static Path getCheckedInJdkHome(CfVm vm) {
+    Path path = jdkPaths.get(vm);
+    assert path != null : "No JDK path defined for " + vm;
     if (ToolHelper.isLinux()) {
       return path.resolve("linux");
     } else if (ToolHelper.isMac()) {
@@ -97,16 +114,16 @@ public abstract class TestRuntime {
   }
 
   public static CfRuntime getCheckedInJdk9() {
-    return new CfRuntime(CfVm.JDK9, getCheckedInJdkHome(JDK9_PATH, CfVm.JDK9));
+    return new CfRuntime(CfVm.JDK9, getCheckedInJdkHome(CfVm.JDK9));
   }
 
   public static CfRuntime getCheckedInJdk11() {
-    return new CfRuntime(CfVm.JDK11, getCheckedInJdkHome(JDK11_PATH, CfVm.JDK11));
+    return new CfRuntime(CfVm.JDK11, getCheckedInJdkHome(CfVm.JDK11));
   }
 
   // TODO(b/169692487): Add this to 'getCheckedInCfRuntimes' when we start having support for JDK15.
   public static CfRuntime getCheckedInJdk15() {
-    return new CfRuntime(CfVm.JDK15, getCheckedInJdkHome(JDK15_PATH, CfVm.JDK15));
+    return new CfRuntime(CfVm.JDK15, getCheckedInJdkHome(CfVm.JDK15));
   }
 
   public static List<CfRuntime> getCheckedInCfRuntimes() {

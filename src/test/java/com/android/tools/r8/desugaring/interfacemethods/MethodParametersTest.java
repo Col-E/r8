@@ -3,9 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugaring.interfacemethods;
 
-import static com.android.tools.r8.TestRuntime.getCheckedInJdk8;
+import static com.android.tools.r8.TestRuntime.getCheckedInJdk;
+import static com.android.tools.r8.TestRuntime.getCheckedInJdk11;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
@@ -39,9 +41,26 @@ public class MethodParametersTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void testJvm() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
+    testForJvm()
+        .addProgramClassesAndInnerClasses(I.class)
+        .addInnerClasses(getClass())
+        .run(parameters.getRuntime(), TestRunner.class)
+        .assertSuccessWithOutputLines("0", "1", "2", "0", "1", "2");
+  }
+
+  @Test
+  public void testDesugar() throws Exception {
+    // JDK8 is not present on Windows.
+    assumeTrue(
+        parameters.isDexRuntime()
+            || getCheckedInJdk(parameters.getRuntime().asCf().getVm()) != null);
     Path compiledWithParameters =
-        javac(getCheckedInJdk8())
+        javac(
+                parameters.isCfRuntime()
+                    ? getCheckedInJdk(parameters.getRuntime().asCf().getVm())
+                    : getCheckedInJdk11())
             .addSourceFiles(ToolHelper.getSourceFileForTestClass(I.class))
             .addOptions("-parameters")
             .compile();
