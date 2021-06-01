@@ -554,7 +554,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     }
     // TODO(b/183998768): Make this thread safe and safe to use for recursive definitions.
     SyntheticMethodBuilder builder =
-        new SyntheticMethodBuilder(appView.dexItemFactory(), clazz.getType());
+        new SyntheticMethodBuilder(appView.dexItemFactory(), clazz.getType(), kind);
     builder.setName(name);
     builder.setProto(proto);
     buildMethodCallback.accept(builder);
