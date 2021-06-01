@@ -503,10 +503,12 @@ def get_r8_jar(options, temp_dir, shrinker):
 
 def get_results_for_app(app, options, temp_dir):
   app_folder = app.folder if app.folder else app.name + "_" + app.revision
+  # Golem extraction will extract to the basename under the benchmarks dir.
+  app_location = os.path.basename(app_folder) if options.golem else app_folder
   opensource_basedir = (os.path.join('benchmarks', app.name) if options.golem
                         else utils.OPENSOURCE_DUMPS_DIR)
-  app_dir = (os.path.join(utils.INTERNAL_DUMPS_DIR, app_folder) if app.internal
-              else os.path.join(opensource_basedir, app_folder))
+  app_dir = (os.path.join(utils.INTERNAL_DUMPS_DIR, app_location) if app.internal
+              else os.path.join(opensource_basedir, app_location))
   if not os.path.exists(app_dir) and not options.golem:
     # Download the app from google storage.
     download_sha(app_dir + ".tar.gz.sha1", app.internal)
