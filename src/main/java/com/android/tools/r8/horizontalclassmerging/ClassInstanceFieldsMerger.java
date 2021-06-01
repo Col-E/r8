@@ -8,10 +8,12 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerGraphLens.Builder;
 import com.android.tools.r8.horizontalclassmerging.policies.SameInstanceFields.InstanceFieldInfo;
 import com.android.tools.r8.utils.IterableUtils;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,27 +21,28 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ClassInstanceFieldsMerger {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final MergeGroup group;
   private final Builder lensBuilder;
 
   private DexEncodedField classIdField;
 
   // Map from target class field to all fields which should be merged into that field.
-  private final Map<DexEncodedField, List<DexEncodedField>> fieldMappings = new LinkedHashMap<>();
+  private final MutableBidirectionalManyToOneMap<DexEncodedField, DexEncodedField> fieldMappings =
+      BidirectionalManyToOneHashMap.newLinkedHashMap();
 
   public ClassInstanceFieldsMerger(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       MergeGroup group) {
     this.appView = appView;
+    this.group = group;
     this.lensBuilder = lensBuilder;
-    group
-        .getTarget()
-        .instanceFields()
-        .forEach(field -> fieldMappings.computeIfAbsent(field, ignore -> new ArrayList<>()));
+    group.forEachSource(this::addFields);
   }
 
   /**
@@ -52,7 +55,7 @@ public class ClassInstanceFieldsMerger {
    * Bar has fields 'A b' and 'B a'), we make a prepass that matches fields with the same reference
    * type.
    */
-  public void addFields(DexProgramClass clazz) {
+  private void addFields(DexProgramClass clazz) {
     Map<InstanceFieldInfo, LinkedList<DexEncodedField>> availableFieldsByExactInfo =
         getAvailableFieldsByExactInfo();
     List<DexEncodedField> needsMerge = new ArrayList<>();
@@ -66,7 +69,7 @@ public class ClassInstanceFieldsMerger {
         needsMerge.add(oldField);
       } else {
         DexEncodedField newField = availableFieldsWithExactSameInfo.removeFirst();
-        fieldMappings.get(newField).add(oldField);
+        fieldMappings.put(oldField, newField);
         if (availableFieldsWithExactSameInfo.isEmpty()) {
           availableFieldsByExactInfo.remove(info);
         }
@@ -84,14 +87,14 @@ public class ClassInstanceFieldsMerger {
               .removeFirst();
       assert newField != null;
       assert newField.getType().isReferenceType();
-      fieldMappings.get(newField).add(oldField);
+      fieldMappings.put(oldField, newField);
     }
   }
 
   private Map<InstanceFieldInfo, LinkedList<DexEncodedField>> getAvailableFieldsByExactInfo() {
     Map<InstanceFieldInfo, LinkedList<DexEncodedField>> availableFieldsByInfo =
         new LinkedHashMap<>();
-    for (DexEncodedField field : fieldMappings.keySet()) {
+    for (DexEncodedField field : group.getTarget().instanceFields()) {
       availableFieldsByInfo
           .computeIfAbsent(InstanceFieldInfo.createExact(field), ignore -> new LinkedList<>())
           .add(field);
@@ -122,6 +125,14 @@ public class ClassInstanceFieldsMerger {
     }
   }
 
+  public ProgramField getTargetField(ProgramField field) {
+    if (field.getHolder() == group.getTarget()) {
+      return field;
+    }
+    DexEncodedField targetField = fieldMappings.get(field.getDefinition());
+    return new ProgramField(group.getTarget(), targetField);
+  }
+
   public void setClassIdField(DexEncodedField classIdField) {
     this.classIdField = classIdField;
   }
@@ -131,19 +142,18 @@ public class ClassInstanceFieldsMerger {
     if (classIdField != null) {
       newFields.add(classIdField);
     }
-    fieldMappings.forEach(
-        (targetField, oldFields) ->
-            newFields.add(mergeSourceFieldsToTargetField(targetField, oldFields)));
+    fieldMappings.forEachManyToOneMapping(
+        (sourceFields, targetField) ->
+            newFields.add(mergeSourceFieldsToTargetField(targetField, sourceFields)));
     return newFields.toArray(DexEncodedField.EMPTY_ARRAY);
   }
 
   private DexEncodedField mergeSourceFieldsToTargetField(
-      DexEncodedField targetField, List<DexEncodedField> oldFields) {
-    fixAccessFlags(targetField, oldFields);
+      DexEncodedField targetField, Set<DexEncodedField> sourceFields) {
+    fixAccessFlags(targetField, sourceFields);
 
     DexEncodedField newField;
-    DexType targetFieldType = targetField.type();
-    if (!Iterables.all(oldFields, oldField -> oldField.getType() == targetFieldType)) {
+    if (needsRelaxedType(targetField, sourceFields)) {
       newField =
           targetField.toTypeSubstitutedField(
               targetField
@@ -155,10 +165,16 @@ public class ClassInstanceFieldsMerger {
 
     lensBuilder.recordNewFieldSignature(
         Iterables.transform(
-            IterableUtils.append(oldFields, targetField), DexEncodedField::getReference),
+            IterableUtils.append(sourceFields, targetField), DexEncodedField::getReference),
         newField.getReference(),
         targetField.getReference());
 
     return newField;
+  }
+
+  private boolean needsRelaxedType(
+      DexEncodedField targetField, Iterable<DexEncodedField> sourceFields) {
+    return Iterables.any(
+        sourceFields, sourceField -> sourceField.getType() != targetField.getType());
   }
 }

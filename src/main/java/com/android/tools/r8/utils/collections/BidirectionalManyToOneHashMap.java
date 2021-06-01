@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.collections;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +20,10 @@ public class BidirectionalManyToOneHashMap<K, V> implements MutableBidirectional
 
   public static <K, V> BidirectionalManyToOneHashMap<K, V> newIdentityHashMap() {
     return new BidirectionalManyToOneHashMap<>(new IdentityHashMap<>(), new IdentityHashMap<>());
+  }
+
+  public static <K, V> BidirectionalManyToOneHashMap<K, V> newLinkedHashMap() {
+    return new BidirectionalManyToOneHashMap<>(new LinkedHashMap<>(), new LinkedHashMap<>());
   }
 
   protected BidirectionalManyToOneHashMap(Map<K, V> backing, Map<V, Set<K>> inverse) {

@@ -295,11 +295,7 @@ public class ClassMerger {
   }
 
   void mergeInstanceFields() {
-    group.forEachSource(
-        clazz -> {
-          classInstanceFieldsMerger.addFields(clazz);
-          clazz.clearInstanceFields();
-        });
+    group.forEachSource(DexClass::clearInstanceFields);
     group.getTarget().setInstanceFields(classInstanceFieldsMerger.merge());
   }
 
