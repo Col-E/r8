@@ -591,7 +591,6 @@ public class IRConverter {
           new NeedsIRDesugarUseRegistry(
               method,
               appView,
-              interfaceMethodRewriter,
               desugaredLibraryAPIConverter);
       method.registerCodeReferences(useRegistry);
       return useRegistry.needsDesugaring();

@@ -4,12 +4,6 @@
 
 package com.android.tools.r8.ir.conversion;
 
-import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
-import static com.android.tools.r8.ir.code.Invoke.Type.INTERFACE;
-import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
-import static com.android.tools.r8.ir.code.Invoke.Type.SUPER;
-import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
@@ -17,25 +11,20 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 
 class NeedsIRDesugarUseRegistry extends UseRegistry {
 
   private boolean needsDesugaring = false;
   private final ProgramMethod context;
-  private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
 
   public NeedsIRDesugarUseRegistry(
       ProgramMethod method,
       AppView<?> appView,
-      InterfaceMethodRewriter interfaceMethodRewriter,
       DesugaredLibraryAPIConverter desugaredLibraryAPIConverter) {
     super(appView.dexItemFactory());
     this.context = method;
-    this.interfaceMethodRewriter = interfaceMethodRewriter;
     this.desugaredLibraryAPIConverter = desugaredLibraryAPIConverter;
   }
 
@@ -54,22 +43,12 @@ class NeedsIRDesugarUseRegistry extends UseRegistry {
 
   @Override
   public void registerInvokeVirtual(DexMethod method) {
-    registerInterfaceMethodRewriting(method, VIRTUAL);
     registerDesugaredLibraryAPIConverter(method);
   }
 
   @Override
   public void registerInvokeDirect(DexMethod method) {
-    registerInterfaceMethodRewriting(method, DIRECT);
     registerDesugaredLibraryAPIConverter(method);
-  }
-
-  private void registerInterfaceMethodRewriting(DexMethod method, Type invokeType) {
-    if (!needsDesugaring) {
-      needsDesugaring =
-          interfaceMethodRewriter != null
-              && interfaceMethodRewriter.needsRewriting(method, invokeType, context);
-    }
   }
 
   private void registerDesugaredLibraryAPIConverter(DexMethod method) {
@@ -82,21 +61,16 @@ class NeedsIRDesugarUseRegistry extends UseRegistry {
 
   @Override
   public void registerInvokeStatic(DexMethod method) {
-    registerInterfaceMethodRewriting(method, STATIC);
     registerDesugaredLibraryAPIConverter(method);
   }
 
   @Override
   public void registerInvokeInterface(DexMethod method) {
-    registerInterfaceMethodRewriting(method, INTERFACE);
     registerDesugaredLibraryAPIConverter(method);
   }
 
   @Override
   public void registerInvokeStatic(DexMethod method, boolean itf) {
-    if (itf) {
-      needsDesugaring = true;
-    }
     registerInvokeStatic(method);
   }
 
@@ -108,7 +82,6 @@ class NeedsIRDesugarUseRegistry extends UseRegistry {
 
   @Override
   public void registerInvokeSuper(DexMethod method) {
-    registerInterfaceMethodRewriting(method, SUPER);
     registerDesugaredLibraryAPIConverter(method);
   }
 
