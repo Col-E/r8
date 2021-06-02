@@ -553,7 +553,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> buildClassCallback,
       Consumer<SyntheticMethodBuilder> buildMethodCallback) {
-    DexProgramClass clazz = ensureFixedClass(kind, context, appView, buildClassCallback);
+    DexProgramClass clazz =
+        ensureFixedClass(kind, context, appView, buildClassCallback, ignored -> {});
     DexMethod methodReference = appView.dexItemFactory().createMethod(clazz.getType(), proto, name);
     DexEncodedMethod methodDefinition = clazz.getMethodCollection().getMethod(methodReference);
     if (methodDefinition != null) {
