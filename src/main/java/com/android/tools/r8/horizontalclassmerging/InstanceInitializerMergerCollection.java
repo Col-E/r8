@@ -10,9 +10,11 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.InstanceInitializerMerger.Builder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -30,14 +32,15 @@ public class InstanceInitializerMergerCollection {
       List<InstanceInitializerMerger> instanceInitializerMergers,
       Map<InstanceInitializerDescription, InstanceInitializerMerger>
           equivalentInstanceInitializerMergers) {
-    assert equivalentInstanceInitializerMergers.isEmpty();
     this.instanceInitializerMergers = instanceInitializerMergers;
     this.equivalentInstanceInitializerMergers = equivalentInstanceInitializerMergers;
   }
 
   public static InstanceInitializerMergerCollection create(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      Reference2IntMap<DexType> classIdentifiers,
       MergeGroup group,
+      ClassInstanceFieldsMerger instanceFieldsMerger,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       Mode mode) {
     // Create an instance initializer merger for each group of instance initializers that are
@@ -50,12 +53,16 @@ public class InstanceInitializerMergerCollection {
                 DexEncodedMethod::isInstanceInitializer,
                 instanceInitializer -> {
                   InstanceInitializerDescription description =
-                      InstanceInitializerAnalysis.analyze(instanceInitializer, lensBuilder);
+                      InstanceInitializerAnalysis.analyze(
+                          appView, group, instanceInitializer, instanceFieldsMerger, mode);
                   if (description != null) {
                     buildersByDescription
                         .computeIfAbsent(
                             description,
-                            ignoreKey(() -> new InstanceInitializerMerger.Builder(appView, mode)))
+                            ignoreKey(
+                                () ->
+                                    new InstanceInitializerMerger.Builder(
+                                        appView, classIdentifiers, lensBuilder, mode)))
                         .addEquivalent(instanceInitializer);
                   } else {
                     buildersWithoutDescription.add(instanceInitializer);
@@ -86,7 +93,9 @@ public class InstanceInitializerMergerCollection {
               buildersByProto
                   .computeIfAbsent(
                       instanceInitializer.getDefinition().getProto(),
-                      ignore -> new InstanceInitializerMerger.Builder(appView, mode))
+                      ignore ->
+                          new InstanceInitializerMerger.Builder(
+                              appView, classIdentifiers, lensBuilder, mode))
                   .add(instanceInitializer));
       for (InstanceInitializerMerger.Builder builder : buildersByProto.values()) {
         instanceInitializerMergers.addAll(builder.build(group));
@@ -95,7 +104,8 @@ public class InstanceInitializerMergerCollection {
       buildersWithoutDescription.forEach(
           instanceInitializer ->
               instanceInitializerMergers.addAll(
-                  new InstanceInitializerMerger.Builder(appView, mode)
+                  new InstanceInitializerMerger.Builder(
+                          appView, classIdentifiers, lensBuilder, mode)
                       .add(instanceInitializer)
                       .build(group)));
     }
@@ -110,5 +120,6 @@ public class InstanceInitializerMergerCollection {
 
   public void forEach(Consumer<InstanceInitializerMerger> consumer) {
     instanceInitializerMergers.forEach(consumer);
+    equivalentInstanceInitializerMergers.values().forEach(consumer);
   }
 }

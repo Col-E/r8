@@ -87,6 +87,10 @@ public class ArrayUtils {
     return true;
   }
 
+  public static <T> T last(T[] array) {
+    return array[array.length - 1];
+  }
+
   /**
    * Rewrites the input array based on the given function.
    *

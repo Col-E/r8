@@ -13,16 +13,17 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
+import com.android.tools.r8.classmerging.horizontal.MergedConstructorStackTraceTest.A;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import org.junit.Before;
 import org.junit.Test;
 
-public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestBase {
+public class MergedConstructorWithEquivalenceStackTraceTest extends HorizontalClassMergingTestBase {
 
   public StackTrace expectedStackTrace;
 
-  public MergedConstructorStackTraceTest(TestParameters parameters) {
+  public MergedConstructorWithEquivalenceStackTraceTest(TestParameters parameters) {
     super(parameters);
   }
 
@@ -58,12 +59,16 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
               StackTrace expectedStackTraceWithMergedConstructor =
                   StackTrace.builder()
                       .add(expectedStackTrace)
+                      // TODO(b/124483578): Stack trace lines from the merging of equivalent
+                      //  constructors should retrace to the set of lines from each of the
+                      //  individual source constructors.
+                      .map(1, stackTraceLine -> stackTraceLine.builderOf().setLineNumber(0).build())
+                      // TODO(b/124483578): The synthetic method should not be part of the retraced
+                      //  stack trace.
                       .add(
                           2,
                           StackTraceLine.builder()
                               .setClassName(A.class.getTypeName())
-                              // TODO(b/124483578): The synthetic method should not be part of the
-                              //  retraced stack trace.
                               .setMethodName("$r8$init$synthetic")
                               .setFileName(getClass().getSimpleName() + ".java")
                               .setLineNumber(0)
@@ -85,18 +90,12 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
 
   @NeverClassInline
   static class A extends Parent {
-    A() {
-      // To avoid constructor equivalence.
-      System.out.println("A");
-    }
+    A() {}
   }
 
   @NeverClassInline
   static class B extends Parent {
-    B() {
-      // To avoid constructor equivalence.
-      System.out.println("B");
-    }
+    B() {}
   }
 
   static class Main {

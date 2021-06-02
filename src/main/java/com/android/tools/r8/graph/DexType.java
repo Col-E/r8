@@ -93,6 +93,11 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
     return descriptor;
   }
 
+  public int getRequiredRegisters() {
+    assert !isVoidType();
+    return isWideType() ? 2 : 1;
+  }
+
   @Override
   public int computeHashCode() {
     return descriptor.hashCode();

@@ -62,13 +62,18 @@ public class ClassMerger {
   private final Mode mode;
   private final MergeGroup group;
   private final DexItemFactory dexItemFactory;
-  private final ClassInitializerMerger classInitializerMerger;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
 
   private final ClassMethodsBuilder classMethodsBuilder = new ClassMethodsBuilder();
   private final Reference2IntMap<DexType> classIdentifiers = new Reference2IntOpenHashMap<>();
-  private final ClassStaticFieldsMerger classStaticFieldsMerger;
+
+  // Field mergers.
   private final ClassInstanceFieldsMerger classInstanceFieldsMerger;
+  private final ClassStaticFieldsMerger classStaticFieldsMerger;
+
+  // Method mergers.
+  private final ClassInitializerMerger classInitializerMerger;
+  private final InstanceInitializerMergerCollection instanceInitializerMergers;
   private final Collection<VirtualMethodMerger> virtualMethodMergers;
 
   private ClassMerger(
@@ -82,10 +87,18 @@ public class ClassMerger {
     this.group = group;
     this.lensBuilder = lensBuilder;
     this.mode = mode;
-    this.virtualMethodMergers = virtualMethodMergers;
-    this.classInitializerMerger = ClassInitializerMerger.create(group);
+
+    // Field mergers.
     this.classStaticFieldsMerger = new ClassStaticFieldsMerger(appView, lensBuilder, group);
     this.classInstanceFieldsMerger = new ClassInstanceFieldsMerger(appView, lensBuilder, group);
+
+    // Method mergers.
+    this.classInitializerMerger = ClassInitializerMerger.create(group);
+    this.instanceInitializerMergers =
+        InstanceInitializerMergerCollection.create(
+            appView, classIdentifiers, group, classInstanceFieldsMerger, lensBuilder, mode);
+    this.virtualMethodMergers = virtualMethodMergers;
+
     buildClassIdentifierMap();
   }
 
@@ -175,12 +188,8 @@ public class ClassMerger {
   }
 
   void mergeInstanceInitializers(SyntheticArgumentClass syntheticArgumentClass) {
-    InstanceInitializerMergerCollection instanceInitializerMergers =
-        InstanceInitializerMergerCollection.create(appView, group, lensBuilder, mode);
     instanceInitializerMergers.forEach(
-        merger ->
-            merger.merge(
-                classMethodsBuilder, lensBuilder, classIdentifiers, syntheticArgumentClass));
+        merger -> merger.merge(classMethodsBuilder, syntheticArgumentClass));
   }
 
   void mergeMethods(

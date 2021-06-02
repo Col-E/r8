@@ -16,7 +16,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
-import org.junit.AssumptionViolatedException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -52,9 +51,8 @@ public class EquivalentConstructorsWithClassIdAndExtraNullsMergingTest extends T
             inspector -> {
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              // TODO(b/189296638): Should be 2.
               assertEquals(
-                  3, aClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
+                  2, aClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
 
               ClassSubject nullArgumentClassSubject =
                   inspector.allClasses().stream()
@@ -63,11 +61,7 @@ public class EquivalentConstructorsWithClassIdAndExtraNullsMergingTest extends T
                               SyntheticItemsTestUtils.isHorizontalInitializerTypeArgument(
                                   clazz.getOriginalReference()))
                       .findFirst()
-                      // TODO(b/189296638): Should throw RuntimeException.
-                      .orElseThrow(
-                          () ->
-                              new AssumptionViolatedException(
-                                  "Expected Horizontal initializer type argument"));
+                      .orElseThrow(RuntimeException::new);
 
               assertThat(
                   aClassSubject.method("void", "<init>", "java.lang.Object", "int"), isPresent());

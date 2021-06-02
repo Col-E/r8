@@ -212,6 +212,9 @@ public class HorizontalClassMerger {
     for (ClassMerger merger : classMergers) {
       merger.mergeGroup(syntheticArgumentClass, syntheticClassInitializerConverterBuilder);
     }
+
+    // Clear type elements cache after IR building.
+    appView.dexItemFactory().clearTypeElementsCache();
   }
 
   /**
