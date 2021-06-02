@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.CodeMatchers;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 public abstract class ApiModelingTestHelper {
@@ -30,6 +31,32 @@ public abstract class ApiModelingTestHelper {
                 .apiModelingOptions()
                 .methodApiMapping
                 .put(Reference.methodFromMethod(method), apiLevel);
+          });
+    };
+  }
+
+  static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
+      ThrowableConsumer<T> setMockApiLevelForField(Field field, AndroidApiLevel apiLevel) {
+    return compilerBuilder -> {
+      compilerBuilder.addOptionsModification(
+          options -> {
+            options
+                .apiModelingOptions()
+                .fieldApiMapping
+                .put(Reference.fieldFromField(field), apiLevel);
+          });
+    };
+  }
+
+  static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>> ThrowableConsumer<T> setMockApiLevelForType(
+      Class<?> clazz, AndroidApiLevel apiLevel) {
+    return compilerBuilder -> {
+      compilerBuilder.addOptionsModification(
+          options -> {
+            options
+                .apiModelingOptions()
+                .typeApiMapping
+                .put(Reference.classFromClass(clazz), apiLevel);
           });
     };
   }

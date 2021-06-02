@@ -51,8 +51,10 @@ import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.repackaging.Repackaging.DefaultRepackagingConfiguration;
 import com.android.tools.r8.repackaging.Repackaging.RepackagingConfiguration;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -1299,8 +1301,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public static class ApiModelTestingOptions {
 
-    // A mapping from methods to the api-level introducing them.
+    // A mapping from references to the api-level introducing them.
     public Map<MethodReference, AndroidApiLevel> methodApiMapping = new HashMap<>();
+    public Map<FieldReference, AndroidApiLevel> fieldApiMapping = new HashMap<>();
+    public Map<TypeReference, AndroidApiLevel> typeApiMapping = new HashMap<>();
 
     public boolean enableApiCallerIdentification = false;
   }
