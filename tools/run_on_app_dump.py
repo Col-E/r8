@@ -1008,6 +1008,7 @@ def print_golem_config(options):
   jdk_gz = jdk.GetJdkHome() + '.tar.gz'
   download_sha(jdk_gz + '.sha1', False, quiet=True)
   jdk_sha256 = get_sha256(jdk_gz)
+  add_golem_resource(2, jdk_gz, 'openjdk', sha256=jdk_sha256)
   for app in options.apps:
     if app.folder and not app.internal:
       indentation = 2;
@@ -1024,13 +1025,16 @@ def print_golem_config(options):
       print_indented('options.cpus = cpus;', indentation)
       print_indented('options.isScript = true;', indentation)
       print_indented('options.fromRevision = 9700;', indentation);
-      print_indented('options.mainFile = "tools/run_on_app_dump.py "', indentation)
-      print_indented('"--golem --shrinker r8 --app %s";' % app.name, indentation + 4)
+      print_indented('options.mainFile = "tools/run_on_app_dump.py "',
+                     indentation)
+      print_indented('"--golem --quiet --shrinker r8 --app %s";' % app.name,
+                     indentation + 4)
 
       app_gz = os.path.join(utils.OPENSOURCE_DUMPS_DIR, app.folder + '.tar.gz')
-      add_golem_resource(indentation, app_gz, 'app_resource')
-      add_golem_resource(indentation, jdk_gz, 'openjdk', sha256=jdk_sha256)
-
+      name = 'appResource'
+      add_golem_resource(indentation, app_gz, name)
+      print_indented('options.resources.add(appResource);', indentation)
+      print_indented('options.resources.add(openjdk);', indentation)
       print_indented('dumpsSuite.addBenchmark(name);', indentation)
       indentation = 2
       print_indented('}', indentation)
@@ -1046,10 +1050,13 @@ def add_golem_resource(indentation, gz, name, sha256=None):
   print_indented('final %s = BenchmarkResource("",' % name, indentation)
   print_indented('type: BenchmarkResourceType.Storage,', indentation + 4)
   print_indented('uri: "gs://r8-deps/%s",' % sha, indentation + 4)
-  print_indented('hash:', indentation + 4)
-  print_indented('"%s",' % sha256, indentation + 8)
+  # Make dart formatter happy.
+  if indentation > 2:
+    print_indented('hash:', indentation + 4)
+    print_indented('"%s",' % sha256, indentation + 8)
+  else:
+    print_indented('hash: "%s",' % sha256, indentation + 4)
   print_indented('extract: "gz");', indentation + 4);
-  print_indented('options.resources.add(%s);' % name, indentation)
 
 def main(argv):
   (options, args) = parse_options(argv)
