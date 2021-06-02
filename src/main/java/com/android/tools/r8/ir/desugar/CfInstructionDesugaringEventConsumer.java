@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.ProgramField;
@@ -42,7 +43,8 @@ public abstract class CfInstructionDesugaringEventConsumer
         NestBasedAccessDesugaringEventConsumer,
         RecordDesugaringEventConsumer,
         TwrCloseResourceDesugaringEventConsumer,
-        InterfaceMethodDesugaringEventConsumer {
+        InterfaceMethodDesugaringEventConsumer,
+        DesugaredLibraryRetargeterEventConsumer {
 
   public static D8CfInstructionDesugaringEventConsumer createForD8(
       D8MethodProcessor methodProcessor) {
@@ -59,6 +61,21 @@ public abstract class CfInstructionDesugaringEventConsumer
 
   public static CfInstructionDesugaringEventConsumer createForDesugaredCode() {
     return new CfInstructionDesugaringEventConsumer() {
+
+      @Override
+      public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
+        assert false;
+      }
+
+      @Override
+      public void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz) {
+        assert false;
+      }
+
+      @Override
+      public void acceptForwardingMethod(ProgramMethod method) {
+        assert false;
+      }
 
       @Override
       public void acceptThrowMethod(ProgramMethod method, ProgramMethod context) {
@@ -129,6 +146,21 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     private D8CfInstructionDesugaringEventConsumer(D8MethodProcessor methodProcessor) {
       this.methodProcessor = methodProcessor;
+    }
+
+    @Override
+    public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
+      methodProcessor.scheduleDesugaredMethodsForProcessing(clazz.programMethods());
+    }
+
+    @Override
+    public void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz) {
+      // Intentionnaly empty.
+    }
+
+    @Override
+    public void acceptForwardingMethod(ProgramMethod method) {
+      methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
 
     @Override
@@ -267,6 +299,24 @@ public abstract class CfInstructionDesugaringEventConsumer
       this.appView = appView;
       this.lambdaClassConsumer = lambdaClassConsumer;
       this.twrCloseResourceMethodConsumer = twrCloseResourceMethodConsumer;
+    }
+
+    @Override
+    public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
+      // Called only in Desugared library compilation which is D8.
+      assert false;
+    }
+
+    @Override
+    public void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz) {
+      // TODO(b/188767735): R8 currently relies on IR desugaring.
+      // The classpath class should be marked as liveNonProgramType.
+    }
+
+    @Override
+    public void acceptForwardingMethod(ProgramMethod method) {
+      // TODO(b/188767735): R8 currently relies on IR desugaring.
+      // The method should be marked live, and assert everything it references is traced.
     }
 
     @Override

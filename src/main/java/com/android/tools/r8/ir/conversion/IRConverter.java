@@ -222,10 +222,7 @@ public class IRConverter {
       assert options.desugarState.isOn();
       this.instructionDesugaring = CfInstructionDesugaringCollection.create(appView);
       this.classDesugaring = instructionDesugaring.createClassDesugaringCollection();
-      this.desugaredLibraryRetargeter =
-          options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()
-              ? null
-              : new DesugaredLibraryRetargeter(appView);
+      this.desugaredLibraryRetargeter = null; // Managed cf to cf.
       this.interfaceMethodRewriter =
           options.desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty()
               ? null
@@ -258,14 +255,15 @@ public class IRConverter {
             ? CfInstructionDesugaringCollection.empty()
             : CfInstructionDesugaringCollection.create(appView);
     this.classDesugaring = instructionDesugaring.createClassDesugaringCollection();
+    this.desugaredLibraryRetargeter =
+        options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()
+                || !appView.enableWholeProgramOptimizations()
+            ? null
+            : new DesugaredLibraryRetargeter(appView);
     this.interfaceMethodRewriter =
         options.isInterfaceMethodDesugaringEnabled()
             ? new InterfaceMethodRewriter(appView, this)
             : null;
-    this.desugaredLibraryRetargeter =
-        options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()
-            ? null
-            : new DesugaredLibraryRetargeter(appView);
     this.covariantReturnTypeAnnotationTransformer =
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
@@ -371,6 +369,12 @@ public class IRConverter {
         D8NestBasedAccessDesugaring::clearNestAttributes);
   }
 
+  public void finalizeDesugaredLibraryRetargeting(
+      D8CfInstructionDesugaringEventConsumer instructionDesugaringEventConsumer) {
+    instructionDesugaring.withDesugaredLibraryRetargeter(
+        retargeter -> retargeter.finalizeDesugaring(instructionDesugaringEventConsumer));
+  }
+
   private void staticizeClasses(
       OptimizationFeedback feedback, ExecutorService executorService, GraphLens applied)
       throws ExecutionException {
@@ -397,11 +401,12 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeRetargetClass(ExecutorService executorService) throws ExecutionException {
+  private void synthesizeRetargetClass() throws ExecutionException {
     if (desugaredLibraryRetargeter != null) {
-      desugaredLibraryRetargeter.synthesizeRetargetClasses(executorService, this);
+      desugaredLibraryRetargeter.synthesizeRetargetClasses();
     }
   }
+
 
   private void synthesizeEnumUnboxingUtilityMethods(ExecutorService executorService)
       throws ExecutionException {
@@ -441,7 +446,6 @@ public class IRConverter {
     Builder<?> builder = application.builder().setHighestSortingString(highestSortingString);
 
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
-    synthesizeRetargetClass(executor);
     processCovariantReturnTypeAnnotations(builder);
     generateDesugaredLibraryAPIWrappers(builder, executor);
 
@@ -587,7 +591,6 @@ public class IRConverter {
           new NeedsIRDesugarUseRegistry(
               method,
               appView,
-              desugaredLibraryRetargeter,
               interfaceMethodRewriter,
               desugaredLibraryAPIConverter);
       method.registerCodeReferences(useRegistry);
@@ -779,7 +782,7 @@ public class IRConverter {
     feedback.updateVisibleOptimizationInfo();
 
     printPhase("Utility classes synthesis");
-    synthesizeRetargetClass(executorService);
+    synthesizeRetargetClass();
     synthesizeEnumUnboxingUtilityMethods(executorService);
 
     printPhase("Desugared library API Conversion finalization");

@@ -56,5 +56,8 @@ public abstract class CfInstructionDesugaringCollection {
   public abstract <T extends Throwable> void withD8NestBasedAccessDesugaring(
       ThrowingConsumer<D8NestBasedAccessDesugaring, T> consumer) throws T;
 
+  public abstract void withDesugaredLibraryRetargeter(
+      Consumer<DesugaredLibraryRetargeter> consumer);
+
   public abstract void withRecordRewriter(Consumer<RecordRewriter> consumer);
 }

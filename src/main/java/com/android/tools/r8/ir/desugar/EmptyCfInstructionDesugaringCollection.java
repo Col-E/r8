@@ -58,6 +58,11 @@ public class EmptyCfInstructionDesugaringCollection extends CfInstructionDesugar
   }
 
   @Override
+  public void withDesugaredLibraryRetargeter(Consumer<DesugaredLibraryRetargeter> consumer) {
+    // Intentionally empty.
+  }
+
+  @Override
   public void withRecordRewriter(Consumer<RecordRewriter> consumer) {
     // Intentionally empty.
   }

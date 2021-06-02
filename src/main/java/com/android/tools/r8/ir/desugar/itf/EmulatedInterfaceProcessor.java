@@ -152,7 +152,8 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
                             builder.addMethod(
                                 methodBuilder ->
                                     synthesizeEmulatedInterfaceMethod(
-                                        method, emulatedInterface, methodBuilder))));
+                                        method, emulatedInterface, methodBuilder))),
+                ignored -> {});
     emulateInterfaceClass.forEachProgramMethod(synthesizedMethods::add);
     assert emulateInterfaceClass.getType()
         == InterfaceMethodRewriter.getEmulateLibraryInterfaceClassType(

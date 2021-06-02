@@ -39,11 +39,20 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
 
   private final NestBasedAccessDesugaring nestBasedAccessDesugaring;
   private final RecordRewriter recordRewriter;
+  private final DesugaredLibraryRetargeter desugaredLibraryRetargeter;
 
   NonEmptyCfInstructionDesugaringCollection(AppView<?> appView) {
     this.appView = appView;
     this.nestBasedAccessDesugaring = NestBasedAccessDesugaring.create(appView);
     BackportedMethodRewriter backportedMethodRewriter = null;
+    desugaredLibraryRetargeter =
+        appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()
+                || appView.enableWholeProgramOptimizations()
+            ? null
+            : new DesugaredLibraryRetargeter(appView);
+    if (desugaredLibraryRetargeter != null) {
+      desugarings.add(desugaredLibraryRetargeter);
+    }
     if (appView.options().enableBackportedMethodRewriting()) {
       backportedMethodRewriter = new BackportedMethodRewriter(appView);
     }
@@ -54,7 +63,9 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     // TODO(b/183998768): Enable interface method rewriter cf to cf also in R8.
     if (appView.options().isInterfaceMethodDesugaringEnabled()
         && !appView.enableWholeProgramOptimizations()) {
-      desugarings.add(new InterfaceMethodRewriter(appView, backportedMethodRewriter));
+      desugarings.add(
+          new InterfaceMethodRewriter(
+              appView, backportedMethodRewriter, desugaredLibraryRetargeter));
     }
     desugarings.add(new LambdaInstructionDesugaring(appView));
     desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
@@ -80,6 +91,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       AppView<?> appView, InvokeSpecialToSelfDesugaring invokeSpecialToSelfDesugaring) {
     this.appView = appView;
     this.nestBasedAccessDesugaring = null;
+    this.desugaredLibraryRetargeter = null;
     this.recordRewriter = null;
     desugarings.add(invokeSpecialToSelfDesugaring);
   }
@@ -278,6 +290,13 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     if (nestBasedAccessDesugaring != null) {
       assert nestBasedAccessDesugaring instanceof D8NestBasedAccessDesugaring;
       consumer.accept((D8NestBasedAccessDesugaring) nestBasedAccessDesugaring);
+    }
+  }
+
+  @Override
+  public void withDesugaredLibraryRetargeter(Consumer<DesugaredLibraryRetargeter> consumer) {
+    if (desugaredLibraryRetargeter != null) {
+      consumer.accept(desugaredLibraryRetargeter);
     }
   }
 

@@ -4,7 +4,12 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import static com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter.InvokeRetargetingResult.NO_REWRITING;
+
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -33,13 +38,13 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.NestHostClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
-import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
@@ -48,10 +53,9 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
-import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
@@ -61,11 +65,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import org.objectweb.asm.Opcodes;
 
-public class DesugaredLibraryRetargeter {
+public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
 
   private final AppView<?> appView;
   private final Map<DexMethod, DexMethod> retargetLibraryMember = new IdentityHashMap<>();
@@ -75,8 +79,6 @@ public class DesugaredLibraryRetargeter {
   private final Map<DexString, List<DexMethod>> nonFinalHolderRewrites = new IdentityHashMap<>();
   // Non final virtual library methods requiring generation of emulated dispatch.
   private final DexClassAndMethodSet emulatedDispatchMethods = DexClassAndMethodSet.create();
-
-  private final Set<DexProgramClass> programSynthesizedClasses = Sets.newConcurrentHashSet();
 
   public DesugaredLibraryRetargeter(AppView<?> appView) {
     this.appView = appView;
@@ -215,6 +217,32 @@ public class DesugaredLibraryRetargeter {
     retargetLibraryMember.keySet().forEach(consumer);
   }
 
+  @Override
+  public Collection<CfInstruction> desugarInstruction(
+      CfInstruction instruction,
+      FreshLocalProvider freshLocalProvider,
+      LocalStackAllocator localStackAllocator,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramMethod context,
+      MethodProcessingContext methodProcessingContext,
+      DexItemFactory dexItemFactory) {
+    InvokeRetargetingResult invokeRetargetingResult = computeNewInvokeTarget(instruction, context);
+
+    if (!invokeRetargetingResult.hasNewInvokeTarget()) {
+      return null;
+    }
+
+    DexMethod newInvokeTarget = invokeRetargetingResult.getNewInvokeTarget(eventConsumer);
+    return Collections.singletonList(
+        new CfInvoke(Opcodes.INVOKESTATIC, newInvokeTarget, instruction.asInvoke().isInterface()));
+  }
+
+  @Override
+  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
+    return computeNewInvokeTarget(instruction, context).hasNewInvokeTarget();
+  }
+
+  @Deprecated // Use Cf to Cf desugaring instead.
   public void desugar(IRCode code) {
     if (retargetLibraryMember.isEmpty()) {
       return;
@@ -231,68 +259,129 @@ public class DesugaredLibraryRetargeter {
       DexMethod invokedMethod = invoke.getInvokedMethod();
       boolean isInterface = invoke.getInterfaceBit();
 
-      DexMethod retarget = getRetargetedMethod(invokedMethod, isInterface);
-      if (retarget == null) {
-        continue;
+      InvokeRetargetingResult invokeRetargetingResult =
+          computeNewInvokeTarget(
+              invokedMethod, isInterface, invoke.isInvokeSuper(), code.context());
+      if (invokeRetargetingResult.hasNewInvokeTarget()) {
+        DexMethod newInvokeTarget = invokeRetargetingResult.getNewInvokeTarget(null);
+        iterator.replaceCurrentInstruction(
+            new InvokeStatic(newInvokeTarget, invoke.outValue(), invoke.inValues()));
       }
-
-      // Due to emulated dispatch, we have to rewrite invoke-super differently or we end up in
-      // infinite loops. We do direct resolution. This is a very uncommon case.
-      if (invoke.isInvokeSuper() && matchesNonFinalHolderRewrite(invoke.getInvokedMethod())) {
-        DexClassAndMethod superTarget =
-            appView
-                .appInfoForDesugaring()
-                .lookupSuperTarget(invoke.getInvokedMethod(), code.context());
-        // Final methods can be rewritten as a normal invoke.
-        if (superTarget != null && !superTarget.getAccessFlags().isFinal()) {
-          DexMethod retargetMethod =
-              appView.options().desugaredLibraryConfiguration.retargetMethod(superTarget, appView);
-          if (retargetMethod != null) {
-            iterator.replaceCurrentInstruction(
-                new InvokeStatic(retargetMethod, invoke.outValue(), invoke.arguments()));
-          }
-          continue;
-        }
-      }
-
-      iterator.replaceCurrentInstruction(
-          new InvokeStatic(retarget, invoke.outValue(), invoke.inValues()));
     }
   }
 
-  public DexMethod getRetargetedMethod(DexMethod invokedMethod, boolean isInterface) {
-    DexMethod retarget = getRetargetLibraryMember(invokedMethod);
-    if (retarget == null) {
+  static class InvokeRetargetingResult {
+
+    static InvokeRetargetingResult NO_REWRITING =
+        new InvokeRetargetingResult(false, ignored -> null);
+
+    private final boolean hasNewInvokeTarget;
+    private final Function<DesugaredLibraryRetargeterEventConsumer, DexMethod>
+        newInvokeTargetSupplier;
+
+    static InvokeRetargetingResult createInvokeRetargetingResult(DexMethod retarget) {
+      if (retarget == null) {
+        return NO_REWRITING;
+      }
+      return new InvokeRetargetingResult(true, ignored -> retarget);
+    }
+
+    private InvokeRetargetingResult(
+        boolean hasNewInvokeTarget,
+        Function<DesugaredLibraryRetargeterEventConsumer, DexMethod> newInvokeTargetSupplier) {
+      this.hasNewInvokeTarget = hasNewInvokeTarget;
+      this.newInvokeTargetSupplier = newInvokeTargetSupplier;
+    }
+
+    public boolean hasNewInvokeTarget() {
+      return hasNewInvokeTarget;
+    }
+
+    public DexMethod getNewInvokeTarget(DesugaredLibraryRetargeterEventConsumer eventConsumer) {
+      assert hasNewInvokeTarget();
+      return newInvokeTargetSupplier.apply(eventConsumer);
+    }
+  }
+
+  public boolean hasNewInvokeTarget(
+      DexMethod invokedMethod, boolean isInterface, boolean isInvokeSuper, ProgramMethod context) {
+    return computeNewInvokeTarget(invokedMethod, isInterface, isInvokeSuper, context)
+        .hasNewInvokeTarget();
+  }
+
+  private InvokeRetargetingResult computeNewInvokeTarget(
+      CfInstruction instruction, ProgramMethod context) {
+    if (retargetLibraryMember.isEmpty() || !instruction.isInvoke()) {
+      return NO_REWRITING;
+    }
+    CfInvoke cfInvoke = instruction.asInvoke();
+    return computeNewInvokeTarget(
+        cfInvoke.getMethod(),
+        cfInvoke.isInterface(),
+        cfInvoke.isInvokeSuper(context.getHolderType()),
+        context);
+  }
+
+  private InvokeRetargetingResult computeNewInvokeTarget(
+      DexMethod invokedMethod, boolean isInterface, boolean isInvokeSuper, ProgramMethod context) {
+    InvokeRetargetingResult retarget = computeRetargetedMethod(invokedMethod, isInterface);
+    if (!retarget.hasNewInvokeTarget()) {
+      return NO_REWRITING;
+    }
+    if (isInvokeSuper && matchesNonFinalHolderRewrite(invokedMethod)) {
+      DexClassAndMethod superTarget =
+          appView.appInfoForDesugaring().lookupSuperTarget(invokedMethod, context);
+      // Final methods can be rewritten as a normal invoke.
+      if (superTarget != null && !superTarget.getAccessFlags().isFinal()) {
+        return InvokeRetargetingResult.createInvokeRetargetingResult(
+            appView.options().desugaredLibraryConfiguration.retargetMethod(superTarget, appView));
+      }
+    }
+    return retarget;
+  }
+
+  private InvokeRetargetingResult computeRetargetedMethod(
+      DexMethod invokedMethod, boolean isInterface) {
+    InvokeRetargetingResult invokeRetargetingResult = computeRetargetLibraryMember(invokedMethod);
+    if (!invokeRetargetingResult.hasNewInvokeTarget()) {
       if (!matchesNonFinalHolderRewrite(invokedMethod)) {
-        return null;
+        return NO_REWRITING;
       }
       // We need to force resolution, even on d8, to know if the invoke has to be rewritten.
       ResolutionResult resolutionResult =
           appView.appInfoForDesugaring().resolveMethod(invokedMethod, isInterface);
       if (resolutionResult.isFailedResolution()) {
-        return null;
+        return NO_REWRITING;
       }
       DexEncodedMethod singleTarget = resolutionResult.getSingleTarget();
       assert singleTarget != null;
-      retarget = getRetargetLibraryMember(singleTarget.getReference());
+      invokeRetargetingResult = computeRetargetLibraryMember(singleTarget.getReference());
     }
-    return retarget;
+    return invokeRetargetingResult;
   }
 
-  private DexMethod getRetargetLibraryMember(DexMethod method) {
+  private InvokeRetargetingResult computeRetargetLibraryMember(DexMethod method) {
     Map<DexType, DexType> backportCoreLibraryMembers =
         appView.options().desugaredLibraryConfiguration.getBackportCoreLibraryMember();
     if (backportCoreLibraryMembers.containsKey(method.holder)) {
       DexType newHolder = backportCoreLibraryMembers.get(method.holder);
-      return appView.dexItemFactory().createMethod(newHolder, method.proto, method.name);
+      DexMethod newMethod =
+          appView.dexItemFactory().createMethod(newHolder, method.proto, method.name);
+      return InvokeRetargetingResult.createInvokeRetargetingResult(newMethod);
     }
     DexClassAndMethod emulatedMethod = emulatedDispatchMethods.get(method);
     if (emulatedMethod != null) {
       assert !emulatedMethod.getAccessFlags().isStatic();
-      DexType newHolder = ensureEmulatedHolderDispatchMethod(emulatedMethod).type;
-      return computeRetargetMethod(method, emulatedMethod.getAccessFlags().isStatic(), newHolder);
+      return new InvokeRetargetingResult(
+          true,
+          eventConsumer -> {
+            DexType newHolder =
+                ensureEmulatedHolderDispatchMethod(emulatedMethod, eventConsumer).type;
+            return computeRetargetMethod(
+                method, emulatedMethod.getAccessFlags().isStatic(), newHolder);
+          });
     }
-    return retargetLibraryMember.get(method);
+    return InvokeRetargetingResult.createInvokeRetargetingResult(retargetLibraryMember.get(method));
   }
 
   private boolean matchesNonFinalHolderRewrite(DexMethod method) {
@@ -427,10 +516,8 @@ public class DesugaredLibraryRetargeter {
     }
   }
 
-  public void synthesizeRetargetClasses(ExecutorService executorService, IRConverter converter)
-      throws ExecutionException {
-    new EmulatedDispatchTreeFixer().fixApp(executorService, converter);
-    converter.optimizeSynthesizedClasses(programSynthesizedClasses, executorService);
+  public void finalizeDesugaring(DesugaredLibraryRetargeterEventConsumer eventConsumer) {
+    new EmulatedDispatchTreeFixer().fixApp(eventConsumer);
   }
 
   private void rewriteType(DexType type) {
@@ -441,8 +528,12 @@ public class DesugaredLibraryRetargeter {
     appView.rewritePrefix.rewriteType(type, newType);
   }
 
-  public DexClass ensureEmulatedHolderDispatchMethod(DexClassAndMethod emulatedDispatchMethod) {
-    DexClass interfaceClass = ensureEmulatedInterfaceDispatchMethod(emulatedDispatchMethod);
+  public DexClass ensureEmulatedHolderDispatchMethod(
+      DexClassAndMethod emulatedDispatchMethod,
+      DesugaredLibraryRetargeterEventConsumer eventConsumer) {
+    assert eventConsumer != null || appView.enableWholeProgramOptimizations();
+    DexClass interfaceClass =
+        ensureEmulatedInterfaceDispatchMethod(emulatedDispatchMethod, eventConsumer);
     DexMethod itfMethod =
         interfaceClass.lookupMethod(emulatedDispatchMethod.getReference()).getReference();
     DexClass holderDispatch;
@@ -455,8 +546,12 @@ public class DesugaredLibraryRetargeter {
                   emulatedDispatchMethod.getHolder(),
                   appView,
                   classBuilder ->
-                      buildHolderDispatchMethod(classBuilder, emulatedDispatchMethod, itfMethod));
-      programSynthesizedClasses.add(holderDispatch.asProgramClass());
+                      buildHolderDispatchMethod(classBuilder, emulatedDispatchMethod, itfMethod),
+                  clazz -> {
+                    if (eventConsumer != null) {
+                      eventConsumer.acceptDesugaredLibraryRetargeterDispatchProgramClass(clazz);
+                    }
+                  });
     } else {
       ClasspathOrLibraryClass context =
           emulatedDispatchMethod.getHolder().asClasspathOrLibraryClass();
@@ -469,13 +564,21 @@ public class DesugaredLibraryRetargeter {
                   context,
                   appView,
                   classBuilder ->
-                      buildHolderDispatchMethod(classBuilder, emulatedDispatchMethod, itfMethod));
+                      buildHolderDispatchMethod(classBuilder, emulatedDispatchMethod, itfMethod),
+                  clazz -> {
+                    if (eventConsumer != null) {
+                      eventConsumer.acceptDesugaredLibraryRetargeterDispatchClasspathClass(clazz);
+                    }
+                  });
     }
     rewriteType(holderDispatch.type);
     return holderDispatch;
   }
 
-  public DexClass ensureEmulatedInterfaceDispatchMethod(DexClassAndMethod emulatedDispatchMethod) {
+  public DexClass ensureEmulatedInterfaceDispatchMethod(
+      DexClassAndMethod emulatedDispatchMethod,
+      DesugaredLibraryRetargeterEventConsumer eventConsumer) {
+    assert eventConsumer != null || appView.enableWholeProgramOptimizations();
     DexClass interfaceDispatch;
     if (appView.options().isDesugaredLibraryCompilation()) {
       interfaceDispatch =
@@ -486,8 +589,12 @@ public class DesugaredLibraryRetargeter {
                   emulatedDispatchMethod.getHolder(),
                   appView,
                   classBuilder ->
-                      this.buildInterfaceDispatchMethod(classBuilder, emulatedDispatchMethod));
-      programSynthesizedClasses.add(interfaceDispatch.asProgramClass());
+                      buildInterfaceDispatchMethod(classBuilder, emulatedDispatchMethod),
+                  clazz -> {
+                    if (eventConsumer != null) {
+                      eventConsumer.acceptDesugaredLibraryRetargeterDispatchProgramClass(clazz);
+                    }
+                  });
     } else {
       ClasspathOrLibraryClass context =
           emulatedDispatchMethod.getHolder().asClasspathOrLibraryClass();
@@ -500,7 +607,12 @@ public class DesugaredLibraryRetargeter {
                   context,
                   appView,
                   classBuilder ->
-                      this.buildInterfaceDispatchMethod(classBuilder, emulatedDispatchMethod));
+                      buildInterfaceDispatchMethod(classBuilder, emulatedDispatchMethod),
+                  clazz -> {
+                    if (eventConsumer != null) {
+                      eventConsumer.acceptDesugaredLibraryRetargeterDispatchClasspathClass(clazz);
+                    }
+                  });
     }
     rewriteType(interfaceDispatch.type);
     return interfaceDispatch;
@@ -550,32 +662,33 @@ public class DesugaredLibraryRetargeter {
         });
   }
 
+  @Deprecated // Use Cf to Cf desugaring.
+  public void synthesizeRetargetClasses() {
+    new EmulatedDispatchTreeFixer().fixApp(null);
+  }
+
   // The rewrite of virtual calls requires to go through emulate dispatch. This class is responsible
   // for inserting interfaces on library boundaries and forwarding methods in the program, and to
   // synthesize the interfaces and emulated dispatch classes in the desugared library.
   class EmulatedDispatchTreeFixer {
 
-    void fixApp(ExecutorService executorService, IRConverter converter) throws ExecutionException {
+    void fixApp(DesugaredLibraryRetargeterEventConsumer eventConsumer) {
       if (appView.options().isDesugaredLibraryCompilation()) {
-        synthesizeEmulatedDispatchMethods();
+        synthesizeEmulatedDispatchMethods(eventConsumer);
       } else {
-        addInterfacesAndForwardingMethods(executorService, converter);
+        addInterfacesAndForwardingMethods(eventConsumer);
       }
     }
 
     private void addInterfacesAndForwardingMethods(
-        ExecutorService executorService, IRConverter converter) throws ExecutionException {
+        DesugaredLibraryRetargeterEventConsumer eventConsumer) {
       assert !appView.options().isDesugaredLibraryCompilation();
       Map<DexType, List<DexClassAndMethod>> map = Maps.newIdentityHashMap();
       for (DexClassAndMethod emulatedDispatchMethod : emulatedDispatchMethods) {
         map.putIfAbsent(emulatedDispatchMethod.getHolderType(), new ArrayList<>(1));
         map.get(emulatedDispatchMethod.getHolderType()).add(emulatedDispatchMethod);
       }
-      SortedProgramMethodSet addedMethods = SortedProgramMethodSet.create();
       for (DexProgramClass clazz : appView.appInfo().classes()) {
-        if (appView.isAlreadyLibraryDesugared(clazz)) {
-          continue;
-        }
         if (clazz.superType == null) {
           assert clazz.type == appView.dexItemFactory().objectType : clazz.type.toSourceString();
           continue;
@@ -589,13 +702,11 @@ public class DesugaredLibraryRetargeter {
           map.forEach(
               (type, methods) -> {
                 if (inherit(superclass.asLibraryClass(), type, emulatedDispatchMethods)) {
-                  addInterfacesAndForwardingMethods(
-                      clazz, methods, method -> addedMethods.createAndAdd(clazz, method));
+                  addInterfacesAndForwardingMethods(eventConsumer, clazz, methods);
                 }
               });
         }
       }
-      converter.processMethodsConcurrently(addedMethods, executorService);
     }
 
     private boolean inherit(
@@ -619,20 +730,26 @@ public class DesugaredLibraryRetargeter {
     }
 
     private void addInterfacesAndForwardingMethods(
+        DesugaredLibraryRetargeterEventConsumer eventConsumer,
         DexProgramClass clazz,
-        List<DexClassAndMethod> methods,
-        Consumer<DexEncodedMethod> newForwardingMethodsConsumer) {
+        List<DexClassAndMethod> methods) {
       // DesugaredLibraryRetargeter emulate dispatch: insertion of a marker interface & forwarding
       // methods.
       // We cannot use the ClassProcessor since this applies up to 26, while the ClassProcessor
       // applies up to 24.
       for (DexClassAndMethod method : methods) {
-        DexClass dexClass = ensureEmulatedInterfaceDispatchMethod(method);
+        DexClass dexClass = ensureEmulatedInterfaceDispatchMethod(method, eventConsumer);
+        if (clazz.interfaces.contains(dexClass.type)) {
+          // The class has already been desugared.
+          continue;
+        }
         clazz.addExtraInterfaces(Collections.singletonList(new ClassTypeSignature(dexClass.type)));
         if (clazz.lookupVirtualMethod(method.getReference()) == null) {
           DexEncodedMethod newMethod = createForwardingMethod(method, clazz);
           clazz.addVirtualMethod(newMethod);
-          newForwardingMethodsConsumer.accept(newMethod);
+          if (eventConsumer != null) {
+            eventConsumer.acceptForwardingMethod(new ProgramMethod(clazz, newMethod));
+          }
         }
       }
     }
@@ -649,13 +766,14 @@ public class DesugaredLibraryRetargeter {
           target, clazz, forwardMethod, appView.dexItemFactory());
     }
 
-    private void synthesizeEmulatedDispatchMethods() {
+    private void synthesizeEmulatedDispatchMethods(
+        DesugaredLibraryRetargeterEventConsumer eventConsumer) {
       assert appView.options().isDesugaredLibraryCompilation();
       if (emulatedDispatchMethods.isEmpty()) {
         return;
       }
       for (DexClassAndMethod emulatedDispatchMethod : emulatedDispatchMethods) {
-        ensureEmulatedHolderDispatchMethod(emulatedDispatchMethod);
+        ensureEmulatedHolderDispatchMethod(emulatedDispatchMethod, eventConsumer);
       }
     }
 

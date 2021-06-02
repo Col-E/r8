@@ -494,7 +494,10 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       Consumer<SyntheticProgramClassBuilder> fn) {
     // Obtain the outer synthesizing context in the case the context itself is synthetic.
     // This is to ensure a flat input-type -> synthetic-item mapping.
-    SynthesizingContext outerContext = getSynthesizingContext(context, appView);
+    SynthesizingContext outerContext =
+        context.isProgramClass()
+            ? getSynthesizingContext(context.asProgramClass(), appView)
+            : SynthesizingContext.fromNonSyntheticInputContext(context.asClasspathOrLibraryClass());
     DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
     return internalCreateClass(kind, fn, outerContext, type, appView.dexItemFactory());
   }
@@ -508,7 +511,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       SyntheticKind kind,
       DexClass context,
       AppView<?> appView,
-      Consumer<SyntheticProgramClassBuilder> fn) {
+      Consumer<SyntheticProgramClassBuilder> fn,
+      Consumer<DexProgramClass> onCreationConsumer) {
     assert kind.isFixedSuffixSynthetic;
     // Obtain the outer synthesizing context in the case the context itself is synthetic.
     // This is to ensure a flat input-type -> synthetic-item mapping.
@@ -534,7 +538,10 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         return clazz.asProgramClass();
       }
       assert !isSyntheticClass(type);
-      return internalCreateClass(kind, fn, outerContext, type, appView.dexItemFactory());
+      DexProgramClass dexProgramClass =
+          internalCreateClass(kind, fn, outerContext, type, appView.dexItemFactory());
+      onCreationConsumer.accept(dexProgramClass);
+      return dexProgramClass;
     }
   }
 
@@ -582,7 +589,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       SyntheticKind kind,
       ClasspathOrLibraryClass context,
       AppView<?> appView,
-      Consumer<SyntheticClasspathClassBuilder> classConsumer) {
+      Consumer<SyntheticClasspathClassBuilder> classConsumer,
+      Consumer<DexClasspathClass> onCreationConsumer) {
     SynthesizingContext outerContext = SynthesizingContext.fromNonSyntheticInputContext(context);
     DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
     DexClass dexClass = appView.appInfo().definitionForWithoutExistenceAssert(type);
@@ -602,6 +610,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
           new SyntheticClasspathClassBuilder(type, kind, outerContext, appView.dexItemFactory());
       classConsumer.accept(classBuilder);
       DexClasspathClass clazz = classBuilder.build();
+      onCreationConsumer.accept(clazz);
       addPendingDefinition(new SyntheticClasspathClassDefinition(kind, outerContext, clazz));
       return clazz;
     }
