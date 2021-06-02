@@ -44,9 +44,6 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
         .addKeepMainRule(Main.class)
         .addKeepAttributeLineNumberTable()
         .addKeepAttributeSourceFile()
-        .addHorizontallyMergedClassesInspector(
-            inspector ->
-                inspector.assertIsCompleteMergeGroup(A.class, B.class).assertNoOtherClassesMerged())
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -55,22 +52,22 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
-              StackTrace expectedStackTraceWithMergedConstructor =
-                  StackTrace.builder()
-                      .add(expectedStackTrace)
-                      .add(
-                          2,
-                          StackTraceLine.builder()
-                              .setClassName(A.class.getTypeName())
-                              // TODO(b/124483578): The synthetic method should not be part of the
-                              //  retraced stack trace.
-                              .setMethodName("$r8$init$synthetic")
-                              .setFileName(getClass().getSimpleName() + ".java")
-                              .setLineNumber(0)
-                              .build())
-                      .build();
-              assertThat(stackTrace, isSame(expectedStackTraceWithMergedConstructor));
-              assertThat(codeInspector.clazz(B.class), not(isPresent()));
+                StackTrace expectedStackTraceWithMergedConstructor =
+                    StackTrace.builder()
+                        .add(expectedStackTrace)
+                        .add(
+                            2,
+                            StackTraceLine.builder()
+                                .setClassName(A.class.getTypeName())
+                                // TODO(b/124483578): The synthetic method should not be part of the
+                                //  retraced stack trace.
+                                .setMethodName("$r8$init$bridge")
+                                .setFileName(getClass().getSimpleName() + ".java")
+                                .setLineNumber(0)
+                                .build())
+                        .build();
+                assertThat(stackTrace, isSame(expectedStackTraceWithMergedConstructor));
+                assertThat(codeInspector.clazz(B.class), not(isPresent()));
             });
   }
 
@@ -85,18 +82,12 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
 
   @NeverClassInline
   static class A extends Parent {
-    A() {
-      // To avoid constructor equivalence.
-      System.out.println("A");
-    }
+    A() {}
   }
 
   @NeverClassInline
   static class B extends Parent {
-    B() {
-      // To avoid constructor equivalence.
-      System.out.println("B");
-    }
+    B() {}
   }
 
   static class Main {

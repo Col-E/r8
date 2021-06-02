@@ -115,10 +115,14 @@ public class DesugaredLibraryTestBase extends TestBase {
     private List<Path> additionalProgramFiles = new ArrayList<>();
     private Consumer<InternalOptions> optionsModifier = ConsumerUtils.emptyConsumer();
     private Path desugarJDKLibs = ToolHelper.getDesugarJDKLibs();
-    private Path desugarJDKLibsConfiguration = null;
+    private Path desugarJDKLibsConfiguration = ToolHelper.DESUGAR_LIB_CONVERSIONS;
     private StringResource desugaredLibraryConfiguration =
         StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting());
     private List<Path> libraryFiles = new ArrayList<>();
+
+    public static L8TestBuilder builder(AndroidApiLevel apiLevel, TemporaryFolder temp) {
+      return new L8TestBuilder(apiLevel, temp);
+    }
 
     private L8TestBuilder(AndroidApiLevel apiLevel, TemporaryFolder temp) {
       this.apiLevel = apiLevel;
@@ -235,11 +239,11 @@ public class DesugaredLibraryTestBase extends TestBase {
     }
 
     private Collection<Path> getProgramFiles() {
-      ImmutableList.Builder<Path> builder = ImmutableList.<Path>builder().add(desugarJDKLibs);
-      if (desugarJDKLibsConfiguration != null) {
-        builder.add(desugarJDKLibsConfiguration);
-      }
-      return builder.addAll(additionalProgramFiles).build();
+      return ImmutableList.<Path>builder()
+          .add(desugarJDKLibs)
+          .add(desugarJDKLibsConfiguration)
+          .addAll(additionalProgramFiles)
+          .build();
     }
 
     private Collection<Path> getLibraryFiles() {
@@ -296,7 +300,6 @@ public class DesugaredLibraryTestBase extends TestBase {
               },
               L8TestBuilder::setDebug)
           .addOptionsModifier(optionsModifier)
-          .setDesugarJDKLibsConfiguration(ToolHelper.DESUGAR_LIB_CONVERSIONS)
           // If we compile extended library here, it means we use TestNG. TestNG requires
           // annotations, hence we disable annotation removal. This implies that extra warnings are
           // generated.

@@ -61,6 +61,8 @@ public class EquivalentConstructorsWithInterfaceValueToParentTest extends TestBa
 
   @NeverClassInline
   static class A extends Parent {
+    // When merging this initializer with B(L), it is important that we choose the signature AB(J)
+    // and not AB(I) or AB(Object), or the program will not verify.
     A(K k) {
       super(k);
     }

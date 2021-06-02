@@ -34,14 +34,6 @@ public class SingleDexItemBasedStringValue extends SingleConstValue {
     this.nameComputationInfo = nameComputationInfo;
   }
 
-  public DexReference getItem() {
-    return item;
-  }
-
-  public NameComputationInfo<?> getNameComputationInfo() {
-    return nameComputationInfo;
-  }
-
   @Override
   public boolean isSingleDexItemBasedStringValue() {
     return true;

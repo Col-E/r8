@@ -120,11 +120,6 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
           newMethodSignatures);
     }
 
-    DexMethod getRenamedMethodSignature(DexMethod method) {
-      assert newMethodSignatures.containsKey(method);
-      return newMethodSignatures.get(method);
-    }
-
     void recordNewFieldSignature(DexField oldFieldSignature, DexField newFieldSignature) {
       fieldMap.put(oldFieldSignature, newFieldSignature);
     }

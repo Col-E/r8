@@ -2238,10 +2238,6 @@ public class DexItemFactory {
     return createMethod(holder, createProto(voidType), classConstructorMethodName);
   }
 
-  public DexMethod createInstanceInitializer(DexType holder, DexType... parameters) {
-    return createMethod(holder, createProto(voidType, parameters), constructorMethodName);
-  }
-
   public DexMethod createInstanceInitializerWithFreshProto(
       DexMethod method, List<DexType> extraTypes, Predicate<DexMethod> isFresh) {
     assert method.isInstanceInitializer(this);
@@ -2262,6 +2258,8 @@ public class DexItemFactory {
 
   private DexMethod createInstanceInitializerWithFreshProto(
       DexProto proto, List<DexType> extraTypes, Function<DexProto, Optional<DexMethod>> isFresh) {
+    assert !extraTypes.isEmpty();
+
     Queue<Iterable<DexProto>> tryProtos = new LinkedList<>();
     Iterator<DexProto> current = IterableUtils.singleton(proto).iterator();
 
@@ -2278,7 +2276,6 @@ public class DexItemFactory {
       if (object.isPresent()) {
         return object.get();
       }
-      assert !extraTypes.isEmpty();
       tryProtos.add(
           Iterables.transform(extraTypes, extraType -> appendTypeToProto(tryProto, extraType)));
     }
