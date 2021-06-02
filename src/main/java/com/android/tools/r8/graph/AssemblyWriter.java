@@ -116,19 +116,10 @@ public class AssemblyWriter extends DexByteCodeWriter {
   }
 
   @Override
-  void writeInstanceFieldsHeader(DexProgramClass clazz, PrintStream ps) {
+  void writeFieldsHeader(DexProgramClass clazz, PrintStream ps) {
     if (writeFields) {
       ps.println("#");
-      ps.println("# Instance fields:");
-      ps.println("#");
-    }
-  }
-
-  @Override
-  void writeStaticFieldsHeader(DexProgramClass clazz, PrintStream ps) {
-    if (writeFields) {
-      ps.println("#");
-      ps.println("# Static fields:");
+      ps.println("# Fields:");
       ps.println("#");
     }
   }

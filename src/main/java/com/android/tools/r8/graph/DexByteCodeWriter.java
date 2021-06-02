@@ -89,10 +89,8 @@ public abstract class DexByteCodeWriter {
 
   private void writeClass(DexProgramClass clazz, PrintStream ps) {
     writeClassHeader(clazz, ps);
-    writeStaticFieldsHeader(clazz, ps);
-    clazz.forEachFieldMatching(DexEncodedMember::isStatic, field -> writeField(field, ps));
-    writeInstanceFieldsHeader(clazz, ps);
-    clazz.forEachFieldMatching(DexEncodedMember::isInstance, field -> writeField(field, ps));
+    writeFieldsHeader(clazz, ps);
+    clazz.forEachField(field -> writeField(field, ps));
     writeFieldsFooter(clazz, ps);
     writeMethodsHeader(clazz, ps);
     clazz.forEachProgramMethod(method -> writeMethod(method, ps));
@@ -104,11 +102,7 @@ public abstract class DexByteCodeWriter {
 
   abstract void writeClassHeader(DexProgramClass clazz, PrintStream ps);
 
-  void writeInstanceFieldsHeader(DexProgramClass clazz, PrintStream ps) {
-    // Do nothing.
-  }
-
-  void writeStaticFieldsHeader(DexProgramClass clazz, PrintStream ps) {
+  void writeFieldsHeader(DexProgramClass clazz, PrintStream ps) {
     // Do nothing.
   }
 

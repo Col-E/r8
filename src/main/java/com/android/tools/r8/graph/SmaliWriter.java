@@ -16,11 +16,9 @@ import java.nio.charset.StandardCharsets;
 
 public class SmaliWriter extends DexByteCodeWriter {
 
-  private final boolean writeCode;
-
-  public SmaliWriter(DexApplication application, InternalOptions options, boolean writeCode) {
+  public SmaliWriter(DexApplication application,
+      InternalOptions options) {
     super(application, options);
-    this.writeCode = writeCode;
   }
 
   /** Return smali source for the application code. */
@@ -29,7 +27,7 @@ public class SmaliWriter extends DexByteCodeWriter {
     try (PrintStream ps = new PrintStream(os)) {
       DexApplication dexApplication =
           new ApplicationReader(application, options, Timing.empty()).read();
-      SmaliWriter writer = new SmaliWriter(dexApplication, options, true);
+      SmaliWriter writer = new SmaliWriter(dexApplication, options);
       writer.write(ps);
     } catch (IOException e) {
       throw new CompilationError("Failed to generate smali sting", e);
@@ -48,25 +46,17 @@ public class SmaliWriter extends DexByteCodeWriter {
     ps.append(clazz.accessFlags.toSmaliString());
     ps.append(" ");
     ps.append(clazz.type.toSmaliString());
-    ps.append('\n');
-
+    ps.append("\n\n");
     if (clazz.type != application.dexItemFactory.objectType) {
       ps.append(".super ");
       ps.append(clazz.superType.toSmaliString());
-      ps.append('\n');
-    }
-    ps.append('\n');
-
-    if (!clazz.getInterfaces().isEmpty()) {
-      ps.append("# interfaces").append('\n');
+      ps.append("\n");
       for (DexType iface : clazz.interfaces.values) {
         ps.append(".implements ");
         ps.append(iface.toSmaliString());
-        ps.append('\n');
+        ps.append("\n");
       }
-      ps.append('\n');
     }
-    ps.append('\n');
   }
 
   @Override
@@ -74,35 +64,17 @@ public class SmaliWriter extends DexByteCodeWriter {
     ps.append("# End of class ");
     ps.append(clazz.type.toSmaliString());
     ps.append("\n");
-    ps.append("\n");
   }
 
   @Override
   void writeMethod(ProgramMethod method, PrintStream ps) {
     ps.append("\n");
-    ps.append(method.getDefinition().toSmaliString(application.getProguardMap(), writeCode));
+    ps.append(method.getDefinition().toSmaliString(application.getProguardMap()));
     ps.append("\n");
   }
 
   @Override
-  void writeInstanceFieldsHeader(DexProgramClass clazz, PrintStream ps) {
-    if (clazz.hasStaticFields()) {
-      ps.append('\n');
-    }
-    if (clazz.hasInstanceFields()) {
-      ps.append("# instance fields").append('\n');
-    }
-  }
-
-  @Override
-  void writeStaticFieldsHeader(DexProgramClass clazz, PrintStream ps) {
-    if (clazz.hasStaticFields()) {
-      ps.append("# static fields").append('\n');
-    }
-  }
-
-  @Override
   void writeField(DexEncodedField field, PrintStream ps) {
-    ps.append(field.toSmaliString(application.getProguardMap())).append('\n').append('\n');
+    // Not yet implemented.
   }
 }

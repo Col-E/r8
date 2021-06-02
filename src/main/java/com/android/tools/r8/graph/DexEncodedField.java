@@ -20,11 +20,8 @@ import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.kotlin.KotlinFieldLevelInfo;
-import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ConsumerUtils;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -169,29 +166,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
 
   @Override
   public String toSmaliString() {
-    StringBuilder builder = new StringBuilder();
-    builder.append(".field ");
-    builder.append(accessFlags.toSmaliString());
-    builder.append(" ");
-    builder.append(getName().toSmaliString());
-    builder.append(":");
-    builder.append(getType().toSmaliString());
-    return builder.toString();
-  }
-
-  public String toSmaliString(ClassNameMapper naming) {
-    FieldSignature fieldSignature =
-        naming != null
-            ? naming.originalSignatureOf(getReference())
-            : FieldSignature.fromDexField(getReference());
-    StringBuilder builder = new StringBuilder();
-    builder.append(".field ");
-    builder.append(accessFlags.toSmaliString());
-    builder.append(" ");
-    builder.append(fieldSignature.getName());
-    builder.append(":");
-    builder.append(DescriptorUtils.javaTypeToDescriptor(fieldSignature.getTypeName()));
-    return builder.toString();
+    return getReference().toSmaliString();
   }
 
   @Override

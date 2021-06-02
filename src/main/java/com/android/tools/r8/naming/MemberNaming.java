@@ -187,14 +187,6 @@ public class MemberNaming {
           field.type.toSourceString());
     }
 
-    public String getName() {
-      return name;
-    }
-
-    public String getTypeName() {
-      return type;
-    }
-
     public DexField toDexField(DexItemFactory factory, DexType clazz) {
       return factory.createField(
           clazz,
