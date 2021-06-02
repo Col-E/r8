@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getKotlinLocalOrAnonymousNameFromDescriptor;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -70,8 +68,13 @@ public abstract class KotlinClassifierInfo implements EnqueuerMetadataTraceable 
     boolean rewrite(KmTypeVisitor visitor, AppView<?> appView, NamingLens namingLens) {
       return type.toRenamedDescriptorOrDefault(
           descriptor -> {
-            visitor.visitClass(
-                getKotlinLocalOrAnonymousNameFromDescriptor(descriptor, isLocalOrAnonymous));
+            // For local or anonymous classes, the classifier is prefixed with '.' and inner classes
+            // are separated with '$'.
+            if (isLocalOrAnonymous) {
+              visitor.visitClass("." + DescriptorUtils.getBinaryNameFromDescriptor(descriptor));
+            } else {
+              visitor.visitClass(DescriptorUtils.descriptorToKotlinClassifier(descriptor));
+            }
           },
           appView,
           namingLens,

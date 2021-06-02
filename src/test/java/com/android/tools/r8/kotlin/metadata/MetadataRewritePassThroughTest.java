@@ -77,10 +77,7 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepKotlinMetadata()
-        .addKeepAttributes(
-            ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
-            ProguardKeepAttributes.INNER_CLASSES,
-            ProguardKeepAttributes.ENCLOSING_METHOD)
+        .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticWarningMessages()
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))

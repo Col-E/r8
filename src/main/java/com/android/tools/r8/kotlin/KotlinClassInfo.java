@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
@@ -222,24 +221,14 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     // Set potentially renamed class name.
     DexString originalDescriptor = clazz.type.descriptor;
     DexString rewrittenDescriptor = namingLens.lookupDescriptor(clazz.type);
-    String rewrittenName = null;
-    // When the class has an anonymousObjectOrigin and the name equals the identifier there, we
-    // keep the name tied to the anonymousObjectOrigin.
-    if (anonymousObjectOrigin != null
-        && name.equals(anonymousObjectOrigin.toKotlinClassifier(true))) {
-      Box<String> rewrittenOrigin = new Box<>();
-      anonymousObjectOrigin.toRenamedBinaryNameOrDefault(
-          rewrittenOrigin::set, appView, namingLens, null);
-      if (rewrittenOrigin.isSet()) {
-        rewrittenName = "." + rewrittenOrigin.get();
-      }
-    }
-    if (rewrittenName == null) {
-      rewrittenName = KotlinMetadataUtils.getKotlinClassName(clazz, rewrittenDescriptor.toString());
-    }
-    kmClass.setName(rewrittenName);
-    boolean rewritten =
-        !originalDescriptor.equals(rewrittenDescriptor) || !name.equals(rewrittenName);
+    // If the original descriptor equals the rewritten descriptor, we pick the original name
+    // to preserve potential errors in the original name. As an example, the kotlin stdlib has
+    // name: .kotlin/collections/CollectionsKt___CollectionsKt$groupingBy$1, which seems incorrect.
+    boolean rewritten = !originalDescriptor.equals(rewrittenDescriptor);
+    kmClass.setName(
+        !rewritten
+            ? this.name
+            : DescriptorUtils.getBinaryNameFromDescriptor(rewrittenDescriptor.toString()));
     // Find a companion object.
     for (DexEncodedField field : clazz.fields()) {
       if (field.getKotlinInfo().isCompanion()) {
