@@ -52,9 +52,8 @@ public class EquivalentConstructorsWithClassIdAndDifferentAssignmentOrderMerging
             inspector -> {
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              // TODO(b/189296638): Should be 1.
               assertEquals(
-                  2, aClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
+                  1, aClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("CC", "DD");

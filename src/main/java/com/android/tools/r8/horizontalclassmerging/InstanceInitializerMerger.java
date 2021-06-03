@@ -10,11 +10,13 @@ import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeUtils;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -24,61 +26,62 @@ import com.android.tools.r8.horizontalclassmerging.code.ConstructorEntryPointSyn
 import com.android.tools.r8.ir.conversion.ExtraConstantIntParameter;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
-import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.structural.Ordered;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 public class InstanceInitializerMerger {
 
-  private final AppView<?> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final Reference2IntMap<DexType> classIdentifiers;
   private final DexItemFactory dexItemFactory;
   private final MergeGroup group;
   private final List<ProgramMethod> instanceInitializers;
   private final InstanceInitializerDescription instanceInitializerDescription;
+  private final HorizontalClassMergerGraphLens.Builder lensBuilder;
   private final Mode mode;
 
   InstanceInitializerMerger(
-      AppView<?> appView, MergeGroup group, List<ProgramMethod> instanceInitializers, Mode mode) {
-    this(appView, group, instanceInitializers, mode, null);
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      Reference2IntMap<DexType> classIdentifiers,
+      MergeGroup group,
+      List<ProgramMethod> instanceInitializers,
+      HorizontalClassMergerGraphLens.Builder lensBuilder,
+      Mode mode) {
+    this(appView, classIdentifiers, group, instanceInitializers, lensBuilder, mode, null);
   }
 
   InstanceInitializerMerger(
-      AppView<?> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      Reference2IntMap<DexType> classIdentifiers,
       MergeGroup group,
       List<ProgramMethod> instanceInitializers,
+      HorizontalClassMergerGraphLens.Builder lensBuilder,
       Mode mode,
       InstanceInitializerDescription instanceInitializerDescription) {
     this.appView = appView;
+    this.classIdentifiers = classIdentifiers;
     this.dexItemFactory = appView.dexItemFactory();
     this.group = group;
     this.instanceInitializers = instanceInitializers;
     this.instanceInitializerDescription = instanceInitializerDescription;
+    this.lensBuilder = lensBuilder;
     this.mode = mode;
 
-    // Constructors should not be empty and all constructors should have the same prototype.
+    // Constructors should not be empty and all constructors should have the same prototype unless
+    // equivalent.
     assert !instanceInitializers.isEmpty();
-    assert instanceInitializers.stream().map(ProgramMethod::getProto).distinct().count() == 1;
-  }
-
-  /**
-   * The method reference template describes which arguments the constructor must have, and is used
-   * to generate the final reference by appending null arguments until it is fresh.
-   */
-  private DexMethod generateReferenceMethodTemplate() {
-    DexMethod methodTemplate = instanceInitializers.iterator().next().getReference();
-    if (instanceInitializers.size() > 1) {
-      methodTemplate = dexItemFactory.appendTypeToMethod(methodTemplate, dexItemFactory.intType);
-    }
-    return methodTemplate.withHolder(group.getTarget(), dexItemFactory);
+    assert instanceInitializers.stream().map(ProgramMethod::getProto).distinct().count() == 1
+        || instanceInitializerDescription != null;
   }
 
   public int getArity() {
@@ -89,6 +92,78 @@ public class InstanceInitializerMerger {
     return instanceInitializers;
   }
 
+  private CfVersion getNewClassFileVersion() {
+    CfVersion classFileVersion = null;
+    for (ProgramMethod instanceInitializer : instanceInitializers) {
+      if (instanceInitializer.getDefinition().hasClassFileVersion()) {
+        classFileVersion =
+            Ordered.maxIgnoreNull(
+                classFileVersion, instanceInitializer.getDefinition().getClassFileVersion());
+      }
+    }
+    return classFileVersion;
+  }
+
+  private DexMethod getNewMethodReference(ProgramMethod representative) {
+    return getNewMethodReference(representative, false);
+  }
+
+  private DexMethod getNewMethodReference(ProgramMethod representative, boolean needsClassId) {
+    DexType[] oldParameters = representative.getParameters().values;
+    DexType[] newParameters =
+        new DexType[representative.getParameters().size() + BooleanUtils.intValue(needsClassId)];
+    System.arraycopy(oldParameters, 0, newParameters, 0, oldParameters.length);
+    for (int i = 0; i < oldParameters.length; i++) {
+      final int parameterIndex = i;
+      newParameters[i] =
+          DexTypeUtils.computeLeastUpperBound(
+              appView,
+              Iterables.transform(
+                  instanceInitializers,
+                  instanceInitializer -> instanceInitializer.getParameter(parameterIndex)));
+    }
+    if (needsClassId) {
+      assert ArrayUtils.last(newParameters) == null;
+      newParameters[newParameters.length - 1] = dexItemFactory.intType;
+    }
+    return dexItemFactory.createInstanceInitializer(group.getTarget().getType(), newParameters);
+  }
+
+  private DexMethod getOriginalMethodReference() {
+    return appView.graphLens().getOriginalMethodSignature(getRepresentative().getReference());
+  }
+
+  private ProgramMethod getRepresentative() {
+    return ListUtils.first(instanceInitializers);
+  }
+
+  /**
+   * Returns a special original method signature for the synthesized constructor that did not exist
+   * prior to horizontal class merging. Otherwise we might accidentally think that the synthesized
+   * constructor corresponds to the previous <init>() method on the target class, which could have
+   * unintended side-effects such as leading to unused argument removal being applied to the
+   * synthesized constructor all-though it by construction doesn't have any unused arguments.
+   */
+  private DexMethod getSyntheticMethodReference(
+      ClassMethodsBuilder classMethodsBuilder, ProgramMethod representative) {
+    return dexItemFactory.createFreshMethodNameWithoutHolder(
+        "$r8$init$synthetic",
+        representative.getProto(),
+        representative.getHolderType(),
+        classMethodsBuilder::isFresh);
+  }
+
+  private Int2ReferenceSortedMap<DexMethod> createClassIdToInstanceInitializerMap() {
+    assert !hasInstanceInitializerDescription();
+    Int2ReferenceSortedMap<DexMethod> typeConstructorClassMap = new Int2ReferenceAVLTreeMap<>();
+    for (ProgramMethod instanceInitializer : instanceInitializers) {
+      typeConstructorClassMap.put(
+          classIdentifiers.getInt(instanceInitializer.getHolderType()),
+          lensBuilder.getRenamedMethodSignature(instanceInitializer.getReference()));
+    }
+    return typeConstructorClassMap;
+  }
+
   public int size() {
     return instanceInitializers.size();
   }
@@ -96,12 +171,20 @@ public class InstanceInitializerMerger {
   public static class Builder {
 
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
+    private final Reference2IntMap<DexType> classIdentifiers;
     private int estimatedDexCodeSize;
     private final List<List<ProgramMethod>> instanceInitializerGroups = new ArrayList<>();
+    private final HorizontalClassMergerGraphLens.Builder lensBuilder;
     private final Mode mode;
 
-    public Builder(AppView<? extends AppInfoWithClassHierarchy> appView, Mode mode) {
+    public Builder(
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        Reference2IntMap<DexType> classIdentifiers,
+        HorizontalClassMergerGraphLens.Builder lensBuilder,
+        Mode mode) {
       this.appView = appView;
+      this.classIdentifiers = classIdentifiers;
+      this.lensBuilder = lensBuilder;
       this.mode = mode;
       createNewGroup();
     }
@@ -136,7 +219,8 @@ public class InstanceInitializerMerger {
       return ListUtils.map(
           instanceInitializerGroups,
           instanceInitializers ->
-              new InstanceInitializerMerger(appView, group, instanceInitializers, mode));
+              new InstanceInitializerMerger(
+                  appView, classIdentifiers, group, instanceInitializers, lensBuilder, mode));
     }
 
     public InstanceInitializerMerger buildSingle(
@@ -145,56 +229,18 @@ public class InstanceInitializerMerger {
       assert instanceInitializerGroups.size() == 1;
       List<ProgramMethod> instanceInitializers = ListUtils.first(instanceInitializerGroups);
       return new InstanceInitializerMerger(
-          appView, group, instanceInitializers, mode, instanceInitializerDescription);
+          appView,
+          classIdentifiers,
+          group,
+          instanceInitializers,
+          lensBuilder,
+          mode,
+          instanceInitializerDescription);
     }
   }
 
-  // Returns true if we can simply use an existing constructor as the new constructor.
-  private boolean isTrivialMerge(ClassMethodsBuilder classMethodsBuilder) {
-    if (group.hasClassIdField()) {
-      // We need to set the class id field.
-      return false;
-    }
-    DexMethod trivialInstanceInitializerReference =
-        ListUtils.first(instanceInitializers)
-            .getReference()
-            .withHolder(group.getTarget(), dexItemFactory);
-    if (!classMethodsBuilder.isFresh(trivialInstanceInitializerReference)) {
-      // We need to append null arguments for disambiguation.
-      return false;
-    }
-    return isMergeOfEquivalentInstanceInitializers();
-  }
-
-  private boolean isMergeOfEquivalentInstanceInitializers() {
-    Iterator<ProgramMethod> instanceInitializerIterator = instanceInitializers.iterator();
-    ProgramMethod firstInstanceInitializer = instanceInitializerIterator.next();
-    if (!instanceInitializerIterator.hasNext()) {
-      return true;
-    }
-    // We need all the constructors to be equivalent.
-    InstanceInitializerInfo instanceInitializerInfo =
-        firstInstanceInitializer
-            .getDefinition()
-            .getOptimizationInfo()
-            .getContextInsensitiveInstanceInitializerInfo();
-    if (!instanceInitializerInfo.hasParent()) {
-      // We don't know the parent constructor of the first constructor.
-      return false;
-    }
-    DexMethod parent = instanceInitializerInfo.getParent();
-    return Iterables.all(
-        instanceInitializers,
-        instanceInitializer ->
-            isSideEffectFreeInstanceInitializerWithParent(instanceInitializer, parent));
-  }
-
-  private boolean isSideEffectFreeInstanceInitializerWithParent(
-      ProgramMethod instanceInitializer, DexMethod parent) {
-    MethodOptimizationInfo optimizationInfo =
-        instanceInitializer.getDefinition().getOptimizationInfo();
-    return !optimizationInfo.mayHaveSideEffects()
-        && optimizationInfo.getContextInsensitiveInstanceInitializerInfo().getParent() == parent;
+  private boolean hasInstanceInitializerDescription() {
+    return instanceInitializerDescription != null;
   }
 
   private DexMethod moveInstanceInitializer(
@@ -219,128 +265,118 @@ public class InstanceInitializerMerger {
     return method;
   }
 
-  private MethodAccessFlags getAccessFlags() {
+  private MethodAccessFlags getNewAccessFlags() {
     // TODO(b/164998929): ensure this behaviour is correct, should probably calculate upper bound
     return MethodAccessFlags.fromSharedAccessFlags(
         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, true);
   }
 
+  private Code getNewCode(
+      DexMethod newMethodReference,
+      DexMethod syntheticMethodReference,
+      boolean needsClassId,
+      int extraNulls) {
+    if (hasInstanceInitializerDescription()) {
+      if (mode.isInitial() || appView.options().isGeneratingClassFiles()) {
+        return instanceInitializerDescription.createCfCode(
+            newMethodReference,
+            getOriginalMethodReference(),
+            syntheticMethodReference,
+            group,
+            needsClassId,
+            extraNulls);
+      }
+      return instanceInitializerDescription.createDexCode(
+          newMethodReference,
+          getOriginalMethodReference(),
+          syntheticMethodReference,
+          group,
+          needsClassId,
+          extraNulls);
+    }
+    if (isSingleton() && !group.hasClassIdField()) {
+      return getRepresentative().getDefinition().getCode();
+    }
+    return new ConstructorEntryPointSynthesizedCode(
+        createClassIdToInstanceInitializerMap(),
+        newMethodReference,
+        group.hasClassIdField() ? group.getClassIdField() : null,
+        syntheticMethodReference);
+  }
+
+  private boolean isSingleton() {
+    return instanceInitializers.size() == 1;
+  }
+
   /** Synthesize a new method which selects the constructor based on a parameter type. */
   void merge(
       ClassMethodsBuilder classMethodsBuilder,
-      HorizontalClassMergerGraphLens.Builder lensBuilder,
-      Reference2IntMap<DexType> classIdentifiers,
       SyntheticArgumentClass syntheticArgumentClass) {
-    // TODO(b/189296638): Handle merging of equivalent constructors when
-    //  `instanceInitializerDescription` is set.
-    if (isTrivialMerge(classMethodsBuilder)) {
-      mergeTrivial(classMethodsBuilder, lensBuilder);
-      return;
-    }
-
-    assert mode.isInitial();
-
-    // Tree map as must be sorted.
-    Int2ReferenceSortedMap<DexMethod> typeConstructorClassMap = new Int2ReferenceAVLTreeMap<>();
-
-    // Move constructors to target class.
-    CfVersion classFileVersion = null;
-    for (ProgramMethod instanceInitializer : instanceInitializers) {
-      if (instanceInitializer.getDefinition().hasClassFileVersion()) {
-        classFileVersion =
-            Ordered.maxIgnoreNull(
-                classFileVersion, instanceInitializer.getDefinition().getClassFileVersion());
-      }
-      DexMethod movedInstanceInitializer =
-          moveInstanceInitializer(classMethodsBuilder, instanceInitializer);
-      lensBuilder.mapMethod(movedInstanceInitializer, movedInstanceInitializer);
-      lensBuilder.recordNewMethodSignature(
-          instanceInitializer.getReference(), movedInstanceInitializer);
-      typeConstructorClassMap.put(
-          classIdentifiers.getInt(instanceInitializer.getHolderType()), movedInstanceInitializer);
-    }
-
-    // Create merged constructor reference.
-    DexMethod methodReferenceTemplate = generateReferenceMethodTemplate();
-    DexMethod newConstructorReference =
-        dexItemFactory.createInstanceInitializerWithFreshProto(
-            methodReferenceTemplate,
-            syntheticArgumentClass.getArgumentClasses(),
-            classMethodsBuilder::isFresh);
-    int extraNulls = newConstructorReference.getArity() - methodReferenceTemplate.getArity();
-
     ProgramMethod representative = ListUtils.first(instanceInitializers);
-    DexMethod originalConstructorReference =
-        appView.graphLens().getOriginalMethodSignature(representative.getReference());
 
-    // Create a special original method signature for the synthesized constructor that did not exist
-    // prior to horizontal class merging. Otherwise we might accidentally think that the synthesized
-    // constructor corresponds to the previous <init>() method on the target class, which could have
-    // unintended side-effects such as leading to unused argument removal being applied to the
-    // synthesized constructor all-though it by construction doesn't have any unused arguments.
-    DexMethod bridgeConstructorReference =
-        dexItemFactory.createFreshMethodNameWithoutHolder(
-            "$r8$init$bridge",
-            originalConstructorReference.getProto(),
-            originalConstructorReference.getHolderType(),
+    // Create merged instance initializer reference.
+    boolean needsClassId =
+        instanceInitializers.size() > 1
+            && (!hasInstanceInitializerDescription() || group.hasClassIdField());
+    assert mode.isInitial() || !needsClassId;
+
+    DexMethod newMethodReferenceTemplate = getNewMethodReference(representative, needsClassId);
+    assert mode.isInitial() || classMethodsBuilder.isFresh(newMethodReferenceTemplate);
+
+    DexMethod newMethodReference =
+        dexItemFactory.createInstanceInitializerWithFreshProto(
+            newMethodReferenceTemplate,
+            mode.isInitial() ? syntheticArgumentClass.getArgumentClasses() : ImmutableList.of(),
             classMethodsBuilder::isFresh);
+    int extraNulls = newMethodReference.getArity() - newMethodReferenceTemplate.getArity();
 
-    ConstructorEntryPointSynthesizedCode synthesizedCode =
-        new ConstructorEntryPointSynthesizedCode(
-            typeConstructorClassMap,
-            newConstructorReference,
-            group.hasClassIdField() ? group.getClassIdField() : null,
-            bridgeConstructorReference);
-    DexEncodedMethod newConstructor =
-        new DexEncodedMethod(
-            newConstructorReference,
-            getAccessFlags(),
-            MethodTypeSignature.noSignature(),
-            DexAnnotationSet.empty(),
-            ParameterAnnotationsList.empty(),
-            synthesizedCode,
-            true,
-            classFileVersion);
+    // Verify that the merge is a simple renaming in the final round of merging.
+    assert mode.isInitial() || newMethodReference == newMethodReferenceTemplate;
 
-    // Map each old constructor to the newly synthesized constructor in the graph lens.
-    for (ProgramMethod oldInstanceInitializer : instanceInitializers) {
+    // Move instance initializers to target class.
+    if (hasInstanceInitializerDescription()) {
+      lensBuilder.moveMethods(instanceInitializers, newMethodReference);
+    } else if (isSingleton() && !group.hasClassIdField()) {
+      lensBuilder.moveMethod(representative.getReference(), newMethodReference, true);
+    } else {
+      for (ProgramMethod instanceInitializer : instanceInitializers) {
+        DexMethod movedInstanceInitializer =
+            moveInstanceInitializer(classMethodsBuilder, instanceInitializer);
+        lensBuilder.mapMethod(movedInstanceInitializer, movedInstanceInitializer);
+        lensBuilder.recordNewMethodSignature(
+            instanceInitializer.getReference(), movedInstanceInitializer);
+      }
+    }
+
+    // Add a mapping from a synthetic name to the synthetic constructor.
+    DexMethod syntheticMethodReference =
+        getSyntheticMethodReference(classMethodsBuilder, representative);
+    if (!isSingleton() || group.hasClassIdField()) {
+      lensBuilder.recordNewMethodSignature(syntheticMethodReference, newMethodReference, true);
+    }
+
+    // Map each of the instance initializers to the new instance initializer in the graph lens.
+    for (ProgramMethod instanceInitializer : instanceInitializers) {
       List<ExtraParameter> extraParameters = new ArrayList<>();
-      if (instanceInitializers.size() > 1) {
-        int classIdentifier = classIdentifiers.getInt(oldInstanceInitializer.getHolderType());
+      if (needsClassId) {
+        int classIdentifier = classIdentifiers.getInt(instanceInitializer.getHolderType());
         extraParameters.add(new ExtraConstantIntParameter(classIdentifier));
       }
       extraParameters.addAll(Collections.nCopies(extraNulls, new ExtraUnusedNullParameter()));
       lensBuilder.mapMergedConstructor(
-          oldInstanceInitializer.getReference(), newConstructorReference, extraParameters);
+          instanceInitializer.getReference(), newMethodReference, extraParameters);
     }
 
-    // Add a mapping from a synthetic name to the synthetic constructor.
-    lensBuilder.recordNewMethodSignature(bridgeConstructorReference, newConstructorReference);
-
-    classMethodsBuilder.addDirectMethod(newConstructor);
-  }
-
-  private void mergeTrivial(
-      ClassMethodsBuilder classMethodsBuilder, HorizontalClassMergerGraphLens.Builder lensBuilder) {
-    ProgramMethod representative = ListUtils.first(instanceInitializers);
-    DexMethod newMethodReference =
-        representative.getReference().withHolder(group.getTarget(), dexItemFactory);
-    lensBuilder.moveMethods(instanceInitializers, newMethodReference, representative);
-
-    DexEncodedMethod newMethod =
-        representative.getHolder() == group.getTarget()
-            ? representative.getDefinition()
-            : representative.getDefinition().toTypeSubstitutedMethod(newMethodReference);
-    fixupAccessFlagsForTrivialMerge(newMethod.getAccessFlags());
-
-    classMethodsBuilder.addDirectMethod(newMethod);
-  }
-
-  private void fixupAccessFlagsForTrivialMerge(MethodAccessFlags accessFlags) {
-    if (!accessFlags.isPublic()) {
-      accessFlags.unsetPrivate();
-      accessFlags.unsetProtected();
-      accessFlags.setPublic();
-    }
+    DexEncodedMethod newInstanceInitializer =
+        new DexEncodedMethod(
+            newMethodReference,
+            getNewAccessFlags(),
+            MethodTypeSignature.noSignature(),
+            DexAnnotationSet.empty(),
+            ParameterAnnotationsList.empty(),
+            getNewCode(newMethodReference, syntheticMethodReference, needsClassId, extraNulls),
+            true,
+            getNewClassFileVersion());
+    classMethodsBuilder.addDirectMethod(newInstanceInitializer);
   }
 }

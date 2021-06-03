@@ -137,8 +137,19 @@ public class Position implements StructuralItem<Position> {
     return lastPosition;
   }
 
+  public Position getCallerPosition() {
+    return callerPosition;
+  }
+
   public Position withCallerPosition(Position callerPosition) {
     return new Position(line, file, method, callerPosition, synthetic);
+  }
+
+  public Position withOutermostCallerPosition(Position newOutermostCallerPosition) {
+    return withCallerPosition(
+        hasCallerPosition()
+            ? getCallerPosition().withOutermostCallerPosition(newOutermostCallerPosition)
+            : newOutermostCallerPosition);
   }
 
   @Override

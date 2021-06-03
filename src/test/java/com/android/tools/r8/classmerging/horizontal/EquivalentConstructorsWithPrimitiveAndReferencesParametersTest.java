@@ -8,12 +8,13 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KeepUnusedArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.classmerging.horizontal.EquivalentConstructorsWithClassIdAndDifferentAssignmentOrderMergingTest.A;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import org.junit.Test;
@@ -22,16 +23,16 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class EquivalentConstructorsWithoutClassIdMergingTest extends TestBase {
+public class EquivalentConstructorsWithPrimitiveAndReferencesParametersTest extends TestBase {
 
   private final TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static TestParametersCollection params() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
-  public EquivalentConstructorsWithoutClassIdMergingTest(TestParameters parameters) {
+  public EquivalentConstructorsWithPrimitiveAndReferencesParametersTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -45,7 +46,7 @@ public class EquivalentConstructorsWithoutClassIdMergingTest extends TestBase {
                 inspector.assertIsCompleteMergeGroup(A.class, B.class).assertNoOtherClassesMerged())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .enableNoHorizontalClassMergingAnnotations()
+        .enableUnusedArgumentAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
@@ -53,67 +54,39 @@ public class EquivalentConstructorsWithoutClassIdMergingTest extends TestBase {
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
               assertEquals(
-                  1, aClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
+                  2, aClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("C", "D");
+        .assertSuccessWithOutputLines("A", "B");
   }
 
   static class Main {
 
     public static void main(String[] args) {
-      System.out.println(new A(new C()).foo());
-      System.out.println(new B(new D()).bar());
+      new A(42).m1();
+      new B(new Object()).m2();
     }
   }
 
   @NeverClassInline
   static class A {
-
-    private final C c;
-
-    A(C c) {
-      this.c = c;
-    }
+    @KeepUnusedArguments
+    A(int i) {}
 
     @NeverInline
-    public String foo() {
-      return c.toString();
+    void m1() {
+      System.out.println("A");
     }
   }
 
   @NeverClassInline
   static class B {
-
-    private final D d;
-
-    B(D d) {
-      this.d = d;
-    }
+    @KeepUnusedArguments
+    B(Object o) {}
 
     @NeverInline
-    public String bar() {
-      return d.toString();
-    }
-  }
-
-  @NeverClassInline
-  @NoHorizontalClassMerging
-  static class C {
-
-    @Override
-    public String toString() {
-      return "C";
-    }
-  }
-
-  @NeverClassInline
-  @NoHorizontalClassMerging
-  static class D {
-
-    @Override
-    public String toString() {
-      return "D";
+    void m2() {
+      System.out.println("B");
     }
   }
 }

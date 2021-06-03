@@ -42,6 +42,10 @@ public class CfFieldInstruction extends CfInstruction {
     spec.withInt(f -> f.opcode).withItem(f -> f.field).withItem(f -> f.declaringField);
   }
 
+  public CfFieldInstruction(int opcode, DexField field) {
+    this(opcode, field, field);
+  }
+
   public CfFieldInstruction(int opcode, DexField field, DexField declaringField) {
     this.opcode = opcode;
     this.field = field;

@@ -86,6 +86,11 @@ public class NoInstanceInitializerMerging extends MultiClassPolicy {
     InstanceInitializerInfo otherInstanceInitializerInfo =
         other.getDefinition().getOptimizationInfo().getContextInsensitiveInstanceInitializerInfo();
     assert otherInstanceInitializerInfo.isNonTrivialInstanceInitializerInfo();
+    if (!instanceInitializerInfo.hasParent()
+        || instanceInitializerInfo.getParent().getArity() > 0) {
+      return false;
+    }
+
     if (instanceInitializerInfo.getParent() != otherInstanceInitializerInfo.getParent()) {
       return false;
     }

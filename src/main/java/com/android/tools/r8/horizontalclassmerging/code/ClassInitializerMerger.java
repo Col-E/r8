@@ -152,13 +152,10 @@ public class ClassInitializerMerger {
       for (CfInstruction instruction : code.getInstructions()) {
         if (instruction.isPosition()) {
           CfPosition cfPosition = instruction.asPosition();
-          Position position = cfPosition.getPosition();
           newInstructions.add(
               new CfPosition(
                   cfPosition.getLabel(),
-                  position.hasCallerPosition()
-                      ? position
-                      : position.withCallerPosition(callerPosition)));
+                  cfPosition.getPosition().withOutermostCallerPosition(callerPosition)));
         } else if (instruction.isReturn()) {
           if (code.getInstructions().size() != index) {
             newInstructions.add(new CfGoto(endLabel));
