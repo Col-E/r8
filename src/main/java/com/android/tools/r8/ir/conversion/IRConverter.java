@@ -401,9 +401,9 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeRetargetClass() throws ExecutionException {
+  private void synthesizeRetargetClass(ExecutorService executorService) throws ExecutionException {
     if (desugaredLibraryRetargeter != null) {
-      desugaredLibraryRetargeter.synthesizeRetargetClasses();
+      desugaredLibraryRetargeter.synthesizeRetargetClasses(this, executorService);
     }
   }
 
@@ -781,7 +781,7 @@ public class IRConverter {
     feedback.updateVisibleOptimizationInfo();
 
     printPhase("Utility classes synthesis");
-    synthesizeRetargetClass();
+    synthesizeRetargetClass(executorService);
     synthesizeEnumUnboxingUtilityMethods(executorService);
 
     printPhase("Desugared library API Conversion finalization");

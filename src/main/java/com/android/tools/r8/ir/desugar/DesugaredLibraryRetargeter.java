@@ -45,6 +45,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
@@ -53,6 +54,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,6 +67,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.objectweb.asm.Opcodes;
@@ -79,6 +83,8 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   private final Map<DexString, List<DexMethod>> nonFinalHolderRewrites = new IdentityHashMap<>();
   // Non final virtual library methods requiring generation of emulated dispatch.
   private final DexClassAndMethodSet emulatedDispatchMethods = DexClassAndMethodSet.create();
+
+  private final SortedProgramMethodSet forwardingMethods = SortedProgramMethodSet.create();
 
   public DesugaredLibraryRetargeter(AppView<?> appView) {
     this.appView = appView;
@@ -663,8 +669,11 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   }
 
   @Deprecated // Use Cf to Cf desugaring.
-  public void synthesizeRetargetClasses() {
+  public void synthesizeRetargetClasses(IRConverter converter, ExecutorService executorService)
+      throws ExecutionException {
+    assert appView.enableWholeProgramOptimizations();
     new EmulatedDispatchTreeFixer().fixApp(null);
+    converter.processMethodsConcurrently(forwardingMethods, executorService);
   }
 
   // The rewrite of virtual calls requires to go through emulate dispatch. This class is responsible
@@ -749,6 +758,9 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
           clazz.addVirtualMethod(newMethod);
           if (eventConsumer != null) {
             eventConsumer.acceptForwardingMethod(new ProgramMethod(clazz, newMethod));
+          } else {
+            assert appView.enableWholeProgramOptimizations();
+            forwardingMethods.add(new ProgramMethod(clazz, newMethod));
           }
         }
       }
