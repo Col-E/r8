@@ -33,8 +33,7 @@ public class IllegalInliningOfMergedConstructorTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addEnumUnboxingInspector(
-            inspector -> inspector.assertUnboxedIf(parameters.isDexRuntime(), Reprocess.class))
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(Reprocess.class))
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(B.class, A.class))
         .addOptionsModification(options -> options.inliningInstructionLimit = 4)

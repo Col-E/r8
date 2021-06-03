@@ -29,7 +29,7 @@ public class B134462736 extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public B134462736(TestParameters parameters) {
@@ -64,14 +64,10 @@ public class B134462736 extends TestBase {
         .enableInliningAnnotations()
         .addInnerClasses(B134462736.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .noMinification()
         .addOptionsModification(
             options -> {
-              if (parameters.isCfRuntime()) {
-                assert !options.outline.enabled;
-                options.outline.enabled = true;
-              }
               options.outline.threshold = 2;
               options.outline.minSize = 2;
             })

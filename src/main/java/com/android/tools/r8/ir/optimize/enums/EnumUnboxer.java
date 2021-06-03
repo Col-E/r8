@@ -937,7 +937,8 @@ public class EnumUnboxer {
       // We do not unbox enums with invoke custom since it's not clear the accessibility
       // constraints would be correct if the method holding the invoke custom is moved to
       // another class.
-      assert !factory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
+      assert appView.options().isGeneratingClassFiles()
+          || !factory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
       constraint = Constraint.NEVER;
     }
 

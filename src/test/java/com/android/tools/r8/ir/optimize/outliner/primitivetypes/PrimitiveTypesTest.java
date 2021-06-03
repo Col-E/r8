@@ -30,7 +30,7 @@ public class PrimitiveTypesTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public PrimitiveTypesTest(TestParameters parameters) {
@@ -61,14 +61,10 @@ public class PrimitiveTypesTest extends TestBase {
         .addProgramClasses(testClass)
         .addProgramClasses(MyStringBuilder.class)
         .addKeepMainRule(testClass)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .noMinification()
         .addOptionsModification(
             options -> {
-              if (parameters.isCfRuntime()) {
-                assert !options.outline.enabled;
-                options.outline.enabled = true;
-              }
               options.outline.threshold = 2;
               options.outline.minSize = 2;
             })

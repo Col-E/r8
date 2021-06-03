@@ -85,11 +85,6 @@ public class EnumUnboxingB160535628Test extends EnumUnboxingTestBase {
         .addKeepRules("-keep enum * { <fields>; }")
         .addKeepRules(enumKeepRules.getKeepRules())
         .addKeepRules(missingStaticMethods ? "" : "-keep enum * { static <methods>; }")
-        .addOptionsModification(
-            options -> {
-              assert !options.enableEnumUnboxing;
-              options.enableEnumUnboxing = true;
-            })
         .addKeepClassRules(Lib.LibEnumStaticMethod.class)
         .addEnumUnboxingInspector(
             inspector ->

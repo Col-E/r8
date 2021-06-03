@@ -29,7 +29,7 @@ public class OutlinesWithClassArrayTypeArguments extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public OutlinesWithClassArrayTypeArguments(TestParameters parameters) {
@@ -60,14 +60,10 @@ public class OutlinesWithClassArrayTypeArguments extends TestBase {
         .enableInliningAnnotations()
         .addInnerClasses(OutlinesWithClassArrayTypeArguments.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .noMinification()
         .addOptionsModification(
             options -> {
-              if (parameters.isCfRuntime()) {
-                assert !options.outline.enabled;
-                options.outline.enabled = true;
-              }
               options.outline.threshold = 2;
               options.outline.minSize = 2;
             })

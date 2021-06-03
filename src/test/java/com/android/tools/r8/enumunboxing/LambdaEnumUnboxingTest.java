@@ -40,14 +40,6 @@ public class LambdaEnumUnboxingTest extends EnumUnboxingTestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepRules(enumKeepRules.getKeepRules())
-        .addOptionsModification(
-            options -> {
-              if (options.isGeneratingClassFiles()) {
-                // TODO(b/172568606): Remove this when enabled for CF by default.
-                assertFalse(options.enableEnumUnboxing);
-                options.enableEnumUnboxing = true;
-              }
-            })
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
