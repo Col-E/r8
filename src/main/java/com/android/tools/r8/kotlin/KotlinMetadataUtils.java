@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
@@ -200,5 +201,28 @@ public class KotlinMetadataUtils {
     }
     // Check if the type is matched
     return proguardKeepRule.getClassNames().matches(factory.kotlinMetadataType);
+  }
+
+  static String getKotlinClassName(DexClass clazz, String descriptor) {
+    InnerClassAttribute innerClassAttribute = clazz.getInnerClassAttributeForThisClass();
+    if (innerClassAttribute != null && innerClassAttribute.getOuter() != null) {
+      return DescriptorUtils.descriptorToKotlinClassifier(descriptor);
+    } else if (clazz.isLocalClass() || clazz.isAnonymousClass()) {
+      return getKotlinLocalOrAnonymousNameFromDescriptor(descriptor, true);
+    } else {
+      // We no longer have an innerclass relationship to maintain and we therefore return a binary
+      // name.
+      return DescriptorUtils.getBinaryNameFromDescriptor(descriptor);
+    }
+  }
+
+  static String getKotlinLocalOrAnonymousNameFromDescriptor(
+      String descriptor, boolean isLocalOrAnonymous) {
+    // For local or anonymous classes, the classifier is prefixed with '.' and inner classes
+    // are separated with '$'.
+    if (isLocalOrAnonymous) {
+      return "." + DescriptorUtils.getBinaryNameFromDescriptor(descriptor);
+    }
+    return DescriptorUtils.descriptorToKotlinClassifier(descriptor);
   }
 }

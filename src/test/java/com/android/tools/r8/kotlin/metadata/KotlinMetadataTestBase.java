@@ -106,10 +106,8 @@ public abstract class KotlinMetadataTestBase extends KotlinTestBase {
             if (rewrittenString.equals("L;") || rewrittenString.equals("(L;)V")) {
               return;
             }
-            System.out.println(clazzSubject.toString() + ": " + rewrittenString);
             addedNonInitStrings.increment();
           });
-      System.out.flush();
       assertEquals(originalHeader.getPackageName(), rewrittenHeader.getPackageName());
 
       String expected = KotlinMetadataWriter.kotlinMetadataToString("", originalMetadata);
