@@ -9,6 +9,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.Lists;
@@ -21,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -34,12 +37,12 @@ public class ResourceShrinkerTest extends TestBase {
   public TemporaryFolder tmp = new TemporaryFolder();
 
   private static class TrackAll implements ResourceShrinker.ReferenceChecker {
-    Set<Integer> integers = Sets.newHashSet();
-    Set<String> strings = Sets.newHashSet();
-    List<List<String>> fields = Lists.newArrayList();
-    List<List<String>> methods = Lists.newArrayList();
-    int methodsVisited = 0;
-    int classesVisited = 0;
+    Set<Integer> refIntegers = Sets.newHashSet();
+    Set<String> refStrings = Sets.newHashSet();
+    List<List<String>> refFields = Lists.newArrayList();
+    List<List<String>> refMethods = Lists.newArrayList();
+    List<MethodReference> methodsVisited = Lists.newArrayList();
+    List<ClassReference> classesVisited = Lists.newArrayList();
 
     @Override
     public boolean shouldProcess(String internalName) {
@@ -48,17 +51,17 @@ public class ResourceShrinkerTest extends TestBase {
 
     @Override
     public void referencedInt(int value) {
-      integers.add(value);
+      refIntegers.add(value);
     }
 
     @Override
     public void referencedString(String value) {
-      strings.add(value);
+      refStrings.add(value);
     }
 
     @Override
     public void referencedStaticField(String internalName, String fieldName) {
-      fields.add(Lists.newArrayList(internalName, fieldName));
+      refFields.add(Lists.newArrayList(internalName, fieldName));
     }
 
     @Override
@@ -67,24 +70,28 @@ public class ResourceShrinkerTest extends TestBase {
           && Objects.equals(methodName, "<init>")) {
         return;
       }
-      methods.add(Lists.newArrayList(internalName, methodName, methodDescriptor));
+      refMethods.add(Lists.newArrayList(internalName, methodName, methodDescriptor));
     }
 
     @Override
-    public void startMethodVisit() {
-      methodsVisited++;
+    public void startMethodVisit(MethodReference methodReference) {
+      methodsVisited.add(methodReference);
     }
 
     @Override
-    public void endMethodVisit() {}
-
-    @Override
-    public void startClassVisit() {
-      classesVisited++;
+    public void endMethodVisit(MethodReference methodReference) {
+      assertEquals(methodsVisited.get(methodsVisited.size() - 1), methodReference);
     }
 
     @Override
-    public void endClassVisit() {}
+    public void startClassVisit(ClassReference classReference) {
+      classesVisited.add(classReference);
+    }
+
+    @Override
+    public void endClassVisit(ClassReference classReference) {
+      assertEquals(classesVisited.get(classesVisited.size() - 1), classReference);
+    }
   }
 
   private static class EmptyClass {
@@ -94,10 +101,10 @@ public class ResourceShrinkerTest extends TestBase {
   public void testEmptyClass() throws CompilationFailedException, IOException, ExecutionException {
     TrackAll analysis = runAnalysis(EmptyClass.class);
 
-    assertThat(analysis.integers, is(Sets.newHashSet()));
-    assertThat(analysis.strings, is(Sets.newHashSet()));
-    assertThat(analysis.fields, is(Lists.newArrayList()));
-    assertThat(analysis.methods, is(Lists.newArrayList()));
+    assertThat(analysis.refIntegers, is(Sets.newHashSet()));
+    assertThat(analysis.refStrings, is(Sets.newHashSet()));
+    assertThat(analysis.refFields, is(Lists.newArrayList()));
+    assertThat(analysis.refMethods, is(Lists.newArrayList()));
   }
 
   private static class ConstInCode {
@@ -115,20 +122,21 @@ public class ResourceShrinkerTest extends TestBase {
       throws CompilationFailedException, IOException, ExecutionException {
     TrackAll analysis = runAnalysis(ConstInCode.class);
 
-    assertThat(analysis.integers, is(Sets.newHashSet(10, 11)));
-    assertThat(analysis.strings, is(Sets.newHashSet("my_layout", "another_layout")));
+    assertThat(analysis.refIntegers, is(Sets.newHashSet(10, 11)));
+    assertThat(analysis.refStrings, is(Sets.newHashSet("my_layout", "another_layout")));
 
-    assertEquals(3, analysis.fields.size());
-    assertThat(analysis.fields.get(0), is(Lists.newArrayList("java/lang/System", "out")));
-    assertThat(analysis.fields.get(1), is(Lists.newArrayList("java/lang/System", "out")));
-    assertThat(analysis.fields.get(2), is(Lists.newArrayList("java/lang/System", "out")));
+    assertEquals(3, analysis.refFields.size());
+    assertThat(analysis.refFields.get(0), is(Lists.newArrayList("java/lang/System", "out")));
+    assertThat(analysis.refFields.get(1), is(Lists.newArrayList("java/lang/System", "out")));
+    assertThat(analysis.refFields.get(2), is(Lists.newArrayList("java/lang/System", "out")));
 
-    assertEquals(3, analysis.methods.size());
-    assertThat(analysis.methods.get(0),
-        is(Lists.newArrayList("java/io/PrintStream", "print", "(I)V")));
-    assertThat(analysis.methods.get(1),
-        is(Lists.newArrayList("java/io/PrintStream", "print", "(I)V")));
-    assertThat(analysis.methods.get(2),
+    assertEquals(3, analysis.refMethods.size());
+    assertThat(
+        analysis.refMethods.get(0), is(Lists.newArrayList("java/io/PrintStream", "print", "(I)V")));
+    assertThat(
+        analysis.refMethods.get(1), is(Lists.newArrayList("java/io/PrintStream", "print", "(I)V")));
+    assertThat(
+        analysis.refMethods.get(2),
         is(Lists.newArrayList("java/io/PrintStream", "print", "(Ljava/lang/String;)V")));
   }
 
@@ -145,15 +153,21 @@ public class ResourceShrinkerTest extends TestBase {
       throws CompilationFailedException, IOException, ExecutionException {
     TrackAll analysis = runAnalysis(StaticFields.class);
 
-    assertThat(analysis.integers, hasItems(10, 11, 12, 13));
-    assertThat(analysis.strings, hasItems("staticValue", "a", "b", "c"));
-    assertThat(analysis.fields, is(Lists.newArrayList()));
-    assertThat(analysis.methods, is(Lists.newArrayList()));
+    assertThat(analysis.refIntegers, hasItems(10, 11, 12, 13));
+    assertThat(analysis.refStrings, hasItems("staticValue", "a", "b", "c"));
+    assertThat(analysis.refFields, is(Lists.newArrayList()));
+    assertThat(analysis.refMethods, is(Lists.newArrayList()));
   }
 
   @SuppressWarnings("unused")
   private static class ClassesAndMethodsVisited {
     final int value = getValue();
+
+    static final int staticValue;
+
+    static {
+      staticValue = 42;
+    }
 
     int getValue() {
       return true ? 0 : 1;
@@ -165,8 +179,17 @@ public class ResourceShrinkerTest extends TestBase {
       throws CompilationFailedException, IOException, ExecutionException {
     TrackAll analysis = runAnalysis(ClassesAndMethodsVisited.class);
 
-    assertThat(analysis.methodsVisited, is(2));
-    assertThat(analysis.classesVisited, is(1));
+    List<String> methodNames =
+        analysis.methodsVisited.stream()
+            .map(MethodReference::getMethodName)
+            .collect(Collectors.toList());
+    List<String> classNames =
+        analysis.classesVisited.stream()
+            .map(ClassReference::getBinaryName)
+            .collect(Collectors.toList());
+    assertThat(methodNames, hasItems("<init>", "<clinit>", "getValue"));
+    assertThat(
+        classNames, hasItems("com/android/tools/r8/ResourceShrinkerTest$ClassesAndMethodsVisited"));
   }
 
   @Retention(RetentionPolicy.RUNTIME)
@@ -201,10 +224,10 @@ public class ResourceShrinkerTest extends TestBase {
   public void testAnnotations() throws CompilationFailedException, IOException, ExecutionException {
     TrackAll analysis = runAnalysis(IntAnnotation.class, OuterAnnotation.class, Annotated.class);
 
-    assertThat(analysis.integers, hasItems(10, 11, 12, 13, 14, 15, 42));
-    assertThat(analysis.strings, is(Sets.newHashSet()));
-    assertThat(analysis.fields, is(Lists.newArrayList()));
-    assertThat(analysis.methods, is(Lists.newArrayList()));
+    assertThat(analysis.refIntegers, hasItems(10, 11, 12, 13, 14, 15, 42));
+    assertThat(analysis.refStrings, is(Sets.newHashSet()));
+    assertThat(analysis.refFields, is(Lists.newArrayList()));
+    assertThat(analysis.refMethods, is(Lists.newArrayList()));
   }
 
   private static class ResourceClassToSkip {
@@ -221,10 +244,10 @@ public class ResourceShrinkerTest extends TestBase {
       throws ExecutionException, CompilationFailedException, IOException {
     TrackAll analysis = runAnalysis(ResourceClassToSkip.class, ToProcess.class);
 
-    assertThat(analysis.integers, hasItems(10, 11, 12));
-    assertThat(analysis.strings, is(Sets.newHashSet("10", "11", "12")));
-    assertThat(analysis.fields, is(Lists.newArrayList()));
-    assertThat(analysis.methods, is(Lists.newArrayList()));
+    assertThat(analysis.refIntegers, hasItems(10, 11, 12));
+    assertThat(analysis.refStrings, is(Sets.newHashSet("10", "11", "12")));
+    assertThat(analysis.refFields, is(Lists.newArrayList()));
+    assertThat(analysis.refMethods, is(Lists.newArrayList()));
   }
 
   @Test
@@ -249,10 +272,10 @@ public class ResourceShrinkerTest extends TestBase {
         AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build();
     TrackAll analysis = runOnApp(app);
 
-    assertThat(analysis.integers, hasItems(4, 5, 6));
-    assertThat(analysis.strings, is(Sets.newHashSet()));
-    assertThat(analysis.fields, is(Lists.newArrayList()));
-    assertThat(analysis.methods, is(Lists.newArrayList()));
+    assertThat(analysis.refIntegers, hasItems(4, 5, 6));
+    assertThat(analysis.refStrings, is(Sets.newHashSet()));
+    assertThat(analysis.refFields, is(Lists.newArrayList()));
+    assertThat(analysis.refMethods, is(Lists.newArrayList()));
   }
 
   private TrackAll runAnalysis(Class<?>... classes)

@@ -47,6 +47,8 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.ir.code.SingleConstant;
 import com.android.tools.r8.ir.code.WideConstant;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -141,13 +143,13 @@ final public class ResourceShrinker {
 
     void referencedMethod(String internalName, String methodName, String methodDescriptor);
 
-    default void startMethodVisit() {}
+    default void startMethodVisit(MethodReference methodReference) {}
 
-    default void endMethodVisit() {}
+    default void endMethodVisit(MethodReference methodReference) {}
 
-    default void startClassVisit() {}
+    default void startClassVisit(ClassReference classReference) {}
 
-    default void endClassVisit() {}
+    default void endClassVisit(ClassReference classReference) {}
   }
 
   private static final class DexClassUsageVisitor {
@@ -161,7 +163,7 @@ final public class ResourceShrinker {
     }
 
     public void visit() {
-      callback.startClassVisit();
+      callback.startClassVisit(classDef.getClassReference());
       if (!callback.shouldProcess(classDef.type.getInternalName())) {
         return;
       }
@@ -174,15 +176,16 @@ final public class ResourceShrinker {
       }
 
       for (DexEncodedMethod method : classDef.allMethodsSorted()) {
-        callback.startMethodVisit();
+
+        callback.startMethodVisit(method.getReference().asMethodReference());
         processMethod(method);
-        callback.endMethodVisit();
+        callback.endMethodVisit(method.getReference().asMethodReference());
       }
 
       if (classDef.hasClassOrMemberAnnotations()) {
         processAnnotations(classDef);
       }
-      callback.endClassVisit();
+      callback.endClassVisit(classDef.getClassReference());
     }
 
     private void processFieldValue(DexValue value) {
