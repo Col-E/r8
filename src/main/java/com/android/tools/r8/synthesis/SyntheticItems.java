@@ -617,41 +617,14 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     }
   }
 
-  // This is a temporary API for migration to the hygienic synthetic, the classes created behave
-  // like a hygienic synthetic, but use the legacyType passed as parameter instead of the
-  // hygienic type.
-  private DexClasspathClass ensureFixedClasspathClassWhileMigrating(
-      SyntheticKind kind, DexType legacyType, ClasspathOrLibraryClass context, AppView<?> appView) {
-    synchronized (context) {
-      DexClass dexClass = appView.definitionFor(legacyType);
-      if (dexClass != null) {
-        assert dexClass.isClasspathClass();
-        return dexClass.asClasspathClass();
-      }
-      // Obtain the outer synthesizing context in the case the context itself is synthetic.
-      // This is to ensure a flat input-type -> synthetic-item mapping.
-      SynthesizingContext outerContext = SynthesizingContext.fromNonSyntheticInputContext(context);
-      SyntheticClasspathClassBuilder classBuilder =
-          new SyntheticClasspathClassBuilder(
-              legacyType, kind, outerContext, appView.dexItemFactory());
-      DexClasspathClass clazz = classBuilder.build();
-      addPendingDefinition(new SyntheticClasspathClassDefinition(kind, outerContext, clazz));
-      return clazz;
-    }
-  }
-
-  // This is a temporary API for migration to the hygienic synthetic, the classes created behave
-  // like a hygienic synthetic, but use the legacyType passed as parameter instead of the
-  // hygienic type.
-  public void ensureDirectMethodOnSyntheticClasspathClassWhileMigrating(
+  public void ensureDirectMethodOnSyntheticClasspathClass(
       SyntheticKind kind,
-      DexType legacyType,
       ClasspathOrLibraryClass context,
       AppView<?> appView,
       DexMethod method,
       Consumer<SyntheticMethodBuilder> builderConsumer) {
     DexClasspathClass syntheticClass =
-        ensureFixedClasspathClassWhileMigrating(kind, legacyType, context, appView);
+        ensureFixedClasspathClass(kind, context, appView, ignored -> {}, ignored -> {});
     synchronized (syntheticClass) {
       if (syntheticClass.lookupMethod(method) != null) {
         return;

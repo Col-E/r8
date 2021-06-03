@@ -1244,9 +1244,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     }
     appView
         .getSyntheticItems()
-        .ensureDirectMethodOnSyntheticClasspathClassWhileMigrating(
+        .ensureDirectMethodOnSyntheticClasspathClass(
             SyntheticKind.COMPANION_CLASS,
-            rewritten.getHolderType(),
             context,
             appView,
             rewritten,
