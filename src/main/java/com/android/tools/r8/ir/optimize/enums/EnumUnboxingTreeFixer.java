@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.enums;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -24,6 +25,7 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,6 +89,7 @@ class EnumUnboxingTreeFixer {
     unboxedEnumsMethods.forEach(
         (newHolderType, movedMethods) -> {
           DexProgramClass newHolderClass = appView.definitionFor(newHolderType).asProgramClass();
+          movedMethods.sort(Comparator.comparing(DexEncodedMember::getReference));
           newHolderClass.addDirectMethods(movedMethods);
         });
     return lensBuilder.build(appView);

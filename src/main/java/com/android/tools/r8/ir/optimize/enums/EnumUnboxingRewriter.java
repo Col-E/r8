@@ -383,13 +383,16 @@ public class EnumUnboxingRewriter {
 
   private void replaceEnumInvoke(
       InstructionListIterator iterator,
-      InvokeMethod invokeMethod,
+      InvokeMethod invoke,
       DexMethod method,
       Function<DexMethod, DexEncodedMethod> synthesizor) {
     utilityMethods.computeIfAbsent(method, synthesizor);
-    Instruction instruction =
-        new InvokeStatic(method, invokeMethod.outValue(), invokeMethod.arguments());
-    iterator.replaceCurrentInstruction(instruction);
+    InvokeStatic replacement =
+        new InvokeStatic(
+            method, invoke.hasUnusedOutValue() ? null : invoke.outValue(), invoke.arguments());
+    assert !replacement.hasOutValue()
+        || !replacement.getInvokedMethod().getReturnType().isVoidType();
+    iterator.replaceCurrentInstruction(replacement);
   }
 
   private boolean validateArrayAccess(ArrayAccess arrayAccess) {

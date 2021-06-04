@@ -24,7 +24,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -358,10 +357,8 @@ public class R8InliningTest extends TestBase {
     ClassSubject clazz = inspector.clazz(nullabilityClass);
     assertThat(clazz.uniqueMethodWithName("conditionalOperator"), isAbsent());
 
-    // The enum parameter may get unboxed.
-    MethodSubject m =
-        clazz.uniqueMethodWithName(
-            parameters.isCfRuntime() ? "moreControlFlows" : "moreControlFlows$enumunboxing$");
+    // The enum parameter is unboxed.
+    MethodSubject m = clazz.uniqueMethodWithName("moreControlFlows$enumunboxing$");
     assertTrue(m.isPresent());
 
     // Verify that a.b() is resolved to an inline instance-get.
@@ -381,18 +378,10 @@ public class R8InliningTest extends TestBase {
   }
 
   private boolean isEnumInvoke(InstructionSubject instruction) {
-    InternalOptions defaults = new InternalOptions();
-    if (parameters.isDexRuntime() && defaults.enableEnumUnboxing) {
-      return instruction
-          .getMethod()
-          .name
-          .toString()
-          .startsWith(EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_METHOD_PREFIX);
-    } else {
-      return ((InvokeInstructionSubject) instruction)
-          .holder()
-          .toString()
-          .contains("java.lang.Enum");
-    }
+    return instruction
+        .getMethod()
+        .getName()
+        .toString()
+        .startsWith(EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_METHOD_PREFIX);
   }
 }

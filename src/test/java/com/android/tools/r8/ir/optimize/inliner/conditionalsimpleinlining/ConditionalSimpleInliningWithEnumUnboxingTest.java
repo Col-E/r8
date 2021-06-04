@@ -28,9 +28,7 @@ public class ConditionalSimpleInliningWithEnumUnboxingTest
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .apply(this::configure)
-        .addEnumUnboxingInspector(
-            inspector ->
-                inspector.assertUnboxedIf(parameters.isDexRuntime(), EnumUnboxingCandidate.class))
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(EnumUnboxingCandidate.class))
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)

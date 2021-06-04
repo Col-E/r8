@@ -63,10 +63,6 @@ public class OutlinesWithPrimitiveArrayTypeArguments extends TestBase {
         .noMinification()
         .addOptionsModification(
             options -> {
-              if (parameters.isCfRuntime()) {
-                assert !options.outline.enabled;
-                options.outline.enabled = true;
-              }
               options.outline.threshold = 2;
               options.outline.minSize = 2;
             })
