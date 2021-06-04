@@ -26,8 +26,9 @@ public class DefaultMethodOptimizationWithMinApiInfo extends DefaultMethodOptimi
   }
 
   @Override
-  public UpdatableMethodOptimizationInfo mutableCopy() {
-    UpdatableMethodOptimizationInfo updatableMethodOptimizationInfo = super.mutableCopy();
+  public MutableMethodOptimizationInfo toMutableOptimizationInfo() {
+    MutableMethodOptimizationInfo updatableMethodOptimizationInfo =
+        super.toMutableOptimizationInfo();
     // Use null to specify that the min api is set to minApi.
     updatableMethodOptimizationInfo.setApiReferenceLevel(null);
     return updatableMethodOptimizationInfo;

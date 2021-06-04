@@ -18,10 +18,10 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
-import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -402,7 +402,7 @@ public class TreePruner {
 
           @Override
           public void fixup(
-              DexEncodedMethod method, UpdatableMethodOptimizationInfo optimizationInfo) {
+              DexEncodedMethod method, MutableMethodOptimizationInfo optimizationInfo) {
             optimizationInfo.fixupClassTypeReferences(appView, appView.graphLens(), prunedTypes);
           }
         });

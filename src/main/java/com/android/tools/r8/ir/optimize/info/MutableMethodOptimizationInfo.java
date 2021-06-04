@@ -28,7 +28,8 @@ import java.util.BitSet;
 import java.util.Optional;
 import java.util.Set;
 
-public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
+public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
+    implements MutableOptimizationInfo {
 
   private Set<DexType> initializedClassesOnNormalExit =
       DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
@@ -130,13 +131,13 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
 
   private int flags = DEFAULT_FLAGS;
 
-  UpdatableMethodOptimizationInfo() {
+  MutableMethodOptimizationInfo() {
     // Intentionally left empty, just use the default values.
   }
 
   // Copy constructor used to create a mutable copy. Do not forget to copy from template when a new
   // field is added.
-  private UpdatableMethodOptimizationInfo(UpdatableMethodOptimizationInfo template) {
+  private MutableMethodOptimizationInfo(MutableMethodOptimizationInfo template) {
     flags = template.flags;
     initializedClassesOnNormalExit = template.initializedClassesOnNormalExit;
     returnedArgument = template.returnedArgument;
@@ -153,12 +154,12 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     apiReferenceLevel = template.apiReferenceLevel;
   }
 
-  public UpdatableMethodOptimizationInfo fixupClassTypeReferences(
+  public MutableMethodOptimizationInfo fixupClassTypeReferences(
       AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens lens) {
     return fixupClassTypeReferences(appView, lens, emptySet());
   }
 
-  public UpdatableMethodOptimizationInfo fixupClassTypeReferences(
+  public MutableMethodOptimizationInfo fixupClassTypeReferences(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       GraphLens lens,
       Set<DexType> prunedTypes) {
@@ -180,13 +181,13 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     return this;
   }
 
-  public UpdatableMethodOptimizationInfo fixupAbstractReturnValue(
+  public MutableMethodOptimizationInfo fixupAbstractReturnValue(
       AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     abstractReturnValue = abstractReturnValue.rewrittenWithLens(appView, lens);
     return this;
   }
 
-  public UpdatableMethodOptimizationInfo fixupInstanceInitializerInfo(
+  public MutableMethodOptimizationInfo fixupInstanceInitializerInfo(
       AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     instanceInitializerInfoCollection =
         instanceInitializerInfoCollection.rewrittenWithLens(appView, lens);
@@ -211,21 +212,6 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
 
   private boolean isFlagSet(int flag) {
     return (flags & flag) != 0;
-  }
-
-  @Override
-  public boolean isDefaultMethodOptimizationInfo() {
-    return false;
-  }
-
-  @Override
-  public boolean isUpdatableMethodOptimizationInfo() {
-    return true;
-  }
-
-  @Override
-  public UpdatableMethodOptimizationInfo asUpdatableMethodOptimizationInfo() {
-    return this;
   }
 
   @Override
@@ -511,14 +497,28 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     return apiReferenceLevel != null;
   }
 
-  public UpdatableMethodOptimizationInfo setApiReferenceLevel(AndroidApiLevel apiReferenceLevel) {
-    this.apiReferenceLevel = Optional.ofNullable(apiReferenceLevel);
+  @Override
+  public boolean isMutableOptimizationInfo() {
+    return true;
+  }
+
+  @Override
+  public MutableMethodOptimizationInfo toMutableOptimizationInfo() {
     return this;
   }
 
   @Override
-  public UpdatableMethodOptimizationInfo mutableCopy() {
-    return new UpdatableMethodOptimizationInfo(this);
+  public MutableMethodOptimizationInfo asMutableMethodOptimizationInfo() {
+    return this;
+  }
+
+  public MutableMethodOptimizationInfo setApiReferenceLevel(AndroidApiLevel apiReferenceLevel) {
+    this.apiReferenceLevel = Optional.ofNullable(apiReferenceLevel);
+    return this;
+  }
+
+  public MutableMethodOptimizationInfo mutableCopy() {
+    return new MutableMethodOptimizationInfo(this);
   }
 
   public void adjustOptimizationInfoAfterRemovingThisParameter() {
@@ -536,7 +536,8 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
         || returnedArgument > 0;
     returnedArgument =
         returnedArgument == DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT
-            ? DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT : returnedArgument - 1;
+            ? DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT
+            : returnedArgument - 1;
     // mayHaveSideEffects: `this` Argument didn't have side effects, so removing it doesn't affect
     //   whether or not the method may have side effects.
     // returnValueOnlyDependsOnArguments:

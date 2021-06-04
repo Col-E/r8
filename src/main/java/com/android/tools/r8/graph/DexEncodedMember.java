@@ -3,7 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ir.optimize.info.MemberOptimizationInfo;
 import com.android.tools.r8.kotlin.KotlinMemberLevelInfo;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
     extends DexDefinition {
@@ -62,6 +65,24 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
   }
 
   public abstract ProgramMember<D, R> asProgramMember(DexDefinitionSupplier definitions);
+
+  public abstract <T> T apply(
+      Function<DexEncodedField, T> fieldConsumer, Function<DexEncodedMethod, T> methodConsumer);
+
+  public void apply(
+      Consumer<DexEncodedField> fieldConsumer, Consumer<DexEncodedMethod> methodConsumer) {
+    apply(
+        field -> {
+          fieldConsumer.accept(field);
+          return null;
+        },
+        method -> {
+          methodConsumer.accept(method);
+          return null;
+        });
+  }
+
+  public abstract MemberOptimizationInfo<?> getOptimizationInfo();
 
   @Override
   public final boolean equals(Object other) {

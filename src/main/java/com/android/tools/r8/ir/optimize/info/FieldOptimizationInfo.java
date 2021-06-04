@@ -12,9 +12,8 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
-public abstract class FieldOptimizationInfo {
-
-  public abstract MutableFieldOptimizationInfo mutableCopy();
+public abstract class FieldOptimizationInfo
+    implements MemberOptimizationInfo<MutableFieldOptimizationInfo> {
 
   public abstract boolean cannotBeKept();
 
@@ -56,20 +55,4 @@ public abstract class FieldOptimizationInfo {
   public abstract boolean isDead();
 
   public abstract boolean valueHasBeenPropagated();
-
-  public boolean isDefaultFieldOptimizationInfo() {
-    return false;
-  }
-
-  public DefaultFieldOptimizationInfo asDefaultFieldOptimizationInfo() {
-    return null;
-  }
-
-  public boolean isMutableFieldOptimizationInfo() {
-    return false;
-  }
-
-  public MutableFieldOptimizationInfo asMutableFieldOptimizationInfo() {
-    return null;
-  }
 }

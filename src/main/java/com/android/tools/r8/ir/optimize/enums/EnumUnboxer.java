@@ -85,9 +85,9 @@ import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingObjectSt
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnsupportedInstanceFieldValueForEnumInstanceReason;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnsupportedLibraryInvokeReason;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
-import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -507,7 +507,7 @@ public class EnumUnboxer {
 
           @Override
           public void fixup(
-              DexEncodedMethod method, UpdatableMethodOptimizationInfo optimizationInfo) {
+              DexEncodedMethod method, MutableMethodOptimizationInfo optimizationInfo) {
             optimizationInfo
                 .fixupClassTypeReferences(appView, appView.graphLens())
                 .fixupAbstractReturnValue(appView, appView.graphLens())

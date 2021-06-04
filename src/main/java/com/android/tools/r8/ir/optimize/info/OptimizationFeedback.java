@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.conversion.FieldOptimizationFeedback;
@@ -23,7 +24,18 @@ public abstract class OptimizationFeedback
 
     void fixup(DexEncodedField field, MutableFieldOptimizationInfo optimizationInfo);
 
-    void fixup(DexEncodedMethod method, UpdatableMethodOptimizationInfo optimizationInfo);
+    void fixup(DexEncodedMethod method, MutableMethodOptimizationInfo optimizationInfo);
+
+    default void fixup(DexEncodedMember<?, ?> member) {
+      MemberOptimizationInfo<?> optimizationInfo = member.getOptimizationInfo();
+      if (optimizationInfo.isMutableOptimizationInfo()) {
+        member.apply(
+            field -> {
+              fixup(field, optimizationInfo.asMutableFieldOptimizationInfo());
+            },
+            method -> fixup(method, optimizationInfo.asMutableMethodOptimizationInfo()));
+      }
+    }
   }
 
   public void fixupOptimizationInfos(
@@ -38,26 +50,7 @@ public abstract class OptimizationFeedback
       OptimizationInfoFixer fixer)
       throws ExecutionException {
     ThreadUtils.processItems(
-        classes,
-        clazz -> {
-          for (DexEncodedField field : clazz.fields()) {
-            FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
-            if (optimizationInfo.isMutableFieldOptimizationInfo()) {
-              fixer.fixup(field, optimizationInfo.asMutableFieldOptimizationInfo());
-            } else {
-              assert optimizationInfo.isDefaultFieldOptimizationInfo();
-            }
-          }
-          for (DexEncodedMethod method : clazz.methods()) {
-            MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
-            if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
-              fixer.fixup(method, optimizationInfo.asUpdatableMethodOptimizationInfo());
-            } else {
-              assert optimizationInfo.isDefaultMethodOptimizationInfo();
-            }
-          }
-        },
-        executorService);
+        classes, clazz -> clazz.members().forEach(fixer::fixup), executorService);
   }
 
   public void modifyAppInfoWithLiveness(Consumer<AppInfoWithLivenessModifier> consumer) {

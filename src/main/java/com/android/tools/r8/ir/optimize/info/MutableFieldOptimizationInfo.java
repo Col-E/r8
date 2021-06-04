@@ -24,7 +24,8 @@ import java.util.Set;
  * updated directly, meaning that updates may become visible to concurrently processed methods in
  * the {@link com.android.tools.r8.ir.conversion.IRConverter}.
  */
-public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
+public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
+    implements MutableOptimizationInfo {
 
   private static final int FLAGS_CANNOT_BE_KEPT = 1 << 0;
   private static final int FLAGS_IS_DEAD = 1 << 1;
@@ -62,7 +63,6 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
     return this;
   }
 
-  @Override
   public MutableFieldOptimizationInfo mutableCopy() {
     MutableFieldOptimizationInfo copy = new MutableFieldOptimizationInfo();
     copy.flags = flags;
@@ -137,8 +137,13 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
   }
 
   @Override
-  public boolean isMutableFieldOptimizationInfo() {
+  public boolean isMutableOptimizationInfo() {
     return true;
+  }
+
+  @Override
+  public MutableFieldOptimizationInfo toMutableOptimizationInfo() {
+    return this;
   }
 
   @Override

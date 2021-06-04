@@ -58,8 +58,8 @@ import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationWithMinApiInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
-import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.FieldAccessorBuilder;
@@ -93,6 +93,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntPredicate;
 import org.objectweb.asm.Opcodes;
 
@@ -434,6 +435,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   @Override
   public ProgramMethod asProgramMember(DexDefinitionSupplier definitions) {
     return asProgramMethod(definitions);
+  }
+
+  @Override
+  public <T> T apply(
+      Function<DexEncodedField, T> fieldConsumer, Function<DexEncodedMethod, T> methodConsumer) {
+    return methodConsumer.apply(this);
   }
 
   public DexClassAndMethod asDexClassAndMethod(DexDefinitionSupplier definitions) {
@@ -1445,20 +1452,20 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return m1.getReference().compareTo(m2.getReference());
   }
 
+  @Override
   public MethodOptimizationInfo getOptimizationInfo() {
     checkIfObsolete();
     return optimizationInfo;
   }
 
-  public synchronized UpdatableMethodOptimizationInfo getMutableOptimizationInfo() {
+  public synchronized MutableMethodOptimizationInfo getMutableOptimizationInfo() {
     checkIfObsolete();
-    UpdatableMethodOptimizationInfo updatableMethodOptimizationInfo =
-        optimizationInfo.asUpdatableMethodOptimizationInfo();
-    this.optimizationInfo = updatableMethodOptimizationInfo;
-    return updatableMethodOptimizationInfo;
+    MutableMethodOptimizationInfo mutableInfo = optimizationInfo.toMutableOptimizationInfo();
+    optimizationInfo = mutableInfo;
+    return mutableInfo;
   }
 
-  public void setOptimizationInfo(UpdatableMethodOptimizationInfo info) {
+  public void setOptimizationInfo(MutableMethodOptimizationInfo info) {
     checkIfObsolete();
     optimizationInfo = info;
   }
@@ -1542,9 +1549,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       code = from.code;
       compilationState = CompilationState.NOT_PROCESSED;
       optimizationInfo =
-          from.optimizationInfo.isDefaultMethodOptimizationInfo()
-              ? DefaultMethodOptimizationInfo.getInstance()
-              : from.optimizationInfo.mutableCopy();
+          from.optimizationInfo.isMutableOptimizationInfo()
+              ? from.optimizationInfo.asMutableMethodOptimizationInfo().mutableCopy()
+              : from.optimizationInfo;
       kotlinMemberInfo = from.kotlinMemberInfo;
       classFileVersion = from.classFileVersion;
       this.d8R8Synthesized = d8R8Synthesized;
@@ -1679,8 +1686,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     }
 
     public Builder adjustOptimizationInfoAfterRemovingThisParameter() {
-      if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
-        optimizationInfo.asUpdatableMethodOptimizationInfo()
+      if (optimizationInfo.isMutableOptimizationInfo()) {
+        optimizationInfo
+            .asMutableMethodOptimizationInfo()
             .adjustOptimizationInfoAfterRemovingThisParameter();
       }
       return this;

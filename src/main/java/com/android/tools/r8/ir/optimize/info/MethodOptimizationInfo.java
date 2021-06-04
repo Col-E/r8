@@ -21,19 +21,14 @@ import com.android.tools.r8.utils.OptionalBool;
 import java.util.BitSet;
 import java.util.Set;
 
-public abstract class MethodOptimizationInfo {
+public abstract class MethodOptimizationInfo
+    implements MemberOptimizationInfo<MutableMethodOptimizationInfo> {
 
   enum InlinePreference {
     NeverInline,
     ForceInline,
     Default
   }
-
-  public abstract boolean isDefaultMethodOptimizationInfo();
-
-  public abstract boolean isUpdatableMethodOptimizationInfo();
-
-  public abstract UpdatableMethodOptimizationInfo asUpdatableMethodOptimizationInfo();
 
   public abstract boolean cannotBeKept();
 
@@ -103,8 +98,6 @@ public abstract class MethodOptimizationInfo {
   public abstract AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApi);
 
   public abstract boolean hasApiReferenceLevel();
-
-  public abstract UpdatableMethodOptimizationInfo mutableCopy();
 
   public static OptionalBool isApiSafeForInlining(
       MethodOptimizationInfo caller, MethodOptimizationInfo inlinee, InternalOptions options) {

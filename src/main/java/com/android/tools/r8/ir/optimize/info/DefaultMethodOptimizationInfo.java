@@ -48,21 +48,6 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
-  public boolean isDefaultMethodOptimizationInfo() {
-    return true;
-  }
-
-  @Override
-  public boolean isUpdatableMethodOptimizationInfo() {
-    return false;
-  }
-
-  @Override
-  public UpdatableMethodOptimizationInfo asUpdatableMethodOptimizationInfo() {
-    return mutableCopy();
-  }
-
-  @Override
   public boolean cannotBeKept() {
     return false;
   }
@@ -204,7 +189,7 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
-  public UpdatableMethodOptimizationInfo mutableCopy() {
-    return new UpdatableMethodOptimizationInfo();
+  public MutableMethodOptimizationInfo toMutableOptimizationInfo() {
+    return new MutableMethodOptimizationInfo();
   }
 }

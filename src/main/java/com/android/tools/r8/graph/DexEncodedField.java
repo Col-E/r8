@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     implements StructuralItem<DexEncodedField> {
@@ -116,18 +117,15 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return false;
   }
 
+  @Override
   public FieldOptimizationInfo getOptimizationInfo() {
     return optimizationInfo;
   }
 
   public synchronized MutableFieldOptimizationInfo getMutableOptimizationInfo() {
-    if (optimizationInfo.isDefaultFieldOptimizationInfo()) {
-      MutableFieldOptimizationInfo mutableOptimizationInfo = new MutableFieldOptimizationInfo();
-      optimizationInfo = mutableOptimizationInfo;
-      return mutableOptimizationInfo;
-    }
-    assert optimizationInfo.isMutableFieldOptimizationInfo();
-    return optimizationInfo.asMutableFieldOptimizationInfo();
+    MutableFieldOptimizationInfo mutableInfo = optimizationInfo.toMutableOptimizationInfo();
+    optimizationInfo = mutableInfo;
+    return mutableInfo;
   }
 
   public void setOptimizationInfo(MutableFieldOptimizationInfo info) {
@@ -195,6 +193,12 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   @Override
   public ProgramField asProgramMember(DexDefinitionSupplier definitions) {
     return asProgramField(definitions);
+  }
+
+  @Override
+  public <T> T apply(
+      Function<DexEncodedField, T> fieldConsumer, Function<DexEncodedMethod, T> methodConsumer) {
+    return fieldConsumer.apply(this);
   }
 
   public ProgramField asProgramField(DexDefinitionSupplier definitions) {
@@ -376,9 +380,9 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       annotations = from.annotations();
       staticValue = from.staticValue;
       optimizationInfo =
-          from.optimizationInfo.isDefaultFieldOptimizationInfo()
-              ? DefaultFieldOptimizationInfo.getInstance()
-              : from.optimizationInfo.mutableCopy();
+          from.optimizationInfo.isMutableOptimizationInfo()
+              ? from.optimizationInfo.asMutableFieldOptimizationInfo().mutableCopy()
+              : from.optimizationInfo;
       deprecated = from.isDeprecated();
       d8R8Synthesized = from.isD8R8Synthesized();
     }
@@ -416,9 +420,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
               staticValue,
               deprecated,
               d8R8Synthesized);
-      if (optimizationInfo.isMutableFieldOptimizationInfo()) {
-        dexEncodedField.setOptimizationInfo(optimizationInfo.asMutableFieldOptimizationInfo());
-      }
+      dexEncodedField.optimizationInfo = optimizationInfo;
       buildConsumer.accept(dexEncodedField);
       return dexEncodedField;
     }

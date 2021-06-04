@@ -899,11 +899,15 @@ public class IRConverter {
   }
 
   private void computeReachabilitySensitivity(DexApplication application) {
-    application.classes().forEach(c -> {
-      if (c.hasReachabilitySensitiveAnnotation(options.itemFactory)) {
-        c.methods().forEach(m -> m.getMutableOptimizationInfo().setReachabilitySensitive(true));
-      }
-    });
+    application
+        .classes()
+        .forEach(
+            c -> {
+              if (c.hasReachabilitySensitiveAnnotation(options.itemFactory)) {
+                c.methods()
+                    .forEach(m -> m.getMutableOptimizationInfo().setReachabilitySensitive(true));
+              }
+            });
   }
 
   private void forEachSelectedOutliningMethod(

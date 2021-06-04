@@ -36,7 +36,7 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
       AppInfoWithLiveness.modifier();
   private final Map<DexEncodedField, MutableFieldOptimizationInfo> fieldOptimizationInfos =
       new IdentityHashMap<>();
-  private final Map<DexEncodedMethod, UpdatableMethodOptimizationInfo> methodOptimizationInfos =
+  private final Map<DexEncodedMethod, MutableMethodOptimizationInfo> methodOptimizationInfos =
       new IdentityHashMap<>();
   private final Map<DexEncodedMethod, ConstraintWithTarget> processed = new IdentityHashMap<>();
 
@@ -46,24 +46,23 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
     if (info != null) {
       return info;
     }
-    info = field.getOptimizationInfo().mutableCopy();
+    info = field.getOptimizationInfo().toMutableOptimizationInfo().mutableCopy();
     fieldOptimizationInfos.put(field, info);
     return info;
   }
 
-  private synchronized UpdatableMethodOptimizationInfo getMethodOptimizationInfoForUpdating(
+  private synchronized MutableMethodOptimizationInfo getMethodOptimizationInfoForUpdating(
       DexEncodedMethod method) {
-    UpdatableMethodOptimizationInfo info = methodOptimizationInfos.get(method);
+    MutableMethodOptimizationInfo info = methodOptimizationInfos.get(method);
     if (info != null) {
       return info;
     }
-    info = method.getOptimizationInfo().mutableCopy();
+    info = method.getOptimizationInfo().toMutableOptimizationInfo().mutableCopy();
     methodOptimizationInfos.put(method, info);
     return info;
   }
 
-  private UpdatableMethodOptimizationInfo getMethodOptimizationInfoForUpdating(
-      ProgramMethod method) {
+  private MutableMethodOptimizationInfo getMethodOptimizationInfoForUpdating(ProgramMethod method) {
     return getMethodOptimizationInfoForUpdating(method.getDefinition());
   }
 
