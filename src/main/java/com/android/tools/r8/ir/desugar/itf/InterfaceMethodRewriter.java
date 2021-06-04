@@ -441,7 +441,12 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     Function<SingleResolutionResult, Collection<CfInstruction>> rewriteToThrow =
         (resolutionResult) ->
             rewriteInvokeToThrowCf(
-                invoke, resolutionResult, eventConsumer, context, methodProcessingContext);
+                invoke,
+                resolutionResult,
+                localStackAllocator,
+                eventConsumer,
+                context,
+                methodProcessingContext);
 
     if (invoke.isInvokeVirtual() || invoke.isInvokeInterface()) {
       AppInfoWithClassHierarchy appInfoForDesugaring = appView.appInfoForDesugaring();
@@ -483,6 +488,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   private Collection<CfInstruction> rewriteInvokeToThrowCf(
       CfInvoke invoke,
       SingleResolutionResult resolutionResult,
+      LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext) {
@@ -549,6 +555,10 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
           returnType.isPrimitiveType()
               ? new CfConstNumber(0, ValueType.fromDexType(returnType))
               : new CfConstNull());
+    } else {
+      // If the return type is void, the stack may need an extra slot to fit the return type of
+      // the call to the throwing method.
+      localStackAllocator.allocateLocalStack(1);
     }
     return replacement;
   }
