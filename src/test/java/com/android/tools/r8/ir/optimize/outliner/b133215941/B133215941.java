@@ -33,7 +33,7 @@ public class B133215941 extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withAllRuntimes().build();
   }
 
   public B133215941(TestParameters parameters) {
@@ -69,9 +69,16 @@ public class B133215941 extends TestBase {
         .addInnerClasses(B133215941.class)
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(ClassWithStaticMethod.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters.getRuntime())
         .noMinification()
-        .addOptionsModification(options -> options.outline.threshold = 2)
+        .addOptionsModification(
+            options -> {
+              if (parameters.isCfRuntime()) {
+                assert !options.outline.enabled;
+                options.outline.enabled = true;
+              }
+              options.outline.threshold = 2;
+            })
         .compile()
         .inspect(this::validateOutlining)
         .run(parameters.getRuntime(), TestClass.class)

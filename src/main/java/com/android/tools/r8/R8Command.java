@@ -930,10 +930,12 @@ public final class R8Command extends BaseCompilerCommand {
                 : AssertionTransformation.DISABLE,
             getAssertionsConfiguration());
 
-    // TODO(b/171552739): Enable class merging for CF. When compiling libraries, we need to be
-    //  careful when merging a public member 'm' from a class A into another class B, since B could
-    //  have a kept subclass, in which case 'm' would leak into the public API.
+    // When generating class files the build is "intermediate" and we cannot pollute the namespace
+    // with the a hard-coded outline / enum unboxing utility class. Doing so would prohibit
+    // subsequent merging of two R8 produced libraries.
     if (internal.isGeneratingClassFiles()) {
+      internal.outline.enabled = false;
+      internal.enableEnumUnboxing = false;
       horizontalClassMergerOptions.disable();
     }
 

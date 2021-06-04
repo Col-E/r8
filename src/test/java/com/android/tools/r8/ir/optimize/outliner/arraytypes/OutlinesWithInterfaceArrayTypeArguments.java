@@ -32,8 +32,7 @@ public class OutlinesWithInterfaceArrayTypeArguments extends TestBase {
 
   @Parameterized.Parameters(name = "{1}, allow interface array types in outlining on JVM: {0}")
   public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
   }
 
   public OutlinesWithInterfaceArrayTypeArguments(
@@ -74,10 +73,14 @@ public class OutlinesWithInterfaceArrayTypeArguments extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(ClassImplementingIface.class)
         .addKeepClassAndMembersRules(OtherClassImplementingIface.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters.getRuntime())
         .noMinification()
         .addOptionsModification(
             options -> {
+              if (parameters.isCfRuntime()) {
+                assert !options.outline.enabled;
+                options.outline.enabled = true;
+              }
               options.outline.threshold = 2;
               options.outline.minSize = 2;
               options.testing.allowOutlinerInterfaceArrayArguments =

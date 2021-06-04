@@ -317,6 +317,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableInitializedClassesInInstanceMethodsAnalysis = true;
   public boolean enableRedundantFieldLoadElimination = true;
   public boolean enableValuePropagation = true;
+  public boolean enableValuePropagationForInstanceFields = true;
   public boolean enableUninstantiatedTypeOptimization = true;
   // Currently disabled, see b/146957343.
   public boolean enableUninstantiatedTypeOptimizationForInterfaces = false;

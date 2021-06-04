@@ -35,7 +35,7 @@ public class OutlinesWithNonNullTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withAllRuntimes().build();
   }
 
   public OutlinesWithNonNullTest(TestParameters parameters) {
@@ -49,11 +49,15 @@ public class OutlinesWithNonNullTest extends TestBase {
         .enableInliningAnnotations()
         .addProgramClasses(TestArg.class, TestClassWithNonNullOnOneSide.class)
         .addKeepMainRule(TestClassWithNonNullOnOneSide.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters.getRuntime())
         .allowAccessModification()
         .noMinification()
         .addOptionsModification(
             options -> {
+              if (parameters.isCfRuntime()) {
+                assert !options.outline.enabled;
+                options.outline.enabled = true;
+              }
               options.outline.threshold = 2;
               options.outline.minSize = 2;
             })
@@ -70,11 +74,15 @@ public class OutlinesWithNonNullTest extends TestBase {
         .enableInliningAnnotations()
         .addProgramClasses(TestArg.class, TestClassWithNonNullOnBothSides.class)
         .addKeepMainRule(TestClassWithNonNullOnBothSides.class)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters.getRuntime())
         .allowAccessModification()
         .noMinification()
         .addOptionsModification(
             options -> {
+              if (parameters.isCfRuntime()) {
+                assert !options.outline.enabled;
+                options.outline.enabled = true;
+              }
               options.outline.threshold = 2;
               options.outline.minSize = 2;
             })
