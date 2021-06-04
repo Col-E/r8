@@ -1254,15 +1254,15 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     }
     appView
         .getSyntheticItems()
-        .ensureDirectMethodOnSyntheticClasspathClass(
+        .ensureFixedClasspathClassMethod(
+            rewritten.getName(),
+            rewritten.getProto(),
             SyntheticKind.COMPANION_CLASS,
             context,
             appView,
-            rewritten,
-            builder ->
-                builder
-                    .setName(rewritten.name)
-                    .setProto(rewritten.proto)
+            classBuilder -> {},
+            methodBuilder ->
+                methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                     .setCode(DexEncodedMethod::buildEmptyThrowingCfCode));
   }

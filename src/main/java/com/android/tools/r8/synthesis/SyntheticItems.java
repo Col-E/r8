@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -21,6 +22,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
@@ -556,21 +558,9 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     DexProgramClass clazz =
         ensureFixedClass(kind, context, appView, buildClassCallback, ignored -> {});
     DexMethod methodReference = appView.dexItemFactory().createMethod(clazz.getType(), proto, name);
-    DexEncodedMethod methodDefinition = clazz.getMethodCollection().getMethod(methodReference);
-    if (methodDefinition != null) {
-      return new ProgramMethod(clazz, methodDefinition);
-    }
-    // TODO(b/183998768): Make this thread safe and safe to use for recursive definitions.
-    SyntheticMethodBuilder builder =
-        new SyntheticMethodBuilder(appView.dexItemFactory(), clazz.getType(), kind);
-    builder.setName(name);
-    builder.setProto(proto);
-    buildMethodCallback.accept(builder);
-    DexEncodedMethod method = builder.build();
-    assert method.getName() == name;
-    assert method.getProto() == proto;
-    clazz.addMethod(method);
-    return new ProgramMethod(clazz, method);
+    DexEncodedMethod methodDefinition =
+        internalEnsureMethod(methodReference, clazz, kind, appView, buildMethodCallback);
+    return new ProgramMethod(clazz, methodDefinition);
   }
 
   public DexClasspathClass createFixedClasspathClass(
@@ -617,22 +607,50 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     }
   }
 
-  public void ensureDirectMethodOnSyntheticClasspathClass(
+  public DexClassAndMethod ensureFixedClasspathClassMethod(
+      DexString methodName,
+      DexProto methodProto,
       SyntheticKind kind,
       ClasspathOrLibraryClass context,
       AppView<?> appView,
-      DexMethod method,
-      Consumer<SyntheticMethodBuilder> builderConsumer) {
-    DexClasspathClass syntheticClass =
-        ensureFixedClasspathClass(kind, context, appView, ignored -> {}, ignored -> {});
-    synchronized (syntheticClass) {
-      if (syntheticClass.lookupMethod(method) != null) {
-        return;
+      Consumer<SyntheticClasspathClassBuilder> buildClassCallback,
+      Consumer<SyntheticMethodBuilder> buildMethodCallback) {
+    DexClasspathClass clazz =
+        ensureFixedClasspathClass(kind, context, appView, buildClassCallback, ignored -> {});
+    DexMethod methodReference =
+        appView.dexItemFactory().createMethod(clazz.getType(), methodProto, methodName);
+    DexEncodedMethod methodDefinition =
+        internalEnsureMethod(methodReference, clazz, kind, appView, buildMethodCallback);
+    return DexClassAndMethod.create(clazz, methodDefinition);
+  }
+
+  private DexEncodedMethod internalEnsureMethod(
+      DexMethod methodReference,
+      DexClass clazz,
+      SyntheticKind kind,
+      AppView<?> appView,
+      Consumer<SyntheticMethodBuilder> buildMethodCallback) {
+    MethodCollection methodCollection = clazz.getMethodCollection();
+    DexEncodedMethod methodDefinition = methodCollection.getMethod(methodReference);
+    if (methodDefinition != null) {
+      return methodDefinition;
+    }
+    synchronized (methodCollection) {
+      methodDefinition = methodCollection.getMethod(methodReference);
+      if (methodDefinition != null) {
+        return methodDefinition;
       }
-      SyntheticMethodBuilder syntheticMethodBuilder =
-          new SyntheticMethodBuilder(appView.dexItemFactory(), syntheticClass.type, kind);
-      builderConsumer.accept(syntheticMethodBuilder);
-      syntheticClass.addDirectMethod(syntheticMethodBuilder.build());
+      SyntheticMethodBuilder builder =
+          new SyntheticMethodBuilder(appView.dexItemFactory(), clazz.getType(), kind);
+      builder.setName(methodReference.getName());
+      builder.setProto(methodReference.getProto());
+      buildMethodCallback.accept(builder);
+      // TODO(b/183998768): Make this safe for recursive definitions.
+      //  For example, the builder should be split into the creation of the method structure
+      //  and the creation of the method code. The code can then be constructed outside the lock.
+      methodDefinition = builder.build();
+      methodCollection.addMethod(methodDefinition);
+      return methodDefinition;
     }
   }
 
