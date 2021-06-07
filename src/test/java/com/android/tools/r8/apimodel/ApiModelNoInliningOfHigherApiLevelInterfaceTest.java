@@ -2,11 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.apimodeling;
+package com.android.tools.r8.apimodel;
 
-import static com.android.tools.r8.apimodeling.ApiModelNoInliningOfHigherApiLevelVirtualTest.ApiCaller.callVirtualMethod;
-import static com.android.tools.r8.apimodeling.ApiModelingTestHelper.setMockApiLevelForMethod;
-import static com.android.tools.r8.apimodeling.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
@@ -21,23 +20,23 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ApiModelNoInliningOfHigherApiLevelVirtualTest extends TestBase {
+public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
 
   private final TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
-  public ApiModelNoInliningOfHigherApiLevelVirtualTest(TestParameters parameters) {
+  public ApiModelNoInliningOfHigherApiLevelInterfaceTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
     Method apiMethod = Api.class.getDeclaredMethod("apiLevel22");
-    Method apiCaller = ApiCaller.class.getDeclaredMethod("callVirtualMethod");
+    Method apiCaller = ApiCaller.class.getDeclaredMethod("callInterfaceMethod", Api.class);
     Method apiCallerCaller = A.class.getDeclaredMethod("noApiCall");
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, A.class, ApiCaller.class)
@@ -49,29 +48,26 @@ public class ApiModelNoInliningOfHigherApiLevelVirtualTest extends TestBase {
         .enableNoHorizontalClassMergingAnnotations()
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
-        .compile()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("A::noApiCall", "ApiCaller::callInterfaceMethod")
         .inspect(
             verifyThat(parameters, apiCaller)
-                .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1))
-        .addRunClasspathClasses(Api.class)
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(
-            "A::noApiCall", "ApiCaller::callVirtualMethod", "Api::apiLevel22");
+                .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1));
   }
 
-  public static class Api {
+  public interface Api {
 
-    public void apiLevel22() {
-      System.out.println("Api::apiLevel22");
-    }
+    void apiLevel22();
   }
 
   @NoHorizontalClassMerging
   public static class ApiCaller {
 
-    public static void callVirtualMethod() {
-      System.out.println("ApiCaller::callVirtualMethod");
-      new Api().apiLevel22();
+    public static void callInterfaceMethod(Api api) {
+      System.out.println("ApiCaller::callInterfaceMethod");
+      if (api != null) {
+        api.apiLevel22();
+      }
     }
   }
 
@@ -81,7 +77,7 @@ public class ApiModelNoInliningOfHigherApiLevelVirtualTest extends TestBase {
     @NeverInline
     public static void noApiCall() {
       System.out.println("A::noApiCall");
-      callVirtualMethod();
+      ApiCaller.callInterfaceMethod(null);
     }
   }
 

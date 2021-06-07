@@ -2,10 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.apimodeling;
+package com.android.tools.r8.apimodel;
 
-import static com.android.tools.r8.apimodeling.ApiModelingTestHelper.setMockApiLevelForMethod;
-import static com.android.tools.r8.apimodeling.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
@@ -20,7 +20,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ApiModelNoClassInliningMethodTest extends TestBase {
+public class ApiModelNoInliningOfHigherApiLevelStaticTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -29,17 +29,17 @@ public class ApiModelNoClassInliningMethodTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public ApiModelNoClassInliningMethodTest(TestParameters parameters) {
+  public ApiModelNoInliningOfHigherApiLevelStaticTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
     Method apiMethod = Api.class.getDeclaredMethod("apiLevel22");
-    Method apiCaller = ApiCaller.class.getDeclaredMethod("callApi");
-    Method apiCallerCaller = ApiCallerCaller.class.getDeclaredMethod("callCallApi");
+    Method apiCaller = ApiCaller.class.getDeclaredMethod("callStaticMethod");
+    Method apiCallerCaller = A.class.getDeclaredMethod("noApiCall");
     testForR8(parameters.getBackend())
-        .addProgramClasses(ApiCaller.class, ApiCallerCaller.class, Main.class)
+        .addProgramClasses(Main.class, A.class, ApiCaller.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
@@ -54,7 +54,8 @@ public class ApiModelNoClassInliningMethodTest extends TestBase {
                 .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1))
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Api::apiLevel22");
+        .assertSuccessWithOutputLines(
+            "A::noApiCall", "ApiCaller::callStaticMethod", "Api::apiLevel22");
   }
 
   public static class Api {
@@ -66,25 +67,26 @@ public class ApiModelNoClassInliningMethodTest extends TestBase {
 
   @NoHorizontalClassMerging
   public static class ApiCaller {
-
-    public void callApi() {
+    public static void callStaticMethod() {
+      System.out.println("ApiCaller::callStaticMethod");
       Api.apiLevel22();
     }
   }
 
   @NoHorizontalClassMerging
-  public static class ApiCallerCaller {
+  public static class A {
 
     @NeverInline
-    public static void callCallApi() {
-      new ApiCaller().callApi();
+    public static void noApiCall() {
+      System.out.println("A::noApiCall");
+      ApiCaller.callStaticMethod();
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      ApiCallerCaller.callCallApi();
+      A.noApiCall();
     }
   }
 }

@@ -2,10 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.apimodeling;
+package com.android.tools.r8.apimodel;
 
-import static com.android.tools.r8.apimodeling.ApiModelingTestHelper.setMockApiLevelForMethod;
-import static com.android.tools.r8.apimodeling.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForField;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
@@ -13,6 +13,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,71 +21,70 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
+public class ApiModelNoInliningOfHigherApiLevelInstanceFieldTest extends TestBase {
 
   private final TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public ApiModelNoInliningOfHigherApiLevelInterfaceTest(TestParameters parameters) {
+  public ApiModelNoInliningOfHigherApiLevelInstanceFieldTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
-    Method apiMethod = Api.class.getDeclaredMethod("apiLevel22");
-    Method apiCaller = ApiCaller.class.getDeclaredMethod("callInterfaceMethod", Api.class);
-    Method apiCallerCaller = A.class.getDeclaredMethod("noApiCall");
+    Field apiField = Api.class.getDeclaredField("apiLevel22");
+    Method apiCaller = ApiCaller.class.getDeclaredMethod("getInstanceField");
+    Method apiCallerCaller = ApiCallerCaller.class.getDeclaredMethod("noApiCall");
     testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class, A.class, ApiCaller.class)
+        .addProgramClasses(ApiCaller.class, ApiCallerCaller.class, Main.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
+        .apply(setMockApiLevelForField(apiField, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .compile()
+        // TODO(b/138781768): Should not be inlined
+        .inspect(verifyThat(parameters, apiCaller).inlinedInto(apiCallerCaller))
+        .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("A::noApiCall", "ApiCaller::callInterfaceMethod")
-        .inspect(
-            verifyThat(parameters, apiCaller)
-                .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1));
+        .assertSuccessWithOutputLines("Hello World!");
   }
 
-  public interface Api {
+  // The api class does not have an api level to ensure it is not the instance initializer that is
+  // keeping us from inlining.
+  public static class Api {
 
-    void apiLevel22();
+    public String apiLevel22 = "Hello World!";
   }
 
   @NoHorizontalClassMerging
   public static class ApiCaller {
 
-    public static void callInterfaceMethod(Api api) {
-      System.out.println("ApiCaller::callInterfaceMethod");
-      if (api != null) {
-        api.apiLevel22();
-      }
+    public static void getInstanceField() {
+      System.out.println(new Api().apiLevel22);
     }
   }
 
   @NoHorizontalClassMerging
-  public static class A {
+  public static class ApiCallerCaller {
 
     @NeverInline
     public static void noApiCall() {
-      System.out.println("A::noApiCall");
-      ApiCaller.callInterfaceMethod(null);
+      ApiCaller.getInstanceField();
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      A.noApiCall();
+      ApiCallerCaller.noApiCall();
     }
   }
 }

@@ -2,9 +2,9 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.apimodeling;
+package com.android.tools.r8.apimodel;
 
-import static com.android.tools.r8.apimodeling.ApiModelingTestHelper.setMockApiLevelForType;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForType;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -74,7 +74,7 @@ public class ApiModelClassMergingWithDifferentApiFieldsTest extends TestBase {
       // a method reference to `Api` and only because of the type reference in the field `api`.
       Class<?> aClass =
           Class.forName(
-              "com.android.tools.r8.apimodeling.ApiModelClassMergingWithDifferentApiFieldsTest_Api"
+              "com.android.tools.r8.apimodel.ApiModelClassMergingWithDifferentApiFieldsTest_Api"
                   .replace("_", "$"));
       Method foo = aClass.getDeclaredMethod("foo");
       foo.invoke(api);

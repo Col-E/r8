@@ -2,11 +2,13 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.apimodeling;
+package com.android.tools.r8.apimodel;
 
-import static com.android.tools.r8.apimodeling.ApiModelingTestHelper.setMockApiLevelForMethod;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -18,69 +20,60 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ApiModelClassMergingWithDifferentApiMethodsTest extends TestBase {
+public class ApiModelNoInliningOfHigherApiLevelIntoLowerDirectTest extends TestBase {
 
   private final TestParameters parameters;
-  private final String[] EXPECTED = new String[] {"Api::apiLevel22", "B::bar"};
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public ApiModelClassMergingWithDifferentApiMethodsTest(TestParameters parameters) {
+  public ApiModelNoInliningOfHigherApiLevelIntoLowerDirectTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
-  @Test
+  @Test()
   public void testR8() throws Exception {
-    Method apiMethod = Api.class.getDeclaredMethod("apiLevel22");
+    Method apiLevel21 = A.class.getDeclaredMethod("apiLevel21");
+    Method apiLevel22 = B.class.getDeclaredMethod("apiLevel22");
     testForR8(parameters.getBackend())
-        .addProgramClasses(A.class, B.class, Main.class)
-        .addLibraryClasses(Api.class)
-        .addDefaultRuntimeLibrary(parameters)
+        .addInnerClasses(getClass())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        // TODO(b/138781768): Should not be merged
-        .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertClassesMerged(A.class, B.class))
+        .enableNoHorizontalClassMergingAnnotations()
+        .apply(setMockApiLevelForMethod(apiLevel21, AndroidApiLevel.L))
+        .apply(setMockApiLevelForMethod(apiLevel22, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
-        .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
-        .compile()
-        .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
+        .assertSuccessWithOutputLines("A::apiLevel21", "B::apiLevel22")
+        .inspect(verifyThat(parameters, apiLevel22).inlinedInto(apiLevel21));
   }
 
-  public static class Api {
-
+  // This tests that program classes where we directly mock the methods to have an api level will
+  // be inlined.
+  @NoHorizontalClassMerging
+  public static class B {
     public static void apiLevel22() {
-      System.out.println("Api::apiLevel22");
+      System.out.println("B::apiLevel22");
     }
   }
 
+  @NoHorizontalClassMerging
   public static class A {
 
     @NeverInline
-    public static void callFoo() {
-      Api.apiLevel22();
-    }
-  }
-
-  public static class B {
-
-    @NeverInline
-    public static void bar() {
-      System.out.println("B::bar");
+    public static void apiLevel21() {
+      System.out.println("A::apiLevel21");
+      B.apiLevel22();
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      A.callFoo();
-      B.bar();
+      A.apiLevel21();
     }
   }
 }
