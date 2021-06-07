@@ -16,7 +16,10 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugaring.interfacemethods.methodparameters.I;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.SupplierUtils;
 import java.nio.file.Path;
+import java.util.function.Supplier;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -25,6 +28,7 @@ import org.junit.runners.Parameterized;
 public class MethodParametersTest extends TestBase {
 
   private final TestParameters parameters;
+  private final Supplier<Path> compiledWithParameters;
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -38,16 +42,30 @@ public class MethodParametersTest extends TestBase {
 
   public MethodParametersTest(TestParameters parameters) {
     this.parameters = parameters;
+    compiledWithParameters =
+        SupplierUtils.memoize(
+            () ->
+                javac(
+                        parameters.isCfRuntime()
+                            ? getCheckedInJdk(parameters.getRuntime().asCf().getVm())
+                            : getCheckedInJdk11())
+                    .addSourceFiles(ToolHelper.getSourceFileForTestClass(I.class))
+                    .addOptions("-parameters")
+                    .compile());
   }
+
+  private final String EXPECTED =
+      StringUtils.lines(
+          "0", "1", "a: 1", "2", "a: 1", "b: 2", "0", "1", "a: 1", "2", "a: 1", "b: 2");
 
   @Test
   public void testJvm() throws Exception {
     assumeTrue(parameters.isCfRuntime());
     testForJvm()
-        .addProgramClassesAndInnerClasses(I.class)
+        .addProgramFiles(compiledWithParameters.get())
         .addInnerClasses(getClass())
         .run(parameters.getRuntime(), TestRunner.class)
-        .assertSuccessWithOutputLines("0", "1", "2", "0", "1", "2");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
@@ -56,18 +74,9 @@ public class MethodParametersTest extends TestBase {
     assumeTrue(
         parameters.isDexRuntime()
             || getCheckedInJdk(parameters.getRuntime().asCf().getVm()) != null);
-    Path compiledWithParameters =
-        javac(
-                parameters.isCfRuntime()
-                    ? getCheckedInJdk(parameters.getRuntime().asCf().getVm())
-                    : getCheckedInJdk11())
-            .addSourceFiles(ToolHelper.getSourceFileForTestClass(I.class))
-            .addOptions("-parameters")
-            .compile();
-
     Path interfaceDesugared =
         testForD8(Backend.CF)
-            .addProgramFiles(compiledWithParameters)
+            .addProgramFiles(compiledWithParameters.get())
             .setMinApi(parameters.getApiLevel())
             .compile()
             .writeToZip();
@@ -117,7 +126,7 @@ public class MethodParametersTest extends TestBase {
         .run(parameters.getRuntime(), TestRunner.class)
         .applyIf(
             parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring(),
-            r -> r.assertSuccessWithOutputLines("0", "1", "2", "0", "1", "2"),
+            r -> r.assertSuccessWithOutput(EXPECTED),
             // TODO(b/189743726): Should not fail at runtime (but will have different parameter
             // count for non-static methods when desugared).
             r ->

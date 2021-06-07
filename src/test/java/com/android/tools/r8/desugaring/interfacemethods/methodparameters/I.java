@@ -3,29 +3,67 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugaring.interfacemethods.methodparameters;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.reflect.Parameter;
+
 public interface I {
 
   default void zeroArgsDefault() {
     System.out.println(new Object() {}.getClass().getEnclosingMethod().getParameters().length);
   }
 
-  default void oneArgDefault(int a) {
-    System.out.println(new Object() {}.getClass().getEnclosingMethod().getParameters().length);
+  default void oneArgDefault(@RuntimeAnnotation1(n = 0) int a) {
+    Parameter[] parameters = new Object() {}.getClass().getEnclosingMethod().getParameters();
+    System.out.println(parameters.length);
+    for (Parameter parameter : parameters) {
+      System.out.println(parameter.getName() + ": " + parameter.getAnnotations().length);
+    }
   }
 
-  default void twoArgDefault(int a, int b) {
-    System.out.println(new Object() {}.getClass().getEnclosingMethod().getParameters().length);
+  default void twoArgDefault(
+      @RuntimeAnnotation1(n = 1) int a,
+      @RuntimeAnnotation1(n = 2) @RuntimeAnnotation2(n = 2) int b) {
+    Parameter[] parameters = new Object() {}.getClass().getEnclosingMethod().getParameters();
+    System.out.println(parameters.length);
+    for (Parameter parameter : parameters) {
+      System.out.println(parameter.getName() + ": " + parameter.getAnnotations().length);
+    }
   }
 
   static void zeroArgStatic() {
-    System.out.println(new Object() {}.getClass().getEnclosingMethod().getParameters().length);
+    Parameter[] parameters = new Object() {}.getClass().getEnclosingMethod().getParameters();
+    System.out.println(parameters.length);
+    for (Parameter parameter : parameters) {
+      System.out.println(parameter.getName() + ": " + parameter.getAnnotations().length);
+    }
   }
 
-  static void oneArgStatic(int a) {
-    System.out.println(new Object() {}.getClass().getEnclosingMethod().getParameters().length);
+  static void oneArgStatic(@RuntimeAnnotation1(n = 0) int a) {
+    Parameter[] parameters = new Object() {}.getClass().getEnclosingMethod().getParameters();
+    System.out.println(parameters.length);
+    for (Parameter parameter : parameters) {
+      System.out.println(parameter.getName() + ": " + parameter.getAnnotations().length);
+    }
   }
 
-  static void twoArgsStatic(int a, int b) {
-    System.out.println(new Object() {}.getClass().getEnclosingMethod().getParameters().length);
+  static void twoArgsStatic(
+      @RuntimeAnnotation1(n = 1) int a,
+      @RuntimeAnnotation1(n = 2) @RuntimeAnnotation2(n = 2) int b) {
+    Parameter[] parameters = new Object() {}.getClass().getEnclosingMethod().getParameters();
+    System.out.println(parameters.length);
+    for (Parameter parameter : parameters) {
+      System.out.println(parameter.getName() + ": " + parameter.getAnnotations().length);
+    }
+  }
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @interface RuntimeAnnotation1 {
+    int n();
+  }
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @interface RuntimeAnnotation2 {
+    int n();
   }
 }
