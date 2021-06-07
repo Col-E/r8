@@ -245,6 +245,8 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
                           companionMethod.name)));
         }
       }
+    } else {
+      assert extraDispatchCases.size() <= 1;
     }
     return extraDispatchCases;
   }
