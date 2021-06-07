@@ -36,6 +36,7 @@ import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.NestedGraphLens;
@@ -74,12 +75,10 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   private final InterfaceMethodRewriter rewriter;
   private final Map<DexProgramClass, PostProcessingInterfaceInfo> postProcessingInterfaceInfos =
       new ConcurrentHashMap<>();
-  private final ClassTypeSignature objectTypeSignature;
 
   InterfaceProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
     this.rewriter = rewriter;
-    this.objectTypeSignature = new ClassTypeSignature(appView.dexItemFactory().objectType);
   }
 
   @Override
@@ -111,30 +110,29 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     processDirectInterfaceMethods(iface);
   }
 
-  private ProgramMethod ensureCompanionMethod(
+  static ProgramMethod ensureCompanionMethod(
       DexProgramClass iface,
       DexString methodName,
       DexProto methodProto,
+      AppView<?> appView,
       Consumer<SyntheticMethodBuilder> fn) {
-    ProgramMethod method =
-        appView
-            .getSyntheticItems()
-            .ensureFixedClassMethod(
-                methodName,
-                methodProto,
-                SyntheticKind.COMPANION_CLASS,
-                iface,
-                appView,
-                builder ->
-                    builder
-                        .setSourceFile(iface.sourceFile)
-                        .setGenericSignature(
-                            iface
-                                .getClassSignature()
-                                .toObjectBoundWithSameFormals(objectTypeSignature)),
-                fn);
-    assert method.getHolderType() == rewriter.getCompanionClassType(iface.type);
-    return method;
+    return appView
+        .getSyntheticItems()
+        .ensureFixedClassMethod(
+            methodName,
+            methodProto,
+            SyntheticKind.COMPANION_CLASS,
+            iface,
+            appView,
+            builder ->
+                builder
+                    .setSourceFile(iface.sourceFile)
+                    .setGenericSignature(
+                        iface
+                            .getClassSignature()
+                            .toObjectBoundWithSameFormals(
+                                new ClassTypeSignature(appView.dexItemFactory().objectType))),
+            fn);
   }
 
   private void ensureCompanionClassInitializesInterface(
@@ -148,6 +146,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
             iface,
             appView.dexItemFactory().classConstructorMethodName,
             appView.dexItemFactory().createProto(appView.dexItemFactory().voidType),
+            appView,
             methodBuilder -> createCompanionClassInitializer(iface, clinitField, methodBuilder));
     synthesizedMethods.add(clinit);
   }
@@ -252,6 +251,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
             iface,
             companionMethod.getName(),
             companionMethod.getProto(),
+            appView,
             methodBuilder ->
                 methodBuilder
                     .setAccessFlags(newFlags)
@@ -302,25 +302,17 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                 + " is expected to "
                 + "either be public or private in "
                 + iface.origin;
-        DexMethod companionMethod = rewriter.staticAsMethodOfCompanionClass(method);
-
-        ensureCompanionMethod(
-            iface,
-            companionMethod.getName(),
-            companionMethod.getProto(),
-            methodBuilder ->
-                methodBuilder
-                    .setAccessFlags(newFlags)
-                    .setGenericSignature(definition.getGenericSignature())
-                    .setAnnotations(definition.annotations())
-                    .setParameterAnnotationsList(definition.getParameterAnnotations())
-                    .setCode(ignored -> definition.getCode())
-                    .setOnBuildConsumer(
-                        implMethod -> {
-                          implMethod.copyMetadata(definition);
-                        }));
-
-        getPostProcessingInterfaceInfo(iface).moveMethod(oldMethod, companionMethod);
+        ProgramMethod companion = rewriter.ensureStaticAsMethodOfProgramCompanionClassStub(method);
+        // TODO(b/183998768): R8 should also install an "invalid code" object until the actual code
+        //  moves.
+        assert appView.enableWholeProgramOptimizations()
+            || InvalidCode.isInvalidCode(companion.getDefinition().getCode());
+        if (definition.hasClassFileVersion()) {
+          companion.getDefinition().downgradeClassFileVersion(definition.getClassFileVersion());
+        }
+        companion.getDefinition().setCode(definition.getCode(), appView);
+        getPostProcessingInterfaceInfo(iface).moveMethod(oldMethod, companion.getReference());
+        definition.setCode(InvalidCode.getInstance(), appView);
         continue;
       }
 
@@ -347,6 +339,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
           iface,
           companionMethod.getName(),
           companionMethod.getProto(),
+          appView,
           methodBuilder ->
               methodBuilder
                   .setAccessFlags(newFlags)

@@ -168,7 +168,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 7, "lambdadesugaringnplus"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 6, "lambdadesugaringnplus"))
         .run();
 
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
@@ -177,7 +177,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 4, "lambdadesugaringnplus"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 3, "lambdadesugaringnplus"))
         .run();
   }
 

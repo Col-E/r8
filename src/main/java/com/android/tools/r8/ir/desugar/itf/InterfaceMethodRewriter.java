@@ -40,6 +40,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
@@ -858,9 +859,9 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     assert resolutionResult != null;
     assert resolutionResult.getResolvedMethod().isStatic();
     assert invokeNeedsRewriting(invokedMethod, STATIC);
-
-    return rewriteInvoke.apply(
-        staticAsMethodOfCompanionClass(resolutionResult.getResolutionPair()));
+    DexClassAndMethod companionMethod =
+        ensureStaticAsMethodOfCompanionClassStub(resolutionResult.getResolutionPair());
+    return rewriteInvoke.apply(companionMethod.getReference());
   }
 
   private Collection<CfInstruction> rewriteInvokeSuper(
@@ -1187,12 +1188,21 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     return factory.createType(interfaceTypeDescriptor);
   }
 
+  DexClassAndMethod ensureStaticAsMethodOfCompanionClassStub(DexClassAndMethod method) {
+    if (method.isProgramMethod()) {
+      return ensureStaticAsMethodOfProgramCompanionClassStub(method.asProgramMethod());
+    } else {
+      ClasspathOrLibraryClass context = method.getHolder().asClasspathOrLibraryClass();
+      DexMethod companionMethodReference = staticAsMethodOfCompanionClass(method);
+      return ensureMethodOfClasspathCompanionClassStub(companionMethodReference, context, appView);
+    }
+  }
+
   // Represent a static interface method as a method of companion class.
   final DexMethod staticAsMethodOfCompanionClass(DexClassAndMethod method) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexType companionClassType = getCompanionClassType(method.getHolderType(), dexItemFactory);
     DexMethod rewritten = method.getReference().withHolder(companionClassType, dexItemFactory);
-    recordCompanionClassReference(appView, method, rewritten);
     return rewritten;
   }
 
@@ -1244,19 +1254,24 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     return privateAsMethodOfCompanionClass(method.getReference(), factory);
   }
 
-  private static void recordCompanionClassReference(
+  private static DexClassAndMethod recordCompanionClassReference(
       AppView<?> appView, DexClassAndMethod method, DexMethod rewritten) {
     ClasspathOrLibraryClass context = method.getHolder().asClasspathOrLibraryClass();
     // If the interface class is a program class, we shouldn't need to synthesize the companion
     // class on the classpath.
     if (context == null) {
-      return;
+      return null;
     }
-    appView
+    return ensureMethodOfClasspathCompanionClassStub(rewritten, context, appView);
+  }
+
+  private static DexClassAndMethod ensureMethodOfClasspathCompanionClassStub(
+      DexMethod companionMethodReference, ClasspathOrLibraryClass context, AppView<?> appView) {
+    return appView
         .getSyntheticItems()
         .ensureFixedClasspathClassMethod(
-            rewritten.getName(),
-            rewritten.getProto(),
+            companionMethodReference.getName(),
+            companionMethodReference.getProto(),
             SyntheticKind.COMPANION_CLASS,
             context,
             appView,
@@ -1265,6 +1280,32 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                 methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                     .setCode(DexEncodedMethod::buildEmptyThrowingCfCode));
+  }
+
+  ProgramMethod ensureStaticAsMethodOfProgramCompanionClassStub(ProgramMethod method) {
+    DexMethod companionMethodReference = staticAsMethodOfCompanionClass(method);
+    DexEncodedMethod definition = method.getDefinition();
+    return InterfaceProcessor.ensureCompanionMethod(
+        method.getHolder(),
+        companionMethodReference.getName(),
+        companionMethodReference.getProto(),
+        appView,
+        methodBuilder -> {
+          MethodAccessFlags newFlags = definition.getAccessFlags().copy();
+          newFlags.promoteToPublic();
+          methodBuilder
+              .setAccessFlags(newFlags)
+              .setGenericSignature(definition.getGenericSignature())
+              .setAnnotations(definition.annotations())
+              .setParameterAnnotationsList(definition.getParameterAnnotations())
+              // TODO(b/183998768): Once R8 desugars in the enqueuer this should set an invalid
+              //  code to ensure it is never used before desugared and installed.
+              .setCode(
+                  m ->
+                      appView.enableWholeProgramOptimizations()
+                          ? definition.getCode()
+                          : InvalidCode.getInstance());
+        });
   }
 
   /**
