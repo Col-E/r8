@@ -80,6 +80,7 @@ import com.android.tools.r8.graph.ResolutionResult.FailedResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
+import com.android.tools.r8.graph.analysis.ApiModelAnalysis;
 import com.android.tools.r8.graph.analysis.DesugaredLibraryConversionWrapperAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerCheckCastAnalysis;
@@ -102,8 +103,6 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.R8Cf
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
-import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationWithMinApiInfo;
 import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
@@ -2983,6 +2982,9 @@ public class Enqueuer {
         && appView.options().getProguardConfiguration().getKeepAttributes().signature) {
       registerAnalysis(new GenericSignatureEnqueuerAnalysis(enqueuerDefinitionSupplier));
     }
+    if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
+      registerAnalysis(new ApiModelAnalysis(appView, referenceToApiLevelMap));
+    }
     if (mode.isInitialTreeShaking()) {
       // This is simulating the effect of the "root set" applied rules.
       // This is done only in the initial pass, in subsequent passes the "rules" are reapplied
@@ -3910,19 +3912,8 @@ public class Enqueuer {
     DefaultEnqueuerUseRegistry registry =
         useRegistryFactory.create(appView, method, this, referenceToApiLevelMap);
     method.registerCodeReferences(registry);
-    DexEncodedMethod methodDefinition = method.getDefinition();
-    AndroidApiLevel maxApiReferenceLevel = registry.getMaxApiReferenceLevel();
-    assert maxApiReferenceLevel.isGreaterThanOrEqualTo(options.minApiLevel);
-    // To not have mutable update information for all methods that all has min api level we
-    // swap the default optimization info for one with that marks the api level to be min api.
-    if (methodDefinition.getOptimizationInfo() == DefaultMethodOptimizationInfo.getInstance()
-        && maxApiReferenceLevel == options.minApiLevel) {
-      methodDefinition.setMinApiOptimizationInfo(
-          DefaultMethodOptimizationWithMinApiInfo.getInstance());
-      return;
-    }
-    methodDefinition.setOptimizationInfo(
-        methodDefinition.getMutableOptimizationInfo().setApiReferenceLevel(maxApiReferenceLevel));
+    // Notify analyses.
+    analyses.forEach(analysis -> analysis.processTracedCode(method, registry));
   }
 
   private void checkDefinitionForSoftPinning(ProgramDefinition definition) {

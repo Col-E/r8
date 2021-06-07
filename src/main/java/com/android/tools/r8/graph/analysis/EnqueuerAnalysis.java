@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.shaking.DefaultEnqueuerUseRegistry;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
 import com.android.tools.r8.utils.Timing;
@@ -25,6 +26,9 @@ public abstract class EnqueuerAnalysis {
 
   /** Called when a method is found to be live. */
   public void processNewlyLiveMethod(ProgramMethod method, ProgramDefinition context) {}
+
+  /** Called when a method's code has been processed by the registry. */
+  public void processTracedCode(ProgramMethod method, DefaultEnqueuerUseRegistry registry) {}
 
   /**
    * Called when the Enqueuer reaches a fixpoint. This may happen multiple times, since each

@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import java.util.BitSet;
@@ -94,10 +93,6 @@ public abstract class MethodOptimizationInfo
   public abstract boolean returnValueOnlyDependsOnArguments();
 
   public abstract boolean returnValueHasBeenPropagated();
-
-  public abstract AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApi);
-
-  public abstract boolean hasApiReferenceLevel();
 
   public static OptionalBool isApiSafeForInlining(
       MethodOptimizationInfo caller, MethodOptimizationInfo inlinee, InternalOptions options) {

@@ -180,7 +180,7 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
 
   @Override
   public AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApi) {
-    return UNKNOWN_API_REFERENCE_LEVEL;
+    throw new RuntimeException("Should never be called");
   }
 
   @Override

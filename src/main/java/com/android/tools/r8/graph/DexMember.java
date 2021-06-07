@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.Iterables;
+import java.util.Map;
 import java.util.function.Function;
 
 public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
@@ -59,5 +61,15 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
 
   public Iterable<DexType> getReferencedBaseTypes(DexItemFactory dexItemFactory) {
     return Iterables.transform(getReferencedTypes(), type -> type.toBaseType(dexItemFactory));
+  }
+
+  public AndroidApiLevel computeApiLevelForReferencedTypes(
+      AppView<?> appView, Map<DexReference, AndroidApiLevel> apiLevelMap) {
+    AndroidApiLevel minApiLevel = appView.options().minApiLevel;
+    AndroidApiLevel apiLevel = minApiLevel;
+    for (DexType type : getReferencedBaseTypes(appView.dexItemFactory())) {
+      apiLevel = apiLevel.max(apiLevelMap.getOrDefault(type, minApiLevel));
+    }
+    return apiLevel;
   }
 }

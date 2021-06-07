@@ -6,6 +6,9 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForType;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -34,9 +37,8 @@ public class ApiModelInlineMethodWithApiTypeTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    Method apiCallerApiLevel1 = ApiCaller.class.getDeclaredMethod("apiLevel22");
-    Method apiCallerCallerApiLevel1 = ApiCallerCaller.class.getDeclaredMethod("apiLevel22");
-    Method otherCallerApiLevel1 = OtherCaller.class.getDeclaredMethod("apiLevel1");
+    Method apiCallerApiLevel22 = ApiCaller.class.getDeclaredMethod("apiLevel22");
+    Method apiCallerCallerApiLevel22 = ApiCallerCaller.class.getDeclaredMethod("apiLevel22");
     testForR8(parameters.getBackend())
         .addProgramClasses(ApiCaller.class, ApiCallerCaller.class, OtherCaller.class, Main.class)
         .addLibraryClasses(ApiType.class)
@@ -50,16 +52,15 @@ public class ApiModelInlineMethodWithApiTypeTest extends TestBase {
         .addRunClasspathClasses(ApiType.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(ApiType.class.getName())
-        .inspect(verifyThat(parameters, apiCallerApiLevel1).inlinedInto(apiCallerCallerApiLevel1))
-        // TODO(b/138781768): Should not be inlined
-        .inspect(
-            verifyThat(parameters, apiCallerCallerApiLevel1).inlinedInto(otherCallerApiLevel1));
+        .inspect(verifyThat(parameters, apiCallerApiLevel22).inlinedInto(apiCallerCallerApiLevel22))
+        .inspect(inspector -> assertThat(inspector.clazz(OtherCaller.class), not(isPresent())));
   }
 
   public static class ApiType {}
 
   @NoHorizontalClassMerging
   public static class ApiCaller {
+
     public static ApiType apiLevel22() throws Exception {
       // The reflective call here is to ensure that the setting of A's api level is not based on
       // a method reference to `Api` and only because of the type reference in the field `api`.
@@ -81,6 +82,7 @@ public class ApiModelInlineMethodWithApiTypeTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   public static class OtherCaller {
 
     public static void apiLevel1() throws Exception {

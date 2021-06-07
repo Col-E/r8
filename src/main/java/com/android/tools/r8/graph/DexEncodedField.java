@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.optimize.info.DefaultFieldOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.DefaultFieldOptimizationWithMinApiInfo;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
@@ -129,6 +130,10 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   public void setOptimizationInfo(MutableFieldOptimizationInfo info) {
+    optimizationInfo = info;
+  }
+
+  public void setMinApiOptimizationInfo(DefaultFieldOptimizationWithMinApiInfo info) {
     optimizationInfo = info;
   }
 

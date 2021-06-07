@@ -30,7 +30,7 @@ public class DefaultMethodOptimizationWithMinApiInfo extends DefaultMethodOptimi
     MutableMethodOptimizationInfo updatableMethodOptimizationInfo =
         super.toMutableOptimizationInfo();
     // Use null to specify that the min api is set to minApi.
-    updatableMethodOptimizationInfo.setApiReferenceLevel(null);
+    updatableMethodOptimizationInfo.setMinApiReferenceLevel();
     return updatableMethodOptimizationInfo;
   }
 }

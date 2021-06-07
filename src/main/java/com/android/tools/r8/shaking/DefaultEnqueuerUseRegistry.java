@@ -182,6 +182,13 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
   }
 
   private void setMaxApiReferenceLevel(DexReference reference) {
+    if (reference.isDexMember()) {
+      this.maxApiReferenceLevel =
+          maxApiReferenceLevel.max(
+              reference
+                  .asDexMember()
+                  .computeApiLevelForReferencedTypes(appView, apiReferenceMapping));
+    }
     this.maxApiReferenceLevel =
         maxApiReferenceLevel.max(apiReferenceMapping.getOrDefault(reference, maxApiReferenceLevel));
   }

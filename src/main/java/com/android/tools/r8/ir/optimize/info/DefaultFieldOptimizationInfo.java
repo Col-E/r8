@@ -8,12 +8,13 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
+import com.android.tools.r8.utils.AndroidApiLevel;
 
 public class DefaultFieldOptimizationInfo extends FieldOptimizationInfo {
 
   private static final DefaultFieldOptimizationInfo INSTANCE = new DefaultFieldOptimizationInfo();
 
-  private DefaultFieldOptimizationInfo() {}
+  protected DefaultFieldOptimizationInfo() {}
 
   public static DefaultFieldOptimizationInfo getInstance() {
     return INSTANCE;
@@ -52,6 +53,11 @@ public class DefaultFieldOptimizationInfo extends FieldOptimizationInfo {
   @Override
   public boolean valueHasBeenPropagated() {
     return false;
+  }
+
+  @Override
+  public AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApi) {
+    throw new RuntimeException("Should never be called");
   }
 
   @Override

@@ -498,6 +498,19 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   @Override
+  @SuppressWarnings("OptionalAssignedToNull")
+  public void setMinApiReferenceLevel() {
+    assert apiReferenceLevel == null;
+    this.apiReferenceLevel = Optional.empty();
+  }
+
+  @Override
+  public void setApiReferenceLevel(AndroidApiLevel apiReferenceLevel) {
+    assert apiReferenceLevel != null;
+    this.apiReferenceLevel = Optional.of(apiReferenceLevel);
+  }
+
+  @Override
   public boolean isMutableOptimizationInfo() {
     return true;
   }
@@ -509,11 +522,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
 
   @Override
   public MutableMethodOptimizationInfo asMutableMethodOptimizationInfo() {
-    return this;
-  }
-
-  public MutableMethodOptimizationInfo setApiReferenceLevel(AndroidApiLevel apiReferenceLevel) {
-    this.apiReferenceLevel = Optional.ofNullable(apiReferenceLevel);
     return this;
   }
 

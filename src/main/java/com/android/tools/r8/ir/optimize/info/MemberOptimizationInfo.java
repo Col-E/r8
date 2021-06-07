@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
+import com.android.tools.r8.utils.AndroidApiLevel;
+
 public interface MemberOptimizationInfo<
     T extends MemberOptimizationInfo<T> & MutableOptimizationInfo> {
 
@@ -18,6 +20,12 @@ public interface MemberOptimizationInfo<
   default MutableFieldOptimizationInfo asMutableFieldOptimizationInfo() {
     return null;
   }
+
+  default boolean hasApiReferenceLevel() {
+    return false;
+  }
+
+  AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApi);
 
   T toMutableOptimizationInfo();
 }
