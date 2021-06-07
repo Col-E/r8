@@ -279,7 +279,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** *(...); } "
                     + "-keep class <1> { @"
                     + PRESENT_ANNOTATION
-                    + " *** <2>(...); }")
+                    + " <2> <3>(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
             .apply(this::configureHorizontalClassMerging)
