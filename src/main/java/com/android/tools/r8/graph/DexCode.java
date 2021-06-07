@@ -38,8 +38,8 @@ import java.util.Set;
 // DexCode corresponds to code item in dalvik/dex-format.html
 public class DexCode extends Code implements StructuralItem<DexCode> {
 
-  static final String FAKE_THIS_PREFIX = "_";
-  static final String FAKE_THIS_SUFFIX = "this";
+  public static final String FAKE_THIS_PREFIX = "_";
+  public static final String FAKE_THIS_SUFFIX = "this";
 
   public final int registerSize;
   public final int incomingRegisterSize;

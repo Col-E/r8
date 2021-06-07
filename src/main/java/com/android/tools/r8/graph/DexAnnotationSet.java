@@ -7,6 +7,9 @@ import static com.android.tools.r8.utils.PredicateUtils.not;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.graph.DexValue.DexValueArray;
+import com.android.tools.r8.graph.DexValue.DexValueInt;
+import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -197,6 +200,43 @@ public class DexAnnotationSet extends CachedHashValueDexItem
       return DexAnnotationSet.empty();
     }
     return new DexAnnotationSet(rewritten);
+  }
+
+  public DexAnnotationSet methodParametersWithFakeThisArguments(DexItemFactory factory) {
+    DexAnnotation[] newAnnotations = null;
+    for (int i = 0; i < annotations.length; i++) {
+      DexAnnotation annotation = annotations[i];
+      if (annotation.annotation.type == factory.annotationMethodParameters) {
+        assert annotation.visibility == DexAnnotation.VISIBILITY_SYSTEM;
+        assert annotation.annotation.elements.length == 2;
+        assert annotation.annotation.elements[0].name.toString().equals("names");
+        assert annotation.annotation.elements[1].name.toString().equals("accessFlags");
+        DexValueArray names = annotation.annotation.elements[0].value.asDexValueArray();
+        DexValueArray accessFlags = annotation.annotation.elements[1].value.asDexValueArray();
+        assert names != null && accessFlags != null;
+        assert names.getValues().length == accessFlags.getValues().length;
+        if (newAnnotations == null) {
+          newAnnotations = new DexAnnotation[annotations.length];
+          System.arraycopy(annotations, 0, newAnnotations, 0, i);
+        }
+        DexValue[] newNames = new DexValue[names.getValues().length + 1];
+        newNames[0] =
+            new DexValueString(
+                factory.createString(DexCode.FAKE_THIS_PREFIX + DexCode.FAKE_THIS_SUFFIX));
+        System.arraycopy(names.getValues(), 0, newNames, 1, names.getValues().length);
+        DexValue[] newAccessFlags = new DexValue[accessFlags.getValues().length + 1];
+        newAccessFlags[0] = DexValueInt.create(0);
+        System.arraycopy(
+            accessFlags.getValues(), 0, newAccessFlags, 1, accessFlags.getValues().length);
+        newAnnotations[i] =
+            DexAnnotation.createMethodParametersAnnotation(newNames, newAccessFlags, factory);
+      } else {
+        if (newAnnotations != null) {
+          newAnnotations[i] = annotation;
+        }
+      }
+    }
+    return newAnnotations == null ? this : new DexAnnotationSet(newAnnotations);
   }
 
   @Override

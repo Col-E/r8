@@ -5,12 +5,9 @@ package com.android.tools.r8.desugaring.interfacemethods;
 
 import static com.android.tools.r8.TestRuntime.getCheckedInJdk;
 import static com.android.tools.r8.TestRuntime.getCheckedInJdk11;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
@@ -57,6 +54,22 @@ public class MethodParametersTest extends TestBase {
   private final String EXPECTED =
       StringUtils.lines(
           "0", "1", "a: 1", "2", "a: 1", "b: 2", "0", "1", "a: 1", "2", "a: 1", "b: 2");
+  private final String EXPECTED_DESUGARED =
+      StringUtils.lines(
+          "1",
+          "2",
+          "_this: 0",
+          "a: 1",
+          "3",
+          "_this: 0",
+          "a: 1",
+          "b: 2",
+          "0",
+          "1",
+          "a: 1",
+          "2",
+          "a: 1",
+          "b: 2");
 
   @Test
   public void testJvm() throws Exception {
@@ -86,17 +99,6 @@ public class MethodParametersTest extends TestBase {
             .addProgramFiles(interfaceDesugared)
             .setMinApi(parameters.getApiLevel())
             .compile()
-            // TODO(b/189743726): These warnings should not be there.
-            .applyIf(
-                parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring(),
-                TestCompileResult::assertNoInfoMessages,
-                r ->
-                    r.assertAtLeastOneInfoMessage()
-                        .assertAllInfoMessagesMatch(
-                            anyOf(
-                                containsString(
-                                    "Invalid parameter counts in MethodParameter attributes"),
-                                containsString("Methods with invalid MethodParameter attributes"))))
             .writeToZip();
 
     Path programDesugared =
@@ -112,26 +114,11 @@ public class MethodParametersTest extends TestBase {
         .addProgramFiles(programDesugared)
         .setMinApi(parameters.getApiLevel())
         .compile()
-        // TODO(b/189743726): These warnings should not be there.
-        .applyIf(
-            parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring(),
-            TestCompileResult::assertNoInfoMessages,
-            r ->
-                r.assertAtLeastOneInfoMessage()
-                    .assertAllInfoMessagesMatch(
-                        anyOf(
-                            containsString(
-                                "Invalid parameter counts in MethodParameter attributes"),
-                            containsString("Methods with invalid MethodParameter attributes"))))
         .run(parameters.getRuntime(), TestRunner.class)
         .applyIf(
             parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring(),
             r -> r.assertSuccessWithOutput(EXPECTED),
-            // TODO(b/189743726): Should not fail at runtime (but will have different parameter
-            // count for non-static methods when desugared).
-            r ->
-                r.assertFailureWithErrorThatMatches(
-                    containsString("Wrong number of parameters in MethodParameters attribute")));
+            r -> r.assertSuccessWithOutput(EXPECTED_DESUGARED));
   }
 
   static class A implements I {}

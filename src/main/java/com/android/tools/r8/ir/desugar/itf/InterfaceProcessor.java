@@ -256,8 +256,12 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                 methodBuilder
                     .setAccessFlags(newFlags)
                     .setGenericSignature(MethodTypeSignature.noSignature())
-                    .setAnnotations(virtual.annotations())
-                    .setParameterAnnotationsList(virtual.getParameterAnnotations())
+                    .setAnnotations(
+                        virtual
+                            .annotations()
+                            .methodParametersWithFakeThisArguments(appView.dexItemFactory()))
+                    .setParameterAnnotationsList(
+                        virtual.getParameterAnnotations().withFakeThisParameter())
                     .setCode(ignored -> virtual.getCode())
                     .setOnBuildConsumer(
                         implMethod -> {

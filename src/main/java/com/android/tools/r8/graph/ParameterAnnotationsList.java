@@ -187,6 +187,17 @@ public class ParameterAnnotationsList extends DexItem
     return new ParameterAnnotationsList(values, parameterCount - values.length);
   }
 
+  public ParameterAnnotationsList withFakeThisParameter() {
+    // If there are no parameter annotations there is no need to add one for the this parameter.
+    if (isEmpty()) {
+      return this;
+    }
+    DexAnnotationSet[] newValues = new DexAnnotationSet[size() + 1];
+    System.arraycopy(values, 0, newValues, 1, size());
+    newValues[0] = DexAnnotationSet.empty();
+    return new ParameterAnnotationsList(newValues, 0);
+  }
+
   /**
    * Return a new ParameterAnnotationsList that keeps only the annotations matched by {@code
    * filter}.
