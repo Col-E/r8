@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.kotlin.Kotlin;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -2398,6 +2399,13 @@ public class DexItemFactory {
 
   public DexField createField(DexType clazz, DexType type, String name) {
     return createField(clazz, type, createString(name));
+  }
+
+  public DexField createField(FieldReference fieldReference) {
+    return createField(
+        createType(fieldReference.getHolderClass().getDescriptor()),
+        createType(fieldReference.getFieldType().getDescriptor()),
+        fieldReference.getFieldName());
   }
 
   public DexProto createProto(DexType returnType, DexTypeList parameters, DexString shorty) {

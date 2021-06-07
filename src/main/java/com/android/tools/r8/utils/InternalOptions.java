@@ -37,6 +37,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
@@ -1306,6 +1307,19 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public Map<TypeReference, AndroidApiLevel> typeApiMapping = new HashMap<>();
 
     public boolean enableApiCallerIdentification = false;
+
+    public void appendToApiLevelMap(
+        Map<DexReference, AndroidApiLevel> apiLevelMap, DexItemFactory factory) {
+      methodApiMapping.forEach(
+          (methodReference, apiLevel) ->
+              apiLevelMap.put(factory.createMethod(methodReference), apiLevel));
+      fieldApiMapping.forEach(
+          (fieldReference, apiLevel) ->
+              apiLevelMap.put(factory.createField(fieldReference), apiLevel));
+      typeApiMapping.forEach(
+          (typeReference, apiLevel) ->
+              apiLevelMap.put(factory.createType(typeReference.getDescriptor()), apiLevel));
+    }
   }
 
   public static class ProtoShrinkingOptions {

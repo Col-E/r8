@@ -91,46 +91,55 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
   @Override
   public void registerInstanceFieldRead(DexField field) {
+    setMaxApiReferenceLevel(field);
     enqueuer.traceInstanceFieldRead(field, context);
   }
 
   @Override
   public void registerInstanceFieldReadFromMethodHandle(DexField field) {
+    setMaxApiReferenceLevel(field);
     enqueuer.traceInstanceFieldReadFromMethodHandle(field, context);
   }
 
   @Override
   public void registerInstanceFieldWrite(DexField field) {
+    setMaxApiReferenceLevel(field);
     enqueuer.traceInstanceFieldWrite(field, context);
   }
 
   @Override
   public void registerInstanceFieldWriteFromMethodHandle(DexField field) {
+    setMaxApiReferenceLevel(field);
     enqueuer.traceInstanceFieldWriteFromMethodHandle(field, context);
   }
 
   @Override
   public void registerNewInstance(DexType type) {
+    setMaxApiReferenceLevel(type);
     enqueuer.traceNewInstance(type, context);
   }
 
   @Override
   public void registerStaticFieldRead(DexField field) {
+    setMaxApiReferenceLevel(field);
     enqueuer.traceStaticFieldRead(field, context);
   }
 
   @Override
   public void registerStaticFieldReadFromMethodHandle(DexField field) {
+    setMaxApiReferenceLevel(field);
     enqueuer.traceStaticFieldReadFromMethodHandle(field, context);
   }
 
   @Override
   public void registerStaticFieldWrite(DexField field) {
+    setMaxApiReferenceLevel(field);
     enqueuer.traceStaticFieldWrite(field, context);
   }
 
   @Override
   public void registerStaticFieldWriteFromMethodHandle(DexField field) {
+    setMaxApiReferenceLevel(field);
     enqueuer.traceStaticFieldWriteFromMethodHandle(field, context);
   }
 
@@ -172,10 +181,9 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
     enqueuer.traceCallSite(callSite, context);
   }
 
-  private void setMaxApiReferenceLevel(DexMethod invokedMethod) {
+  private void setMaxApiReferenceLevel(DexReference reference) {
     this.maxApiReferenceLevel =
-        maxApiReferenceLevel.max(
-            apiReferenceMapping.getOrDefault(invokedMethod, maxApiReferenceLevel));
+        maxApiReferenceLevel.max(apiReferenceMapping.getOrDefault(reference, maxApiReferenceLevel));
   }
 
   public AndroidApiLevel getMaxApiReferenceLevel() {

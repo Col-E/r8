@@ -470,14 +470,7 @@ public class Enqueuer {
     }
     referenceToApiLevelMap = new IdentityHashMap<>();
     if (options.apiModelingOptions().enableApiCallerIdentification) {
-      options
-          .apiModelingOptions()
-          .methodApiMapping
-          .forEach(
-              (methodReference, apiLevel) -> {
-                referenceToApiLevelMap.put(
-                    options.dexItemFactory().createMethod(methodReference), apiLevel);
-              });
+      options.apiModelingOptions().appendToApiLevelMap(referenceToApiLevelMap, dexItemFactory);
     }
   }
 

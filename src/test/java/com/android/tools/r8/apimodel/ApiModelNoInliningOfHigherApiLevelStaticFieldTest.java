@@ -50,8 +50,9 @@ public class ApiModelNoInliningOfHigherApiLevelStaticFieldTest extends TestBase 
         .apply(setMockApiLevelForField(apiField, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()
-        // TODO(b/138781768): Should not be inlined
-        .inspect(verifyThat(parameters, apiCaller).inlinedInto(apiCallerCaller))
+        .inspect(
+            verifyThat(parameters, apiCaller)
+                .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1))
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!");
