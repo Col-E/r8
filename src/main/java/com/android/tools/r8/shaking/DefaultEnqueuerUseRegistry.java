@@ -155,6 +155,11 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
   }
 
   @Override
+  public void registerSafeCheckCast(DexType type) {
+    enqueuer.traceSafeCheckCast(type, context);
+  }
+
+  @Override
   public void registerTypeReference(DexType type) {
     enqueuer.traceTypeReference(type, context);
   }

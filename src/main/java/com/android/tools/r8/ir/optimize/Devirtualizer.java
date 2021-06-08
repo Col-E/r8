@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.SafeCheckCast;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -63,7 +64,7 @@ public class Devirtualizer {
     Map<InvokeInterface, InvokeVirtual> devirtualizedCall = new IdentityHashMap<>();
     DominatorTree dominatorTree = new DominatorTree(code);
     Map<Value, Map<DexType, Value>> castedReceiverCache = new IdentityHashMap<>();
-    Set<CheckCast> newCheckCastInstructions = Sets.newIdentityHashSet();
+    Set<SafeCheckCast> newCheckCastInstructions = Sets.newIdentityHashSet();
 
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
@@ -261,7 +262,8 @@ public class Devirtualizer {
                 castedReceiverCache.putIfAbsent(receiver, new IdentityHashMap<>());
                 castedReceiverCache.get(receiver).put(holderClass.getType(), newReceiver);
               }
-              CheckCast checkCast = new CheckCast(newReceiver, receiver, holderClass.getType());
+              SafeCheckCast checkCast =
+                  new SafeCheckCast(newReceiver, receiver, holderClass.getType());
               checkCast.setPosition(invoke.getPosition());
               newCheckCastInstructions.add(checkCast);
 

@@ -86,6 +86,7 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
+import com.android.tools.r8.ir.code.SafeCheckCast;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
@@ -415,7 +416,7 @@ public class LensCodeRewriter {
                   Value castOutValue = code.createValue(castType);
                   newOutValue.replaceUsers(castOutValue);
                   CheckCast checkCast =
-                      CheckCast.builder()
+                      SafeCheckCast.builder()
                           .setCastType(lookup.getCastType())
                           .setObject(newOutValue)
                           .setOutValue(castOutValue)
@@ -479,7 +480,7 @@ public class LensCodeRewriter {
                   Value castOutValue = code.createValue(castType);
                   newOutValue.replaceUsers(castOutValue);
                   CheckCast checkCast =
-                      CheckCast.builder()
+                      SafeCheckCast.builder()
                           .setCastType(lookup.getCastType())
                           .setObject(newOutValue)
                           .setOutValue(castOutValue)

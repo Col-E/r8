@@ -788,8 +788,8 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       Value receiver = invoke.inValues().get(0);
       TypeElement castTypeLattice =
           TypeElement.fromDexType(downcast, receiver.getType().nullability(), appView);
-      CheckCast castInstruction =
-          new CheckCast(code.createValue(castTypeLattice), receiver, downcast);
+      SafeCheckCast castInstruction =
+          new SafeCheckCast(code.createValue(castTypeLattice), receiver, downcast);
       castInstruction.setPosition(invoke.getPosition());
 
       // Splice in the check cast operation.

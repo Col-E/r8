@@ -67,14 +67,13 @@ public class CheckCast extends Instruction {
     // we have to insert a move before the check cast instruction.
     int inRegister = builder.allocatedRegister(inValues.get(0), getNumber());
     if (outValue == null) {
-      builder.add(this, new com.android.tools.r8.code.CheckCast(inRegister, type));
+      builder.add(this, createCheckCast(inRegister));
     } else {
       int outRegister = builder.allocatedRegister(outValue, getNumber());
       if (inRegister == outRegister) {
-        builder.add(this, new com.android.tools.r8.code.CheckCast(outRegister, type));
+        builder.add(this, createCheckCast(outRegister));
       } else {
-        com.android.tools.r8.code.CheckCast cast =
-            new com.android.tools.r8.code.CheckCast(outRegister, type);
+        com.android.tools.r8.code.CheckCast cast = createCheckCast(outRegister);
         if (outRegister <= Constants.U4BIT_MAX && inRegister <= Constants.U4BIT_MAX) {
           builder.add(this, new MoveObject(outRegister, inRegister), cast);
         } else {
@@ -82,6 +81,10 @@ public class CheckCast extends Instruction {
         }
       }
     }
+  }
+
+  com.android.tools.r8.code.CheckCast createCheckCast(int register) {
+    return new com.android.tools.r8.code.CheckCast(register, getType());
   }
 
   @Override
@@ -237,8 +240,8 @@ public class CheckCast extends Instruction {
 
   public static class Builder extends BuilderBase<Builder, CheckCast> {
 
-    private DexType castType;
-    private Value object;
+    protected DexType castType;
+    protected Value object;
 
     public Builder setCastType(DexType castType) {
       this.castType = castType;

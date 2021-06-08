@@ -101,6 +101,10 @@ public class CfCheckCast extends CfInstruction implements CfTypeInstruction {
     // Pop the top value and push it back on with the checked type.
     state.pop();
     Slot object = state.push(type);
+    addCheckCast(builder, object);
+  }
+
+  void addCheckCast(IRBuilder builder, Slot object) {
     builder.addCheckCast(object.register, type);
   }
 

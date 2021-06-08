@@ -1032,6 +1032,11 @@ public class Enqueuer {
     traceConstClassOrCheckCast(type, currentMethod);
   }
 
+  void traceSafeCheckCast(DexType type, ProgramMethod currentMethod) {
+    checkCastAnalyses.forEach(analysis -> analysis.traceSafeCheckCast(type, currentMethod));
+    traceCompilerSynthesizedConstClassOrCheckCast(type, currentMethod);
+  }
+
   void traceConstClass(
       DexType type,
       ProgramMethod currentMethod,
@@ -1092,8 +1097,21 @@ public class Enqueuer {
   }
 
   private void traceConstClassOrCheckCast(DexType type, ProgramMethod currentMethod) {
+    internalTraceConstClassOrCheckCast(type, currentMethod, false);
+  }
+
+  // TODO(b/190487539): Currently only used by traceSafeCheckCast(), but should also be used to
+  //  ensure we don't trigger compat behavior for const-class instructions synthesized for
+  //  synchronized methods.
+  private void traceCompilerSynthesizedConstClassOrCheckCast(
+      DexType type, ProgramMethod currentMethod) {
+    internalTraceConstClassOrCheckCast(type, currentMethod, true);
+  }
+
+  private void internalTraceConstClassOrCheckCast(
+      DexType type, ProgramMethod currentMethod, boolean isCompilerSynthesized) {
     traceTypeReference(type, currentMethod);
-    if (!forceProguardCompatibility) {
+    if (!forceProguardCompatibility || isCompilerSynthesized) {
       return;
     }
     DexType baseType = type.toBaseType(appView.dexItemFactory());

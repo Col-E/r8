@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.SafeCheckCast;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
@@ -373,7 +374,7 @@ public class GeneratedMessageLiteBuilderShrinker {
         DexType rawReceiverType = receiverType.getClassType();
         if (appInfo.isStrictSubtypeOf(rawReceiverType, references.generatedMessageLiteType)) {
           Value dest = code.createValue(receiverType.asMaybeNull(), checkCast.getLocalInfo());
-          CheckCast replacement = new CheckCast(dest, checkCast.object(), rawReceiverType);
+          SafeCheckCast replacement = new SafeCheckCast(dest, checkCast.object(), rawReceiverType);
           instructionIterator.replaceCurrentInstruction(replacement, affectedValues);
         }
       }

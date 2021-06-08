@@ -82,6 +82,10 @@ public abstract class UseRegistry {
     registerTypeReference(type);
   }
 
+  public void registerSafeCheckCast(DexType type) {
+    registerCheckCast(type);
+  }
+
   public void registerExceptionGuard(DexType guard) {
     registerTypeReference(guard);
   }

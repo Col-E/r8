@@ -102,6 +102,7 @@ import com.android.tools.r8.ir.code.Phi.StackMapPhi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Return;
+import com.android.tools.r8.ir.code.SafeCheckCast;
 import com.android.tools.r8.ir.code.Shl;
 import com.android.tools.r8.ir.code.Shr;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -1181,11 +1182,20 @@ public class IRBuilder {
   }
 
   public void addCheckCast(int value, DexType type) {
+    internalAddCheckCast(value, type, false);
+  }
+
+  public void addSafeCheckCast(int value, DexType type) {
+    internalAddCheckCast(value, type, true);
+  }
+
+  private void internalAddCheckCast(int value, DexType type, boolean isSafe) {
     Value in = readRegister(value, ValueTypeConstraint.OBJECT);
     TypeElement castTypeLattice =
         TypeElement.fromDexType(type, in.getType().nullability(), appView);
     Value out = writeRegister(value, castTypeLattice, ThrowingInfo.CAN_THROW);
-    CheckCast instruction = new CheckCast(out, in, type);
+    CheckCast instruction =
+        isSafe ? new SafeCheckCast(out, in, type) : new CheckCast(out, in, type);
     assert instruction.instructionTypeCanThrow();
     add(instruction);
   }

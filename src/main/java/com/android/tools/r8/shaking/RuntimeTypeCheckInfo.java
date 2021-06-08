@@ -61,6 +61,11 @@ public class RuntimeTypeCheckInfo {
     }
 
     @Override
+    public void traceSafeCheckCast(DexType type, ProgramMethod context) {
+      // Intentionally empty.
+    }
+
+    @Override
     public void traceInstanceOf(DexType type, ProgramMethod context) {
       add(type, instanceOfTypes);
     }
