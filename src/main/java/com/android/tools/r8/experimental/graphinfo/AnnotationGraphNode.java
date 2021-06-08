@@ -4,31 +4,44 @@
 package com.android.tools.r8.experimental.graphinfo;
 
 import com.android.tools.r8.Keep;
+import java.util.Objects;
 
 @Keep
 public final class AnnotationGraphNode extends GraphNode {
 
   private final GraphNode annotatedNode;
+  private final ClassGraphNode annotationClassNode;
 
-  public AnnotationGraphNode(GraphNode annotatedNode) {
+  public AnnotationGraphNode(GraphNode annotatedNode, ClassGraphNode annotationClassNode) {
     super(annotatedNode.isLibraryNode());
     this.annotatedNode = annotatedNode;
+    this.annotationClassNode = annotationClassNode;
   }
 
   public GraphNode getAnnotatedNode() {
     return annotatedNode;
   }
 
+  public ClassGraphNode getAnnotationClassNode() {
+    return annotationClassNode;
+  }
+
   @Override
   public boolean equals(Object o) {
-    return this == o
-        || (o instanceof AnnotationGraphNode
-            && ((AnnotationGraphNode) o).annotatedNode.equals(annotatedNode));
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof AnnotationGraphNode)) {
+      return false;
+    }
+    AnnotationGraphNode node = (AnnotationGraphNode) o;
+    return annotatedNode.equals(node.annotatedNode)
+        && annotationClassNode.equals(node.annotationClassNode);
   }
 
   @Override
   public int hashCode() {
-    return 7 * annotatedNode.hashCode();
+    return Objects.hash(annotatedNode, annotationClassNode);
   }
 
   @Override

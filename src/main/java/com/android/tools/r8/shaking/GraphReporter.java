@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.AnnotationGraphNode;
 import com.android.tools.r8.experimental.graphinfo.ClassGraphNode;
@@ -21,7 +20,6 @@ import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
@@ -51,7 +49,7 @@ public class GraphReporter {
   private final CollectingGraphConsumer verificationGraphConsumer;
 
   // Canonicalization of external graph-nodes and edge info.
-  private final Map<DexItem, AnnotationGraphNode> annotationNodes = new IdentityHashMap<>();
+  private final Map<DexAnnotation, AnnotationGraphNode> annotationNodes = new IdentityHashMap<>();
   private final Map<DexType, ClassGraphNode> classNodes = new IdentityHashMap<>();
   private final Map<DexMethod, MethodGraphNode> methodNodes = new IdentityHashMap<>();
   private final Map<DexField, FieldGraphNode> fieldNodes = new IdentityHashMap<>();
@@ -359,11 +357,13 @@ public class GraphReporter {
     return registerEdge(getClassGraphNode(clazz.type), reason);
   }
 
-  public KeepReasonWitness registerAnnotation(DexAnnotation annotation, KeepReason reason) {
+  public KeepReasonWitness registerAnnotation(
+      DexAnnotation annotation, ProgramDefinition annotatedItem) {
+    KeepReason reason = KeepReason.annotatedOn(annotatedItem.getDefinition());
     if (skipReporting(reason)) {
       return KeepReasonWitness.INSTANCE;
     }
-    return registerEdge(getAnnotationGraphNode(annotation.annotation.type), reason);
+    return registerEdge(getAnnotationGraphNode(annotation, annotatedItem), reason);
   }
 
   public KeepReasonWitness registerMethod(DexEncodedMethod method, KeepReason reason) {
@@ -432,15 +432,18 @@ public class GraphReporter {
     return appView.appInfo().definitionForWithoutExistenceAssert(type);
   }
 
-  AnnotationGraphNode getAnnotationGraphNode(DexItem type) {
+  AnnotationGraphNode getAnnotationGraphNode(
+      DexAnnotation annotation, ProgramDefinition annotatedItem) {
     return annotationNodes.computeIfAbsent(
-        type,
-        t -> {
-          if (t instanceof DexType) {
-            return new AnnotationGraphNode(getClassGraphNode(((DexType) t)));
-          }
-          throw new Unimplemented(
-              "Incomplete support for annotation node on item: " + type.getClass());
+        annotation,
+        key -> {
+          GraphNode annotatedNode =
+              annotatedItem
+                  .getReference()
+                  .apply(
+                      this::getClassGraphNode, this::getFieldGraphNode, this::getMethodGraphNode);
+          ClassGraphNode annotationClassNode = getClassGraphNode(annotation.getAnnotationType());
+          return new AnnotationGraphNode(annotatedNode, annotationClassNode);
         });
   }
 

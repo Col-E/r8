@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.experimental.graphinfo.AnnotationGraphNode;
 import com.android.tools.r8.experimental.graphinfo.ClassGraphNode;
 import com.android.tools.r8.experimental.graphinfo.FieldGraphNode;
 import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo;
@@ -624,6 +625,14 @@ public class GraphInspector {
   private final Map<MethodReference, MethodGraphNode> methods;
   private final Map<FieldReference, FieldGraphNode> fields;
 
+  // Maps (annotated item, annotation type) to annotation node.
+  private final Map<ClassReference, Map<ClassReference, AnnotationGraphNode>> classAnnotations =
+      new HashMap<>();
+  private final Map<FieldReference, Map<ClassReference, AnnotationGraphNode>> fieldAnnotations =
+      new HashMap<>();
+  private final Map<MethodReference, Map<ClassReference, AnnotationGraphNode>> methodAnnotations =
+      new HashMap<>();
+
   public GraphInspector(CollectingGraphConsumer consumer, CodeInspector inspector) {
     this.consumer = consumer;
     this.inspector = inspector;
@@ -646,8 +655,30 @@ public class GraphInspector {
       } else if (target instanceof KeepRuleGraphNode) {
         KeepRuleGraphNode node = (KeepRuleGraphNode) target;
         rules.add(node);
+      } else if (target instanceof AnnotationGraphNode) {
+        AnnotationGraphNode node = (AnnotationGraphNode) target;
+        GraphNode annotatedNode = node.getAnnotatedNode();
+        Map<ClassReference, AnnotationGraphNode> annotationsOnAnnotatedNode;
+        if (annotatedNode instanceof ClassGraphNode) {
+          annotationsOnAnnotatedNode =
+              classAnnotations.computeIfAbsent(
+                  ((ClassGraphNode) annotatedNode).getReference(), key -> new HashMap<>());
+        } else if (annotatedNode instanceof FieldGraphNode) {
+          annotationsOnAnnotatedNode =
+              fieldAnnotations.computeIfAbsent(
+                  ((FieldGraphNode) annotatedNode).getReference(), key -> new HashMap<>());
+        } else if (annotatedNode instanceof MethodGraphNode) {
+          annotationsOnAnnotatedNode =
+              methodAnnotations.computeIfAbsent(
+                  ((MethodGraphNode) annotatedNode).getReference(), key -> new HashMap<>());
+        } else {
+          throw new Unreachable(
+              "Incomplete support for annotations on non-class, non-field, non-method items: "
+                  + annotatedNode.getClass().getTypeName());
+        }
+        annotationsOnAnnotatedNode.put(node.getAnnotationClassNode().getReference(), node);
       } else {
-        throw new Unimplemented("Incomplet support for graph node type: " + target.getClass());
+        throw new Unimplemented("Incomplete support for graph node type: " + target.getClass());
       }
       Map<GraphNode, Set<GraphEdgeInfo>> sources = consumer.getSourcesTargeting(target);
       for (GraphNode source : sources.keySet()) {

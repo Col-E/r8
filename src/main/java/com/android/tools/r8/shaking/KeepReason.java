@@ -6,12 +6,13 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo;
 import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo.EdgeKind;
 import com.android.tools.r8.experimental.graphinfo.GraphNode;
+import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 
 // TODO(herhut): Canonicalize reason objects.
@@ -61,8 +62,9 @@ public abstract class KeepReason {
     return new ReferencedFrom(method.getDefinition());
   }
 
-  public static KeepReason referencedInAnnotation(DexItem holder) {
-    return new ReferencedInAnnotation(holder);
+  public static KeepReason referencedInAnnotation(
+      DexAnnotation annotation, ProgramDefinition annotatedItem) {
+    return new ReferencedInAnnotation(annotation, annotatedItem);
   }
 
   public boolean isDueToKeepRule() {
@@ -229,10 +231,12 @@ public abstract class KeepReason {
 
   private static class ReferencedInAnnotation extends KeepReason {
 
-    private final DexItem holder;
+    private final DexAnnotation annotation;
+    private final ProgramDefinition annotatedItem;
 
-    private ReferencedInAnnotation(DexItem holder) {
-      this.holder = holder;
+    private ReferencedInAnnotation(DexAnnotation annotation, ProgramDefinition annotatedItem) {
+      this.annotation = annotation;
+      this.annotatedItem = annotatedItem;
     }
 
     @Override
@@ -242,7 +246,7 @@ public abstract class KeepReason {
 
     @Override
     public GraphNode getSourceNode(GraphReporter graphReporter) {
-      return graphReporter.getAnnotationGraphNode(holder);
+      return graphReporter.getAnnotationGraphNode(annotation, annotatedItem);
     }
   }
 

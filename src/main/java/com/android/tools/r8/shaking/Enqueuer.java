@@ -42,7 +42,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexItemFactory.ClassMethods;
 import com.android.tools.r8.graph.DexLibraryClass;
@@ -1698,7 +1697,7 @@ public class Enqueuer {
       return;
     }
     if (!type.isClassType()) {
-      // Ignore primitive types.
+      // Ignore primitive types and void.
       return;
     }
     DexProgramClass clazz = getProgramClassOrNull(type, context);
@@ -1961,11 +1960,14 @@ public class Enqueuer {
       }
       return;
     }
-    KeepReason reason = KeepReason.annotatedOn(annotatedItem.getDefinition());
-    graphReporter.registerAnnotation(annotation, reason);
+
+    // Report that the annotation is retained due to the annotated item.
+    graphReporter.registerAnnotation(annotation, annotatedItem);
+
+    // Report that the items referenced from inside the annotation are retained due to the
+    // annotation.
     AnnotationReferenceMarker referenceMarker =
-        new AnnotationReferenceMarker(
-            annotation.getAnnotationType(), annotatedItem, appView.dexItemFactory(), reason);
+        new AnnotationReferenceMarker(annotation, annotatedItem);
     annotation.annotation.collectIndexedItems(referenceMarker);
   }
 
@@ -4492,20 +4494,12 @@ public class Enqueuer {
 
   private class AnnotationReferenceMarker implements IndexedItemCollection {
 
-    private final DexItem annotationHolder;
     private final ProgramDefinition context;
-    private final DexItemFactory dexItemFactory;
     private final KeepReason reason;
 
-    private AnnotationReferenceMarker(
-        DexItem annotationHolder,
-        ProgramDefinition context,
-        DexItemFactory dexItemFactory,
-        KeepReason reason) {
-      this.annotationHolder = annotationHolder;
+    private AnnotationReferenceMarker(DexAnnotation annotation, ProgramDefinition context) {
       this.context = context;
-      this.dexItemFactory = dexItemFactory;
-      this.reason = reason;
+      this.reason = KeepReason.referencedInAnnotation(annotation, context);
     }
 
     @Override
@@ -4535,17 +4529,15 @@ public class Enqueuer {
                 : fieldAccessInfoCollection.extend(
                     fieldReference, new FieldAccessInfoImpl(fieldReference));
         fieldAccessInfo.setReadFromAnnotation();
-        markFieldAsLive(field, context, KeepReason.referencedInAnnotation(annotationHolder));
+        markFieldAsLive(field, context, reason);
         // When an annotation has a field of an enum type the JVM will use the values() method on
         // that enum class if the field is referenced.
         if (options.isGeneratingClassFiles() && field.getHolder().isEnum()) {
-          markEnumValuesAsReachable(
-              field.getHolder(), KeepReason.referencedInAnnotation(annotationHolder));
+          markEnumValuesAsReachable(field.getHolder(), reason);
         }
       } else {
         // There is no dispatch on annotations, so only keep what is directly referenced.
-        workList.enqueueMarkFieldAsReachableAction(
-            field, context, KeepReason.referencedInAnnotation(annotationHolder));
+        workList.enqueueMarkFieldAsReachableAction(field, context, reason);
       }
       return false;
     }
@@ -4562,17 +4554,13 @@ public class Enqueuer {
       if (target != null) {
         // There is no dispatch on annotations, so only keep what is directly referenced.
         if (target.getReference() == method) {
-          markDirectStaticOrConstructorMethodAsLive(
-              new ProgramMethod(holder, target),
-              KeepReason.referencedInAnnotation(annotationHolder));
+          markDirectStaticOrConstructorMethodAsLive(new ProgramMethod(holder, target), reason);
         }
       } else {
         target = holder.lookupVirtualMethod(method);
         // There is no dispatch on annotations, so only keep what is directly referenced.
         if (target != null && target.getReference() == method) {
-          markMethodAsTargeted(
-              new ProgramMethod(holder, target),
-              KeepReason.referencedInAnnotation(annotationHolder));
+          markMethodAsTargeted(new ProgramMethod(holder, target), reason);
         }
       }
       return false;
@@ -4600,11 +4588,7 @@ public class Enqueuer {
 
     @Override
     public boolean addType(DexType type) {
-      // Annotations can also contain the void type, which is not a class type, so filter it out
-      // here.
-      if (type != dexItemFactory.voidType) {
-        markTypeAsLive(type, context, reason);
-      }
+      markTypeAsLive(type, context, reason);
       return false;
     }
   }
