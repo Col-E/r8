@@ -71,6 +71,16 @@ public class B137392797 extends TestBase implements Opcodes {
             "com.squareup.wire.WireField", "com.squareup.demo.myapplication.Test")
         .addKeepMainRule(TestClass.class)
         .addKeepAttributes("*Annotation*")
+        .applyIf(
+            parameters.isCfRuntime(),
+            builder ->
+                // When parsing the enum default value, the JVM tries to find the enum with the
+                // given name, but after shrinking the enum field names and the enum instance names
+                // no longer match.
+                builder.addKeepRules(
+                    "-keepclassmembers,allowshrinking class com.squareup.wire.WireField$Label {",
+                    "  static com.squareup.wire.WireField$Label OPTIONAL;",
+                    "}"))
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::checkEnumUses)

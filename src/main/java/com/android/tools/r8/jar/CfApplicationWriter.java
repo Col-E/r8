@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
@@ -29,7 +30,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
-import com.android.tools.r8.graph.DexValue.DexValueEnum;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLens;
@@ -522,9 +522,11 @@ public class CfApplicationWriter {
         break;
 
       case ENUM:
-        DexValueEnum en = value.asDexValueEnum();
+        DexField enumField = value.asDexValueEnum().getValue();
         visitor.visitEnum(
-            name, namingLens.lookupDescriptor(en.value.type).toString(), en.value.name.toString());
+            name,
+            namingLens.lookupDescriptor(enumField.getType()).toString(),
+            namingLens.lookupName(enumField).toString());
         break;
 
       case FIELD:

@@ -43,6 +43,11 @@ public class EnumInAnnotationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(EnumInAnnotationTest.class)
         .addKeepMainRule(Main.class)
+        .applyIf(
+            parameters.isCfRuntime(),
+            builder ->
+                builder.addKeepRules(
+                    "-keepclassmembernames class " + Enum.class.getTypeName() + " { <fields>; }"))
         .setMinApi(parameters.getApiLevel())
         .addKeepRuntimeVisibleAnnotations()
         .run(parameters.getRuntime(), Main.class)
