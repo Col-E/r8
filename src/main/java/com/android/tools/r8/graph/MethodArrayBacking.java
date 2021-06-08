@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.PredicateUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.base.MoreObjects;
@@ -265,15 +266,13 @@ public class MethodArrayBacking extends MethodCollectionBacking {
   @Override
   void addVirtualMethod(DexEncodedMethod virtualMethod) {
     assert belongsToVirtualPool(virtualMethod);
-    virtualMethods = Arrays.copyOf(virtualMethods, virtualMethods.length + 1);
-    virtualMethods[virtualMethods.length - 1] = virtualMethod;
+    virtualMethods = ArrayUtils.appendSingleElement(virtualMethods, virtualMethod);
   }
 
   @Override
   void addDirectMethod(DexEncodedMethod directMethod) {
     assert belongsToDirectPool(directMethod);
-    directMethods = Arrays.copyOf(directMethods, directMethods.length + 1);
-    directMethods[directMethods.length - 1] = directMethod;
+    directMethods = ArrayUtils.appendSingleElement(directMethods, directMethod);
   }
 
   @Override
