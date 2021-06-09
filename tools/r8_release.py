@@ -394,7 +394,13 @@ def prepare_google3(args):
         change_result = g4_change(options.version)
         change_result += 'Run \'(g4d ' + args.p4_client \
                          + ' && tap_presubmit -p all --train -c ' \
-                         + get_cl_id(change_result) + ')\' for running TAP presubmit.'
+                         + get_cl_id(change_result) + ')\' for running TAP global' \
+                         + ' presubmit using the train.\n' \
+                         + 'Run \'(g4d ' + args.p4_client \
+                         + ' && tap_presubmit -p all --notrain --detach --email' \
+                         + ' --skip_flaky_targets --skip_already_failing -c ' \
+                         + get_cl_id(change_result) + ')\' for running an isolated' \
+                         + ' TAP global presubmit.'
         return change_result
 
   return release_google3
