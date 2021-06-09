@@ -5,16 +5,21 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class DesugaredLibraryMismatchDiagnostic implements Diagnostic {
 
   private final Set<String> desugaredLibraryIdentifiers;
+  private final Set<Marker> markers;
 
-  public DesugaredLibraryMismatchDiagnostic(Set<String> desugaredLibraryIdentifiers) {
+  public DesugaredLibraryMismatchDiagnostic(
+      Set<String> desugaredLibraryIdentifiers, Set<Marker> markers) {
     this.desugaredLibraryIdentifiers = desugaredLibraryIdentifiers;
+    this.markers = markers;
   }
 
   @Override
@@ -31,6 +36,8 @@ public class DesugaredLibraryMismatchDiagnostic implements Diagnostic {
   public String getDiagnosticMessage() {
     return "The compilation is merging inputs with different desugared library desugaring "
         + desugaredLibraryIdentifiers
-        + ", which may lead to unexpected runtime errors.";
+        + ", which may lead to unexpected runtime errors."
+        + "The markers are "
+        + markers.stream().map(Marker::toString).collect(Collectors.joining(", "));
   }
 }

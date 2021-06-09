@@ -104,7 +104,7 @@ public class Marker {
     }
 
     if (desugaredLibraryIdentifiers.size() > 1) {
-      reporter.error(new DesugaredLibraryMismatchDiagnostic(desugaredLibraryIdentifiers));
+      reporter.error(new DesugaredLibraryMismatchDiagnostic(desugaredLibraryIdentifiers, markers));
     }
   }
 
