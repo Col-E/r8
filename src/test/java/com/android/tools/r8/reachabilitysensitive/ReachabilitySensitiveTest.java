@@ -171,8 +171,7 @@ public class ReachabilitySensitiveTest extends TestBase {
         .inspector();
   }
 
-  private CodeInspector compileR8(Class... classes)
-      throws CompilationFailedException, IOException, ExecutionException {
+  private CodeInspector compileR8(Class... classes) throws CompilationFailedException, IOException {
     List<String> keepRules =
         Arrays.stream(classes)
             .map(c -> "-keep class " + c.getCanonicalName() + " { <methods>; }")
@@ -186,11 +185,16 @@ public class ReachabilitySensitiveTest extends TestBase {
         // Keep the input class and its methods.
         .addKeepRules(keepRules)
         // Keep the annotation class.
-        .addKeepRules("-keep class dalvik.annotation.optimization.ReachabilitySensitive")
+        .addKeepRules(
+            "-keep class dalvik.annotation.optimization.ReachabilitySensitive",
+            "-keep,allowshrinking,allowobfuscation class * {",
+            "  @dalvik.annotation.optimization.ReachabilitySensitive <fields>;",
+            "  @dalvik.annotation.optimization.ReachabilitySensitive <methods>;",
+            "}")
         // Keep the annotation so R8 can find it and honor it. It also needs to be available
         // at runtime so that the Art runtime can honor it as well, so if it is not kept we
         // do not have to honor it as the runtime will not know to do so in any case.
-        .addKeepRules("-keepattributes RuntimeVisibleAnnotations")
+        .addKeepRuntimeVisibleAnnotations()
         .compile()
         .inspector();
   }

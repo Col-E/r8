@@ -70,6 +70,13 @@ public class ParameterAnnotationsList extends DexItem
     this.missingParameterAnnotations = missingParameterAnnotations;
   }
 
+  public static ParameterAnnotationsList create(
+      DexAnnotationSet[] values, int missingParameterAnnotations) {
+    return ArrayUtils.isEmpty(values)
+        ? empty()
+        : new ParameterAnnotationsList(values, missingParameterAnnotations);
+  }
+
   @Override
   public ParameterAnnotationsList self() {
     return this;
@@ -226,11 +233,15 @@ public class ParameterAnnotationsList extends DexItem
     return new ParameterAnnotationsList(filtered, missingParameterAnnotations);
   }
 
-  public ParameterAnnotationsList rewrite(Function<DexAnnotationSet, DexAnnotationSet> mapper) {
-    DexAnnotationSet[] rewritten = ArrayUtils.map(DexAnnotationSet[].class, values, mapper);
-    if (rewritten != values) {
-      return new ParameterAnnotationsList(rewritten, missingParameterAnnotations);
+  public ParameterAnnotationsList rewrite(Function<DexAnnotation, DexAnnotation> mapper) {
+    if (isEmpty()) {
+      return this;
     }
-    return this;
+    DexAnnotationSet[] rewritten =
+        ArrayUtils.map(
+            values, annotations -> annotations.rewrite(mapper), DexAnnotationSet.EMPTY_ARRAY);
+    return rewritten != values
+        ? ParameterAnnotationsList.create(rewritten, missingParameterAnnotations)
+        : this;
   }
 }

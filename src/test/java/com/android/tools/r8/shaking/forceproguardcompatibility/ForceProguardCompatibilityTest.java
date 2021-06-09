@@ -6,7 +6,9 @@ package com.android.tools.r8.shaking.forceproguardcompatibility;
 
 import static com.android.tools.r8.references.Reference.classFromClass;
 import static com.android.tools.r8.references.Reference.methodFromMethod;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -122,7 +124,6 @@ public class ForceProguardCompatibilityTest extends TestBase {
                 mainClass, MentionedClass.class, mentionedClassWithAnnotations, annotationClass)
             .addKeepMainRule(mainClass)
             .allowAccessModification()
-            .noMinification()
             .addKeepClassAndMembersRules(annotationClass)
             .map(b -> keepAnnotations ? b.addKeepAttributes("*Annotation*") : b)
             .setMinApi(parameters.getApiLevel())
@@ -134,10 +135,15 @@ public class ForceProguardCompatibilityTest extends TestBase {
     assertThat(clazz, isPresent());
 
     // The test contains only a member class so the enclosing-method attribute will be null.
-    assertEquals(
-        forceProguardCompatibility, !clazz.getDexProgramClass().getInnerClasses().isEmpty());
-    assertEquals(forceProguardCompatibility || keepAnnotations,
-        clazz.annotation(annotationClass.getCanonicalName()).isPresent());
+    assertTrue(clazz.getDexProgramClass().getInnerClasses().isEmpty());
+
+    if (keepAnnotations) {
+      assertThat(
+          clazz.annotation(annotationClass.getCanonicalName()),
+          onlyIf(forceProguardCompatibility, isPresent()));
+    } else {
+      assertThat(clazz.annotation(annotationClass.getCanonicalName()), isAbsent());
+    }
   }
 
   @Test

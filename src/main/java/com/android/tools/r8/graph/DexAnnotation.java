@@ -25,6 +25,30 @@ import java.util.List;
 import java.util.function.Function;
 
 public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotation> {
+
+  public enum AnnotatedKind {
+    FIELD,
+    METHOD,
+    TYPE,
+    PARAMETER;
+
+    public static AnnotatedKind from(DexDefinition definition) {
+      return from(definition.getReference());
+    }
+
+    public static AnnotatedKind from(ProgramDefinition definition) {
+      return from(definition.getReference());
+    }
+
+    public static AnnotatedKind from(DexReference reference) {
+      return reference.apply(type -> TYPE, field -> FIELD, method -> METHOD);
+    }
+
+    public boolean isParameter() {
+      return this == PARAMETER;
+    }
+  }
+
   public static final DexAnnotation[] EMPTY_ARRAY = {};
   public static final int VISIBILITY_BUILD = 0x00;
   public static final int VISIBILITY_RUNTIME = 0x01;
@@ -298,6 +322,11 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
   public static boolean isAnnotationDefaultAnnotation(DexAnnotation annotation,
       DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationDefault;
+  }
+
+  public static boolean isJavaLangRetentionAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
+    return annotation.getAnnotationType() == factory.retentionType;
   }
 
   public static boolean isSourceDebugExtension(DexAnnotation annotation,

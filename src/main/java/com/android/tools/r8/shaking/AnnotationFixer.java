@@ -40,10 +40,8 @@ public class AnnotationFixer {
   }
 
   private void processMethod(DexEncodedMethod method) {
-    method.setAnnotations(method.annotations().rewrite(this::rewriteAnnotation));
-    method.parameterAnnotationsList =
-        method.parameterAnnotationsList.rewrite(
-            dexAnnotationSet -> dexAnnotationSet.rewrite(this::rewriteAnnotation));
+    method.rewriteAllAnnotations(
+        (annotation, isParameterAnnotation) -> rewriteAnnotation(annotation));
   }
 
   private void processField(DexEncodedField field) {
@@ -73,7 +71,7 @@ public class AnnotationFixer {
     if (value.isDexValueArray()) {
       DexValue[] originalValues = value.asDexValueArray().getValues();
       DexValue[] rewrittenValues =
-          ArrayUtils.map(DexValue[].class, originalValues, this::rewriteComplexValue);
+          ArrayUtils.map(originalValues, this::rewriteComplexValue, DexValue.EMPTY_ARRAY);
       if (rewrittenValues != originalValues) {
         return new DexValueArray(rewrittenValues);
       }

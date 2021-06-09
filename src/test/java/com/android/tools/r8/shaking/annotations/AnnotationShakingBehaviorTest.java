@@ -59,6 +59,10 @@ public class AnnotationShakingBehaviorTest extends TestBase {
         .addProgramClasses(Factory.class, MainWithMethodAnnotation.class, C.class)
         .addKeepMainRule(MainWithMethodAnnotation.class)
         .addKeepClassAndMembersRules(Factory.class)
+        .addKeepRules(
+            "-keepclassmembers,allowobfuscation,allowshrinking class "
+                + MainWithMethodAnnotation.class.getTypeName()
+                + "{void test();}")
         .addKeepAttributes("*Annotation*")
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -123,7 +127,7 @@ public class AnnotationShakingBehaviorTest extends TestBase {
       test();
     }
 
-    @Factory(ref = C.class) // <-- We are not explicitly saying that test() should be kept.
+    @Factory(ref = C.class) // <-- We are explicitly saying that test() should be kept.
     @NeverInline
     public static void test() {
       System.out.println("Hello World!");

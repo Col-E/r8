@@ -14,6 +14,8 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -43,12 +45,21 @@ public class ProgramAnnotationRemovalTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void testCompat() throws Exception {
+    runTest(true);
+  }
+
+  @Test
+  public void testNonCompat() throws Exception {
+    runTest(false);
+  }
+
+  private void runTest(boolean enableCompatMode) throws Exception {
     R8TestRunResult result =
-        testForR8(parameters.getBackend())
+        testForR8Compat(parameters.getBackend(), enableCompatMode)
             .addInnerClasses(ProgramAnnotationRemovalTest.class)
             .addKeepMainRule(TestClass.class)
-            .addKeepAttributes("RuntimeVisibleAnnotations")
+            .addKeepRuntimeVisibleAnnotations()
             .enableInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile()
@@ -68,14 +79,19 @@ public class ProgramAnnotationRemovalTest extends TestBase {
     MethodSubject methodWithLiveProgramAnnotationSubject =
         testClassSubject.uniqueMethodWithName("methodWithLiveProgramAnnotation");
     assertThat(methodWithLiveProgramAnnotationSubject, isPresent());
-    assertEquals(1, methodWithLiveProgramAnnotationSubject.getMethod().annotations().size());
+    assertEquals(
+        BooleanUtils.intValue(enableCompatMode),
+        methodWithLiveProgramAnnotationSubject.getMethod().annotations().size());
 
     MethodSubject methodWithDeadProgramAnnotationSubject =
         testClassSubject.uniqueMethodWithName("methodWithDeadProgramAnnotation");
     assertThat(methodWithDeadProgramAnnotationSubject, isPresent());
     assertEquals(0, methodWithDeadProgramAnnotationSubject.getMethod().annotations().size());
 
-    result.assertSuccessWithOutputLines("@" + liveAnnotationClassSubject.getFinalName() + "()");
+    result.applyIf(
+        enableCompatMode,
+        r -> r.assertSuccessWithOutputLines("@" + liveAnnotationClassSubject.getFinalName() + "()"),
+        TestRunResult::assertSuccessWithEmptyOutput);
   }
 
   static class TestClass {

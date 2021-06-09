@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.shaking.annotations;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assume.assumeTrue;
@@ -77,14 +79,19 @@ public class AlwaysRetainRetentionAnnotationTest extends TestBase {
 
               AnnotationSubject targetAnnotationSubject =
                   annotationClassSubject.annotation(Target.class.getTypeName());
-              assertThat(targetAnnotationSubject, isPresent());
+              assertThat(targetAnnotationSubject, onlyIf(shouldOnlyRetainRetention(), isAbsent()));
 
               AnnotationSubject myAnnotationAnnotationSubject =
                   annotationClassSubject.annotation(MyAnnotation.class.getTypeName());
-              assertThat(myAnnotationAnnotationSubject, isPresent());
+              assertThat(
+                  myAnnotationAnnotationSubject, onlyIf(shouldOnlyRetainRetention(), isAbsent()));
             })
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("3");
+        .assertSuccessWithOutputLines(shouldOnlyRetainRetention() ? "1" : "3");
+  }
+
+  private boolean shouldOnlyRetainRetention() {
+    return !enableProguardCompatibilityMode && !keepAllowShrinking;
   }
 
   static class TestClass {

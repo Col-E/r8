@@ -9,7 +9,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.OffOrAuto;
 import java.nio.file.Path;
-import java.util.function.UnaryOperator;
+import java.util.function.Consumer;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
@@ -34,8 +34,8 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
     @Override
     void build(Path inputFile, Path out, OutputMode mode) throws CompilationFailedException {
       D8Command.Builder builder = D8Command.builder().setOutput(out, mode);
-      for (UnaryOperator<D8Command.Builder> transformation : builderTransformations) {
-        builder = transformation.apply(builder);
+      for (Consumer<D8Command.Builder> transformation : builderTransformations) {
+        transformation.accept(builder);
       }
       builder.addLibraryFiles(
           ToolHelper.getAndroidJar(

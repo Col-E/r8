@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
+import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.KeepFieldInfo.Joiner;
 import com.android.tools.r8.utils.InternalOptions;
@@ -84,6 +85,10 @@ public abstract class KeepInfoCollection {
   public final KeepClassInfo getClassInfo(DexType type, DexDefinitionSupplier definitions) {
     DexProgramClass clazz = asProgramClassOrNull(definitions.definitionFor(type));
     return clazz == null ? keepInfoForNonProgramClass() : getClassInfo(clazz);
+  }
+
+  public final KeepMemberInfo<?, ?> getMemberInfo(ProgramMember<?, ?> member) {
+    return getMemberInfo(member.getDefinition(), member.getHolder());
   }
 
   public final KeepMethodInfo getMethodInfo(ProgramMethod method) {

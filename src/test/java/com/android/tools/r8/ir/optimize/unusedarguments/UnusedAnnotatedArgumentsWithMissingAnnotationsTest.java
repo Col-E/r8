@@ -11,10 +11,11 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,14 +29,18 @@ import org.objectweb.asm.Opcodes;
 public class UnusedAnnotatedArgumentsWithMissingAnnotationsTest extends TestBase
     implements Opcodes {
 
+  private final boolean enableProguardCompatibilityMode;
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameterized.Parameters(name = "{1}, compat: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public UnusedAnnotatedArgumentsWithMissingAnnotationsTest(TestParameters parameters) {
+  public UnusedAnnotatedArgumentsWithMissingAnnotationsTest(
+      boolean enableProguardCompatibilityMode, TestParameters parameters) {
+    this.enableProguardCompatibilityMode = enableProguardCompatibilityMode;
     this.parameters = parameters;
   }
 
@@ -43,26 +48,28 @@ public class UnusedAnnotatedArgumentsWithMissingAnnotationsTest extends TestBase
     assertThat(clazz, isPresent());
     MethodSubject init = clazz.init("Test", "java.lang.String");
     assertThat(init, isPresent());
-    assertEquals(2, init.getMethod().parameterAnnotationsList.size());
-    assertTrue(init.getMethod().parameterAnnotationsList.get(0).isEmpty());
-    assertEquals(1, init.getMethod().parameterAnnotationsList.get(1).annotations.length);
-    assertEquals(
-        "L" + expectedAnnotationClass + ";",
-        init.getMethod()
-            .parameterAnnotationsList
-            .get(1)
-            .annotations[0]
-            .annotation
-            .type
-            .descriptor
-            .toString());
+    if (enableProguardCompatibilityMode) {
+      assertEquals(2, init.getMethod().getParameterAnnotations().size());
+      assertTrue(init.getMethod().getParameterAnnotation(0).isEmpty());
+      assertEquals(1, init.getMethod().getParameterAnnotation(1).size());
+      assertEquals(
+          "L" + expectedAnnotationClass + ";",
+          init.getMethod()
+              .getParameterAnnotation(1)
+              .annotations[0]
+              .annotation
+              .type
+              .toDescriptorString());
+    } else {
+      assertTrue(init.getMethod().getParameterAnnotations().isEmpty());
+    }
   }
 
   @Test
   public void test() throws Exception {
     String expectedOutput =
         StringUtils.lines("In Inner1() used", "In Inner2() used", "In Inner3() used", "In main()");
-    testForR8(parameters.getBackend())
+    testForR8Compat(parameters.getBackend(), enableProguardCompatibilityMode)
         .addProgramClassFileData(
             dumpTest(),
             dumpInner1(),

@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.function.UnaryOperator;
+import java.util.function.Consumer;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
@@ -171,10 +171,10 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       D8Command.Builder builder = D8Command.builder();
       addClasspathReference(testJarFile, builder);
       for (String inputFile : inputFiles) {
-        builder = builder.addProgramFiles(Paths.get(inputFile));
+        builder.addProgramFiles(Paths.get(inputFile));
       }
-      for (UnaryOperator<D8Command.Builder> transformation : builderTransformations) {
-        builder = transformation.apply(builder);
+      for (Consumer<D8Command.Builder> transformation : builderTransformations) {
+        transformation.accept(builder);
       }
       if (outputPath != null) {
         builder.setOutput(outputPath, outputMode);
@@ -207,8 +207,8 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       for (ProgramResource dexFile : dexFiles) {
         builder.addDexProgramData(readResource(dexFile), dexFile.getOrigin());
       }
-      for (UnaryOperator<Builder> transformation : builderTransformations) {
-        builder = transformation.apply(builder);
+      for (Consumer<D8Command.Builder> transformation : builderTransformations) {
+        transformation.accept(builder);
       }
       if (outputPath != null) {
         builder.setOutput(outputPath, outputMode);

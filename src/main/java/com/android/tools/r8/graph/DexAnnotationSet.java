@@ -44,6 +44,18 @@ public class DexAnnotationSet extends CachedHashValueDexItem
     this.annotations = annotations;
   }
 
+  public DexAnnotationSet create(DexAnnotation[] annotations) {
+    return ArrayUtils.isEmpty(annotations) ? empty() : new DexAnnotationSet(annotations);
+  }
+
+  public DexAnnotation get(int index) {
+    return annotations[index];
+  }
+
+  public DexAnnotation getFirst() {
+    return get(0);
+  }
+
   @Override
   public DexAnnotationSet self() {
     return this;
@@ -192,14 +204,8 @@ public class DexAnnotationSet extends CachedHashValueDexItem
     if (isEmpty()) {
       return this;
     }
-    DexAnnotation[] rewritten = ArrayUtils.map(DexAnnotation[].class, annotations, rewriter);
-    if (rewritten == annotations) {
-      return this;
-    }
-    if (rewritten.length == 0) {
-      return DexAnnotationSet.empty();
-    }
-    return new DexAnnotationSet(rewritten);
+    DexAnnotation[] rewritten = ArrayUtils.map(annotations, rewriter, DexAnnotation.EMPTY_ARRAY);
+    return rewritten != annotations ? create(rewritten) : this;
   }
 
   public DexAnnotationSet methodParametersWithFakeThisArguments(DexItemFactory factory) {

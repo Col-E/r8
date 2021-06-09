@@ -111,9 +111,9 @@ public class NoConstructorCollisions extends MultiClassPolicyWithPreprocessing<S
   private DexProto rewriteProto(DexProto proto, Map<DexType, MergeGroup> groups) {
     DexType[] parameters =
         ArrayUtils.map(
-            DexType[].class,
             proto.getParameters().values,
-            parameter -> rewriteType(parameter, groups));
+            parameter -> rewriteType(parameter, groups),
+            DexType.EMPTY_ARRAY);
     return dexItemFactory.createProto(rewriteType(proto.getReturnType(), groups), parameters);
   }
 

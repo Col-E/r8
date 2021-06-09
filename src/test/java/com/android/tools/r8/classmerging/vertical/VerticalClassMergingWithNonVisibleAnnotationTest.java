@@ -5,7 +5,6 @@
 package com.android.tools.r8.classmerging.vertical;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -41,7 +40,7 @@ public class VerticalClassMergingWithNonVisibleAnnotationTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
+    testForR8Compat(parameters.getBackend())
         .addInnerClasses(VerticalClassMergingWithNonVisibleAnnotationTestClasses.class)
         .addProgramClasses(Sub.class)
         .setMinApi(parameters.getApiLevel())
@@ -50,14 +49,14 @@ public class VerticalClassMergingWithNonVisibleAnnotationTest extends TestBase {
             VerticalClassMergingWithNonVisibleAnnotationTestClasses.class.getTypeName()
                 + "$Private* { *; }")
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .addVerticallyMergedClassesInspector(
+            inspector -> inspector.assertMergedIntoSubtype(Base.class))
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .run(parameters.getRuntime(), Sub.class)
         .assertSuccessWithOutputLines("Base::foo()", "Sub::bar()")
         .inspect(
             codeInspector -> {
-              // Assert that base has been vertically merged into Sub.
-              assertThat(codeInspector.clazz(Base.class), not(isPresent()));
               ClassSubject sub = codeInspector.clazz(Sub.class);
               assertThat(sub, isPresent());
               // Assert that the merged class has no annotations from Base

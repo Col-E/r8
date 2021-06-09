@@ -50,6 +50,7 @@ public class EnumInAnnotationTest extends TestBase {
                     "-keepclassmembernames class " + Enum.class.getTypeName() + " { <fields>; }"))
         .setMinApi(parameters.getApiLevel())
         .addKeepRuntimeVisibleAnnotations()
+        .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("TEST_ONE");
   }

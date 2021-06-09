@@ -35,22 +35,30 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class UnusedAnnotatedArgumentsTest extends TestBase {
 
+  private final boolean enableProguardCompatibilityMode;
   private final boolean keepUnusedArguments;
   private final TestParameters parameters;
 
-  @Parameters(name = "{1}, keep unused arguments: {0}")
+  @Parameters(name = "{2}, compat: {0}, keep unused arguments: {1}")
   public static List<Object[]> params() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(),
+        BooleanUtils.values(),
+        getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public UnusedAnnotatedArgumentsTest(boolean keepUnusedArguments, TestParameters parameters) {
+  public UnusedAnnotatedArgumentsTest(
+      boolean enableProguardCompatibilityMode,
+      boolean keepUnusedArguments,
+      TestParameters parameters) {
+    this.enableProguardCompatibilityMode = enableProguardCompatibilityMode;
     this.keepUnusedArguments = keepUnusedArguments;
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
-    testForR8(parameters.getBackend())
+    testForR8Compat(parameters.getBackend(), enableProguardCompatibilityMode)
         .addInnerClasses(UnusedAnnotatedArgumentsTest.class)
         .addUnusedArgumentAnnotations()
         .addKeepMainRule(TestClass.class)
@@ -61,7 +69,7 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
         .enableUnusedArgumentAnnotations(keepUnusedArguments)
         // TODO(b/123060011): Mapping not working in presence of unused argument removal.
         .minification(keepUnusedArguments)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyOutput)
         .run(parameters.getRuntime(), TestClass.class)
@@ -90,36 +98,24 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
     for (MethodSubject methodSubject : methodSubjects) {
       assertThat(methodSubject, isPresent());
 
-      if (keepUnusedArguments) {
-        assertEquals(3, methodSubject.getMethod().getReference().proto.parameters.size());
-        assertEquals(3, methodSubject.getMethod().parameterAnnotationsList.size());
+      assertEquals(keepUnusedArguments ? 3 : 2, methodSubject.getMethod().getParameters().size());
 
-        for (int i = 0; i < 3; ++i) {
-          DexAnnotationSet annotationSet =
-              methodSubject.getMethod().parameterAnnotationsList.get(i);
-          assertEquals(1, annotationSet.annotations.length);
+      // R8 non-compat removes annotations from non-pinned items.
+      assertEquals(
+          enableProguardCompatibilityMode ? methodSubject.getMethod().getParameters().size() : 0,
+          methodSubject.getMethod().getParameterAnnotations().size());
 
-          DexAnnotation annotation = annotationSet.annotations[0];
-          if (i == getPositionOfUnusedArgument(methodSubject)) {
-            assertEquals(
-                unusedClassSubject.getFinalName(), annotation.annotation.type.toSourceString());
-          } else {
-            assertEquals(
-                usedClassSubject.getFinalName(), annotation.annotation.type.toSourceString());
-          }
-        }
-      } else {
-        assertEquals(2, methodSubject.getMethod().getReference().proto.parameters.size());
-        assertEquals(2, methodSubject.getMethod().parameterAnnotationsList.size());
+      for (int i = 0; i < methodSubject.getMethod().getParameterAnnotations().size(); ++i) {
+        DexAnnotationSet annotationSet = methodSubject.getMethod().getParameterAnnotation(i);
+        assertEquals(1, annotationSet.size());
 
-        for (int i = 0; i < 2; ++i) {
-          DexAnnotationSet annotationSet =
-              methodSubject.getMethod().parameterAnnotationsList.get(i);
-          assertEquals(1, annotationSet.annotations.length);
-
-          DexAnnotation annotation = annotationSet.annotations[0];
+        DexAnnotation annotation = annotationSet.annotations[0];
+        if (keepUnusedArguments && i == getPositionOfUnusedArgument(methodSubject)) {
           assertEquals(
-              usedClassSubject.getFinalName(), annotation.annotation.type.toSourceString());
+              unusedClassSubject.getFinalName(), annotation.getAnnotationType().toSourceString());
+        } else {
+          assertEquals(
+              usedClassSubject.getFinalName(), annotation.getAnnotationType().toSourceString());
         }
       }
     }

@@ -54,8 +54,11 @@ public class IfOnAnnotationTest extends ProguardCompatibilityTestBase {
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector,
         UnusedAnnotation.class, UnusedAnnotationDependent.class);
-    verifyClassesPresent(codeInspector,
-        UsedAnnotation.class, UsedAnnotationDependent.class);
+    if (shrinker.isFullModeR8()) {
+      verifyClassesAbsent(codeInspector, UsedAnnotation.class, UsedAnnotationDependent.class);
+    } else {
+      verifyClassesPresent(codeInspector, UsedAnnotation.class, UsedAnnotationDependent.class);
+    }
   }
 
   @Test
@@ -80,8 +83,11 @@ public class IfOnAnnotationTest extends ProguardCompatibilityTestBase {
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector,
         UnusedAnnotation.class, UnusedAnnotationDependent.class);
-    verifyClassesPresent(codeInspector,
-        UsedAnnotation.class, UsedAnnotationDependent.class);
+    if (shrinker.isFullModeR8()) {
+      verifyClassesAbsent(codeInspector, UsedAnnotation.class, UsedAnnotationDependent.class);
+    } else {
+      verifyClassesPresent(codeInspector, UsedAnnotation.class, UsedAnnotationDependent.class);
+    }
   }
 
   @Test
@@ -104,8 +110,11 @@ public class IfOnAnnotationTest extends ProguardCompatibilityTestBase {
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector,
         UnusedAnnotation.class, UnusedAnnotationDependent.class);
-    verifyClassesPresent(codeInspector,
-        UsedAnnotation.class, UsedAnnotationDependent.class);
+    if (shrinker.isFullModeR8()) {
+      verifyClassesAbsent(codeInspector, UsedAnnotation.class, UsedAnnotationDependent.class);
+    } else {
+      verifyClassesPresent(codeInspector, UsedAnnotation.class, UsedAnnotationDependent.class);
+    }
   }
 
 }

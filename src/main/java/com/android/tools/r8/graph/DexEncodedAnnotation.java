@@ -112,7 +112,7 @@ public class DexEncodedAnnotation extends DexItem implements StructuralItem<DexE
       Function<DexAnnotationElement, DexAnnotationElement> elementRewriter) {
     DexType rewrittenType = typeRewriter.apply(type);
     DexAnnotationElement[] rewrittenElements =
-        ArrayUtils.map(DexAnnotationElement[].class, elements, elementRewriter);
+        ArrayUtils.map(elements, elementRewriter, DexAnnotationElement.EMPTY_ARRAY);
     if (rewrittenType == type && rewrittenElements == elements) {
       return this;
     }

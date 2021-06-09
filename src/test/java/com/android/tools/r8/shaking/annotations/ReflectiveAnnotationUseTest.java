@@ -95,7 +95,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   @Test
   public void b120951621_keepAll() throws Exception {
     CodeInspector inspector =
-        testForR8(parameters.getBackend())
+        testForR8Compat(parameters.getBackend())
             .addProgramFiles(
                 compiledJars.getForConfiguration(kotlinc, targetVersion),
                 getKotlinAnnotationJar(kotlinc))
@@ -133,7 +133,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   @Test
   public void b120951621_partiallyKeep() throws Exception {
     CodeInspector inspector =
-        testForR8(parameters.getBackend())
+        testForR8Compat(parameters.getBackend())
             .addProgramFiles(
                 compiledJars.getForConfiguration(kotlinc, targetVersion),
                 getKotlinAnnotationJar(kotlinc))
@@ -175,7 +175,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   @Test
   public void b120951621_keepAnnotation() throws Exception {
     CodeInspector inspector =
-        testForR8(parameters.getBackend())
+        testForR8Compat(parameters.getBackend())
             .addProgramFiles(
                 compiledJars.getForConfiguration(kotlinc, targetVersion),
                 getKotlinAnnotationJar(kotlinc))

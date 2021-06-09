@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.shaking.AnnotationRemover;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -31,13 +31,12 @@ public abstract class DexDefinition extends DexItem {
 
   public abstract AccessFlags<?> getAccessFlags();
 
-  public DexAnnotationSet liveAnnotations(AppView<AppInfoWithLiveness> appView) {
-    return annotations.keepIf(
-        annotation -> AnnotationRemover.shouldKeepAnnotation(appView, this, annotation));
-  }
-
   public void clearAnnotations() {
     setAnnotations(DexAnnotationSet.empty());
+  }
+
+  public void clearAllAnnotations() {
+    clearAnnotations();
   }
 
   public void setAnnotations(DexAnnotationSet annotations) {
@@ -46,6 +45,12 @@ public abstract class DexDefinition extends DexItem {
 
   public void removeAnnotations(Predicate<DexAnnotation> predicate) {
     setAnnotations(annotations().removeIf(predicate));
+  }
+
+  public void rewriteAllAnnotations(
+      BiFunction<DexAnnotation, AnnotatedKind, DexAnnotation> rewriter) {
+    setAnnotations(
+        annotations().rewrite(annotation -> rewriter.apply(annotation, AnnotatedKind.from(this))));
   }
 
   public boolean isDexClass() {

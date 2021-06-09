@@ -22,5 +22,11 @@ public interface GlobalKeepInfoConfiguration {
 
   boolean isKeepInnerClassesAttributeEnabled();
 
+  boolean isKeepRuntimeInvisibleAnnotationsEnabled();
+
+  boolean isKeepRuntimeInvisibleParameterAnnotationsEnabled();
+
   boolean isKeepRuntimeVisibleAnnotationsEnabled();
+
+  boolean isKeepRuntimeVisibleParameterAnnotationsEnabled();
 }

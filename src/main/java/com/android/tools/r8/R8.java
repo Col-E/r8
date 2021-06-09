@@ -408,7 +408,7 @@ public class R8 {
           AnnotationRemover annotationRemover =
               annotationRemoverBuilder
                   .build(appViewWithLiveness, removedClasses);
-          annotationRemover.ensureValid().run();
+          annotationRemover.ensureValid().run(executorService);
           new GenericSignatureRewriter(appView, NamingLens.getIdentityLens(), genericContextBuilder)
               .run(appView.appInfo().classes(), executorService);
         }
@@ -642,7 +642,7 @@ public class R8 {
             // Remove annotations that refer to types that no longer exist.
             AnnotationRemover.builder()
                 .build(appView.withLiveness(), removedClasses)
-                .run();
+                .run(executorService);
             new GenericSignatureRewriter(
                     appView, NamingLens.getIdentityLens(), genericContextBuilder)
                 .run(appView.appInfo().classes(), executorService);

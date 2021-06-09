@@ -26,7 +26,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.UnaryOperator;
+import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -41,16 +41,24 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
       "-allowaccessmodification"
   );
 
-  private static final ArrayList<String> PROGUARD_OPTIONS_N_PLUS =
-      Lists.newArrayList(
-          "-keepclasseswithmembers public class * {",
-          "    public static void main(java.lang.String[]);",
-          "}",
-          "-keepclasseswithmembers interface **$AnnotatedInterface { <methods>; }",
-          "-neverinline interface **$AnnotatedInterface { static void annotatedStaticMethod(); }",
-          "-keepattributes *Annotation*",
-          "-dontobfuscate",
-          "-allowaccessmodification");
+  private static ArrayList<String> getProguardOptionsNPlus(
+      boolean enableProguardCompatibilityMode) {
+    return Lists.newArrayList(
+        "-keepclasseswithmembers public class * {",
+        "    public static void main(java.lang.String[]);",
+        "}",
+        "-keepclasseswithmembers interface **$AnnotatedInterface { <methods>; }",
+        "-neverinline interface **$AnnotatedInterface { static void annotatedStaticMethod(); }",
+        "-keepattributes *Annotation*",
+        "-dontobfuscate",
+        "-allowaccessmodification",
+        "-assumevalues class lambdadesugaringnplus.LambdasWithStaticAndDefaultMethods {",
+        "  public static boolean isR8() return true;",
+        "  public static boolean isProguardCompatibilityMode() return "
+            + enableProguardCompatibilityMode
+            + ";",
+        "}");
+  }
 
   private static Map<DexVm.Version, List<String>> alsoFailsOn =
       ImmutableMap.<DexVm.Version, List<String>>builder()
@@ -161,22 +169,37 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Override
   @Test
   public void lambdaDesugaringNPlus() throws Throwable {
+    lambdaDesugaringNPlus(false);
+  }
+
+  @Test
+  public void lambdaDesugaringNPlusCompat() throws Throwable {
+    lambdaDesugaringNPlus(true);
+  }
+
+  private void lambdaDesugaringNPlus(boolean enableProguardCompatibilityMode) throws Throwable {
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
+        .withProguardCompatibilityMode(enableProguardCompatibilityMode)
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
-            b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
+            b ->
+                b.addProguardConfiguration(
+                    getProguardOptionsNPlus(enableProguardCompatibilityMode), Origin.unknown()))
         .withDexCheck(inspector -> checkLambdaCount(inspector, 6, "lambdadesugaringnplus"))
         .run();
 
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
+        .withProguardCompatibilityMode(enableProguardCompatibilityMode)
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
-            b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
+            b ->
+                b.addProguardConfiguration(
+                    getProguardOptionsNPlus(enableProguardCompatibilityMode), Origin.unknown()))
         .withDexCheck(inspector -> checkLambdaCount(inspector, 3, "lambdadesugaringnplus"))
         .run();
   }
@@ -184,22 +207,39 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Test
   @IgnoreIfVmOlderThan(Version.V7_0_0)
   public void lambdaDesugaringNPlusWithDefaultMethods() throws Throwable {
+    lambdaDesugaringNPlusWithDefaultMethods(false);
+  }
+
+  @Test
+  @IgnoreIfVmOlderThan(Version.V7_0_0)
+  public void lambdaDesugaringNPlusWithDefaultMethodsCompat() throws Throwable {
+    lambdaDesugaringNPlusWithDefaultMethods(true);
+  }
+
+  private void lambdaDesugaringNPlusWithDefaultMethods(boolean enableProguardCompatibilityMode)
+      throws Throwable {
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
+        .withProguardCompatibilityMode(enableProguardCompatibilityMode)
         .withMinApiLevel(AndroidApiLevel.N)
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
-            b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
+            b ->
+                b.addProguardConfiguration(
+                    getProguardOptionsNPlus(enableProguardCompatibilityMode), Origin.unknown()))
         .withDexCheck(inspector -> checkLambdaCount(inspector, 6, "lambdadesugaringnplus"))
         .run();
 
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
+        .withProguardCompatibilityMode(enableProguardCompatibilityMode)
         .withMinApiLevel(AndroidApiLevel.N)
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
-            b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
+            b ->
+                b.addProguardConfiguration(
+                    getProguardOptionsNPlus(enableProguardCompatibilityMode), Origin.unknown()))
         .withDexCheck(inspector -> checkLambdaCount(inspector, 3, "lambdadesugaringnplus"))
         .run();
   }
@@ -236,6 +276,8 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
 
   class R8TestRunner extends TestRunner<R8TestRunner> {
 
+    private boolean enableProguardCompatibilityMode = false;
+
     R8TestRunner(String testName, String packageName, String mainClass) {
       super(testName, packageName, mainClass);
     }
@@ -253,11 +295,18 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
               .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown()));
     }
 
+    public R8TestRunner withProguardCompatibilityMode(boolean enableProguardCompatibilityMode) {
+      this.enableProguardCompatibilityMode = enableProguardCompatibilityMode;
+      return this;
+    }
+
     @Override
     void build(Path inputFile, Path out, OutputMode mode) throws Throwable {
-      R8Command.Builder builder = R8Command.builder().setOutput(out, mode);
-      for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
-        builder = transformation.apply(builder);
+      CompatProguardCommandBuilder builder =
+          new CompatProguardCommandBuilder(enableProguardCompatibilityMode);
+      builder.setOutput(out, mode);
+      for (Consumer<R8Command.Builder> transformation : builderTransformations) {
+        transformation.accept(builder);
       }
 
       builder.addLibraryFiles(ToolHelper.getAndroidJar(

@@ -36,35 +36,42 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
 
+  private final boolean enableProguardCompatibilityMode;
   private final boolean keepUninstantiatedArguments;
   private final TestParameters parameters;
 
-  @Parameters(name = "{1}, keep uninstantiated arguments: {0}")
+  @Parameters(name = "{2}, compat: {0}, keep uninstantiated arguments: {1}")
   public static List<Object[]> params() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(),
+        BooleanUtils.values(),
+        getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public UninstantiatedAnnotatedArgumentsTest(
-      boolean keepUninstantiatedArguments, TestParameters parameters) {
+      boolean enableProguardCompatibilityMode,
+      boolean keepUninstantiatedArguments,
+      TestParameters parameters) {
+    this.enableProguardCompatibilityMode = enableProguardCompatibilityMode;
     this.keepUninstantiatedArguments = keepUninstantiatedArguments;
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
-    testForR8(parameters.getBackend())
+    testForR8Compat(parameters.getBackend(), enableProguardCompatibilityMode)
         .addInnerClasses(UninstantiatedAnnotatedArgumentsTest.class)
         .addConstantArgumentAnnotations()
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(Instantiated.class, Uninstantiated.class)
-        .addKeepAttributes("RuntimeVisibleParameterAnnotations")
+        .addKeepRuntimeVisibleParameterAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableConstantArgumentAnnotations(keepUninstantiatedArguments)
         .enableInliningAnnotations()
         .enableUnusedArgumentAnnotations()
         // TODO(b/123060011): Mapping not working in presence of argument removal.
         .minification(keepUninstantiatedArguments)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyOutput)
         .run(parameters.getRuntime(), TestClass.class)
@@ -94,38 +101,35 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
       assertThat(methodSubject, isPresent());
 
       // TODO(b/131735725): Should also remove arguments from the virtual methods.
-      if (keepUninstantiatedArguments || methodSubject.getOriginalName().contains("Virtual")) {
-        assertEquals(3, methodSubject.getMethod().getReference().proto.parameters.size());
-        assertEquals(3, methodSubject.getMethod().parameterAnnotationsList.size());
+      boolean shouldHaveArgumentRemoval =
+          keepUninstantiatedArguments || methodSubject.getOriginalName().contains("Virtual");
+      if (shouldHaveArgumentRemoval) {
+        assertEquals(3, methodSubject.getMethod().getParameters().size());
 
-        for (int i = 0; i < 3; ++i) {
-          DexAnnotationSet annotationSet =
-              methodSubject.getMethod().parameterAnnotationsList.get(i);
-          assertEquals(1, annotationSet.annotations.length);
-
-          DexAnnotation annotation = annotationSet.annotations[0];
-          if (i == getPositionOfUnusedArgument(methodSubject)) {
-            assertEquals(
-                uninstantiatedClassSubject.getFinalName(),
-                annotation.annotation.type.toSourceString());
-          } else {
-            assertEquals(
-                instantiatedClassSubject.getFinalName(),
-                annotation.annotation.type.toSourceString());
-          }
-        }
+        // In non-compat mode, R8 removes annotations from non-pinned items.
+        assertEquals(
+            enableProguardCompatibilityMode ? 3 : 0,
+            methodSubject.getMethod().getParameterAnnotations().size());
       } else {
         assertEquals(2, methodSubject.getMethod().getReference().proto.parameters.size());
-        assertEquals(2, methodSubject.getMethod().parameterAnnotationsList.size());
+        assertEquals(
+            enableProguardCompatibilityMode ? 2 : 0,
+            methodSubject.getMethod().getParameterAnnotations().size());
+      }
 
-        for (int i = 0; i < 2; ++i) {
-          DexAnnotationSet annotationSet =
-              methodSubject.getMethod().parameterAnnotationsList.get(i);
-          assertEquals(1, annotationSet.annotations.length);
+      for (int i = 0; i < methodSubject.getMethod().getParameterAnnotations().size(); ++i) {
+        DexAnnotationSet annotationSet = methodSubject.getMethod().getParameterAnnotation(i);
+        assertEquals(1, annotationSet.size());
 
-          DexAnnotation annotation = annotationSet.annotations[0];
+        DexAnnotation annotation = annotationSet.getFirst();
+        if (shouldHaveArgumentRemoval && i == getPositionOfUnusedArgument(methodSubject)) {
           assertEquals(
-              instantiatedClassSubject.getFinalName(), annotation.annotation.type.toSourceString());
+              uninstantiatedClassSubject.getFinalName(),
+              annotation.getAnnotationType().getTypeName());
+        } else {
+          assertEquals(
+              instantiatedClassSubject.getFinalName(),
+              annotation.getAnnotationType().getTypeName());
         }
       }
     }

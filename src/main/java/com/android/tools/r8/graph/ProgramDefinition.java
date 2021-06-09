@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public interface ProgramDefinition extends Definition, ProgramDerivedContext {
@@ -19,6 +21,15 @@ public interface ProgramDefinition extends Definition, ProgramDerivedContext {
   @Override
   default ProgramDerivedContext asProgramDerivedContext(ProgramDerivedContext witness) {
     return this;
+  }
+
+  default void clearAllAnnotations() {
+    getDefinition().clearAllAnnotations();
+  }
+
+  default void rewriteAllAnnotations(
+      BiFunction<DexAnnotation, AnnotatedKind, DexAnnotation> rewriter) {
+    getDefinition().rewriteAllAnnotations(rewriter);
   }
 
   DexProgramClass getContextClass();

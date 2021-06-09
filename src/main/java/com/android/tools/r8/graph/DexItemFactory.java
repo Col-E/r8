@@ -451,6 +451,8 @@ public class DexItemFactory {
       createStaticallyKnownType("Ljava/util/function/LongConsumer;");
   public final DexType intConsumer = createStaticallyKnownType("Ljava/util/function/IntConsumer;");
 
+  public final DexType retentionType =
+      createStaticallyKnownType("Ljava/lang/annotation/Retention;");
   public final DexType runtimeExceptionType = createStaticallyKnownType(runtimeExceptionDescriptor);
   public final DexType throwableType = createStaticallyKnownType(throwableDescriptor);
   public final DexType illegalAccessErrorType =

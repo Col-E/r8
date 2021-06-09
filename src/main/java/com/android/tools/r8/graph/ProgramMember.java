@@ -23,5 +23,11 @@ public interface ProgramMember<D extends DexEncodedMember<D, R>, R extends DexMe
 
   KotlinMemberLevelInfo getKotlinInfo();
 
-  void clearKotlinInfo();
+  default void clearGenericSignature() {
+    getDefinition().clearGenericSignature();
+  }
+
+  default void clearKotlinInfo() {
+    getDefinition().clearKotlinInfo();
+  }
 }

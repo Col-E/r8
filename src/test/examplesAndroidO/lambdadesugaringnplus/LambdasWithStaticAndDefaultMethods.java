@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.reflect.Method;
 import lambdadesugaringnplus.other.ClassWithDefaultPackagePrivate;
 import lambdadesugaringnplus.other.InterfaceWithDefaultPackagePrivate;
 
@@ -372,8 +373,15 @@ public class LambdasWithStaticAndDefaultMethods {
       // I don't know how to keep this method moved to the companion class
       // without the direct call.
       AnnotatedInterface.annotatedStaticMethod();
-      if (checkAnnotationValue(
-          getCompanionClassOrInterface().getMethod("annotatedStaticMethod").getAnnotations(), 4)) {
+      Method annotatedStaticMethod =
+          getCompanionClassOrInterface().getMethod("annotatedStaticMethod");
+      if (checkAnnotationValue(annotatedStaticMethod.getAnnotations(), 4)) {
+        System.out.println("Check 4: OK");
+      } else if (isR8()
+          && !isProguardCompatibilityMode()
+          && annotatedStaticMethod.getAnnotations().length == 0) {
+        // There is currently no way to retain annotations on static interface methods, since we
+        // drop -keep rules for such methods.
         System.out.println("Check 4: OK");
       } else {
         System.out.println("Check 4: NOT OK");
@@ -514,5 +522,13 @@ public class LambdasWithStaticAndDefaultMethods {
     B38302860.test();
     B62168701.test();
     B78901754.test();
+  }
+
+  public static boolean isR8() {
+    return false;
+  }
+
+  public static boolean isProguardCompatibilityMode() {
+    return false;
   }
 }

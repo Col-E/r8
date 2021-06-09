@@ -6,24 +6,28 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
-import com.android.tools.r8.graph.DexEncodedMember;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
+import com.android.tools.r8.graph.ProgramDefinition;
+import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.kotlin.KotlinMemberLevelInfo;
 import com.android.tools.r8.kotlin.KotlinPropertyInfo;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 public class AnnotationRemover {
 
@@ -49,49 +53,50 @@ public class AnnotationRemover {
   }
 
   /** Used to filter annotations on classes, methods and fields. */
-  private boolean filterAnnotations(DexDefinition holder, DexAnnotation annotation) {
+  private boolean filterAnnotations(
+      ProgramDefinition holder, DexAnnotation annotation, AnnotatedKind kind) {
     return annotationsToRetain.contains(annotation)
-        || shouldKeepAnnotation(appView, holder, annotation, isAnnotationTypeLive(annotation));
-  }
-
-  public static boolean shouldKeepAnnotation(
-      AppView<AppInfoWithLiveness> appView, DexDefinition holder, DexAnnotation annotation) {
-    return shouldKeepAnnotation(
-        appView, holder, annotation, isAnnotationTypeLive(annotation, appView));
+        || shouldKeepAnnotation(
+            appView, holder, annotation, isAnnotationTypeLive(annotation), kind);
   }
 
   public static boolean shouldKeepAnnotation(
       AppView<?> appView,
-      DexDefinition holder,
+      ProgramDefinition holder,
       DexAnnotation annotation,
-      boolean isAnnotationTypeLive) {
+      boolean isAnnotationTypeLive,
+      AnnotatedKind kind) {
     // If we cannot run the AnnotationRemover we are keeping the annotation.
     if (!appView.options().isShrinking()) {
       return true;
     }
+
+    InternalOptions options = appView.options();
     ProguardKeepAttributes config =
-        appView.options().getProguardConfiguration() != null
-            ? appView.options().getProguardConfiguration().getKeepAttributes()
+        options.getProguardConfiguration() != null
+            ? options.getProguardConfiguration().getKeepAttributes()
             : ProguardKeepAttributes.fromPatterns(ImmutableList.of());
 
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-
     switch (annotation.visibility) {
       case DexAnnotation.VISIBILITY_SYSTEM:
+        if (kind.isParameter()) {
+          return false;
+        }
         // InnerClass and EnclosingMember are represented in class attributes, not annotations.
         assert !DexAnnotation.isInnerClassAnnotation(annotation, dexItemFactory);
         assert !DexAnnotation.isMemberClassesAnnotation(annotation, dexItemFactory);
         assert !DexAnnotation.isEnclosingMethodAnnotation(annotation, dexItemFactory);
         assert !DexAnnotation.isEnclosingClassAnnotation(annotation, dexItemFactory);
-        assert appView.options().passthroughDexCode
+        assert options.passthroughDexCode
             || !DexAnnotation.isSignatureAnnotation(annotation, dexItemFactory);
         if (config.exceptions && DexAnnotation.isThrowingAnnotation(annotation, dexItemFactory)) {
           return true;
         }
         if (DexAnnotation.isSourceDebugExtension(annotation, dexItemFactory)) {
-          assert holder.isDexClass();
+          assert holder.isProgramClass();
           appView.setSourceDebugExtensionForType(
-              holder.asDexClass(), annotation.annotation.elements[0].value.asDexValueString());
+              holder.asProgramClass(), annotation.annotation.elements[0].value.asDexValueString());
           return config.sourceDebugExtension;
         }
         if (config.methodParameters
@@ -106,14 +111,35 @@ public class AnnotationRemover {
         return false;
 
       case DexAnnotation.VISIBILITY_RUNTIME:
-        if (!config.runtimeVisibleAnnotations) {
-          return false;
+        // We always keep the @java.lang.Retention annotation on annotation classes, since the
+        // removal of this annotation may change the annotation from being runtime visible to
+        // runtime invisible.
+        if (holder.isProgramClass()
+            && holder.asProgramClass().isAnnotation()
+            && DexAnnotation.isJavaLangRetentionAnnotation(annotation, dexItemFactory)) {
+          return true;
+        }
+
+        if (kind.isParameter()) {
+          if (!options.isKeepRuntimeVisibleParameterAnnotationsEnabled()) {
+            return false;
+          }
+        } else {
+          if (!options.isKeepRuntimeVisibleAnnotationsEnabled()) {
+            return false;
+          }
         }
         return isAnnotationTypeLive;
 
       case DexAnnotation.VISIBILITY_BUILD:
-        if (!config.runtimeInvisibleAnnotations) {
-          return false;
+        if (kind.isParameter()) {
+          if (!options.isKeepRuntimeInvisibleParameterAnnotationsEnabled()) {
+            return false;
+          }
+        } else {
+          if (!options.isKeepRuntimeInvisibleAnnotationsEnabled()) {
+            return false;
+          }
         }
         return isAnnotationTypeLive;
 
@@ -132,58 +158,33 @@ public class AnnotationRemover {
     return appView.appInfo().isNonProgramTypeOrLiveProgramType(annotationType);
   }
 
-  /**
-   * Used to filter annotations on parameters.
-   */
-  private boolean filterParameterAnnotations(DexAnnotation annotation) {
-    if (annotationsToRetain.contains(annotation)) {
-      return true;
-    }
-    switch (annotation.visibility) {
-      case DexAnnotation.VISIBILITY_SYSTEM:
-        return false;
-      case DexAnnotation.VISIBILITY_RUNTIME:
-        if (!keep.runtimeVisibleParameterAnnotations) {
-          return false;
-        }
-        break;
-      case DexAnnotation.VISIBILITY_BUILD:
-        if (!keep.runtimeInvisibleParameterAnnotations) {
-          return false;
-        }
-        break;
-      default:
-        throw new Unreachable("Unexpected annotation visibility.");
-    }
-    return isAnnotationTypeLive(annotation);
-  }
-
   public AnnotationRemover ensureValid() {
     keep.ensureValid(appView.options().forceProguardCompatibility);
     return this;
   }
 
-  public void run() {
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      stripAttributes(clazz);
-      clazz.setAnnotations(
-          clazz.annotations().rewrite(annotation -> rewriteAnnotation(clazz, annotation)));
-      // Kotlin metadata for classes are removed in the KotlinMetadataEnqueuerExtension. Kotlin
-      // properties are split over fields and methods. Check if any is pinned before pruning the
-      // information.
-      Set<KotlinPropertyInfo> pinnedKotlinProperties = Sets.newIdentityHashSet();
-      clazz.forEachProgramMember(
-          member -> processMember(member.getDefinition(), clazz, pinnedKotlinProperties));
-      clazz.forEachProgramMember(
-          member -> {
-            KotlinMemberLevelInfo kotlinInfo = member.getKotlinInfo();
-            if (kotlinInfo.isProperty()
-                && !pinnedKotlinProperties.contains(kotlinInfo.asProperty())) {
-              member.clearKotlinInfo();
-            }
-          });
-    }
+  public void run(ExecutorService executorService) throws ExecutionException {
+    ThreadUtils.processItems(appView.appInfo().classes(), this::run, executorService);
     assert verifyNoKeptKotlinMembersForClassesWithNoKotlinInfo();
+  }
+
+  private void run(DexProgramClass clazz) {
+    KeepClassInfo keepInfo = appView.getKeepInfo().getClassInfo(clazz);
+    removeAnnotations(clazz, keepInfo);
+    stripAttributes(clazz, keepInfo);
+    // Kotlin metadata for classes are removed in the KotlinMetadataEnqueuerExtension. Kotlin
+    // properties are split over fields and methods. Check if any is pinned before pruning the
+    // information.
+    Set<KotlinPropertyInfo> pinnedKotlinProperties = Sets.newIdentityHashSet();
+    clazz.forEachProgramMember(member -> processMember(member, clazz, pinnedKotlinProperties));
+    clazz.forEachProgramMember(
+        member -> {
+          KotlinMemberLevelInfo kotlinInfo = member.getKotlinInfo();
+          if (kotlinInfo.isProperty()
+              && !pinnedKotlinProperties.contains(kotlinInfo.asProperty())) {
+            member.clearKotlinInfo();
+          }
+        });
   }
 
   private boolean verifyNoKeptKotlinMembersForClassesWithNoKotlinInfo() {
@@ -200,17 +201,11 @@ public class AnnotationRemover {
   }
 
   private void processMember(
-      DexEncodedMember<?, ?> member,
+      ProgramMember<?, ?> member,
       DexProgramClass clazz,
       Set<KotlinPropertyInfo> pinnedKotlinProperties) {
-    member.setAnnotations(
-        member.annotations().rewrite(annotation -> rewriteAnnotation(member, annotation)));
-    if (member.isDexEncodedMethod()) {
-      DexEncodedMethod method = member.asDexEncodedMethod();
-      method.parameterAnnotationsList =
-          method.parameterAnnotationsList.keepIf(this::filterParameterAnnotations);
-    }
-    KeepMemberInfo<?, ?> memberInfo = appView.getKeepInfo().getMemberInfo(member, clazz);
+    KeepMemberInfo<?, ?> memberInfo = appView.getKeepInfo().getMemberInfo(member);
+    removeAnnotations(member, memberInfo);
     if (memberInfo.isSignatureAttributeRemovalAllowed(options)) {
       member.clearGenericSignature();
     }
@@ -223,9 +218,10 @@ public class AnnotationRemover {
     }
   }
 
-  private DexAnnotation rewriteAnnotation(DexDefinition holder, DexAnnotation original) {
+  private DexAnnotation rewriteAnnotation(
+      ProgramDefinition holder, DexAnnotation original, AnnotatedKind kind) {
     // Check if we should keep this annotation first.
-    if (filterAnnotations(holder, original)) {
+    if (filterAnnotations(holder, original, kind)) {
       // Then, filter out values that refer to dead definitions.
       return original.rewrite(this::rewriteEncodedAnnotation);
     }
@@ -265,12 +261,28 @@ public class AnnotationRemover {
     return liveGetter ? original : null;
   }
 
-  private void stripAttributes(DexProgramClass clazz) {
+  private void removeAnnotations(ProgramDefinition definition, KeepInfo<?, ?> keepInfo) {
+    boolean isAnnotation =
+        definition.isProgramClass() && definition.asProgramClass().isAnnotation();
+    if ((options.isForceProguardCompatibilityEnabled() || keepInfo.isPinned())) {
+      definition.rewriteAllAnnotations(
+          (annotation, kind) -> rewriteAnnotation(definition, annotation, kind));
+    } else if (!isAnnotation) {
+      definition.clearAllAnnotations();
+    } else {
+      definition.rewriteAllAnnotations(
+          (annotation, isParameterAnnotation) ->
+              DexAnnotation.isJavaLangRetentionAnnotation(annotation, appView.dexItemFactory())
+                  ? annotation
+                  : null);
+    }
+  }
+
+  private void stripAttributes(DexProgramClass clazz, KeepClassInfo keepInfo) {
     // If [clazz] is mentioned by a keep rule, it could be used for reflection, and we therefore
     // need to keep the enclosing method and inner classes attributes, if requested. In Proguard
     // compatibility mode we keep these attributes independent of whether the given class is kept.
     // In full mode we remove the attribute if not both sides are kept.
-    KeepClassInfo keepInfo = appView.getKeepInfo().getClassInfo(clazz);
     clazz.removeEnclosingMethodAttribute(
         enclosingMethodAttribute ->
             keepInfo.isEnclosingMethodAttributeRemovalAllowed(

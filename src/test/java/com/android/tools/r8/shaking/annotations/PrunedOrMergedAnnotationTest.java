@@ -8,21 +8,27 @@ import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,27 +38,50 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class PrunedOrMergedAnnotationTest extends TestBase {
 
+  private final boolean enableProguardCompatibilityMode;
+  private final boolean keepForAnnotations;
   private final TestParameters parameters;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameters(name = "{2}, compat: {0}, keep: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(),
+        BooleanUtils.values(),
+        getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public PrunedOrMergedAnnotationTest(TestParameters parameters) {
+  public PrunedOrMergedAnnotationTest(
+      boolean enableProguardCompatibilityMode,
+      boolean keepForAnnotations,
+      TestParameters parameters) {
+    this.enableProguardCompatibilityMode = enableProguardCompatibilityMode;
+    this.keepForAnnotations = keepForAnnotations;
     this.parameters = parameters;
   }
 
   @Test
   public void testRewritingInFactory()
       throws IOException, CompilationFailedException, ExecutionException {
-    testForR8(parameters.getBackend())
+    // No need to add extra keep rules for retaining annotations in compat mode.
+    assumeTrue(!enableProguardCompatibilityMode || !keepForAnnotations);
+    testForR8Compat(parameters.getBackend(), enableProguardCompatibilityMode)
         .addInnerClasses(PrunedOrMergedAnnotationTest.class)
         .addKeepMainRule(Main.class)
-        .addKeepAttributes("*Annotation*")
         .addKeepClassAndMembersRules(Factory.class)
+        .addKeepRuntimeInvisibleAnnotations()
+        .addKeepRuntimeInvisibleParameterAnnotations()
+        .addVerticallyMergedClassesInspector(
+            inspector -> inspector.assertMergedIntoSubtype(A.class))
+        .applyIf(
+            keepForAnnotations,
+            builder -> {
+              assertFalse(enableProguardCompatibilityMode);
+              builder.addKeepRules(
+                  "-keep,allowshrinking,allowobfuscation class " + C.class.getTypeName());
+            })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello", "World!")
@@ -62,15 +91,21 @@ public class PrunedOrMergedAnnotationTest extends TestBase {
               DexType mergedType = inspector.clazz(B.class).getDexProgramClass().type;
               ClassSubject classC = inspector.clazz(C.class);
               assertThat(classC, isPresent());
-              DexEncodedAnnotation annotation =
-                  classC.annotation(Factory.class.getTypeName()).getAnnotation();
-              assertTrue(valueIsDexType(mergedType, annotation.elements[0].value));
-              assertTrue(
-                  Arrays.stream(annotation.elements[1].value.asDexValueArray().getValues())
-                      .allMatch(value -> valueIsDexType(mergedType, value)));
-              // Check that method parameter annotations are rewritten as well.
-              DexEncodedMethod method = inspector.clazz(Main.class).mainMethod().getMethod();
-              DexAnnotationSet annotationSet = method.parameterAnnotationsList.get(0);
+
+              MethodSubject mainMethod = inspector.clazz(Main.class).mainMethod();
+              if (enableProguardCompatibilityMode || keepForAnnotations) {
+                DexEncodedAnnotation annotation =
+                    classC.annotation(Factory.class.getTypeName()).getAnnotation();
+                assertTrue(valueIsDexType(mergedType, annotation.elements[0].value));
+                assertTrue(
+                    Arrays.stream(annotation.elements[1].value.asDexValueArray().getValues())
+                        .allMatch(value -> valueIsDexType(mergedType, value)));
+              } else {
+                assertTrue(classC.getDexProgramClass().annotations().isEmpty());
+              }
+
+              // Check that method parameter annotations are rewritten.
+              DexAnnotationSet annotationSet = mainMethod.getMethod().getParameterAnnotation(0);
               DexEncodedAnnotation parameterAnnotation = annotationSet.annotations[0].annotation;
               assertTrue(valueIsDexType(mergedType, parameterAnnotation.elements[0].value));
             });
@@ -82,6 +117,7 @@ public class PrunedOrMergedAnnotationTest extends TestBase {
     return true;
   }
 
+  @Retention(RetentionPolicy.CLASS)
   public @interface Factory {
 
     Class<?> extending() default Object.class;
@@ -92,6 +128,7 @@ public class PrunedOrMergedAnnotationTest extends TestBase {
   public static class A {}
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   public static class B extends A {
     @NeverInline
     public void world() {
@@ -102,6 +139,7 @@ public class PrunedOrMergedAnnotationTest extends TestBase {
   @Factory(
       extending = A.class,
       other = {A.class, B.class})
+  @NoHorizontalClassMerging
   public static class C {
     @NeverInline
     public static void hello() {

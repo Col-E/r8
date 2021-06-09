@@ -6,12 +6,29 @@ package com.android.tools.r8.utils;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import java.util.Map;
 import java.util.function.Function;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-public class ArrayUtilsTest {
+@RunWith(Parameterized.class)
+public class ArrayUtilsTest extends TestBase {
+
+  private static final Integer[] EMPTY_INTEGER_ARRAY = new Integer[0];
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public ArrayUtilsTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   private Integer[] createInputData(int size) {
     Integer[] input = new Integer[size];
@@ -124,7 +141,7 @@ public class ArrayUtilsTest {
   public void testMap_identity() {
     int size = 3;
     Integer[] input = createInputData(size);
-    Integer[] output = ArrayUtils.map(Integer[].class, input, Function.identity());
+    Integer[] output = ArrayUtils.map(input, Function.identity(), EMPTY_INTEGER_ARRAY);
     assertEquals(input, output);
   }
 
@@ -132,7 +149,7 @@ public class ArrayUtilsTest {
   public void testMap_dropOdd() {
     int size = 3;
     Integer[] input = createInputData(size);
-    Integer[] output = ArrayUtils.map(Integer[].class, input, x -> x % 2 != 0 ? null : x);
+    Integer[] output = ArrayUtils.map(input, x -> x % 2 != 0 ? null : x, EMPTY_INTEGER_ARRAY);
     assertNotEquals(input, output);
     assertEquals(2, output.length);
     assertEquals(0, (int) output[0]);
@@ -143,7 +160,7 @@ public class ArrayUtilsTest {
   public void testMap_dropAll() {
     int size = 3;
     Integer[] input = createInputData(size);
-    Integer[] output = ArrayUtils.map(Integer[].class, input, x -> null);
+    Integer[] output = ArrayUtils.map(input, x -> null, EMPTY_INTEGER_ARRAY);
     assertNotEquals(input, output);
     assertEquals(0, output.length);
   }
@@ -152,7 +169,7 @@ public class ArrayUtilsTest {
   public void testMap_double() {
     int size = 3;
     Integer[] input = createInputData(size);
-    Integer[] output = ArrayUtils.map(Integer[].class, input, x -> 2 * x);
+    Integer[] output = ArrayUtils.map(input, x -> 2 * x, EMPTY_INTEGER_ARRAY);
     assertNotEquals(input, output);
     assertEquals(size, output.length);
     for (int i = 0; i < size; i++) {
@@ -164,7 +181,7 @@ public class ArrayUtilsTest {
   public void testMap_double_onlyOdd() {
     int size = 3;
     Integer[] input = createInputData(size);
-    Integer[] output = ArrayUtils.map(Integer[].class, input, x -> x % 2 != 0 ? 2 * x : x);
+    Integer[] output = ArrayUtils.map(input, x -> x % 2 != 0 ? 2 * x : x, EMPTY_INTEGER_ARRAY);
     assertNotEquals(input, output);
     assertEquals(size, output.length);
     for (int i = 0; i < size; i++) {

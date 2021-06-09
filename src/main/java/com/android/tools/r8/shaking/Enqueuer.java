@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.ClassDefinition;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.ClasspathOrLibraryDefinition;
 import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
@@ -169,11 +170,11 @@ import java.util.function.Supplier;
 
 /**
  * Approximates the runtime dependencies for the given set of roots.
- * <p>
+ *
  * <p>The implementation filters the static call-graph with liveness information on classes to
  * remove virtual methods that are reachable by their static type but are unreachable at runtime as
  * they are not visible from any instance.
- * <p>
+ *
  * <p>As result of the analysis, an instance of {@link AppInfoWithLiveness} is returned. See the
  * field descriptions for details.
  */
@@ -392,6 +393,13 @@ public class Enqueuer {
    */
   private final Map<DexType, Map<DexAnnotation, List<ProgramDefinition>>> deferredAnnotations =
       new IdentityHashMap<>();
+
+  /**
+   * A map from annotation classes to parameter annotations that need to be processed should the
+   * classes ever become live.
+   */
+  private final Map<DexType, Map<DexAnnotation, List<ProgramDefinition>>>
+      deferredParameterAnnotations = new IdentityHashMap<>();
 
   /** Map of active if rules to speed up aapt2 generated keep rules. */
   private Map<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> activeIfRules;
@@ -1828,16 +1836,9 @@ public class Enqueuer {
 
     // If this type has deferred annotations, we have to process those now, too.
     if (clazz.isAnnotation()) {
-      Map<DexAnnotation, List<ProgramDefinition>> annotations =
-          deferredAnnotations.remove(clazz.getType());
-      if (annotations != null) {
-        assert annotations.keySet().stream()
-            .allMatch(a -> a.getAnnotationType() == clazz.getType());
-        annotations.forEach(
-            (annotation, annotatedItems) ->
-                annotatedItems.forEach(
-                    annotatedItem -> processAnnotation(annotatedItem, annotation)));
-      }
+      processDeferredAnnotations(clazz, deferredAnnotations, AnnotatedKind::from);
+      processDeferredAnnotations(
+          clazz, deferredParameterAnnotations, annotatedItem -> AnnotatedKind.PARAMETER);
     }
 
     rootSet.forEachDependentInstanceConstructor(
@@ -1847,6 +1848,24 @@ public class Enqueuer {
         clazz, rootSet.getDependentKeepClassCompatRule(clazz.getType()));
 
     analyses.forEach(analysis -> analysis.processNewlyLiveClass(clazz, workList));
+  }
+
+  private void processDeferredAnnotations(
+      DexProgramClass clazz,
+      Map<DexType, Map<DexAnnotation, List<ProgramDefinition>>> deferredAnnotations,
+      Function<ProgramDefinition, AnnotatedKind> kindProvider) {
+    Map<DexAnnotation, List<ProgramDefinition>> annotations =
+        deferredAnnotations.remove(clazz.getType());
+    if (annotations != null) {
+      assert annotations.keySet().stream()
+          .allMatch(annotation -> annotation.getAnnotationType() == clazz.getType());
+      annotations.forEach(
+          (annotation, annotatedItems) ->
+              annotatedItems.forEach(
+                  annotatedItem ->
+                      processAnnotation(
+                          annotatedItem, annotation, kindProvider.apply(annotatedItem))));
+    }
   }
 
   private void ensureMethodsContinueToWidenAccess(ClassDefinition clazz) {
@@ -1931,27 +1950,35 @@ public class Enqueuer {
   }
 
   private void processAnnotations(ProgramDefinition annotatedItem) {
-    processAnnotations(annotatedItem, annotatedItem.getDefinition().annotations());
+    processAnnotations(
+        annotatedItem,
+        annotatedItem.getDefinition().annotations(),
+        AnnotatedKind.from(annotatedItem));
   }
 
-  private void processAnnotations(ProgramDefinition annotatedItem, DexAnnotationSet annotations) {
-    processAnnotations(annotatedItem, annotations.annotations);
+  private void processAnnotations(
+      ProgramDefinition annotatedItem, DexAnnotationSet annotations, AnnotatedKind kind) {
+    processAnnotations(annotatedItem, annotations.annotations, kind);
   }
 
-  private void processAnnotations(ProgramDefinition annotatedItem, DexAnnotation[] annotations) {
+  private void processAnnotations(
+      ProgramDefinition annotatedItem, DexAnnotation[] annotations, AnnotatedKind kind) {
     for (DexAnnotation annotation : annotations) {
-      processAnnotation(annotatedItem, annotation);
+      processAnnotation(annotatedItem, annotation, kind);
     }
   }
 
-  private void processAnnotation(ProgramDefinition annotatedItem, DexAnnotation annotation) {
+  private void processAnnotation(
+      ProgramDefinition annotatedItem, DexAnnotation annotation, AnnotatedKind kind) {
     DexType type = annotation.getAnnotationType();
     DexClass clazz = definitionFor(type, annotatedItem);
     boolean annotationTypeIsLibraryClass = clazz == null || clazz.isNotProgramClass();
     boolean isLive = annotationTypeIsLibraryClass || liveTypes.contains(clazz.asProgramClass());
-    if (!shouldKeepAnnotation(appView, annotatedItem.getDefinition(), annotation, isLive)) {
+    if (!shouldKeepAnnotation(appView, annotatedItem, annotation, isLive, kind)) {
       // Remember this annotation for later.
       if (!annotationTypeIsLibraryClass) {
+        Map<DexType, Map<DexAnnotation, List<ProgramDefinition>>> deferredAnnotations =
+            kind.isParameter() ? deferredParameterAnnotations : this.deferredAnnotations;
         Map<DexAnnotation, List<ProgramDefinition>> deferredAnnotationsForAnnotationType =
             deferredAnnotations.computeIfAbsent(type, ignore -> new IdentityHashMap<>());
         deferredAnnotationsForAnnotationType
@@ -3915,7 +3942,8 @@ public class Enqueuer {
     method
         .getDefinition()
         .getParameterAnnotations()
-        .forEachAnnotation(annotation -> processAnnotation(method, annotation));
+        .forEachAnnotation(
+            annotation -> processAnnotation(method, annotation, AnnotatedKind.PARAMETER));
   }
 
   private void traceNonDesugaredCode(ProgramMethod method) {

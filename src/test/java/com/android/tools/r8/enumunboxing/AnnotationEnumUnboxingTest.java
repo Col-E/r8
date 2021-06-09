@@ -42,9 +42,8 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
     Assume.assumeFalse(
         "The methods values and valueOf are required for reflection.",
         enumKeepRules.toString().equals("none"));
-    testForR8(parameters.getBackend())
+    testForR8Compat(parameters.getBackend())
         .addInnerClasses(AnnotationEnumUnboxingTest.class)
-        .noMinification()
         .addKeepMainRule(Main.class)
         .addKeepRules(enumKeepRules.getKeepRules())
         .addKeepClassRules(ClassAnnotationDefault.class)

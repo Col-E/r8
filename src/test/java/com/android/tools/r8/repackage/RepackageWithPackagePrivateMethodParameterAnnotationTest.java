@@ -30,7 +30,7 @@ public class RepackageWithPackagePrivateMethodParameterAnnotationTest extends Re
 
   @Test
   public void test() throws Exception {
-    testForR8(parameters.getBackend())
+    testForR8Compat(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(NonPublicKeptAnnotation.class)

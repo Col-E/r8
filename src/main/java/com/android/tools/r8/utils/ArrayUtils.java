@@ -80,6 +80,10 @@ public class ArrayUtils {
         clazz.cast(Array.newInstance(clazz.getComponentType(), filtered.size())));
   }
 
+  public static <T> boolean isEmpty(T[] array) {
+    return array.length == 0;
+  }
+
   public static boolean isSorted(int[] array) {
     for (int i = 0; i < array.length - 1; i++) {
       assert array[i] < array[i + 1];
@@ -89,18 +93,6 @@ public class ArrayUtils {
 
   public static <T> T last(T[] array) {
     return array[array.length - 1];
-  }
-
-  /**
-   * Rewrites the input array based on the given function.
-   *
-   * @param clazz target type's Class to cast
-   * @param original an array of original elements
-   * @param mapper a mapper that rewrites an original element to a new one, maybe `null`
-   * @return an array with written elements
-   */
-  public static <T> T[] map(Class<T[]> clazz, T[] original, Function<T, T> mapper) {
-    return map(original, mapper, clazz.cast(Array.newInstance(clazz.getComponentType(), 0)));
   }
 
   /**

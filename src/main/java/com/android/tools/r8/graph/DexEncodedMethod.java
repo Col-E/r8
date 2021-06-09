@@ -44,6 +44,7 @@ import com.android.tools.r8.dex.MethodToCodeObjectMapping;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.code.IRCode;
@@ -72,8 +73,6 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.position.MethodPosition;
-import com.android.tools.r8.shaking.AnnotationRemover;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -92,6 +91,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
@@ -397,11 +397,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public DexType returnType() {
     return getReference().proto.returnType;
-  }
-
-  public ParameterAnnotationsList liveParameterAnnotations(AppView<AppInfoWithLiveness> appView) {
-    return parameterAnnotationsList.keepIf(
-        annotation -> AnnotationRemover.shouldKeepAnnotation(appView, this, annotation));
   }
 
   public OptionalBool isLibraryMethodOverride() {
@@ -894,12 +889,36 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return builder.toString();
   }
 
-  public ParameterAnnotationsList getParameterAnnotations() {
-    return parameterAnnotationsList;
+  @Override
+  public void clearAllAnnotations() {
+    clearAnnotations();
+    clearParameterAnnotations();
+  }
+
+  @Override
+  public void rewriteAllAnnotations(
+      BiFunction<DexAnnotation, AnnotatedKind, DexAnnotation> rewriter) {
+    setAnnotations(
+        annotations().rewrite(annotation -> rewriter.apply(annotation, AnnotatedKind.METHOD)));
+    setParameterAnnotations(
+        getParameterAnnotations()
+            .rewrite(annotation -> rewriter.apply(annotation, AnnotatedKind.PARAMETER)));
   }
 
   public void clearParameterAnnotations() {
     parameterAnnotationsList = ParameterAnnotationsList.empty();
+  }
+
+  public DexAnnotationSet getParameterAnnotation(int index) {
+    return getParameterAnnotations().get(index);
+  }
+
+  public ParameterAnnotationsList getParameterAnnotations() {
+    return parameterAnnotationsList;
+  }
+
+  public void setParameterAnnotations(ParameterAnnotationsList parameterAnnotations) {
+    this.parameterAnnotationsList = parameterAnnotations;
   }
 
   public String toSmaliString(ClassNameMapper naming) {

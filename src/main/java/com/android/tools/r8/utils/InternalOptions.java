@@ -618,8 +618,23 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   @Override
+  public boolean isKeepRuntimeInvisibleAnnotationsEnabled() {
+    return proguardConfiguration.getKeepAttributes().runtimeInvisibleAnnotations;
+  }
+
+  @Override
+  public boolean isKeepRuntimeInvisibleParameterAnnotationsEnabled() {
+    return proguardConfiguration.getKeepAttributes().runtimeInvisibleParameterAnnotations;
+  }
+
+  @Override
   public boolean isKeepRuntimeVisibleAnnotationsEnabled() {
     return proguardConfiguration.getKeepAttributes().runtimeVisibleAnnotations;
+  }
+
+  @Override
+  public boolean isKeepRuntimeVisibleParameterAnnotationsEnabled() {
+    return proguardConfiguration.getKeepAttributes().runtimeVisibleParameterAnnotations;
   }
 
   /**

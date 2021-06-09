@@ -6,45 +6,72 @@ package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.BooleanUtils;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.List;
 import org.junit.Test;
+import org.junit.runners.Parameterized;
 
 public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergingTestBase {
 
-  public NoClassesOrMembersWithAnnotationsTest(TestParameters parameters) {
+  private final boolean enableProguardCompatibilityMode;
+
+  @Parameterized.Parameters(name = "{1}, compat: {0}")
+  public static List<Object[]> parameters() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+  }
+
+  public NoClassesOrMembersWithAnnotationsTest(
+      boolean enableProguardCompatibilityMode, TestParameters parameters) {
     super(parameters);
+    this.enableProguardCompatibilityMode = enableProguardCompatibilityMode;
   }
 
   @Test
   public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
+    testForR8Compat(parameters.getBackend(), enableProguardCompatibilityMode)
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertIsCompleteMergeGroup(A.class, C.class))
+            inspector -> {
+              if (enableProguardCompatibilityMode) {
+                inspector.assertIsCompleteMergeGroup(A.class, C.class);
+              } else {
+                inspector.assertIsCompleteMergeGroup(A.class, B.class, C.class);
+              }
+            })
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(
-            "a", "b", "c", "foo", "null", "annotation 2", "annotation 1", "annotation 2")
+        .applyIf(
+            enableProguardCompatibilityMode,
+            result ->
+                result.assertSuccessWithOutputLines(
+                    "a", "b", "c", "foo", "null", "annotation 2", "annotation 1", "annotation 2"),
+            result ->
+                result.assertSuccessWithOutputLines("a", "b", "c", "foo", "null", "annotation 2"))
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(TypeAnnotation.class), isPresent());
               assertThat(codeInspector.clazz(MethodAnnotation.class), isPresent());
               assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(codeInspector.clazz(B.class), isPresent());
+              assertThat(
+                  codeInspector.clazz(B.class),
+                  onlyIf(enableProguardCompatibilityMode, isPresent()));
               assertThat(codeInspector.clazz(C.class), isAbsent());
             });
   }
@@ -110,14 +137,18 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
               return null;
             }
           });
-      System.out.println(
-          b.getClass().getAnnotations()[0].toString().replaceFirst(".*", "annotation 1"));
-      System.out.println(
-          c.getClass()
-              .getMethods()[0]
-              .getAnnotations()[0]
-              .toString()
-              .replaceFirst(".*", "annotation 2"));
+      if (b.getClass().getAnnotations().length > 0) {
+        System.out.println(
+            b.getClass().getAnnotations()[0].toString().replaceFirst(".*", "annotation 1"));
+      }
+      if (c.getClass().getMethods()[0].getAnnotations().length > 0) {
+        System.out.println(
+            c.getClass()
+                .getMethods()[0]
+                .getAnnotations()[0]
+                .toString()
+                .replaceFirst(".*", "annotation 2"));
+      }
     }
   }
 }

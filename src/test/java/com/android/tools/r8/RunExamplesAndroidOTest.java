@@ -49,7 +49,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.zip.ZipFile;
 import org.junit.Assert;
@@ -74,7 +73,7 @@ public abstract class RunExamplesAndroidOTest<
 
     final List<Consumer<InternalOptions>> optionConsumers = new ArrayList<>();
     final List<Consumer<CodeInspector>> dexInspectorChecks = new ArrayList<>();
-    final List<UnaryOperator<B>> builderTransformations = new ArrayList<>();
+    final List<Consumer<B>> builderTransformations = new ArrayList<>();
 
     TestRunner(String testName, String packageName, String mainClass) {
       this.testName = testName;
@@ -131,7 +130,6 @@ public abstract class RunExamplesAndroidOTest<
             } else {
               fail("Unexpected builder type: " + builder.getClass());
             }
-            return builder;
           });
     }
 
@@ -143,7 +141,7 @@ public abstract class RunExamplesAndroidOTest<
       return withOptionConsumer(o -> o.tryWithResourcesDesugaring = behavior);
     }
 
-    C withBuilderTransformation(UnaryOperator<B> builderTransformation) {
+    C withBuilderTransformation(Consumer<B> builderTransformation) {
       builderTransformations.add(builderTransformation);
       return self();
     }
