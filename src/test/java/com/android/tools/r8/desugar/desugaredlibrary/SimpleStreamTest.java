@@ -10,7 +10,6 @@ import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,7 +36,6 @@ public class SimpleStreamTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testStreamD8() throws Exception {
-    Assume.assumeFalse("TODO(b/189264383): fix", shrinkDesugaredLibrary);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(SimpleStreamTest.class)
@@ -55,7 +53,6 @@ public class SimpleStreamTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testStreamR8() throws Exception {
-    Assume.assumeFalse("TODO(b/189264383): fix", shrinkDesugaredLibrary);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
         .addInnerClasses(SimpleStreamTest.class)

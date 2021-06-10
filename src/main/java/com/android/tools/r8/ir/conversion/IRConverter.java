@@ -722,6 +722,9 @@ public class IRConverter {
     //   2) Second inlining pass for dealing with double inline callers.
     printPhase("Post optimization pass");
     if (appView.callSiteOptimizationInfoPropagator() != null) {
+      appView
+          .callSiteOptimizationInfoPropagator()
+          .abandonCallSitePropagationForPinnedMethodsAndOverrides(executorService);
       postMethodProcessorBuilder.put(appView.callSiteOptimizationInfoPropagator());
     }
     if (inliner != null) {

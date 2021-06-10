@@ -38,6 +38,7 @@ import com.android.tools.r8.utils.ForEachable;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.CallSiteOptimizationOptions;
 import com.android.tools.r8.utils.LazyBox;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
@@ -45,6 +46,9 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 public class CallSiteOptimizationInfoPropagator implements PostOptimization {
 
@@ -288,6 +292,25 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       }
     } else {
       methods.forEach(method -> method.getDefinition().abandonCallSiteOptimizationInfo());
+    }
+  }
+
+  public void abandonCallSitePropagationForPinnedMethodsAndOverrides(
+      ExecutorService executorService) throws ExecutionException {
+    ThreadUtils.processItems(
+        this::forEachPinnedNonPrivateVirtualMethod,
+        this::abandonCallSitePropagationForMethodAndOverrides,
+        executorService);
+  }
+
+  private void forEachPinnedNonPrivateVirtualMethod(Consumer<ProgramMethod> consumer) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      for (ProgramMethod virtualProgramMethod : clazz.virtualProgramMethods()) {
+        if (virtualProgramMethod.getDefinition().isNonPrivateVirtualMethod()
+            && appView.getKeepInfo().isPinned(virtualProgramMethod.getReference(), appView)) {
+          consumer.accept(virtualProgramMethod);
+        }
+      }
     }
   }
 
