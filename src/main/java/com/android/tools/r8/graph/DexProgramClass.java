@@ -199,6 +199,10 @@ public class DexProgramClass extends DexClass
     forEachField(field -> consumer.accept(new ProgramField(this, field)));
   }
 
+  public void forEachProgramInstanceField(Consumer<? super ProgramField> consumer) {
+    forEachInstanceField(field -> consumer.accept(new ProgramField(this, field)));
+  }
+
   public void forEachProgramMember(Consumer<? super ProgramMember<?, ?>> consumer) {
     forEachProgramField(consumer);
     forEachProgramMethod(consumer);

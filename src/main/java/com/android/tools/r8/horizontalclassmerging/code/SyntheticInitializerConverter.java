@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.horizontalclassmerging.MergeGroup;
+import com.android.tools.r8.horizontalclassmerging.IRCodeProvider;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
@@ -23,19 +23,24 @@ import java.util.concurrent.ExecutorService;
  * Converts synthetic class initializers that have been created as a result of merging class
  * initializers into a single class initializer to DEX.
  */
-public class SyntheticClassInitializerConverter {
+public class SyntheticInitializerConverter {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
-  private final List<MergeGroup> groups;
+  private final IRCodeProvider codeProvider;
+  private final List<ProgramMethod> methods;
 
-  private SyntheticClassInitializerConverter(
-      AppView<? extends AppInfoWithClassHierarchy> appView, List<MergeGroup> groups) {
+  private SyntheticInitializerConverter(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      IRCodeProvider codeProvider,
+      List<ProgramMethod> methods) {
     this.appView = appView;
-    this.groups = groups;
+    this.codeProvider = codeProvider;
+    this.methods = methods;
   }
 
-  public static Builder builder(AppView<? extends AppInfoWithClassHierarchy> appView) {
-    return new Builder(appView);
+  public static Builder builder(
+      AppView<? extends AppInfoWithClassHierarchy> appView, IRCodeProvider codeProvider) {
+    return new Builder(appView, codeProvider);
   }
 
   public void convert(ExecutorService executorService) throws ExecutionException {
@@ -51,14 +56,9 @@ public class SyntheticClassInitializerConverter {
     // Build IR for each of the class initializers and finalize.
     IRConverter converter = new IRConverter(appViewForConversion, Timing.empty());
     ThreadUtils.processItems(
-        groups,
-        group -> {
-          ProgramMethod classInitializer = group.getTarget().getProgramClassInitializer();
-          IRCode code =
-              classInitializer
-                  .getDefinition()
-                  .getCode()
-                  .buildIR(classInitializer, appViewForConversion, classInitializer.getOrigin());
+        methods,
+        method -> {
+          IRCode code = codeProvider.buildIR(method);
           converter.removeDeadCodeAndFinalizeIR(
               code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
         },
@@ -66,25 +66,28 @@ public class SyntheticClassInitializerConverter {
   }
 
   public boolean isEmpty() {
-    return groups.isEmpty();
+    return methods.isEmpty();
   }
 
   public static class Builder {
 
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
-    private final List<MergeGroup> groups = new ArrayList<>();
+    private final IRCodeProvider codeProvider;
+    private final List<ProgramMethod> methods = new ArrayList<>();
 
-    private Builder(AppView<? extends AppInfoWithClassHierarchy> appView) {
+    private Builder(
+        AppView<? extends AppInfoWithClassHierarchy> appView, IRCodeProvider codeProvider) {
       this.appView = appView;
+      this.codeProvider = codeProvider;
     }
 
-    public Builder add(MergeGroup group) {
-      this.groups.add(group);
+    public Builder add(ProgramMethod method) {
+      this.methods.add(method);
       return this;
     }
 
-    public SyntheticClassInitializerConverter build() {
-      return new SyntheticClassInitializerConverter(appView, groups);
+    public SyntheticInitializerConverter build() {
+      return new SyntheticInitializerConverter(appView, codeProvider, methods);
     }
   }
 }

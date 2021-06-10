@@ -27,12 +27,10 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.code.ClassInitializerMerger;
-import com.android.tools.r8.horizontalclassmerging.code.SyntheticClassInitializerConverter;
+import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConverter;
 import com.android.tools.r8.ir.analysis.value.NumberFromIntervalValue;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
-import com.android.tools.r8.shaking.KeepClassInfo;
-import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -40,7 +38,6 @@ import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +75,7 @@ public class ClassMerger {
 
   private ClassMerger(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      IRCodeProvider codeProvider,
       Mode mode,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       MergeGroup group,
@@ -96,7 +94,7 @@ public class ClassMerger {
     this.classInitializerMerger = ClassInitializerMerger.create(group);
     this.instanceInitializerMergers =
         InstanceInitializerMergerCollection.create(
-            appView, classIdentifiers, group, classInstanceFieldsMerger, lensBuilder, mode);
+            appView, classIdentifiers, codeProvider, group, lensBuilder, mode);
     this.virtualMethodMergers = virtualMethodMergers;
 
     buildClassIdentifierMap();
@@ -109,14 +107,14 @@ public class ClassMerger {
 
   void mergeDirectMethods(
       SyntheticArgumentClass syntheticArgumentClass,
-      SyntheticClassInitializerConverter.Builder syntheticClassInitializerConverterBuilder) {
-    mergeInstanceInitializers(syntheticArgumentClass);
-    mergeStaticClassInitializers(syntheticClassInitializerConverterBuilder);
+      SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
+    mergeInstanceInitializers(syntheticArgumentClass, syntheticInitializerConverterBuilder);
+    mergeStaticClassInitializers(syntheticInitializerConverterBuilder);
     group.forEach(this::mergeDirectMethods);
   }
 
   void mergeStaticClassInitializers(
-      SyntheticClassInitializerConverter.Builder syntheticClassInitializerConverterBuilder) {
+      SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
     if (classInitializerMerger.isEmpty()) {
       return;
     }
@@ -145,7 +143,7 @@ public class ClassMerger {
     if (!definition.getCode().isCfCode()) {
       assert appView.options().isGeneratingDex();
       assert mode.isFinal();
-      syntheticClassInitializerConverterBuilder.add(group);
+      syntheticInitializerConverterBuilder.add(new ProgramMethod(group.getTarget(), definition));
     }
   }
 
@@ -187,16 +185,20 @@ public class ClassMerger {
         classMethodsBuilder::isFresh);
   }
 
-  void mergeInstanceInitializers(SyntheticArgumentClass syntheticArgumentClass) {
+  void mergeInstanceInitializers(
+      SyntheticArgumentClass syntheticArgumentClass,
+      SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
     instanceInitializerMergers.forEach(
-        merger -> merger.merge(classMethodsBuilder, syntheticArgumentClass));
+        merger ->
+            merger.merge(
+                classMethodsBuilder, syntheticArgumentClass, syntheticInitializerConverterBuilder));
   }
 
   void mergeMethods(
       SyntheticArgumentClass syntheticArgumentClass,
-      SyntheticClassInitializerConverter.Builder syntheticClassInitializerConverterBuilder) {
+      SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
     mergeVirtualMethods();
-    mergeDirectMethods(syntheticArgumentClass, syntheticClassInitializerConverterBuilder);
+    mergeDirectMethods(syntheticArgumentClass, syntheticInitializerConverterBuilder);
     classMethodsBuilder.setClassMethods(group.getTarget());
   }
 
@@ -316,51 +318,30 @@ public class ClassMerger {
 
   public void mergeGroup(
       SyntheticArgumentClass syntheticArgumentClass,
-      SyntheticClassInitializerConverter.Builder syntheticClassInitializerConverterBuilder) {
+      SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
     fixAccessFlags();
     fixNestMemberAttributes();
     mergeAnnotations();
     mergeInterfaces();
     mergeFields();
-    mergeMethods(syntheticArgumentClass, syntheticClassInitializerConverterBuilder);
+    mergeMethods(syntheticArgumentClass, syntheticInitializerConverterBuilder);
   }
 
   public static class Builder {
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
+    private final IRCodeProvider codeProvider;
     private Mode mode;
     private final MergeGroup group;
 
-    public Builder(AppView<? extends AppInfoWithClassHierarchy> appView, MergeGroup group) {
+    public Builder(
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        IRCodeProvider codeProvider,
+        MergeGroup group,
+        Mode mode) {
       this.appView = appView;
+      this.codeProvider = codeProvider;
       this.group = group;
-    }
-
-    Builder setMode(Mode mode) {
       this.mode = mode;
-      return this;
-    }
-
-    private void selectTarget() {
-      Iterable<DexProgramClass> candidates = Iterables.filter(group, DexClass::isPublic);
-      if (IterableUtils.isEmpty(candidates)) {
-        candidates = group;
-      }
-      Iterator<DexProgramClass> candidateIterator = candidates.iterator();
-      DexProgramClass target = IterableUtils.first(candidates);
-      while (candidateIterator.hasNext()) {
-        DexProgramClass current = candidateIterator.next();
-        KeepClassInfo keepClassInfo = appView.getKeepInfo().getClassInfo(current);
-        if (keepClassInfo.isMinificationAllowed(appView.options())) {
-          target = current;
-          break;
-        }
-        // Select the target with the shortest name.
-        if (current.getType().getDescriptor().size() < target.getType().getDescriptor().size) {
-          target = current;
-        }
-      }
-      group.setTarget(
-          appView.testing().horizontalClassMergingTarget.apply(appView, candidates, target));
     }
 
     private List<VirtualMethodMerger> createVirtualMethodMergers() {
@@ -393,8 +374,6 @@ public class ClassMerger {
 
     public ClassMerger build(
         HorizontalClassMergerGraphLens.Builder lensBuilder) {
-      selectTarget();
-
       List<VirtualMethodMerger> virtualMethodMergers = createVirtualMethodMergers();
 
       boolean requiresClassIdField =
@@ -405,7 +384,7 @@ public class ClassMerger {
         createClassIdField();
       }
 
-      return new ClassMerger(appView, mode, lensBuilder, group, virtualMethodMergers);
+      return new ClassMerger(appView, codeProvider, mode, lensBuilder, group, virtualMethodMergers);
     }
   }
 }

@@ -39,8 +39,8 @@ public class InstanceInitializerMergerCollection {
   public static InstanceInitializerMergerCollection create(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       Reference2IntMap<DexType> classIdentifiers,
+      IRCodeProvider codeProvider,
       MergeGroup group,
-      ClassInstanceFieldsMerger instanceFieldsMerger,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       Mode mode) {
     // Create an instance initializer merger for each group of instance initializers that are
@@ -54,7 +54,7 @@ public class InstanceInitializerMergerCollection {
                 instanceInitializer -> {
                   InstanceInitializerDescription description =
                       InstanceInitializerAnalysis.analyze(
-                          appView, group, instanceInitializer, instanceFieldsMerger, mode);
+                          appView, codeProvider, group, instanceInitializer);
                   if (description != null) {
                     buildersByDescription
                         .computeIfAbsent(

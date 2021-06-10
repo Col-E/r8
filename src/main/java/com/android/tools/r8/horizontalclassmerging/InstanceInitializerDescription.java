@@ -16,13 +16,9 @@ import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturnVoid;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.InvokeDirectRange;
-import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -35,7 +31,6 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.utils.IntBox;
-import com.android.tools.r8.utils.IterableUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -234,34 +229,6 @@ public class InstanceInitializerDescription {
           new CfConstString(singleConstValue.asSingleStringValue().getDexString()));
       return 1;
     }
-  }
-
-  public DexCode createDexCode(
-      DexMethod newMethodReference,
-      DexMethod originalMethodReference,
-      DexMethod syntheticMethodReference,
-      MergeGroup group,
-      boolean hasClassId,
-      int extraNulls) {
-    assert !hasClassId;
-    assert extraNulls == 0;
-    assert parentConstructorArguments.isEmpty();
-    assert instanceFieldAssignmentsPre.isEmpty();
-    assert instanceFieldAssignmentsPost.isEmpty();
-    Instruction[] instructions = new Instruction[2];
-    instructions[0] = new InvokeDirectRange(0, 1, parentConstructor);
-    instructions[1] = new ReturnVoid();
-    int incomingRegisterSize =
-        1 + IterableUtils.sumInt(newMethodReference.getParameters(), DexType::getRequiredRegisters);
-    int outgoingRegisterSize = 1;
-    return new DexCode(
-        incomingRegisterSize,
-        incomingRegisterSize,
-        outgoingRegisterSize,
-        instructions,
-        new DexCode.Try[0],
-        new DexCode.TryHandler[0],
-        null);
   }
 
   @Override

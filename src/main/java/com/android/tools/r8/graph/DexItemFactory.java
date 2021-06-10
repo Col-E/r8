@@ -2245,6 +2245,10 @@ public class DexItemFactory {
     return createMethod(holder, createProto(voidType, parameters), constructorMethodName);
   }
 
+  public DexMethod createInstanceInitializer(DexType holder, DexTypeList parameters) {
+    return createInstanceInitializer(holder, parameters.values);
+  }
+
   public DexMethod createInstanceInitializerWithFreshProto(
       DexMethod method, List<DexType> extraTypes, Predicate<DexMethod> isFresh) {
     assert method.isInstanceInitializer(this);

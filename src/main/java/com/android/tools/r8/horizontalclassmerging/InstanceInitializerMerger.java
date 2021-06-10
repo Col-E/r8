@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.code.ConstructorEntryPointSynthesizedCode;
+import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConverter;
 import com.android.tools.r8.ir.conversion.ExtraConstantIntParameter;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
@@ -277,16 +278,7 @@ public class InstanceInitializerMerger {
       boolean needsClassId,
       int extraNulls) {
     if (hasInstanceInitializerDescription()) {
-      if (mode.isInitial() || appView.options().isGeneratingClassFiles()) {
-        return instanceInitializerDescription.createCfCode(
-            newMethodReference,
-            getOriginalMethodReference(),
-            syntheticMethodReference,
-            group,
-            needsClassId,
-            extraNulls);
-      }
-      return instanceInitializerDescription.createDexCode(
+      return instanceInitializerDescription.createCfCode(
           newMethodReference,
           getOriginalMethodReference(),
           syntheticMethodReference,
@@ -311,7 +303,8 @@ public class InstanceInitializerMerger {
   /** Synthesize a new method which selects the constructor based on a parameter type. */
   void merge(
       ClassMethodsBuilder classMethodsBuilder,
-      SyntheticArgumentClass syntheticArgumentClass) {
+      SyntheticArgumentClass syntheticArgumentClass,
+      SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
     ProgramMethod representative = ListUtils.first(instanceInitializers);
 
     // Create merged instance initializer reference.
@@ -378,5 +371,15 @@ public class InstanceInitializerMerger {
             true,
             getNewClassFileVersion());
     classMethodsBuilder.addDirectMethod(newInstanceInitializer);
+
+    if (mode.isFinal()) {
+      if (appView.options().isGeneratingDex() && !newInstanceInitializer.getCode().isDexCode()) {
+        syntheticInitializerConverterBuilder.add(
+            new ProgramMethod(group.getTarget(), newInstanceInitializer));
+      } else {
+        assert !appView.options().isGeneratingClassFiles()
+            || newInstanceInitializer.getCode().isCfCode();
+      }
+    }
   }
 }

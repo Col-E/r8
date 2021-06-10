@@ -314,6 +314,15 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     fields(predicate).forEach(consumer);
   }
 
+  public void forEachInstanceField(Consumer<DexEncodedField> consumer) {
+    forEachInstanceFieldMatching(alwaysTrue(), consumer);
+  }
+
+  public void forEachInstanceFieldMatching(
+      Predicate<DexEncodedField> predicate, Consumer<DexEncodedField> consumer) {
+    instanceFields(predicate).forEach(consumer);
+  }
+
   public TraversalContinuation traverseFields(Function<DexEncodedField, TraversalContinuation> fn) {
     for (DexEncodedField field : fields()) {
       if (fn.apply(field).shouldBreak()) {
@@ -391,6 +400,10 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
       return Collections.unmodifiableList(Arrays.asList(instanceFields));
     }
     return Arrays.asList(instanceFields);
+  }
+
+  public Iterable<DexEncodedField> instanceFields(Predicate<? super DexEncodedField> predicate) {
+    return Iterables.filter(Arrays.asList(instanceFields), predicate::test);
   }
 
   public void appendInstanceField(DexEncodedField field) {

@@ -1,0 +1,87 @@
+// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.classmerging;
+
+import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+@RunWith(Parameterized.class)
+public class StatefulSingletonClassesMergingTest extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  public StatefulSingletonClassesMergingTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
+  @Test
+  public void test() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .addHorizontallyMergedClassesInspector(
+            inspector -> inspector.assertIsCompleteMergeGroup(A.class, B.class))
+        .enableInliningAnnotations()
+        .enableMemberValuePropagationAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .noClassStaticizing()
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("A", "B");
+  }
+
+  static class Main {
+    public static void main(String[] args) {
+      A.INSTANCE.f();
+      B.INSTANCE.g();
+    }
+  }
+
+  @NeverClassInline
+  static class A {
+
+    static final A INSTANCE = new A("A");
+
+    @NeverPropagateValue private final String data;
+
+    A(String data) {
+      this.data = data;
+    }
+
+    @NeverInline
+    void f() {
+      System.out.println(data);
+    }
+  }
+
+  @NeverClassInline
+  static class B {
+
+    static final B INSTANCE = new B("B");
+
+    @NeverPropagateValue private final String data;
+
+    B(String data) {
+      this.data = data;
+    }
+
+    @NeverInline
+    void g() {
+      System.out.println(data);
+    }
+  }
+}

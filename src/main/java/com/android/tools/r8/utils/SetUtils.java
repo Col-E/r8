@@ -25,6 +25,12 @@ public class SetUtils {
     return result;
   }
 
+  public static <T> Set<T> newIdentityHashSet(ForEachable<T> forEachable) {
+    Set<T> result = Sets.newIdentityHashSet();
+    forEachable.forEach(result::add);
+    return result;
+  }
+
   public static <T> Set<T> newIdentityHashSet(Iterable<T> c) {
     Set<T> result = Sets.newIdentityHashSet();
     c.forEach(result::add);

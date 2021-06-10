@@ -21,20 +21,14 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
-import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
-import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
-import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.utils.WorkList;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,36 +37,12 @@ public class InstanceInitializerAnalysis {
 
   public static InstanceInitializerDescription analyze(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      IRCodeProvider codeProvider,
       MergeGroup group,
-      ProgramMethod instanceInitializer,
-      ClassInstanceFieldsMerger instanceFieldsMerger,
-      Mode mode) {
+      ProgramMethod instanceInitializer) {
     InstanceInitializerDescription.Builder builder =
         InstanceInitializerDescription.builder(appView, instanceInitializer);
-
-    if (mode.isFinal()) {
-      // TODO(b/189296638): We can't build IR in the final round of class merging without simulating
-      //  that we're in D8.
-      MethodOptimizationInfo optimizationInfo =
-          instanceInitializer.getDefinition().getOptimizationInfo();
-      if (optimizationInfo.mayHaveSideEffects()) {
-        return null;
-      }
-      InstanceInitializerInfo instanceInitializerInfo =
-          optimizationInfo.getContextInsensitiveInstanceInitializerInfo();
-      if (!instanceInitializerInfo.hasParent()) {
-        // We don't know the parent constructor of the first constructor.
-        return null;
-      }
-      DexMethod parent = instanceInitializerInfo.getParent();
-      if (parent.getArity() > 0) {
-        return null;
-      }
-      builder.addInvokeConstructor(parent, ImmutableList.of());
-      return builder.build();
-    }
-
-    IRCode code = instanceInitializer.buildIR(appView);
+    IRCode code = codeProvider.buildIR(instanceInitializer);
     WorkList<BasicBlock> workList = WorkList.newIdentityWorkList(code.entryBlock());
     while (workList.hasNext()) {
       BasicBlock block = workList.next();
@@ -118,12 +88,12 @@ public class InstanceInitializerAnalysis {
               }
 
               InstanceFieldInitializationInfo initializationInfo =
-                  getInitializationInfo(instancePut.value(), appView, instanceInitializer);
+                  getInitializationInfo(appView, instancePut.value());
               if (initializationInfo == null) {
                 return invalid();
               }
 
-              ProgramField targetField = instanceFieldsMerger.getTargetField(sourceField);
+              ProgramField targetField = group.getTargetInstanceField(sourceField);
               assert targetField != null;
 
               builder.addInstancePut(targetField.getReference(), initializationInfo);
@@ -157,7 +127,7 @@ public class InstanceInitializerAnalysis {
                   new ArrayList<>(invoke.arguments().size() - 1);
               for (Value argument : Iterables.skip(invoke.arguments(), 1)) {
                 InstanceFieldInitializationInfo initializationInfo =
-                    getInitializationInfo(argument, appView, instanceInitializer);
+                    getInitializationInfo(appView, argument);
                 if (initializationInfo == null) {
                   return invalid();
                 }
@@ -181,23 +151,28 @@ public class InstanceInitializerAnalysis {
   }
 
   private static InstanceFieldInitializationInfo getInitializationInfo(
-      Value value,
-      AppView<? extends AppInfoWithClassHierarchy> appView,
-      ProgramMethod instanceInitializer) {
-    InstanceFieldInitializationInfoFactory factory =
-        appView.instanceFieldInitializationInfoFactory();
-
+      AppView<? extends AppInfoWithClassHierarchy> appView, Value value) {
     Value root = value.getAliasedValue();
-    if (root.isDefinedByInstructionSatisfying(Instruction::isArgument)) {
-      return factory.createArgumentInitializationInfo(
-          value.getDefinition().asArgument().getIndex());
+    if (root.isPhi()) {
+      return null;
     }
 
-    AbstractValue abstractValue = value.getAbstractValue(appView, instanceInitializer);
-    if (abstractValue.isSingleConstValue()) {
-      return abstractValue.asSingleConstValue();
+    Instruction definition = root.getDefinition();
+    if (definition.isArgument()) {
+      return appView
+          .instanceFieldInitializationInfoFactory()
+          .createArgumentInitializationInfo(root.getDefinition().asArgument().getIndex());
     }
-
+    if (definition.isConstNumber()) {
+      return appView
+          .abstractValueFactory()
+          .createSingleNumberValue(definition.asConstNumber().getRawValue());
+    }
+    if (definition.isConstString()) {
+      return appView
+          .abstractValueFactory()
+          .createSingleStringValue(definition.asConstString().getValue());
+    }
     return null;
   }
 

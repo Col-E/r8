@@ -6,12 +6,20 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramField;
+import com.android.tools.r8.shaking.KeepClassInfo;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.IteratorUtils;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Iterator;
@@ -28,6 +36,8 @@ public class MergeGroup implements Collection<DexProgramClass> {
   private DexField classIdField;
   private DexProgramClass target = null;
   private Metadata metadata = null;
+
+  private BidirectionalManyToOneMap<DexEncodedField, DexEncodedField> instanceFieldMap;
 
   public MergeGroup() {
     this.classes = new LinkedList<>();
@@ -104,6 +114,31 @@ public class MergeGroup implements Collection<DexProgramClass> {
     this.classIdField = classIdField;
   }
 
+  public boolean hasInstanceFieldMap() {
+    return instanceFieldMap != null;
+  }
+
+  public BidirectionalManyToOneMap<DexEncodedField, DexEncodedField> getInstanceFieldMap() {
+    assert hasInstanceFieldMap();
+    return instanceFieldMap;
+  }
+
+  public void selectInstanceFieldMap(AppView<? extends AppInfoWithClassHierarchy> appView) {
+    assert hasTarget();
+    MutableBidirectionalManyToOneMap<DexEncodedField, DexEncodedField> instanceFieldMap =
+        BidirectionalManyToOneHashMap.newLinkedHashMap();
+    forEachSource(
+        source ->
+            ClassInstanceFieldsMerger.mapFields(appView, source, target, instanceFieldMap::put));
+    setInstanceFieldMap(instanceFieldMap);
+  }
+
+  public void setInstanceFieldMap(
+      BidirectionalManyToOneMap<DexEncodedField, DexEncodedField> instanceFieldMap) {
+    assert !hasInstanceFieldMap();
+    this.instanceFieldMap = instanceFieldMap;
+  }
+
   public Iterable<DexProgramClass> getSources() {
     assert hasTarget();
     return Iterables.filter(classes, clazz -> clazz != target);
@@ -122,8 +157,40 @@ public class MergeGroup implements Collection<DexProgramClass> {
     return target;
   }
 
-  public void setTarget(DexProgramClass target) {
-    assert classes.contains(target);
+  public ProgramField getTargetInstanceField(ProgramField field) {
+    assert hasTarget();
+    assert hasInstanceFieldMap();
+    if (field.getHolder() == getTarget()) {
+      return field;
+    }
+    DexEncodedField targetField = getInstanceFieldMap().get(field.getDefinition());
+    return new ProgramField(getTarget(), targetField);
+  }
+
+  public void selectTarget(AppView<? extends AppInfoWithClassHierarchy> appView) {
+    Iterable<DexProgramClass> candidates = Iterables.filter(getClasses(), DexClass::isPublic);
+    if (IterableUtils.isEmpty(candidates)) {
+      candidates = getClasses();
+    }
+    Iterator<DexProgramClass> candidateIterator = candidates.iterator();
+    DexProgramClass target = IterableUtils.first(candidates);
+    while (candidateIterator.hasNext()) {
+      DexProgramClass current = candidateIterator.next();
+      KeepClassInfo keepClassInfo = appView.getKeepInfo().getClassInfo(current);
+      if (keepClassInfo.isMinificationAllowed(appView.options())) {
+        target = current;
+        break;
+      }
+      // Select the target with the shortest name.
+      if (current.getType().getDescriptor().size() < target.getType().getDescriptor().size) {
+        target = current;
+      }
+    }
+    setTarget(appView.testing().horizontalClassMergingTarget.apply(appView, candidates, target));
+  }
+
+  private void setTarget(DexProgramClass target) {
+    assert !hasTarget();
     this.target = target;
   }
 

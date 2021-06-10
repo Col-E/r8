@@ -259,7 +259,7 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
     }
     for (TryHandler handler : handlers) {
       for (TypeAddrPair pair : handler.pairs) {
-        registry.registerTypeReference(pair.type);
+        registry.registerExceptionGuard(pair.type);
       }
     }
   }

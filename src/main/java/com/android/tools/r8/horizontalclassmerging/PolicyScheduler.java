@@ -10,6 +10,7 @@ import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.policies.AllInstantiatedOrUninstantiated;
 import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.CheckSyntheticClasses;
+import com.android.tools.r8.horizontalclassmerging.policies.FinalizeMergeGroup;
 import com.android.tools.r8.horizontalclassmerging.policies.LimitClassGroups;
 import com.android.tools.r8.horizontalclassmerging.policies.MinimizeInstanceFieldCasts;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotationClasses;
@@ -56,12 +57,13 @@ public class PolicyScheduler {
 
   public static List<Policy> getPolicies(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      IRCodeProvider codeProvider,
       Mode mode,
       RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
     List<Policy> policies =
         ImmutableList.<Policy>builder()
             .addAll(getSingleClassPolicies(appView, mode, runtimeTypeCheckInfo))
-            .addAll(getMultiClassPolicies(appView, mode, runtimeTypeCheckInfo))
+            .addAll(getMultiClassPolicies(appView, codeProvider, mode, runtimeTypeCheckInfo))
             .build();
     assert verifyPolicyOrderingConstraints(policies);
     return policies;
@@ -142,6 +144,7 @@ public class PolicyScheduler {
 
   private static List<Policy> getMultiClassPolicies(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      IRCodeProvider codeProvider,
       Mode mode,
       RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
     ImmutableList.Builder<Policy> builder = ImmutableList.builder();
@@ -162,16 +165,24 @@ public class PolicyScheduler {
           new MinimizeInstanceFieldCasts());
     } else {
       assert mode.isFinal();
-      // TODO(b/185472598): Add support for merging class initializers with dex code.
       builder.add(
-          new NoInstanceInitializerMerging(mode),
           new NoVirtualMethodMerging(appView, mode),
           new NoConstructorCollisions(appView, mode));
     }
 
     addMultiClassPoliciesForInterfaceMerging(appView, mode, builder);
 
-    return builder.add(new LimitClassGroups(appView)).build();
+    builder.add(new LimitClassGroups(appView));
+
+    if (mode.isFinal()) {
+      // This needs to reason about equivalence of instance initializers, which relies on the
+      // mapping from instance fields on source classes to the instance fields on target classes.
+      // This policy therefore selects a target for each merge group and creates the mapping for
+      // instance fields. For this reason we run this policy in the very end.
+      builder.add(new NoInstanceInitializerMerging(appView, codeProvider, mode));
+    }
+
+    return builder.add(new FinalizeMergeGroup(appView, mode)).build();
   }
 
   private static void addRequiredMultiClassPolicies(
