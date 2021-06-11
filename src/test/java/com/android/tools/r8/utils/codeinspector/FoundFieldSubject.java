@@ -13,6 +13,8 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
+import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.references.Reference;
 
 public class FoundFieldSubject extends FieldSubject {
 
@@ -127,6 +129,23 @@ public class FoundFieldSubject extends FieldSubject {
     return dexField.getReference().name.toString()
         + ":"
         + dexField.getReference().type.toDescriptorString();
+  }
+
+  @Override
+  public FieldReference getOriginalReference() {
+    DexField originalDexField = getOriginalDexField(codeInspector.getFactory());
+    return Reference.field(
+        Reference.classFromDescriptor(originalDexField.holder.toDescriptorString()),
+        getOriginalName(),
+        Reference.typeFromDescriptor(originalDexField.type.toDescriptorString()));
+  }
+
+  @Override
+  public FieldReference getFinalReference() {
+    return Reference.field(
+        Reference.classFromDescriptor(getField().getHolderType().toDescriptorString()),
+        getOriginalName(),
+        Reference.typeFromDescriptor(getField().getType().toDescriptorString()));
   }
 
   @Override

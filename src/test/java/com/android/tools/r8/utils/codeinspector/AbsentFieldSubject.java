@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.references.FieldReference;
 
 public class AbsentFieldSubject extends FieldSubject {
 
@@ -64,6 +65,16 @@ public class AbsentFieldSubject extends FieldSubject {
 
   @Override
   public String getJvmFieldSignatureAsString() {
+    return null;
+  }
+
+  @Override
+  public FieldReference getOriginalReference() {
+    return null;
+  }
+
+  @Override
+  public FieldReference getFinalReference() {
     return null;
   }
 

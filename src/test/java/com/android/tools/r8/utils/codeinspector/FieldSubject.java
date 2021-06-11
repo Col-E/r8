@@ -7,6 +7,7 @@ package com.android.tools.r8.utils.codeinspector;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.references.FieldReference;
 
 public abstract class FieldSubject extends MemberSubject {
 
@@ -43,4 +44,8 @@ public abstract class FieldSubject extends MemberSubject {
   }
 
   public abstract String getJvmFieldSignatureAsString();
+
+  public abstract FieldReference getOriginalReference();
+
+  public abstract FieldReference getFinalReference();
 }
