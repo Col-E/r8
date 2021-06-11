@@ -62,6 +62,10 @@ public class TestParametersBuilder {
     return withCfRuntimeFilter(vm -> vm == runtime);
   }
 
+  public TestParametersBuilder withSystemRuntime() {
+    return withCfRuntimeFilter(TestParametersBuilder::isSystemJdk);
+  }
+
   /** Add all available CF runtimes. */
   public TestParametersBuilder withCfRuntimes() {
     return withCfRuntimeFilter(vm -> true);

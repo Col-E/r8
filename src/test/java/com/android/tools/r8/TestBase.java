@@ -1708,6 +1708,21 @@ public class TestBase {
     return DescriptorUtils.javaTypeToDescriptor(typeName(clazz));
   }
 
+  public static String methodDescriptor(Method method) {
+    return Reference.methodFromMethod(method).getMethodDescriptor();
+  }
+
+  public static String methodDescriptor(Class<?> returnType, Class<?>... parameters) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("(");
+    for (Class<?> parameter : parameters) {
+      sb.append(descriptor(parameter));
+    }
+    sb.append(")");
+    sb.append(returnType == null ? "V" : descriptor(returnType));
+    return sb.toString();
+  }
+
   public static PathOrigin getOrigin(Class<?> clazz) {
     return new PathOrigin(ToolHelper.getClassFileForTestClass(clazz));
   }

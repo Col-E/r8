@@ -161,6 +161,22 @@ public final class Reference {
         returnTypeDescriptor.equals("V") ? null : typeFromDescriptor(returnTypeDescriptor));
   }
 
+  /** Get a method reference from class reference, method name and signature. */
+  public static MethodReference methodFromDescriptor(
+      ClassReference classReference, String methodName, String methodDescriptor) {
+    ImmutableList.Builder<TypeReference> builder = ImmutableList.builder();
+    for (String parameterTypeDescriptor :
+        DescriptorUtils.getArgumentTypeDescriptors(methodDescriptor)) {
+      builder.add(typeFromDescriptor(parameterTypeDescriptor));
+    }
+    String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(methodDescriptor);
+    return method(
+        classReference,
+        methodName,
+        builder.build(),
+        returnTypeDescriptor.equals("V") ? null : typeFromDescriptor(returnTypeDescriptor));
+  }
+
   public static MethodReference classConstructor(ClassReference type) {
     return method(type, "<clinit>", Collections.emptyList(), null);
   }

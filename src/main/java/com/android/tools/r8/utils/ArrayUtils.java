@@ -171,4 +171,8 @@ public class ArrayUtils {
     newArray[ts.length] = element;
     return newArray;
   }
+
+  public static <T> T first(T[] ts) {
+    return ts[0];
+  }
 }

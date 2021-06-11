@@ -165,6 +165,8 @@ public class ToolHelper {
   public static final Path D8_JAR = Paths.get(LIBS_DIR, "d8.jar");
   public static final Path R8_JAR = Paths.get(LIBS_DIR, "r8.jar");
   public static final Path R8_WITH_DEPS_JAR = Paths.get(LIBS_DIR, "r8_with_deps.jar");
+  public static final Path R8_WITHOUT_DEPS_JAR =
+      Paths.get(LIBS_DIR, "r8_no_manifest_without_deps.jar");
   public static final Path R8_WITH_RELOCATED_DEPS_JAR =
       Paths.get(LIBS_DIR, "r8_with_relocated_deps.jar");
   public static final Path R8_WITH_DEPS_11_JAR = Paths.get(LIBS_DIR, "r8_with_deps_11.jar");

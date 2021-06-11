@@ -3,7 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.Keep;
+
 /** Two value continuation value to indicate the continuation of a loop/traversal. */
+/* This class is used for building up api class member traversals. */
+@Keep
 public enum TraversalContinuation {
   CONTINUE,
   BREAK;

@@ -159,7 +159,7 @@ public abstract class TestRuntime {
         .build();
   }
 
-  public static TestRuntime getSystemRuntime() {
+  public static CfRuntime getSystemRuntime() {
     String version = System.getProperty("java.version");
     String home = System.getProperty("java.home");
     if (version == null || version.isEmpty() || home == null || home.isEmpty()) {
