@@ -43,6 +43,7 @@ public abstract class SyntheticClassBuilder<
   private DexType superType;
   private DexTypeList interfaces = DexTypeList.empty();
   private DexString sourceFile = null;
+  private boolean useSortedMethodBacking = false;
   private List<DexEncodedField> staticFields = new ArrayList<>();
   private List<DexEncodedField> instanceFields = new ArrayList<>();
   private List<DexEncodedMethod> directMethods = new ArrayList<>();
@@ -143,6 +144,11 @@ public abstract class SyntheticClassBuilder<
     return self();
   }
 
+  public B setUseSortedMethodBacking(boolean useSortedMethodBacking) {
+    this.useSortedMethodBacking = useSortedMethodBacking;
+    return self();
+  }
+
   public C build() {
     int flag = isAbstract ? Constants.ACC_ABSTRACT : Constants.ACC_FINAL;
     int itfFlag = isInterface ? Constants.ACC_INTERFACE : 0;
@@ -167,27 +173,34 @@ public abstract class SyntheticClassBuilder<
             + 11 * (long) virtualMethods.hashCode()
             + 13 * (long) staticFields.hashCode()
             + 17 * (long) instanceFields.hashCode();
-    return getClassKind()
-        .create(
-            type,
-            originKind,
-            origin,
-            accessFlags,
-            superType,
-            interfaces,
-            sourceFile,
-            nestHost,
-            nestMembers,
-            enclosingMembers,
-            innerClasses,
-            signature,
-            DexAnnotationSet.empty(),
-            staticFields.toArray(DexEncodedField.EMPTY_ARRAY),
-            instanceFields.toArray(DexEncodedField.EMPTY_ARRAY),
-            directMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
-            virtualMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
-            factory.getSkipNameValidationForTesting(),
-            c -> checksum,
-            null);
+    C clazz =
+        getClassKind()
+            .create(
+                type,
+                originKind,
+                origin,
+                accessFlags,
+                superType,
+                interfaces,
+                sourceFile,
+                nestHost,
+                nestMembers,
+                enclosingMembers,
+                innerClasses,
+                signature,
+                DexAnnotationSet.empty(),
+                staticFields.toArray(DexEncodedField.EMPTY_ARRAY),
+                instanceFields.toArray(DexEncodedField.EMPTY_ARRAY),
+                DexEncodedMethod.EMPTY_ARRAY,
+                DexEncodedMethod.EMPTY_ARRAY,
+                factory.getSkipNameValidationForTesting(),
+                c -> checksum,
+                null);
+    if (useSortedMethodBacking) {
+      clazz.getMethodCollection().useSortedBacking();
+    }
+    clazz.setDirectMethods(directMethods.toArray(DexEncodedMethod.EMPTY_ARRAY));
+    clazz.setVirtualMethods(virtualMethods.toArray(DexEncodedMethod.EMPTY_ARRAY));
+    return clazz;
   }
 }

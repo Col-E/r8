@@ -7,6 +7,7 @@ import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -137,7 +138,7 @@ public class MethodCollection {
   public List<DexEncodedMethod> allMethodsSorted() {
     List<DexEncodedMethod> sorted = new ArrayList<>(size());
     forEachMethod(sorted::add);
-    sorted.sort((a, b) -> a.getReference().compareTo(b.getReference()));
+    sorted.sort(Comparator.comparing(DexEncodedMember::getReference));
     return sorted;
   }
 

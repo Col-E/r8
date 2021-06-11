@@ -541,7 +541,15 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       }
       assert !isSyntheticClass(type);
       DexProgramClass dexProgramClass =
-          internalCreateClass(kind, fn, outerContext, type, appView.dexItemFactory());
+          internalCreateClass(
+              kind,
+              syntheticProgramClassBuilder -> {
+                syntheticProgramClassBuilder.setUseSortedMethodBacking(true);
+                fn.accept(syntheticProgramClassBuilder);
+              },
+              outerContext,
+              type,
+              appView.dexItemFactory());
       onCreationConsumer.accept(dexProgramClass);
       return dexProgramClass;
     }
