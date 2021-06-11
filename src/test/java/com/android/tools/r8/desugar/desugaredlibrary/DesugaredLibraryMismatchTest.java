@@ -117,31 +117,12 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
             .compile()
             .writeToZip();
 
-    // Combine DEX input without library desugaring with dexing with library desugaring.
-    try {
-      testForD8()
-          .addProgramFiles(desugaredLibraryDex)
-          .addProgramClasses(TestRunner.class)
-          .setMinApi(apiLevel)
-          .enableCoreLibraryDesugaring(apiLevel)
-          .compileWithExpectedDiagnostics(
-              diagnostics -> {
-                diagnostics.assertNoInfos();
-                diagnostics.assertAllWarningsMatch(
-                    diagnosticMessage(
-                        containsString(
-                            "The compilation is slowed down due to a mix of class file and dex"
-                                + " file inputs in the context of desugared library.")));
-                if (apiLevel.isLessThan(AndroidApiLevel.O)) {
-                  diagnostics.assertErrorsMatch(
-                      diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
-                } else {
-                  diagnostics.assertNoMessages();
-                }
-              });
-
-    } catch (CompilationFailedException e) {
-    }
+    testForD8()
+        .addProgramFiles(desugaredLibraryDex)
+        .addProgramClasses(TestRunner.class)
+        .setMinApi(apiLevel)
+        .enableCoreLibraryDesugaring(apiLevel)
+        .compile();
   }
 
   @Test
