@@ -160,31 +160,27 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
 
     // Build an app using library desugaring merging with library not using library desugaring.
     Path app;
-    try {
-      app =
-          testForD8()
-              .addProgramFiles(buildPart1DesugaredLibrary(), desugaredLibDex)
-              .setMinApi(parameters.getApiLevel())
-              .compile()
-              .writeToZip();
+    app =
+        testForD8()
+            .addProgramFiles(buildPart1DesugaredLibrary(), desugaredLibDex)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
 
-      // When there is no class-file resources we are adding the marker for the last compilation.
-      assertMarkersMatch(
-          ExtractMarker.extractMarkerFromDexFile(app),
-          ImmutableList.of(
-              markerMatcher,
-              allOf(
-                  markerTool(Tool.D8),
-                  markerCompilationMode(CompilationMode.DEBUG),
-                  markerBackend(Backend.DEX),
-                  markerIsDesugared(),
-                  markerMinApi(parameters.getApiLevel()),
-                  not(markerHasDesugaredLibraryIdentifier()))));
-    } catch (CompilationFailedException e) {
-      assertTrue(someLibraryDesugaringRequired());
-      return;
-    }
-    assert !someLibraryDesugaringRequired();
+    // When there is no class-file resources we are adding the marker for the last compilation.
+    assertMarkersMatch(
+        ExtractMarker.extractMarkerFromDexFile(app),
+        ImmutableList.of(
+            markerMatcher,
+            allOf(
+                markerTool(Tool.D8),
+                markerCompilationMode(CompilationMode.DEBUG),
+                markerBackend(Backend.DEX),
+                markerIsDesugared(),
+                markerMinApi(parameters.getApiLevel()),
+                someLibraryDesugaringRequired()
+                    ? markerHasDesugaredLibraryIdentifier()
+                    : not(markerHasDesugaredLibraryIdentifier()))));
   }
 
   private void assertError(TestDiagnosticMessages m) {

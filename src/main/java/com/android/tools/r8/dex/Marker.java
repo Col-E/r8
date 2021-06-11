@@ -81,10 +81,17 @@ public class Marker {
             .allMatch(m -> m.tool == Tool.L8 || m.getDesugaredLibraryIdentifiers().length == 0);
       } else {
         String[] identifiers = marker.getDesugaredLibraryIdentifiers();
-        String identifier;
+        String identifier = null;
         switch (identifiers.length) {
           case 0:
-            identifier = NO_LIBRARY_DESUGARING;
+            // Only add the <no-library-desugaring> identifier for DEX. A marker from CF is
+            // assumed to go though desugaring for compiling to DEX, and that will introduce the
+            // DEX marker with the final library desugaring identifier.
+            if (marker.isDexBackend()) {
+              identifier = NO_LIBRARY_DESUGARING;
+            } else {
+              assert marker.isCfBackend();
+            }
             break;
           case 1:
             identifier = identifiers[0];
@@ -95,10 +102,10 @@ public class Marker {
                 new StringDiagnostic(
                     "Merging program compiled with multiple desugared libraries."));
         }
-        if (marker.isDesugared()) {
+        if (marker.isDesugared() && identifier != null) {
           desugaredLibraryIdentifiers.add(identifier);
         } else {
-          assert identifier.equals(NO_LIBRARY_DESUGARING);
+          assert identifier == null || identifier.equals(NO_LIBRARY_DESUGARING);
         }
       }
     }
@@ -211,9 +218,17 @@ public class Marker {
   public String getBackend() {
     if (!hasBackend()) {
       // Before adding backend we would always compile to dex if min-api was specified.
-      return hasMinApi() ? "dex" : "cf";
+      return hasMinApi() ? Backend.DEX.name().toLowerCase() : Backend.CF.name().toLowerCase();
     }
     return jsonObject.get(BACKEND).getAsString();
+  }
+
+  public boolean isCfBackend() {
+    return getBackend().equals(Backend.CF.name().toLowerCase());
+  }
+
+  public boolean isDexBackend() {
+    return getBackend().equals(Backend.DEX.name().toLowerCase());
   }
 
   public Marker setBackend(Backend backend) {

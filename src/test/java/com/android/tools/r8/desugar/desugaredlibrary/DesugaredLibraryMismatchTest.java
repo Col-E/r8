@@ -90,26 +90,12 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
             .writeToZip();
 
     // Combine CF desugared input without library desugaring with dexing with library desugaring.
-    try {
-      testForD8()
-          .addProgramFiles(desugaredLibrary)
-          .addProgramClasses(TestRunner.class)
-          .setMinApi(apiLevel)
-          .enableCoreLibraryDesugaring(apiLevel)
-          .compileWithExpectedDiagnostics(
-              diagnostics -> {
-                if (apiLevel.isLessThan(AndroidApiLevel.O)) {
-                  // This is the failure reported in b/190075882.
-                  diagnostics.assertOnlyErrors();
-                  diagnostics.assertErrorsMatch(
-                      diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
-                } else {
-                  diagnostics.assertNoMessages();
-                }
-              });
-
-    } catch (CompilationFailedException e) {
-    }
+    testForD8()
+        .addProgramFiles(desugaredLibrary)
+        .addProgramClasses(TestRunner.class)
+        .setMinApi(apiLevel)
+        .enableCoreLibraryDesugaring(apiLevel)
+        .compile();
   }
 
   @Test
