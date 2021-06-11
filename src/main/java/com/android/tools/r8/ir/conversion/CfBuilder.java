@@ -134,7 +134,7 @@ public class CfBuilder {
     this.code = code;
   }
 
-  public CfCode build(DeadCodeRemover deadCodeRemover) {
+  public CfCode build(DeadCodeRemover deadCodeRemover, MethodConversionOptions conversionOptions) {
     computeInitializers();
     TypeVerificationHelper typeVerificationHelper = new TypeVerificationHelper(appView, code);
     typeVerificationHelper.computeVerificationTypes();
@@ -168,10 +168,13 @@ public class CfBuilder {
 
     loadStoreHelper.insertPhiMoves(registerAllocator);
 
-    for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
-      CodeRewriter.collapseTrivialGotos(code);
-      PeepholeOptimizer.removeIdenticalPredecessorBlocks(code, registerAllocator);
-      PeepholeOptimizer.shareIdenticalBlockSuffix(code, registerAllocator, SUFFIX_SHARING_OVERHEAD);
+    if (conversionOptions.isPeepholeOptimizationsEnabled()) {
+      for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
+        CodeRewriter.collapseTrivialGotos(code);
+        PeepholeOptimizer.removeIdenticalPredecessorBlocks(code, registerAllocator);
+        PeepholeOptimizer.shareIdenticalBlockSuffix(
+            code, registerAllocator, SUFFIX_SHARING_OVERHEAD);
+      }
     }
 
     rewriteIincPatterns();

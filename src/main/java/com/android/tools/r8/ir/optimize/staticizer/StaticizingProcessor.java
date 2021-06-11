@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.AssumeInserter;
@@ -410,6 +411,7 @@ final class StaticizingProcessor {
             ClassInitializerDefaultsResult.empty(),
             feedback,
             methodProcessor,
+            new MutableMethodConversionOptions(methodProcessor),
             Timing.empty());
   }
 

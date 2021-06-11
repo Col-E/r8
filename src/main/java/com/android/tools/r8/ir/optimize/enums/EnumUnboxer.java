@@ -69,6 +69,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
@@ -131,6 +132,8 @@ public class EnumUnboxer {
       ProgramPackageCollection.createEmpty();
   private final Map<DexType, EnumStaticFieldValues> staticFieldValuesMap =
       new ConcurrentHashMap<>();
+  private final ProgramMethodSet methodsDependingOnLibraryModelisation =
+      ProgramMethodSet.createConcurrent();
 
   private final DexEncodedField ordinalField;
 
@@ -181,6 +184,10 @@ public class EnumUnboxer {
     return false;
   }
 
+  private void markMethodDependsOnLibraryModelisation(ProgramMethod method) {
+    methodsDependingOnLibraryModelisation.add(method);
+  }
+
   private DexProgramClass getEnumUnboxingCandidateOrNull(TypeElement lattice) {
     if (lattice.isClassType()) {
       DexType classType = lattice.asClassType().getClassType();
@@ -199,7 +206,7 @@ public class EnumUnboxer {
     return enumUnboxingCandidatesInfo.getCandidateClassOrNull(type);
   }
 
-  public void analyzeEnums(IRCode code) {
+  public void analyzeEnums(IRCode code, MutableMethodConversionOptions conversionOptions) {
     Set<DexType> eligibleEnums = Sets.newIdentityHashSet();
     for (BasicBlock block : code.blocks) {
       for (Instruction instruction : block.getInstructions()) {
@@ -261,6 +268,9 @@ public class EnumUnboxer {
       for (DexType eligibleEnum : eligibleEnums) {
         enumUnboxingCandidatesInfo.addMethodDependency(eligibleEnum, code.context());
       }
+    }
+    if (methodsDependingOnLibraryModelisation.contains(code.context())) {
+      conversionOptions.disablePeepholeOptimizations();
     }
   }
 
@@ -365,10 +375,12 @@ public class EnumUnboxer {
             // The name data is required for the correct mapping from the enum name to the ordinal
             // in the valueOf utility method.
             addRequiredNameData(enumClass);
+            markMethodDependsOnLibraryModelisation(context);
             continue;
           }
           if (singleTarget.getReference()
               == factory.javaLangReflectArrayMembers.newInstanceMethodWithDimensions) {
+            markMethodDependsOnLibraryModelisation(context);
             continue;
           }
         }
@@ -488,6 +500,10 @@ public class EnumUnboxer {
     appView.rewriteWithLensAndApplication(enumUnboxingLens, appBuilder.build());
     updateOptimizationInfos(executorService, feedback);
     postBuilder.put(dependencies);
+    // Methods depending on library modelisation need to be reprocessed so they are peephole
+    // optimized.
+    postBuilder.put(methodsDependingOnLibraryModelisation);
+    methodsDependingOnLibraryModelisation.clear();
     postBuilder.rewrittenWithLens(appView, previousLens);
   }
 
@@ -1210,6 +1226,25 @@ public class EnumUnboxer {
 
     assert targetHolder.isLibraryClass();
 
+    Reason reason =
+        analyzeLibraryInvoke(
+            invoke, code, context, enumClass, enumValue, singleTargetReference, targetHolder);
+
+    if (reason == Reason.ELIGIBLE) {
+      markMethodDependsOnLibraryModelisation(context);
+    }
+
+    return reason;
+  }
+
+  private Reason analyzeLibraryInvoke(
+      InvokeMethod invoke,
+      IRCode code,
+      ProgramMethod context,
+      DexProgramClass enumClass,
+      Value enumValue,
+      DexMethod singleTargetReference,
+      DexClass targetHolder) {
     if (targetHolder.getType() != factory.enumType) {
       // System.identityHashCode(Object) is supported for proto enums.
       // Object#getClass without outValue and Objects.requireNonNull are supported since R8
