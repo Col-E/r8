@@ -59,10 +59,74 @@ public class StringValueOfEnumUnboxingTest extends EnumUnboxingTestBase {
     public static void main(String[] args) {
       System.out.println(MyEnum.A.ordinal());
       System.out.println(0);
+      stringValueOf();
+      stringBuilder();
+    }
+
+    private static void stringValueOf() {
       System.out.println(getString(MyEnum.A));
       System.out.println("A");
       System.out.println(getString(null));
       System.out.println("null");
+    }
+
+    private static void stringBuilder() {
+      StringBuilder stringBuilder = new StringBuilder();
+      append(stringBuilder, MyEnum.A);
+      append(stringBuilder, MyEnum.B);
+      append(stringBuilder, null);
+      appendTryCatch(stringBuilder, MyEnum.A);
+      appendTryCatch(stringBuilder, MyEnum.B);
+      appendTryCatch(stringBuilder, null);
+      System.out.println(stringBuilder.toString());
+      System.out.println("ABnullABnull");
+
+      StringBuffer stringBuffer = new StringBuffer();
+      append(stringBuffer, MyEnum.A);
+      append(stringBuffer, MyEnum.B);
+      append(stringBuffer, null);
+      appendTryCatch(stringBuffer, MyEnum.A);
+      appendTryCatch(stringBuffer, MyEnum.B);
+      appendTryCatch(stringBuffer, null);
+      System.out.println(stringBuffer.toString());
+      System.out.println("ABnullABnull");
+    }
+
+    @NeverInline
+    private static StringBuilder append(StringBuilder sb, MyEnum e) {
+      return sb.append(e);
+    }
+
+    @NeverInline
+    private static StringBuffer append(StringBuffer sb, MyEnum e) {
+      return sb.append(e);
+    }
+
+    @NeverInline
+    private static StringBuilder appendTryCatch(StringBuilder sb, MyEnum e) {
+      try {
+        sb.append(e);
+        throwNull();
+      } catch (NullPointerException ignored) {
+      }
+      return sb;
+    }
+
+    @NeverInline
+    private static StringBuffer appendTryCatch(StringBuffer sb, MyEnum e) {
+      try {
+        sb.append(e);
+        throwNull();
+      } catch (NullPointerException ignored) {
+      }
+      return sb;
+    }
+
+    @NeverInline
+    private static void throwNull() {
+      if (System.currentTimeMillis() > 0) {
+        throw new NullPointerException("exception");
+      }
     }
 
     @NeverInline

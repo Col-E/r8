@@ -38,6 +38,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -159,8 +160,8 @@ public class EnumUnboxingRewriter {
         if (instruction.isInvokeMethodWithReceiver()) {
           InvokeMethodWithReceiver invokeMethod = instruction.asInvokeMethodWithReceiver();
           DexType enumType = getEnumTypeOrNull(invokeMethod.getReceiver(), convertedEnums);
+          DexMethod invokedMethod = invokeMethod.getInvokedMethod();
           if (enumType != null) {
-            DexMethod invokedMethod = invokeMethod.getInvokedMethod();
             if (invokedMethod == factory.enumMembers.ordinalMethod
                 || invokedMethod.match(factory.enumMembers.hashCode)) {
               replaceEnumInvoke(
@@ -190,6 +191,42 @@ public class EnumUnboxingRewriter {
               assert !invokeMethod.hasOutValue() || !invokeMethod.outValue().hasAnyUsers();
               replaceEnumInvoke(
                   iterator, invokeMethod, zeroCheckMethod, m -> synthesizeZeroCheckMethod());
+              continue;
+            }
+          } else if (invokedMethod == factory.stringBuilderMethods.appendObject
+              || invokedMethod == factory.stringBufferMethods.appendObject) {
+            // Rewrites stringBuilder.append(enumInstance) as if it was
+            // stringBuilder.append(String.valueOf(unboxedEnumInstance));
+            Value enumArg = invokeMethod.getArgument(1);
+            DexType enumArgType = getEnumTypeOrNull(enumArg, convertedEnums);
+            if (enumArgType != null) {
+              DexMethod stringValueOfMethod = computeStringValueOfUtilityMethod(enumArgType);
+              InvokeStatic toStringInvoke =
+                  InvokeStatic.builder()
+                      .setMethod(stringValueOfMethod)
+                      .setSingleArgument(enumArg)
+                      .setFreshOutValue(appView, code)
+                      .setPosition(invokeMethod)
+                      .build();
+              DexMethod newAppendMethod =
+                  invokedMethod == factory.stringBuilderMethods.appendObject
+                      ? factory.stringBuilderMethods.appendString
+                      : factory.stringBufferMethods.appendString;
+              List<Value> arguments =
+                  ImmutableList.of(invokeMethod.getReceiver(), toStringInvoke.outValue());
+              InvokeVirtual invokeAppendString =
+                  new InvokeVirtual(newAppendMethod, invokeMethod.clearOutValue(), arguments);
+              invokeAppendString.setPosition(invokeMethod.getPosition());
+              iterator.replaceCurrentInstruction(toStringInvoke);
+              if (block.hasCatchHandlers()) {
+                iterator
+                    .splitCopyCatchHandlers(code, blocks, appView.options())
+                    .listIterator(code)
+                    .add(invokeAppendString);
+              } else {
+                iterator.add(invokeAppendString);
+              }
+              continue;
             }
           }
         } else if (instruction.isInvokeStatic()) {
