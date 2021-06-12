@@ -1256,11 +1256,6 @@ public class EnumUnboxer {
         addRequiredNameData(enumClass);
         return Reason.ELIGIBLE;
       }
-      if (singleTargetReference == factory.stringBuilderMethods.appendObject
-          || singleTargetReference == factory.stringBufferMethods.appendObject) {
-        addRequiredNameData(enumClass);
-        return Reason.ELIGIBLE;
-      }
       if (singleTargetReference == factory.objectMembers.getClass
           && (!invoke.hasOutValue() || !invoke.outValue().hasAnyUsers())) {
         // This is a hidden null check.
