@@ -680,8 +680,7 @@ public class IRConverter {
     GraphLens initialGraphLensForIR = appView.graphLens();
     GraphLens graphLensForIR = initialGraphLensForIR;
     OptimizationFeedbackDelayed feedback = delayedOptimizationFeedback;
-    PostMethodProcessor.Builder postMethodProcessorBuilder =
-        new PostMethodProcessor.Builder(getOptimizationsForPostIRProcessing());
+    PostMethodProcessor.Builder postMethodProcessorBuilder = new PostMethodProcessor.Builder();
     {
       timing.begin("Build primary method processor");
       PrimaryMethodProcessor primaryMethodProcessor =
@@ -747,7 +746,12 @@ public class IRConverter {
         postMethodProcessorBuilder.build(appView, executorService, timing);
     if (postMethodProcessor != null) {
       assert !options.debug;
-      postMethodProcessor.forEachWaveWithExtension(feedback, executorService);
+      postMethodProcessor.forEachMethod(
+          (method, methodProcessingContext) ->
+              processDesugaredMethod(
+                  method, feedback, postMethodProcessor, methodProcessingContext),
+          feedback,
+          executorService);
       feedback.updateVisibleOptimizationInfo();
       assert graphLensForIR == appView.graphLens();
     }

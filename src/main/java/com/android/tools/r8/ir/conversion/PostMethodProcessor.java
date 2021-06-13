@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -13,9 +14,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
-import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -25,33 +23,22 @@ import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.Deque;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BiConsumer;
 
 public class PostMethodProcessor extends MethodProcessorWithWave {
 
   private final ProcessorContext processorContext;
-  private final AppView<AppInfoWithLiveness> appView;
-  private final Collection<CodeOptimization> defaultCodeOptimizations;
-  private final Map<DexMethod, Collection<CodeOptimization>> methodsMap;
   private final Deque<SortedProgramMethodSet> waves;
   private final ProgramMethodSet processed = ProgramMethodSet.create();
 
   private PostMethodProcessor(
       AppView<AppInfoWithLiveness> appView,
-      Collection<CodeOptimization> defaultCodeOptimizations,
-      Map<DexMethod, Collection<CodeOptimization>> methodsMap,
       CallGraph callGraph) {
     this.processorContext = appView.createProcessorContext();
-    this.appView = appView;
-    this.defaultCodeOptimizations = defaultCodeOptimizations;
-    this.methodsMap = methodsMap;
     this.waves = createWaves(callGraph);
   }
 
@@ -63,24 +50,13 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
 
   public static class Builder {
 
-    private final Collection<CodeOptimization> defaultCodeOptimizations;
-    private final LongLivedProgramMethodSetBuilder<?> methodsToReprocess =
+    private final LongLivedProgramMethodSetBuilder<?> methodsToReprocessBuilder =
         LongLivedProgramMethodSetBuilder.createForIdentitySet();
-    private final Map<DexMethod, Collection<CodeOptimization>> optimizationsMap =
-        new IdentityHashMap<>();
 
-    Builder(Collection<CodeOptimization> defaultCodeOptimizations) {
-      this.defaultCodeOptimizations = defaultCodeOptimizations;
-    }
+    Builder() {}
 
     public void add(ProgramMethod method) {
-      methodsToReprocess.add(method);
-      optimizationsMap
-          .computeIfAbsent(
-              method.getReference(),
-              // Optimization order might matter, hence a collection that preserves orderings.
-              k -> new LinkedHashSet<>())
-          .addAll(defaultCodeOptimizations);
+      methodsToReprocessBuilder.add(method);
     }
 
     public void put(ProgramMethodSet methodsToRevisit) {
@@ -95,14 +71,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
     // new signature. The compiler needs to update the set of methods that must be reprocessed
     // according to the graph lens.
     public void rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens applied) {
-      methodsToReprocess.rewrittenWithLens(appView, applied);
-      Map<DexMethod, Collection<CodeOptimization>> newOptimizationsMap = new IdentityHashMap<>();
-      optimizationsMap.forEach(
-          (method, optimizations) ->
-              newOptimizationsMap.put(
-                  appView.graphLens().getRenamedMethodSignature(method, applied), optimizations));
-      optimizationsMap.clear();
-      optimizationsMap.putAll(newOptimizationsMap);
+      methodsToReprocessBuilder.rewrittenWithLens(appView, applied);
     }
 
     PostMethodProcessor build(
@@ -121,16 +90,15 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
             });
         put(set);
       }
-      if (methodsToReprocess.isEmpty()) {
+      if (methodsToReprocessBuilder.isEmpty()) {
         // Nothing to revisit.
         return null;
       }
+      ProgramMethodSet methodsToReprocess =
+          methodsToReprocessBuilder.build(appView, appView.graphLens());
       CallGraph callGraph =
-          new PartialCallGraphBuilder(
-                  appView, methodsToReprocess.build(appView, appView.graphLens()))
-              .build(executorService, timing);
-      return new PostMethodProcessor(
-          appView, defaultCodeOptimizations, optimizationsMap, callGraph);
+          new PartialCallGraphBuilder(appView, methodsToReprocess).build(executorService, timing);
+      return new PostMethodProcessor(appView, callGraph);
     }
   }
 
@@ -147,18 +115,10 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
     return waves;
   }
 
-  @Override
-  protected void prepareForWaveExtensionProcessing() {
-    waveExtension.forEach(
-        method -> {
-          assert !methodsMap.containsKey(method.getReference());
-          methodsMap.put(method.getReference(), defaultCodeOptimizations);
-        });
-    super.prepareForWaveExtensionProcessing();
-  }
-
-  void forEachWaveWithExtension(
-      OptimizationFeedbackDelayed feedback, ExecutorService executorService)
+  void forEachMethod(
+      BiConsumer<ProgramMethod, MethodProcessingContext> consumer,
+      OptimizationFeedbackDelayed feedback,
+      ExecutorService executorService)
       throws ExecutionException {
     while (!waves.isEmpty()) {
       wave = waves.removeFirst();
@@ -168,39 +128,13 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
         assert feedback.noUpdatesLeft();
         ThreadUtils.processItems(
             wave,
-            method -> {
-              Collection<CodeOptimization> codeOptimizations =
-                  methodsMap.get(method.getReference());
-              assert codeOptimizations != null && !codeOptimizations.isEmpty();
-              forEachMethod(method, codeOptimizations, feedback);
-            },
+            method ->
+                consumer.accept(method, processorContext.createMethodProcessingContext(method)),
             executorService);
         feedback.updateVisibleOptimizationInfo();
         processed.addAll(wave);
         prepareForWaveExtensionProcessing();
       } while (!wave.isEmpty());
-    }
-  }
-
-  private void forEachMethod(
-      ProgramMethod method,
-      Collection<CodeOptimization> codeOptimizations,
-      OptimizationFeedback feedback) {
-    // TODO(b/140766440): Make IRConverter#process receive a list of CodeOptimization to conduct.
-    //   Then, we can share IRCode creation there.
-    if (appView.options().skipIR) {
-      feedback.markProcessed(method.getDefinition(), ConstraintWithTarget.NEVER);
-      return;
-    }
-    IRCode code = method.buildIR(appView);
-    if (code == null) {
-      feedback.markProcessed(method.getDefinition(), ConstraintWithTarget.NEVER);
-      return;
-    }
-    // TODO(b/140768815): Reprocessing may trigger more methods to revisit. Update waves on-the-fly.
-    for (CodeOptimization codeOptimization : codeOptimizations) {
-      codeOptimization.optimize(
-          code, feedback, this, processorContext.createMethodProcessingContext(method));
     }
   }
 }
