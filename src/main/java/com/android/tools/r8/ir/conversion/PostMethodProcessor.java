@@ -73,34 +73,22 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
       this.defaultCodeOptimizations = defaultCodeOptimizations;
     }
 
-    private void put(
-        ProgramMethodSet methodsToRevisit, Collection<CodeOptimization> codeOptimizations) {
-      if (codeOptimizations.isEmpty()) {
-        // Nothing to conduct.
-        return;
-      }
-      for (ProgramMethod method : methodsToRevisit) {
-        methodsToReprocess.add(method);
-        optimizationsMap
-            .computeIfAbsent(
-                method.getReference(),
-                // Optimization order might matter, hence a collection that preserves orderings.
-                k -> new LinkedHashSet<>())
-            .addAll(codeOptimizations);
-      }
+    public void add(ProgramMethod method) {
+      methodsToReprocess.add(method);
+      optimizationsMap
+          .computeIfAbsent(
+              method.getReference(),
+              // Optimization order might matter, hence a collection that preserves orderings.
+              k -> new LinkedHashSet<>())
+          .addAll(defaultCodeOptimizations);
     }
 
     public void put(ProgramMethodSet methodsToRevisit) {
-      put(methodsToRevisit, defaultCodeOptimizations);
+      methodsToRevisit.forEach(this::add);
     }
 
     public void put(PostOptimization postOptimization) {
-      Collection<CodeOptimization> codeOptimizations =
-          postOptimization.codeOptimizationsForPostProcessing();
-      if (codeOptimizations == null) {
-        codeOptimizations = defaultCodeOptimizations;
-      }
-      put(postOptimization.methodsToRevisit(), codeOptimizations);
+      put(postOptimization.methodsToRevisit());
     }
 
     // Some optimizations may change methods, creating new instances of the encoded methods with a

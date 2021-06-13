@@ -1511,16 +1511,16 @@ public class DexItemFactory {
   }
 
   public class JavaLangSystemMethods {
-    public final DexMethod identityHashCode;
 
-    private JavaLangSystemMethods() {
-      identityHashCode =
-          createMethod(
-              javaLangSystemDescriptor,
-              identityHashCodeName,
-              intDescriptor,
-              new DexString[] {objectDescriptor});
-    }
+    public final DexMethod arraycopy =
+        createMethod(
+            javaLangSystemType,
+            createProto(voidType, objectType, intType, objectType, intType, intType),
+            "arraycopy");
+    public final DexMethod identityHashCode =
+        createMethod(javaLangSystemType, createProto(intType, objectType), identityHashCodeName);
+
+    private JavaLangSystemMethods() {}
   }
 
   public class EnumMembers {

@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.enums;
 
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
 import com.google.common.collect.ImmutableMap;
@@ -30,6 +31,12 @@ public class EnumDataMap {
     return map.isEmpty();
   }
 
+  public EnumData get(DexProgramClass enumClass) {
+    EnumData enumData = map.get(enumClass.getType());
+    assert enumData != null;
+    return enumData;
+  }
+
   public Set<DexType> getUnboxedEnums() {
     return map.keySet();
   }
@@ -53,6 +60,16 @@ public class EnumDataMap {
   public int getValuesSize(DexType enumType) {
     assert map.containsKey(enumType);
     return map.get(enumType).getValuesSize();
+  }
+
+  public int getMaxValuesSize() {
+    int maxValuesSize = 0;
+    for (EnumData data : map.values()) {
+      if (data.hasValues()) {
+        maxValuesSize = Math.max(maxValuesSize, data.getValuesSize());
+      }
+    }
+    return maxValuesSize;
   }
 
   public boolean matchesValuesField(DexField staticField) {
@@ -101,8 +118,12 @@ public class EnumDataMap {
       return valuesFields.contains(field);
     }
 
+    public boolean hasValues() {
+      return valuesSize != INVALID_VALUES_SIZE;
+    }
+
     public int getValuesSize() {
-      assert valuesSize != INVALID_VALUES_SIZE;
+      assert hasValues();
       return valuesSize;
     }
   }

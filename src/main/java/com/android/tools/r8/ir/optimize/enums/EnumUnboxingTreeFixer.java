@@ -67,7 +67,7 @@ class EnumUnboxingTreeFixer {
                   if (m.isInitializer()) {
                     clearEnumToUnboxMethod(m);
                   } else {
-                    DexType newHolder = utilityClasses.getLocalEnumUnboxingUtilityClass(clazz);
+                    DexType newHolder = utilityClasses.getLocalUtilityClass(clazz).getType();
                     List<DexEncodedMethod> movedMethods =
                         unboxedEnumsMethods.computeIfAbsent(newHolder, k -> new ArrayList<>());
                     movedMethods.add(fixupEncodedMethodToUtility(m, newHolder));
@@ -178,7 +178,7 @@ class EnumUnboxingTreeFixer {
       newMethod =
           factory.createInstanceInitializerWithFreshProto(
               newMethod,
-              utilityClasses.getSharedEnumUnboxingUtilityClass().getType(),
+              utilityClasses.getSharedUtilityClass().getType(),
               tryMethod -> holder.lookupMethod(tryMethod) == null);
     } else {
       int index = 0;

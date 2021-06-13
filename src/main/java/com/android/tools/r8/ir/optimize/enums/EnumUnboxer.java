@@ -478,11 +478,18 @@ public class EnumUnboxer {
     DirectMappedDexApplication.Builder appBuilder = appView.appInfo().app().asDirect().builder();
     FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder =
         FieldAccessInfoCollectionModifier.builder();
+
     EnumUnboxingUtilityClasses utilityClasses =
         EnumUnboxingUtilityClasses.builder(appView)
             .synthesizeEnumUnboxingUtilityClasses(
-                enumClassesToUnbox, appBuilder, fieldAccessInfoCollectionModifierBuilder)
+                enumClassesToUnbox,
+                enumDataMap,
+                appBuilder,
+                fieldAccessInfoCollectionModifierBuilder)
             .build();
+    utilityClasses.forEach(
+        utilityClass -> utilityClass.getDefinition().forEachProgramMethod(postBuilder::add));
+
     fieldAccessInfoCollectionModifierBuilder.build().modify(appView);
     enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumDataMap, utilityClasses);
     EnumUnboxingLens enumUnboxingLens =

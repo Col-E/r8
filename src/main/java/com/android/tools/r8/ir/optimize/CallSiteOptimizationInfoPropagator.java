@@ -27,7 +27,6 @@ import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.CodeOptimization;
 import com.android.tools.r8.ir.conversion.PostOptimization;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
@@ -42,7 +41,6 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -488,12 +486,6 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       revisitedMethods.addAll(targetsToRevisit);
     }
     return targetsToRevisit;
-  }
-
-  @Override
-  public Collection<CodeOptimization> codeOptimizationsForPostProcessing() {
-    // Run IRConverter#optimize.
-    return null;
   }
 
   private synchronized boolean verifyAllProgramDispatchTargetsHaveBeenAbandoned(

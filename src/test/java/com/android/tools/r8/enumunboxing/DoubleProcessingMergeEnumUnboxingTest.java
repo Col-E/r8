@@ -10,7 +10,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.enumunboxing.examplelib1.JavaLibrary1;
 import com.android.tools.r8.enumunboxing.examplelib2.JavaLibrary2;
-import com.android.tools.r8.ir.optimize.enums.EnumUnboxingUtilityClasses;
+import com.android.tools.r8.ir.optimize.enums.SharedEnumUnboxingUtilityClass;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -95,7 +95,8 @@ public class DoubleProcessingMergeEnumUnboxingTest extends EnumUnboxingTestBase 
                 c ->
                     c.getOriginalName()
                         .contains(
-                            EnumUnboxingUtilityClasses.ENUM_UNBOXING_SHARED_UTILITY_CLASS_SUFFIX)));
+                            SharedEnumUnboxingUtilityClass
+                                .ENUM_UNBOXING_SHARED_UTILITY_CLASS_SUFFIX)));
   }
 
   static class App {

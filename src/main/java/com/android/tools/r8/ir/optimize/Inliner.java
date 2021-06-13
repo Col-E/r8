@@ -46,7 +46,6 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.CodeOptimization;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostOptimization;
@@ -71,7 +70,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -242,12 +240,6 @@ public class Inliner implements PostOptimization {
   public ProgramMethodSet methodsToRevisit() {
     applyDoubleInlining = true;
     return doubleInlineCallers;
-  }
-
-  @Override
-  public Collection<CodeOptimization> codeOptimizationsForPostProcessing() {
-    // Run IRConverter#optimize.
-    return null;  // Technically same as return converter.getOptimizationForPostIRProcessing();
   }
 
   /**

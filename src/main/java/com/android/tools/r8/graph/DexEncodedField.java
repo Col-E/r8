@@ -31,6 +31,10 @@ import java.util.function.Function;
 
 public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     implements StructuralItem<DexEncodedField> {
+
+  public static final boolean D8_R8_SYNTHESIZED = true;
+  public static final boolean NOT_DEPRECATED = false;
+  public static final DexValue NO_STATIC_VALUE = null;
   public static final DexEncodedField[] EMPTY_ARRAY = {};
 
   public final FieldAccessFlags accessFlags;

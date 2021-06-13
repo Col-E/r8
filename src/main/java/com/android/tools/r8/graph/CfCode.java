@@ -151,6 +151,17 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
   private StackMapStatus stackMapStatus = StackMapStatus.NOT_VERIFIED;
 
   public CfCode(
+      DexType originalHolder, int maxStack, int maxLocals, List<CfInstruction> instructions) {
+    this(
+        originalHolder,
+        maxStack,
+        maxLocals,
+        instructions,
+        Collections.emptyList(),
+        Collections.emptyList());
+  }
+
+  public CfCode(
       DexType originalHolder,
       int maxStack,
       int maxLocals,

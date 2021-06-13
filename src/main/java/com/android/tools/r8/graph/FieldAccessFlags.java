@@ -58,6 +58,14 @@ public class FieldAccessFlags extends AccessFlags<FieldAccessFlags> {
     return this;
   }
 
+  public static FieldAccessFlags createPublicStaticFinalSynthetic() {
+    return fromSharedAccessFlags(
+        Constants.ACC_PUBLIC
+            | Constants.ACC_STATIC
+            | Constants.ACC_FINAL
+            | Constants.ACC_SYNTHETIC);
+  }
+
   public static FieldAccessFlags createPublicStaticSynthetic() {
     return fromSharedAccessFlags(
         Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC);

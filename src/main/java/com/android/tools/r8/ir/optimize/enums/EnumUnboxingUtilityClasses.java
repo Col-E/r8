@@ -4,63 +4,51 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
-import static com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter.createValuesField;
-
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ClassAccessFlags;
-import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
-import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class EnumUnboxingUtilityClasses {
 
-  public static final String ENUM_UNBOXING_LOCAL_UTILITY_CLASS_SUFFIX =
-      "$r8$EnumUnboxingLocalUtility";
-  public static final String ENUM_UNBOXING_SHARED_UTILITY_CLASS_SUFFIX =
-      "$r8$EnumUnboxingSharedUtility";
-
   // Synthetic classes for utilities specific to the unboxing of a single enum.
-  private final ImmutableMap<DexType, DexProgramClass> localEnumUnboxingUtilityClasses;
+  private final ImmutableMap<DexType, LocalEnumUnboxingUtilityClass> localUtilityClasses;
 
   // Default enum unboxing utility synthetic class used to hold all the shared unboxed enum
   // methods (ordinal(I), equals(II), etc.).
-  private final DexProgramClass sharedEnumUnboxingUtilityClass;
+  private final SharedEnumUnboxingUtilityClass sharedUtilityClass;
 
   private EnumUnboxingUtilityClasses(
-      DexProgramClass sharedEnumUnboxingUtilityClass,
-      ImmutableMap<DexType, DexProgramClass> localEnumUnboxingUtilityClasses) {
-    this.sharedEnumUnboxingUtilityClass = sharedEnumUnboxingUtilityClass;
-    this.localEnumUnboxingUtilityClasses = localEnumUnboxingUtilityClasses;
+      SharedEnumUnboxingUtilityClass sharedUtilityClass,
+      ImmutableMap<DexType, LocalEnumUnboxingUtilityClass> localUtilityClasses) {
+    this.sharedUtilityClass = sharedUtilityClass;
+    this.localUtilityClasses = localUtilityClasses;
   }
 
-  public DexType getLocalEnumUnboxingUtilityClass(DexProgramClass enumClass) {
-    return getLocalEnumUnboxingUtilityClass(enumClass.getType());
+  public void forEach(Consumer<? super EnumUnboxingUtilityClass> consumer) {
+    localUtilityClasses.values().forEach(consumer);
+    consumer.accept(getSharedUtilityClass());
   }
 
-  public DexType getLocalEnumUnboxingUtilityClass(DexType enumType) {
-    DexProgramClass localEnumUnboxingUtilityClass = localEnumUnboxingUtilityClasses.get(enumType);
+  public LocalEnumUnboxingUtilityClass getLocalUtilityClass(DexProgramClass enumClass) {
+    return getLocalUtilityClass(enumClass.getType());
+  }
+
+  public LocalEnumUnboxingUtilityClass getLocalUtilityClass(DexType enumType) {
+    LocalEnumUnboxingUtilityClass localEnumUnboxingUtilityClass = localUtilityClasses.get(enumType);
     assert localEnumUnboxingUtilityClass != null;
-    return localEnumUnboxingUtilityClass.getType();
+    return localEnumUnboxingUtilityClass;
   }
 
-  public DexProgramClass getSharedEnumUnboxingUtilityClass() {
-    return sharedEnumUnboxingUtilityClass;
+  public SharedEnumUnboxingUtilityClass getSharedUtilityClass() {
+    return sharedUtilityClass;
   }
 
   public static Builder builder(AppView<AppInfoWithLiveness> appView) {
@@ -69,10 +57,9 @@ public class EnumUnboxingUtilityClasses {
 
   public static class Builder {
 
-    private final AppView<?> appView;
-    private final Map<DexType, DexProgramClass> localEnumUnboxingUtilityClasses =
-        new IdentityHashMap<>();
-    private DexProgramClass sharedEnumUnboxingUtilityClass;
+    private final AppView<AppInfoWithLiveness> appView;
+    private ImmutableMap<DexType, LocalEnumUnboxingUtilityClass> localUtilityClasses;
+    private SharedEnumUnboxingUtilityClass sharedUtilityClass;
 
     public Builder(AppView<AppInfoWithLiveness> appView) {
       this.appView = appView;
@@ -80,130 +67,42 @@ public class EnumUnboxingUtilityClasses {
 
     public Builder synthesizeEnumUnboxingUtilityClasses(
         Set<DexProgramClass> enumsToUnbox,
+        EnumDataMap enumDataMap,
         DirectMappedDexApplication.Builder appBuilder,
         FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder) {
-      synthesizeLocalUtilityClasses(
-          enumsToUnbox, appBuilder, fieldAccessInfoCollectionModifierBuilder);
-      synthesizeSharedUtilityClass(enumsToUnbox, appBuilder);
+      SharedEnumUnboxingUtilityClass sharedUtilityClass =
+          SharedEnumUnboxingUtilityClass.builder(
+                  appView, enumDataMap, enumsToUnbox, fieldAccessInfoCollectionModifierBuilder)
+              .build(appBuilder);
+      ImmutableMap<DexType, LocalEnumUnboxingUtilityClass> localUtilityClasses =
+          createLocalUtilityClasses(enumsToUnbox, appBuilder);
+      this.localUtilityClasses = localUtilityClasses;
+      this.sharedUtilityClass = sharedUtilityClass;
       return this;
     }
 
     public EnumUnboxingUtilityClasses build() {
-      return new EnumUnboxingUtilityClasses(
-          sharedEnumUnboxingUtilityClass, ImmutableMap.copyOf(localEnumUnboxingUtilityClasses));
+      return new EnumUnboxingUtilityClasses(sharedUtilityClass, localUtilityClasses);
     }
 
-    private void synthesizeLocalUtilityClasses(
-        Set<DexProgramClass> enumsToUnbox,
-        DirectMappedDexApplication.Builder appBuilder,
-        FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder) {
-      for (DexProgramClass enumToUnbox : enumsToUnbox) {
-        synthesizeLocalUtilityClass(
-            enumToUnbox, appBuilder, fieldAccessInfoCollectionModifierBuilder);
-      }
-    }
-
-    private void synthesizeLocalUtilityClass(
-        DexProgramClass enumToUnbox,
-        DirectMappedDexApplication.Builder appBuilder,
-        FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder) {
-      DexType localUtilityClassType = getLocalUtilityClassType(enumToUnbox);
-      assert appView.appInfo().definitionForWithoutExistenceAssert(localUtilityClassType) == null;
-
-      // Required fields.
-      DexField reference =
-          createValuesField(enumToUnbox.getType(), localUtilityClassType, appView.dexItemFactory());
-      DexEncodedField staticField =
-          new DexEncodedField(reference, FieldAccessFlags.createPublicStaticSynthetic());
-      fieldAccessInfoCollectionModifierBuilder
-          .recordFieldReadInUnknownContext(reference)
-          .recordFieldWriteInUnknownContext(reference);
-
-      DexProgramClass localUtilityClass =
-          new DexProgramClass(
-              localUtilityClassType,
-              null,
-              new SynthesizedOrigin("enum unboxing", EnumUnboxer.class),
-              ClassAccessFlags.createPublicFinalSynthetic(),
-              appView.dexItemFactory().objectType,
-              DexTypeList.empty(),
-              null,
-              null,
-              Collections.emptyList(),
-              null,
-              Collections.emptyList(),
-              ClassSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              new DexEncodedField[] {staticField},
-              DexEncodedField.EMPTY_ARRAY,
-              DexEncodedMethod.EMPTY_ARRAY,
-              DexEncodedMethod.EMPTY_ARRAY,
-              appView.dexItemFactory().getSkipNameValidationForTesting(),
-              DexProgramClass::checksumFromType);
-      appBuilder.addSynthesizedClass(localUtilityClass);
-      appView.appInfo().addSynthesizedClass(localUtilityClass, enumToUnbox);
-      localEnumUnboxingUtilityClasses.put(enumToUnbox.getType(), localUtilityClass);
-    }
-
-    private void synthesizeSharedUtilityClass(
+    private ImmutableMap<DexType, LocalEnumUnboxingUtilityClass> createLocalUtilityClasses(
         Set<DexProgramClass> enumsToUnbox, DirectMappedDexApplication.Builder appBuilder) {
-      DexType type = getSharedUtilityClassType(findDeterministicContextType(enumsToUnbox));
-      assert appView.appInfo().definitionForWithoutExistenceAssert(type) == null;
-
-      DexProgramClass syntheticClass =
-          new DexProgramClass(
-              type,
-              null,
-              new SynthesizedOrigin("enum unboxing", EnumUnboxer.class),
-              ClassAccessFlags.createPublicFinalSynthetic(),
-              appView.dexItemFactory().objectType,
-              DexTypeList.empty(),
-              null,
-              null,
-              Collections.emptyList(),
-              null,
-              Collections.emptyList(),
-              ClassSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              DexEncodedField.EMPTY_ARRAY,
-              DexEncodedField.EMPTY_ARRAY,
-              DexEncodedMethod.EMPTY_ARRAY,
-              DexEncodedMethod.EMPTY_ARRAY,
-              appView.dexItemFactory().getSkipNameValidationForTesting(),
-              DexProgramClass::checksumFromType);
-      appBuilder.addSynthesizedClass(syntheticClass);
-      appView.appInfo().addSynthesizedClassToBase(syntheticClass, enumsToUnbox);
-      sharedEnumUnboxingUtilityClass = syntheticClass;
-    }
-
-    private DexProgramClass findDeterministicContextType(Set<DexProgramClass> contexts) {
-      DexProgramClass deterministicContext = null;
-      for (DexProgramClass context : contexts) {
-        if (deterministicContext == null) {
-          deterministicContext = context;
-        } else if (context.type.compareTo(deterministicContext.type) < 0) {
-          deterministicContext = context;
-        }
+      ImmutableMap.Builder<DexType, LocalEnumUnboxingUtilityClass> localUtilityClasses =
+          ImmutableMap.builder();
+      for (DexProgramClass enumToUnbox : enumsToUnbox) {
+        localUtilityClasses.put(
+            enumToUnbox.getType(),
+            LocalEnumUnboxingUtilityClass.builder(appView, enumToUnbox).build(appBuilder));
       }
-      return deterministicContext;
+      return localUtilityClasses.build();
     }
 
-    private DexType getLocalUtilityClassType(DexProgramClass context) {
-      return getUtilityClassType(context, ENUM_UNBOXING_LOCAL_UTILITY_CLASS_SUFFIX);
-    }
-
-    private DexType getSharedUtilityClassType(DexProgramClass context) {
-      return getUtilityClassType(context, ENUM_UNBOXING_SHARED_UTILITY_CLASS_SUFFIX);
-    }
-
-    private DexType getUtilityClassType(DexProgramClass context, String suffix) {
-      return appView
-          .dexItemFactory()
-          .createType(
-              DescriptorUtils.getDescriptorFromClassBinaryName(
-                  DescriptorUtils.getBinaryNameFromDescriptor(
-                          context.getType().toDescriptorString())
-                      + suffix));
+    static DexType getUtilityClassType(
+        DexProgramClass context, String suffix, DexItemFactory dexItemFactory) {
+      return dexItemFactory.createType(
+          DescriptorUtils.getDescriptorFromClassBinaryName(
+              DescriptorUtils.getBinaryNameFromDescriptor(context.getType().toDescriptorString())
+                  + suffix));
     }
   }
 }
