@@ -38,7 +38,6 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
@@ -128,8 +127,6 @@ public class EnumUnboxer {
   // Map the enum candidates with their dependencies, i.e., the methods to reprocess for the given
   // enum if the optimization eventually decides to unbox it.
   private final EnumUnboxingCandidateInfoCollection enumUnboxingCandidatesInfo;
-  private final ProgramPackageCollection enumsToUnboxWithPackageRequirement =
-      ProgramPackageCollection.createEmpty();
   private final Map<DexType, EnumStaticFieldValues> staticFieldValuesMap =
       new ConcurrentHashMap<>();
   private final ProgramMethodSet methodsDependingOnLibraryModelisation =
@@ -481,18 +478,15 @@ public class EnumUnboxer {
     DirectMappedDexApplication.Builder appBuilder = appView.appInfo().app().asDirect().builder();
     FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder =
         FieldAccessInfoCollectionModifier.builder();
-    UnboxedEnumMemberRelocator relocator =
-        UnboxedEnumMemberRelocator.builder(appView)
+    EnumUnboxingUtilityClasses utilityClasses =
+        EnumUnboxingUtilityClasses.builder(appView)
             .synthesizeEnumUnboxingUtilityClasses(
-                enumClassesToUnbox,
-                enumsToUnboxWithPackageRequirement,
-                appBuilder,
-                fieldAccessInfoCollectionModifierBuilder)
+                enumClassesToUnbox, appBuilder, fieldAccessInfoCollectionModifierBuilder)
             .build();
     fieldAccessInfoCollectionModifierBuilder.build().modify(appView);
-    enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumDataMap, relocator);
+    enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumDataMap, utilityClasses);
     EnumUnboxingLens enumUnboxingLens =
-        new EnumUnboxingTreeFixer(appView, enumsToUnbox, relocator, enumUnboxerRewriter)
+        new EnumUnboxingTreeFixer(appView, enumsToUnbox, utilityClasses, enumUnboxerRewriter)
             .fixupTypeReferences();
     enumUnboxerRewriter.setEnumUnboxingLens(enumUnboxingLens);
     appView.setUnboxedEnums(enumDataMap);
@@ -539,7 +533,6 @@ public class EnumUnboxer {
 
   public EnumDataMap finishAnalysis() {
     analyzeInitializers();
-    analyzeAccessibility();
     EnumDataMap enumDataMap = analyzeEnumInstances();
     if (debugLogEnabled) {
       // Remove all enums that have been reported as being unboxable.
@@ -739,39 +732,6 @@ public class EnumUnboxer {
       return OptionalInt.of(field.asSingleNumberValue().getIntValue());
     }
     return OptionalInt.empty();
-  }
-
-  private void analyzeAccessibility() {
-    // Unboxing an enum will require to move its methods to a different class, which may impact
-    // accessibility. For a quick analysis we simply reuse the inliner analysis.
-    enumUnboxingCandidatesInfo.forEachCandidate(
-        enumClass -> {
-          Constraint classConstraint = analyzeAccessibilityInClass(enumClass);
-          if (classConstraint == Constraint.NEVER) {
-            markEnumAsUnboxable(Reason.ACCESSIBILITY, enumClass);
-          } else if (classConstraint == Constraint.PACKAGE) {
-            enumsToUnboxWithPackageRequirement.addProgramClass(enumClass);
-          }
-        });
-  }
-
-  private Constraint analyzeAccessibilityInClass(DexProgramClass enumClass) {
-    Constraint classConstraint = Constraint.ALWAYS;
-    EnumAccessibilityUseRegistry useRegistry = null;
-    for (DexEncodedMethod method : enumClass.methods()) {
-      // Enum initializer are analyzed in analyzeInitializers instead.
-      if (!method.isInitializer()) {
-        if (useRegistry == null) {
-          useRegistry = new EnumAccessibilityUseRegistry(factory);
-        }
-        Constraint methodConstraint = constraintForEnumUnboxing(method, useRegistry);
-        classConstraint = classConstraint.meet(methodConstraint);
-        if (classConstraint == Constraint.NEVER) {
-          return classConstraint;
-        }
-      }
-    }
-    return classConstraint;
   }
 
   public Constraint constraintForEnumUnboxing(

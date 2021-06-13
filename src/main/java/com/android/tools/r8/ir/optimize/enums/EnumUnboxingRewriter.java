@@ -71,8 +71,8 @@ public class EnumUnboxingRewriter {
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory factory;
   private final EnumDataMap unboxedEnumsData;
-  private final UnboxedEnumMemberRelocator relocator;
   private EnumUnboxingLens enumUnboxingLens;
+  private final EnumUnboxingUtilityClasses utilityClasses;
 
   private final Map<DexMethod, DexEncodedMethod> utilityMethods = new ConcurrentHashMap<>();
 
@@ -86,44 +86,45 @@ public class EnumUnboxingRewriter {
   EnumUnboxingRewriter(
       AppView<AppInfoWithLiveness> appView,
       EnumDataMap unboxedEnumsInstanceFieldData,
-      UnboxedEnumMemberRelocator relocator) {
+      EnumUnboxingUtilityClasses utilityClasses) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.unboxedEnumsData = unboxedEnumsInstanceFieldData;
-    this.relocator = relocator;
+    this.utilityClasses = utilityClasses;
 
     // Custom methods for java.lang.Enum methods ordinal, equals and compareTo.
-    DexType defaultEnumUnboxingUtility = relocator.getDefaultEnumUnboxingUtility();
+    DexType sharedEnumUnboxingUtilityType =
+        utilityClasses.getSharedEnumUnboxingUtilityClass().getType();
     this.ordinalUtilityMethod =
         factory.createMethod(
-            defaultEnumUnboxingUtility,
+            sharedEnumUnboxingUtilityType,
             factory.createProto(factory.intType, factory.intType),
             ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "ordinal");
     this.equalsUtilityMethod =
         factory.createMethod(
-            defaultEnumUnboxingUtility,
+            sharedEnumUnboxingUtilityType,
             factory.createProto(factory.booleanType, factory.intType, factory.intType),
             ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "equals");
     this.compareToUtilityMethod =
         factory.createMethod(
-            defaultEnumUnboxingUtility,
+            sharedEnumUnboxingUtilityType,
             factory.createProto(factory.intType, factory.intType, factory.intType),
             ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "compareTo");
     // Custom methods for generated field $VALUES initialization.
     this.valuesUtilityMethod =
         factory.createMethod(
-            defaultEnumUnboxingUtility,
+            sharedEnumUnboxingUtilityType,
             factory.createProto(factory.intArrayType, factory.intType),
             ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "values");
     // Custom methods for Object#getClass without outValue and Objects.requireNonNull.
     this.zeroCheckMethod =
         factory.createMethod(
-            defaultEnumUnboxingUtility,
+            sharedEnumUnboxingUtilityType,
             factory.createProto(factory.voidType, factory.intType),
             ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "zeroCheck");
     this.zeroCheckMessageMethod =
         factory.createMethod(
-            defaultEnumUnboxingUtility,
+            sharedEnumUnboxingUtilityType,
             factory.createProto(factory.voidType, factory.intType, factory.stringType),
             ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "zeroCheckMessage");
   }
@@ -465,7 +466,8 @@ public class EnumUnboxingRewriter {
   }
 
   private DexField createValuesField(DexType enumType) {
-    return createValuesField(enumType, relocator.getNewMemberLocationFor(enumType), factory);
+    return createValuesField(
+        enumType, utilityClasses.getLocalEnumUnboxingUtilityClass(enumType), factory);
   }
 
   static DexField createValuesField(
@@ -478,7 +480,7 @@ public class EnumUnboxingRewriter {
 
   private DexMethod createValuesMethod(DexType enumType) {
     return factory.createMethod(
-        relocator.getNewMemberLocationFor(enumType),
+        utilityClasses.getLocalEnumUnboxingUtilityClass(enumType),
         factory.createProto(factory.intArrayType),
         "$$values$$method$" + compatibleName(enumType));
   }
@@ -503,7 +505,7 @@ public class EnumUnboxingRewriter {
             + compatibleName(enumType);
     DexMethod fieldMethod =
         factory.createMethod(
-            relocator.getNewMemberLocationFor(enumType),
+            utilityClasses.getLocalEnumUnboxingUtilityClass(enumType),
             factory.createProto(field.type, factory.intType),
             methodName);
     utilityMethods.computeIfAbsent(
@@ -517,7 +519,7 @@ public class EnumUnboxingRewriter {
     String methodName = "string$valueOf$" + compatibleName(enumType);
     DexMethod fieldMethod =
         factory.createMethod(
-            relocator.getNewMemberLocationFor(enumType),
+            utilityClasses.getLocalEnumUnboxingUtilityClass(enumType),
             factory.createProto(factory.stringType, factory.intType),
             methodName);
     AbstractValue nullString =
@@ -532,7 +534,7 @@ public class EnumUnboxingRewriter {
     assert unboxedEnumsData.isUnboxedEnum(enumType);
     DexMethod valueOf =
         factory.createMethod(
-            relocator.getNewMemberLocationFor(enumType),
+            utilityClasses.getLocalEnumUnboxingUtilityClass(enumType),
             factory.createProto(factory.intType, factory.stringType),
             "valueOf" + compatibleName(enumType));
     utilityMethods.computeIfAbsent(valueOf, m -> synthesizeValueOfUtilityMethod(m, enumType));

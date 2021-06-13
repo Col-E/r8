@@ -8,7 +8,6 @@ import static com.android.tools.r8.graph.FieldAccessInfoImpl.MISSING_FIELD_ACCES
 import static com.android.tools.r8.ir.desugar.LambdaDescriptor.isLambdaMetafactoryMethod;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.emulateInterfaceLibraryMethod;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.getEmulateLibraryInterfaceClassType;
-import static com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator.ENUM_UNBOXING_UTILITY_CLASS_SUFFIX;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
@@ -1744,7 +1743,6 @@ public class Enqueuer {
     assert !mode.isFinalMainDexTracing()
             || !options.testing.checkForNotExpandingMainDexTracingResult
             || appView.appInfo().getMainDexInfo().isTracedRoot(clazz, appView.getSyntheticItems())
-            || clazz.toSourceString().contains(ENUM_UNBOXING_UTILITY_CLASS_SUFFIX)
         : "Class " + clazz.toSourceString() + " was not a main dex root in the first round";
 
     // Mark types in inner-class attributes referenced.

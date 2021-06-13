@@ -10,7 +10,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.enumunboxing.examplelib1.JavaLibrary1;
 import com.android.tools.r8.enumunboxing.examplelib2.JavaLibrary2;
-import com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxingUtilityClasses;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -68,7 +68,7 @@ public class DoubleProcessingMergeEnumUnboxingTest extends EnumUnboxingTestBase 
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspect(this::assertUtilityClassPresent)
+        .inspect(this::assertSharedUtilityClassPresent)
         .run(parameters.getRuntime(), App.class)
         .assertSuccess()
         .inspectStdOut(this::assertLines2By2Correct);
@@ -88,13 +88,14 @@ public class DoubleProcessingMergeEnumUnboxingTest extends EnumUnboxingTestBase 
         .writeToZip();
   }
 
-  private void assertUtilityClassPresent(CodeInspector codeInspector) {
+  private void assertSharedUtilityClassPresent(CodeInspector codeInspector) {
     assertTrue(
         codeInspector.allClasses().stream()
             .anyMatch(
                 c ->
                     c.getOriginalName()
-                        .contains(UnboxedEnumMemberRelocator.ENUM_UNBOXING_UTILITY_CLASS_SUFFIX)));
+                        .contains(
+                            EnumUnboxingUtilityClasses.ENUM_UNBOXING_SHARED_UTILITY_CLASS_SUFFIX)));
   }
 
   static class App {

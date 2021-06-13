@@ -38,18 +38,18 @@ class EnumUnboxingTreeFixer {
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory factory;
   private final Set<DexType> enumsToUnbox;
-  private final UnboxedEnumMemberRelocator relocator;
+  private final EnumUnboxingUtilityClasses utilityClasses;
   private final EnumUnboxingRewriter enumUnboxerRewriter;
 
   EnumUnboxingTreeFixer(
       AppView<AppInfoWithLiveness> appView,
       Set<DexType> enumsToUnbox,
-      UnboxedEnumMemberRelocator relocator,
+      EnumUnboxingUtilityClasses utilityClasses,
       EnumUnboxingRewriter enumUnboxerRewriter) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.enumsToUnbox = enumsToUnbox;
-    this.relocator = relocator;
+    this.utilityClasses = utilityClasses;
     this.enumUnboxerRewriter = enumUnboxerRewriter;
   }
 
@@ -57,7 +57,7 @@ class EnumUnboxingTreeFixer {
     assert enumUnboxerRewriter != null;
     // Fix all methods and fields using enums to unbox.
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (enumsToUnbox.contains(clazz.type)) {
+      if (enumsToUnbox.contains(clazz.getType())) {
         // Clear the initializers and move the static methods to the new location.
         Set<DexEncodedMethod> methodsToRemove = Sets.newIdentityHashSet();
         clazz
@@ -67,7 +67,7 @@ class EnumUnboxingTreeFixer {
                   if (m.isInitializer()) {
                     clearEnumToUnboxMethod(m);
                   } else {
-                    DexType newHolder = relocator.getNewMemberLocationFor(clazz.type);
+                    DexType newHolder = utilityClasses.getLocalEnumUnboxingUtilityClass(clazz);
                     List<DexEncodedMethod> movedMethods =
                         unboxedEnumsMethods.computeIfAbsent(newHolder, k -> new ArrayList<>());
                     movedMethods.add(fixupEncodedMethodToUtility(m, newHolder));
@@ -178,16 +178,15 @@ class EnumUnboxingTreeFixer {
       newMethod =
           factory.createInstanceInitializerWithFreshProto(
               newMethod,
-              relocator.getDefaultEnumUnboxingUtility(),
+              utilityClasses.getSharedEnumUnboxingUtilityClass().getType(),
               tryMethod -> holder.lookupMethod(tryMethod) == null);
     } else {
       int index = 0;
       while (holder.lookupMethod(newMethod) != null) {
         newMethod =
-            factory.createMethod(
-                newMethod.holder,
-                newMethod.proto,
-                encodedMethod.getName().toString() + "$enumunboxing$" + index++);
+            newMethod.withName(
+                encodedMethod.getName().toString() + "$enumunboxing$" + index++,
+                appView.dexItemFactory());
       }
     }
     return newMethod;
@@ -202,7 +201,7 @@ class EnumUnboxingTreeFixer {
       DexField field = encodedField.getReference();
       DexType newType = fixupType(field.type);
       if (newType != field.type) {
-        DexField newField = factory.createField(field.holder, newType, field.name);
+        DexField newField = field.withType(newType, factory);
         lensBuilder.move(field, newField);
         DexEncodedField newEncodedField =
             encodedField.toTypeSubstitutedField(
