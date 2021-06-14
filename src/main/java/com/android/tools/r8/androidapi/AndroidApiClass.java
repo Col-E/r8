@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.androidapi;
 
-import com.android.tools.r8.KeepForSubclassing;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -17,7 +16,6 @@ import java.util.List;
 import java.util.function.BiFunction;
 
 /** This is a base class for all generated classes from api-versions.xml. */
-@KeepForSubclassing
 public abstract class AndroidApiClass {
 
   private final ClassReference classReference;

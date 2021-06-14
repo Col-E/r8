@@ -3,14 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.structural.Ordered;
 import java.util.Arrays;
 import java.util.List;
 
 /** Android API level description */
-@Keep
 public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   B(1),
   B_1_1(2),
@@ -45,6 +43,8 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   S(31),
   UNKNOWN(10000);
 
+  // When updating LATEST and a new version goes stable, add a new api-versions.xml to third_party
+  // and update the version and generated jar in AndroidApiDatabaseBuilderGeneratorTest.
   public static final AndroidApiLevel LATEST = S;
 
   public static final int magicApiLevelUsedByAndroidPlatformBuild = 10000;

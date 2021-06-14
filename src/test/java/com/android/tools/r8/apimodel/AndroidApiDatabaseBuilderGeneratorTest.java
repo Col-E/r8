@@ -5,15 +5,20 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.AndroidApiDatabaseBuilderGenerator.generatedMainDescriptor;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.JvmTestBuilder;
 import com.android.tools.r8.JvmTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.TestState;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.apimodel.AndroidApiVersionsXmlParser.ParsedApiClass;
+import com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanBox;
@@ -23,12 +28,16 @@ import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.concurrent.ExecutionException;
+import java.util.function.BiFunction;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -41,11 +50,13 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
   protected final TestParameters parameters;
   private static final Path API_VERSIONS_XML =
       Paths.get(ToolHelper.THIRD_PARTY_DIR, "android_jar", "api-versions", "api-versions.xml");
+  private static final Path API_DATABASE_JAR =
+      Paths.get(ToolHelper.THIRD_PARTY_DIR, "android_jar", "api-database", "api-database.jar");
   private static final AndroidApiLevel API_LEVEL = AndroidApiLevel.R;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withSystemRuntime().build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   public AndroidApiDatabaseBuilderGeneratorTest(TestParameters parameters) {
@@ -74,15 +85,6 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
     return builder.build();
   }
 
-  public static void main(String[] args) throws Exception {
-    generateJar();
-  }
-
-  @Test
-  public void testDatabaseGenerationUpToDate() {
-    assumeTrue("b/190368382", false);
-  }
-
   @Test
   public void testCanParseApiVersionsXml() throws Exception {
     // This tests makes a rudimentary check on the number of classes, fields and methods in
@@ -108,64 +110,115 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
     assertEquals(38661, numberOfMethods.get());
   }
 
-  @Test()
-  public void testGeneratedOutputForVisitClasses() throws Exception {
-    runTest(
-        TestGeneratedMainVisitClasses.class,
-        (parsedApiClasses, runResult) -> {
-          String expectedOutput =
-              StringUtils.lines(
-                  ListUtils.map(
-                      parsedApiClasses, apiClass -> apiClass.getClassReference().getDescriptor()));
-          runResult.assertSuccessWithOutput(expectedOutput);
-        });
+  @Test
+  public void testDatabaseGenerationUpToDate() throws Exception {
+    BootstrapCurrentEqualityTest.filesAreEqual(generateJar(), API_DATABASE_JAR);
   }
 
-  @Test()
-  public void testBuildClassesContinue() throws Exception {
-    runTest(
-        TestBuildClassesContinue.class,
-        (parsedApiClasses, runResult) -> {
-          runResult.assertSuccessWithOutputLines(getExpected(parsedApiClasses, false));
-        });
-  }
-
-  @Test()
-  public void testBuildClassesBreak() throws Exception {
-    runTest(
-        TestBuildClassesBreak.class,
-        (parsedApiClasses, runResult) -> {
-          runResult.assertSuccessWithOutputLines(getExpected(parsedApiClasses, true));
-        });
-  }
-
-  private void runTest(
-      Class<?> testClass, BiConsumer<List<ParsedApiClass>, JvmTestRunResult> resultConsumer)
-      throws Exception {
+  /**
+   * Main entry point for building a database over references in framework to the api level they
+   * were introduced. Running main will generate a new jar and run tests on it to ensure it is
+   * compatible with R8 sources and works as expected.
+   *
+   * <p>If the generated jar passes tests it will be moved to third_party/android_jar/api-database/
+   * and override the current file in there.
+   */
+  public static void main(String[] args) throws Exception {
     List<ParsedApiClass> parsedApiClasses =
         AndroidApiVersionsXmlParser.getParsedApiClasses(API_VERSIONS_XML.toFile(), API_LEVEL);
-    testForJvm()
-        .addProgramClassFileData(
-            transformer(testClass)
-                .replaceClassDescriptorInMethodInstructions(
-                    descriptor(AndroidApiDatabaseBuilderTemplate.class), generatedMainDescriptor())
-                .transform())
-        .addLibraryFiles(generateJar(parsedApiClasses))
-        // TODO(b/190368382): This will change when databasebuilder is included in deps.
-        .addLibraryFiles(ToolHelper.R8_WITHOUT_DEPS_JAR, ToolHelper.DEPS)
-        .addDefaultRuntimeLibrary(parameters)
-        .run(parameters.getRuntime(), testClass)
-        .apply(
-            result -> {
-              if (result.getExitCode() != 0) {
-                System.out.println(result.getStdErr());
-              }
-            })
-        .assertSuccess()
-        .apply(result -> resultConsumer.accept(parsedApiClasses, result));
+    Path generatedJar = generateJar(parsedApiClasses);
+    validateJar(generatedJar, parsedApiClasses);
+    Files.move(generatedJar, API_DATABASE_JAR, REPLACE_EXISTING);
   }
 
-  private List<String> getExpected(List<ParsedApiClass> parsedApiClasses, boolean abort) {
+  private static void validateJar(Path generated, List<ParsedApiClass> apiClasses) {
+    List<BiFunction<Path, List<ParsedApiClass>, Boolean>> tests =
+        ImmutableList.of(
+            AndroidApiDatabaseBuilderGeneratorTest::testGeneratedOutputForVisitClasses,
+            AndroidApiDatabaseBuilderGeneratorTest::testBuildClassesContinue,
+            AndroidApiDatabaseBuilderGeneratorTest::testBuildClassesBreak,
+            AndroidApiDatabaseBuilderGeneratorTest::testNoPlaceHolder);
+    tests.forEach(
+        test -> {
+          if (!test.apply(generated, apiClasses)) {
+            throw new RuntimeException("Generated jar did not pass tests");
+          }
+        });
+  }
+
+  private static boolean testGeneratedOutputForVisitClasses(
+      Path generated, List<ParsedApiClass> parsedApiClasses) {
+    String expectedOutput =
+        StringUtils.lines(
+            ListUtils.map(
+                parsedApiClasses, apiClass -> apiClass.getClassReference().getDescriptor()));
+    return runTest(generated, TestGeneratedMainVisitClasses.class)
+        .getStdOut()
+        .equals(expectedOutput);
+  }
+
+  private static boolean testBuildClassesContinue(
+      Path generated, List<ParsedApiClass> parsedApiClasses) {
+    return runTest(generated, TestBuildClassesContinue.class)
+        .getStdOut()
+        .equals(getExpected(parsedApiClasses, false));
+  }
+
+  private static boolean testBuildClassesBreak(
+      Path generated, List<ParsedApiClass> parsedApiClasses) {
+    return runTest(generated, TestBuildClassesBreak.class)
+        .getStdOut()
+        .equals(getExpected(parsedApiClasses, true));
+  }
+
+  private static boolean testNoPlaceHolder(Path generated, List<ParsedApiClass> parsedApiClasses) {
+    try {
+      CodeInspector inspector = new CodeInspector(generated);
+      inspector
+          .allClasses()
+          .forEach(
+              clazz -> {
+                clazz.forAllMethods(
+                    methods -> {
+                      if (methods.getFinalName().startsWith("placeHolder")) {
+                        throw new RuntimeException("Found placeHolder method in generated jar");
+                      }
+                    });
+              });
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
+    return true;
+  }
+
+  private static JvmTestRunResult runTest(Path generated, Class<?> testClass) {
+    try {
+      TemporaryFolder temporaryFolder = new TemporaryFolder();
+      temporaryFolder.create();
+      return JvmTestBuilder.create(new TestState(temporaryFolder))
+          .addProgramClassFileData(
+              transformer(testClass)
+                  .replaceClassDescriptorInMethodInstructions(
+                      descriptor(AndroidApiDatabaseBuilderTemplate.class),
+                      generatedMainDescriptor())
+                  .transform())
+          .addLibraryFiles(generated)
+          // TODO(b/190368382): This will change when databasebuilder is included in deps.
+          .addLibraryFiles(ToolHelper.R8_WITHOUT_DEPS_JAR, ToolHelper.DEPS)
+          .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+          .run(TestRuntime.getSystemRuntime(), testClass)
+          .apply(
+              result -> {
+                if (result.getExitCode() != 0) {
+                  throw new RuntimeException(result.getStdErr());
+                }
+              });
+    } catch (IOException | ExecutionException | CompilationFailedException ex) {
+      throw new RuntimeException(ex);
+    }
+  }
+
+  private static String getExpected(List<ParsedApiClass> parsedApiClasses, boolean abort) {
     List<String> expected = new ArrayList<>();
     parsedApiClasses.forEach(
         apiClass -> {
@@ -200,7 +253,7 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
                     });
               });
         });
-    return expected;
+    return StringUtils.lines(expected);
   }
 
   public static class TestGeneratedMainVisitClasses {
