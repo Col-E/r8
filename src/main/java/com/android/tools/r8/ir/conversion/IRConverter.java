@@ -672,6 +672,12 @@ public class IRConverter {
     // 2) Revisit DexEncodedMethods for the collected candidates.
 
     printPhase("Primary optimization pass");
+
+    appView.withCallSiteOptimizationInfoPropagator(
+        optimization ->
+            optimization.abandonCallSitePropagationForLambdaImplementationMethods(
+                executorService, timing));
+
     if (fieldAccessAnalysis != null) {
       fieldAccessAnalysis.fieldAssignmentTracker().initialize();
     }

@@ -323,6 +323,13 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return callSiteOptimizationInfoPropagator;
   }
 
+  public <E extends Throwable> void withCallSiteOptimizationInfoPropagator(
+      ThrowingConsumer<CallSiteOptimizationInfoPropagator, E> consumer) throws E {
+    if (callSiteOptimizationInfoPropagator != null) {
+      consumer.accept(callSiteOptimizationInfoPropagator);
+    }
+  }
+
   public LibraryMemberOptimizer libraryMethodOptimizer() {
     return libraryMemberOptimizer;
   }
