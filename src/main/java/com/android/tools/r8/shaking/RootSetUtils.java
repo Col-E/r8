@@ -149,10 +149,6 @@ public class RootSetUtils {
       this(appView, subtypingInfo, null);
     }
 
-    boolean isMainDexRootSetBuilder() {
-      return false;
-    }
-
     void handleMatchedAnnotation(AnnotationMatchResult annotation) {
       // Intentionally empty.
     }
@@ -521,8 +517,7 @@ public class RootSetUtils {
       //  fullmode.
       if (clazz.isProgramClass()
           && rule.isProguardKeepRule()
-          && !rule.asProguardKeepRule().getModifiers().allowsShrinking
-          && !isMainDexRootSetBuilder()) {
+          && !rule.asProguardKeepRule().getModifiers().allowsShrinking) {
         new SynthesizeMissingInterfaceMethodsForMemberRules(
                 clazz.asProgramClass(), memberKeepRules, rule, preconditionSupplier, ifRule)
             .run();
@@ -2243,11 +2238,6 @@ public class RootSetUtils {
         SubtypingInfo subtypingInfo,
         Iterable<? extends ProguardConfigurationRule> rules) {
       super(appView, subtypingInfo, rules);
-    }
-
-    @Override
-    boolean isMainDexRootSetBuilder() {
-      return true;
     }
 
     @Override
