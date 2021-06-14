@@ -40,14 +40,12 @@ public class Swap extends Instruction {
   }
 
   @Override
-  public void setOutValue(Value value) {
-    assert outValue == null || !outValue.hasUsersInfo() || !outValue.isUsed() ||
-        value instanceof StackValues;
-    this.outValue = value;
-    this.outValue.definition = this;
-    for (StackValue val : ((StackValues)value).getStackValues()) {
-      val.definition = this;
+  public Value setOutValue(Value newOutValue) {
+    assert newOutValue instanceof StackValues;
+    for (StackValue stackValue : ((StackValues) newOutValue).getStackValues()) {
+      stackValue.definition = this;
     }
+    return super.setOutValue(newOutValue);
   }
 
   private StackValue[] getStackValues() {

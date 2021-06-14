@@ -141,12 +141,18 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return outValue;
   }
 
-  public void setOutValue(Value value) {
-    assert outValue == null || !outValue.hasUsersInfo() || !outValue.isUsed();
-    outValue = value;
-    if (outValue != null) {
-      outValue.definition = this;
+  public Value clearOutValue() {
+    return setOutValue(null);
+  }
+
+  // Returns the previous out-value, if any.
+  public Value setOutValue(Value newOutValue) {
+    Value previousOutValue = outValue();
+    outValue = newOutValue;
+    if (newOutValue != null) {
+      newOutValue.definition = this;
     }
+    return previousOutValue;
   }
 
   public Value swapOutValue(Value newOutValue) {
