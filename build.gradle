@@ -11,13 +11,6 @@ import smali.SmaliTask
 import tasks.DownloadDependency
 import tasks.GetJarsFromConfiguration
 import utils.Utils
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.gradle.api.tasks.testing.logging.TestLogEvent
-import org.gradle.api.tasks.testing.TestOutputEvent
-
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.nio.file.StandardOpenOption
 
 buildscript {
     repositories {
@@ -255,6 +248,7 @@ dependencies {
     implementation group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
+    implementation files('third_party/android_jar/api-database/api-database.jar')
     jdk11TimeTestsCompile group: 'org.testng', name: 'testng', version: testngVersion
     examplesTestNGRunnerCompile group: 'org.testng', name: 'testng', version: testngVersion
     testCompile sourceSets.examples.output

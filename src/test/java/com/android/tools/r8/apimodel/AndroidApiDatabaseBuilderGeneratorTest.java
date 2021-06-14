@@ -27,6 +27,7 @@ import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
+import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -202,10 +203,11 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
                       descriptor(AndroidApiDatabaseBuilderTemplate.class),
                       generatedMainDescriptor())
                   .transform())
-          .addLibraryFiles(generated)
-          // TODO(b/190368382): This will change when databasebuilder is included in deps.
-          .addLibraryFiles(ToolHelper.R8_WITHOUT_DEPS_JAR, ToolHelper.DEPS)
-          .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+          .addLibraryFiles(
+              generated,
+              ToolHelper.R8_WITHOUT_DEPS_JAR,
+              getDepsWithoutGeneratedApiModelClasses(),
+              ToolHelper.getJava8RuntimeJar())
           .run(TestRuntime.getSystemRuntime(), testClass)
           .apply(
               result -> {
@@ -216,6 +218,22 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
     } catch (IOException | ExecutionException | CompilationFailedException ex) {
       throw new RuntimeException(ex);
     }
+  }
+
+  private static Path getDepsWithoutGeneratedApiModelClasses() throws IOException {
+    Path tempDeps = Files.createTempDirectory("temp_deps");
+    ZipUtils.unzip(
+        ToolHelper.DEPS.toString(),
+        tempDeps.toFile(),
+        entry -> {
+          if (entry.getName().startsWith("com/android/tools/r8/apimodel/")) {
+            return false;
+          }
+          return true;
+        });
+    Path modifiedDeps = Files.createTempFile("modified_deps", ".jar");
+    ZipUtils.zip(modifiedDeps, tempDeps);
+    return modifiedDeps;
   }
 
   private static String getExpected(List<ParsedApiClass> parsedApiClasses, boolean abort) {
