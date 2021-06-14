@@ -314,11 +314,13 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
   }
 
   public void abandonCallSitePropagationForPinnedMethodsAndOverrides(
-      ExecutorService executorService) throws ExecutionException {
+      ExecutorService executorService, Timing timing) throws ExecutionException {
+    timing.begin("Call site optimization: abandon pinned methods");
     ThreadUtils.processItems(
         this::forEachPinnedNonPrivateVirtualMethod,
         this::abandonCallSitePropagationForMethodAndOverrides,
         executorService);
+    timing.end();
   }
 
   private void forEachPinnedNonPrivateVirtualMethod(Consumer<ProgramMethod> consumer) {

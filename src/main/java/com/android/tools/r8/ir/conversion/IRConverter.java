@@ -59,6 +59,7 @@ import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.AssumeInserter;
+import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
@@ -674,9 +675,12 @@ public class IRConverter {
     printPhase("Primary optimization pass");
 
     appView.withCallSiteOptimizationInfoPropagator(
-        optimization ->
-            optimization.abandonCallSitePropagationForLambdaImplementationMethods(
-                executorService, timing));
+        optimization -> {
+          optimization.abandonCallSitePropagationForLambdaImplementationMethods(
+              executorService, timing);
+          optimization.abandonCallSitePropagationForPinnedMethodsAndOverrides(
+              executorService, timing);
+        });
 
     if (fieldAccessAnalysis != null) {
       fieldAccessAnalysis.fieldAssignmentTracker().initialize();
@@ -728,12 +732,9 @@ public class IRConverter {
     //   1) Second pass for methods whose collected call site information become more precise.
     //   2) Second inlining pass for dealing with double inline callers.
     printPhase("Post optimization pass");
-    if (appView.callSiteOptimizationInfoPropagator() != null) {
-      appView
-          .callSiteOptimizationInfoPropagator()
-          .abandonCallSitePropagationForPinnedMethodsAndOverrides(executorService);
-      postMethodProcessorBuilder.put(appView.callSiteOptimizationInfoPropagator());
-    }
+    appView.withCallSiteOptimizationInfoPropagator(
+        optimization ->
+            postMethodProcessorBuilder.put(appView.callSiteOptimizationInfoPropagator()));
     if (inliner != null) {
       postMethodProcessorBuilder.put(inliner);
     }
@@ -847,9 +848,8 @@ public class IRConverter {
     }
 
     if (Log.ENABLED) {
-      if (appView.callSiteOptimizationInfoPropagator() != null) {
-        appView.callSiteOptimizationInfoPropagator().logResults();
-      }
+      appView.withCallSiteOptimizationInfoPropagator(
+          CallSiteOptimizationInfoPropagator::logResults);
       constantCanonicalizer.logResults();
       if (idempotentFunctionCallCanonicalizer != null) {
         idempotentFunctionCallCanonicalizer.logResults();
