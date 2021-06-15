@@ -117,6 +117,11 @@ public class SyntheticItemsTestUtils {
             reference, null, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_3);
   }
 
+  public static boolean isWrapper(ClassReference reference) {
+    return SyntheticNaming.isSynthetic(reference, null, SyntheticKind.WRAPPER)
+        || SyntheticNaming.isSynthetic(reference, null, SyntheticKind.VIVIFIED_WRAPPER);
+  }
+
   public static Matcher<String> containsInternalSyntheticReference() {
     return containsString(SyntheticNaming.getPhaseSeparator(Phase.INTERNAL));
   }

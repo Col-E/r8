@@ -137,6 +137,7 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
             Executor.class, Executor.Object1.class, Executor.Object2.class, Executor.Object3.class)
         .addLibraryClasses(CustomLibClass.class)
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .allowStdoutMessages()
         .compile()
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,

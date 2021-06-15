@@ -11,7 +11,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -108,8 +108,7 @@ public class WrapperPlacementTest extends DesugaredLibraryTestBase {
 
   private Stream<FoundClassSubject> getWrappers(CodeInspector inspector) {
     return inspector.allClasses().stream()
-        .filter(
-            c -> c.getOriginalName().contains(DesugaredLibraryWrapperSynthesizer.WRAPPER_PREFIX));
+        .filter(c -> SyntheticItemsTestUtils.isWrapper(c.getOriginalReference()));
   }
 
   static class MyArrays1 {

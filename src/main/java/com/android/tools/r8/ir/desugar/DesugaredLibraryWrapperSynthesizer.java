@@ -4,16 +4,14 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.ClassAccessFlags;
-import com.android.tools.r8.graph.ClassKind;
+import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -21,38 +19,33 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterConstructorCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterThrowRuntimeExceptionCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterVivifiedWrapperCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperConversionCfCodeProvider;
-import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.synthesis.SyntheticClassBuilder;
+import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.IdentityHashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 // I am responsible for the generation of wrappers used to call library APIs when desugaring
 // libraries. Wrappers can be both ways, wrapping the desugarType as a type, or the type as
@@ -99,16 +92,8 @@ import java.util.function.Consumer;
 //   }
 public class DesugaredLibraryWrapperSynthesizer {
 
-  public static final String WRAPPER_PACKAGE = "wrappers/";
-  public static final String WRAPPER_PREFIX = "$r8$wrapper$";
-  public static final String TYPE_WRAPPER_SUFFIX = "$-WRP";
-  public static final String VIVIFIED_TYPE_WRAPPER_SUFFIX = "$-V-WRP";
-
   private final AppView<?> appView;
-  private final String dexWrapperPrefixString;
-  private final DexString dexWrapperPrefixDexString;
-  private final Map<DexType, DexType> typeWrappers = new ConcurrentHashMap<>();
-  private final Map<DexType, DexType> vivifiedTypeWrappers = new ConcurrentHashMap<>();
+  private final Set<DexType> wrappersToGenerate = Sets.newConcurrentHashSet();
   // The invalidWrappers are wrappers with incorrect behavior because of final methods that could
   // not be overridden. Such wrappers are awful because the runtime behavior is undefined and does
   // not raise explicit errors. So we register them here and conversion methods for such wrappers
@@ -120,20 +105,12 @@ public class DesugaredLibraryWrapperSynthesizer {
   DesugaredLibraryWrapperSynthesizer(AppView<?> appView, DesugaredLibraryAPIConverter converter) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
-    dexWrapperPrefixString =
-        "L"
-            + appView
-                .options()
-                .desugaredLibraryConfiguration
-                .getSynthesizedLibraryClassesPackagePrefix()
-            + WRAPPER_PACKAGE
-            + WRAPPER_PREFIX;
-    dexWrapperPrefixDexString = factory.createString(dexWrapperPrefixString);
     this.converter = converter;
   }
 
-  boolean hasSynthesized(DexType type) {
-    return type.descriptor.startsWith(dexWrapperPrefixDexString);
+  public boolean isSyntheticWrapper(DexType type) {
+    return appView.getSyntheticItems().isSyntheticOfKind(type, SyntheticKind.WRAPPER)
+        || appView.getSyntheticItems().isSyntheticOfKind(type, SyntheticKind.VIVIFIED_WRAPPER);
   }
 
   boolean canGenerateWrapper(DexType type) {
@@ -141,34 +118,25 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   DexType getTypeWrapper(DexType type) {
-    // Force create the reverse wrapper.
-    getWrapper(type, VIVIFIED_TYPE_WRAPPER_SUFFIX, vivifiedTypeWrappers);
-    return getWrapper(type, TYPE_WRAPPER_SUFFIX, typeWrappers);
+    return registerWrapper(type, SyntheticKind.WRAPPER);
   }
 
   DexType getVivifiedTypeWrapper(DexType type) {
-    // Force create the reverse wrapper.
-    getWrapper(type, TYPE_WRAPPER_SUFFIX, typeWrappers);
-    return getWrapper(type, VIVIFIED_TYPE_WRAPPER_SUFFIX, vivifiedTypeWrappers);
+    return registerWrapper(type, SyntheticKind.VIVIFIED_WRAPPER);
   }
 
-  private DexType createWrapperType(DexType type, String suffix) {
-    return factory.createType(
-        dexWrapperPrefixString + type.toString().replace('.', '$') + suffix + ";");
-  }
-
-  private DexType getWrapper(DexType type, String suffix, Map<DexType, DexType> wrappers) {
-    assert !type.toString().startsWith(DesugaredLibraryAPIConverter.VIVIFIED_PREFIX);
-    return wrappers.computeIfAbsent(
-        type,
-        t -> {
-          assert canGenerateWrapper(type) : type;
-          DexType wrapperType = createWrapperType(type, suffix);
-          assert converter.canGenerateWrappersAndCallbacks()
-                  || appView.definitionFor(wrapperType).isClasspathClass()
-              : "Wrapper " + wrapperType + " should have been generated in the enqueuer.";
-          return wrapperType;
-        });
+  private DexType registerWrapper(DexType type, SyntheticKind kind) {
+    assert canGenerateWrapper(type) : type;
+    wrappersToGenerate.add(type);
+    DexClass dexClass = getValidClassToWrap(type);
+    assert dexClass != null;
+    DexType wrapperType =
+        appView.getSyntheticItems().getFixedSyntheticTypeWhileMigrating(kind, dexClass, appView);
+    assert converter.canGenerateWrappersAndCallbacks()
+            || (appView.definitionFor(wrapperType) != null
+                && appView.definitionFor(wrapperType).isClasspathClass())
+        : "Wrapper " + wrapperType + " should have been generated in the enqueuer.";
+    return wrapperType;
   }
 
   private DexClass getValidClassToWrap(DexType type) {
@@ -184,68 +152,211 @@ public class DesugaredLibraryWrapperSynthesizer {
     return DesugaredLibraryAPIConverter.vivifiedTypeFor(type, appView);
   }
 
-  private DexClass generateTypeWrapper(
-      ClassKind<?> classKind, DexClass dexClass, DexType typeWrapperType) {
-    DexType type = dexClass.type;
-    DexEncodedField wrapperField = synthesizeWrappedValueEncodedField(typeWrapperType, type);
-    return synthesizeWrapper(
-        classKind,
-        vivifiedTypeFor(type),
-        dexClass,
-        synthesizeVirtualMethodsForTypeWrapper(dexClass, wrapperField),
-        generateTypeConversion(type, typeWrapperType),
-        wrapperField);
+  private void ensureWrappers(DexClass context, Consumer<DexClasspathClass> creationCallback) {
+    DexType type = context.type;
+    DexClass wrapper;
+    DexClass vivifiedWrapper;
+    if (appView.options().isDesugaredLibraryCompilation()) {
+      assert context.isProgramClass();
+      DexProgramClass programContext = context.asProgramClass();
+      wrapper =
+          ensureProgramWrapper(
+              SyntheticKind.WRAPPER,
+              vivifiedTypeFor(type),
+              type,
+              programContext,
+              wrapperField -> synthesizeVirtualMethodsForTypeWrapper(programContext, wrapperField));
+      vivifiedWrapper =
+          ensureProgramWrapper(
+              SyntheticKind.VIVIFIED_WRAPPER,
+              type,
+              vivifiedTypeFor(type),
+              programContext,
+              wrapperField ->
+                  synthesizeVirtualMethodsForVivifiedTypeWrapper(programContext, wrapperField));
+      DexField wrapperField = getWrapperUniqueField(wrapper);
+      DexField vivifiedWrapperField = getWrapperUniqueField(vivifiedWrapper);
+      ensureProgramConversionMethod(
+          SyntheticKind.WRAPPER, programContext, wrapperField, vivifiedWrapperField);
+      ensureProgramConversionMethod(
+          SyntheticKind.VIVIFIED_WRAPPER, programContext, vivifiedWrapperField, wrapperField);
+    } else {
+      assert context.isNotProgramClass();
+      ClasspathOrLibraryClass classpathOrLibraryContext = context.asClasspathOrLibraryClass();
+      wrapper =
+          ensureClasspathWrapper(
+              SyntheticKind.WRAPPER,
+              vivifiedTypeFor(type),
+              type,
+              classpathOrLibraryContext,
+              creationCallback,
+              wrapperField -> synthesizeVirtualMethodsForTypeWrapper(context, wrapperField));
+      vivifiedWrapper =
+          ensureClasspathWrapper(
+              SyntheticKind.VIVIFIED_WRAPPER,
+              type,
+              vivifiedTypeFor(type),
+              classpathOrLibraryContext,
+              creationCallback,
+              wrapperField ->
+                  synthesizeVirtualMethodsForVivifiedTypeWrapper(context, wrapperField));
+      DexField wrapperField = getWrapperUniqueField(wrapper);
+      DexField vivifiedWrapperField = getWrapperUniqueField(vivifiedWrapper);
+      ensureClasspathConversionMethod(
+          SyntheticKind.WRAPPER, classpathOrLibraryContext, wrapperField, vivifiedWrapperField);
+      ensureClasspathConversionMethod(
+          SyntheticKind.VIVIFIED_WRAPPER,
+          classpathOrLibraryContext,
+          vivifiedWrapperField,
+          wrapperField);
+    }
   }
 
-  private DexClass generateVivifiedTypeWrapper(
-      ClassKind<?> classKind, DexClass dexClass, DexType vivifiedTypeWrapperType) {
-    DexType type = dexClass.type;
-    DexEncodedField wrapperField =
-        synthesizeWrappedValueEncodedField(vivifiedTypeWrapperType, vivifiedTypeFor(type));
-    return synthesizeWrapper(
-        classKind,
-        type,
-        dexClass,
-        synthesizeVirtualMethodsForVivifiedTypeWrapper(dexClass, wrapperField),
-        generateVivifiedTypeConversion(type, vivifiedTypeWrapperType),
-        wrapperField);
+  private DexField getWrapperUniqueField(DexClass wrapper) {
+    assert wrapper.instanceFields().size() == 1;
+    return wrapper.instanceFields().get(0).getReference();
   }
 
-  private DexClass synthesizeWrapper(
-      ClassKind<?> classKind,
+  private DexProgramClass ensureProgramWrapper(
+      SyntheticKind kind,
       DexType wrappingType,
+      DexType wrappedType,
+      DexProgramClass programContext,
+      Function<DexEncodedField, DexEncodedMethod[]> virtualMethodProvider) {
+    return appView
+        .getSyntheticItems()
+        .ensureFixedClass(
+            kind,
+            programContext,
+            appView,
+            builder ->
+                buildWrapper(
+                    wrappingType, wrappedType, programContext, virtualMethodProvider, builder),
+            ignored -> {});
+  }
+
+  private DexClasspathClass ensureClasspathWrapper(
+      SyntheticKind kind,
+      DexType wrappingType,
+      DexType wrappedType,
+      ClasspathOrLibraryClass classpathOrLibraryContext,
+      Consumer<DexClasspathClass> creationCallback,
+      Function<DexEncodedField, DexEncodedMethod[]> virtualMethodProvider) {
+    return appView
+        .getSyntheticItems()
+        .ensureFixedClasspathClass(
+            kind,
+            classpathOrLibraryContext,
+            appView,
+            builder ->
+                buildWrapper(
+                    wrappingType,
+                    wrappedType,
+                    classpathOrLibraryContext.asDexClass(),
+                    virtualMethodProvider,
+                    builder),
+            creationCallback);
+  }
+
+  private ProgramMethod ensureProgramConversionMethod(
+      SyntheticKind kind,
+      DexProgramClass context,
+      DexField wrapperField,
+      DexField reverseWrapperField) {
+    return appView
+        .getSyntheticItems()
+        .ensureFixedClassMethod(
+            factory.convertMethodName,
+            factory.createProto(reverseWrapperField.type, wrapperField.type),
+            kind,
+            context,
+            appView,
+            ignored -> {},
+            methodBuilder ->
+                buildConversionMethod(
+                    methodBuilder, wrapperField, reverseWrapperField, context.type));
+  }
+
+  private DexClassAndMethod ensureClasspathConversionMethod(
+      SyntheticKind kind,
+      ClasspathOrLibraryClass context,
+      DexField wrapperField,
+      DexField reverseWrapperField) {
+    return appView
+        .getSyntheticItems()
+        .ensureFixedClasspathClassMethod(
+            factory.convertMethodName,
+            factory.createProto(reverseWrapperField.type, wrapperField.type),
+            kind,
+            context,
+            appView,
+            ignored -> {},
+            methodBuilder ->
+                buildConversionMethod(
+                    methodBuilder, wrapperField, reverseWrapperField, context.getType()));
+  }
+
+  private void buildConversionMethod(
+      SyntheticMethodBuilder methodBuilder,
+      DexField wrapperField,
+      DexField reverseWrapperField,
+      DexType reportingType) {
+    CfCode cfCode;
+    if (invalidWrappers.contains(wrapperField.holder)) {
+      cfCode =
+          new APIConverterThrowRuntimeExceptionCfCodeProvider(
+                  appView,
+                  factory.createString(
+                      "Unsupported conversion for "
+                          + reportingType
+                          + ". See compilation time warnings for more details."),
+                  wrapperField.holder)
+              .generateCfCode();
+    } else {
+      cfCode =
+          new APIConverterWrapperConversionCfCodeProvider(
+                  appView, reverseWrapperField, wrapperField)
+              .generateCfCode();
+    }
+    methodBuilder
+        .setAccessFlags(
+            MethodAccessFlags.fromCfAccessFlags(
+                Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC, false))
+        .setCode(methodSignature -> cfCode);
+  }
+
+  private void buildWrapper(
+      DexType wrappingType,
+      DexType wrappedType,
       DexClass clazz,
-      DexEncodedMethod[] virtualMethods,
-      DexEncodedMethod conversionMethod,
-      DexEncodedField wrapperField) {
+      Function<DexEncodedField, DexEncodedMethod[]> virtualMethodProvider,
+      SyntheticClassBuilder<?, ?> builder) {
     boolean isItf = clazz.isInterface();
     DexType superType = isItf ? factory.objectType : wrappingType;
-    DexTypeList interfaces =
-        isItf ? new DexTypeList(new DexType[] {wrappingType}) : DexTypeList.empty();
-    return classKind.create(
-        wrapperField.getHolderType(),
-        Kind.CF,
-        new SynthesizedOrigin("Desugared library API Converter", getClass()),
-        ClassAccessFlags.fromSharedAccessFlags(
-            Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC),
-        superType,
-        interfaces,
-        clazz.sourceFile,
-        null,
-        Collections.emptyList(),
-        null,
-        Collections.emptyList(),
-        ClassSignature.noSignature(),
-        DexAnnotationSet.empty(),
-        DexEncodedField.EMPTY_ARRAY, // No static fields.
-        new DexEncodedField[] {wrapperField},
-        new DexEncodedMethod[] {
-          synthesizeConstructor(wrapperField.getReference()), conversionMethod
-        },
-        virtualMethods,
-        factory.getSkipNameValidationForTesting(),
-        DexProgramClass::checksumFromType,
-        null);
+    List<DexType> interfaces =
+        isItf ? Collections.singletonList(wrappingType) : Collections.emptyList();
+    DexEncodedField wrapperField =
+        synthesizeWrappedValueEncodedField(builder.getType(), wrappedType);
+    builder
+        .setInterfaces(interfaces)
+        .setSuperType(superType)
+        .setInstanceFields(Collections.singletonList(wrapperField))
+        .addMethod(methodBuilder -> buildWrapperConstructor(wrapperField, methodBuilder))
+        .setVirtualMethods(Arrays.asList(virtualMethodProvider.apply(wrapperField)));
+  }
+
+  private void buildWrapperConstructor(
+      DexEncodedField wrappedValueField, SyntheticMethodBuilder methodBuilder) {
+    methodBuilder
+        .setName(factory.constructorMethodName)
+        .setProto(factory.createProto(factory.voidType, wrappedValueField.getType()))
+        .setAccessFlags(
+            MethodAccessFlags.fromCfAccessFlags(
+                Constants.ACC_PRIVATE | Constants.ACC_SYNTHETIC, true))
+        .setCode(
+            codeSynthesizor ->
+                new APIConverterConstructorCfCodeProvider(appView, wrappedValueField.getReference())
+                    .generateCfCode());
   }
 
   private DexEncodedMethod[] synthesizeVirtualMethodsForVivifiedTypeWrapper(
@@ -441,166 +552,33 @@ public class DesugaredLibraryWrapperSynthesizer {
         field, fieldAccessFlags, FieldTypeSignature.noSignature(), DexAnnotationSet.empty(), null);
   }
 
-  private DexEncodedMethod synthesizeConstructor(DexField field) {
-    DexMethod method =
-        factory.createMethod(
-            field.holder,
-            factory.createProto(factory.voidType, field.type),
-            factory.constructorMethodName);
-    return newSynthesizedMethod(
-        method,
-        Constants.ACC_PRIVATE | Constants.ACC_SYNTHETIC,
-        true,
-        new APIConverterConstructorCfCodeProvider(appView, field).generateCfCode());
-  }
-
-  private DexEncodedMethod newSynthesizedMethod(
-      DexMethod methodToInstall, int flags, boolean constructor, Code code) {
-    MethodAccessFlags accessFlags = MethodAccessFlags.fromSharedAccessFlags(flags, constructor);
-    return new DexEncodedMethod(
-        methodToInstall,
-        accessFlags,
-        MethodTypeSignature.noSignature(),
-        DexAnnotationSet.empty(),
-        ParameterAnnotationsList.empty(),
-        code,
-        true);
-  }
-
-  void finalizeWrappersForL8(
-      DexApplication.Builder<?> builder, IRConverter irConverter, ExecutorService executorService)
-      throws ExecutionException {
-    List<DexProgramClass> synthesizedWrappers = synthesizeWrappers();
-    registerAndProcessWrappers(builder, irConverter, executorService, synthesizedWrappers);
-  }
-
-  private List<DexProgramClass> synthesizeWrappers() {
+  void finalizeWrappersForL8() {
     DesugaredLibraryConfiguration conf = appView.options().desugaredLibraryConfiguration;
     for (DexType type : conf.getWrapperConversions()) {
       assert !conf.getCustomConversions().containsKey(type);
-      getTypeWrapper(type);
-    }
-    Map<DexType, DexClass> synthesizedWrappers = new IdentityHashMap<>();
-    List<DexProgramClass> additions = new ArrayList<>();
-    int total = typeWrappers.size() + vivifiedTypeWrappers.size();
-    generateWrappers(
-        ClassKind.PROGRAM,
-        synthesizedWrappers.keySet(),
-        (type, wrapper) -> {
-          synthesizedWrappers.put(type, wrapper);
-          additions.add(wrapper.asProgramClass());
-        });
-    assert total == typeWrappers.size() + vivifiedTypeWrappers.size() : "unexpected additions";
-    return additions;
-  }
-
-  void synthesizeWrappersForClasspath(
-      Map<DexType, DexClasspathClass> synthesizedWrappers,
-      Consumer<DexClasspathClass> synthesizedCallback) {
-    generateWrappers(
-        ClassKind.CLASSPATH,
-        synthesizedWrappers.keySet(),
-        (type, wrapper) -> {
-          DexClasspathClass classpathWrapper = wrapper.asClasspathClass();
-          synthesizedWrappers.put(type, classpathWrapper);
-          synthesizedCallback.accept(classpathWrapper);
-        });
-  }
-
-  private void generateWrappers(
-      ClassKind<?> classKind,
-      Set<DexType> synthesized,
-      BiConsumer<DexType, DexClass> generatedCallback) {
-    while (synthesized.size() != typeWrappers.size() + vivifiedTypeWrappers.size()) {
-      for (DexType type : typeWrappers.keySet()) {
-        DexType typeWrapperType = typeWrappers.get(type);
-        if (!synthesized.contains(typeWrapperType)) {
-          DexClass wrapper =
-              generateTypeWrapper(classKind, getValidClassToWrap(type), typeWrapperType);
-          generatedCallback.accept(typeWrapperType, wrapper);
-        }
-      }
-      for (DexType type : vivifiedTypeWrappers.keySet()) {
-        DexType vivifiedTypeWrapperType = vivifiedTypeWrappers.get(type);
-        if (!synthesized.contains(vivifiedTypeWrapperType)) {
-          DexClass wrapper =
-              generateVivifiedTypeWrapper(
-                  classKind, getValidClassToWrap(type), vivifiedTypeWrapperType);
-          generatedCallback.accept(vivifiedTypeWrapperType, wrapper);
-        }
+      DexClass validClassToWrap = getValidClassToWrap(type);
+      // In broken set-ups we can end up having a json files containing wrappers of non desugared
+      // classes. Such wrappers are not required since the class won't be rewritten.
+      if (validClassToWrap.isProgramClass()) {
+        ensureWrappers(validClassToWrap, ignored -> {});
       }
     }
   }
 
-  private void registerAndProcessWrappers(
-      DexApplication.Builder<?> builder,
-      IRConverter irConverter,
-      ExecutorService executorService,
-      Collection<DexProgramClass> wrappers)
-      throws ExecutionException {
-    for (DexProgramClass wrapper : wrappers) {
-      builder.addSynthesizedClass(wrapper);
-      appView.appInfo().addSynthesizedClassForLibraryDesugaring(wrapper);
+  void synthesizeWrappersForClasspath(Consumer<DexClasspathClass> synthesizedCallback) {
+    BooleanBox changed = new BooleanBox(true);
+    while (changed.get()) {
+      changed.set(false);
+      Set<DexType> copy = new HashSet<>(wrappersToGenerate);
+      for (DexType type : copy) {
+        DexClass validClassToWrap = getValidClassToWrap(type);
+        ensureWrappers(
+            validClassToWrap,
+            classpathWrapper -> {
+              changed.set(true);
+              synthesizedCallback.accept(classpathWrapper);
+            });
+      }
     }
-    irConverter.optimizeSynthesizedClasses(wrappers, executorService);
-  }
-
-  private DexEncodedMethod generateTypeConversion(DexType type, DexType typeWrapperType) {
-    DexType reverse = vivifiedTypeWrappers.get(type);
-    assert reverse != null;
-    return synthesizeConversionMethod(
-        typeWrapperType,
-        type,
-        type,
-        vivifiedTypeFor(type),
-        wrappedValueField(reverse, vivifiedTypeFor(type)));
-  }
-
-  private DexEncodedMethod generateVivifiedTypeConversion(
-      DexType type, DexType vivifiedTypeWrapperType) {
-    DexType reverse = typeWrappers.get(type);
-    assert reverse != null;
-    return synthesizeConversionMethod(
-        vivifiedTypeWrapperType,
-        type,
-        vivifiedTypeFor(type),
-        type,
-        wrappedValueField(reverse, type));
-  }
-
-  private DexEncodedMethod synthesizeConversionMethod(
-      DexType holder,
-      DexType type,
-      DexType argType,
-      DexType returnType,
-      DexField reverseField) {
-    DexMethod method =
-        factory.createMethod(
-            holder, factory.createProto(returnType, argType), factory.convertMethodName);
-    CfCode cfCode;
-    if (invalidWrappers.contains(holder)) {
-      cfCode =
-          new APIConverterThrowRuntimeExceptionCfCodeProvider(
-                  appView,
-                  factory.createString(
-                      "Unsupported conversion for "
-                          + type
-                          + ". See compilation time warnings for more details."),
-                  holder)
-              .generateCfCode();
-    } else {
-      cfCode =
-          new APIConverterWrapperConversionCfCodeProvider(
-                  appView,
-                  argType,
-                  reverseField,
-                  factory.createField(holder, returnType, factory.wrapperFieldName))
-              .generateCfCode();
-    }
-    return newSynthesizedMethod(
-        method,
-        Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC,
-        false,
-        cfCode);
   }
 }

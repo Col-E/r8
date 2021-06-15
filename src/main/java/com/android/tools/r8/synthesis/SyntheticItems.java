@@ -76,6 +76,11 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       return legacyClasses.containsKey(type) || nonLegacyDefinitions.containsKey(type);
     }
 
+    boolean containsTypeOfKind(DexType type, SyntheticKind kind) {
+      SyntheticDefinition<?, ?, ?> definition = nonLegacyDefinitions.get(type);
+      return definition != null && definition.getKind() == kind;
+    }
+
     boolean verifyNotRewritten(NonIdentityGraphLens lens) {
       assert legacyClasses.keySet().equals(lens.rewriteTypes(legacyClasses.keySet()));
       assert nonLegacyDefinitions.keySet().equals(lens.rewriteTypes(nonLegacyDefinitions.keySet()));
@@ -289,6 +294,10 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   public boolean isSyntheticClass(DexProgramClass clazz) {
     return isSyntheticClass(clazz.type);
+  }
+
+  public boolean isSyntheticOfKind(DexType type, SyntheticKind kind) {
+    return pending.containsTypeOfKind(type, kind) || committed.containsTypeOfKind(type, kind);
   }
 
   boolean isSyntheticInput(DexProgramClass clazz) {
@@ -553,6 +562,15 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       onCreationConsumer.accept(dexProgramClass);
       return dexProgramClass;
     }
+  }
+
+  public DexType getFixedSyntheticTypeWhileMigrating(
+      SyntheticKind kind, DexClass context, AppView<?> appView) {
+    SynthesizingContext outerContext =
+        context.isProgramClass()
+            ? getSynthesizingContext(context.asProgramClass(), appView)
+            : SynthesizingContext.fromNonSyntheticInputContext(context.asClasspathOrLibraryClass());
+    return SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
   }
 
   public ProgramMethod ensureFixedClassMethod(

@@ -6,14 +6,11 @@ package com.android.tools.r8.graph.analysis;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.Mode;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import java.util.IdentityHashMap;
-import java.util.Map;
 import java.util.function.Consumer;
 
 public class DesugaredLibraryConversionWrapperAnalysis extends EnqueuerAnalysis
@@ -21,7 +18,6 @@ public class DesugaredLibraryConversionWrapperAnalysis extends EnqueuerAnalysis
 
   private final AppView<?> appView;
   private final DesugaredLibraryAPIConverter converter;
-  private Map<DexType, DexClasspathClass> synthesizedWrappers = new IdentityHashMap<>();
 
   public DesugaredLibraryConversionWrapperAnalysis(AppView<?> appView) {
     this.appView = appView;
@@ -68,6 +64,6 @@ public class DesugaredLibraryConversionWrapperAnalysis extends EnqueuerAnalysis
   }
 
   public void generateWrappers(Consumer<DexClasspathClass> synthesizedCallback) {
-    converter.synthesizeWrappers(synthesizedWrappers, synthesizedCallback);
+    converter.synthesizeWrappers(synthesizedCallback);
   }
 }

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.IterableUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -213,6 +214,19 @@ class CommittedSyntheticsCollection {
 
   boolean containsType(DexType type) {
     return containsLegacyType(type) || containsNonLegacyType(type);
+  }
+
+  boolean containsTypeOfKind(DexType type, SyntheticKind kind) {
+    List<SyntheticProgramClassReference> synthetics = nonLegacyClasses.get(type);
+    if (synthetics == null) {
+      return false;
+    }
+    for (SyntheticProgramClassReference synthetic : synthetics) {
+      if (synthetic.getKind() == kind) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public boolean containsLegacyType(DexType type) {

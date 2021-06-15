@@ -60,7 +60,7 @@ public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutputLines("$r8$wrapper$java$util$stream$IntStream$-V-WRP");
+        .assertSuccessWithOutputLines("IntStream$VivifiedWrapper");
   }
 
   @Test
@@ -79,7 +79,7 @@ public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutputLines("$r8$wrapper$java$util$stream$IntStream$-V-WRP");
+        .assertSuccessWithOutputLines("IntStream$VivifiedWrapper");
   }
 
   static class ParallelRandom extends Random {

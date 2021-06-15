@@ -4,4 +4,6 @@
 
 package com.android.tools.r8.graph;
 
-public interface ClasspathOrLibraryClass extends ClassDefinition, ClasspathOrLibraryDefinition {}
+public interface ClasspathOrLibraryClass extends ClassDefinition, ClasspathOrLibraryDefinition {
+  DexClass asDexClass();
+}

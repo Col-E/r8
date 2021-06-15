@@ -3155,7 +3155,7 @@ public class Enqueuer {
       return empty;
     }
 
-    void addClasspathClass(DexClasspathClass clazz) {
+    void addLiveClasspathClass(DexClasspathClass clazz) {
       DexClasspathClass old = syntheticClasspathClasses.put(clazz.type, clazz);
       assert old == null;
     }
@@ -3170,11 +3170,6 @@ public class Enqueuer {
         ProgramMethod method, Consumer<KeepMethodInfo.Joiner> keepAction) {
       addLiveMethod(method);
       liveMethodsWithKeepActions.add(new Pair<>(method, keepAction));
-    }
-
-    void amendApplication(Builder appBuilder) {
-      assert !isEmpty();
-      appBuilder.addClasspathClasses(syntheticClasspathClasses.values());
     }
 
     void enqueueWorkItems(Enqueuer enqueuer) {
@@ -3214,14 +3209,8 @@ public class Enqueuer {
       return;
     }
 
-    // Now all additions are computed, the application is atomically extended with those additions.
-    appInfo =
-        appInfo.rebuildWithClassHierarchy(
-            app -> {
-              Builder appBuilder = app.asDirect().builder();
-              additions.amendApplication(appBuilder);
-              return appBuilder.build();
-            });
+    // Commit the pending synthetics and recompute subtypes.
+    appInfo = appInfo.rebuildWithClassHierarchy(app -> app);
     appView.setAppInfo(appInfo);
     subtypingInfo = new SubtypingInfo(appView);
 
@@ -3528,7 +3517,7 @@ public class Enqueuer {
     callbacks.forEach(additions::addLiveMethod);
 
     // Generate wrappers on classpath so types are defined.
-    desugaredLibraryWrapperAnalysis.generateWrappers(additions::addClasspathClass);
+    desugaredLibraryWrapperAnalysis.generateWrappers(additions::addLiveClasspathClass);
   }
 
 

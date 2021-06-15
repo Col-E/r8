@@ -4,4 +4,10 @@
 
 package com.android.tools.r8.graph;
 
-public interface LibraryClass extends LibraryDefinition, ClasspathOrLibraryClass {}
+public interface LibraryClass extends LibraryDefinition, ClasspathOrLibraryClass {
+
+  @Override
+  default DexClass asDexClass() {
+    return asLibraryClass();
+  }
+}

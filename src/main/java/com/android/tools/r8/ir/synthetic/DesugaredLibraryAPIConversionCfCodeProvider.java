@@ -221,14 +221,12 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
 
   public static class APIConverterWrapperConversionCfCodeProvider extends SyntheticCfCodeProvider {
 
-    DexType argType;
     DexField reverseWrapperField;
     DexField wrapperField;
 
     public APIConverterWrapperConversionCfCodeProvider(
-        AppView<?> appView, DexType argType, DexField reverseWrapperField, DexField wrapperField) {
+        AppView<?> appView, DexField reverseWrapperField, DexField wrapperField) {
       super(appView, wrapperField.holder);
-      this.argType = argType;
       this.reverseWrapperField = reverseWrapperField;
       this.wrapperField = wrapperField;
     }
@@ -238,6 +236,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
 
+      DexType argType = wrapperField.type;
       ImmutableInt2ReferenceSortedMap<FrameType> locals =
           ImmutableInt2ReferenceSortedMap.<FrameType>builder()
               .put(0, FrameType.initialized(argType))

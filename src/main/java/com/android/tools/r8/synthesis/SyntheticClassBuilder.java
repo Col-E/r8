@@ -98,6 +98,11 @@ public abstract class SyntheticClassBuilder<
     return self();
   }
 
+  public B setSuperType(DexType superType) {
+    this.superType = superType;
+    return self();
+  }
+
   public B setOriginKind(Kind originKind) {
     this.originKind = originKind;
     return self();

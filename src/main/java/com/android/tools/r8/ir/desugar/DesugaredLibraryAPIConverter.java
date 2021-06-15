@@ -107,7 +107,7 @@ public class DesugaredLibraryAPIConverter {
 
   public void desugar(IRCode code) {
 
-    if (wrapperSynthesizor.hasSynthesized(code.method().getHolderType())) {
+    if (wrapperSynthesizor.isSyntheticWrapper(code.method().getHolderType())) {
       return;
     }
 
@@ -310,7 +310,7 @@ public class DesugaredLibraryAPIConverter {
     SortedProgramMethodSet callbacks = generateCallbackMethods();
     irConverter.processMethodsConcurrently(callbacks, executorService);
     if (appView.options().isDesugaredLibraryCompilation()) {
-      wrapperSynthesizor.finalizeWrappersForL8(builder, irConverter, executorService);
+      wrapperSynthesizor.finalizeWrappersForL8();
     }
   }
 
@@ -337,10 +337,8 @@ public class DesugaredLibraryAPIConverter {
     return allCallbackMethods;
   }
 
-  public void synthesizeWrappers(
-      Map<DexType, DexClasspathClass> synthesizedWrappers,
-      Consumer<DexClasspathClass> synthesizedCallback) {
-    wrapperSynthesizor.synthesizeWrappersForClasspath(synthesizedWrappers, synthesizedCallback);
+  public void synthesizeWrappers(Consumer<DexClasspathClass> synthesizedCallback) {
+    wrapperSynthesizor.synthesizeWrappersForClasspath(synthesizedCallback);
   }
 
   private ProgramMethod generateCallbackMethod(

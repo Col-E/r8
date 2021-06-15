@@ -9,8 +9,6 @@ import static com.android.tools.r8.ir.code.Invoke.Type.INTERFACE;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 import static com.android.tools.r8.ir.code.Invoke.Type.SUPER;
 import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
-import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer.TYPE_WRAPPER_SUFFIX;
-import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer.VIVIFIED_TYPE_WRAPPER_SUFFIX;
 
 import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.cf.CfVersion;
@@ -1401,18 +1399,12 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   private Predicate<DexType> getShouldIgnoreFromReportsPredicate(AppView<?> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     InternalOptions options = appView.options();
-    DexString typeWrapperClassNameDescriptorSuffix =
-        dexItemFactory.createString(TYPE_WRAPPER_SUFFIX + ';');
-    DexString vivifiedTypeWrapperClassNameDescriptorSuffix =
-        dexItemFactory.createString(VIVIFIED_TYPE_WRAPPER_SUFFIX + ';');
     DexString companionClassNameDescriptorSuffix =
         dexItemFactory.createString(COMPANION_CLASS_NAME_SUFFIX + ";");
 
     return type -> {
       DexString descriptor = type.getDescriptor();
       return appView.rewritePrefix.hasRewrittenType(type, appView)
-          || descriptor.endsWith(typeWrapperClassNameDescriptorSuffix)
-          || descriptor.endsWith(vivifiedTypeWrapperClassNameDescriptorSuffix)
           || descriptor.endsWith(companionClassNameDescriptorSuffix)
           || emulatedInterfaces.containsValue(type)
           || options.desugaredLibraryConfiguration.getCustomConversions().containsValue(type)
