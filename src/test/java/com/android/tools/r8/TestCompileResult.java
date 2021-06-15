@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -115,6 +116,12 @@ public abstract class TestCompileResult<
 
   public final CR inspectMainDexClasses(Consumer<Set<String>> consumer) {
     consumer.accept(getMainDexClasses());
+    return self();
+  }
+
+  public final CR inspectMainDexClasses(BiConsumer<CodeInspector, Set<String>> consumer)
+      throws IOException {
+    consumer.accept(inspector(), getMainDexClasses());
     return self();
   }
 

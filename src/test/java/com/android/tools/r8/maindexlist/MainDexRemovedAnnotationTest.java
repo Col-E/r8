@@ -13,6 +13,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -43,7 +44,7 @@ public class MainDexRemovedAnnotationTest extends TestBase {
   @Test
   public void testMainDexTracing() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(MainDex.class, Inside.class, Main.class)
+        .addProgramClasses(MainDex.class, Inside.class, Dead.class, Main.class)
         .addKeepClassAndMembersRules(Main.class)
         .setMinApi(parameters.getApiLevel())
         .enableInliningAnnotations()
@@ -51,13 +52,11 @@ public class MainDexRemovedAnnotationTest extends TestBase {
         .collectMainDexClasses()
         .compile()
         .inspectMainDexClasses(
-            mainDexClasses -> {
-              // TODO(b/190623364): Should not be empty.
-              assertTrue(mainDexClasses.isEmpty());
-            })
-        .inspect(
-            codeInspector -> {
-              assertThat(codeInspector.clazz(MainDex.class), not(isPresent()));
+            (inspector, mainDexClasses) -> {
+              ClassSubject inside = inspector.clazz(Inside.class);
+              assertThat(inside, isPresent());
+              assertTrue(mainDexClasses.contains(inside.getFinalName()));
+              assertThat(inspector.clazz(MainDex.class), not(isPresent()));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!");
@@ -74,6 +73,11 @@ public class MainDexRemovedAnnotationTest extends TestBase {
     public static void foo() {
       System.out.println("Hello World!");
     }
+  }
+
+  @MainDex
+  public static class Dead {
+    // Will be removed during first round of tree-pruning.
   }
 
   public static class Main {

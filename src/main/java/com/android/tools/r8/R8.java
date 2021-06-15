@@ -344,6 +344,18 @@ public class R8 {
                         options.getProguardConfiguration().getRules(), synthesizedProguardRules))
                 .build(executorService));
 
+        // Compute the main dex rootset that will be the base of first and final main dex tracing
+        // before building a new appview with only live classes (and invalidating subtypingInfo).
+        if (!options.mainDexKeepRules.isEmpty()) {
+          assert appView.graphLens().isIdentityLens();
+          // Find classes which may have code executed before secondary dex files installation.
+          MainDexRootSet mainDexRootSet =
+              MainDexRootSet.builder(appView, subtypingInfo, options.mainDexKeepRules)
+                  .build(executorService);
+          appView.setMainDexRootSet(mainDexRootSet);
+          appView.appInfo().unsetObsolete();
+        }
+
         AnnotationRemover.Builder annotationRemoverBuilder =
             options.isShrinking() ? AnnotationRemover.builder() : null;
         AppView<AppInfoWithLiveness> appViewWithLiveness =
@@ -423,6 +435,7 @@ public class R8 {
       // Build conservative main dex content after first round of tree shaking. This is used
       // by certain optimizations to avoid introducing additional class references into main dex
       // classes, as that can cause the final number of main dex methods to grow.
+      // TODO(b/190941270): See if we can move this up before treepruning.
       performInitialMainDexTracing(appView, executorService);
 
       // The class type lattice elements include information about the interfaces that a class
@@ -853,16 +866,12 @@ public class R8 {
       return;
     }
     assert appView.graphLens().isIdentityLens();
-    // Find classes which may have code executed before secondary dex files installation.
-    SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
-    MainDexRootSet mainDexRootSet =
-        MainDexRootSet.builder(appView, subtypingInfo, options.mainDexKeepRules)
-            .build(executorService);
-    appView.setMainDexRootSet(mainDexRootSet);
-    appView.appInfo().unsetObsolete();
-    // Live types is the tracing result.
+
+    // Find classes which may have code executed before secondary dex files installation by
+    // computing from the initially computed main dex root set.
     MainDexInfo mainDexInfo =
-        EnqueuerFactory.createForInitialMainDexTracing(appView, executorService, subtypingInfo)
+        EnqueuerFactory.createForInitialMainDexTracing(
+                appView, executorService, new SubtypingInfo(appView))
             .traceMainDex(executorService, timing);
     appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(mainDexInfo));
   }
