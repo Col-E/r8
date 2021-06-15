@@ -177,7 +177,7 @@ class Dump(object):
 def read_dump_from_args(args, temp):
   if args.dump is None:
     error("A dump file or directory must be specified")
-  return read_dump(dump, temp, args.override)
+  return read_dump(args.dump, temp, args.override)
 
 def read_dump(dump, temp, override=False):
   if os.path.isdir(dump):
