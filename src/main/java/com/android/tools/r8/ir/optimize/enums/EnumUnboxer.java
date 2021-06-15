@@ -127,6 +127,7 @@ public class EnumUnboxer {
   // Map the enum candidates with their dependencies, i.e., the methods to reprocess for the given
   // enum if the optimization eventually decides to unbox it.
   private final EnumUnboxingCandidateInfoCollection enumUnboxingCandidatesInfo;
+  private final Set<DexProgramClass> candidatesToRemoveInWave = Sets.newConcurrentHashSet();
   private final Map<DexType, EnumStaticFieldValues> staticFieldValuesMap =
       new ConcurrentHashMap<>();
   private final ProgramMethodSet methodsDependingOnLibraryModelisation =
@@ -165,6 +166,13 @@ public class EnumUnboxer {
     return ordinal + 1;
   }
 
+  public void updateEnumUnboxingCandidatesInfo() {
+    for (DexProgramClass candidate : candidatesToRemoveInWave) {
+      enumUnboxingCandidatesInfo.removeCandidate(candidate);
+    }
+    candidatesToRemoveInWave.clear();
+  }
+
   /**
    * Returns true if {@param enumClass} was marked as being unboxable.
    *
@@ -175,7 +183,7 @@ public class EnumUnboxer {
     assert enumClass.isEnum();
     if (!reportFailure(enumClass, reason)) {
       // The failure was not reported, meaning debug logging is disabled.
-      enumUnboxingCandidatesInfo.removeCandidate(enumClass);
+      candidatesToRemoveInWave.add(enumClass);
       return true;
     }
     return false;
@@ -461,7 +469,9 @@ public class EnumUnboxer {
       ExecutorService executorService,
       OptimizationFeedbackDelayed feedback)
       throws ExecutionException {
+    assert candidatesToRemoveInWave.isEmpty();
     EnumDataMap enumDataMap = finishAnalysis();
+    assert candidatesToRemoveInWave.isEmpty();
     // At this point the enum unboxing candidates are no longer candidates, they will all be
     // unboxed. We extract the now immutable enums to unbox information and clear the candidate
     // info.
@@ -540,6 +550,7 @@ public class EnumUnboxer {
 
   public EnumDataMap finishAnalysis() {
     analyzeInitializers();
+    updateEnumUnboxingCandidatesInfo();
     EnumDataMap enumDataMap = analyzeEnumInstances();
     if (debugLogEnabled) {
       // Remove all enums that have been reported as being unboxable.

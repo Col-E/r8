@@ -894,6 +894,9 @@ public class IRConverter {
     if (appView.options().protoShrinking().enableRemoveProtoEnumSwitchMap()) {
       appView.protoShrinker().protoEnumSwitchMapRemover.updateVisibleStaticFieldValues();
     }
+    if (enumUnboxer != null) {
+      enumUnboxer.updateEnumUnboxingCandidatesInfo();
+    }
     assert delayedOptimizationFeedback.noUpdatesLeft();
     onWaveDoneActions.forEach(com.android.tools.r8.utils.Action::execute);
     onWaveDoneActions = null;
