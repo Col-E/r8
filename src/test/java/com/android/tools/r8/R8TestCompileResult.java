@@ -110,6 +110,12 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
     return self();
   }
 
+  public final <E extends Throwable> R8TestCompileResult inspectGraph(
+      ThrowingConsumer<GraphInspector, E> consumer) throws IOException, E {
+    consumer.accept(graphInspector());
+    return self();
+  }
+
   public GraphInspector graphInspector() throws IOException {
     assert graphConsumer != null;
     return new GraphInspector(graphConsumer, inspector());

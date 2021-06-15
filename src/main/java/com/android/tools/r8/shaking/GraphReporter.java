@@ -333,13 +333,17 @@ public class GraphReporter {
     }
   }
 
+  private boolean hasKeptGraphConsumer() {
+    return keptGraphConsumer != null;
+  }
+
   private boolean skipReporting(KeepReason reason) {
     assert reason != null;
     if (reason == KeepReasonWitness.INSTANCE) {
       return true;
     }
     assert getSourceNode(reason) != null;
-    return keptGraphConsumer == null;
+    return !hasKeptGraphConsumer();
   }
 
   public KeepReasonWitness registerInterface(DexProgramClass iface, KeepReason reason) {
@@ -359,11 +363,15 @@ public class GraphReporter {
 
   public KeepReasonWitness registerAnnotation(
       DexAnnotation annotation, ProgramDefinition annotatedItem) {
-    KeepReason reason = KeepReason.annotatedOn(annotatedItem.getDefinition());
-    if (skipReporting(reason)) {
-      return KeepReasonWitness.INSTANCE;
+    if (hasKeptGraphConsumer()) {
+      registerEdge(
+          getAnnotationGraphNode(annotation, annotatedItem),
+          KeepReason.annotatedOn(annotatedItem.getDefinition()));
+      registerEdge(
+          getClassGraphNode(annotation.getAnnotationType()),
+          KeepReason.referencedInAnnotation(annotation, annotatedItem));
     }
-    return registerEdge(getAnnotationGraphNode(annotation, annotatedItem), reason);
+    return KeepReasonWitness.INSTANCE;
   }
 
   public KeepReasonWitness registerMethod(DexEncodedMethod method, KeepReason reason) {

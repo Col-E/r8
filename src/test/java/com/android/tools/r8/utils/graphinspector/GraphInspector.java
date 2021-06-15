@@ -26,10 +26,12 @@ import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableSet;
+import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,6 +55,10 @@ public class GraphInspector {
         new EdgeKindPredicate(EdgeKind.ReflectiveUseFrom);
     public static final EdgeKindPredicate isLibraryMethod =
         new EdgeKindPredicate(EdgeKind.IsLibraryMethod);
+    public static final EdgeKindPredicate isAnnotatedOn =
+        new EdgeKindPredicate(EdgeKind.AnnotatedOn);
+    public static final EdgeKindPredicate isReferencedInAnnotation =
+        new EdgeKindPredicate(EdgeKind.ReferencedInAnnotation);
     public static final EdgeKindPredicate overriding =
         new EdgeKindPredicate(EdgeKind.OverridingMethod);
     public static final EdgeKindPredicate compatibilityRule =
@@ -147,6 +153,11 @@ public class GraphInspector {
     public abstract boolean isCompatKeptBy(QueryNode node);
 
     public abstract boolean isPureCompatKeptBy(QueryNode node);
+
+    public abstract boolean isKeptByAnnotationOn(QueryNode annotatedNode);
+
+    public abstract boolean isKeptByReferenceInAnnotationOn(
+        QueryNode annotationNode, QueryNode annotatedNode);
 
     public abstract boolean isKeptByLibraryMethod(QueryNode node);
 
@@ -274,14 +285,46 @@ public class GraphInspector {
       if (isSatisfiedBy(nodes)) {
         return this;
       }
-      QueryNodeImpl impl = (QueryNodeImpl) this;
+      QueryNodeImpl<?> impl = (QueryNodeImpl<?>) this;
       impl.runSatisfiedBy(Assert::fail, nodes);
       throw new Unreachable();
     }
 
+    public QueryNode assertKeptByAnnotationOn(QueryNode annotatedNode) {
+      assertTrue(
+          "Invalid call to assertKeptByAnnotation with: " + annotatedNode.getNodeDescription(),
+          annotatedNode.isPresent());
+      assertTrue(
+          errorMessage(
+              "kept by annotation on " + annotatedNode.getNodeDescription(),
+              "was not kept by an annotation"),
+          isKeptByAnnotationOn(annotatedNode));
+      return this;
+    }
+
+    public QueryNode assertKeptByReferenceInAnnotationOn(
+        QueryNode annotationNode, QueryNode annotatedNode) {
+      assertTrue(
+          "Invalid call to assertKeptByAnnotation with: " + annotationNode.getNodeDescription(),
+          annotationNode.isPresent());
+      assertTrue(
+          "Invalid call to assertKeptByAnnotation with: " + annotatedNode.getNodeDescription(),
+          annotatedNode.isPresent());
+      assertTrue(
+          errorMessage(
+              "kept by annotation "
+                  + annotationNode.getNodeDescription()
+                  + " on "
+                  + annotatedNode.getNodeDescription(),
+              "was not kept by an annotation"),
+          isKeptByReferenceInAnnotationOn(annotationNode, annotatedNode));
+      return this;
+    }
+
     public QueryNode assertKeptByLibraryMethod(QueryNode node) {
       assertTrue(
-          "Invalid call to assertKeptBy with: " + node.getNodeDescription(), node.isPresent());
+          "Invalid call to assertKeptByLibraryMethod with: " + node.getNodeDescription(),
+          node.isPresent());
       assertTrue(
           errorMessage(
               "kept by library method on " + node.getNodeDescription(),
@@ -376,14 +419,27 @@ public class GraphInspector {
     }
 
     @Override
+    public boolean isKeptByAnnotationOn(QueryNode annotatedNode) {
+      fail("Invalid call to isKeptByAnnotationOn on " + getNodeDescription());
+      throw new Unreachable();
+    }
+
+    @Override
+    public boolean isKeptByReferenceInAnnotationOn(
+        QueryNode annotationNode, QueryNode annotatedNode) {
+      fail("Invalid call to isKeptByReferenceInAnnotationOn on " + getNodeDescription());
+      throw new Unreachable();
+    }
+
+    @Override
     public boolean isKeptByLibraryMethod(QueryNode node) {
-      fail("Invalid call to isKeptByLibrary on " + getNodeDescription());
+      fail("Invalid call to isKeptByLibraryMethod on " + getNodeDescription());
       throw new Unreachable();
     }
 
     @Override
     public boolean isSatisfiedBy(QueryNode... nodes) {
-      fail("Invalid call to isTriggeredBy on " + getNodeDescription());
+      fail("Invalid call to isSatisfiedBy on " + getNodeDescription());
       throw new Unreachable();
     }
   }
@@ -391,19 +447,19 @@ public class GraphInspector {
   // Class representing a point in the kept-graph structure.
   // The purpose of this class is to tersely specify what relationships are expected between nodes,
   // thus most methods will throw assertion errors if the predicate is false.
-  private static class QueryNodeImpl extends QueryNode {
+  private static class QueryNodeImpl<T extends GraphNode> extends QueryNode {
 
     private final GraphInspector inspector;
-    private final GraphNode graphNode;
+    private final T graphNode;
 
-    public QueryNodeImpl(GraphInspector inspector, GraphNode graphNode) {
+    public QueryNodeImpl(GraphInspector inspector, T graphNode) {
       this.inspector = inspector;
       this.graphNode = graphNode;
     }
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof QueryNodeImpl && graphNode.equals(((QueryNodeImpl) obj).graphNode);
+      return obj instanceof QueryNodeImpl && graphNode.equals(((QueryNodeImpl<?>) obj).graphNode);
     }
 
     @Override
@@ -484,7 +540,7 @@ public class GraphInspector {
       if (!(node instanceof QueryNodeImpl)) {
         return false;
       }
-      QueryNodeImpl impl = (QueryNodeImpl) node;
+      QueryNodeImpl<?> impl = (QueryNodeImpl<?>) node;
       return filterSources((source, infos) -> impl.graphNode == source).findFirst().isPresent();
     }
 
@@ -493,7 +549,7 @@ public class GraphInspector {
       if (!(node instanceof QueryNodeImpl)) {
         return false;
       }
-      QueryNodeImpl impl = (QueryNodeImpl) node;
+      QueryNodeImpl<?> impl = (QueryNodeImpl<?>) node;
       return filterSources(
               (source, infos) ->
                   impl.graphNode == source && EdgeKindPredicate.compatibilityRule.test(infos))
@@ -506,22 +562,63 @@ public class GraphInspector {
       if (!isCompatKeptBy(node)) {
         return false;
       }
-      QueryNodeImpl impl = (QueryNodeImpl) node;
+      QueryNodeImpl<?> impl = (QueryNodeImpl<?>) node;
       return filterSources((source, infos) -> impl.graphNode != source).count() == 0;
+    }
+
+    @Override
+    public boolean isKeptByAnnotationOn(QueryNode annotatedNode) {
+      // This should be an annotation node or a class node which it an annotation.
+      assert graphNode instanceof AnnotationGraphNode || graphNode instanceof ClassGraphNode;
+
+      // The annotated node (class, field or method) should be present.
+      assert annotatedNode.isPresent();
+      QueryNodeImpl<?> annotatedNodeImpl = (QueryNodeImpl<?>) annotatedNode;
+      assert annotatedNodeImpl.graphNode instanceof ClassGraphNode
+          || annotatedNodeImpl.graphNode instanceof FieldGraphNode
+          || annotatedNodeImpl.graphNode instanceof MethodGraphNode;
+
+      return hasSource(
+          (source, infos) ->
+              source.equals(annotatedNodeImpl.graphNode)
+                  && EdgeKindPredicate.isAnnotatedOn.test(infos));
+    }
+
+    @Override
+    public boolean isKeptByReferenceInAnnotationOn(
+        QueryNode annotationNode, QueryNode annotatedNode) {
+      // The annotation node should be present.
+      assert annotationNode.isPresent();
+      QueryNodeImpl<ClassGraphNode> annotationNodeImpl =
+          (QueryNodeImpl<ClassGraphNode>) annotationNode;
+
+      // The annotated node (class, field or method) should be present.
+      assert annotatedNode.isPresent();
+      QueryNodeImpl<?> annotatedNodeImpl = (QueryNodeImpl<?>) annotatedNode;
+      assert annotatedNodeImpl.graphNode instanceof ClassGraphNode
+          || annotatedNodeImpl.graphNode instanceof FieldGraphNode
+          || annotatedNodeImpl.graphNode instanceof MethodGraphNode;
+
+      AnnotationGraphNode expectedSource =
+          new AnnotationGraphNode(annotatedNodeImpl.graphNode, annotationNodeImpl.graphNode);
+
+      return hasSource(
+          (source, infos) ->
+              source.equals(expectedSource)
+                  && EdgeKindPredicate.isReferencedInAnnotation.test(infos));
     }
 
     @Override
     public boolean isKeptByLibraryMethod(QueryNode node) {
       assert graphNode instanceof MethodGraphNode;
-      if (!(node instanceof QueryNodeImpl)) {
+      if (!node.isPresent()) {
         return false;
       }
-      QueryNodeImpl impl = (QueryNodeImpl) node;
-      return filterSources(
-              (source, infos) ->
-                  impl.graphNode == source && EdgeKindPredicate.isLibraryMethod.test(infos))
-          .findFirst()
-          .isPresent();
+      assert node instanceof QueryNodeImpl;
+      QueryNodeImpl<?> impl = (QueryNodeImpl<?>) node;
+      return hasSource(
+          (source, infos) ->
+              impl.graphNode == source && EdgeKindPredicate.isLibraryMethod.test(infos));
     }
 
     @Override
@@ -544,7 +641,7 @@ public class GraphInspector {
                   + node.getNodeDescription());
           return;
         }
-        QueryNodeImpl impl = (QueryNodeImpl) node;
+        QueryNodeImpl<?> impl = (QueryNodeImpl<?>) node;
         if (!filterSources((source, infos) -> impl.graphNode == source).findFirst().isPresent()) {
           onError.accept(
               "Expected to find dependency from precondtion to dependent rule, but could not. "
@@ -564,7 +661,7 @@ public class GraphInspector {
       if (nodes.length != preconditions.size()) {
         for (GraphNode precondition : preconditions) {
           if (Arrays.stream(nodes)
-              .noneMatch(node -> ((QueryNodeImpl) node).graphNode == precondition)) {
+              .noneMatch(node -> ((QueryNodeImpl<?>) node).graphNode == precondition)) {
             onError.accept("Unexpected item in precondtions: " + precondition.toString());
             return;
           }
@@ -613,6 +710,10 @@ public class GraphInspector {
       return sources.entrySet().stream()
           .filter(e -> test.test(e.getKey(), e.getValue()))
           .map(Entry::getKey);
+    }
+
+    private boolean hasSource(BiPredicate<GraphNode, Set<GraphEdgeInfo>> test) {
+      return filterSources(test).findAny().isPresent();
     }
   }
 
@@ -751,6 +852,52 @@ public class GraphInspector {
 
   private static String getReferenceStringForRule(Origin origin, int line, int column) {
     return "rule@" + origin + ":" + new TextPosition(0, line, column);
+  }
+
+  public QueryNode annotation(Class<? extends Annotation> clazz, QueryNode annotatedNode) {
+    return annotation(Reference.classFromClass(clazz), annotatedNode);
+  }
+
+  public QueryNode annotation(ClassReference annotationClassReference, QueryNode annotatedNode) {
+    // The annotation node (class, field or method) should be present.
+    assert annotatedNode.isPresent();
+    QueryNodeImpl<?> annotatedNodeImpl = (QueryNodeImpl<?>) annotatedNode;
+    assert annotatedNodeImpl.graphNode instanceof ClassGraphNode
+        || annotatedNodeImpl.graphNode instanceof FieldGraphNode
+        || annotatedNodeImpl.graphNode instanceof MethodGraphNode;
+
+    Map<ClassReference, AnnotationGraphNode> annotationsOnAnnotatedItem;
+    if (annotatedNodeImpl.graphNode instanceof ClassGraphNode) {
+      annotationsOnAnnotatedItem =
+          classAnnotations.get(((ClassGraphNode) annotatedNodeImpl.graphNode).getReference());
+    } else if (annotatedNodeImpl.graphNode instanceof FieldGraphNode) {
+      annotationsOnAnnotatedItem =
+          fieldAnnotations.get(((FieldGraphNode) annotatedNodeImpl.graphNode).getReference());
+    } else {
+      assert annotatedNodeImpl.graphNode instanceof MethodGraphNode;
+      annotationsOnAnnotatedItem =
+          methodAnnotations.get(((MethodGraphNode) annotatedNodeImpl.graphNode).getReference());
+    }
+
+    if (annotationsOnAnnotatedItem == null) {
+      return new AbsentQueryNode(
+          "Node " + annotatedNode.getNodeDescription() + " has no annotations");
+    }
+
+    AnnotationGraphNode annotationGraphNode =
+        annotationsOnAnnotatedItem.get(annotationClassReference);
+    if (annotationGraphNode == null) {
+      return new AbsentQueryNode(
+          "Node "
+              + annotatedNode.getNodeDescription()
+              + " has no annotation of type "
+              + annotationClassReference.getTypeName());
+    }
+    return new QueryNodeImpl<>(this, annotationGraphNode);
+  }
+
+  public QueryNode clazz(Class<?> clazz) {
+    return clazz(Reference.classFromClass(clazz));
   }
 
   public QueryNode clazz(ClassReference clazz) {
