@@ -538,6 +538,7 @@ public class FoundClassSubject extends ClassSubject {
         codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
   }
 
+  @Override
   public RetraceClassResult retrace() {
     assertTrue(mapping.getNaming() != null);
     return codeInspector
@@ -545,6 +546,7 @@ public class FoundClassSubject extends ClassSubject {
         .retraceClass(Reference.classFromTypeName(mapping.getNaming().renamedName));
   }
 
+  @Override
   public RetraceClassElement retraceUnique() {
     RetraceClassResult result = retrace();
     if (result.isAmbiguous()) {
