@@ -40,6 +40,13 @@ public class FieldAccessorBuilder {
     return this;
   }
 
+  public FieldAccessorBuilder applyIf(
+      boolean condition,
+      Consumer<FieldAccessorBuilder> thenConsumer,
+      Consumer<FieldAccessorBuilder> elseConsumer) {
+    return apply(condition ? thenConsumer : elseConsumer);
+  }
+
   public FieldAccessorBuilder setField(DexClassAndField field) {
     return field.getAccessFlags().isStatic()
         ? setStaticField(field.getReference())

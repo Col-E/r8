@@ -235,7 +235,7 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
     synchronized (field.getHolder().getMethodCollection()) {
       ProgramMethod bridge = field.getHolder().lookupProgramMethod(bridgeReference);
       if (bridge == null) {
-        bridge = DexEncodedMethod.createFieldAccessorBridge(field, isGet, bridgeReference);
+        bridge = AccessBridgeFactory.createFieldAccessorBridge(bridgeReference, field, isGet);
         bridge.getHolder().addDirectMethod(bridge.getDefinition());
         if (eventConsumer != null) {
           if (isGet) {
@@ -300,10 +300,10 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
         DexEncodedMethod definition = method.getDefinition();
         bridge =
             definition.isInstanceInitializer()
-                ? definition.toInitializerForwardingBridge(
-                    method.getHolder(), bridgeReference, dexItemFactory)
-                : definition.toStaticForwardingBridge(
-                    method.getHolder(), bridgeReference, dexItemFactory);
+                ? AccessBridgeFactory.createInitializerAccessorBridge(
+                    bridgeReference, method, dexItemFactory)
+                : AccessBridgeFactory.createMethodAccessorBridge(
+                    bridgeReference, method, dexItemFactory);
         bridge.getHolder().addDirectMethod(bridge.getDefinition());
         if (eventConsumer != null) {
           eventConsumer.acceptNestMethodBridge(method, bridge);

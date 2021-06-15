@@ -4,8 +4,9 @@
 package com.android.tools.r8.desugar.nestaccesscontrol;
 
 import static com.android.tools.r8.TestRuntime.getCheckedInJdk11;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -13,7 +14,11 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.nestaccesscontrol.methodparameters.Outer;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -51,6 +56,8 @@ public class MethodParametersTest extends TestBase {
             .addProgramFiles(nestCompiledWithParameters)
             .setMinApi(parameters.getApiLevel())
             .compile()
+            .assertNoMessages()
+            .inspect(this::verifyNoAnnotationsOnSyntheticConstructors)
             .writeToZip();
 
     Path nestDesugaredTwice =
@@ -58,12 +65,8 @@ public class MethodParametersTest extends TestBase {
             .addProgramFiles(nestDesugared)
             .setMinApi(parameters.getApiLevel())
             .compile()
-            // TODO(b/189743726): These warnings should not be there.
-            .assertAtLeastOneInfoMessage()
-            .assertAllInfoMessagesMatch(
-                anyOf(
-                    containsString("Invalid parameter counts in MethodParameter attributes"),
-                    containsString("Methods with invalid MethodParameter attributes")))
+            .assertNoMessages()
+            .inspect(this::verifyNoAnnotationsOnSyntheticConstructors)
             .writeToZip();
 
     Path programDesugared =
@@ -72,6 +75,7 @@ public class MethodParametersTest extends TestBase {
             .addInnerClasses(getClass())
             .setMinApi(parameters.getApiLevel())
             .compile()
+            .assertNoMessages()
             .writeToZip();
 
     testForD8(parameters.getBackend())
@@ -79,16 +83,47 @@ public class MethodParametersTest extends TestBase {
         .addProgramFiles(programDesugared)
         .setMinApi(parameters.getApiLevel())
         .compile()
-        // TODO(b/189743726): These warnings should not be there.
-        .assertAtLeastOneInfoMessage()
-        .assertAllInfoMessagesMatch(
-            anyOf(
-                containsString("Invalid parameter counts in MethodParameter attributes"),
-                containsString("Methods with invalid MethodParameter attributes")))
+        .assertNoMessages()
+        .inspect(this::verifyNoAnnotationsOnSyntheticConstructors)
         .run(parameters.getRuntime(), TestRunner.class)
-        // TODO(b/189743726): Should not fail at runtime.
-        .assertFailureWithErrorThatMatches(
-            containsString("Wrong number of parameters in MethodParameters attribute"));
+        // Order of constructors is different on dex due to sorting.
+        .applyIf(
+            parameters.isCfRuntime(),
+            result ->
+                result.assertSuccessWithOutputLines(
+                    "int, int, Outer$Inner-IA, 3",
+                    "int, Outer$Inner-IA, 2",
+                    "Outer$Inner-IA, 1",
+                    "int, int, 2",
+                    "int, 1",
+                    "0"),
+            result ->
+                result.assertSuccessWithOutputLines(
+                    "0",
+                    "int, 1",
+                    "int, int, 2",
+                    "int, int, Outer$Inner-IA, 3",
+                    "int, Outer$Inner-IA, 2",
+                    "Outer$Inner-IA, 1"));
+  }
+
+  @Test
+  public void testJavacBridges() throws Exception {
+    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    verifyNoAnnotationsOnSyntheticConstructors(
+        new CodeInspector(ToolHelper.getClassFileForTestClass(Outer.Inner.class)));
+  }
+
+  private void verifyNoAnnotationsOnSyntheticConstructors(CodeInspector inspector) {
+    ClassSubject innerClassSubject = inspector.clazz(Outer.Inner.class);
+    List<FoundMethodSubject> syntheticInitializers =
+        innerClassSubject.allMethods(
+            method -> method.isInstanceInitializer() && method.isSynthetic());
+    assertEquals(3, syntheticInitializers.size());
+    syntheticInitializers.forEach(
+        syntheticInitializer ->
+            assertTrue(
+                syntheticInitializer.getProgramMethod().getDefinition().annotations().isEmpty()));
   }
 
   static class TestRunner {

@@ -63,7 +63,6 @@ import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
-import com.android.tools.r8.ir.synthetic.FieldAccessorBuilder;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
@@ -1220,87 +1219,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return builder.build();
   }
 
-  public ProgramMethod toInitializerForwardingBridge(
-      DexProgramClass holder, DexMethod newMethod, DexItemFactory dexItemFactory) {
-    assert isPrivate()
-        : "Expected to create bridge for private constructor as part of nest-based access"
-            + " desugaring";
-    assert !holder.isInterface();
-    return new ProgramMethod(
-        holder,
-        syntheticBuilder(this)
-            .setMethod(newMethod)
-            .setCode(
-                ForwardMethodBuilder.builder(dexItemFactory)
-                    .setNonStaticSourceWithExtraUnusedParameter(newMethod)
-                    .setConstructorTarget(getReference())
-                    .build())
-            .modifyAccessFlags(
-                accessFlags -> {
-                  assert !accessFlags.isStatic();
-                  accessFlags.unsetPrivate();
-                  accessFlags.setSynthetic();
-                  accessFlags.setConstructor();
-                })
-            .build());
-  }
-
-  public static ProgramMethod createFieldAccessorBridge(
-      ProgramField field, boolean isGet, DexMethod newMethod) {
-    MethodAccessFlags accessFlags =
-        MethodAccessFlags.fromSharedAccessFlags(
-            Constants.ACC_SYNTHETIC
-                | Constants.ACC_STATIC
-                | (field.getHolder().isInterface() ? Constants.ACC_PUBLIC : 0),
-            false);
-    CfCode code =
-        FieldAccessorBuilder.builder()
-            .apply(isGet ? FieldAccessorBuilder::setGetter : FieldAccessorBuilder::setSetter)
-            .setField(field)
-            .setSourceMethod(newMethod)
-            .build();
-    return new ProgramMethod(
-        field.getHolder(),
-        new DexEncodedMethod(
-            newMethod,
-            accessFlags,
-            MethodTypeSignature.noSignature(),
-            DexAnnotationSet.empty(),
-            ParameterAnnotationsList.empty(),
-            code,
-            true));
-  }
-
   public DexEncodedMethod toRenamedHolderMethod(DexType newHolderType, DexItemFactory factory) {
     DexEncodedMethod.Builder builder = DexEncodedMethod.builder(this);
     builder.setMethod(getReference().withHolder(newHolderType, factory));
     return builder.build();
-  }
-
-  public ProgramMethod toStaticForwardingBridge(
-      DexProgramClass holder, DexMethod newMethod, DexItemFactory dexItemFactory) {
-    assert isPrivate()
-        : "Expected to create bridge for private method as part of nest-based access desugaring";
-    return new ProgramMethod(
-        holder,
-        syntheticBuilder(this)
-            .setMethod(newMethod)
-            .setCode(
-                ForwardMethodBuilder.builder(dexItemFactory)
-                    .setStaticSource(newMethod)
-                    .applyIf(
-                        isStatic(),
-                        builder -> builder.setStaticTarget(getReference(), holder.isInterface()),
-                        builder -> builder.setDirectTarget(getReference(), holder.isInterface()))
-                    .build())
-            .setAccessFlags(
-                MethodAccessFlags.builder()
-                    .setBridge()
-                    .setPublic(holder.isInterface())
-                    .setStatic()
-                    .setSynthetic()
-                    .build())
-            .build());
   }
 
   public ProgramMethod toPrivateSyntheticMethod(DexProgramClass holder, DexMethod method) {
@@ -1535,25 +1457,33 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return new Builder(from, true);
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   private static Builder builder(DexEncodedMethod from) {
     return new Builder(from);
   }
 
   public static class Builder {
 
-    private DexMethod method;
     private MethodAccessFlags accessFlags;
-    private MethodTypeSignature genericSignature;
-    private final DexAnnotationSet annotations;
-    private OptionalBool isLibraryMethodOverride = OptionalBool.UNKNOWN;
-    private ParameterAnnotationsList parameterAnnotations;
     private Code code;
-    private CompilationState compilationState;
-    private MethodOptimizationInfo optimizationInfo;
-    private KotlinMethodLevelInfo kotlinMemberInfo;
-    private final CfVersion classFileVersion;
-    private boolean d8R8Synthesized;
+    private DexMethod method;
+
+    private MethodTypeSignature genericSignature = MethodTypeSignature.noSignature();
+    private DexAnnotationSet annotations = DexAnnotationSet.empty();
+    private OptionalBool isLibraryMethodOverride = OptionalBool.UNKNOWN;
+    private ParameterAnnotationsList parameterAnnotations = ParameterAnnotationsList.empty();
+    private CompilationState compilationState = CompilationState.NOT_PROCESSED;
+    private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.getInstance();
+    private KotlinMethodLevelInfo kotlinInfo = getNoKotlinInfo();
+    private CfVersion classFileVersion = null;
+    private boolean d8R8Synthesized = false;
+
     private Consumer<DexEncodedMethod> buildConsumer = ConsumerUtils.emptyConsumer();
+
+    private Builder() {}
 
     private Builder(DexEncodedMethod from) {
       this(from, from.isD8R8Synthesized());
@@ -1562,26 +1492,25 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     private Builder(DexEncodedMethod from, boolean d8R8Synthesized) {
       // Copy all the mutable state of a DexEncodedMethod here.
       method = from.getReference();
-      accessFlags = from.accessFlags.copy();
+      accessFlags = from.getAccessFlags().copy();
       genericSignature = from.getGenericSignature();
       annotations = from.annotations();
-      code = from.code;
-      compilationState = CompilationState.NOT_PROCESSED;
+      code = from.getCode();
       optimizationInfo =
-          from.optimizationInfo.isMutableOptimizationInfo()
-              ? from.optimizationInfo.asMutableMethodOptimizationInfo().mutableCopy()
-              : from.optimizationInfo;
-      kotlinMemberInfo = from.kotlinMemberInfo;
+          from.getOptimizationInfo().isMutableOptimizationInfo()
+              ? from.getOptimizationInfo().asMutableMethodOptimizationInfo().mutableCopy()
+              : from.getOptimizationInfo();
+      kotlinInfo = from.getKotlinInfo();
       classFileVersion = from.classFileVersion;
       this.d8R8Synthesized = d8R8Synthesized;
 
-      if (from.parameterAnnotationsList.isEmpty()
-          || from.parameterAnnotationsList.size() == method.proto.parameters.size()) {
-        parameterAnnotations = from.parameterAnnotationsList;
+      if (from.getParameterAnnotations().isEmpty()
+          || from.getParameterAnnotations().size() == from.getParameters().size()) {
+        parameterAnnotations = from.getParameterAnnotations();
       } else {
         // If the there are missing parameter annotations populate these when creating the builder.
         parameterAnnotations =
-            from.parameterAnnotationsList.withParameterCount(method.proto.parameters.size());
+            from.getParameterAnnotations().withParameterCount(from.getParameters().size());
       }
     }
 
@@ -1622,6 +1551,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
     public Builder setAccessFlags(MethodAccessFlags accessFlags) {
       this.accessFlags = accessFlags;
+      return this;
+    }
+
+    public Builder setD8R8Synthesized() {
+      this.d8R8Synthesized = true;
       return this;
     }
 
@@ -1735,7 +1669,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
               code,
               d8R8Synthesized,
               classFileVersion);
-      result.setKotlinMemberInfo(kotlinMemberInfo);
+      result.setKotlinMemberInfo(kotlinInfo);
       result.compilationState = compilationState;
       result.optimizationInfo = optimizationInfo;
       if (!isLibraryMethodOverride.isUnknown()) {
