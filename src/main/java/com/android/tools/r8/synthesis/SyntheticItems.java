@@ -564,15 +564,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     }
   }
 
-  public DexType getFixedSyntheticTypeWhileMigrating(
-      SyntheticKind kind, DexClass context, AppView<?> appView) {
-    SynthesizingContext outerContext =
-        context.isProgramClass()
-            ? getSynthesizingContext(context.asProgramClass(), appView)
-            : SynthesizingContext.fromNonSyntheticInputContext(context.asClasspathOrLibraryClass());
-    return SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
-  }
-
   public ProgramMethod ensureFixedClassMethod(
       DexString name,
       DexProto proto,
@@ -627,8 +618,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
           new SyntheticClasspathClassBuilder(type, kind, outerContext, appView.dexItemFactory());
       classConsumer.accept(classBuilder);
       DexClasspathClass clazz = classBuilder.build();
-      onCreationConsumer.accept(clazz);
       addPendingDefinition(new SyntheticClasspathClassDefinition(kind, outerContext, clazz));
+      onCreationConsumer.accept(clazz);
       return clazz;
     }
   }

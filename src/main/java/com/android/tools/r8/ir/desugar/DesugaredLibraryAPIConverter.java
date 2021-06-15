@@ -407,11 +407,11 @@ public class DesugaredLibraryAPIConverter {
     }
     DexType returnType = invokedMethod.proto.returnType;
     if (appView.rewritePrefix.hasRewrittenType(returnType, appView) && canConvert(returnType)) {
-      registerConversionWrappers(returnType, vivifiedTypeFor(returnType, appView));
+      registerConversionWrappers(returnType);
     }
     for (DexType argType : invokedMethod.proto.parameters.values) {
       if (appView.rewritePrefix.hasRewrittenType(argType, appView) && canConvert(argType)) {
-        registerConversionWrappers(argType, argType);
+        registerConversionWrappers(argType);
       }
     }
   }
@@ -547,7 +547,7 @@ public class DesugaredLibraryAPIConverter {
 
   private Instruction createParameterConversion(
       IRCode code, DexType argType, DexType argVivifiedType, Value inValue) {
-    DexMethod conversionMethod = createConversionMethod(argType, argType, argVivifiedType);
+    DexMethod conversionMethod = ensureConversionMethod(argType, argType, argVivifiedType);
     // The value is null only if the input is null.
     Value convertedValue =
         createConversionValue(code, inValue.getType().nullability(), argVivifiedType, null);
@@ -556,7 +556,7 @@ public class DesugaredLibraryAPIConverter {
 
   private Instruction createReturnConversionAndReplaceUses(
       IRCode code, InvokeMethod invokeMethod, DexType returnType, DexType returnVivifiedType) {
-    DexMethod conversionMethod = createConversionMethod(returnType, returnVivifiedType, returnType);
+    DexMethod conversionMethod = ensureConversionMethod(returnType, returnVivifiedType, returnType);
     Value outValue = invokeMethod.outValue();
     Value convertedValue =
         createConversionValue(code, Nullability.maybeNull(), returnType, outValue.getLocalInfo());
@@ -567,17 +567,13 @@ public class DesugaredLibraryAPIConverter {
     return new InvokeStatic(conversionMethod, convertedValue, Collections.singletonList(outValue));
   }
 
-  private void registerConversionWrappers(DexType type, DexType srcType) {
+  private void registerConversionWrappers(DexType type) {
     if (appView.options().desugaredLibraryConfiguration.getCustomConversions().get(type) == null) {
-      if (type == srcType) {
-        wrapperSynthesizor.getTypeWrapper(type);
-      } else {
-        wrapperSynthesizor.getVivifiedTypeWrapper(type);
-      }
+      wrapperSynthesizor.registerWrapper(type);
     }
   }
 
-  public DexMethod createConversionMethod(DexType type, DexType srcType, DexType destType) {
+  public DexMethod ensureConversionMethod(DexType type, DexType srcType, DexType destType) {
     // ConversionType holds the methods "rewrittenType convert(type)" and the other way around.
     // But everything is going to be rewritten, so we need to use vivifiedType and type".
     DexType conversionHolder =
@@ -585,8 +581,8 @@ public class DesugaredLibraryAPIConverter {
     if (conversionHolder == null) {
       conversionHolder =
           type == srcType
-              ? wrapperSynthesizor.getTypeWrapper(type)
-              : wrapperSynthesizor.getVivifiedTypeWrapper(type);
+              ? wrapperSynthesizor.ensureTypeWrapper(type)
+              : wrapperSynthesizor.ensureVivifiedTypeWrapper(type);
     }
     assert conversionHolder != null;
     return factory.createMethod(

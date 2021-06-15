@@ -117,26 +117,17 @@ public class DesugaredLibraryWrapperSynthesizer {
     return appView.options().desugaredLibraryConfiguration.getWrapperConversions().contains(type);
   }
 
-  DexType getTypeWrapper(DexType type) {
-    return registerWrapper(type, SyntheticKind.WRAPPER);
+  DexType ensureTypeWrapper(DexType type) {
+    return ensureWrappers(type).getWrapper().type;
   }
 
-  DexType getVivifiedTypeWrapper(DexType type) {
-    return registerWrapper(type, SyntheticKind.VIVIFIED_WRAPPER);
+  DexType ensureVivifiedTypeWrapper(DexType type) {
+    return ensureWrappers(type).getVivifiedWrapper().type;
   }
 
-  private DexType registerWrapper(DexType type, SyntheticKind kind) {
-    assert canGenerateWrapper(type) : type;
+  public void registerWrapper(DexType type) {
     wrappersToGenerate.add(type);
-    DexClass dexClass = getValidClassToWrap(type);
-    assert dexClass != null;
-    DexType wrapperType =
-        appView.getSyntheticItems().getFixedSyntheticTypeWhileMigrating(kind, dexClass, appView);
-    assert converter.canGenerateWrappersAndCallbacks()
-            || (appView.definitionFor(wrapperType) != null
-                && appView.definitionFor(wrapperType).isClasspathClass())
-        : "Wrapper " + wrapperType + " should have been generated in the enqueuer.";
-    return wrapperType;
+    assert getValidClassToWrap(type) != null;
   }
 
   private DexClass getValidClassToWrap(DexType type) {
@@ -152,12 +143,36 @@ public class DesugaredLibraryWrapperSynthesizer {
     return DesugaredLibraryAPIConverter.vivifiedTypeFor(type, appView);
   }
 
-  private void ensureWrappers(DexClass context, Consumer<DexClasspathClass> creationCallback) {
+  static class Wrappers {
+    private final DexClass wrapper;
+    private final DexClass vivifiedWrapper;
+
+    Wrappers(DexClass wrapper, DexClass vivifiedWrapper) {
+      this.wrapper = wrapper;
+      this.vivifiedWrapper = vivifiedWrapper;
+    }
+
+    public DexClass getWrapper() {
+      return wrapper;
+    }
+
+    public DexClass getVivifiedWrapper() {
+      return vivifiedWrapper;
+    }
+  }
+
+  private Wrappers ensureWrappers(DexType type) {
+    assert canGenerateWrapper(type) : type;
+    DexClass dexClass = getValidClassToWrap(type);
+    return ensureWrappers(dexClass, ignored -> {});
+  }
+
+  private Wrappers ensureWrappers(DexClass context, Consumer<DexClasspathClass> creationCallback) {
     DexType type = context.type;
     DexClass wrapper;
     DexClass vivifiedWrapper;
-    if (appView.options().isDesugaredLibraryCompilation()) {
-      assert context.isProgramClass();
+    if (context.isProgramClass()) {
+      assert appView.options().isDesugaredLibraryCompilation();
       DexProgramClass programContext = context.asProgramClass();
       wrapper =
           ensureProgramWrapper(
@@ -210,11 +225,16 @@ public class DesugaredLibraryWrapperSynthesizer {
           vivifiedWrapperField,
           wrapperField);
     }
+    return new Wrappers(wrapper, vivifiedWrapper);
+  }
+
+  private DexEncodedField getWrapperUniqueEncodedField(DexClass wrapper) {
+    assert wrapper.instanceFields().size() == 1;
+    return wrapper.instanceFields().get(0);
   }
 
   private DexField getWrapperUniqueField(DexClass wrapper) {
-    assert wrapper.instanceFields().size() == 1;
-    return wrapper.instanceFields().get(0).getReference();
+    return getWrapperUniqueEncodedField(wrapper).getReference();
   }
 
   private DexProgramClass ensureProgramWrapper(
@@ -229,10 +249,12 @@ public class DesugaredLibraryWrapperSynthesizer {
             kind,
             programContext,
             appView,
-            builder ->
-                buildWrapper(
-                    wrappingType, wrappedType, programContext, virtualMethodProvider, builder),
-            ignored -> {});
+            builder -> buildWrapper(wrappingType, wrappedType, programContext, builder),
+            // The creation of virtual methods may require new wrappers, this needs to happen
+            // once the wrapper is created to avoid infinite recursion.
+            wrapper ->
+                wrapper.setVirtualMethods(
+                    virtualMethodProvider.apply(getWrapperUniqueEncodedField(wrapper))));
   }
 
   private DexClasspathClass ensureClasspathWrapper(
@@ -250,12 +272,14 @@ public class DesugaredLibraryWrapperSynthesizer {
             appView,
             builder ->
                 buildWrapper(
-                    wrappingType,
-                    wrappedType,
-                    classpathOrLibraryContext.asDexClass(),
-                    virtualMethodProvider,
-                    builder),
-            creationCallback);
+                    wrappingType, wrappedType, classpathOrLibraryContext.asDexClass(), builder),
+            // The creation of virtual methods may require new wrappers, this needs to happen
+            // once the wrapper is created to avoid infinite recursion.
+            wrapper -> {
+              wrapper.setVirtualMethods(
+                  virtualMethodProvider.apply(getWrapperUniqueEncodedField(wrapper)));
+              creationCallback.accept(wrapper);
+            });
   }
 
   private ProgramMethod ensureProgramConversionMethod(
@@ -329,7 +353,6 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexType wrappingType,
       DexType wrappedType,
       DexClass clazz,
-      Function<DexEncodedField, DexEncodedMethod[]> virtualMethodProvider,
       SyntheticClassBuilder<?, ?> builder) {
     boolean isItf = clazz.isInterface();
     DexType superType = isItf ? factory.objectType : wrappingType;
@@ -341,8 +364,7 @@ public class DesugaredLibraryWrapperSynthesizer {
         .setInterfaces(interfaces)
         .setSuperType(superType)
         .setInstanceFields(Collections.singletonList(wrapperField))
-        .addMethod(methodBuilder -> buildWrapperConstructor(wrapperField, methodBuilder))
-        .setVirtualMethods(Arrays.asList(virtualMethodProvider.apply(wrapperField)));
+        .addMethod(methodBuilder -> buildWrapperConstructor(wrapperField, methodBuilder));
   }
 
   private void buildWrapperConstructor(
