@@ -3,20 +3,25 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-import archive
 import argparse
-import jdk
 import os
-import retrace
 import subprocess
 import sys
 import zipfile
 
+import archive
+import jdk
+import retrace
 import utils
 
 
 def make_parser():
   parser = argparse.ArgumentParser(description = 'Compile a dump artifact.')
+  parser.add_argument(
+      '--summary',
+      help='List a summary of the contents of the dumps.',
+      default=False,
+      action='store_true')
   parser.add_argument(
     '-d',
     '--dump',
@@ -169,15 +174,17 @@ class Dump(object):
       return open(f).read().split(' ')[0]
     return None
 
-def read_dump(args, temp):
+def read_dump_from_args(args, temp):
   if args.dump is None:
     error("A dump file or directory must be specified")
-  if os.path.isdir(args.dump):
-    return Dump(args.dump)
-  dump_file = zipfile.ZipFile(os.path.abspath(args.dump), 'r')
-  with utils.ChangedWorkingDirectory(temp):
-    if args.override or not os.path.isfile('r8-version'):
-      print("Extracting into: %s" % temp)
+  return read_dump(dump, temp, args.override)
+
+def read_dump(dump, temp, override=False):
+  if os.path.isdir(dump):
+    return Dump(dump)
+  dump_file = zipfile.ZipFile(os.path.abspath(dump), 'r')
+  with utils.ChangedWorkingDirectory(temp, quiet=True):
+    if override or not os.path.isfile('r8-version'):
       dump_file.extractall()
       if not os.path.isfile('r8-version'):
         error("Did not extract into %s. Either the zip file is invalid or the "
@@ -268,7 +275,7 @@ def run1(out, args, otherargs, jdkhome=None):
       temp = out
       if not os.path.exists(temp):
         os.makedirs(temp)
-    dump = read_dump(args, temp)
+    dump = read_dump_from_args(args, temp)
     if not dump.program_jar():
       error("Cannot compile dump with no program classes")
     if not dump.library_jar():
@@ -376,8 +383,56 @@ def get_map_file(version, temp):
     print('Could not find map file from argument: %s.' % version)
     return None
 
+def summarize_dump_files(dumpfiles):
+  if len(dumpfiles) == 0:
+    error('Summary command expects a list of dumps to summarize')
+  for f in dumpfiles:
+    print(f + ':')
+    try:
+      with utils.TempDir() as temp:
+        dump = read_dump(f, temp)
+        summarize_dump(dump)
+    except IOError as e:
+      print("Error: " + str(e))
+    except zipfile.BadZipfile as e:
+      print("Error: " + str(e))
+
+def summarize_dump(dump):
+  version = dump.version()
+  if not version:
+    print('No dump version info')
+    return
+  print('version=' + version)
+  props = dump.build_properties_file()
+  if props:
+    with open(props) as props_file:
+      print(props_file.read())
+  if dump.library_jar():
+    print('library.jar present')
+  if dump.classpath_jar():
+    print('classpath.jar present')
+  prog = dump.program_jar()
+  if prog:
+    print('program.jar content:')
+    summarize_jar(prog)
+
+def summarize_jar(jar):
+  with zipfile.ZipFile(jar) as zip:
+    pkgs = {}
+    for info in zip.infolist():
+      if info.filename.endswith('.class'):
+        pkg, clazz = os.path.split(info.filename)
+        count = pkgs.get(pkg, 0)
+        pkgs[pkg] = count + 1
+  sorted = list(pkgs.keys())
+  sorted.sort()
+  for p in sorted:
+    print('  ' + p + ': ' + str(pkgs[p]))
+
 def run(args, otherargs):
-  if (args.loop):
+  if args.summary:
+    summarize_dump_files(otherargs)
+  elif args.loop:
     count = 1
     while True:
       print('Iteration {:03d}'.format(count))
