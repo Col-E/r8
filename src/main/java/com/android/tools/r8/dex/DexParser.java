@@ -396,7 +396,7 @@ public class DexParser<T extends DexClass> {
     for (int i = 0; i < size; i++) {
       values[i] = annotationSetAt(annotationOffsets[i]);
     }
-    return new ParameterAnnotationsList(values);
+    return ParameterAnnotationsList.create(values);
   }
 
   private DexParameterAnnotation[] parseParameterAnnotations(int size) {

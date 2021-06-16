@@ -885,7 +885,7 @@ public class JarClassFileReader<T extends DexClass> {
         for (int i = 0; i < parameterAnnotationsLists.size(); i++) {
           sets[i] = createAnnotationSet(parameterAnnotationsLists.get(i), options);
         }
-        parameterAnnotationsList = new ParameterAnnotationsList(sets);
+        parameterAnnotationsList = ParameterAnnotationsList.create(sets);
       }
       if (parameterNames != null) {
         assert parameterFlags != null;

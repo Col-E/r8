@@ -1618,7 +1618,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       }
 
       return setParameterAnnotations(
-          new ParameterAnnotationsList(
+          ParameterAnnotationsList.create(
               newParameterAnnotations.toArray(DexAnnotationSet.EMPTY_ARRAY),
               newNumberOfMissingParameterAnnotations));
     }

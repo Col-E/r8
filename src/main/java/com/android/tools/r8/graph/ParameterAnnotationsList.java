@@ -60,21 +60,32 @@ public class ParameterAnnotationsList extends DexItem
     this.missingParameterAnnotations = 0;
   }
 
-  public ParameterAnnotationsList(DexAnnotationSet[] values) {
-    this(values, 0);
-  }
-
-  public ParameterAnnotationsList(DexAnnotationSet[] values, int missingParameterAnnotations) {
-    assert values != null && values.length > 0;
+  private ParameterAnnotationsList(DexAnnotationSet[] values, int missingParameterAnnotations) {
+    assert values != null;
+    assert values.length > 0;
+    assert !isAllEmpty(values);
     this.values = values;
     this.missingParameterAnnotations = missingParameterAnnotations;
   }
 
+  public static ParameterAnnotationsList create(DexAnnotationSet[] values) {
+    return create(values, 0);
+  }
+
   public static ParameterAnnotationsList create(
       DexAnnotationSet[] values, int missingParameterAnnotations) {
-    return ArrayUtils.isEmpty(values)
+    return ArrayUtils.isEmpty(values) || isAllEmpty(values)
         ? empty()
         : new ParameterAnnotationsList(values, missingParameterAnnotations);
+  }
+
+  private static boolean isAllEmpty(DexAnnotationSet[] values) {
+    for (int i = 0; i < values.length; i++) {
+      if (!values[i].isEmpty()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override

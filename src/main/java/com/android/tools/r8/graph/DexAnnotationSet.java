@@ -30,8 +30,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem
   public static final DexAnnotationSet[] EMPTY_ARRAY = {};
 
   private static final int UNSORTED = 0;
-  private static final DexAnnotationSet THE_EMPTY_ANNOTATIONS_SET =
-      new DexAnnotationSet(DexAnnotation.EMPTY_ARRAY);
+  private static final DexAnnotationSet THE_EMPTY_ANNOTATIONS_SET = new DexAnnotationSet();
 
   public final DexAnnotation[] annotations;
   private int sorted = UNSORTED;
@@ -40,7 +39,12 @@ public class DexAnnotationSet extends CachedHashValueDexItem
     spec.withItemArray(a -> a.annotations);
   }
 
+  private DexAnnotationSet() {
+    this.annotations = DexAnnotation.EMPTY_ARRAY;
+  }
+
   public DexAnnotationSet(DexAnnotation[] annotations) {
+    assert !ArrayUtils.isEmpty(annotations);
     this.annotations = annotations;
   }
 
