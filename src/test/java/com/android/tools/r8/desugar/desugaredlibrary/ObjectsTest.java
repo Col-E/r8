@@ -45,6 +45,25 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
 
+  private static final String EXPECTED_OUTPUT =
+      StringUtils.lines(
+          "1",
+          "false",
+          "false",
+          Objects.toString(Objects.hash(1, 2)),
+          "4",
+          "NPE",
+          "Was null",
+          "Supplier said was null",
+          "5",
+          "6",
+          "true",
+          "false",
+          "1",
+          "2",
+          "3",
+          "4");
+
   private final TestParameters parameters;
   private final boolean libraryDesugarJavaUtilObjects;
   private final boolean shrinkDesugaredLibrary = false;
@@ -329,11 +348,8 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
               parameters.getApiLevel(),
               desugaredLibraryKeepRules,
               shrinkDesugaredLibrary)
-          .run(
-              parameters.getRuntime(),
-              TestClass.class,
-              Boolean.toString(libraryDesugarJavaUtilObjects))
-          .assertSuccessWithOutput(expectedOutput(libraryDesugarJavaUtilObjects));
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutput(EXPECTED_OUTPUT);
     } else {
       // Build the desugared library in class file format.
       Path desugaredLib =
@@ -343,11 +359,8 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
       testForJvm()
           .addProgramFiles(jar)
           .addRunClasspathFiles(desugaredLib)
-          .run(
-              parameters.getRuntime(),
-              TestClass.class,
-              Boolean.toString(libraryDesugarJavaUtilObjects))
-          .assertSuccessWithOutput(expectedOutput(libraryDesugarJavaUtilObjects));
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutput(EXPECTED_OUTPUT);
     }
   }
 
@@ -375,11 +388,8 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .inspect(this::inspect)
-        .run(
-            parameters.getRuntime(),
-            TestClass.class,
-            Boolean.toString(libraryDesugarJavaUtilObjects))
-        .assertSuccessWithOutput(expectedOutput(libraryDesugarJavaUtilObjects));
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   @Test
@@ -411,33 +421,8 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .inspect(this::inspect)
-        .run(
-            parameters.getRuntime(),
-            TestClass.class,
-            Boolean.toString(libraryDesugarJavaUtilObjects))
-        .assertSuccessWithOutput(expectedOutput(libraryDesugarJavaUtilObjects));
-  }
-
-  private String expectedOutput(boolean objectsRequireNonNullWithSupplierSupported) {
-    return StringUtils.lines(
-        "1",
-        "false",
-        "false",
-        Objects.toString(Objects.hash(1, 2)),
-        "4",
-        "NPE",
-        "Was null",
-        objectsRequireNonNullWithSupplierSupported
-            ? "Supplier said was null"
-            : "Not supported (b/174840626)",
-        "5",
-        "6",
-        "true",
-        "false",
-        "1",
-        "2",
-        "3",
-        "4");
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   static class TestClass {
@@ -522,7 +507,6 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
     }
 
     public static void main(String[] args) throws Exception {
-      boolean objectsRequireNonNullWithSupplierSupported = Boolean.parseBoolean(args[0]);
       // Android K methods.
       objectsCompare("b", "a");
       objectsDeepEquals(args, new Object());
@@ -531,11 +515,7 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
       objectsHashCode(4);
       objectsRequireNonNull(getNonNullableNull());
       objectsRequireNonNullWithMessage(null, "Was null");
-      if (objectsRequireNonNullWithSupplierSupported) {
-        objectsRequireNonNullWithSupplier(null, () -> "Supplier said was null");
-      } else {
-        System.out.println("Not supported (b/174840626)");
-      }
+      objectsRequireNonNullWithSupplier(null, () -> "Supplier said was null");
       objectsToString(makeNullable("5"));
       objectsToStringWithNullDefault(getNonNullableNull(), "6");
 
