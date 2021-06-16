@@ -1206,7 +1206,7 @@ public class VerticalClassMerger {
           }
           holder =
               holder.superType != null
-                  ? appInfo.definitionFor(holder.superType).asProgramClass()
+                  ? asProgramClassOrNull(appInfo.definitionFor(holder.superType))
                   : null;
         }
       }

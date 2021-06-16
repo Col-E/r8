@@ -4,13 +4,11 @@
 
 package com.android.tools.r8.classmerging.vertical;
 
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,21 +27,18 @@ public class VerticalClassMergingWithMissingSuperClassTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    AssertUtils.assertFailsCompilation(
-        () ->
-            testForR8(parameters.getBackend())
-                .addProgramClasses(Main.class, A.class, B.class, C.class)
-                .addKeepMainRule(Main.class)
-                .addDontWarn(MissingClass.class)
-                .addVerticallyMergedClassesInspector(
-                    inspector -> inspector.assertMergedIntoSubtype(B.class))
-                .enableNoVerticalClassMergingAnnotations()
-                .setMinApi(parameters.getApiLevel())
-                .compile()
-                .addRunClasspathFiles(buildOnDexRuntime(parameters, MissingClass.class))
-                .run(parameters.getRuntime(), Main.class)
-                .assertSuccessWithOutputLines("C", "A", "B"),
-        exception -> assertEquals(NullPointerException.class, exception.getCause().getClass()));
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Main.class, A.class, B.class, C.class)
+        .addKeepMainRule(Main.class)
+        .addDontWarn(MissingClass.class)
+        .addVerticallyMergedClassesInspector(
+            inspector -> inspector.assertMergedIntoSubtype(B.class))
+        .enableNoVerticalClassMergingAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .addRunClasspathFiles(buildOnDexRuntime(parameters, MissingClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("C", "A", "B");
   }
 
   static class Main {
