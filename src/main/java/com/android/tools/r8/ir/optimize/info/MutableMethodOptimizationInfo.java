@@ -529,8 +529,12 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     return new MutableMethodOptimizationInfo(this);
   }
 
-  public void adjustOptimizationInfoAfterRemovingThisParameter() {
+  public void adjustOptimizationInfoAfterRemovingThisParameter(
+      AppView<AppInfoWithLiveness> appView) {
     classInlinerConstraint = classInlinerConstraint.fixupAfterRemovingThisParameter();
+    simpleInliningConstraint =
+        simpleInliningConstraint.fixupAfterRemovingThisParameter(
+            appView.simpleInliningConstraintFactory());
     // cannotBeKept: doesn't depend on `this`
     // classInitializerMayBePostponed: `this` could trigger <clinit> of the previous holder.
     clearFlag(CLASS_INITIALIZER_MAY_BE_POSTPONED_FLAG);

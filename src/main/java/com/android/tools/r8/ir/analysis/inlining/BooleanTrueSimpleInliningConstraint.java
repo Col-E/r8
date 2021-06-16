@@ -34,6 +34,13 @@ public class BooleanTrueSimpleInliningConstraint extends SimpleInliningArgumentC
   }
 
   @Override
+  public SimpleInliningConstraint fixupAfterRemovingThisParameter(
+      SimpleInliningConstraintFactory factory) {
+    assert getArgumentIndex() > 0;
+    return factory.createBooleanTrueConstraint(getArgumentIndex() - 1);
+  }
+
+  @Override
   public SimpleInliningConstraint rewrittenWithUnboxedArguments(IntList unboxedArgumentIndices) {
     return this;
   }

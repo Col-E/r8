@@ -30,6 +30,12 @@ public class AlwaysSimpleInliningConstraint extends SimpleInliningConstraint {
   }
 
   @Override
+  public SimpleInliningConstraint fixupAfterRemovingThisParameter(
+      SimpleInliningConstraintFactory factory) {
+    return this;
+  }
+
+  @Override
   public SimpleInliningConstraint rewrittenWithUnboxedArguments(IntList unboxedArgumentIndices) {
     return this;
   }

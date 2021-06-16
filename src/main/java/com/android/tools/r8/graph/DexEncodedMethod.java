@@ -69,6 +69,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.position.MethodPosition;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -1314,14 +1315,14 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         true);
   }
 
-  public DexEncodedMethod toStaticMethodWithoutThis() {
+  public DexEncodedMethod toStaticMethodWithoutThis(AppView<AppInfoWithLiveness> appView) {
     checkIfObsolete();
     assert !accessFlags.isStatic();
     Builder builder =
         builder(this)
             .promoteToStatic()
             .withoutThisParameter()
-            .adjustOptimizationInfoAfterRemovingThisParameter()
+            .adjustOptimizationInfoAfterRemovingThisParameter(appView)
             .setGenericSignature(MethodTypeSignature.noSignature());
     DexEncodedMethod method = builder.build();
     method.copyMetadata(this);
@@ -1632,11 +1633,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return this;
     }
 
-    public Builder adjustOptimizationInfoAfterRemovingThisParameter() {
+    public Builder adjustOptimizationInfoAfterRemovingThisParameter(
+        AppView<AppInfoWithLiveness> appView) {
       if (optimizationInfo.isMutableOptimizationInfo()) {
         optimizationInfo
             .asMutableMethodOptimizationInfo()
-            .adjustOptimizationInfoAfterRemovingThisParameter();
+            .adjustOptimizationInfoAfterRemovingThisParameter(appView);
       }
       return this;
     }

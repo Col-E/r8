@@ -759,7 +759,7 @@ final class StaticizingProcessor {
         if (method.isStatic()) {
           newDirectMethods.add(method);
         } else if (!factory().isConstructor(method.getReference())) {
-          DexEncodedMethod staticizedMethod = method.toStaticMethodWithoutThis();
+          DexEncodedMethod staticizedMethod = method.toStaticMethodWithoutThis(appView);
           newDirectMethods.add(staticizedMethod);
           staticizedMethods.createAndAdd(candidateClass, staticizedMethod);
           methodMapping.put(method.getReference(), staticizedMethod.getReference());

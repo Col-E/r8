@@ -178,6 +178,7 @@ public abstract class Invoke extends Instruction {
   }
 
   public Value getArgument(int index) {
+    assert index < arguments().size();
     return arguments().get(index);
   }
 

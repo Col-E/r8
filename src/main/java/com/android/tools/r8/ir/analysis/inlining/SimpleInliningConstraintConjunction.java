@@ -66,15 +66,25 @@ public class SimpleInliningConstraintConjunction extends SimpleInliningConstrain
   }
 
   @Override
+  public SimpleInliningConstraint fixupAfterRemovingThisParameter(
+      SimpleInliningConstraintFactory factory) {
+    List<SimpleInliningConstraint> rewrittenConstraints =
+        ListUtils.mapOrElse(
+            constraints, constraint -> constraint.fixupAfterRemovingThisParameter(factory), null);
+    return rewrittenConstraints != null
+        ? new SimpleInliningConstraintConjunction(rewrittenConstraints)
+        : this;
+  }
+
+  @Override
   public SimpleInliningConstraint rewrittenWithUnboxedArguments(IntList unboxedArgumentIndices) {
     List<SimpleInliningConstraint> rewrittenConstraints =
         ListUtils.mapOrElse(
             constraints,
             constraint -> constraint.rewrittenWithUnboxedArguments(unboxedArgumentIndices),
             null);
-    if (rewrittenConstraints != null) {
-      return new SimpleInliningConstraintConjunction(rewrittenConstraints);
-    }
-    return this;
+    return rewrittenConstraints != null
+        ? new SimpleInliningConstraintConjunction(rewrittenConstraints)
+        : this;
   }
 }

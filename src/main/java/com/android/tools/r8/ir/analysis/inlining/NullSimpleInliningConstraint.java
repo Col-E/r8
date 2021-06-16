@@ -34,6 +34,13 @@ public class NullSimpleInliningConstraint extends SimpleInliningArgumentConstrai
   }
 
   @Override
+  public SimpleInliningConstraint fixupAfterRemovingThisParameter(
+      SimpleInliningConstraintFactory factory) {
+    assert getArgumentIndex() > 0;
+    return factory.createNullConstraint(getArgumentIndex() - 1);
+  }
+
+  @Override
   public SimpleInliningConstraint rewrittenWithUnboxedArguments(IntList unboxedArgumentIndices) {
     if (unboxedArgumentIndices.contains(getArgumentIndex())) {
       // TODO(b/176067541): Could be refined to an argument-equals-int constraint.

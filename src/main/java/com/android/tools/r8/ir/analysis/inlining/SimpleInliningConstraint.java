@@ -106,6 +106,9 @@ public abstract class SimpleInliningConstraint {
     return new SimpleInliningConstraintDisjunction(ImmutableList.of(this, other));
   }
 
+  public abstract SimpleInliningConstraint fixupAfterRemovingThisParameter(
+      SimpleInliningConstraintFactory factory);
+
   public abstract SimpleInliningConstraint rewrittenWithUnboxedArguments(
       IntList unboxedArgumentIndices);
 }
