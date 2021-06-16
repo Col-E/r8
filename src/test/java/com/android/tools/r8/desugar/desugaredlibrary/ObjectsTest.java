@@ -178,7 +178,7 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
     boolean invokeJDollarUtilObjects =
         libraryDesugarJavaUtilObjects && parameters.getApiLevel().isLessThan(AndroidApiLevel.N);
     boolean invokeJavaUtilObjectsWithSupplier =
-        !libraryDesugarJavaUtilObjects || !parameters.getApiLevel().isLessThan(AndroidApiLevel.N);
+        parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
     boolean invokeJDollarUtilObjectsWithSupplier =
         libraryDesugarJavaUtilObjects && parameters.getApiLevel().isLessThan(AndroidApiLevel.N);
 
@@ -339,7 +339,7 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
       Path desugaredLib =
           getDesugaredLibraryInCF(parameters, this::configurationForLibraryCompilation);
 
-      // Run on the JVM with desuagred library on classpath.
+      // Run on the JVM with desugared library on classpath.
       testForJvm()
           .addProgramFiles(jar)
           .addRunClasspathFiles(desugaredLib)
