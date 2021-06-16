@@ -485,7 +485,7 @@ public class DexParser<T extends DexClass> {
       throw new CompilationError(
           "Multiple annotations of type `" + dupType.toSourceString() + "`");
     }
-    return new DexAnnotationSet(result);
+    return DexAnnotationSet.create(result);
   }
 
   private boolean retainAnnotation(DexAnnotation annotation) {
@@ -1375,7 +1375,7 @@ public class DexParser<T extends DexClass> {
         int size = lazyAnnotations.size();
         return size == 0
             ? DexAnnotationSet.empty()
-            : new DexAnnotationSet(lazyAnnotations.toArray(DexAnnotation.EMPTY_ARRAY));
+            : DexAnnotationSet.create(lazyAnnotations.toArray(DexAnnotation.EMPTY_ARRAY));
       }
       return originalAnnotations;
     }

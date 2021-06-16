@@ -43,12 +43,12 @@ public class DexAnnotationSet extends CachedHashValueDexItem
     this.annotations = DexAnnotation.EMPTY_ARRAY;
   }
 
-  public DexAnnotationSet(DexAnnotation[] annotations) {
+  private DexAnnotationSet(DexAnnotation[] annotations) {
     assert !ArrayUtils.isEmpty(annotations);
     this.annotations = annotations;
   }
 
-  public DexAnnotationSet create(DexAnnotation[] annotations) {
+  public static DexAnnotationSet create(DexAnnotation[] annotations) {
     return ArrayUtils.isEmpty(annotations) ? empty() : new DexAnnotationSet(annotations);
   }
 
@@ -164,7 +164,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem
         if (index < reducedArray.length) {
           System.arraycopy(annotations, index + 1, reducedArray, index, reducedArray.length - index);
         }
-        return new DexAnnotationSet(reducedArray);
+        return DexAnnotationSet.create(reducedArray);
       }
       ++index;
     }
@@ -184,7 +184,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem
       if (annotation.annotation.type == newAnnotation.annotation.type) {
         DexAnnotation[] modifiedArray = annotations.clone();
         modifiedArray[index] = newAnnotation;
-        return new DexAnnotationSet(modifiedArray);
+        return DexAnnotationSet.create(modifiedArray);
       }
       ++index;
     }
@@ -193,7 +193,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem
     DexAnnotation[] extendedArray = new DexAnnotation[annotations.length + 1];
     System.arraycopy(annotations, 0, extendedArray, 0, annotations.length);
     extendedArray[annotations.length] = newAnnotation;
-    return new DexAnnotationSet(extendedArray);
+    return DexAnnotationSet.create(extendedArray);
   }
 
   public DexAnnotationSet keepIf(Predicate<DexAnnotation> filter) {
@@ -246,7 +246,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem
         }
       }
     }
-    return newAnnotations == null ? this : new DexAnnotationSet(newAnnotations);
+    return newAnnotations == null ? this : DexAnnotationSet.create(newAnnotations);
   }
 
   @Override

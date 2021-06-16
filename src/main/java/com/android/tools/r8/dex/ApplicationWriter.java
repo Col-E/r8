@@ -557,7 +557,7 @@ public class ApplicationWriter {
               clazz.annotations().annotations,
               annotations.toArray(DexAnnotation.EMPTY_ARRAY),
               DexAnnotation.class);
-      clazz.setAnnotations(new DexAnnotationSet(copy));
+      clazz.setAnnotations(DexAnnotationSet.create(copy));
     }
 
     // Clear the attribute structures now that they are represented in annotations.
@@ -572,7 +572,7 @@ public class ApplicationWriter {
     }
     // Append the annotations to annotations array of the field.
     field.setAnnotations(
-        new DexAnnotationSet(
+        DexAnnotationSet.create(
             ArrayUtils.appendSingleElement(
                 field.annotations().annotations,
                 DexAnnotation.createSignatureAnnotation(
@@ -587,7 +587,7 @@ public class ApplicationWriter {
     }
     // Append the annotations to annotations array of the method.
     method.setAnnotations(
-        new DexAnnotationSet(
+        DexAnnotationSet.create(
             ArrayUtils.appendSingleElement(
                 method.annotations().annotations,
                 DexAnnotation.createSignatureAnnotation(

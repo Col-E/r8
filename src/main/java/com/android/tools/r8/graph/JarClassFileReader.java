@@ -610,7 +610,7 @@ public class JarClassFileReader<T extends DexClass> {
             "Multiple annotations of type `" + dupType.toSourceString() + "`");
       }
     }
-    return new DexAnnotationSet(annotations.toArray(DexAnnotation.EMPTY_ARRAY));
+    return DexAnnotationSet.create(annotations.toArray(DexAnnotation.EMPTY_ARRAY));
   }
 
   private static class CreateFieldVisitor extends FieldVisitor {
