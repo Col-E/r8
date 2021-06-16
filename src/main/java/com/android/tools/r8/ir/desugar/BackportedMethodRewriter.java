@@ -199,6 +199,12 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
         initializeStreamMethodProviders(factory);
       }
 
+      if (appView.rewritePrefix.hasRewrittenType(factory.supplierType, appView)) {
+        // TODO(b/191188594): Consider adding the Objects method from R here, or instead
+        //  rely on desugared library to support them.
+        initializeObjectsMethodProviders(factory);
+      }
+
       // These are currently not implemented at any API level in Android.
       initializeJava9MethodProviders(factory);
       initializeJava10MethodProviders(factory);
@@ -1345,6 +1351,19 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       DexMethod method = factory.createMethod(streamType, proto, name);
       addProvider(
           new MethodGenerator(method, BackportedMethods::StreamMethods_ofNullable, "ofNullable"));
+    }
+
+    private void initializeObjectsMethodProviders(DexItemFactory factory) {
+      // Objects
+      DexType type = factory.objectsType;
+
+      // Objects.requireNonNull(Object, Supplier)
+      DexString name = factory.createString("requireNonNull");
+      DexProto proto =
+          factory.createProto(factory.objectType, factory.objectType, factory.supplierType);
+      DexMethod method = factory.createMethod(type, proto, name);
+      addProvider(
+          new MethodGenerator(method, BackportedMethods::ObjectsMethods_requireNonNullSupplier));
     }
 
     private void addProvider(MethodProvider generator) {

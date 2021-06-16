@@ -1,4 +1,4 @@
-// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -14,6 +14,7 @@ import com.android.tools.r8.cf.code.CfArrayLoad;
 import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfCmp;
+import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFrame;
@@ -6799,6 +6800,91 @@ public final class BackportedMethods {
             new CfLoad(ValueType.OBJECT, 0),
             new CfReturn(ValueType.OBJECT),
             label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode ObjectsMethods_requireNonNullSupplier(
+      InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    CfLabel label6 = new CfLabel();
+    CfLabel label7 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        3,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfIf(If.Type.NE, ValueType.OBJECT, label6),
+            label1,
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfIf(If.Type.EQ, ValueType.OBJECT, label3),
+            label2,
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/function/Supplier;"),
+                    options.itemFactory.createProto(options.itemFactory.objectType),
+                    options.itemFactory.createString("get")),
+                true),
+            new CfCheckCast(options.itemFactory.stringType),
+            new CfGoto(label4),
+            label3,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1},
+                    new FrameType[] {
+                      FrameType.initialized(options.itemFactory.objectType),
+                      FrameType.initialized(
+                          options.itemFactory.createType("Ljava/util/function/Supplier;"))
+                    }),
+                new ArrayDeque<>(Arrays.asList())),
+            new CfConstNull(),
+            label4,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1},
+                    new FrameType[] {
+                      FrameType.initialized(options.itemFactory.objectType),
+                      FrameType.initialized(
+                          options.itemFactory.createType("Ljava/util/function/Supplier;"))
+                    }),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.stringType)))),
+            new CfStore(ValueType.OBJECT, 2),
+            label5,
+            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.voidType, options.itemFactory.stringType),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfThrow(),
+            label6,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1},
+                    new FrameType[] {
+                      FrameType.initialized(options.itemFactory.objectType),
+                      FrameType.initialized(
+                          options.itemFactory.createType("Ljava/util/function/Supplier;"))
+                    }),
+                new ArrayDeque<>(Arrays.asList())),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfReturn(ValueType.OBJECT),
+            label7),
         ImmutableList.of(),
         ImmutableList.of());
   }

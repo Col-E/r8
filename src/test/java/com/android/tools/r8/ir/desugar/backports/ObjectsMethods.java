@@ -71,6 +71,18 @@ public final class ObjectsMethods {
     return obj;
   }
 
+  public static <T> T requireNonNullSupplier(T obj, Supplier<String> messageSupplier) {
+    if (obj == null) {
+      // While calling `messageSupplier.get()` unconditionally would produce the correct behavior,
+      // some ART versions add an exception message to seemingly-unintended null dereferences along
+      // the lines of "Attempted to invoke interface method Supplier.get() on a null reference"
+      // which we don't want to expose as the reference implementation has a null message.
+      String message = messageSupplier != null ? messageSupplier.get() : null;
+      throw new NullPointerException(message);
+    }
+    return obj;
+  }
+
   public static <T> T requireNonNullElse(T obj, T defaultObj) {
     if (obj != null) return obj;
     return Objects.requireNonNull(defaultObj, "defaultObj");

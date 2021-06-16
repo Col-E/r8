@@ -352,7 +352,7 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfConstNull constNull) {
-    throw new Unimplemented(constNull.getClass().getSimpleName());
+    printNewInstruction("CfConstNull");
   }
 
   @Override

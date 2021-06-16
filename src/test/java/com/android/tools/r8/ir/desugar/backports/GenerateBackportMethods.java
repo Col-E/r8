@@ -75,7 +75,7 @@ public class GenerateBackportMethods extends MethodGenerationBase {
 
   @Override
   protected int getYear() {
-    return 2020;
+    return 2021;
   }
 
   private static CfInstruction rewriteToJava9API(
