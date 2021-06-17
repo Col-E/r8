@@ -6813,7 +6813,6 @@ public final class BackportedMethods {
     CfLabel label4 = new CfLabel();
     CfLabel label5 = new CfLabel();
     CfLabel label6 = new CfLabel();
-    CfLabel label7 = new CfLabel();
     return new CfCode(
         method.holder,
         3,
@@ -6821,11 +6820,10 @@ public final class BackportedMethods {
         ImmutableList.of(
             label0,
             new CfLoad(ValueType.OBJECT, 0),
-            new CfIf(If.Type.NE, ValueType.OBJECT, label6),
+            new CfIf(If.Type.NE, ValueType.OBJECT, label5),
             label1,
             new CfLoad(ValueType.OBJECT, 1),
-            new CfIf(If.Type.EQ, ValueType.OBJECT, label3),
-            label2,
+            new CfIf(If.Type.EQ, ValueType.OBJECT, label2),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 185,
@@ -6835,8 +6833,8 @@ public final class BackportedMethods {
                     options.itemFactory.createString("get")),
                 true),
             new CfCheckCast(options.itemFactory.stringType),
-            new CfGoto(label4),
-            label3,
+            new CfGoto(label3),
+            label2,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1},
@@ -6847,7 +6845,7 @@ public final class BackportedMethods {
                     }),
                 new ArrayDeque<>(Arrays.asList())),
             new CfConstNull(),
-            label4,
+            label3,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1},
@@ -6859,7 +6857,7 @@ public final class BackportedMethods {
                 new ArrayDeque<>(
                     Arrays.asList(FrameType.initialized(options.itemFactory.stringType)))),
             new CfStore(ValueType.OBJECT, 2),
-            label5,
+            label4,
             new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 2),
@@ -6872,7 +6870,7 @@ public final class BackportedMethods {
                     options.itemFactory.createString("<init>")),
                 false),
             new CfThrow(),
-            label6,
+            label5,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1},
@@ -6884,7 +6882,7 @@ public final class BackportedMethods {
                 new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfReturn(ValueType.OBJECT),
-            label7),
+            label6),
         ImmutableList.of(),
         ImmutableList.of());
   }
