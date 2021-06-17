@@ -367,14 +367,6 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   }
 
   private InvokeRetargetingResult computeRetargetLibraryMember(DexMethod method) {
-    Map<DexType, DexType> backportCoreLibraryMembers =
-        appView.options().desugaredLibraryConfiguration.getBackportCoreLibraryMember();
-    if (backportCoreLibraryMembers.containsKey(method.holder)) {
-      DexType newHolder = backportCoreLibraryMembers.get(method.holder);
-      DexMethod newMethod =
-          appView.dexItemFactory().createMethod(newHolder, method.proto, method.name);
-      return InvokeRetargetingResult.createInvokeRetargetingResult(newMethod);
-    }
     DexClassAndMethod emulatedMethod = emulatedDispatchMethods.get(method);
     if (emulatedMethod != null) {
       assert !emulatedMethod.getAccessFlags().isStatic();

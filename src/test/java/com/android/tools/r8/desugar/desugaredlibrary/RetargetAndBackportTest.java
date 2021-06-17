@@ -4,16 +4,14 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,45 +38,44 @@ public class RetargetAndBackportTest extends DesugaredLibraryTestBase implements
 
   @Test
   public void test() throws Exception {
-    try {
-      testForL8(AndroidApiLevel.B, backend)
-          .noDefaultDesugarJDKLibs()
-          .addProgramClassFileData(dump())
-          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-          /*
-           Add this library desugaring configuration:
-
-           "library_flags": [
-             {
-               "rewrite_prefix": {"java.time.": "j$.time."},
-               "backport": {"java.lang.DesugarMath": "java.lang.Math"},
-               "retarget_lib_member": {"java.util.Date#toInstant": "java.util.DesugarDate"}
-             }
-           ],
-          */
-          .addOptionsModifier(
-              options ->
-                  options.desugaredLibraryConfiguration =
-                      DesugaredLibraryConfiguration.builder(
-                              options.dexItemFactory(), options.reporter, Origin.unknown())
-                          .putRewritePrefix("java.time.", "j$.time.")
-                          .putBackportCoreLibraryMember("java.lang.DesugarMath", "java.lang.Math")
-                          .putRetargetCoreLibMember(
-                              "java.util.Date#toInstant", "java.util.DesugarDate")
-                          .setLibraryCompilation()
-                          .build())
-          .compile();
-    } catch (CompilationFailedException t) {
-      assertThat(
-          t.getCause().getMessage(),
-          containsString(
-              "Desugaring of invokestatic java.lang.DesugarMath.multiplyExact(JI)J in method long"
-                  + " java.time.Duration.toMillis() has multiple matches:"
-                  + " com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter and"
-                  + " com.android.tools.r8.ir.desugar.BackportedMethodRewriter"));
-      return;
-    }
-    fail("Expected to fail");
+    testForL8(AndroidApiLevel.B, backend)
+        .noDefaultDesugarJDKLibs()
+        .addProgramClassFileData(dump())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        /*
+         Add this library desugaring configuration:
+         "library_flags": [
+           {
+             "rewrite_prefix": {"java.time.": "j$.time."},
+             "backport": {"java.lang.DesugarMath": "java.lang.Math"},
+             "retarget_lib_member": {"java.util.Date#toInstant": "java.util.DesugarDate"}
+           }
+         ],
+        */
+        .addOptionsModifier(
+            options ->
+                options.desugaredLibraryConfiguration =
+                    DesugaredLibraryConfiguration.builder(
+                            options.dexItemFactory(), options.reporter, Origin.unknown())
+                        .setDesugaredLibraryIdentifier("my-identifier")
+                        .putRewritePrefix("java.time.", "j$.time.")
+                        .putBackportCoreLibraryMember("java.lang.DesugarMath", "java.lang.Math")
+                        .putRetargetCoreLibMember(
+                            "java.util.Date#toInstant", "java.util.DesugarDate")
+                        .setLibraryCompilation()
+                        .build())
+        .compile()
+        .inspect(
+            inspector -> {
+              assertTrue(
+                  inspector
+                      .clazz("j$.time.Duration")
+                      .uniqueMethodWithName("toMillis")
+                      .streamInstructions()
+                      .filter(InstructionSubject::isInvokeStatic)
+                      .map(InstructionSubject::toString)
+                      .allMatch(s -> s.contains("Backport")));
+            });
   }
 
   // Dump of java.time.Duration from JDK 11 based desugared library input built from
