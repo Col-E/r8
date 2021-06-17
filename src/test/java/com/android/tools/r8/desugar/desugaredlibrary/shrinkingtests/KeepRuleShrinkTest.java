@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.shrinkingtests;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -41,6 +42,7 @@ public class KeepRuleShrinkTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult d8TestRunResult =
         testForD8()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addInnerClasses(KeepRuleShrinkTest.class)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)

@@ -13,7 +13,6 @@ import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
@@ -69,20 +68,11 @@ public class InvokeSuperToRewrittenDefaultMethodTest extends DesugaredLibraryTes
       testForD8()
           .addInnerClasses(InvokeSuperToRewrittenDefaultMethodTest.class)
           .setMinApi(parameters.getApiLevel())
-          .apply(
-              b -> {
-                if (rtWithoutConsumer) {
-                  b.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.B));
-                  // TODO(b/158543446): Remove this once enableCoreLibraryDesugaring is fixed.
-                  b.getBuilder()
-                      .addDesugaredLibraryConfiguration(
-                          StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
-                } else {
-                  // TODO(b/158543446): Move this out to the shared builder once
-                  //  enableCoreLibraryDesugaring is fixed.
-                  b.enableCoreLibraryDesugaring(parameters.getApiLevel());
-                }
-              })
+          .addLibraryFiles(
+              rtWithoutConsumer
+                  ? ToolHelper.getAndroidJar(AndroidApiLevel.B)
+                  : ToolHelper.getAndroidJar(AndroidApiLevel.P))
+          .enableCoreLibraryDesugaring(parameters.getApiLevel())
           .compileWithExpectedDiagnostics(
               diagnostics -> {
                 if (rtWithoutConsumer) {

@@ -11,6 +11,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,6 +36,7 @@ public class InlineMethodWithRetargetedLibMemberTest extends TestBase {
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .enableCoreLibraryDesugaring(parameters.getApiLevel())

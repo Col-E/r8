@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -52,6 +53,7 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
   public void testClockD8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Executor.class)
         .addLibraryClasses(CustomLibClass.class)
@@ -72,6 +74,7 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
   public void testClockR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addKeepMainRule(Executor.class)
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Executor.class)

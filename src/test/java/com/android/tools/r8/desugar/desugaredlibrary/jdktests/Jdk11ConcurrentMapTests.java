@@ -163,6 +163,7 @@ public class Jdk11ConcurrentMapTests extends Jdk11DesugaredLibraryTestBase {
     String verbosity = "2";
     D8TestCompileResult d8TestCompileResult =
         testForD8()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(concurrentHashTestToCompile())
             .addProgramFiles(testNGSupportProgramFiles())
             .addProgramFiles(getPathsFiles())

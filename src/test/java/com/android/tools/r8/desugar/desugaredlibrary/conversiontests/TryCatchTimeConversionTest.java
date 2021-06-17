@@ -5,8 +5,8 @@
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.desugar.desugaredlibrary.conversiontests.SummaryStatisticsConversionTest.CustomLibClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -75,6 +75,7 @@ public class TryCatchTimeConversionTest extends DesugaredLibraryTestBase {
   public void testBaselineR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(BaselineExecutor.class)
         .addKeepMainRule(BaselineExecutor.class)
@@ -114,6 +115,7 @@ public class TryCatchTimeConversionTest extends DesugaredLibraryTestBase {
   public void testTryCatchR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(TryCatchExecutor.class)
         .addKeepMainRule(TryCatchExecutor.class)

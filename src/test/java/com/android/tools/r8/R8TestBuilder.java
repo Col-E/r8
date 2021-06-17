@@ -111,6 +111,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     Box box = new Box();
     ToolHelper.addSyntheticProguardRulesConsumerForTesting(
         builder, rules -> box.syntheticProguardRules = rules);
+    libraryDesugaringTestConfiguration.configure(builder);
     ToolHelper.runR8WithoutResult(
         builder.build(),
         optionsConsumer.andThen(
@@ -119,6 +120,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         new R8TestCompileResult(
             getState(),
             getOutputMode(),
+            libraryDesugaringTestConfiguration,
             app.get(),
             box.proguardConfiguration,
             box.syntheticProguardRules,
@@ -654,7 +656,6 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     if (minApiLevel.getLevel() < AndroidApiLevel.O.getLevel()) {
       super.enableCoreLibraryDesugaring(
           minApiLevel, keepRuleConsumer, desugaredLibraryConfiguration);
-      builder.setDesugaredLibraryKeepRuleConsumer(keepRuleConsumer);
     }
     return self();
   }

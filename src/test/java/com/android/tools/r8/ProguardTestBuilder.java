@@ -66,6 +66,7 @@ public class ProguardTestBuilder
   ProguardTestCompileResult internalCompile(
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
+    assert !libraryDesugaringTestConfiguration.isEnabled();
     try {
       Path proguardOutputFolder = getState().getNewTempFolder();
       Path outJar = proguardOutputFolder.resolve("output.jar");

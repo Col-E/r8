@@ -5,8 +5,10 @@
 package com.android.tools.r8.desugar.desugaredlibrary.gson;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.File;
@@ -52,6 +54,7 @@ public class ConcurrentHashMapFileSerializationTest extends DesugaredLibraryTest
   public void testMapSerializationD8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addInnerClasses(ConcurrentHashMapFileSerializationTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -71,6 +74,7 @@ public class ConcurrentHashMapFileSerializationTest extends DesugaredLibraryTest
   public void testMapSerializationR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addInnerClasses(ConcurrentHashMapFileSerializationTest.class)
         .addKeepMainRule(Executor.class)
         .noMinification()

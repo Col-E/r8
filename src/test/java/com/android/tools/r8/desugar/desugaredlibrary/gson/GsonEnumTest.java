@@ -5,7 +5,9 @@
 package com.android.tools.r8.desugar.desugaredlibrary.gson;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.lang.reflect.Field;
 import java.time.chrono.IsoEra;
@@ -36,6 +38,7 @@ public class GsonEnumTest extends DesugaredLibraryTestBase {
   public void testCustomCollectionD8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addInnerClasses(GsonEnumTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -53,6 +56,7 @@ public class GsonEnumTest extends DesugaredLibraryTestBase {
   public void testCustomCollectionR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addInnerClasses(GsonEnumTest.class)
         .addKeepMainRule(Executor.class)
         .noMinification()

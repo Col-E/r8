@@ -9,11 +9,13 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -236,20 +238,18 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(parameters.getRuntime().isDex());
     Assume.assumeTrue(shrinkDesugaredLibrary || !traceReferencesKeepRules);
 
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    TestCompileResult<?, ?> result =
-        testForD8()
-            .addInnerClasses(JavaTimeTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile()
-            .inspect(this::checkRewrittenInvokesForD8);
-    result
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            desugaredLibraryKeepRules(keepRuleConsumer, result::writeToZip),
-            shrinkDesugaredLibrary)
+    testForD8()
+        .addInnerClasses(JavaTimeTest.class)
+        .setMinApi(parameters.getApiLevel())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .enableLibraryDesugaring(
+            LibraryDesugaringTestConfiguration.builder()
+                .setMinApi(parameters.getApiLevel())
+                .withKeepRuleConsumer()
+                .setMode(shrinkDesugaredLibrary ? CompilationMode.RELEASE : CompilationMode.DEBUG)
+                .build())
+        .compile()
+        .inspect(this::checkRewrittenInvokesForD8)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
@@ -259,23 +259,21 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(parameters.getRuntime().isDex());
     Assume.assumeTrue(shrinkDesugaredLibrary || !traceReferencesKeepRules);
 
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    TestCompileResult<?, ?> result =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(JavaTimeTest.class)
-            .addKeepMainRule(TestClass.class)
-            .enableNoVerticalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .enableInliningAnnotations()
-            .compile()
-            .inspect(this::checkRewrittenInvokesForR8);
-    result
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            desugaredLibraryKeepRules(keepRuleConsumer, result::writeToZip),
-            shrinkDesugaredLibrary)
+    testForR8(parameters.getBackend())
+        .addInnerClasses(JavaTimeTest.class)
+        .addKeepMainRule(TestClass.class)
+        .enableNoVerticalClassMergingAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .enableLibraryDesugaring(
+            LibraryDesugaringTestConfiguration.builder()
+                .setMinApi(parameters.getApiLevel())
+                .withKeepRuleConsumer()
+                .setMode(shrinkDesugaredLibrary ? CompilationMode.RELEASE : CompilationMode.DEBUG)
+                .build())
+        .enableInliningAnnotations()
+        .compile()
+        .inspect(this::checkRewrittenInvokesForR8)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }

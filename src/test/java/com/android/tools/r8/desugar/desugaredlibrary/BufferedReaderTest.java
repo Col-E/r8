@@ -140,6 +140,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(parameters.getRuntime().isDex());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addOptionsModification(
             options ->
                 options.desugaredLibraryConfiguration =
@@ -168,6 +169,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(parameters.getRuntime().isDex());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addOptionsModification(
             options ->
                 options.desugaredLibraryConfiguration =

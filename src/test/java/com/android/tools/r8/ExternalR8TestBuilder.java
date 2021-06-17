@@ -112,6 +112,7 @@ public class ExternalR8TestBuilder
   ExternalR8TestCompileResult internalCompile(
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
+    assert !libraryDesugaringTestConfiguration.isEnabled();
     try {
       Path outputFolder = getState().getNewTempFolder();
       Path outputJar = outputFolder.resolve("output.jar");

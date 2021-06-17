@@ -46,6 +46,7 @@ public class DXTestBuilder
   DXTestCompileResult internalCompile(
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
+    assert !libraryDesugaringTestConfiguration.isEnabled();
     try {
       Path dxOutputFolder = getState().getNewTempFolder();
       Path outJar = dxOutputFolder.resolve("output.jar");

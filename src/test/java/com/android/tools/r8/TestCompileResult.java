@@ -59,12 +59,27 @@ public abstract class TestCompileResult<
   final List<String> vmArguments = new ArrayList<>();
   private boolean withArt6Plus64BitsLib = false;
   private boolean withArtFrameworks = true;
+  private LibraryDesugaringTestConfiguration libraryDesugaringTestConfiguration;
 
   TestCompileResult(TestState state, AndroidApp app, int minApiLevel, OutputMode outputMode) {
     super(state);
     this.app = app;
     this.minApiLevel = minApiLevel;
     this.outputMode = outputMode;
+    this.libraryDesugaringTestConfiguration = LibraryDesugaringTestConfiguration.DISABLED;
+  }
+
+  TestCompileResult(
+      TestState state,
+      AndroidApp app,
+      int minApiLevel,
+      OutputMode outputMode,
+      LibraryDesugaringTestConfiguration libraryDesugaringTestConfiguration) {
+    super(state);
+    this.app = app;
+    this.minApiLevel = minApiLevel;
+    this.outputMode = outputMode;
+    this.libraryDesugaringTestConfiguration = libraryDesugaringTestConfiguration;
   }
 
   public CR applyIf(boolean condition, ThrowableConsumer<CR> thenConsumer) {
@@ -142,6 +157,7 @@ public abstract class TestCompileResult<
 
   @Deprecated
   public RR run(String mainClass) throws ExecutionException, IOException {
+    assert !libraryDesugaringTestConfiguration.isEnabled();
     ClassSubject mainClassSubject = inspector().clazz(mainClass);
     assertThat(mainClassSubject, isPresent());
     switch (getBackend()) {
@@ -176,6 +192,10 @@ public abstract class TestCompileResult<
   public RR run(TestRuntime runtime, String mainClass, String... args)
       throws ExecutionException, IOException {
     assert getBackend() == runtime.getBackend();
+    if (libraryDesugaringTestConfiguration.isEnabled()
+        && libraryDesugaringTestConfiguration.isAddRunClassPath()) {
+      additionalRunClassPath.add(libraryDesugaringTestConfiguration.buildDesugaredLibrary(state));
+    }
     ClassSubject mainClassSubject = inspector().clazz(mainClass);
     if (!mainClassSubject.isPresent()) {
       for (Path classpathFile : additionalRunClassPath) {

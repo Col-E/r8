@@ -10,6 +10,8 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -54,6 +56,7 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult d8TestRunResult =
         testForD8()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addInnerClasses(CustomCollectionTest.class)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -130,6 +133,7 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     R8TestRunResult r8TestRunResult =
         testForR8(Backend.DEX)
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addInnerClasses(CustomCollectionTest.class)
             .setMinApi(parameters.getApiLevel())
             .addKeepClassAndMembersRules(Executor.class)

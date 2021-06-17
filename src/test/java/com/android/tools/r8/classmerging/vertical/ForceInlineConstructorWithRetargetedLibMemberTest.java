@@ -12,6 +12,8 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +38,7 @@ public class ForceInlineConstructorWithRetargetedLibMemberTest extends TestBase 
   public void test() throws Exception {
     // Regression test for b/170677722.
     testForR8(parameters.getBackend())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .addVerticallyMergedClassesInspector(

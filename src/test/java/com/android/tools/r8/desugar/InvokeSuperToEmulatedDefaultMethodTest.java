@@ -8,7 +8,9 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Collection;
 import java.util.HashMap;
@@ -51,12 +53,13 @@ public class InvokeSuperToEmulatedDefaultMethodTest extends DesugaredLibraryTest
   @Test
   public void testDesugaring() throws Exception {
     assumeTrue(needsDefaultInterfaceMethodDesugaring());
+
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addInnerClasses(InvokeSuperToEmulatedDefaultMethodTest.class)
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .enableLibraryDesugaring(parameters.getApiLevel())
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -79,6 +80,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
   public void testNoInterfaceMethodsD8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(MyCollectionInterface.class, MyCollection.class, Executor.class)
         .addLibraryClasses(CustomLibClass.class)
@@ -142,6 +144,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
   public void testNoInterfaceMethodsR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(MyCollectionInterface.class, MyCollection.class, Executor.class)
         .addKeepMainRule(Executor.class)

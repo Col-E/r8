@@ -143,6 +143,7 @@ public class J$ExtensionTest extends DesugaredLibraryTestBase {
 
     try {
       testForD8()
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
           .addProgramFiles(compiledClasses)
           .setMinApi(parameters.getApiLevel())
           .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)

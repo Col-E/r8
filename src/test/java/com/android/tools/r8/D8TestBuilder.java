@@ -65,9 +65,15 @@ public class D8TestBuilder
   D8TestCompileResult internalCompile(
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
+    libraryDesugaringTestConfiguration.configure(builder);
     ToolHelper.runD8(builder, optionsConsumer);
     return new D8TestCompileResult(
-        getState(), app.get(), minApiLevel, getOutputMode(), getMapContent());
+        getState(),
+        app.get(),
+        minApiLevel,
+        getOutputMode(),
+        libraryDesugaringTestConfiguration,
+        getMapContent());
   }
 
   private String getMapContent() {
@@ -87,7 +93,6 @@ public class D8TestBuilder
     if (minApiLevel.getLevel() < AndroidApiLevel.O.getLevel()) {
       super.enableCoreLibraryDesugaring(
           minApiLevel, keepRuleConsumer, desugaredLibraryConfiguration);
-      builder.setDesugaredLibraryKeepRuleConsumer(keepRuleConsumer);
     }
     return self();
   }

@@ -7,6 +7,8 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.ArrayList;
@@ -49,6 +51,7 @@ public class SpliteratorTest extends DesugaredLibraryTestBase {
   public void testSpliterator() throws Exception {
     Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addInnerClasses(SpliteratorTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel())

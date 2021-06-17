@@ -93,6 +93,7 @@ public class JavaUtilOptionalTest extends DesugaredLibraryTestBase {
   @Test
   public void testJavaOptionalJava9() throws Exception {
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addProgramFiles(
             Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR).resolve("backport" + JAR_EXTENSION))
         .setMinApi(parameters.getApiLevel())

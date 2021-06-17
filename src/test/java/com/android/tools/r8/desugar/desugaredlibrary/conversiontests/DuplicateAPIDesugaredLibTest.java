@@ -8,6 +8,7 @@ import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.DexRuntime;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -54,6 +55,7 @@ public class DuplicateAPIDesugaredLibTest extends DesugaredLibraryTestBase {
               .writeToZip();
       String stdOut =
           testForD8()
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .setMinApi(AndroidApiLevel.B)
               .addProgramClasses(Executor.class)
               .addLibraryClasses(CustomLibClass.class)

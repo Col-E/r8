@@ -12,6 +12,8 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -77,6 +79,7 @@ public class DefaultMethodOverrideConflictWithLibraryTest extends DesugaredLibra
           .assertFailureWithErrorThatMatches(getExpectedError());
     } else {
       testForD8()
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
           .setMinApi(parameters.getApiLevel())
           .addProgramClasses(CLASSES)
           .addProgramClassFileData(getTransforms())

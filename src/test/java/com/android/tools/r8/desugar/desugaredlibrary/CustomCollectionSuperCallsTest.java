@@ -9,6 +9,8 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -42,6 +44,7 @@ public class CustomCollectionSuperCallsTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult d8TestRunResult =
         testForD8()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addInnerClasses(CustomCollectionSuperCallsTest.class)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -104,6 +107,7 @@ public class CustomCollectionSuperCallsTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     R8TestRunResult r8TestRunResult =
         testForR8(parameters.getBackend())
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addInnerClasses(CustomCollectionSuperCallsTest.class)
             .addKeepMainRule(Executor.class)
             .setMinApi(parameters.getApiLevel())

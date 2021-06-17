@@ -11,8 +11,13 @@ public class D8TestCompileResult extends TestCompileResult<D8TestCompileResult, 
   private final String proguardMap;
 
   D8TestCompileResult(
-      TestState state, AndroidApp app, int minApiLevel, OutputMode outputMode, String proguardMap) {
-    super(state, app, minApiLevel, outputMode);
+      TestState state,
+      AndroidApp app,
+      int minApiLevel,
+      OutputMode outputMode,
+      LibraryDesugaringTestConfiguration libraryDesugaringTestConfiguration,
+      String proguardMap) {
+    super(state, app, minApiLevel, outputMode, libraryDesugaringTestConfiguration);
     this.proguardMap = proguardMap;
   }
 

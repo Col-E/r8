@@ -10,9 +10,9 @@ import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.L8TestBuilder;
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringResource;
@@ -22,7 +22,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestState;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
 import com.android.tools.r8.tracereferences.TraceReferences;
@@ -188,10 +187,7 @@ public class DesugaredLibraryTestBase extends TestBase {
   }
 
   protected KeepRuleConsumer createKeepRuleConsumer(TestParameters parameters) {
-    if (requiresAnyCoreLibDesugaring(parameters)) {
-      return new PresentKeepRuleConsumer();
-    }
-    return new AbsentKeepRuleConsumer();
+    return LibraryDesugaringTestConfiguration.createKeepRuleConsumer(parameters);
   }
 
   public Path getDesugaredLibraryInCF(
@@ -316,55 +312,6 @@ public class DesugaredLibraryTestBase extends TestBase {
   public interface KeepRuleConsumer extends StringConsumer {
 
     String get();
-  }
-
-  public static class AbsentKeepRuleConsumer implements KeepRuleConsumer {
-
-    public String get() {
-      return null;
-    }
-
-    @Override
-    public void accept(String string, DiagnosticsHandler handler) {
-      throw new Unreachable("No desugaring on high API levels");
-    }
-
-    @Override
-    public void finished(DiagnosticsHandler handler) {
-      throw new Unreachable("No desugaring on high API levels");
-    }
-  }
-
-  public static class PresentKeepRuleConsumer implements KeepRuleConsumer {
-
-    StringBuilder stringBuilder = new StringBuilder();
-    String result = null;
-
-    @Override
-    public void accept(String string, DiagnosticsHandler handler) {
-      assert stringBuilder != null;
-      assert result == null;
-      stringBuilder.append(string);
-    }
-
-    @Override
-    public void finished(DiagnosticsHandler handler) {
-      assert stringBuilder != null;
-      assert result == null;
-      result = stringBuilder.toString();
-      stringBuilder = null;
-    }
-
-    public String get() {
-      // TODO(clement): remove that branch once StringConsumer has finished again.
-      if (stringBuilder != null) {
-        finished(null);
-      }
-
-      assert stringBuilder == null;
-      assert result != null;
-      return result;
-    }
   }
 
   protected static class ClassFileInfo {

@@ -5,7 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestShrinkerBuilder;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -42,6 +42,7 @@ public class CustomCollectionForwardingTest extends DesugaredLibraryTestBase {
   public void testCustomCollectionD8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addInnerClasses(CustomCollectionForwardingTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -60,6 +61,7 @@ public class CustomCollectionForwardingTest extends DesugaredLibraryTestBase {
   public void testCustomCollectionR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addInnerClasses(CustomCollectionForwardingTest.class)
         .addKeepMainRule(Executor.class)
         .setMinApi(parameters.getApiLevel())

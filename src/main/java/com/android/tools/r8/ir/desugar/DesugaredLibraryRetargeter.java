@@ -517,7 +517,12 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
       List<DexClassAndMethod> found = new ArrayList<>();
       clazz.forEachClassMethodMatching(
           definition -> definition.getName() == methodName, found::add);
-      assert !found.isEmpty() : "Should have found a method (library specifications).";
+      assert !found.isEmpty()
+          : "Should have found a method (library specifications) for "
+              + clazz.toSourceString()
+              + "."
+              + methodName
+              + ". Maybe the library used for the compilation should be newer.";
       return found;
     }
   }

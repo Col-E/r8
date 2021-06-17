@@ -16,6 +16,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.L8TestCompileResult;
+import com.android.tools.r8.LibraryDesugaringTestConfiguration.PresentKeepRuleConsumer;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.ResourceException;

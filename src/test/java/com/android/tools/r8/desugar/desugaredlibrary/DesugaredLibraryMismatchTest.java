@@ -11,6 +11,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.DesugaredLibraryMismatchDiagnostic;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
@@ -55,6 +56,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     // Combine DEX input without library desugaring with dexing with library desugaring.
     try {
       testForD8()
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
           .addProgramFiles(libraryDex)
           .addProgramClasses(TestRunner.class)
           .setMinApi(apiLevel)
@@ -91,6 +93,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
 
     // Combine CF desugared input without library desugaring with dexing with library desugaring.
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addProgramFiles(desugaredLibrary)
         .addProgramClasses(TestRunner.class)
         .setMinApi(apiLevel)
@@ -118,6 +121,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
             .writeToZip();
 
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addProgramFiles(desugaredLibraryDex)
         .addProgramClasses(TestRunner.class)
         .setMinApi(apiLevel)
@@ -161,6 +165,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
     // DEX code with library desugaring.
     Path libraryDex =
         testForD8(Backend.DEX)
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramClasses(Library.class)
             .setMinApi(apiLevel)
             .enableCoreLibraryDesugaring(apiLevel)

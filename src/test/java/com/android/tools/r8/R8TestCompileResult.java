@@ -35,6 +35,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   R8TestCompileResult(
       TestState state,
       OutputMode outputMode,
+      LibraryDesugaringTestConfiguration libraryDesugaringTestConfiguration,
       AndroidApp app,
       ProguardConfiguration proguardConfiguration,
       List<ProguardConfigurationRule> syntheticProguardRules,
@@ -42,7 +43,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
       CollectingGraphConsumer graphConsumer,
       int minApiLevel,
       List<Path> features) {
-    super(state, app, minApiLevel, outputMode);
+    super(state, app, minApiLevel, outputMode, libraryDesugaringTestConfiguration);
     this.proguardConfiguration = proguardConfiguration;
     this.syntheticProguardRules = syntheticProguardRules;
     this.proguardMap = proguardMap;

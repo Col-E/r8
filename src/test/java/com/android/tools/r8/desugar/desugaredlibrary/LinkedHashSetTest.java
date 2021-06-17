@@ -6,6 +6,8 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.Spliterator;
@@ -32,6 +34,7 @@ public class LinkedHashSetTest extends DesugaredLibraryTestBase {
   public void testLinkedHashSetOverrides() throws Exception {
     String stdOut =
         testForD8()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addInnerClasses(LinkedHashSetTest.class)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel())

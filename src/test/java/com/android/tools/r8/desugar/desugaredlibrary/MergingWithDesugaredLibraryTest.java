@@ -62,6 +62,7 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
     try {
       compileResult =
           testForD8()
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .addProgramFiles(buildPart1DesugaredLibrary(), buildPart2NoDesugaredLibrary())
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .setMinApi(parameters.getApiLevel())
@@ -250,6 +251,7 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
 
   private Path buildPart1DesugaredLibrary() throws Exception {
     return testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addProgramClasses(Part1.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel())

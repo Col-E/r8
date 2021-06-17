@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.LibraryDesugaringTestConfiguration.PresentKeepRuleConsumer;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;

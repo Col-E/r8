@@ -7,7 +7,9 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
+import com.android.tools.r8.LibraryDesugaringTestConfiguration.AbsentKeepRuleConsumer;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -167,6 +169,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
   public void testCallBackR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addKeepMainRule(Impl.class)
         .noMinification()
         .setMinApi(parameters.getApiLevel())
@@ -185,6 +188,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
   public void testCallBackR8Minifying() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addKeepMainRule(Impl.class)
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Impl.class)

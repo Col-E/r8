@@ -11,7 +11,6 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -237,6 +236,7 @@ public class FeatureSplitTest extends DesugaredLibraryTestBase {
 
       KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
       testForR8(parameters.getBackend())
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
           .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
           .setMinApi(parameters.getApiLevel())
           .addFeatureSplit(

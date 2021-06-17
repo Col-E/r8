@@ -75,6 +75,9 @@ public abstract class TestCompilerBuilder<
 
   private boolean isAndroidBuildVersionAdded = false;
 
+  LibraryDesugaringTestConfiguration libraryDesugaringTestConfiguration =
+      LibraryDesugaringTestConfiguration.DISABLED;
+
   public boolean isTestShrinkerBuilder() {
     return false;
   }
@@ -445,17 +448,32 @@ public abstract class TestCompilerBuilder<
         StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
   }
 
+  public T enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration configuration) {
+    return self();
+  }
+
   public T enableCoreLibraryDesugaring(
       AndroidApiLevel minApiLevel,
       StringConsumer keepRuleConsumer,
       StringResource desugaredLibraryConfiguration) {
     assert minApiLevel.getLevel() < AndroidApiLevel.O.getLevel();
-    builder.addDesugaredLibraryConfiguration(desugaredLibraryConfiguration);
-    // TODO(b/158543446): This should not be setting an implicit library file. Doing so causes
-    //  inconsistent library setup depending on the api level and makes tests hard to read and
-    //  reason about.
-    // Use P to mimic current Android Studio.
-    builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P));
+    return enableLibraryDesugaring(
+        LibraryDesugaringTestConfiguration.builder()
+            .setMinApi(minApiLevel)
+            .setKeepRuleConsumer(keepRuleConsumer)
+            .addDesugaredLibraryConfiguration(desugaredLibraryConfiguration)
+            .dontAddRunClasspath()
+            .build());
+  }
+
+  public T enableLibraryDesugaring(AndroidApiLevel minApiLevel) {
+    this.libraryDesugaringTestConfiguration =
+        LibraryDesugaringTestConfiguration.builder().setMinApi(minApiLevel).build();
+    return self();
+  }
+
+  public T enableLibraryDesugaring(LibraryDesugaringTestConfiguration configuration) {
+    this.libraryDesugaringTestConfiguration = configuration;
     return self();
   }
 

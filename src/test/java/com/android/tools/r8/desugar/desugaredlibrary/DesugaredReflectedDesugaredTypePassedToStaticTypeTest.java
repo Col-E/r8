@@ -9,6 +9,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -44,6 +45,7 @@ public class DesugaredReflectedDesugaredTypePassedToStaticTypeTest
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult runResult =
         testForD8()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addInnerClasses(DesugaredReflectedDesugaredTypePassedToStaticTypeTest.class)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -68,6 +70,7 @@ public class DesugaredReflectedDesugaredTypePassedToStaticTypeTest
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addInnerClasses(DesugaredReflectedDesugaredTypePassedToStaticTypeTest.class)
             .addKeepMainRule(Main.class)
             .setMinApi(parameters.getApiLevel())

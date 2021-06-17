@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -137,6 +138,7 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
     String verbosity = "2";
     D8TestCompileResult compileResult =
         testForD8()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(getPathsFiles())
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jdk11TimeTests.jar"))
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar"))

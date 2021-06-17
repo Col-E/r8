@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.time.Instant;
@@ -41,6 +42,7 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdout =
         testForD8()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addInnerClasses(RetargetOverrideTest.class)
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .setMinApi(parameters.getApiLevel())
@@ -61,6 +63,7 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdout =
         testForR8(Backend.DEX)
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addKeepMainRule(Executor.class)
             .addInnerClasses(RetargetOverrideTest.class)
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
