@@ -4,15 +4,16 @@
 
 package com.android.tools.r8.apimodel;
 
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForField;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.utils.AndroidApiLevel.L_MR1;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import org.junit.Test;
@@ -47,12 +48,11 @@ public class ApiModelNoInliningOfHigherApiLevelInstanceFieldTest extends TestBas
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .apply(setMockApiLevelForField(apiField, AndroidApiLevel.L_MR1))
+        .apply(setMockApiLevelForField(apiField, L_MR1))
+        .apply(setMockApiLevelForDefaultInstanceInitializer(Api.class, L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()
-        .inspect(
-            verifyThat(parameters, apiCaller)
-                .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1))
+        .inspect(verifyThat(parameters, apiCaller).inlinedIntoFromApiLevel(apiCallerCaller, L_MR1))
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!");

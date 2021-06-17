@@ -26,6 +26,8 @@ public abstract class AndroidApiClass {
 
   public abstract AndroidApiLevel getApiLevel();
 
+  public abstract int getMemberCount();
+
   public abstract TraversalContinuation visitFields(
       BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor);
 

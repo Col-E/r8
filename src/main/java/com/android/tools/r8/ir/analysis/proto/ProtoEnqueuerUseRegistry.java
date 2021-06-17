@@ -20,7 +20,7 @@ import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerUseRegistryFactory;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.ListIterator;
-import java.util.Map;
+import java.util.function.BiFunction;
 
 public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
 
@@ -32,7 +32,7 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramMethod currentMethod,
       Enqueuer enqueuer,
-      Map<DexReference, AndroidApiLevel> apiLevelReferenceMap) {
+      BiFunction<DexReference, AndroidApiLevel, AndroidApiLevel> apiLevelReferenceMap) {
     super(appView, currentMethod, enqueuer, apiLevelReferenceMap);
     this.references = appView.protoShrinker().references;
   }

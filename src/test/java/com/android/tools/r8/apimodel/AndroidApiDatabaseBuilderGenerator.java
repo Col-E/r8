@@ -94,10 +94,12 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
               .setClassDescriptor(getApiClassDescriptor(apiClass))
               .addMethodTransformer(getInitTransformer(apiClass))
               .addMethodTransformer(getApiLevelTransformer(apiClass))
+              .addMethodTransformer(getGetMemberCountTransformer(apiClass))
               .addMethodTransformer(getVisitFieldsTransformer(apiClass))
               .addMethodTransformer(getVisitMethodsTransformer(apiClass))
               .removeMethods(MethodPredicate.onName("placeHolderForInit"))
               .removeMethods(MethodPredicate.onName("placeHolderForGetApiLevel"))
+              .removeMethods(MethodPredicate.onName("placeHolderForGetMemberCount"))
               .removeMethods(MethodPredicate.onName("placeHolderForVisitFields"))
               .removeMethods(MethodPredicate.onName("placeHolderForVisitMethods"))
               .transform());
@@ -168,6 +170,16 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
               "(I)" + ANDROID_API_LEVEL.getDescriptor(),
               false);
         });
+  }
+
+  // The transformer below changes AndroidApiDatabaseClassTemplate.getMemberCount from:
+  //     return placeHolderForGetMemberCount();
+  // into
+  //    return <memberCount>;
+  private static MethodTransformer getGetMemberCountTransformer(ParsedApiClass apiClass) {
+    return replaceCode(
+        "placeHolderForGetMemberCount",
+        transformer -> transformer.visitLdcInsn(apiClass.getMemberCount()));
   }
 
   // The transformer below changes AndroidApiDatabaseClassTemplate.visitFields from:

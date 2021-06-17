@@ -225,12 +225,7 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
     ZipUtils.unzip(
         ToolHelper.DEPS.toString(),
         tempDeps.toFile(),
-        entry -> {
-          if (entry.getName().startsWith("com/android/tools/r8/apimodel/")) {
-            return false;
-          }
-          return true;
-        });
+        entry -> !entry.getName().startsWith("com/android/tools/r8/apimodel/"));
     Path modifiedDeps = Files.createTempFile("modified_deps", ".jar");
     ZipUtils.zip(modifiedDeps, tempDeps);
     return modifiedDeps;
@@ -242,6 +237,7 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
         apiClass -> {
           expected.add(apiClass.getClassReference().getDescriptor());
           expected.add(apiClass.getApiLevel().getName());
+          expected.add(apiClass.getMemberCount() + "");
           BooleanBox added = new BooleanBox(false);
           apiClass.visitFieldReferences(
               (apiLevel, fieldReferences) -> {
@@ -292,6 +288,7 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
             if (apiClass != null) {
               System.out.println(descriptor);
               System.out.println(apiClass.getApiLevel().getName());
+              System.out.println(apiClass.getMemberCount());
               apiClass.visitFields(
                   (reference, apiLevel) -> {
                     System.out.println(reference.getFieldType().getDescriptor());
@@ -322,6 +319,7 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
             if (apiClass != null) {
               System.out.println(descriptor);
               System.out.println(apiClass.getApiLevel().getName());
+              System.out.println(apiClass.getMemberCount());
               apiClass.visitFields(
                   (reference, apiLevel) -> {
                     System.out.println(reference.getFieldType().getDescriptor());

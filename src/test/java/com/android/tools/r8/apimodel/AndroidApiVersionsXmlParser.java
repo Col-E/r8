@@ -135,6 +135,11 @@ public class AndroidApiVersionsXmlParser {
     private final TreeMap<AndroidApiLevel, List<FieldReference>> fieldReferences = new TreeMap<>();
     private final Map<AndroidApiLevel, List<MethodReference>> methodReferences = new TreeMap<>();
 
+    private ParsedApiClass(ClassReference classReference, AndroidApiLevel apiLevel) {
+      this.classReference = classReference;
+      this.apiLevel = apiLevel;
+    }
+
     public ClassReference getClassReference() {
       return classReference;
     }
@@ -143,9 +148,8 @@ public class AndroidApiVersionsXmlParser {
       return apiLevel;
     }
 
-    private ParsedApiClass(ClassReference classReference, AndroidApiLevel apiLevel) {
-      this.classReference = classReference;
-      this.apiLevel = apiLevel;
+    public int getMemberCount() {
+      return fieldReferences.size() + methodReferences.size();
     }
 
     private void register(FieldReference reference, AndroidApiLevel apiLevel) {
