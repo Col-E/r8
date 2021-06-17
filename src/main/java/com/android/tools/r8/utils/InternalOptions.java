@@ -1701,7 +1701,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseDexPcAsDebugInformation() {
-    return !debug && hasMinApi(AndroidApiLevel.O);
+    return lineNumberOptimization == LineNumberOptimization.ON && hasMinApi(AndroidApiLevel.O);
   }
 
   public boolean isInterfaceMethodDesugaringEnabled() {
