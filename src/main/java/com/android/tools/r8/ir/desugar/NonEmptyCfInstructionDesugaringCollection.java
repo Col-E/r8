@@ -276,6 +276,8 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
                       && desugaring instanceof InterfaceMethodRewriter)
               : "Desugaring of "
                   + instruction
+                  + " in method "
+                  + context.toSourceString()
                   + " has multiple matches: "
                   + appliedDesugaring.getClass().getName()
                   + " and "

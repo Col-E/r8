@@ -9,6 +9,7 @@ import static junit.framework.TestCase.assertNotNull;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -226,7 +227,7 @@ public class LibraryDesugaringTestConfiguration {
     }
     String finalGeneratedKeepRules = generatedKeepRules;
     try {
-      return L8TestBuilder.create(minApiLevel, state)
+      return L8TestBuilder.create(minApiLevel, Backend.DEX, state)
           .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
           .setDesugarJDKLibs(desugarJdkLibs)
           .setDesugarJDKLibsConfiguration(customConversions)

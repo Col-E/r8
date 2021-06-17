@@ -94,7 +94,11 @@ public class DesugaredLibraryTestBase extends TestBase {
   }
 
   protected L8TestBuilder testForL8(AndroidApiLevel apiLevel) {
-    return L8TestBuilder.create(apiLevel, new TestState(temp));
+    return L8TestBuilder.create(apiLevel, Backend.DEX, new TestState(temp));
+  }
+
+  protected L8TestBuilder testForL8(AndroidApiLevel apiLevel, Backend backend) {
+    return L8TestBuilder.create(apiLevel, backend, new TestState(temp));
   }
 
   protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) {

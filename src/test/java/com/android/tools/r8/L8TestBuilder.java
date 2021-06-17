@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import static junit.framework.Assert.assertNull;
 import static junit.framework.TestCase.assertTrue;
 
+import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -27,12 +29,14 @@ import java.util.function.Consumer;
 public class L8TestBuilder {
 
   private final AndroidApiLevel apiLevel;
+  private final Backend backend;
   private final TestState state;
 
   private CompilationMode mode = CompilationMode.RELEASE;
   private String generatedKeepRules = null;
   private List<String> keepRules = new ArrayList<>();
   private List<Path> additionalProgramFiles = new ArrayList<>();
+  private List<byte[]> additionalProgramClassFileData = new ArrayList<>();
   private Consumer<InternalOptions> optionsModifier = ConsumerUtils.emptyConsumer();
   private Path desugarJDKLibs = ToolHelper.getDesugarJDKLibs();
   private Path desugarJDKLibsConfiguration = null;
@@ -40,17 +44,23 @@ public class L8TestBuilder {
       StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting());
   private List<Path> libraryFiles = new ArrayList<>();
 
-  private L8TestBuilder(AndroidApiLevel apiLevel, TestState state) {
+  private L8TestBuilder(AndroidApiLevel apiLevel, Backend backend, TestState state) {
     this.apiLevel = apiLevel;
+    this.backend = backend;
     this.state = state;
   }
 
-  public static L8TestBuilder create(AndroidApiLevel apiLevel, TestState state) {
-    return new L8TestBuilder(apiLevel, state);
+  public static L8TestBuilder create(AndroidApiLevel apiLevel, Backend backend, TestState state) {
+    return new L8TestBuilder(apiLevel, backend, state);
   }
 
   public L8TestBuilder addProgramFiles(Collection<Path> programFiles) {
     this.additionalProgramFiles.addAll(programFiles);
+    return this;
+  }
+
+  public L8TestBuilder addProgramClassFileData(byte[]... classes) {
+    this.additionalProgramClassFileData.addAll(Arrays.asList(classes));
     return this;
   }
 
@@ -104,7 +114,13 @@ public class L8TestBuilder {
   }
 
   public L8TestBuilder setDesugarJDKLibs(Path desugarJDKLibs) {
+    assert desugarJDKLibs != null : "Use noDefaultDesugarJDKLibs to clear the default.";
     this.desugarJDKLibs = desugarJDKLibs;
+    return this;
+  }
+
+  public L8TestBuilder noDefaultDesugarJDKLibs() {
+    this.desugarJDKLibs = null;
     return this;
   }
 
@@ -134,7 +150,11 @@ public class L8TestBuilder {
             .setMode(mode)
             .addDesugaredLibraryConfiguration(desugaredLibraryConfiguration)
             .setMinApiLevel(apiLevel.getLevel())
-            .setProgramConsumer(sink.wrapProgramConsumer(DexIndexedConsumer.emptyConsumer()));
+            .setProgramConsumer(
+                backend.isCf()
+                    ? sink.wrapProgramConsumer(ClassFileConsumer.emptyConsumer())
+                    : sink.wrapProgramConsumer(DexIndexedConsumer.emptyConsumer()));
+    addProgramClassFileData(l8Builder);
     Path mapping = null;
     if (!keepRules.isEmpty() || generatedKeepRules != null) {
       mapping = state.getNewTempFile("mapping.txt");
@@ -159,11 +179,20 @@ public class L8TestBuilder {
   }
 
   private Collection<Path> getProgramFiles() {
-    ImmutableList.Builder<Path> builder = ImmutableList.<Path>builder().add(desugarJDKLibs);
+    ImmutableList.Builder<Path> builder = ImmutableList.builder();
+    if (desugarJDKLibs != null) {
+      builder.add(desugarJDKLibs);
+    }
     if (desugarJDKLibsConfiguration != null) {
       builder.add(desugarJDKLibsConfiguration);
     }
     return builder.addAll(additionalProgramFiles).build();
+  }
+
+  private L8Command.Builder addProgramClassFileData(L8Command.Builder builder) {
+    additionalProgramClassFileData.forEach(
+        data -> builder.addClassProgramData(data, Origin.unknown()));
+    return builder;
   }
 
   private Collection<Path> getLibraryFiles() {
