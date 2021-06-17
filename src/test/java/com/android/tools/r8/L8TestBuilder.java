@@ -134,6 +134,11 @@ public class L8TestBuilder {
     return this;
   }
 
+  public L8TestBuilder setDesugaredLibraryConfiguration(StringResource configuration) {
+    this.desugaredLibraryConfiguration = configuration;
+    return this;
+  }
+
   public L8TestBuilder setDisableL8AnnotationRemoval(boolean disableL8AnnotationRemoval) {
     return addOptionsModifier(
         options -> options.testing.disableL8AnnotationRemoval = disableL8AnnotationRemoval);

@@ -35,6 +35,14 @@ public class ReleasedVersionsSmokeTest extends DesugaredLibraryTestBase {
           "GMT",
           "1000",
           "Hello, world");
+  private static final String expectedOutput_1_0_9 =
+      StringUtils.lines(
+          "true",
+          "Caught java.time.format.DateTimeParseException",
+          "true",
+          "1970-01-02T10:17:36.789Z",
+          "1000",
+          "Hello, world");
 
   @Parameters(name = "{0}, {1}")
   public static List<Object[]> data() {
@@ -61,12 +69,9 @@ public class ReleasedVersionsSmokeTest extends DesugaredLibraryTestBase {
                 .withKeepRuleConsumer()
                 .setMode(CompilationMode.DEBUG)
                 .build())
-        .compile()
-        .run(parameters.getRuntime(), TestClass.class)
-        .applyIf(
-            configuration.equals(Configuration.RELEASED_1_1_5),
-            r -> r.assertSuccessWithOutput(expectedOutput),
-            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
+        .run(parameters.getRuntime(), TestClass.class, configuration.name())
+        .assertSuccessWithOutput(
+            configuration != Configuration.RELEASED_1_0_9 ? expectedOutput : expectedOutput_1_0_9);
   }
 
   @Test
@@ -82,14 +87,15 @@ public class ReleasedVersionsSmokeTest extends DesugaredLibraryTestBase {
                 .withKeepRuleConsumer()
                 .setMode(CompilationMode.RELEASE)
                 .build())
-        .compile()
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(expectedOutput);
+        .run(parameters.getRuntime(), TestClass.class, configuration.name())
+        .assertSuccessWithOutput(
+            configuration != Configuration.RELEASED_1_0_9 ? expectedOutput : expectedOutput_1_0_9);
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
+      String configurationVersion = args[0];
       System.out.println(Clock.systemDefaultZone().getZone().equals(ZoneId.systemDefault()));
       try {
         java.time.LocalDate.parse("");
@@ -100,9 +106,12 @@ public class ReleasedVersionsSmokeTest extends DesugaredLibraryTestBase {
       System.out.println(
           java.util.Date.from(new java.util.Date(123456789).toInstant()).toInstant());
 
-      java.util.TimeZone timeZone = java.util.TimeZone.getTimeZone(ZoneId.of("GMT"));
-      System.out.println(timeZone.getID());
-      System.out.println(timeZone.toZoneId().getId());
+      // Support for this was added in 1.0.10.
+      if (!configurationVersion.equals("RELEASED_1_0_9")) {
+        java.util.TimeZone timeZone = java.util.TimeZone.getTimeZone(ZoneId.of("GMT"));
+        System.out.println(timeZone.getID());
+        System.out.println(timeZone.toZoneId().getId());
+      }
 
       System.out.println(Duration.ofMillis(1000).toMillis());
 

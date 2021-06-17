@@ -227,10 +227,12 @@ public class LibraryDesugaringTestConfiguration {
     }
     String finalGeneratedKeepRules = generatedKeepRules;
     try {
+      assert desugaredLibraryConfigurationResources.size() == 1 : "There can be only one";
       return L8TestBuilder.create(minApiLevel, Backend.DEX, state)
           .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
           .setDesugarJDKLibs(desugarJdkLibs)
           .setDesugarJDKLibsConfiguration(customConversions)
+          .setDesugaredLibraryConfiguration(desugaredLibraryConfigurationResources.get(0))
           .applyIf(
               mode == CompilationMode.RELEASE,
               builder -> {
