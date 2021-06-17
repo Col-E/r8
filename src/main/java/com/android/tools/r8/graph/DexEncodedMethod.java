@@ -48,7 +48,6 @@ import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -64,8 +63,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
-import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
-import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.kotlin.KotlinMethodLevelInfo;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -1303,20 +1300,17 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     // Some debuggers (like IntelliJ) automatically skip synthetic methods on single step.
     newFlags.setSynthetic();
     newFlags.unsetAbstract();
-    ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
-        ForwardMethodSourceCode.builder(newMethod);
-    forwardSourceCodeBuilder
-        .setReceiver(clazz.type)
-        .setTarget(forwardMethod)
-        .setInvokeType(Invoke.Type.STATIC)
-        .setIsInterface(false); // Holder is companion class, or retarget method, not an interface.
     return new DexEncodedMethod(
         newMethod,
         newFlags,
         MethodTypeSignature.noSignature(),
         DexAnnotationSet.empty(),
         ParameterAnnotationsList.empty(),
-        new SynthesizedCode(forwardSourceCodeBuilder::build),
+        ForwardMethodBuilder.builder(factory)
+            .setNonStaticSource(newMethod)
+            // Holder is companion class, or retarget method, not an interface.
+            .setStaticTarget(forwardMethod, false)
+            .build(),
         true);
   }
 

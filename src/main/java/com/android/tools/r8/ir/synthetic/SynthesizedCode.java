@@ -17,7 +17,7 @@ public class SynthesizedCode extends AbstractSynthesizedCode {
     this(sourceCodeProvider, SynthesizedCode::registerReachableDefinitionsDefault);
   }
 
-  public SynthesizedCode(SourceCodeProvider sourceCodeProvider, Consumer<UseRegistry> callback) {
+  private SynthesizedCode(SourceCodeProvider sourceCodeProvider, Consumer<UseRegistry> callback) {
     this.sourceCodeProvider = sourceCodeProvider;
     this.registryCallback = callback;
   }

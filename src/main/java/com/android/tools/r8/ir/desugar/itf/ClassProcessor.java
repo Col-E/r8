@@ -4,9 +4,15 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.cf.code.CfNew;
+import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -24,10 +30,9 @@ import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.ir.synthetic.ExceptionThrowingSourceCode;
-import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.BooleanBox;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.WorkList;
@@ -756,19 +761,41 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
     if (!clazz.isProgramClass()) {
       return;
     }
-    DexMethod newMethod = dexItemFactory.createMethod(clazz.type, method.proto, method.name);
+    MethodAccessFlags accessFlags = MethodAccessFlags.builder().setPublic().build();
+    DexMethod newMethod = method.withHolder(clazz.getType(), dexItemFactory);
     DexEncodedMethod newEncodedMethod =
         new DexEncodedMethod(
             newMethod,
-            MethodAccessFlags.fromCfAccessFlags(Opcodes.ACC_PUBLIC, false),
+            accessFlags,
             MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            new SynthesizedCode(
-                (ignored, callerPosition) ->
-                    new ExceptionThrowingSourceCode(clazz.type, method, callerPosition, errorType)),
+            createExceptionThrowingCfCode(newMethod, accessFlags, errorType, dexItemFactory),
             true);
     addSyntheticMethod(clazz.asProgramClass(), newEncodedMethod);
+  }
+
+  private static CfCode createExceptionThrowingCfCode(
+      DexMethod method,
+      MethodAccessFlags accessFlags,
+      DexType exceptionType,
+      DexItemFactory dexItemFactory) {
+    DexMethod instanceInitializer =
+        dexItemFactory.createMethod(
+            exceptionType,
+            dexItemFactory.createProto(dexItemFactory.voidType),
+            dexItemFactory.constructorMethodName);
+    int maxStack = 2;
+    int maxLocals = method.getParameters().size() + BooleanUtils.intValue(!accessFlags.isStatic());
+    return new CfCode(
+        method.getHolderType(),
+        maxStack,
+        maxLocals,
+        ImmutableList.of(
+            new CfNew(exceptionType),
+            new CfStackInstruction(Opcode.Dup),
+            new CfInvoke(Opcodes.INVOKESPECIAL, instanceInitializer, false),
+            new CfThrow()));
   }
 
   // Note: The parameter 'target' may be a public method on a class in case of desugared
