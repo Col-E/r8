@@ -5,7 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.Iterables;
-import java.util.function.BiFunction;
+import java.util.Map;
 import java.util.function.Function;
 
 public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
@@ -64,11 +64,12 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
   }
 
   public AndroidApiLevel computeApiLevelForReferencedTypes(
-      AppView<?> appView, BiFunction<DexReference, AndroidApiLevel, AndroidApiLevel> computeMax) {
-    AndroidApiLevel computedLevel = appView.options().minApiLevel;
+      AppView<?> appView, Map<DexReference, AndroidApiLevel> apiLevelMap) {
+    AndroidApiLevel minApiLevel = appView.options().minApiLevel;
+    AndroidApiLevel apiLevel = minApiLevel;
     for (DexType type : getReferencedBaseTypes(appView.dexItemFactory())) {
-      computedLevel = computeMax.apply(type, computedLevel);
+      apiLevel = apiLevel.max(apiLevelMap.getOrDefault(type, minApiLevel));
     }
-    return computedLevel;
+    return apiLevel;
   }
 }

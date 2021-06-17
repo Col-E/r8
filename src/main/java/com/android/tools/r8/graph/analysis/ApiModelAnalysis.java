@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.graph.analysis;
 
-import com.android.tools.r8.androidapi.AndroidApiReferenceLevelCache;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexMember;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -16,17 +16,19 @@ import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationWithMinApi
 import com.android.tools.r8.ir.optimize.info.MemberOptimizationInfo;
 import com.android.tools.r8.shaking.DefaultEnqueuerUseRegistry;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import java.util.Map;
 
 public class ApiModelAnalysis extends EnqueuerAnalysis {
 
   private final AppView<?> appView;
   private final AndroidApiLevel minApiLevel;
-  private final AndroidApiReferenceLevelCache referenceLevelCache;
+  private final Map<DexReference, AndroidApiLevel> referenceToApiLevelMap;
 
-  public ApiModelAnalysis(AppView<?> appView, AndroidApiReferenceLevelCache referenceLevelCache) {
+  public ApiModelAnalysis(
+      AppView<?> appView, Map<DexReference, AndroidApiLevel> referenceToApiLevelMap) {
     this.appView = appView;
     this.minApiLevel = appView.options().minApiLevel;
-    this.referenceLevelCache = referenceLevelCache;
+    this.referenceToApiLevelMap = referenceToApiLevelMap;
   }
 
   @Override
@@ -44,13 +46,6 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
   @Override
   public void processTracedCode(ProgramMethod method, DefaultEnqueuerUseRegistry registry) {
     assert registry.getMaxApiReferenceLevel().isGreaterThanOrEqualTo(minApiLevel);
-    if (appView.options().apiModelingOptions().tracedMethodApiLevelCallback != null) {
-      appView
-          .options()
-          .apiModelingOptions()
-          .tracedMethodApiLevelCallback
-          .accept(method.getMethodReference(), registry.getMaxApiReferenceLevel());
-    }
     setApiLevelForMember(method.getDefinition(), registry.getMaxApiReferenceLevel());
   }
 
@@ -82,6 +77,6 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
   }
 
   private AndroidApiLevel computeApiLevelForReferencedTypes(DexMember<?, ?> member) {
-    return member.computeApiLevelForReferencedTypes(appView, referenceLevelCache::lookupMax);
+    return member.computeApiLevelForReferencedTypes(appView, referenceToApiLevelMap);
   }
 }

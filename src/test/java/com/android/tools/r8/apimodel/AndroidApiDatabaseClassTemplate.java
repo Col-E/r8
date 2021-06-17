@@ -27,12 +27,6 @@ public class AndroidApiDatabaseClassTemplate extends AndroidApiClass {
   }
 
   @Override
-  public int getMemberCount() {
-    // Code added dynamically in AndroidApiDatabaseBuilderGenerator.
-    return placeHolderForGetMemberCount();
-  }
-
-  @Override
   public TraversalContinuation visitFields(
       BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor) {
     // Code added dynamically in AndroidApiDatabaseBuilderGenerator.
@@ -54,10 +48,6 @@ public class AndroidApiDatabaseClassTemplate extends AndroidApiClass {
 
   private static AndroidApiLevel placeHolderForGetApiLevel() {
     return null;
-  }
-
-  private static int placeHolderForGetMemberCount() {
-    return 0;
   }
 
   private static void placeHolderForVisitFields() {}

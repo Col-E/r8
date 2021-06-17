@@ -19,21 +19,21 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.ListIterator;
-import java.util.function.BiFunction;
+import java.util.Map;
 
 public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
   protected final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final ProgramMethod context;
   protected final Enqueuer enqueuer;
-  private final BiFunction<DexReference, AndroidApiLevel, AndroidApiLevel> apiReferenceMapping;
+  private final Map<DexReference, AndroidApiLevel> apiReferenceMapping;
   private AndroidApiLevel maxApiReferenceLevel;
 
   public DefaultEnqueuerUseRegistry(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramMethod context,
       Enqueuer enqueuer,
-      BiFunction<DexReference, AndroidApiLevel, AndroidApiLevel> apiReferenceMapping) {
+      Map<DexReference, AndroidApiLevel> apiReferenceMapping) {
     super(appView.dexItemFactory());
     this.appView = appView;
     this.context = context;
@@ -188,13 +188,14 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
   private void setMaxApiReferenceLevel(DexReference reference) {
     if (reference.isDexMember()) {
-      maxApiReferenceLevel =
+      this.maxApiReferenceLevel =
           maxApiReferenceLevel.max(
               reference
                   .asDexMember()
                   .computeApiLevelForReferencedTypes(appView, apiReferenceMapping));
     }
-    maxApiReferenceLevel = apiReferenceMapping.apply(reference, maxApiReferenceLevel);
+    this.maxApiReferenceLevel =
+        maxApiReferenceLevel.max(apiReferenceMapping.getOrDefault(reference, maxApiReferenceLevel));
   }
 
   public AndroidApiLevel getMaxApiReferenceLevel() {

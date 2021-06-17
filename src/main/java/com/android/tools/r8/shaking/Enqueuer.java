@@ -15,7 +15,6 @@ import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 import static java.util.Collections.emptySet;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.androidapi.AndroidApiReferenceLevelCache;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.CfOrDexInstruction;
@@ -121,6 +120,7 @@ import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.synthesis.SyntheticItems.SynthesizingContextOracle;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
@@ -255,7 +255,7 @@ public class Enqueuer {
 
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
 
-  private final AndroidApiReferenceLevelCache apiReferenceLevelCache;
+  private final Map<DexReference, AndroidApiLevel> referenceToApiLevelMap;
 
   /**
    * Tracks the dependency between a method and the super-method it calls, if any. Used to make
@@ -473,7 +473,10 @@ public class Enqueuer {
     } else {
       desugaredLibraryWrapperAnalysis = null;
     }
-    apiReferenceLevelCache = AndroidApiReferenceLevelCache.create(appView);
+    referenceToApiLevelMap = new IdentityHashMap<>();
+    if (options.apiModelingOptions().enableApiCallerIdentification) {
+      options.apiModelingOptions().appendToApiLevelMap(referenceToApiLevelMap, dexItemFactory);
+    }
   }
 
   private AppInfoWithClassHierarchy appInfo() {
@@ -3025,7 +3028,7 @@ public class Enqueuer {
       registerAnalysis(new GenericSignatureEnqueuerAnalysis(enqueuerDefinitionSupplier));
     }
     if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
-      registerAnalysis(new ApiModelAnalysis(appView, apiReferenceLevelCache));
+      registerAnalysis(new ApiModelAnalysis(appView, referenceToApiLevelMap));
     }
     if (mode.isInitialTreeShaking()) {
       // This is simulating the effect of the "root set" applied rules.
@@ -3941,7 +3944,7 @@ public class Enqueuer {
 
   void traceCode(ProgramMethod method) {
     DefaultEnqueuerUseRegistry registry =
-        useRegistryFactory.create(appView, method, this, apiReferenceLevelCache::lookupMax);
+        useRegistryFactory.create(appView, method, this, referenceToApiLevelMap);
     method.registerCodeReferences(registry);
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processTracedCode(method, registry));

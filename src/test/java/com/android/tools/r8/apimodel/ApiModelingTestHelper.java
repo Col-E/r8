@@ -11,17 +11,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.CodeMatchers;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.function.BiConsumer;
 
 public abstract class ApiModelingTestHelper {
 
@@ -39,23 +36,6 @@ public abstract class ApiModelingTestHelper {
   }
 
   static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
-      ThrowableConsumer<T> setMockApiLevelForDefaultInstanceInitializer(
-          Class<?> clazz, AndroidApiLevel apiLevel) {
-    return compilerBuilder -> {
-      compilerBuilder.addOptionsModification(
-          options -> {
-            options
-                .apiModelingOptions()
-                .methodApiMapping
-                .put(
-                    Reference.method(
-                        Reference.classFromClass(clazz), "<init>", ImmutableList.of(), null),
-                    apiLevel);
-          });
-    };
-  }
-
-  static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
       ThrowableConsumer<T> setMockApiLevelForField(Field field, AndroidApiLevel apiLevel) {
     return compilerBuilder -> {
       compilerBuilder.addOptionsModification(
@@ -68,14 +48,14 @@ public abstract class ApiModelingTestHelper {
     };
   }
 
-  static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
-      ThrowableConsumer<T> setMockApiLevelForClass(Class<?> clazz, AndroidApiLevel apiLevel) {
+  static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>> ThrowableConsumer<T> setMockApiLevelForType(
+      Class<?> clazz, AndroidApiLevel apiLevel) {
     return compilerBuilder -> {
       compilerBuilder.addOptionsModification(
           options -> {
             options
                 .apiModelingOptions()
-                .classApiMapping
+                .typeApiMapping
                 .put(Reference.classFromClass(clazz), apiLevel);
           });
     };
@@ -86,17 +66,6 @@ public abstract class ApiModelingTestHelper {
         options -> {
           options.apiModelingOptions().enableApiCallerIdentification = true;
         });
-  }
-
-  static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
-      ThrowableConsumer<T> addTracedApiReferenceLevelCallBack(
-          BiConsumer<MethodReference, AndroidApiLevel> consumer) {
-    return compilerBuilder -> {
-      compilerBuilder.addOptionsModification(
-          options -> {
-            options.apiModelingOptions().tracedMethodApiLevelCallback = consumer;
-          });
-    };
   }
 
   static ApiModelingMethodVerificationHelper verifyThat(TestParameters parameters, Method method) {
@@ -120,7 +89,7 @@ public abstract class ApiModelingTestHelper {
           : notInlinedInto(method);
     }
 
-    protected ThrowingConsumer<CodeInspector, Exception> notInlinedInto(Method method) {
+    private ThrowingConsumer<CodeInspector, Exception> notInlinedInto(Method method) {
       return inspector -> {
         MethodSubject candidate = inspector.method(methodOfInterest);
         assertThat(candidate, isPresent());

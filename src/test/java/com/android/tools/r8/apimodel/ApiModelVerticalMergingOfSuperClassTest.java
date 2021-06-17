@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.apimodel;
 
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -44,7 +44,7 @@ public class ApiModelVerticalMergingOfSuperClassTest extends TestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .apply(setMockApiLevelForClass(Api.class, AndroidApiLevel.L_MR1))
+        .apply(setMockApiLevelForType(Api.class, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()
         .inspect(
