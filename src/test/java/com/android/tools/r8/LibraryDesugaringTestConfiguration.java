@@ -4,6 +4,7 @@
 
 package com.android.tools.r8;
 
+import static com.android.tools.r8.LibraryDesugaringTestConfiguration.Configuration.DEFAULT;
 import static junit.framework.TestCase.assertNotNull;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -11,18 +12,62 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 public class LibraryDesugaringTestConfiguration {
 
+  private static final String RELEASES_DIR = "third_party/openjdk/desugar_jdk_libs_releases/";
+
+  public enum Configuration {
+    DEFAULT(
+        ToolHelper.getDesugarJDKLibs(),
+        ToolHelper.DESUGAR_LIB_CONVERSIONS,
+        ToolHelper.getDesugarLibJsonForTesting()),
+    DEFAULT_JDK11(
+        Paths.get("third_party/openjdk/desugar_jdk_libs_11/desugar_jdk_libs.jar"),
+        ToolHelper.DESUGAR_LIB_CONVERSIONS,
+        Paths.get("src/library_desugar/jdk11/desugar_jdk_libs.json")),
+    RELEASED_1_0_9("1.0.9"),
+    RELEASED_1_0_10("1.0.10"),
+    RELEASED_1_1_0("1.1.0"),
+    RELEASED_1_1_1("1.1.1"),
+    RELEASED_1_1_5("1.1.5");
+
+    private final Path desugarJdkLibs;
+    private final Path customConversions;
+    private final Path configuration;
+
+    Configuration(Path desugarJdkLibs, Path customConversions, Path configuration) {
+      this.desugarJdkLibs = desugarJdkLibs;
+      this.customConversions = customConversions;
+      this.configuration = configuration;
+    }
+
+    Configuration(String version) {
+      this(
+          Paths.get(RELEASES_DIR, version, "desugar_jdk_libs.jar"),
+          Paths.get(RELEASES_DIR, version, "desugar_jdk_libs_configuration.jar"),
+          Paths.get(RELEASES_DIR, version, "desugar.json"));
+    }
+
+    public static List<Configuration> getReleased() {
+      return ImmutableList.of(
+          RELEASED_1_0_9, RELEASED_1_0_10, RELEASED_1_1_0, RELEASED_1_1_1, RELEASED_1_1_5);
+    }
+  }
+
   private final AndroidApiLevel minApiLevel;
+  private final Path desugarJdkLibs;
+  private final Path customConversions;
+  private final List<StringResource> desugaredLibraryConfigurationResources;
   private final boolean withKeepRuleConsumer;
   private final KeepRuleConsumer keepRuleConsumer;
-  private final List<StringResource> desugaredLibraryConfigurationResources;
   private final CompilationMode mode;
   private final boolean addRunClassPath;
 
@@ -31,6 +76,8 @@ public class LibraryDesugaringTestConfiguration {
 
   private LibraryDesugaringTestConfiguration() {
     this.minApiLevel = null;
+    this.desugarJdkLibs = null;
+    this.customConversions = null;
     this.keepRuleConsumer = null;
     this.withKeepRuleConsumer = false;
     this.desugaredLibraryConfigurationResources = null;
@@ -40,15 +87,19 @@ public class LibraryDesugaringTestConfiguration {
 
   private LibraryDesugaringTestConfiguration(
       AndroidApiLevel minApiLevel,
+      Path desugarJdkLibs,
+      Path customConversions,
+      List<StringResource> desugaredLibraryConfigurationResources,
       boolean withKeepRuleConsumer,
       KeepRuleConsumer keepRuleConsumer,
-      List<StringResource> desugaredLibraryConfigurationResources,
       CompilationMode mode,
       boolean addRunClassPath) {
     this.minApiLevel = minApiLevel;
+    this.desugarJdkLibs = desugarJdkLibs;
+    this.customConversions = customConversions;
+    this.desugaredLibraryConfigurationResources = desugaredLibraryConfigurationResources;
     this.withKeepRuleConsumer = withKeepRuleConsumer;
     this.keepRuleConsumer = keepRuleConsumer;
-    this.desugaredLibraryConfigurationResources = desugaredLibraryConfigurationResources;
     this.mode = mode;
     this.addRunClassPath = addRunClassPath;
   }
@@ -56,9 +107,11 @@ public class LibraryDesugaringTestConfiguration {
   public static class Builder {
 
     AndroidApiLevel minApiLevel;
+    private Path desugarJdkLibs;
+    private Path customConversions;
+    private final List<StringResource> desugaredLibraryConfigurationResources = new ArrayList<>();
     boolean withKeepRuleConsumer = false;
     KeepRuleConsumer keepRuleConsumer;
-    private final List<StringResource> desugaredLibraryConfigurationResources = new ArrayList<>();
     private CompilationMode mode = CompilationMode.DEBUG;
     boolean addRunClassPath = true;
 
@@ -66,6 +119,15 @@ public class LibraryDesugaringTestConfiguration {
 
     public Builder setMinApi(AndroidApiLevel minApiLevel) {
       this.minApiLevel = minApiLevel;
+      return this;
+    }
+
+    public Builder setConfiguration(Configuration configuration) {
+      desugarJdkLibs = configuration.desugarJdkLibs;
+      customConversions = configuration.customConversions;
+      desugaredLibraryConfigurationResources.clear();
+      desugaredLibraryConfigurationResources.add(
+          StringResource.fromFile(configuration.configuration));
       return this;
     }
 
@@ -110,9 +172,11 @@ public class LibraryDesugaringTestConfiguration {
       }
       return new LibraryDesugaringTestConfiguration(
           minApiLevel,
+          desugarJdkLibs != null ? desugarJdkLibs : DEFAULT.desugarJdkLibs,
+          customConversions != null ? customConversions : DEFAULT.customConversions,
+          desugaredLibraryConfigurationResources,
           withKeepRuleConsumer,
           keepRuleConsumer,
-          desugaredLibraryConfigurationResources,
           mode,
           addRunClassPath);
     }
@@ -164,6 +228,8 @@ public class LibraryDesugaringTestConfiguration {
     try {
       return L8TestBuilder.create(minApiLevel, state)
           .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+          .setDesugarJDKLibs(desugarJdkLibs)
+          .setDesugarJDKLibsConfiguration(customConversions)
           .applyIf(
               mode == CompilationMode.RELEASE,
               builder -> {
@@ -172,7 +238,6 @@ public class LibraryDesugaringTestConfiguration {
                 }
               },
               L8TestBuilder::setDebug)
-          .setDesugarJDKLibsConfiguration(ToolHelper.DESUGAR_LIB_CONVERSIONS)
           .compile()
           .writeToZip();
     } catch (CompilationFailedException | ExecutionException | IOException e) {

@@ -89,6 +89,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
   public void testCallBack() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Impl.class)
         .addLibraryClasses(CustomLibClass.class)
@@ -110,6 +111,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
     // Use D8 to desugar with Java classfile output.
     Path firstJar =
         testForD8(Backend.CF)
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getApiLevel())
             .addProgramClasses(Impl.class)
             .addLibraryClasses(CustomLibClass.class)
@@ -129,6 +131,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
     // Use D8 to desugar with Java classfile output.
     Path secondJar =
         testForD8(Backend.CF)
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addOptionsModification(
                 options -> options.desugarSpecificOptions().allowAllDesugaredInput = true)
             .setMinApi(parameters.getApiLevel())
@@ -149,6 +152,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
 
     // Convert to DEX without desugaring and run.
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addProgramFiles(firstJar)
         .setMinApi(parameters.getApiLevel())
         .disableDesugaring()

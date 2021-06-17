@@ -5,6 +5,8 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
@@ -45,6 +47,7 @@ public class RequiredNonNullWithSupplierTest extends DesugaredLibraryTestBase {
     }
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addInnerClasses(RequiredNonNullWithSupplierTest.class)
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .setMinApi(parameters.getApiLevel())

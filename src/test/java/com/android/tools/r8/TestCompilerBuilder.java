@@ -449,6 +449,7 @@ public abstract class TestCompilerBuilder<
   }
 
   public T enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration configuration) {
+    this.libraryDesugaringTestConfiguration = configuration;
     return self();
   }
 
