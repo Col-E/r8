@@ -80,6 +80,8 @@ public class HorizontallyMergedClassesInspector {
   public HorizontallyMergedClassesInspector assertMergedInto(Class<?> from, Class<?> target) {
     assertEquals(
         horizontallyMergedClasses.getMergeTargetOrDefault(toDexType(from)), toDexType(target));
+    seen.add(toDexType(from).asClassReference());
+    seen.add(toDexType(target).asClassReference());
     return this;
   }
 
