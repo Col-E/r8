@@ -887,6 +887,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   @Override
+  public boolean hasAnyAnnotations() {
+    return hasAnnotations() || hasParameterAnnotations();
+  }
+
+  @Override
   public void clearAllAnnotations() {
     clearAnnotations();
     clearParameterAnnotations();
@@ -912,6 +917,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public ParameterAnnotationsList getParameterAnnotations() {
     return parameterAnnotationsList;
+  }
+
+  public boolean hasParameterAnnotations() {
+    return !getParameterAnnotations().isEmpty();
   }
 
   public void setParameterAnnotations(ParameterAnnotationsList parameterAnnotations) {
@@ -1377,11 +1386,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public DexEncodedMethod asDexEncodedMethod() {
     checkIfObsolete();
     return this;
-  }
-
-  public boolean hasAnnotation() {
-    checkIfObsolete();
-    return !annotations().isEmpty() || !parameterAnnotationsList.isEmpty();
   }
 
   public static int slowCompare(DexEncodedMethod m1, DexEncodedMethod m2) {

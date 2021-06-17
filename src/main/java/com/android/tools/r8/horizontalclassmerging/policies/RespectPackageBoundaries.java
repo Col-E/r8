@@ -6,12 +6,16 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.shaking.VerticalClassMerger.IllegalAccessDetector;
 import com.android.tools.r8.utils.TraversalContinuation;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -29,6 +33,26 @@ public class RespectPackageBoundaries extends MultiClassPolicy {
     // Check that the class is public, otherwise it is package private.
     if (!clazz.isPublic()) {
       return true;
+    }
+
+    // Annotations may access non-public items (or themselves be non-public), so for now we
+    // conservatively restrict class merging when annotations are present.
+    //
+    // Note that in non-compat mode we should never see any annotations here, since we only merge
+    // non-kept classes with non-kept members.
+    if (clazz.hasAnnotations()
+        || Iterables.any(clazz.members(), DexDefinition::hasAnyAnnotations)) {
+      return true;
+    }
+
+    // Check that each implemented interface is public.
+    for (DexType interfaceType : clazz.getInterfaces()) {
+      if (clazz.getType().isSamePackage(interfaceType)) {
+        DexClass interfaceClass = appView.definitionFor(interfaceType);
+        if (interfaceClass == null || !interfaceClass.isPublic()) {
+          return true;
+        }
+      }
     }
 
     // If any members are package private or protected, then their access depends on the package.

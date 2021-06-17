@@ -322,7 +322,7 @@ public class MethodCollection {
   public boolean hasAnnotations() {
     return traverse(
             method ->
-                method.hasAnnotation()
+                method.hasAnyAnnotations()
                     ? TraversalContinuation.BREAK
                     : TraversalContinuation.CONTINUE)
         .shouldBreak();

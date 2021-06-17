@@ -7,6 +7,7 @@ package com.android.tools.r8.classmerging.horizontal;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isImplementing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -14,6 +15,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.classmerging.horizontal.testclasses.InterfacesVisibilityTestClasses;
 import com.android.tools.r8.classmerging.horizontal.testclasses.InterfacesVisibilityTestClasses.ImplementingPackagePrivateInterface;
 import com.android.tools.r8.classmerging.horizontal.testclasses.InterfacesVisibilityTestClasses.Invoker;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 
 public class InterfacesVisibilityTest extends HorizontalClassMergingTestBase {
@@ -26,34 +28,31 @@ public class InterfacesVisibilityTest extends HorizontalClassMergingTestBase {
     String packagePrivateInterfaceName =
         InterfacesVisibilityTestClasses.class.getTypeName() + "$PackagePrivateInterface";
     testForR8(parameters.getBackend())
-        .addInnerClasses(getClass())
-        .addProgramClasses(ImplementingPackagePrivateInterface.class, Invoker.class)
-        .addProgramClasses(Class.forName(packagePrivateInterfaceName))
+        .addInnerClasses(getClass(), InterfacesVisibilityTestClasses.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
-        // TODO(b/191248536): These classes should not be merged.
         .addHorizontallyMergedClassesInspector(
-            inspector ->
-                inspector
-                    .assertMergedInto(ImplementingPackagePrivateInterface.class, A.class)
-                    .assertClassesMerged(ImplementingPackagePrivateInterface.class, A.class)
-                    .assertNoOtherClassesMerged())
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .compile()
         .inspect(
             codeInspector -> {
+              // A is present and has no interfaces.
               assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(codeInspector.clazz(packagePrivateInterfaceName), isPresent());
+              assertTrue(
+                  codeInspector.clazz(A.class).getDexProgramClass().getInterfaces().isEmpty());
+
+              // ImplementingPackagePrivateInterface is present and implements
+              // PackagePrivateInterface.
               assertThat(
-                  codeInspector.clazz(A.class),
+                  codeInspector.clazz(ImplementingPackagePrivateInterface.class),
                   isImplementing(codeInspector.clazz(packagePrivateInterfaceName)));
             })
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/191248536) Should be .assertSuccessWithOutputLines("foo", "bar");
-        .assertFailure();
+        .assertSuccessWithOutputLines("foo", "bar");
   }
 
   @NeverClassInline

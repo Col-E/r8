@@ -25,6 +25,11 @@ public abstract class DexDefinition extends DexItem {
     return !annotations().isEmpty();
   }
 
+  // Also returns true if a method has parameter annotations.
+  public boolean hasAnyAnnotations() {
+    return hasAnnotations();
+  }
+
   public DexAnnotationSet annotations() {
     return annotations;
   }
