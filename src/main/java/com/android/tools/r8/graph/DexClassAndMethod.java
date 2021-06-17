@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.references.MethodReference;
 
 public abstract class DexClassAndMethod extends DexClassAndMember<DexEncodedMethod, DexMethod>
@@ -50,6 +51,11 @@ public abstract class DexClassAndMethod extends DexClassAndMember<DexEncodedMeth
 
   public DexMethodSignature getMethodSignature() {
     return getReference().getSignature();
+  }
+
+  @Override
+  public MethodOptimizationInfo getOptimizationInfo() {
+    return getDefinition().getOptimizationInfo();
   }
 
   public DexType getParameter(int index) {

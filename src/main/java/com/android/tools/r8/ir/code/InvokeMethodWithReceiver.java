@@ -269,6 +269,6 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
       }
     }
 
-    return optimizationInfo.mayHaveSideEffects();
+    return optimizationInfo.mayHaveSideEffects(this, appView.options());
   }
 }

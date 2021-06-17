@@ -91,7 +91,7 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
               // ?: in aOrDefault
               // TODO(b/179951729): Not the same amount of ifz on CF and DEX.
               assertEquals(testParameters.isCfRuntime() ? 0 : 1, ifzCount);
-              assertEquals(allowAccessModification ? 0 : 1, paramNullCheckCount);
+              assertEquals(0, paramNullCheckCount);
             });
   }
 

@@ -263,7 +263,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableInliningOfInvokesWithNullableReceivers = true;
   public boolean disableInliningOfLibraryMethodOverrides = true;
   public boolean enableSimpleInliningConstraints = true;
-  public int simpleInliningConstraintThreshold = 0;
+  public final int simpleInliningConstraintThreshold = 0;
   public boolean enableClassInlining = true;
   public boolean enableClassStaticizer = true;
   public boolean enableInitializedClassesAnalysis = true;

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.references.FieldReference;
 
 public abstract class DexClassAndField extends DexClassAndMember<DexEncodedField, DexField> {
@@ -33,6 +34,11 @@ public abstract class DexClassAndField extends DexClassAndMember<DexEncodedField
 
   public FieldReference getFieldReference() {
     return getReference().asFieldReference();
+  }
+
+  @Override
+  public FieldOptimizationInfo getOptimizationInfo() {
+    return getDefinition().getOptimizationInfo();
   }
 
   public DexType getType() {

@@ -12,11 +12,13 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableSet;
 import java.util.BitSet;
 import java.util.Set;
@@ -134,6 +136,11 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
+  public SimpleInliningConstraint getNopInliningConstraint(InternalOptions options) {
+    return NeverSimpleInliningConstraint.getInstance();
+  }
+
+  @Override
   public SimpleInliningConstraint getSimpleInliningConstraint() {
     return NeverSimpleInliningConstraint.getInstance();
   }
@@ -165,6 +172,11 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
 
   @Override
   public boolean mayHaveSideEffects() {
+    return UNKNOWN_MAY_HAVE_SIDE_EFFECTS;
+  }
+
+  @Override
+  public boolean mayHaveSideEffects(InvokeMethod invoke, InternalOptions options) {
     return UNKNOWN_MAY_HAVE_SIDE_EFFECTS;
   }
 

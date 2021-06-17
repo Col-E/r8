@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
@@ -78,6 +79,8 @@ public abstract class MethodOptimizationInfo
 
   public abstract AbstractValue getAbstractReturnValue();
 
+  public abstract SimpleInliningConstraint getNopInliningConstraint(InternalOptions options);
+
   public abstract SimpleInliningConstraint getSimpleInliningConstraint();
 
   public abstract boolean forceInline();
@@ -89,6 +92,9 @@ public abstract class MethodOptimizationInfo
   public abstract boolean triggersClassInitBeforeAnySideEffect();
 
   public abstract boolean mayHaveSideEffects();
+
+  /** Context sensitive version of {@link #mayHaveSideEffects()}. */
+  public abstract boolean mayHaveSideEffects(InvokeMethod invoke, InternalOptions options);
 
   public abstract boolean returnValueOnlyDependsOnArguments();
 

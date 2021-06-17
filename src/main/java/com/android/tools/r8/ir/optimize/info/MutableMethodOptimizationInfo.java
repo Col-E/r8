@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
@@ -24,6 +25,7 @@ import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.BitSet;
 import java.util.Optional;
 import java.util.Set;
@@ -322,6 +324,15 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   @Override
+  public SimpleInliningConstraint getNopInliningConstraint(InternalOptions options) {
+    // We currently require that having a simple inlining constraint implies that the method becomes
+    // empty after inlining. Therefore, an invoke is a nop if the simple inlining constraint is
+    // satisfied (if the invoke does not trigger other side effects, such as class initialization).
+    assert options.simpleInliningConstraintThreshold == 0;
+    return getSimpleInliningConstraint();
+  }
+
+  @Override
   public SimpleInliningConstraint getSimpleInliningConstraint() {
     return simpleInliningConstraint;
   }
@@ -354,6 +365,17 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   @Override
   public boolean mayHaveSideEffects() {
     return isFlagSet(MAY_HAVE_SIDE_EFFECT_FLAG);
+  }
+
+  @Override
+  public boolean mayHaveSideEffects(InvokeMethod invoke, InternalOptions options) {
+    if (!mayHaveSideEffects()) {
+      return false;
+    }
+    if (getNopInliningConstraint(options).isSatisfied(invoke)) {
+      return false;
+    }
+    return true;
   }
 
   @Override

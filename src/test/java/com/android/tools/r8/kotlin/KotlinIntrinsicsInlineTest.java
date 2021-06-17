@@ -130,10 +130,10 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
               MethodSubject method = main.uniqueMethodWithName(methodName);
               assertThat(method, isPresent());
               int arity = method.getMethod().getReference().getArity();
-              // One from the method's own argument, if any, and
-              // Two from Array utils, `contains` and `indexOf`, if inlined with access relaxation.
+              // One for each of the method's own arguments, unless building with
+              // -allowaccessmodification.
               assertEquals(
-                  allowAccessModification ? 0 : arity + 2,
+                  allowAccessModification ? 0 : arity,
                   countCall(method, "checkParameterIsNotNull"));
             });
   }

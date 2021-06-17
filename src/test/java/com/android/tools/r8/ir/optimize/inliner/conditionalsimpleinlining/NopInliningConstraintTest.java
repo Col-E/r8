@@ -55,10 +55,10 @@ public class NopInliningConstraintTest extends TestBase {
                   mainClassSubject.uniqueMethodWithName("checkNotNull");
               assertThat(checkNotNullMethodSubject, isPresent());
 
-              // There are two calls to checkNotNull() in main().
-              // TODO(b/191131830): Should only be one.
+              // There is a single call to checkNotNull() in main(), as checkNotNull(newObject())
+              // is dead code eliminated.
               assertEquals(
-                  2,
+                  1,
                   mainClassSubject
                       .mainMethod()
                       .streamInstructions()

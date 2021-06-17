@@ -160,7 +160,7 @@ public class IdempotentFunctionCallCanonicalizer {
           }
 
           MethodOptimizationInfo optimizationInfo = target.getDefinition().getOptimizationInfo();
-          if (optimizationInfo.mayHaveSideEffects()
+          if (optimizationInfo.mayHaveSideEffects(invoke, appViewWithLiveness.options())
               || !optimizationInfo.returnValueOnlyDependsOnArguments()) {
             continue;
           }
