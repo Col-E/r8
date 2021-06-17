@@ -82,7 +82,10 @@ def CheckForCopyRight(input_api, output_api, branch):
   return results
 
 def CopyRightInContents(f, contents):
-  expected = ('#' if f.LocalPath().endswith('.py') else '//') + ' Copyright'
+  expected = '//'
+  if f.LocalPath().endswith('.py') or f.LocalPath().endswith('.sh'):
+    expected = '#'
+  expected = expected + ' Copyright'
   for content_line in contents:
     if expected in content_line:
       return True
