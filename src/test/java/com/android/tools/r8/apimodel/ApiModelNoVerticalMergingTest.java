@@ -56,8 +56,7 @@ public class ApiModelNoVerticalMergingTest extends TestBase {
             inspector -> {
               if (parameters.isDexRuntime()
                   && parameters.getApiLevel().isGreaterThanOrEqualTo(L_MR1)) {
-                inspector.assertMergedIntoSubtype(
-                    ApiModelNoVerticalMergingSubReferenceApiTest.Base.class);
+                inspector.assertMergedIntoSubtype(Base.class);
               } else {
                 inspector.assertNoClassesMerged();
               }
