@@ -9,6 +9,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.utils.StringUtils;
+import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,13 +48,45 @@ public class NestPrivateInterfaceMethodsTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(getClassWithNest(I.class), getClassWithNest(J.class))
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(191115349): Nest desugar does not downgrade the classfile version.
+        // TODO(b/191115349): Nest desugar does not downgrade the classfile version.
         .applyIf(
             c ->
                 DesugarTestConfiguration.isNotJavac(c)
                     || parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11),
             r -> r.assertSuccessWithOutput(EXPECTED),
             r -> r.assertFailureWithErrorThatThrows(UnsupportedClassVersionError.class));
+  }
+
+  @Test
+  public void testOnClasspath() throws Exception {
+    byte[] bytesI = getClassWithNest(I.class);
+    byte[] bytesJ = getClassWithNest(J.class);
+    Path outI =
+        testForD8(parameters.getBackend())
+            .addProgramClassFileData(bytesI)
+            .addClasspathClassFileData(bytesJ)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+    Path outJ =
+        testForD8(parameters.getBackend())
+            .addProgramClassFileData(bytesJ)
+            .addClasspathClassFileData(bytesI)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+    Path outTestClass =
+        testForD8(parameters.getBackend())
+            .addProgramClasses(TestClass.class)
+            .addClasspathClassFileData(bytesI, bytesJ)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+    testForD8(parameters.getBackend())
+        .addProgramFiles(outI, outJ, outTestClass)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   interface I {

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
@@ -157,6 +158,25 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
   }
 
   public abstract T addClasspathFiles(Collection<Path> files);
+
+  public T addClasspathClassFileData(byte[]... classes) {
+    return addClasspathClassFileData(Arrays.asList(classes));
+  }
+
+  public T addClasspathClassFileData(Collection<byte[]> classes) {
+    Path out;
+    try {
+      out = getState().getNewTempFolder().resolve("cp.jar");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    ArchiveConsumer consumer = new ArchiveConsumer(out);
+    for (byte[] bytes : classes) {
+      consumer.accept(ByteDataView.of(bytes), TestBase.extractClassDescriptor(bytes), null);
+    }
+    consumer.finished(null);
+    return addClasspathFiles(out);
+  }
 
   public final T addTestingAnnotationsAsProgramClasses() {
     return addProgramClasses(getTestingAnnotations());
