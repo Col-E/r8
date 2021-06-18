@@ -29,7 +29,7 @@ public abstract class OptimizationFeedback
     default void fixup(DexEncodedMember<?, ?> member) {
       MemberOptimizationInfo<?> optimizationInfo = member.getOptimizationInfo();
       if (optimizationInfo.isMutableOptimizationInfo()) {
-        member.apply(
+        member.accept(
             field -> {
               fixup(field, optimizationInfo.asMutableFieldOptimizationInfo());
             },

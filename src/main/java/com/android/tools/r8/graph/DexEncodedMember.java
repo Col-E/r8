@@ -69,7 +69,7 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
   public abstract <T> T apply(
       Function<DexEncodedField, T> fieldConsumer, Function<DexEncodedMethod, T> methodConsumer);
 
-  public void apply(
+  public void accept(
       Consumer<DexEncodedField> fieldConsumer, Consumer<DexEncodedMethod> methodConsumer) {
     apply(
         field -> {

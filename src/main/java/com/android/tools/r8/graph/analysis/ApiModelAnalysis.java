@@ -59,7 +59,7 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
     // swap the default optimization info for one with that marks the api level to be min api.
     MemberOptimizationInfo<?> optimizationInfo = member.getOptimizationInfo();
     if (!optimizationInfo.isMutableOptimizationInfo() && apiLevel == minApiLevel) {
-      member.apply(
+      member.accept(
           field -> {
             field.setMinApiOptimizationInfo(DefaultFieldOptimizationWithMinApiInfo.getInstance());
           },
@@ -71,7 +71,7 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
           optimizationInfo.hasApiReferenceLevel()
               ? apiLevel.max(optimizationInfo.getApiReferenceLevel(minApiLevel))
               : apiLevel;
-      member.apply(
+      member.accept(
           field -> {
             field.getMutableOptimizationInfo().setApiReferenceLevel(maxApiLevel);
           },
