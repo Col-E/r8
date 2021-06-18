@@ -43,6 +43,12 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
 
   NonEmptyCfInstructionDesugaringCollection(AppView<?> appView) {
     this.appView = appView;
+    if (appView.options().desugarState.isOff()) {
+      this.nestBasedAccessDesugaring = null;
+      this.recordRewriter = null;
+      this.desugaredLibraryRetargeter = null;
+      return;
+    }
     this.nestBasedAccessDesugaring = NestBasedAccessDesugaring.create(appView);
     BackportedMethodRewriter backportedMethodRewriter = null;
     desugaredLibraryRetargeter =
@@ -85,22 +91,25 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     }
   }
 
-  // TODO(b/145775365): special constructor for cf-to-cf compilations with desugaring disabled.
-  //  This should be removed once we can represent invoke-special instructions in the IR.
-  private NonEmptyCfInstructionDesugaringCollection(
-      AppView<?> appView, InvokeSpecialToSelfDesugaring invokeSpecialToSelfDesugaring) {
-    this.appView = appView;
-    this.nestBasedAccessDesugaring = null;
-    this.desugaredLibraryRetargeter = null;
-    this.recordRewriter = null;
-    desugarings.add(invokeSpecialToSelfDesugaring);
-  }
-
   static NonEmptyCfInstructionDesugaringCollection createForCfToCfNonDesugar(AppView<?> appView) {
     assert appView.options().desugarState.isOff();
     assert appView.options().isGeneratingClassFiles();
-    return new NonEmptyCfInstructionDesugaringCollection(
-        appView, new InvokeSpecialToSelfDesugaring(appView));
+    NonEmptyCfInstructionDesugaringCollection desugaringCollection =
+        new NonEmptyCfInstructionDesugaringCollection(appView);
+    // TODO(b/145775365): special constructor for cf-to-cf compilations with desugaring disabled.
+    //  This should be removed once we can represent invoke-special instructions in the IR.
+    desugaringCollection.desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
+    return desugaringCollection;
+  }
+
+  static NonEmptyCfInstructionDesugaringCollection createForCfToDexNonDesugar(AppView<?> appView) {
+    assert appView.options().desugarState.isOff();
+    assert appView.options().isGeneratingDex();
+    NonEmptyCfInstructionDesugaringCollection desugaringCollection =
+        new NonEmptyCfInstructionDesugaringCollection(appView);
+    desugaringCollection.desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
+    desugaringCollection.desugarings.add(new InvokeToPrivateRewriter());
+    return desugaringCollection;
   }
 
   private void ensureCfCode(ProgramMethod method) {

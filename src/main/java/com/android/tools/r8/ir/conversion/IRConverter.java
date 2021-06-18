@@ -1168,7 +1168,8 @@ public class IRConverter {
       ProgramMethod method,
       CfInstructionDesugaringEventConsumer desugaringEventConsumer,
       MethodProcessingContext methodProcessingContext) {
-    if (options.desugarState.isOff() || !method.getDefinition().getCode().isCfCode()) {
+    // Due to some mandatory desugarings, we need to run desugaring even if desugaring is disabled.
+    if (!method.getDefinition().getCode().isCfCode()) {
       return false;
     }
     instructionDesugaring.scan(method, desugaringEventConsumer);

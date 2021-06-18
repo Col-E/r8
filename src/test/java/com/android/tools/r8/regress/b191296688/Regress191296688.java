@@ -6,6 +6,10 @@ package com.android.tools.r8.regress.b191296688;
 
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.isInvokeWithTarget;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
@@ -15,6 +19,10 @@ import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
 import org.junit.Test;
@@ -23,6 +31,8 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class Regress191296688 extends KotlinTestBase {
+
+  private static final String PKG = Regress191296688.class.getPackage().getName();
 
   private final TestParameters parameters;
 
@@ -45,8 +55,7 @@ public class Regress191296688 extends KotlinTestBase {
   public void testRegress191296688() throws Exception {
     Path aLib = temp.newFolder().toPath().resolve("alib.jar");
     writeClassesToJar(aLib, A.class);
-    String pkg = getClass().getPackage().getName();
-    String folder = DescriptorUtils.getBinaryNameFromJavaType(pkg);
+    String folder = DescriptorUtils.getBinaryNameFromJavaType(PKG);
     CfRuntime cfRuntime = TestRuntime.getCheckedInJdk9();
     Path ktClasses =
         kotlinc(cfRuntime, kotlinc, targetVersion)
@@ -58,16 +67,29 @@ public class Regress191296688 extends KotlinTestBase {
             .addLibraryFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(ktClasses)
             .addProgramClasses(A.class)
-            .addOptionsModification(o -> o.cfToCfDesugar = true)
             .setMinApi(parameters.getApiLevel())
             .compile()
+            .inspect(this::verifyVirtualCallToPrivate)
             .writeToZip();
     testForD8()
         .addProgramFiles(desugaredJar)
         .setMinApi(parameters.getApiLevel())
         .disableDesugaring()
-        .run(parameters.getRuntime(), pkg + ".BKt")
-        // TDOO(b/191296688): This should succeed.
-        .assertFailure();
+        .run(parameters.getRuntime(), PKG + ".BKt")
+        .assertSuccessWithOutputLines("hep");
+  }
+
+  private void verifyVirtualCallToPrivate(CodeInspector inspector) {
+    ClassSubject bClassSubject = inspector.clazz(PKG + ".B");
+    MethodSubject proceedMethodSubject = bClassSubject.uniqueMethodWithName("proceed");
+    assertThat(proceedMethodSubject, isPresent());
+    assertTrue(
+        bClassSubject.allMethods().stream()
+            .anyMatch(
+                method ->
+                    method
+                        .streamInstructions()
+                        .filter(InstructionSubject::isInvokeVirtual)
+                        .anyMatch(isInvokeWithTarget(proceedMethodSubject))));
   }
 }

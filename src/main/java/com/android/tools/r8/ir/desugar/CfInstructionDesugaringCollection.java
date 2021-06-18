@@ -28,7 +28,7 @@ public abstract class CfInstructionDesugaringCollection {
     if (appView.options().isGeneratingClassFiles()) {
       return NonEmptyCfInstructionDesugaringCollection.createForCfToCfNonDesugar(appView);
     }
-    return empty();
+    return NonEmptyCfInstructionDesugaringCollection.createForCfToDexNonDesugar(appView);
   }
 
   public static CfInstructionDesugaringCollection empty() {
