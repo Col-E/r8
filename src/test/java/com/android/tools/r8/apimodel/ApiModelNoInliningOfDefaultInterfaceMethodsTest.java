@@ -53,9 +53,9 @@ public class ApiModelNoInliningOfDefaultInterfaceMethodsTest extends TestBase {
               assertThat(aSubject, isPresent());
               aSubject.forAllMethods(
                   method -> {
-                    // TODO(b/191013385): callApiLevel is merged into A, but not with method
-                    // implementation.
-                    // TODO(b/191013233): Check that the bridge is supposed to stay in R8.
+                    // TODO(b/191013385): noApiCall is inlined into Main, but the synthesized
+                    //  A.callApiLevel that dispatches to $CC is not. This should change after
+                    //  desugaring is moved up to the enqueuer.
                     if (method
                             .getOriginalName()
                             .equals(ApiCaller.class.getTypeName() + ".callApiLevel")
