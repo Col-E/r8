@@ -492,18 +492,26 @@ task downloadAndroidCts {
     }
 }
 
-task downloadDeps {
+task downloadCloudDeps() {
     cloudDependencies.each { entry ->
         entry.value.each { entryFile ->
             dependsOn "${getDownloadDepsTaskName(entry.key, entryFile)}"
         }
     }
-    if (!project.hasProperty('no_internal')) {
-        x20Dependencies.each { entry ->
-            entry.value.each { entryFile ->
-                dependsOn "${getDownloadDepsTaskName(entry.key, entryFile)}"
-            }
+}
+
+task downloadX20Deps() {
+    x20Dependencies.each { entry ->
+        entry.value.each { entryFile ->
+            dependsOn "${getDownloadDepsTaskName(entry.key, entryFile)}"
         }
+    }
+}
+
+task downloadDeps {
+    dependsOn downloadCloudDeps
+    if (!project.hasProperty('no_internal')) {
+        dependsOn downloadX20Deps
     }
 }
 
@@ -538,7 +546,7 @@ if (OperatingSystem.current().isWindows()) {
     }
 }
 
-compileJava.dependsOn downloadDeps
+compileJava.dependsOn downloadCloudDeps
 
 sourceSets.configureEach { sourceSet ->
     tasks.named(sourceSet.compileJavaTaskName).configure {
@@ -729,7 +737,7 @@ static mergeServiceFiles(ShadowJar task) {
 }
 
 task repackageDepsNew(type: ShadowJar) {
-    dependsOn downloadDeps
+    dependsOn downloadCloudDeps
     configurations = [project.configurations.runtimeClasspath]
     mergeServiceFiles(it)
     exclude { it.getRelativePath().getPathString().endsWith("module-info.class") }
