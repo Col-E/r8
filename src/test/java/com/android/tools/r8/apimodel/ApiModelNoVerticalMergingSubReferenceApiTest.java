@@ -4,30 +4,29 @@
 
 package com.android.tools.r8.apimodel;
 
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.addTracedApiReferenceLevelCallBack;
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.utils.AndroidApiLevel.L_MR1;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.apimodel.ApiModelNoVerticalMergingSubReferenceApiTest.Base;
-import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import java.lang.reflect.Method;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ApiModelVerticalMergingOfSuperClassTest extends TestBase {
+public class ApiModelNoVerticalMergingSubReferenceApiTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -36,33 +35,23 @@ public class ApiModelVerticalMergingOfSuperClassTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public ApiModelVerticalMergingOfSuperClassTest(TestParameters parameters) {
+  public ApiModelNoVerticalMergingSubReferenceApiTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
-  @Test
+  @Test()
   public void testR8() throws Exception {
+    Method apiMethod = Api.class.getDeclaredMethod("apiLevel22");
     testForR8(parameters.getBackend())
-        .addProgramClasses(A.class, B.class, Main.class)
+        .addProgramClasses(Main.class, Base.class, Sub.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
+        .apply(setMockApiLevelForMethod(apiMethod, L_MR1))
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .apply(setMockApiLevelForClass(Api.class, AndroidApiLevel.L_MR1))
-        .apply(setMockApiLevelForDefaultInstanceInitializer(Api.class, AndroidApiLevel.L_MR1))
-        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
-        .apply(
-            addTracedApiReferenceLevelCallBack(
-                (methodReference, apiLevel) -> {
-                  if (methodReference.getMethodName().equals("<init>")
-                      && methodReference
-                          .getHolderClass()
-                          .equals(Reference.classFromClass(Api.class))) {
-                    assertEquals(AndroidApiLevel.L_MR1, apiLevel);
-                  }
-                }))
         .addVerticallyMergedClassesInspector(
             inspector -> {
               if (parameters.isDexRuntime()
@@ -72,43 +61,59 @@ public class ApiModelVerticalMergingOfSuperClassTest extends TestBase {
                 inspector.assertNoClassesMerged();
               }
             })
+        .noMinification()
         .compile()
         .inspect(
             inspector -> {
+              ClassSubject base = inspector.clazz(Base.class);
               if (parameters.isDexRuntime()
-                  && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L_MR1)) {
-                assertThat(inspector.clazz(A.class), not(isPresent()));
+                  && parameters.getApiLevel().isGreaterThanOrEqualTo(L_MR1)) {
+                assertThat(base, not(isPresent()));
+                ClassSubject sub = inspector.clazz(Sub.class);
+                List<FoundMethodSubject> callApis =
+                    sub.allMethods(
+                        method ->
+                            method.getOriginalName().equals(Base.class.getTypeName() + ".callApi"));
+                // TODO(b/191013233): Remove synthetic bridge. Remove noMinification after fixed.
+                assertEquals(2, callApis.size());
               } else {
-                assertThat(inspector.clazz(A.class), isPresent());
+                assertThat(base, isPresent());
               }
             })
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello World!");
+        .assertSuccessWithOutputLines("Sub::callCallApi", "Base::callApi", "Api::apiLevel22");
   }
 
-  public static class Api {}
+  public static class Api {
 
-  public static class A extends Api {
+    public static void apiLevel22() {
+      System.out.println("Api::apiLevel22");
+    }
+  }
 
-    @NeverInline
-    public void bar() {
-      System.out.println("Hello World!");
+  public static class Base {
+
+    public void callApi() {
+      System.out.println("Base::callApi");
     }
   }
 
   @NeverClassInline
-  public static class B extends A {
+  public static class Sub extends Base {
 
-    public void foo() {
-      bar();
+    @NeverInline
+    public void callCallApi() {
+      System.out.println("Sub::callCallApi");
+      callApi();
+      Api.apiLevel22();
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      new B().foo();
+      new Sub().callCallApi();
     }
   }
 }

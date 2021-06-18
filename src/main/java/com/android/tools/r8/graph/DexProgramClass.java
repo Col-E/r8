@@ -15,11 +15,13 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import com.android.tools.r8.ir.optimize.info.MemberOptimizationInfo;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticMarker;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -32,6 +34,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -833,5 +836,27 @@ public class DexProgramClass extends DexClass
 
   public ChecksumSupplier getChecksumSupplier() {
     return checksumSupplier;
+  }
+
+  public AndroidApiLevel getApiReferenceLevel(
+      AndroidApiLevel minApiLevel,
+      BiFunction<DexReference, AndroidApiLevel, AndroidApiLevel> apiLevelLookup) {
+    // The api level of a class is the max level of it's members, super class and interfaces.
+    AndroidApiLevel computedApiLevel = minApiLevel;
+    for (DexType superType : allImmediateSupertypes()) {
+      computedApiLevel = apiLevelLookup.apply(superType, computedApiLevel);
+      if (computedApiLevel == AndroidApiLevel.UNKNOWN) {
+        return AndroidApiLevel.UNKNOWN;
+      }
+    }
+    for (DexEncodedMember<?, ?> member : members()) {
+      MemberOptimizationInfo<?> optimizationInfo = member.getOptimizationInfo();
+      assert optimizationInfo.hasApiReferenceLevel();
+      computedApiLevel = optimizationInfo.getApiReferenceLevel(computedApiLevel);
+      if (computedApiLevel == AndroidApiLevel.UNKNOWN) {
+        return AndroidApiLevel.UNKNOWN;
+      }
+    }
+    return computedApiLevel;
   }
 }

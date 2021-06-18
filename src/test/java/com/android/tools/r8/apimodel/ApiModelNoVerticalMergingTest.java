@@ -52,20 +52,34 @@ public class ApiModelNoVerticalMergingTest extends TestBase {
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .addVerticallyMergedClassesInspector(
+            inspector -> {
+              if (parameters.isDexRuntime()
+                  && parameters.getApiLevel().isGreaterThanOrEqualTo(L_MR1)) {
+                inspector.assertMergedIntoSubtype(
+                    ApiModelNoVerticalMergingSubReferenceApiTest.Base.class);
+              } else {
+                inspector.assertNoClassesMerged();
+              }
+            })
         .noMinification()
         .compile()
         .inspect(
             inspector -> {
-              // TODO(b/191013385): Prevent Base merging with Sub.
               ClassSubject base = inspector.clazz(Base.class);
-              assertThat(base, not(isPresent()));
-              ClassSubject sub = inspector.clazz(Sub.class);
-              List<FoundMethodSubject> callApis =
-                  sub.allMethods(
-                      method ->
-                          method.getOriginalName().equals(Base.class.getTypeName() + ".callApi"));
-              // TODO(b/191013233): Remove synthetic bridge.
-              assertEquals(2, callApis.size());
+              if (parameters.isDexRuntime()
+                  && parameters.getApiLevel().isGreaterThanOrEqualTo(L_MR1)) {
+                assertThat(base, not(isPresent()));
+                ClassSubject sub = inspector.clazz(Sub.class);
+                List<FoundMethodSubject> callApis =
+                    sub.allMethods(
+                        method ->
+                            method.getOriginalName().equals(Base.class.getTypeName() + ".callApi"));
+                // TODO(b/191013233): Remove synthetic bridge. Remove noMinification after fixed.
+                assertEquals(2, callApis.size());
+              } else {
+                assertThat(base, isPresent());
+              }
             })
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)

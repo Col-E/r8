@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 
+import com.android.tools.r8.androidapi.AndroidApiReferenceLevelCache;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -53,6 +54,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -117,7 +119,8 @@ public class VerticalClassMerger {
     UNHANDLED_INVOKE_DIRECT,
     UNHANDLED_INVOKE_SUPER,
     UNSAFE_INLINING,
-    UNSUPPORTED_ATTRIBUTES;
+    UNSUPPORTED_ATTRIBUTES,
+    API_REFERENCE_LEVEL;
 
     public void printLogMessageForClass(DexClass clazz) {
       Log.info(VerticalClassMerger.class, getMessageForClass(clazz));
@@ -180,6 +183,9 @@ public class VerticalClassMerger {
         case UNSUPPORTED_ATTRIBUTES:
           message = "since inner-class attributes are not supported";
           break;
+        case API_REFERENCE_LEVEL:
+          message = "since source class references a higher api-level than target";
+          break;
         default:
           assert false;
       }
@@ -201,6 +207,7 @@ public class VerticalClassMerger {
   private final MethodPoolCollection methodPoolCollection;
   private final Timing timing;
   private Collection<DexMethod> invokes;
+  private final AndroidApiReferenceLevelCache apiReferenceLevelCache;
 
   private final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
@@ -235,6 +242,7 @@ public class VerticalClassMerger {
     this.executorService = executorService;
     this.methodPoolCollection = new MethodPoolCollection(appView, subtypingInfo);
     this.lensBuilder = new VerticalClassMergerGraphLens.Builder(appView.dexItemFactory());
+    this.apiReferenceLevelCache = AndroidApiReferenceLevelCache.create(appView);
     this.timing = timing;
 
     Iterable<DexProgramClass> classes = application.classesWithDeterministicOrder();
@@ -418,6 +426,21 @@ public class VerticalClassMerger {
         AbortReason.MERGE_ACROSS_NESTS.printLogMessageForClass(sourceClass);
       }
       return false;
+    }
+    // Only merge if api reference level of source class is equal to target class.
+    if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
+      AndroidApiLevel sourceApiLevel =
+          sourceClass.getApiReferenceLevel(
+              appView.options().minApiLevel, apiReferenceLevelCache::lookupMax);
+      AndroidApiLevel targetApiLevel =
+          targetClass.getApiReferenceLevel(
+              appView.options().minApiLevel, apiReferenceLevelCache::lookupMax);
+      if (sourceApiLevel != targetApiLevel) {
+        if (Log.ENABLED) {
+          AbortReason.API_REFERENCE_LEVEL.printLogMessageForClass(sourceClass);
+        }
+        return false;
+      }
     }
     return true;
   }

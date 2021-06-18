@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.CodeMatchers;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Field;
@@ -100,27 +101,38 @@ public abstract class ApiModelingTestHelper {
   }
 
   static ApiModelingMethodVerificationHelper verifyThat(TestParameters parameters, Method method) {
-    return new ApiModelingMethodVerificationHelper(parameters, method);
+    return new ApiModelingMethodVerificationHelper(parameters, Reference.methodFromMethod(method));
   }
 
   public static class ApiModelingMethodVerificationHelper {
 
-    private final Method methodOfInterest;
+    private final MethodReference methodOfInterest;
     private final TestParameters parameters;
 
-    public ApiModelingMethodVerificationHelper(TestParameters parameters, Method methodOfInterest) {
+    private ApiModelingMethodVerificationHelper(
+        TestParameters parameters, MethodReference methodOfInterest) {
       this.methodOfInterest = methodOfInterest;
       this.parameters = parameters;
     }
 
-    protected ThrowingConsumer<CodeInspector, Exception> inlinedIntoFromApiLevel(
+    public ApiModelingMethodVerificationHelper setHolder(FoundClassSubject classSubject) {
+      return new ApiModelingMethodVerificationHelper(
+          parameters,
+          Reference.method(
+              classSubject.getFinalReference(),
+              methodOfInterest.getMethodName(),
+              methodOfInterest.getFormalTypes(),
+              methodOfInterest.getReturnType()));
+    }
+
+    ThrowingConsumer<CodeInspector, Exception> inlinedIntoFromApiLevel(
         Method method, AndroidApiLevel apiLevel) {
       return parameters.isDexRuntime() && parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevel)
           ? inlinedInto(method)
           : notInlinedInto(method);
     }
 
-    protected ThrowingConsumer<CodeInspector, Exception> notInlinedInto(Method method) {
+    ThrowingConsumer<CodeInspector, Exception> notInlinedInto(Method method) {
       return inspector -> {
         MethodSubject candidate = inspector.method(methodOfInterest);
         assertThat(candidate, isPresent());
@@ -130,7 +142,7 @@ public abstract class ApiModelingTestHelper {
       };
     }
 
-    public ThrowingConsumer<CodeInspector, Exception> inlinedInto(Method method) {
+    ThrowingConsumer<CodeInspector, Exception> inlinedInto(Method method) {
       return inspector -> {
         MethodSubject candidate = inspector.method(methodOfInterest);
         if (!candidate.isPresent()) {

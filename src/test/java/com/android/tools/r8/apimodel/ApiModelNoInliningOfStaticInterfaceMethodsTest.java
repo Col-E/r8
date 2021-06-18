@@ -5,17 +5,18 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static com.android.tools.r8.utils.AndroidApiLevel.L_MR1;
+import static com.android.tools.r8.utils.AndroidApiLevel.O;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeMatchers;
-import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.lang.reflect.Method;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,7 +30,7 @@ public class ApiModelNoInliningOfStaticInterfaceMethodsTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   public ApiModelNoInliningOfStaticInterfaceMethodsTest(TestParameters parameters) {
@@ -38,38 +39,52 @@ public class ApiModelNoInliningOfStaticInterfaceMethodsTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    Method apiMethod = Api.class.getDeclaredMethod("apiLevel22");
-    // Method apiCaller = ApiCaller.class.getDeclaredMethod("callApiLevel");
+    Method apiMethod22 = Api.class.getDeclaredMethod("apiLevel22");
+    Method apiMethod26 = Api.class.getDeclaredMethod("apiLevel26");
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, A.class, ApiCaller.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
-        .apply(setMockApiLevelForMethod(apiMethod, L_MR1))
+        .apply(setMockApiLevelForMethod(apiMethod22, L_MR1))
+        .apply(setMockApiLevelForMethod(apiMethod26, O))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .noMinification()
+        .enableInliningAnnotations()
         .compile()
         .inspect(
             inspector -> {
               // The call to the api is moved to $-CC (or stays) and is then merged if allowed.
-              if (parameters.isDexRuntime()
-                  && parameters.getApiLevel().isGreaterThanOrEqualTo(L_MR1)) {
-                assertEquals(1, inspector.allClasses().size());
+              Method callApiLevel22 = ApiCaller.class.getDeclaredMethod("callApiLevel22");
+              Method callApiLevel26 = ApiCaller.class.getDeclaredMethod("callApiLevel26");
+              Method noApiCallTo22 = A.class.getDeclaredMethod("noApiCallTo22");
+              Method noApiCallTo26 = A.class.getDeclaredMethod("noApiCallTo26");
+              if (!parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                ClassSubject companion = inspector.companionClassFor(ApiCaller.class);
+                assertThat(companion, isPresent());
+                FoundClassSubject foundCompanion = companion.asFoundClassSubject();
+                verifyThat(parameters, callApiLevel22)
+                    .setHolder(foundCompanion)
+                    .inlinedIntoFromApiLevel(noApiCallTo22, L_MR1);
+                verifyThat(parameters, callApiLevel26)
+                    .setHolder(foundCompanion)
+                    .inlinedIntoFromApiLevel(noApiCallTo26, O);
               } else {
-                assertEquals(2, inspector.allClasses().size());
-                ClassSubject aSubject = inspector.clazz(A.class);
-                assertThat(aSubject, isPresent());
-                // TODO(b/191008231): Should not invoke api here but stay on the CC class.
-                assertEquals(1, aSubject.allMethods().size());
-                MethodSubject callApiLevel = aSubject.uniqueMethodWithName("callApiLevel");
-                assertThat(callApiLevel, isPresent());
-                assertThat(callApiLevel, CodeMatchers.invokesMethodWithName("apiLevel22"));
+                verifyThat(parameters, callApiLevel22)
+                    .inlinedIntoFromApiLevel(noApiCallTo22, L_MR1);
+                verifyThat(parameters, callApiLevel26).inlinedIntoFromApiLevel(noApiCallTo26, O);
               }
             })
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("A::noApiCall", "ApiCaller::callApiLevel", "Api::apiLevel22");
+        .assertSuccessWithOutputLines(
+            "A::noApiCallTo22",
+            "ApiCaller::callApiLevel22",
+            "Api::apiLevel22",
+            "A::noApiCallTo26",
+            "ApiCaller::callApiLevel26",
+            "Api::apiLevel26");
   }
 
   public static class Api {
@@ -77,27 +92,44 @@ public class ApiModelNoInliningOfStaticInterfaceMethodsTest extends TestBase {
     public static void apiLevel22() {
       System.out.println("Api::apiLevel22");
     }
-  }
 
-  public interface ApiCaller {
-    static void callApiLevel() {
-      System.out.println("ApiCaller::callApiLevel");
-      Api.apiLevel22();
+    public static void apiLevel26() {
+      System.out.println("Api::apiLevel26");
     }
   }
 
-  public static class A implements ApiCaller {
+  public interface ApiCaller {
+    static void callApiLevel22() {
+      System.out.println("ApiCaller::callApiLevel22");
+      Api.apiLevel22();
+    }
 
-    public static void noApiCall() {
-      System.out.println("A::noApiCall");
-      ApiCaller.callApiLevel();
+    static void callApiLevel26() {
+      System.out.println("ApiCaller::callApiLevel26");
+      Api.apiLevel26();
+    }
+  }
+
+  public static class A {
+
+    @NeverInline
+    public static void noApiCallTo22() {
+      System.out.println("A::noApiCallTo22");
+      ApiCaller.callApiLevel22();
+    }
+
+    @NeverInline
+    public static void noApiCallTo26() {
+      System.out.println("A::noApiCallTo26");
+      ApiCaller.callApiLevel26();
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      A.noApiCall();
+      A.noApiCallTo22();
+      A.noApiCallTo26();
     }
   }
 }
