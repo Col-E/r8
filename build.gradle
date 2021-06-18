@@ -538,6 +538,8 @@ if (OperatingSystem.current().isWindows()) {
     }
 }
 
+compileJava.dependsOn downloadDeps
+
 sourceSets.configureEach { sourceSet ->
     tasks.named(sourceSet.compileJavaTaskName).configure {
         // Default disable errorprone (enabled and setup below).
@@ -727,6 +729,7 @@ static mergeServiceFiles(ShadowJar task) {
 }
 
 task repackageDepsNew(type: ShadowJar) {
+    dependsOn downloadDeps
     configurations = [project.configurations.runtimeClasspath]
     mergeServiceFiles(it)
     exclude { it.getRelativePath().getPathString().endsWith("module-info.class") }

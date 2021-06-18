@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import java.util.Map;
+import java.util.function.BiFunction;
 
 public interface EnqueuerUseRegistryFactory {
 
@@ -17,5 +17,5 @@ public interface EnqueuerUseRegistryFactory {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramMethod currentMethod,
       Enqueuer enqueuer,
-      Map<DexReference, AndroidApiLevel> apiLevelReferenceMap);
+      BiFunction<DexReference, AndroidApiLevel, AndroidApiLevel> apiLevelReferenceMap);
 }

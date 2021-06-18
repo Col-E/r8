@@ -14,6 +14,7 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
+import com.android.tools.r8.androidapi.AndroidApiClass;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Backend;
@@ -37,7 +38,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
@@ -52,10 +52,10 @@ import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.repackaging.Repackaging.DefaultRepackagingConfiguration;
 import com.android.tools.r8.repackaging.Repackaging.RepackagingConfiguration;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -84,10 +84,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -1319,21 +1321,68 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // A mapping from references to the api-level introducing them.
     public Map<MethodReference, AndroidApiLevel> methodApiMapping = new HashMap<>();
     public Map<FieldReference, AndroidApiLevel> fieldApiMapping = new HashMap<>();
-    public Map<TypeReference, AndroidApiLevel> typeApiMapping = new HashMap<>();
+    public Map<ClassReference, AndroidApiLevel> classApiMapping = new HashMap<>();
+    public BiConsumer<MethodReference, AndroidApiLevel> tracedMethodApiLevelCallback = null;
 
     public boolean enableApiCallerIdentification = false;
 
-    public void appendToApiLevelMap(
-        Map<DexReference, AndroidApiLevel> apiLevelMap, DexItemFactory factory) {
-      methodApiMapping.forEach(
-          (methodReference, apiLevel) ->
-              apiLevelMap.put(factory.createMethod(methodReference), apiLevel));
-      fieldApiMapping.forEach(
-          (fieldReference, apiLevel) ->
-              apiLevelMap.put(factory.createField(fieldReference), apiLevel));
-      typeApiMapping.forEach(
-          (typeReference, apiLevel) ->
-              apiLevelMap.put(factory.createType(typeReference.getDescriptor()), apiLevel));
+    public void visitMockedApiReferences(BiConsumer<ClassReference, AndroidApiClass> consumer) {
+      if (methodApiMapping.isEmpty() && fieldApiMapping.isEmpty() && classApiMapping.isEmpty()) {
+        return;
+      }
+      Set<ClassReference> classReferences = new HashSet<>(classApiMapping.keySet());
+      methodApiMapping
+          .keySet()
+          .forEach(methodReference -> classReferences.add(methodReference.getHolderClass()));
+      fieldApiMapping
+          .keySet()
+          .forEach(methodReference -> classReferences.add(methodReference.getHolderClass()));
+      classReferences.forEach(
+          classReference -> {
+            consumer.accept(
+                classReference,
+                new AndroidApiClass(classReference) {
+                  @Override
+                  public AndroidApiLevel getApiLevel() {
+                    return classApiMapping.getOrDefault(classReference, AndroidApiLevel.B);
+                  }
+
+                  @Override
+                  public int getMemberCount() {
+                    return 0;
+                  }
+
+                  @Override
+                  public TraversalContinuation visitFields(
+                      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor) {
+                    for (Entry<FieldReference, AndroidApiLevel> entry :
+                        fieldApiMapping.entrySet()) {
+                      if (!entry.getKey().getHolderClass().equals(classReference)) {
+                        continue;
+                      }
+                      if (EntryUtils.accept(entry, visitor).shouldBreak()) {
+                        return TraversalContinuation.BREAK;
+                      }
+                    }
+                    return TraversalContinuation.CONTINUE;
+                  }
+
+                  @Override
+                  public TraversalContinuation visitMethods(
+                      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation> visitor) {
+                    for (Entry<MethodReference, AndroidApiLevel> entry :
+                        methodApiMapping.entrySet()) {
+                      if (!entry.getKey().getHolderClass().equals(classReference)) {
+                        continue;
+                      }
+                      if (EntryUtils.accept(entry, visitor).shouldBreak()) {
+                        return TraversalContinuation.BREAK;
+                      }
+                    }
+                    return TraversalContinuation.CONTINUE;
+                  }
+                });
+          });
     }
   }
 

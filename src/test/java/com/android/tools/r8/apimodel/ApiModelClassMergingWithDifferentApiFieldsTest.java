@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.apimodel;
 
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForType;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -45,7 +45,7 @@ public class ApiModelClassMergingWithDifferentApiFieldsTest extends TestBase {
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertClassesMerged(A.class, B.class))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
-        .apply(setMockApiLevelForType(Api.class, AndroidApiLevel.L_MR1))
+        .apply(setMockApiLevelForClass(Api.class, AndroidApiLevel.L_MR1))
         .compile()
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)

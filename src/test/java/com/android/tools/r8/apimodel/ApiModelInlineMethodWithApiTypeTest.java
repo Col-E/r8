@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.apimodel;
 
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForType;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
@@ -46,7 +46,7 @@ public class ApiModelInlineMethodWithApiTypeTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .enableNoHorizontalClassMergingAnnotations()
-        .apply(setMockApiLevelForType(ApiType.class, AndroidApiLevel.L_MR1))
+        .apply(setMockApiLevelForClass(ApiType.class, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()
         .addRunClasspathClasses(ApiType.class)
