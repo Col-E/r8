@@ -288,71 +288,41 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
 
       getPostProcessingInterfaceInfo(iface).setHasNonClinitDirectMethods();
 
-      MethodAccessFlags originalFlags = method.getAccessFlags();
-      MethodAccessFlags newFlags = originalFlags.copy();
-      if (originalFlags.isPrivate()) {
-        newFlags.promoteToPublic();
-      }
-
-      DexMethod oldMethod = method.getReference();
+      ProgramMethod companion;
       if (isStaticMethod(definition)) {
-        assert originalFlags.isPrivate() || originalFlags.isPublic()
+        assert definition.isPrivate() || definition.isPublic()
             : "Static interface method "
                 + method.toSourceString()
                 + " is expected to "
                 + "either be public or private in "
                 + iface.origin;
-        ProgramMethod companion = rewriter.ensureStaticAsMethodOfProgramCompanionClassStub(method);
-        // TODO(b/183998768): R8 should also install an "invalid code" object until the actual code
-        //  moves.
-        assert appView.enableWholeProgramOptimizations()
-            || InvalidCode.isInvalidCode(companion.getDefinition().getCode());
-        if (definition.hasClassFileVersion()) {
-          companion.getDefinition().downgradeClassFileVersion(definition.getClassFileVersion());
+        companion = rewriter.ensureStaticAsMethodOfProgramCompanionClassStub(method);
+      } else {
+        assert definition.isPrivate();
+        companion = rewriter.ensurePrivateAsMethodOfProgramCompanionClassStub(method);
+        Code code = definition.getCode();
+        if (code == null) {
+          throw new CompilationError(
+              "Code is missing for private instance "
+                  + "interface method: "
+                  + method.getReference().toSourceString(),
+              iface.origin);
         }
-        companion.getDefinition().setCode(definition.getCode(), appView);
-        getPostProcessingInterfaceInfo(iface).moveMethod(oldMethod, companion.getReference());
-        definition.setCode(InvalidCode.getInstance(), appView);
-        continue;
+        DexEncodedMethod.setDebugInfoWithFakeThisParameter(
+            code, companion.getReference().getArity(), appView);
       }
 
-      assert originalFlags.isPrivate();
-
-      newFlags.promoteToStatic();
-
-      DexMethod companionMethod =
-          InterfaceMethodRewriter.privateAsMethodOfCompanionClass(
-              oldMethod, appView.dexItemFactory());
-
-      Code code = definition.getCode();
-      if (code == null) {
-        throw new CompilationError(
-            "Code is missing for private instance "
-                + "interface method: "
-                + oldMethod.toSourceString(),
-            iface.origin);
+      // TODO(b/183998768): R8 should also install an "invalid code" object until the actual code
+      //  moves.
+      assert appView.enableWholeProgramOptimizations()
+          || InvalidCode.isInvalidCode(companion.getDefinition().getCode());
+      if (definition.hasClassFileVersion()) {
+        companion.getDefinition().downgradeClassFileVersion(definition.getClassFileVersion());
       }
-
-      DexEncodedMethod.setDebugInfoWithFakeThisParameter(code, companionMethod.getArity(), appView);
-
-      ensureCompanionMethod(
-          iface,
-          companionMethod.getName(),
-          companionMethod.getProto(),
-          appView,
-          methodBuilder ->
-              methodBuilder
-                  .setAccessFlags(newFlags)
-                  .setGenericSignature(definition.getGenericSignature())
-                  .setAnnotations(definition.annotations())
-                  .setParameterAnnotationsList(definition.getParameterAnnotations())
-                  .setCode(ignored -> definition.getCode())
-                  .setOnBuildConsumer(
-                      implMethod -> {
-                        implMethod.copyMetadata(definition);
-                        getPostProcessingInterfaceInfo(iface)
-                            .moveMethod(oldMethod, companionMethod);
-                      }));
+      companion.getDefinition().setCode(definition.getCode(), appView);
+      getPostProcessingInterfaceInfo(iface)
+          .moveMethod(method.getReference(), companion.getReference());
+      definition.setCode(InvalidCode.getInstance(), appView);
     }
   }
 

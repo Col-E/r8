@@ -735,10 +735,18 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       // method is expected to be in the current class since it is private, but desugaring
       // may move some methods or their code into other classes.
       assert invokeNeedsRewriting(invokedMethod, DIRECT);
-      return rewriteInvoke.apply(
-          directTarget.getDefinition().isPrivateMethod()
-              ? privateAsMethodOfCompanionClass(directTarget)
-              : defaultAsMethodOfCompanionClass(directTarget));
+      DexMethod companionMethod;
+      if (directTarget.getDefinition().isPrivateMethod()) {
+        companionMethod =
+            directTarget.isProgramMethod()
+                ? ensurePrivateAsMethodOfProgramCompanionClassStub(directTarget.asProgramMethod())
+                    .getReference()
+                // TODO(b/183998768): Why does this not create a stub on the class path?
+                : privateAsMethodOfCompanionClass(directTarget);
+      } else {
+        companionMethod = defaultAsMethodOfCompanionClass(directTarget);
+      }
+      return rewriteInvoke.apply(companionMethod);
     } else {
       // The method can be a default method in the interface hierarchy.
       DexClassAndMethod virtualTarget =
@@ -1196,6 +1204,35 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     }
   }
 
+  ProgramMethod ensurePrivateAsMethodOfProgramCompanionClassStub(ProgramMethod method) {
+    DexMethod companionMethod =
+        privateAsMethodOfCompanionClass(method.getReference(), appView.dexItemFactory());
+    DexEncodedMethod definition = method.getDefinition();
+    return InterfaceProcessor.ensureCompanionMethod(
+        method.getHolder(),
+        companionMethod.getName(),
+        companionMethod.getProto(),
+        appView,
+        methodBuilder -> {
+          MethodAccessFlags newFlags = definition.getAccessFlags().copy();
+          assert newFlags.isPrivate();
+          newFlags.promoteToPublic();
+          newFlags.promoteToStatic();
+          methodBuilder
+              .setAccessFlags(newFlags)
+              .setGenericSignature(definition.getGenericSignature())
+              .setAnnotations(definition.annotations())
+              .setParameterAnnotationsList(definition.getParameterAnnotations())
+              // TODO(b/183998768): Once R8 desugars in the enqueuer this should set an invalid
+              //  code to ensure it is never used before desugared and installed.
+              .setCode(
+                  ignored ->
+                      appView.enableWholeProgramOptimizations()
+                          ? definition.getCode()
+                          : InvalidCode.getInstance());
+        });
+  }
+
   // Represent a static interface method as a method of companion class.
   final DexMethod staticAsMethodOfCompanionClass(DexClassAndMethod method) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
@@ -1299,7 +1336,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
               // TODO(b/183998768): Once R8 desugars in the enqueuer this should set an invalid
               //  code to ensure it is never used before desugared and installed.
               .setCode(
-                  m ->
+                  ignored ->
                       appView.enableWholeProgramOptimizations()
                           ? definition.getCode()
                           : InvalidCode.getInstance());
