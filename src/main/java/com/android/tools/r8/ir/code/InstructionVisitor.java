@@ -108,6 +108,8 @@ public interface InstructionVisitor<T> {
 
   T visit(NewInstance instruction);
 
+  T visit(NewUnboxedEnumInstance instruction);
+
   T visit(Not instruction);
 
   T visit(NumberConversion instruction);

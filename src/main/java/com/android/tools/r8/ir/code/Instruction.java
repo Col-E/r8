@@ -1011,6 +1011,14 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return null;
   }
 
+  public boolean isNewUnboxedEnumInstance() {
+    return false;
+  }
+
+  public NewUnboxedEnumInstance asNewUnboxedEnumInstance() {
+    return null;
+  }
+
   public boolean isNot() {
     return false;
   }

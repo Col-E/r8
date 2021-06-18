@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -151,6 +152,12 @@ public class InitializedClassesOnNormalExitAnalysis {
     @Override
     public Void visit(NewInstance instruction) {
       markInitializedOnNormalExit(instruction.clazz);
+      return null;
+    }
+
+    @Override
+    public Void visit(NewUnboxedEnumInstance instruction) {
+      assert false;
       return null;
     }
   }

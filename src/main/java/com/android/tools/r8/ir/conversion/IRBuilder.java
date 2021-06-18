@@ -91,6 +91,7 @@ import com.android.tools.r8.ir.code.Neg;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
 import com.android.tools.r8.ir.code.Not;
 import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.NumberGenerator;
@@ -1809,6 +1810,14 @@ public class IRBuilder {
     TypeElement instanceType = TypeElement.fromDexType(type, definitelyNotNull(), appView);
     Value out = writeRegister(dest, instanceType, ThrowingInfo.CAN_THROW);
     NewInstance instruction = new NewInstance(type, out);
+    assert instruction.instructionTypeCanThrow();
+    addInstruction(instruction);
+  }
+
+  public void addNewUnboxedEnumInstance(int dest, DexType type, int ordinal) {
+    TypeElement instanceType = TypeElement.fromDexType(type, definitelyNotNull(), appView);
+    Value out = writeRegister(dest, instanceType, ThrowingInfo.CAN_THROW);
+    NewUnboxedEnumInstance instruction = new NewUnboxedEnumInstance(type, ordinal, out);
     assert instruction.instructionTypeCanThrow();
     addInstruction(instruction);
   }

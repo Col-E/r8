@@ -37,6 +37,7 @@ import com.android.tools.r8.cf.code.CfMultiANewArray;
 import com.android.tools.r8.cf.code.CfNeg;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNewArray;
+import com.android.tools.r8.cf.code.CfNewUnboxedEnum;
 import com.android.tools.r8.cf.code.CfNop;
 import com.android.tools.r8.cf.code.CfNumberConversion;
 import com.android.tools.r8.cf.code.CfPosition;
@@ -501,6 +502,12 @@ public class CfPrinter {
         builder.append(Type.getType(elementDescriptor).getInternalName());
       }
     }
+  }
+
+  public void print(CfNewUnboxedEnum newInstance) {
+    indent();
+    builder.append("newunboxedenum ");
+    appendClass(newInstance.getType());
   }
 
   public void print(CfMultiANewArray multiANewArray) {

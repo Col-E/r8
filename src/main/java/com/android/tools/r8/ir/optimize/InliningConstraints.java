@@ -292,6 +292,10 @@ public class InliningConstraints {
     return ConstraintWithTarget.classIsVisible(context, type, appView);
   }
 
+  public ConstraintWithTarget forNewUnboxedEnumInstance(DexType type, ProgramMethod context) {
+    return ConstraintWithTarget.ALWAYS;
+  }
+
   public ConstraintWithTarget forAssume() {
     return ConstraintWithTarget.ALWAYS;
   }

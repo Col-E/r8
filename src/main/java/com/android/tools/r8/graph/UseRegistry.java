@@ -55,6 +55,10 @@ public abstract class UseRegistry {
     registerTypeReference(type);
   }
 
+  public void registerNewUnboxedEnumInstance(DexType type) {
+    registerTypeReference(type);
+  }
+
   public abstract void registerStaticFieldRead(DexField field);
 
   public void registerStaticFieldReadFromMethodHandle(DexField field) {
