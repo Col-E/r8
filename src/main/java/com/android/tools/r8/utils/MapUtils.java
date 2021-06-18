@@ -32,18 +32,18 @@ public class MapUtils {
     return ignore -> supplier.get();
   }
 
-  public static <K, V> Map<K, V> map(
-      Map<K, V> map,
-      IntFunction<Map<K, V>> factory,
-      Function<K, K> keyMapping,
-      Function<V, V> valueMapping,
-      BiFunction<V, V, V> valueMerger) {
-    Map<K, V> result = factory.apply(map.size());
+  public static <K1, V1, K2, V2> Map<K2, V2> map(
+      Map<K1, V1> map,
+      IntFunction<Map<K2, V2>> factory,
+      Function<K1, K2> keyMapping,
+      Function<V1, V2> valueMapping,
+      BiFunction<V2, V2, V2> valueMerger) {
+    Map<K2, V2> result = factory.apply(map.size());
     map.forEach(
         (key, value) -> {
-          K newKey = keyMapping.apply(key);
-          V newValue = valueMapping.apply(value);
-          V existingValue = result.put(newKey, newValue);
+          K2 newKey = keyMapping.apply(key);
+          V2 newValue = valueMapping.apply(value);
+          V2 existingValue = result.put(newKey, newValue);
           if (existingValue != null) {
             result.put(newKey, valueMerger.apply(existingValue, newValue));
           }
