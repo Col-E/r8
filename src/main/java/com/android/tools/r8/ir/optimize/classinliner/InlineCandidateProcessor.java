@@ -742,8 +742,12 @@ final class InlineCandidateProcessor {
     Set<BasicBlock> seen = Sets.newIdentityHashSet();
     Set<Instruction> users = eligibleInstance.uniqueUsers();
     for (Instruction user : users) {
+      if (!user.hasBlock()) {
+        continue;
+      }
+
       BasicBlock block = user.getBlock();
-      if (block == null || !seen.add(block)) {
+      if (!seen.add(block)) {
         continue;
       }
 
