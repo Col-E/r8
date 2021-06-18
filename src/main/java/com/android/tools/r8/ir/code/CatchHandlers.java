@@ -25,6 +25,10 @@ public class CatchHandlers<T> implements Iterable<CatchHandler<T>> {
       this.guard = guard;
       this.target = target;
     }
+
+    public T getTarget() {
+      return target;
+    }
   }
 
   private final List<DexType> guards;

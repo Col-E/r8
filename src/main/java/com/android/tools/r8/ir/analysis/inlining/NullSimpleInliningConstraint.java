@@ -28,9 +28,13 @@ public class NullSimpleInliningConstraint extends SimpleInliningArgumentConstrai
 
   @Override
   public boolean isSatisfied(InvokeMethod invoke) {
-    Value argument = getArgument(invoke);
-    assert argument.getType().isReferenceType();
-    return argument.getType().isDefinitelyNull();
+    // Take the root value to also deal with the following case, which may happen in dead code,
+    // where v1 is actually guaranteed to be null, despite the value's type being non-null:
+    //   v0 <- ConstNumber 0
+    //   v1 <- AssumeNotNull v0
+    Value argumentRoot = getArgument(invoke).getAliasedValue();
+    assert argumentRoot.getType().isReferenceType();
+    return argumentRoot.getType().isDefinitelyNull();
   }
 
   @Override

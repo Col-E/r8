@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 import static com.android.tools.r8.ir.code.IRCode.INSTRUCTION_NUMBER_DELTA;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
@@ -1497,6 +1498,19 @@ public class BasicBlock {
     block.close(null);
     block.setNumber(code.getNextBlockNumber());
     return block;
+  }
+
+  public boolean isInstructionBeforeThrowingInstruction(Instruction instruction) {
+    assert instruction.getBlock() == this;
+    for (Instruction candidate : getInstructions()) {
+      if (candidate == instruction) {
+        return true;
+      }
+      if (candidate.instructionTypeCanThrow()) {
+        return false;
+      }
+    }
+    throw new Unreachable();
   }
 
   public boolean isTrivialGoto() {

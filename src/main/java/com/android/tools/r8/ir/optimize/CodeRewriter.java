@@ -44,6 +44,7 @@ import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.Binop;
 import com.android.tools.r8.ir.code.CatchHandlers;
+import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -3108,6 +3109,7 @@ public class CodeRewriter {
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     ProgramMethod context = code.context();
+    boolean hasUnlinkedCatchHandlers = false;
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (block.getNumber() != 0 && block.getPredecessors().isEmpty()) {
@@ -3123,7 +3125,19 @@ public class CodeRewriter {
           Value inValue = instruction.getNonNullInput();
           if (inValue.isAlwaysNull(appView)) {
             // Insert `throw null` after the instruction if it is not guaranteed to throw an NPE.
-            if (instruction.isInstanceFieldInstruction()) {
+            if (instruction.isAssume()) {
+              // If this assume is in a block with catch handlers, then the out-value can have
+              // usages in the catch handler if the block's throwing instruction comes after the
+              // assume instruction. In this case, the catch handler is also guaranteed to be dead,
+              // so we detach it from the current block.
+              if (block.hasCatchHandlers()
+                  && block.isInstructionBeforeThrowingInstruction(instruction)) {
+                for (CatchHandler<BasicBlock> catchHandler : block.getCatchHandlers()) {
+                  catchHandler.getTarget().unlinkCatchHandler();
+                }
+                hasUnlinkedCatchHandlers = true;
+              }
+            } else if (instruction.isInstanceFieldInstruction()) {
               InstanceFieldInstruction instanceFieldInstruction =
                   instruction.asInstanceFieldInstruction();
               if (instanceFieldInstruction.instructionInstanceCanThrow(
@@ -3183,6 +3197,9 @@ public class CodeRewriter {
       }
     }
     code.removeBlocks(blocksToRemove);
+    if (hasUnlinkedCatchHandlers) {
+      affectedValues.addAll(code.removeUnreachableBlocks());
+    }
     assert code.getUnreachableBlocks().isEmpty();
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);

@@ -240,6 +240,16 @@ public class Assume extends Instruction {
   }
 
   @Override
+  public Value getNonNullInput() {
+    return src();
+  }
+
+  @Override
+  public boolean throwsOnNullInput() {
+    return true;
+  }
+
+  @Override
   public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
     assert super.verifyTypes(appView, verifyTypesHelper);
 
