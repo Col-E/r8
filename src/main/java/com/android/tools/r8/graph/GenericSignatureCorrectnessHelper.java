@@ -236,7 +236,7 @@ public class GenericSignatureCorrectnessHelper {
         // We represent no signature as object.
       } else if (context.superType
           != appView.graphLens().lookupClassType(classSignature.superClassSignature().type())) {
-        assert mode.doNotVerify();
+        assert mode.doNotVerify() : "Super type inconsistency in generic signature";
         return INVALID_SUPER_TYPE;
       }
       signatureEvaluationResult =
