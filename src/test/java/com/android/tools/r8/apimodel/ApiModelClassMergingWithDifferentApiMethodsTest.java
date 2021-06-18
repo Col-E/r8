@@ -42,9 +42,15 @@ public class ApiModelClassMergingWithDifferentApiMethodsTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        // TODO(b/138781768): Should not be merged
         .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertClassesMerged(A.class, B.class))
+            inspector -> {
+              if (parameters.isDexRuntime()
+                  && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L_MR1)) {
+                inspector.assertClassesMerged(A.class, B.class);
+              } else {
+                inspector.assertNoClassesMerged();
+              }
+            })
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
         .compile()

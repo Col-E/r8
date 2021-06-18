@@ -21,6 +21,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoDeadEnumLiteMaps;
 import com.android.tools.r8.horizontalclassmerging.policies.NoDeadLocks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoDefaultInterfaceMethodCollisions;
 import com.android.tools.r8.horizontalclassmerging.policies.NoDefaultInterfaceMethodMerging;
+import com.android.tools.r8.horizontalclassmerging.policies.NoDifferentApiReferenceLevel;
 import com.android.tools.r8.horizontalclassmerging.policies.NoDirectRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoEnums;
 import com.android.tools.r8.horizontalclassmerging.policies.NoIllegalInlining;
@@ -199,6 +200,7 @@ public class PolicyScheduler {
         new SameParentClass(),
         new SyntheticItemsPolicy(appView, mode),
         new RespectPackageBoundaries(appView),
+        new NoDifferentApiReferenceLevel(appView),
         new PreventClassMethodAndDefaultMethodCollisions(appView));
   }
 
