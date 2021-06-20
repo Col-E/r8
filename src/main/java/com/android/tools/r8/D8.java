@@ -44,7 +44,6 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
-import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.LineNumberOptimizer;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
@@ -348,8 +347,6 @@ public final class D8 {
   private static ProguardMapSupplier finalizeApplication(
       AndroidApp inputApp, AppView<AppInfo> appView, NamingLens namingLens) {
     SyntheticFinalization.finalize(appView);
-    // TODO(b/37830524): Once D8 supports PC mapping this will need to be run for that too.
-    assert appView.options().lineNumberOptimization == LineNumberOptimization.OFF;
     if (appView.options().proguardMapConsumer == null) {
       return null;
     }

@@ -5,6 +5,7 @@
 package com.android.tools.r8.debuginfo;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;
+import static com.android.tools.r8.utils.InternalOptions.LineNumberOptimization.ON;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNull;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -72,6 +73,11 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .addProgramClasses(MAIN)
         .setMinApi(parameters.getApiLevel())
         .internalEnableMappingOutput()
+        // TODO(b/191038746): Enable LineNumberOptimization for release builds for DEX PC Output.
+        .applyIf(
+            apiLevelSupportsPcOutput(),
+            builder ->
+                builder.addOptionsModification(options -> options.lineNumberOptimization = ON))
         .run(parameters.getRuntime(), MAIN)
         .inspectFailure(
             inspector -> {
