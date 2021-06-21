@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.DESCRIPTOR_VIVIFIED_PREFIX;
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter.DESCRIPTOR_VIVIFIED_PREFIX;
 import static com.android.tools.r8.utils.collections.IdentityHashSetFromMap.newProgramDerivedContextSet;
 
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;

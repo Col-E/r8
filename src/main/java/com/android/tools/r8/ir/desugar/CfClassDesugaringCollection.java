@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.ir.desugar.record.RecordRewriter;
 
 /** Interface for desugaring a class. */
 public abstract class CfClassDesugaringCollection {

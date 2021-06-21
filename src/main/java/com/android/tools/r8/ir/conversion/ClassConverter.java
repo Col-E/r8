@@ -112,6 +112,7 @@ public abstract class ClassConverter {
 
       classes = deferred;
     }
+
   }
 
   abstract void convertClass(

@@ -6,7 +6,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
-import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;

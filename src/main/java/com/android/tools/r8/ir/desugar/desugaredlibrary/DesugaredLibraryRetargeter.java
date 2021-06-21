@@ -1,10 +1,10 @@
-// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
-//  for details. All rights reserved. Use of this source code is governed by a
+// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.desugar;
+package com.android.tools.r8.ir.desugar.desugaredlibrary;
 
-import static com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter.InvokeRetargetingResult.NO_REWRITING;
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeter.InvokeRetargetingResult.NO_REWRITING;
 
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -46,6 +46,10 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.FreshLocalProvider;
+import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
@@ -219,7 +223,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   }
 
   // Used by the ListOfBackportedMethods utility.
-  void visit(Consumer<DexMethod> consumer) {
+  public void visit(Consumer<DexMethod> consumer) {
     retargetLibraryMember.keySet().forEach(consumer);
   }
 
@@ -807,6 +811,5 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
               message,
               retarget);
     }
-
   }
 }

@@ -19,7 +19,7 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.RecordRewriter;
+import com.android.tools.r8.ir.desugar.record.RecordRewriter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;

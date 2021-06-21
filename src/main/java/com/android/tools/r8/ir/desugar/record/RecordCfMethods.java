@@ -6,7 +6,7 @@
 // GENERATED FILE. DO NOT EDIT! See GenerateRecordMethods.java.
 // ***********************************************************************************
 
-package com.android.tools.r8.ir.desugar;
+package com.android.tools.r8.ir.desugar.record;
 
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArrayLength;
