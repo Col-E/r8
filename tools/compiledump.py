@@ -62,7 +62,7 @@ def make_parser():
     default=False,
     action='store_true')
   parser.add_argument(
-    '--printtimes',
+    '--print-times',
     help='Print timing information from r8',
     default=False,
     action='store_true')
@@ -300,7 +300,7 @@ def run1(out, args, otherargs, jdkhome=None):
       cmd.append('-Xmx' + args.xmx)
     if args.ea:
       cmd.append('-ea')
-    if args.printtimes:
+    if args.print_times:
       cmd.append('-Dcom.android.tools.r8.printtimes=1')
     if hasattr(args, 'properties'):
       cmd.extend(args.properties);
@@ -345,7 +345,7 @@ def run1(out, args, otherargs, jdkhome=None):
     cmd.extend(otherargs)
     utils.PrintCmd(cmd)
     try:
-      print(subprocess.check_output(cmd, stderr=subprocess.STDOUT))
+      print(subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8'))
       return 0
     except subprocess.CalledProcessError as e:
       if args.nolib \

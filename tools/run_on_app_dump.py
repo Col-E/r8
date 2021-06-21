@@ -10,7 +10,7 @@ import compiledump
 import gradle
 import hashlib
 import jdk
-import optparse
+import argparse
 import os
 import shutil
 import sys
@@ -664,6 +664,7 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     'config_file_consumer': remove_print_lines,
     'properties': app.compiler_properties,
     'disable_desugared_lib': False,
+    'print_times': options.print_times,
   })
 
   app_jar = os.path.join(
@@ -843,103 +844,108 @@ def log_comparison_results_for_app(app, result_per_shrinker, options):
 
 
 def parse_options(argv):
-  result = optparse.OptionParser()
-  result.add_option('--app',
-                    help='What app to run on',
-                    choices=[app.name for app in APPS],
-                    action='append')
-  result.add_option('--app-collection', '--app_collection',
-                    help='What app collection to run',
-                    choices=[collection.name for collection in APP_COLLECTIONS],
-                    action='append')
-  result.add_option('--app-logging-filter', '--app_logging_filter',
-                    help='The apps for which to turn on logging',
-                    action='append')
-  result.add_option('--bot',
-                    help='Running on bot, use third_party dependency.',
-                    default=False,
-                    action='store_true')
-  result.add_option('--generate-golem-config', '--generate_golem_config',
-                    help='Generate a new config for golem.',
-                    default=False,
-                    action='store_true')
-  result.add_option('--debug-agent',
-                    help='Enable Java debug agent and suspend compilation '
-                         '(default disabled)',
-                    default=False,
-                    action='store_true')
-  result.add_option('--disable-assertions', '--disable_assertions',
-                    help='Disable assertions when compiling',
-                    default=False,
-                    action='store_true')
-  result.add_option('--emulator-id', '--emulator_id',
-                    help='Id of the emulator to use',
-                    default='emulator-5554')
-  result.add_option('--golem',
-                    help='Running on golem, do not download',
-                    default=False,
-                    action='store_true')
-  result.add_option('--hash',
-                    help='The commit of R8 to use')
-  result.add_option('--internal',
-                    help='Run internal apps if set, otherwise run opensource',
-                    default=False,
-                    action='store_true')
-  result.add_option('--keystore',
-                    help='Path to app.keystore',
-                    default=os.path.join(utils.TOOLS_DIR, 'debug.keystore'))
-  result.add_option('--keystore-password', '--keystore_password',
-                    help='Password for app.keystore',
-                    default='android')
-  result.add_option('--monkey',
-                    help='Whether to install and run app(s) with monkey',
-                    default=False,
-                    action='store_true')
-  result.add_option('--monkey-events', '--monkey_events',
-                    help='Number of events that the monkey should trigger',
-                    default=250,
-                    type=int)
-  result.add_option('--no-build', '--no_build',
-                    help='Run without building ToT first (only when using ToT)',
-                    default=False,
-                    action='store_true')
-  result.add_option('--no-logging', '--no_logging',
-                    help='Disable logging except for errors',
-                    default=False,
-                    action='store_true')
-  result.add_option('--print-dexsegments',
-                    metavar='BENCHMARKNAME',
-                    help='Print the sizes of individual dex segments as ' +
-                         '\'<BENCHMARKNAME>-<APP>-<segment>(CodeSize): '
-                         '<bytes>\'')
-  result.add_option('--print-runtimeraw',
-                    metavar='BENCHMARKNAME',
-                    help='Print the line \'<BENCHMARKNAME>(RunTimeRaw):' +
-                        ' <elapsed> ms\' at the end where <elapsed> is' +
-                        ' the elapsed time in milliseconds.')
-  result.add_option('--quiet',
-                    help='Disable verbose logging',
-                    default=False,
-                    action='store_true')
-  result.add_option('--r8-compilation-steps', '--r8_compilation_steps',
-                    help='Number of times R8 should be run on each app',
-                    default=2,
-                    type=int)
-  result.add_option('--run-tests', '--run_tests',
-                    help='Whether to run instrumentation tests',
-                    default=False,
-                    action='store_true')
-  result.add_option('--sign-apks', '--sign_apks',
-                    help='Whether the APKs should be signed',
-                    default=False,
-                    action='store_true')
-  result.add_option('--shrinker',
-                    help='The shrinkers to use (by default, all are run)',
-                    action='append')
-  result.add_option('--version',
-                    default='main',
-                    help='The version of R8 to use (e.g., 1.4.51)')
-  (options, args) = result.parse_args(argv)
+  result = argparse.ArgumentParser(description = 'Run/compile dump artifacts.')
+  result.add_argument('--app',
+                      help='What app to run on',
+                      choices=[app.name for app in APPS],
+                      action='append')
+  result.add_argument('--app-collection', '--app_collection',
+                      help='What app collection to run',
+                      choices=[collection.name for collection in
+                               APP_COLLECTIONS],
+                      action='append')
+  result.add_argument('--app-logging-filter', '--app_logging_filter',
+                      help='The apps for which to turn on logging',
+                      action='append')
+  result.add_argument('--bot',
+                      help='Running on bot, use third_party dependency.',
+                      default=False,
+                      action='store_true')
+  result.add_argument('--generate-golem-config', '--generate_golem_config',
+                      help='Generate a new config for golem.',
+                      default=False,
+                      action='store_true')
+  result.add_argument('--debug-agent',
+                      help='Enable Java debug agent and suspend compilation '
+                           '(default disabled)',
+                      default=False,
+                      action='store_true')
+  result.add_argument('--disable-assertions', '--disable_assertions',
+                      help='Disable assertions when compiling',
+                      default=False,
+                      action='store_true')
+  result.add_argument('--emulator-id', '--emulator_id',
+                      help='Id of the emulator to use',
+                      default='emulator-5554')
+  result.add_argument('--golem',
+                      help='Running on golem, do not download',
+                      default=False,
+                      action='store_true')
+  result.add_argument('--hash',
+                      help='The commit of R8 to use')
+  result.add_argument('--internal',
+                      help='Run internal apps if set, otherwise run opensource',
+                      default=False,
+                      action='store_true')
+  result.add_argument('--keystore',
+                      help='Path to app.keystore',
+                      default=os.path.join(utils.TOOLS_DIR, 'debug.keystore'))
+  result.add_argument('--keystore-password', '--keystore_password',
+                      help='Password for app.keystore',
+                      default='android')
+  result.add_argument('--monkey',
+                      help='Whether to install and run app(s) with monkey',
+                      default=False,
+                      action='store_true')
+  result.add_argument('--monkey-events', '--monkey_events',
+                      help='Number of events that the monkey should trigger',
+                      default=250,
+                      type=int)
+  result.add_argument('--no-build', '--no_build',
+                      help='Run without building first (only when using ToT)',
+                      default=False,
+                      action='store_true')
+  result.add_argument('--no-logging', '--no_logging',
+                      help='Disable logging except for errors',
+                      default=False,
+                      action='store_true')
+  result.add_argument('--print-times',
+                      help='Print timing information from r8',
+                      default=False,
+                      action='store_true')
+  result.add_argument('--print-dexsegments',
+                      metavar='BENCHMARKNAME',
+                      help='Print the sizes of individual dex segments as ' +
+                           '\'<BENCHMARKNAME>-<APP>-<segment>(CodeSize): '
+                           '<bytes>\'')
+  result.add_argument('--print-runtimeraw',
+                      metavar='BENCHMARKNAME',
+                      help='Print the line \'<BENCHMARKNAME>(RunTimeRaw):' +
+                           ' <elapsed> ms\' at the end where <elapsed> is' +
+                           ' the elapsed time in milliseconds.')
+  result.add_argument('--quiet',
+                      help='Disable verbose logging',
+                      default=False,
+                      action='store_true')
+  result.add_argument('--r8-compilation-steps', '--r8_compilation_steps',
+                      help='Number of times R8 should be run on each app',
+                      default=2,
+                      type=int)
+  result.add_argument('--run-tests', '--run_tests',
+                      help='Whether to run instrumentation tests',
+                      default=False,
+                      action='store_true')
+  result.add_argument('--sign-apks', '--sign_apks',
+                      help='Whether the APKs should be signed',
+                      default=False,
+                      action='store_true')
+  result.add_argument('--shrinker',
+                      help='The shrinkers to use (by default, all are run)',
+                      action='append')
+  result.add_argument('--version',
+                      default='main',
+                      help='The version of R8 to use (e.g., 1.4.51)')
+  (options, args) = result.parse_known_args(argv)
 
   if options.app or options.app_collection:
     if not options.app:
