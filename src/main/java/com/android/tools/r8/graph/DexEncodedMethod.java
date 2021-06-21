@@ -222,7 +222,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     assert defaultInterfaceMethodImplementation == null;
     assert implementation != null;
     assert code != null;
-    assert code == implementation.getCode();
+    // TODO(b/183998768): Once R8 desugars in the enqueuer this should always be invalid code.
+    assert InvalidCode.isInvalidCode(code) || code == implementation.getCode();
     accessFlags.setAbstract();
     removeCode();
     defaultInterfaceMethodImplementation = implementation;

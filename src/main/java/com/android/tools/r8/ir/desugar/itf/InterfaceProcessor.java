@@ -34,7 +34,6 @@ import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -232,44 +231,19 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                   + method.toSourceString(),
               iface.origin);
         }
-
-        // Create a new method in a companion class to represent default method implementation.
-        DexMethod companionMethod = rewriter.defaultAsMethodOfCompanionClass(method);
-
         Code code = virtual.getCode();
         if (code == null) {
           throw new CompilationError(
               "Code is missing for default " + "interface method: " + method.toSourceString(),
               iface.origin);
         }
-
-        MethodAccessFlags newFlags = method.getAccessFlags().copy();
-        newFlags.promoteToStatic();
+        // Create a new method in a companion class to represent default method implementation.
+        ProgramMethod companion = rewriter.ensureDefaultAsMethodOfProgramCompanionClassStub(method);
         DexEncodedMethod.setDebugInfoWithFakeThisParameter(
-            code, companionMethod.getArity(), appView);
-
-        ensureCompanionMethod(
-            iface,
-            companionMethod.getName(),
-            companionMethod.getProto(),
-            appView,
-            methodBuilder ->
-                methodBuilder
-                    .setAccessFlags(newFlags)
-                    .setGenericSignature(MethodTypeSignature.noSignature())
-                    .setAnnotations(
-                        virtual
-                            .annotations()
-                            .methodParametersWithFakeThisArguments(appView.dexItemFactory()))
-                    .setParameterAnnotationsList(
-                        virtual.getParameterAnnotations().withFakeThisParameter())
-                    .setCode(ignored -> virtual.getCode())
-                    .setOnBuildConsumer(
-                        implMethod -> {
-                          implMethod.copyMetadata(virtual);
-                          getPostProcessingInterfaceInfo(iface)
-                              .mapDefaultMethodToCompanionMethod(virtual, implMethod);
-                        }));
+            code, companion.getReference().getArity(), appView);
+        finalizeMoveToCompanionMethod(method, companion);
+        getPostProcessingInterfaceInfo(iface)
+            .mapDefaultMethodToCompanionMethod(virtual, companion.getDefinition());
       }
     }
   }
@@ -300,7 +274,6 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
         companion = rewriter.ensureStaticAsMethodOfProgramCompanionClassStub(method);
       } else {
         assert definition.isPrivate();
-        companion = rewriter.ensurePrivateAsMethodOfProgramCompanionClassStub(method);
         Code code = definition.getCode();
         if (code == null) {
           throw new CompilationError(
@@ -309,22 +282,29 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                   + method.getReference().toSourceString(),
               iface.origin);
         }
+        companion = rewriter.ensurePrivateAsMethodOfProgramCompanionClassStub(method);
         DexEncodedMethod.setDebugInfoWithFakeThisParameter(
             code, companion.getReference().getArity(), appView);
       }
 
-      // TODO(b/183998768): R8 should also install an "invalid code" object until the actual code
-      //  moves.
-      assert appView.enableWholeProgramOptimizations()
-          || InvalidCode.isInvalidCode(companion.getDefinition().getCode());
-      if (definition.hasClassFileVersion()) {
-        companion.getDefinition().downgradeClassFileVersion(definition.getClassFileVersion());
-      }
-      companion.getDefinition().setCode(definition.getCode(), appView);
+      finalizeMoveToCompanionMethod(method, companion);
       getPostProcessingInterfaceInfo(iface)
           .moveMethod(method.getReference(), companion.getReference());
-      definition.setCode(InvalidCode.getInstance(), appView);
     }
+  }
+
+  private void finalizeMoveToCompanionMethod(ProgramMethod method, ProgramMethod companion) {
+    // TODO(b/183998768): R8 should also install an "invalid code" object until the actual code
+    //  moves.
+    assert appView.enableWholeProgramOptimizations()
+        || InvalidCode.isInvalidCode(companion.getDefinition().getCode());
+    DexProgramClass iface = method.getHolder();
+    DexEncodedMethod definition = method.getDefinition();
+    if (definition.hasClassFileVersion()) {
+      companion.getDefinition().downgradeClassFileVersion(definition.getClassFileVersion());
+    }
+    companion.getDefinition().setCode(definition.getCode(), appView);
+    definition.setCode(InvalidCode.getInstance(), appView);
   }
 
   private void clearDirectMethods(DexProgramClass iface) {

@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.desugar.itf;
 
 import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.emulateInterfaceLibraryMethod;
 
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexClass;
@@ -163,20 +162,20 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
 
   private void synthesizeEmulatedInterfaceMethod(
       ProgramMethod method, DexProgramClass theInterface, SyntheticMethodBuilder methodBuilder) {
+    assert !method.getDefinition().isStatic();
     DexMethod libraryMethod =
         method
             .getReference()
             .withHolder(emulatedInterfaces.get(theInterface.type), appView.dexItemFactory());
     DexMethod companionMethod =
-        method.getAccessFlags().isStatic()
-            ? rewriter.staticAsMethodOfCompanionClass(method)
-            : rewriter.defaultAsMethodOfCompanionClass(method);
+        rewriter.ensureDefaultAsMethodOfProgramCompanionClassStub(method).getReference();
     List<Pair<DexType, DexMethod>> extraDispatchCases =
         getDispatchCases(method, theInterface, companionMethod);
     DexMethod emulatedMethod = emulateInterfaceLibraryMethod(method, appView.dexItemFactory());
     methodBuilder
         .setName(emulatedMethod.getName())
         .setProto(emulatedMethod.getProto())
+        .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
         .setCode(
             theMethod ->
                 new EmulateInterfaceSyntheticCfCodeProvider(
@@ -185,10 +184,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
                         libraryMethod,
                         extraDispatchCases,
                         appView)
-                    .generateCfCode())
-        .setAccessFlags(
-            MethodAccessFlags.fromSharedAccessFlags(
-                Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC, false));
+                    .generateCfCode());
   }
 
   private List<Pair<DexType, DexMethod>> getDispatchCases(

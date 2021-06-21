@@ -819,7 +819,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
     // In desugared library, emulated interface methods can be overridden by retarget lib members.
     DexMethod forwardMethod =
         target.getHolder().isInterface()
-            ? rewriter.defaultAsMethodOfCompanionClass(target)
+            ? rewriter.ensureDefaultAsMethodOfCompanionClassStub(target).getReference()
             : appView.options().desugaredLibraryConfiguration.retargetMethod(target, appView);
     DexEncodedMethod desugaringForwardingMethod =
         DexEncodedMethod.createDesugaringForwardingMethod(
