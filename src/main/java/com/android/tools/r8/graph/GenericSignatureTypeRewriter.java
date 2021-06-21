@@ -29,31 +29,26 @@ public class GenericSignatureTypeRewriter {
   private final DexProgramClass context;
 
   private final ClassTypeSignature objectTypeSignature;
-  private final Predicate<DexType> hasGenericTypeVariables;
 
-  public GenericSignatureTypeRewriter(
-      AppView<?> appView, DexProgramClass context, Predicate<DexType> hasGenericTypeVariables) {
+  public GenericSignatureTypeRewriter(AppView<?> appView, DexProgramClass context) {
     this(
         appView.dexItemFactory(),
         appView.appInfo().hasLiveness()
             ? appView.appInfo().withLiveness()::wasPruned
             : alwaysFalse(),
         appView.graphLens()::lookupType,
-        context,
-        hasGenericTypeVariables);
+        context);
   }
 
   public GenericSignatureTypeRewriter(
       DexItemFactory factory,
       Predicate<DexType> wasPruned,
       Function<DexType, DexType> lookupType,
-      DexProgramClass context,
-      Predicate<DexType> hasGenericTypeVariables) {
+      DexProgramClass context) {
     this.factory = factory;
     this.wasPruned = wasPruned;
     this.lookupType = lookupType;
     this.context = context;
-    this.hasGenericTypeVariables = hasGenericTypeVariables;
     objectTypeSignature = new ClassTypeSignature(factory.objectType, getEmptyTypeArguments());
   }
 
@@ -143,11 +138,10 @@ public class GenericSignatureTypeRewriter {
 
     @Override
     public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
-      if (context.superType == factory.objectType) {
-        return objectTypeSignature;
-      }
       ClassTypeSignature rewritten = classTypeSignature.visit(this);
-      return rewritten == null ? objectTypeSignature : rewritten;
+      return rewritten == null || rewritten.type() == context.type
+          ? objectTypeSignature
+          : rewritten;
     }
 
     @Override
@@ -248,9 +242,6 @@ public class GenericSignatureTypeRewriter {
         DexType type, List<FieldTypeSignature> typeArguments) {
       if (typeArguments.isEmpty()) {
         return typeArguments;
-      }
-      if (!hasGenericTypeVariables.test(type)) {
-        return getEmptyTypeArguments();
       }
       return ListUtils.mapOrElse(
           typeArguments,

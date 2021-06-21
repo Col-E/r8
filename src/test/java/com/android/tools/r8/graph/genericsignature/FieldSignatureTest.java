@@ -122,8 +122,7 @@ public class FieldSignatureTest extends TestBase {
             "A", "Lfoo/bar/Baz;", Origin.unknown(), factory, new Reporter());
     assertTrue(parsed.hasSignature());
     GenericSignatureTypeRewriter rewriter =
-        new GenericSignatureTypeRewriter(
-            factory, alwaysTrue(), Function.identity(), null, alwaysTrue());
+        new GenericSignatureTypeRewriter(factory, alwaysTrue(), Function.identity(), null);
     FieldTypeSignature rewrittenType = rewriter.rewrite(parsed);
     assertNotNull(rewrittenType);
     assertTrue(rewrittenType.hasNoSignature());
