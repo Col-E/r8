@@ -107,7 +107,7 @@ public abstract class ClassConverter {
         assert instructionDesugaringEventConsumer.verifyNothingToFinalize();
       }
 
-      converter.finalizeDesugaredLibraryRetargeting(instructionDesugaringEventConsumer);
+      converter.ensureDesugaredLibraryRetargetingFinalized(instructionDesugaringEventConsumer);
       assert instructionDesugaringEventConsumer.verifyNothingToFinalize();
 
       classes = deferred;

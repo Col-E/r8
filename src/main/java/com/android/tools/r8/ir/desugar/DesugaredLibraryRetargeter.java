@@ -519,8 +519,8 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     }
   }
 
-  public void finalizeDesugaring(DesugaredLibraryRetargeterEventConsumer eventConsumer) {
-    new EmulatedDispatchTreeFixer().fixApp(eventConsumer);
+  public void ensureDesugaringFinalized(DesugaredLibraryRetargeterEventConsumer eventConsumer) {
+    new EmulatedDispatchTreeFixer().ensureAppFixed(eventConsumer);
   }
 
   private void rewriteType(DexType type) {
@@ -669,7 +669,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   public void synthesizeRetargetClasses(IRConverter converter, ExecutorService executorService)
       throws ExecutionException {
     assert appView.enableWholeProgramOptimizations();
-    new EmulatedDispatchTreeFixer().fixApp(null);
+    new EmulatedDispatchTreeFixer().ensureAppFixed(null);
     converter.processMethodsConcurrently(forwardingMethods, executorService);
   }
 
@@ -678,15 +678,15 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   // synthesize the interfaces and emulated dispatch classes in the desugared library.
   class EmulatedDispatchTreeFixer {
 
-    void fixApp(DesugaredLibraryRetargeterEventConsumer eventConsumer) {
+    void ensureAppFixed(DesugaredLibraryRetargeterEventConsumer eventConsumer) {
       if (appView.options().isDesugaredLibraryCompilation()) {
-        synthesizeEmulatedDispatchMethods(eventConsumer);
+        ensureEmulatedDispatchMethodsSynthesized(eventConsumer);
       } else {
-        addInterfacesAndForwardingMethods(eventConsumer);
+        ensureInterfacesAndForwardingMethodsSynthesized(eventConsumer);
       }
     }
 
-    private void addInterfacesAndForwardingMethods(
+    private void ensureInterfacesAndForwardingMethodsSynthesized(
         DesugaredLibraryRetargeterEventConsumer eventConsumer) {
       assert !appView.options().isDesugaredLibraryCompilation();
       Map<DexType, List<DexClassAndMethod>> map = Maps.newIdentityHashMap();
@@ -708,7 +708,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
           map.forEach(
               (type, methods) -> {
                 if (inherit(superclass.asLibraryClass(), type, emulatedDispatchMethods)) {
-                  addInterfacesAndForwardingMethods(eventConsumer, clazz, methods);
+                  ensureInterfacesAndForwardingMethodsSynthesized(eventConsumer, clazz, methods);
                 }
               });
         }
@@ -735,7 +735,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
       return false;
     }
 
-    private void addInterfacesAndForwardingMethods(
+    private void ensureInterfacesAndForwardingMethodsSynthesized(
         DesugaredLibraryRetargeterEventConsumer eventConsumer,
         DexProgramClass clazz,
         List<DexClassAndMethod> methods) {
@@ -775,7 +775,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
           target, clazz, forwardMethod, appView.dexItemFactory());
     }
 
-    private void synthesizeEmulatedDispatchMethods(
+    private void ensureEmulatedDispatchMethodsSynthesized(
         DesugaredLibraryRetargeterEventConsumer eventConsumer) {
       assert appView.options().isDesugaredLibraryCompilation();
       if (emulatedDispatchMethods.isEmpty()) {

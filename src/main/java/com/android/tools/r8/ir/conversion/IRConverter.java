@@ -372,10 +372,10 @@ public class IRConverter {
         D8NestBasedAccessDesugaring::clearNestAttributes);
   }
 
-  public void finalizeDesugaredLibraryRetargeting(
+  public void ensureDesugaredLibraryRetargetingFinalized(
       D8CfInstructionDesugaringEventConsumer instructionDesugaringEventConsumer) {
     instructionDesugaring.withDesugaredLibraryRetargeter(
-        retargeter -> retargeter.finalizeDesugaring(instructionDesugaringEventConsumer));
+        retargeter -> retargeter.ensureDesugaringFinalized(instructionDesugaringEventConsumer));
   }
 
   private void staticizeClasses(
