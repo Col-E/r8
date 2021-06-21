@@ -268,7 +268,7 @@ public class GenericSignatureContextBuilder {
     }
   }
 
-  public boolean hasGenericTypeVariables(
+  public static boolean hasGenericTypeVariables(
       AppView<?> appView, DexType type, Predicate<DexType> wasPruned) {
     if (wasPruned.test(type)) {
       return false;

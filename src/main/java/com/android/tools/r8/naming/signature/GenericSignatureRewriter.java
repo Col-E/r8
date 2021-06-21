@@ -50,11 +50,11 @@ public class GenericSignatureRewriter {
     // ClassNameMinifier.
     Predicate<DexType> wasPruned =
         appView.hasLiveness() ? appView.withLiveness().appInfo()::wasPruned : alwaysFalse();
+    Predicate<DexType> hasGenericTypeVariables =
+        type -> GenericSignatureContextBuilder.hasGenericTypeVariables(appView, type, wasPruned);
     BiPredicate<DexType, DexType> hasPrunedRelationship =
         (enclosing, enclosed) ->
             contextBuilder.hasPrunedRelationship(appView, enclosing, enclosed, wasPruned);
-    Predicate<DexType> hasGenericTypeVariables =
-        type -> contextBuilder.hasGenericTypeVariables(appView, type, wasPruned);
     ThreadUtils.processItems(
         classes,
         clazz -> {
@@ -68,7 +68,7 @@ public class GenericSignatureRewriter {
                       hasGenericTypeVariables)
                   : null;
           GenericSignatureTypeRewriter genericSignatureTypeRewriter =
-              new GenericSignatureTypeRewriter(appView, clazz);
+              new GenericSignatureTypeRewriter(appView, clazz, hasGenericTypeVariables);
           clazz.setClassSignature(
               genericSignatureTypeRewriter.rewrite(
                   classArgumentApplier != null
