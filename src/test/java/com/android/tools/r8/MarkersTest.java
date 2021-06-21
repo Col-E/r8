@@ -16,6 +16,7 @@ import static com.android.tools.r8.MarkerMatcher.markerR8Mode;
 import static com.android.tools.r8.MarkerMatcher.markerTool;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.dex.Marker;
@@ -37,26 +38,36 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class MarkersTest extends TestBase {
 
-  @Parameterized.Parameters(name = "{0}, compilationMode {1}, shrinkDesugaredLibrary {2}")
+  @Parameterized.Parameters(
+      name = "{0}, compilationMode {1}, shrinkDesugaredLibrary {2}, noCfMarkerForDesugaredCode {3}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withNoneRuntime().build(),
         CompilationMode.values(),
+        BooleanUtils.values(),
         BooleanUtils.values());
   }
 
   private final CompilationMode compilationMode;
   private final boolean shrinkDesugaredLibrary;
+  private final boolean noCfMarkerForDesugaredCode;
 
   public MarkersTest(
-      TestParameters parameters, CompilationMode compilationMode, boolean shrinkDesugaredLibrary) {
+      TestParameters parameters,
+      CompilationMode compilationMode,
+      boolean shrinkDesugaredLibrary,
+      boolean noCfMarkerForDesugaredCode) {
     parameters.assertNoneRuntime();
     this.compilationMode = compilationMode;
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+    this.noCfMarkerForDesugaredCode = noCfMarkerForDesugaredCode;
   }
 
   @Test
   public void testL8Marker() throws Throwable {
+    // This option is not relevant for L8.
+    assumeTrue(!noCfMarkerForDesugaredCode);
+
     AndroidApiLevel apiLevel = AndroidApiLevel.L;
     Path output = temp.newFolder().toPath().resolve("desugar_jdk_libs.zip");
     L8Command.Builder builder =
@@ -109,7 +120,12 @@ public class MarkersTest extends TestBase {
             .setMode(compilationMode)
             .setMinApiLevel(apiLevel.getLevel())
             .setOutput(output, OutputMode.DexIndexed);
-    D8.run(builder.build());
+    if (noCfMarkerForDesugaredCode) {
+      ToolHelper.runD8(
+          builder, options -> options.desugarSpecificOptions().noCfMarkerForDesugaredCode = true);
+    } else {
+      D8.run(builder.build());
+    }
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
     Matcher<Marker> matcher =
         allOf(
@@ -136,17 +152,24 @@ public class MarkersTest extends TestBase {
             .setMode(compilationMode)
             .setMinApiLevel(apiLevel.getLevel())
             .setOutput(output, OutputMode.ClassFile);
-    D8.run(builder.build());
-    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
-    Matcher<Marker> matcher =
-        allOf(
-            markerTool(Tool.D8),
-            markerCompilationMode(compilationMode),
-            markerBackend(Backend.CF),
-            markerIsDesugared(),
-            markerMinApi(apiLevel),
-            not(markerHasDesugaredLibraryIdentifier()));
-    assertMarkersMatch(markers, matcher);
+    if (noCfMarkerForDesugaredCode) {
+      ToolHelper.runD8(
+          builder, options -> options.desugarSpecificOptions().noCfMarkerForDesugaredCode = true);
+      Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+      assertTrue(markers.isEmpty());
+    } else {
+      D8.run(builder.build());
+      Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+      Matcher<Marker> matcher =
+          allOf(
+              markerTool(Tool.D8),
+              markerCompilationMode(compilationMode),
+              markerBackend(Backend.CF),
+              markerIsDesugared(),
+              markerMinApi(apiLevel),
+              not(markerHasDesugaredLibraryIdentifier()));
+      assertMarkersMatch(markers, matcher);
+    }
   }
 
   @Test
@@ -164,7 +187,13 @@ public class MarkersTest extends TestBase {
             .setMode(compilationMode)
             .setMinApiLevel(apiLevel.getLevel())
             .setOutput(output, OutputMode.DexIndexed);
-    R8.run(builder.build());
+    if (noCfMarkerForDesugaredCode) {
+      ToolHelper.runR8(
+          builder.build(),
+          options -> options.desugarSpecificOptions().noCfMarkerForDesugaredCode = true);
+    } else {
+      R8.run(builder.build());
+    }
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
     Matcher<Marker> matcher =
         allOf(
@@ -190,7 +219,13 @@ public class MarkersTest extends TestBase {
             .addProguardConfiguration(ImmutableList.of("-keep class * { *; }"), Origin.unknown())
             .setMode(compilationMode)
             .setOutput(output, OutputMode.ClassFile);
-    R8.run(builder.build());
+    if (noCfMarkerForDesugaredCode) {
+      ToolHelper.runR8(
+          builder.build(),
+          options -> options.desugarSpecificOptions().noCfMarkerForDesugaredCode = true);
+    } else {
+      R8.run(builder.build());
+    }
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
     Matcher<Marker> matcher =
         allOf(
@@ -210,23 +245,29 @@ public class MarkersTest extends TestBase {
 
     AndroidApiLevel apiLevel = AndroidApiLevel.L;
     Path d8DesugaredOutput = temp.newFolder().toPath().resolve("output.zip");
-    D8.run(
+    D8Command.Builder builder =
         D8Command.builder()
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class))
             .setMode(compilationMode)
             .setMinApiLevel(apiLevel.getLevel())
-            .setOutput(d8DesugaredOutput, OutputMode.ClassFile)
-            .build());
-    assertMarkersMatch(
-        ExtractMarker.extractMarkerFromDexFile(d8DesugaredOutput),
-        allOf(
-            markerTool(Tool.D8),
-            markerCompilationMode(compilationMode),
-            markerIsDesugared(),
-            markerMinApi(apiLevel),
-            not(markerHasDesugaredLibraryIdentifier())));
-
+            .setOutput(d8DesugaredOutput, OutputMode.ClassFile);
+    if (noCfMarkerForDesugaredCode) {
+      ToolHelper.runD8(
+          builder, options -> options.desugarSpecificOptions().noCfMarkerForDesugaredCode = true);
+      Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(d8DesugaredOutput);
+      assertTrue(markers.isEmpty());
+    } else {
+      D8.run(builder.build());
+      assertMarkersMatch(
+          ExtractMarker.extractMarkerFromDexFile(d8DesugaredOutput),
+          allOf(
+              markerTool(Tool.D8),
+              markerCompilationMode(compilationMode),
+              markerIsDesugared(),
+              markerMinApi(apiLevel),
+              not(markerHasDesugaredLibraryIdentifier())));
+    }
     // Running R8 on desugared input will clear that information and leave no markers with
     // that information.
     Path output = temp.newFolder().toPath().resolve("output.zip");

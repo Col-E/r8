@@ -119,12 +119,23 @@ public class CfApplicationWriter {
     }
   }
 
+  private boolean includeMarker(Marker marker) {
+    if (marker.isRelocator()) {
+      return false;
+    }
+    assert marker.isCfBackend() || marker.isDexBackend();
+    if (options.desugarSpecificOptions().noCfMarkerForDesugaredCode) {
+      return !marker.isCfBackend() || !marker.isDesugared();
+    }
+    return true;
+  }
+
   private void writeApplication(ClassFileConsumer consumer) {
     if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
       marker.setPgMapId(proguardMapSupplier.writeProguardMap().get());
     }
     Optional<String> markerString =
-        marker.isRelocator() ? Optional.empty() : Optional.of(marker.toString());
+        includeMarker(marker) ? Optional.of(marker.toString()) : Optional.empty();
     LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(appView);
     for (DexProgramClass clazz : application.classes()) {
       assert SyntheticNaming.verifyNotInternalSynthetic(clazz.getType());

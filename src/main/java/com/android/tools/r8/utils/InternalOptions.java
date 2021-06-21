@@ -1188,6 +1188,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // will be passed-through without the problematic rewritings applied.
     public boolean allowAllDesugaredInput =
         System.getProperty("com.android.tools.r8.allowAllDesugaredInput") != null;
+    // See b/191469661 for why this is here.
+    public boolean noCfMarkerForDesugaredCode =
+        System.getProperty("com.android.tools.r8.noCfMarkerForDesugaredCode") != null;
   }
 
   public static class CallSiteOptimizationOptions {
