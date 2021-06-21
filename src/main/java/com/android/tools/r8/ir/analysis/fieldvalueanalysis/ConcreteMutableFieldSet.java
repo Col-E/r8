@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
@@ -69,10 +70,14 @@ public class ConcreteMutableFieldSet extends AbstractFieldSet implements KnownFi
   }
 
   @Override
-  public AbstractFieldSet rewrittenWithLens(AppView<?> appView, GraphLens lens) {
+  public AbstractFieldSet rewrittenWithLens(
+      AppView<?> appView, GraphLens lens, PrunedItems prunedItems) {
     assert !isEmpty();
     ConcreteMutableFieldSet rewrittenSet = new ConcreteMutableFieldSet();
     for (DexEncodedField field : fields) {
+      if (prunedItems.isRemoved(field.getReference())) {
+        continue;
+      }
       DexField rewrittenFieldReference = lens.lookupField(field.getReference());
       DexClass holder = appView.definitionForHolder(rewrittenFieldReference);
       DexEncodedField rewrittenField = rewrittenFieldReference.lookupOnClass(holder);

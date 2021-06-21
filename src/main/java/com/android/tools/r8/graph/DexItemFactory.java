@@ -2208,33 +2208,28 @@ public class DexItemFactory {
   }
 
   /**
-   * Tries to find a method name for insertion into the class {@code target} of the form baseName$n,
+   * Tries to find a method name for insertion into the class {@code holder} of the form baseName$n,
    * where {@code baseName} is supplied by the user, and {@code n} is picked to be the first number
    * so that {@code isFresh.apply(method)} returns {@code true}.
    */
-  public DexField createFreshFieldName(DexField template, Predicate<DexField> isFresh) {
-    return internalCreateFreshFieldName(template, null, isFresh);
-  }
-
-  /**
-   * Tries to find a method name for insertion into the class {@code target} of the form
-   * baseName$holder$n, where {@code baseName} and {@code holder} are supplied by the user, and
-   * {@code n} is picked to be the first number so that {@code isFresh.apply(method)} returns {@code
-   * true}.
-   *
-   * @param holder indicates where the method originates from.
-   */
-  public DexField createFreshFieldNameWithHolderSuffix(
-      DexField template, DexType holder, Predicate<DexField> isFresh) {
-    return internalCreateFreshFieldName(template, holder, isFresh);
+  public DexField createFreshFieldNameWithoutHolder(
+      DexType holder, DexType type, String baseName, Predicate<DexField> isFresh) {
+    return internalCreateFreshFieldName(null, holder, type, baseName, isFresh);
   }
 
   private DexField internalCreateFreshFieldName(
-      DexField template, DexType holder, Predicate<DexField> isFresh) {
+      DexType originalHolder,
+      DexType newHolder,
+      DexType type,
+      String baseName,
+      Predicate<DexField> isFresh) {
     return createFreshMember(
-        name -> Optional.of(template.withName(name, this)).filter(isFresh),
-        template.name.toSourceString(),
-        holder);
+        name -> {
+          DexField candidate = createField(newHolder, type, name);
+          return isFresh.test(candidate) ? Optional.of(candidate) : Optional.empty();
+        },
+        baseName,
+        originalHolder);
   }
 
   public DexMethod createClassInitializer(DexType holder) {

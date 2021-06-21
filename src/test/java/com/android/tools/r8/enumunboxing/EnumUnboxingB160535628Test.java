@@ -52,7 +52,10 @@ public class EnumUnboxingB160535628Test extends EnumUnboxingTestBase {
             .addEnumUnboxingInspector(
                 inspector ->
                     inspector
-                        .assertUnboxed(Lib.LibEnum.class)
+                        // Without the studio keep rules, LibEnum.valueOf() is removed, which is
+                        // used in this compilation, causing LibEnum to be ineligible for unboxing.
+                        .assertUnboxedIf(
+                            !missingStaticMethods || enumKeepRules.isStudio(), Lib.LibEnum.class)
                         .assertUnboxedIf(!missingStaticMethods, Lib.LibEnumStaticMethod.class))
             .allowDiagnosticMessages()
             .setMinApi(parameters.getApiLevel())

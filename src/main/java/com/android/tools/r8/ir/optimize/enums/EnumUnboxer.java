@@ -38,6 +38,7 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
@@ -251,7 +252,8 @@ public class EnumUnboxer {
           case Opcodes.INSTANCE_GET:
           case Opcodes.STATIC_PUT:
           case INSTANCE_PUT:
-            analyzeFieldInstruction(instruction.asFieldInstruction(), code);
+            analyzeFieldInstruction(
+                instruction.asFieldInstruction(), eligibleEnums, code.context());
             break;
           default: // Nothing to do for other instructions.
         }
@@ -279,13 +281,15 @@ public class EnumUnboxer {
     }
   }
 
-  private void analyzeFieldInstruction(FieldInstruction fieldInstruction, IRCode code) {
+  private void analyzeFieldInstruction(
+      FieldInstruction fieldInstruction, Set<DexType> eligibleEnums, ProgramMethod context) {
     DexField field = fieldInstruction.getField();
     DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(field.holder);
     if (enumClass != null) {
-      FieldResolutionResult resolutionResult =
-          appView.appInfo().resolveField(field, code.context());
-      if (resolutionResult.isFailedOrUnknownResolution()) {
+      FieldResolutionResult resolutionResult = appView.appInfo().resolveField(field, context);
+      if (resolutionResult.isSuccessfulResolution()) {
+        eligibleEnums.add(enumClass.getType());
+      } else {
         markEnumAsUnboxable(Reason.UNRESOLVABLE_FIELD, enumClass);
       }
     }
@@ -465,6 +469,7 @@ public class EnumUnboxer {
   }
 
   public void unboxEnums(
+      IRConverter converter,
       PostMethodProcessor.Builder postBuilder,
       ExecutorService executorService,
       OptimizationFeedbackDelayed feedback)
@@ -472,12 +477,16 @@ public class EnumUnboxer {
     assert candidatesToRemoveInWave.isEmpty();
     EnumDataMap enumDataMap = finishAnalysis();
     assert candidatesToRemoveInWave.isEmpty();
+
     // At this point the enum unboxing candidates are no longer candidates, they will all be
     // unboxed. We extract the now immutable enums to unbox information and clear the candidate
     // info.
     if (enumUnboxingCandidatesInfo.isEmpty()) {
+      assert enumDataMap.isEmpty();
+      appView.setUnboxedEnums(enumDataMap);
       return;
     }
+
     ImmutableSet<DexType> enumsToUnbox = enumUnboxingCandidatesInfo.candidates();
     ImmutableSet<DexProgramClass> enumClassesToUnbox =
         enumUnboxingCandidatesInfo.candidateClasses();
@@ -502,24 +511,28 @@ public class EnumUnboxer {
 
     fieldAccessInfoCollectionModifierBuilder.build().modify(appView);
     enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumDataMap, utilityClasses);
-    EnumUnboxingLens enumUnboxingLens =
-        new EnumUnboxingTreeFixer(appView, enumsToUnbox, utilityClasses, enumUnboxerRewriter)
-            .fixupTypeReferences();
+    EnumUnboxingTreeFixer.Result treeFixerResult =
+        new EnumUnboxingTreeFixer(appView, enumDataMap, enumClassesToUnbox, utilityClasses)
+            .fixupTypeReferences(converter, executorService);
+    EnumUnboxingLens enumUnboxingLens = treeFixerResult.getLens();
     enumUnboxerRewriter.setEnumUnboxingLens(enumUnboxingLens);
     appView.setUnboxedEnums(enumDataMap);
     GraphLens previousLens = appView.graphLens();
     appView.rewriteWithLensAndApplication(enumUnboxingLens, appBuilder.build());
-    updateOptimizationInfos(executorService, feedback);
+    updateOptimizationInfos(executorService, feedback, treeFixerResult.getPrunedItems());
     postBuilder.put(dependencies);
     // Methods depending on library modelisation need to be reprocessed so they are peephole
     // optimized.
     postBuilder.put(methodsDependingOnLibraryModelisation);
     methodsDependingOnLibraryModelisation.clear();
+    postBuilder.removePrunedMethods(treeFixerResult.getPrunedItems().getRemovedMethods());
     postBuilder.rewrittenWithLens(appView, previousLens);
   }
 
   private void updateOptimizationInfos(
-      ExecutorService executorService, OptimizationFeedbackDelayed feedback)
+      ExecutorService executorService,
+      OptimizationFeedbackDelayed feedback,
+      PrunedItems prunedItems)
       throws ExecutionException {
     feedback.fixupOptimizationInfos(
         appView,
@@ -538,7 +551,7 @@ public class EnumUnboxer {
             optimizationInfo
                 .fixupClassTypeReferences(appView, appView.graphLens())
                 .fixupAbstractReturnValue(appView, appView.graphLens())
-                .fixupInstanceInitializerInfo(appView, appView.graphLens());
+                .fixupInstanceInitializerInfo(appView, appView.graphLens(), prunedItems);
           }
         });
   }

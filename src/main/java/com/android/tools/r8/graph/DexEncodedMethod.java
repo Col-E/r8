@@ -1588,6 +1588,28 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
           !isLibraryMethodOverride.isUnknown(), isLibraryMethodOverride);
     }
 
+    public Builder unsetIsLibraryMethodOverride() {
+      this.isLibraryMethodOverride = OptionalBool.UNKNOWN;
+      return this;
+    }
+
+    public Builder clearAnnotations() {
+      return setAnnotations(DexAnnotationSet.empty());
+    }
+
+    public Builder clearParameterAnnotations() {
+      return setParameterAnnotations(ParameterAnnotationsList.empty());
+    }
+
+    public Builder clearAllAnnotations() {
+      return clearAnnotations().clearParameterAnnotations();
+    }
+
+    public Builder setAnnotations(DexAnnotationSet annotations) {
+      this.annotations = annotations;
+      return this;
+    }
+
     public Builder setParameterAnnotations(ParameterAnnotationsList parameterAnnotations) {
       this.parameterAnnotations = parameterAnnotations;
       return this;

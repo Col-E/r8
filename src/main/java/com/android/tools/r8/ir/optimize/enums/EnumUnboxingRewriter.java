@@ -37,6 +37,7 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.MemberType;
+import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
@@ -343,14 +344,14 @@ public class EnumUnboxingRewriter {
             // array. This is needed because the javac generated implementation of MyEnum.values()
             // is implemented as `return $VALUES.clone()`.
             removeRedundantValuesArrayCloning(invoke, instructionsToRemove, seenBlocks);
-          } else {
+          } else if (unboxedEnumsData.hasUnboxedValueFor(field)) {
             // Replace by ordinal + 1 for null check (null is 0).
-            assert unboxedEnumsData.hasUnboxedValueFor(field)
-                : "Invalid read to " + field.name + ", error during enum analysis";
             ConstNumber intConstant =
                 code.createIntConstant(unboxedEnumsData.getUnboxedValue(field));
             iterator.replaceCurrentInstruction(intConstant);
             convertedEnums.put(intConstant, holder);
+          } else {
+            // Nothing to do, handled by lens code rewriting.
           }
         }
 
@@ -386,6 +387,14 @@ public class EnumUnboxingRewriter {
             convertedEnums.put(instruction, enumType);
           }
           assert validateArrayAccess(arrayAccess);
+        }
+
+        if (instruction.isNewUnboxedEnumInstance()) {
+          NewUnboxedEnumInstance newUnboxedEnumInstance = instruction.asNewUnboxedEnumInstance();
+          assert unboxedEnumsData.isUnboxedEnum(newUnboxedEnumInstance.getType());
+          iterator.replaceCurrentInstruction(
+              code.createIntConstant(
+                  EnumUnboxer.ordinalToUnboxedInt(newUnboxedEnumInstance.getOrdinal())));
         }
       }
     }

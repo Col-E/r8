@@ -47,6 +47,14 @@ public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
     methods.forEach(this::add);
   }
 
+  public void remove(DexMethod method) {
+    methods.remove(method);
+  }
+
+  public void removeAll(Iterable<DexMethod> methods) {
+    methods.forEach(this::remove);
+  }
+
   public void rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens applied) {
     Set<DexMethod> newMethods = Sets.newIdentityHashSet();
     for (DexMethod method : methods) {

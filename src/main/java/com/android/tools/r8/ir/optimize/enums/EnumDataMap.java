@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.enums;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -21,6 +22,10 @@ public class EnumDataMap {
 
   public EnumDataMap(ImmutableMap<DexType, EnumData> map) {
     this.map = map;
+  }
+
+  public boolean isUnboxedEnum(DexProgramClass clazz) {
+    return isUnboxedEnum(clazz.getType());
   }
 
   public boolean isUnboxedEnum(DexType type) {
@@ -110,8 +115,16 @@ public class EnumDataMap {
       return unboxedValues.get(field);
     }
 
+    public boolean hasUnboxedValueFor(ProgramField field) {
+      return hasUnboxedValueFor(field.getReference());
+    }
+
     public boolean hasUnboxedValueFor(DexField field) {
-      return unboxedValues.get(field) != null;
+      return unboxedValues.containsKey(field);
+    }
+
+    public boolean matchesValuesField(ProgramField field) {
+      return matchesValuesField(field.getReference());
     }
 
     public boolean matchesValuesField(DexField field) {

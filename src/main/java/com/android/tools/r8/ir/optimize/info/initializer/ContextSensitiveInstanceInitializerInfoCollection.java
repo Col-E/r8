@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.info.initializer;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableMap;
@@ -49,9 +50,11 @@ public class ContextSensitiveInstanceInitializerInfoCollection
 
   @Override
   public InstanceInitializerInfoCollection rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems) {
     Builder builder = builder();
-    infos.forEach((context, info) -> builder.put(context, info.rewrittenWithLens(appView, lens)));
+    infos.forEach(
+        (context, info) ->
+            builder.put(context, info.rewrittenWithLens(appView, lens, prunedItems)));
     return builder.build();
   }
 }

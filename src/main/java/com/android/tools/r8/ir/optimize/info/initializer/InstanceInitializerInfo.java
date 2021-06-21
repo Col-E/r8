@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.info.initializer;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -71,5 +72,5 @@ public abstract class InstanceInitializerInfo {
   }
 
   public abstract InstanceInitializerInfo rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens);
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems);
 }

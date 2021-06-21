@@ -30,6 +30,10 @@ public abstract class FieldResolutionResult
     return null;
   }
 
+  public ProgramField getProgramField() {
+    return null;
+  }
+
   public boolean isSuccessfulResolution() {
     return false;
   }
@@ -99,6 +103,13 @@ public abstract class FieldResolutionResult
     @Override
     public DexClassAndField getResolutionPair() {
       return DexClassAndField.create(resolvedHolder, resolvedField);
+    }
+
+    @Override
+    public ProgramField getProgramField() {
+      return resolvedHolder.isProgramClass()
+          ? new ProgramField(resolvedHolder.asProgramClass(), resolvedField)
+          : null;
     }
 
     @Override

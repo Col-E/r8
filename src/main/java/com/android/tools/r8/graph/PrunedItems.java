@@ -14,16 +14,22 @@ public class PrunedItems {
   private final Set<DexReference> additionalPinnedItems;
   private final Set<DexType> noLongerSyntheticItems;
   private final Set<DexType> removedClasses;
+  private final Set<DexField> removedFields;
+  private final Set<DexMethod> removedMethods;
 
   private PrunedItems(
       DexApplication prunedApp,
       Set<DexReference> additionalPinnedItems,
       Set<DexType> noLongerSyntheticItems,
-      Set<DexType> removedClasses) {
+      Set<DexType> removedClasses,
+      Set<DexField> removedFields,
+      Set<DexMethod> removedMethods) {
     this.prunedApp = prunedApp;
     this.additionalPinnedItems = additionalPinnedItems;
     this.noLongerSyntheticItems = noLongerSyntheticItems;
     this.removedClasses = removedClasses;
+    this.removedFields = removedFields;
+    this.removedMethods = removedMethods;
   }
 
   public static Builder builder() {
@@ -36,6 +42,14 @@ public class PrunedItems {
 
   public boolean isEmpty() {
     return removedClasses.isEmpty() && additionalPinnedItems.isEmpty();
+  }
+
+  public boolean isRemoved(DexField field) {
+    return removedFields.contains(field);
+  }
+
+  public boolean isRemoved(DexMethod method) {
+    return removedMethods.contains(method);
   }
 
   public boolean isRemoved(DexType type) {
@@ -62,6 +76,10 @@ public class PrunedItems {
     return removedClasses;
   }
 
+  public Set<DexMethod> getRemovedMethods() {
+    return removedMethods;
+  }
+
   public static class Builder {
 
     private DexApplication prunedApp;
@@ -69,6 +87,8 @@ public class PrunedItems {
     private final Set<DexReference> additionalPinnedItems = Sets.newIdentityHashSet();
     private final Set<DexType> noLongerSyntheticItems = Sets.newIdentityHashSet();
     private final Set<DexType> removedClasses = Sets.newIdentityHashSet();
+    private final Set<DexField> removedFields = Sets.newIdentityHashSet();
+    private final Set<DexMethod> removedMethods = Sets.newIdentityHashSet();
 
     public Builder setPrunedApp(DexApplication prunedApp) {
       this.prunedApp = prunedApp;
@@ -92,9 +112,24 @@ public class PrunedItems {
       return this;
     }
 
+    public Builder addRemovedField(DexField removedField) {
+      removedFields.add(removedField);
+      return this;
+    }
+
+    public Builder addRemovedMethod(DexMethod removedMethod) {
+      removedMethods.add(removedMethod);
+      return this;
+    }
+
     public PrunedItems build() {
       return new PrunedItems(
-          prunedApp, additionalPinnedItems, noLongerSyntheticItems, removedClasses);
+          prunedApp,
+          additionalPinnedItems,
+          noLongerSyntheticItems,
+          removedClasses,
+          removedFields,
+          removedMethods);
     }
   }
 }

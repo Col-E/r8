@@ -401,12 +401,26 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       return this;
     }
 
+    public Builder modifyAccessFlags(Consumer<FieldAccessFlags> consumer) {
+      consumer.accept(accessFlags);
+      return this;
+    }
+
     public Builder setAbstractValue(
         AbstractValue abstractValue, AppView<AppInfoWithLiveness> appView) {
       return addBuildConsumer(
           fixedUpField ->
               OptimizationFeedbackSimple.getInstance()
                   .recordFieldHasAbstractValue(fixedUpField, appView, abstractValue));
+    }
+
+    public Builder clearAnnotations() {
+      return setAnnotations(DexAnnotationSet.empty());
+    }
+
+    public Builder setAnnotations(DexAnnotationSet annotations) {
+      this.annotations = annotations;
+      return this;
     }
 
     private Builder addBuildConsumer(Consumer<DexEncodedField> consumer) {

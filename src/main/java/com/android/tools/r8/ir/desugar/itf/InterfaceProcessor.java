@@ -183,11 +183,12 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   private DexEncodedField createStaticClinitFieldToTriggerInterfaceInitialization(
       DexProgramClass iface) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-    DexField clinitFieldTemplateReference =
-        dexItemFactory.createField(iface.getType(), dexItemFactory.intType, "$desugar$clinit");
     DexField clinitFieldReference =
-        dexItemFactory.createFreshFieldName(
-            clinitFieldTemplateReference, candidate -> iface.lookupField(candidate) == null);
+        dexItemFactory.createFreshFieldNameWithoutHolder(
+            iface.getType(),
+            dexItemFactory.intType,
+            "$desugar$clinit",
+            candidate -> iface.lookupField(candidate) == null);
     return new DexEncodedField(
         clinitFieldReference,
         FieldAccessFlags.builder().setPackagePrivate().setStatic().setSynthetic().build(),

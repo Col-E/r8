@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
@@ -99,11 +100,11 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
 
   @Override
   public NonTrivialInstanceInitializerInfo rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems) {
     return new NonTrivialInstanceInitializerInfo(
         data,
         fieldInitializationInfos.rewrittenWithLens(appView, lens),
-        readSet.rewrittenWithLens(appView, lens),
+        readSet.rewrittenWithLens(appView, lens, prunedItems),
         lens.getRenamedMethodSignature(parent));
   }
 

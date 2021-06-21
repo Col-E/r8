@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.analysis.inlining.NeverSimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -190,9 +191,9 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   public MutableMethodOptimizationInfo fixupInstanceInitializerInfo(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems) {
     instanceInitializerInfoCollection =
-        instanceInitializerInfoCollection.rewrittenWithLens(appView, lens);
+        instanceInitializerInfoCollection.rewrittenWithLens(appView, lens, prunedItems);
     return this;
   }
 

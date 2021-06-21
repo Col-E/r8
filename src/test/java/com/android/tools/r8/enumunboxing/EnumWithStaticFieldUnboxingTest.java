@@ -13,7 +13,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class FailingEnumUnboxingTest extends EnumUnboxingTestBase {
+public class EnumWithStaticFieldUnboxingTest extends EnumUnboxingTestBase {
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
@@ -24,7 +24,7 @@ public class FailingEnumUnboxingTest extends EnumUnboxingTestBase {
     return enumUnboxingTestParameters();
   }
 
-  public FailingEnumUnboxingTest(
+  public EnumWithStaticFieldUnboxingTest(
       TestParameters parameters, boolean enumValueOptimization, EnumKeepRules enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
@@ -34,13 +34,13 @@ public class FailingEnumUnboxingTest extends EnumUnboxingTestBase {
   @Test
   public void testEnumUnboxingFailure() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(FailingEnumUnboxingTest.class)
+        .addInnerClasses(EnumWithStaticFieldUnboxingTest.class)
         .addKeepMainRule(EnumStaticFieldMain.class)
         .enableNeverClassInliningAnnotations()
         .addKeepRules(enumKeepRules.getKeepRules())
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .addEnumUnboxingInspector(
-            inspector -> inspector.assertNotUnboxed(EnumStaticFieldMain.EnumStaticField.class))
+            inspector -> inspector.assertUnboxed(EnumStaticFieldMain.EnumStaticField.class))
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), EnumStaticFieldMain.class)

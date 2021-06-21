@@ -6,11 +6,13 @@ package com.android.tools.r8.ir.optimize.enums;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
@@ -18,6 +20,7 @@ import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.collect.ImmutableMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 
 class EnumUnboxingLens extends NestedGraphLens {
 
@@ -54,26 +57,31 @@ class EnumUnboxingLens extends NestedGraphLens {
     return type;
   }
 
-  public static Builder enumUnboxingLensBuilder() {
-    return new Builder();
+  public static Builder enumUnboxingLensBuilder(AppView<AppInfoWithLiveness> appView) {
+    return new Builder(appView);
   }
 
   static class Builder {
 
-    protected final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
-    protected final MutableBidirectionalOneToOneMap<DexField, DexField> newFieldSignatures =
+    private final DexItemFactory dexItemFactory;
+    private final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
+    private final MutableBidirectionalOneToOneMap<DexField, DexField> newFieldSignatures =
         new BidirectionalOneToOneHashMap<>();
-    protected final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> newMethodSignatures =
+    private final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> newMethodSignatures =
         new BidirectionalOneToOneHashMap<>();
 
     private Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod =
         new IdentityHashMap<>();
 
-    public void map(DexType from, DexType to) {
-      if (from == to) {
-        return;
+    Builder(AppView<AppInfoWithLiveness> appView) {
+      this.dexItemFactory = appView.dexItemFactory();
+    }
+
+    public Builder mapUnboxedEnums(Set<DexType> enumsToUnbox) {
+      for (DexType enumToUnbox : enumsToUnbox) {
+        typeMap.put(enumToUnbox, dexItemFactory.intType);
       }
-      typeMap.put(from, to);
+      return this;
     }
 
     public void move(DexField from, DexField to) {

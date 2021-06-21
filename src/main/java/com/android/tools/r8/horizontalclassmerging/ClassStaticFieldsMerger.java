@@ -39,11 +39,12 @@ public class ClassStaticFieldsMerger {
 
   private void addField(DexEncodedField field) {
     DexField oldFieldReference = field.getReference();
-    DexField templateReference =
-        field.getReference().withHolder(group.getTarget().getType(), dexItemFactory);
     DexField newFieldReference =
-        dexItemFactory.createFreshFieldNameWithHolderSuffix(
-            templateReference, field.getHolderType(), this::isFresh);
+        dexItemFactory.createFreshFieldNameWithoutHolder(
+            group.getTarget().getType(),
+            field.getType(),
+            field.getName().toString(),
+            this::isFresh);
 
     field = field.toTypeSubstitutedField(newFieldReference);
     targetFields.put(newFieldReference, field);

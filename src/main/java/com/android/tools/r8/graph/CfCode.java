@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.dex.Constants.ACC_STATIC;
 import static com.android.tools.r8.graph.DexCode.FAKE_THIS_PREFIX;
 import static com.android.tools.r8.graph.DexCode.FAKE_THIS_SUFFIX;
-import static org.objectweb.asm.Opcodes.ACC_STATIC;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.CfVersion;

@@ -30,9 +30,7 @@ public abstract class OptimizationFeedback
       MemberOptimizationInfo<?> optimizationInfo = member.getOptimizationInfo();
       if (optimizationInfo.isMutableOptimizationInfo()) {
         member.accept(
-            field -> {
-              fixup(field, optimizationInfo.asMutableFieldOptimizationInfo());
-            },
+            field -> fixup(field, optimizationInfo.asMutableFieldOptimizationInfo()),
             method -> fixup(method, optimizationInfo.asMutableMethodOptimizationInfo()));
       }
     }

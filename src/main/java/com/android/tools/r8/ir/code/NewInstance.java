@@ -38,6 +38,10 @@ public class NewInstance extends Instruction {
     this.clazz = clazz;
   }
 
+  public DexType getType() {
+    return clazz;
+  }
+
   public InvokeDirect getUniqueConstructorInvoke(DexItemFactory dexItemFactory) {
     return IRCodeUtils.getUniqueConstructorInvoke(outValue(), dexItemFactory);
   }

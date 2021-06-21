@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.info.initializer;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -35,8 +36,9 @@ public class ContextInsensitiveInstanceInitializerInfoCollection
 
   @Override
   public ContextInsensitiveInstanceInitializerInfoCollection rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
-    NonTrivialInstanceInitializerInfo rewrittenInfo = info.rewrittenWithLens(appView, lens);
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems) {
+    NonTrivialInstanceInitializerInfo rewrittenInfo =
+        info.rewrittenWithLens(appView, lens, prunedItems);
     if (rewrittenInfo != info) {
       return new ContextInsensitiveInstanceInitializerInfoCollection(rewrittenInfo);
     }

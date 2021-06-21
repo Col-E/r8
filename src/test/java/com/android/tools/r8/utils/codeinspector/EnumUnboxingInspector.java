@@ -43,10 +43,14 @@ public class EnumUnboxingInspector {
   }
 
   public EnumUnboxingInspector assertUnboxedIf(boolean condition, Class<? extends Enum<?>> clazz) {
+    return assertUnboxedIf(condition, clazz.getTypeName());
+  }
+
+  public EnumUnboxingInspector assertUnboxedIf(boolean condition, String className) {
     if (condition) {
-      assertUnboxed(clazz);
+      assertUnboxed(className);
     } else {
-      assertNotUnboxed(clazz);
+      assertNotUnboxed(className);
     }
     return this;
   }
@@ -62,6 +66,13 @@ public class EnumUnboxingInspector {
 
   public EnumUnboxingInspector assertNotUnboxed(Class<? extends Enum<?>> clazz) {
     assertFalse(clazz.getTypeName(), unboxedEnums.isUnboxedEnum(toDexType(clazz, dexItemFactory)));
+    return this;
+  }
+
+  public EnumUnboxingInspector assertNotUnboxed(String typeName) {
+    assertFalse(
+        unboxedEnums.isUnboxedEnum(
+            dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(typeName))));
     return this;
   }
 

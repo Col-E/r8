@@ -743,7 +743,7 @@ public class IRConverter {
           .run(executorService, feedback, timing);
     }
     if (enumUnboxer != null) {
-      enumUnboxer.unboxEnums(postMethodProcessorBuilder, executorService, feedback);
+      enumUnboxer.unboxEnums(this, postMethodProcessorBuilder, executorService, feedback);
     } else {
       appView.setUnboxedEnums(EnumDataMap.empty());
     }

@@ -1133,8 +1133,8 @@ public class VerticalClassMerger {
       // Step 3: Clear the members of the source class since they have now been moved to the target.
       source.getMethodCollection().clearDirectMethods();
       source.getMethodCollection().clearVirtualMethods();
-      source.setInstanceFields(null);
-      source.setStaticFields(null);
+      source.clearInstanceFields();
+      source.clearStaticFields();
       // Step 4: Record merging.
       mergedClasses.put(source.type, target.type);
       assert !abortMerge;

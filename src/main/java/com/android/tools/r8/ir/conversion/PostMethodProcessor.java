@@ -67,6 +67,10 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
       put(postOptimization.methodsToRevisit());
     }
 
+    public void removePrunedMethods(Iterable<DexMethod> prunedMethod) {
+      methodsToReprocessBuilder.removeAll(prunedMethod);
+    }
+
     // Some optimizations may change methods, creating new instances of the encoded methods with a
     // new signature. The compiler needs to update the set of methods that must be reprocessed
     // according to the graph lens.

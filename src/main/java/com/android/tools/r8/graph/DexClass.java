@@ -237,7 +237,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     return methodCollection.removeMethod(method);
   }
 
-  public void setDirectMethods(List<DexEncodedMethod> methods) {
+  public void setDirectMethods(Collection<DexEncodedMethod> methods) {
     setDirectMethods(methods.toArray(DexEncodedMethod.EMPTY_ARRAY));
   }
 
@@ -323,6 +323,15 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     instanceFields(predicate).forEach(consumer);
   }
 
+  public void forEachStaticField(Consumer<DexEncodedField> consumer) {
+    forEachStaticFieldMatching(alwaysTrue(), consumer);
+  }
+
+  public void forEachStaticFieldMatching(
+      Predicate<DexEncodedField> predicate, Consumer<DexEncodedField> consumer) {
+    staticFields(predicate).forEach(consumer);
+  }
+
   public TraversalContinuation traverseFields(Function<DexEncodedField, TraversalContinuation> fn) {
     for (DexEncodedField field : fields()) {
       if (fn.apply(field).shouldBreak()) {
@@ -366,6 +375,10 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     assert verifyNoDuplicateFields();
   }
 
+  public void clearStaticFields() {
+    setStaticFields(DexEncodedField.EMPTY_ARRAY);
+  }
+
   public void removeStaticField(int index) {
     DexEncodedField[] newFields = new DexEncodedField[staticFields.length - 1];
     System.arraycopy(staticFields, 0, newFields, 0, index);
@@ -383,6 +396,10 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     staticFields = MoreObjects.firstNonNull(fields, DexEncodedField.EMPTY_ARRAY);
     assert verifyCorrectnessOfFieldHolders(staticFields());
     assert verifyNoDuplicateFields();
+  }
+
+  public void setStaticFields(Collection<DexEncodedField> fields) {
+    setStaticFields(fields.toArray(DexEncodedField.EMPTY_ARRAY));
   }
 
   public boolean definesStaticField(DexField field) {
