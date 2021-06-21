@@ -335,6 +335,11 @@ public class GenericSignature {
         return this;
       }
 
+      public ClassSignatureBuilder addInterface(ClassTypeSignature iface) {
+        superInterfaceSignatures.add(iface);
+        return this;
+      }
+
       public ClassSignature build() {
         ClassSignature classSignature =
             new ClassSignature(formalTypeParameters, superClassSignature, superInterfaceSignatures);

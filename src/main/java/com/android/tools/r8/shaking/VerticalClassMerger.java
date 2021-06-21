@@ -1212,7 +1212,11 @@ public class VerticalClassMerger {
       } else {
         builder.addInterfaces(targetSignature.superInterfaceSignatures());
       }
-      builder.addInterfaces(rewrittenSource.superInterfaceSignatures());
+      if (rewrittenSource.hasSignature()) {
+        builder.addInterfaces(rewrittenSource.superInterfaceSignatures());
+      } else {
+        source.interfaces.forEach(iface -> builder.addInterface(new ClassTypeSignature(iface)));
+      }
       target.setClassSignature(builder.build());
 
       // Go through all type-variable references for members and update them.
