@@ -393,6 +393,8 @@ public class DexItemFactory {
   public final DexType stringBuilderType = createStaticallyKnownType(stringBuilderDescriptor);
   public final DexType stringBufferType = createStaticallyKnownType(stringBufferDescriptor);
 
+  public final DexType javaLangAnnotationRetentionPolicyType =
+      createStaticallyKnownType("Ljava/lang/annotation/RetentionPolicy;");
   public final DexType javaLangReflectArrayType =
       createStaticallyKnownType("Ljava/lang/reflect/Array;");
   public final DexType javaLangSystemType = createStaticallyKnownType(javaLangSystemDescriptor);
@@ -569,6 +571,8 @@ public class DexItemFactory {
   public final EnumMembers enumMembers = new EnumMembers();
   public final JavaLangReflectArrayMembers javaLangReflectArrayMembers =
       new JavaLangReflectArrayMembers();
+  public final JavaLangAnnotationRetentionPolicyMembers javaLangAnnotationRetentionPolicyMembers =
+      new JavaLangAnnotationRetentionPolicyMembers();
   public final JavaLangSystemMethods javaLangSystemMethods = new JavaLangSystemMethods();
   public final NullPointerExceptionMethods npeMethods = new NullPointerExceptionMethods();
   public final IllegalArgumentExceptionMethods illegalArgumentExceptionMethods =
@@ -1497,6 +1501,15 @@ public class DexItemFactory {
               objectDescriptor,
               new DexString[] {objectArrayDescriptor});
     }
+  }
+
+  public class JavaLangAnnotationRetentionPolicyMembers {
+
+    public final DexField CLASS =
+        createField(
+            javaLangAnnotationRetentionPolicyType, javaLangAnnotationRetentionPolicyType, "CLASS");
+
+    private JavaLangAnnotationRetentionPolicyMembers() {}
   }
 
   public class JavaLangReflectArrayMembers {

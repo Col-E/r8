@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
@@ -272,10 +273,44 @@ public class AnnotationRemover {
     } else {
       definition.rewriteAllAnnotations(
           (annotation, isParameterAnnotation) ->
-              DexAnnotation.isJavaLangRetentionAnnotation(annotation, appView.dexItemFactory())
-                  ? annotation
-                  : null);
+              shouldRetainAnnotationOnAnnotationClass(annotation) ? annotation : null);
     }
+  }
+
+  private boolean shouldRetainAnnotationOnAnnotationClass(DexAnnotation annotation) {
+    if (DexAnnotation.isAnnotationDefaultAnnotation(annotation, appView.dexItemFactory())) {
+      return shouldRetainAnnotationDefaultAnnotationOnAnnotationClass(annotation);
+    }
+    if (DexAnnotation.isJavaLangRetentionAnnotation(annotation, appView.dexItemFactory())) {
+      return shouldRetainRetentionAnnotationOnAnnotationClass(annotation);
+    }
+    return false;
+  }
+
+  private boolean shouldRetainAnnotationDefaultAnnotationOnAnnotationClass(
+      DexAnnotation annotation) {
+    // We currently always retain the @AnnotationDefault annotations for annotation classes. In full
+    // mode we could consider only retaining @AnnotationDefault annotations for pinned annotations,
+    // as this is consistent with removing all annotations for non-kept items.
+    return true;
+  }
+
+  private boolean shouldRetainRetentionAnnotationOnAnnotationClass(DexAnnotation annotation) {
+    // Retain @Retention annotations that are different from @Retention(RetentionPolicy.CLASS).
+    if (annotation.annotation.getNumberOfElements() != 1) {
+      return true;
+    }
+    DexAnnotationElement element = annotation.annotation.getElement(0);
+    if (element.name != appView.dexItemFactory().valueString) {
+      return true;
+    }
+    DexValue value = element.getValue();
+    if (!value.isDexValueEnum()
+        || value.asDexValueEnum().getValue()
+            != appView.dexItemFactory().javaLangAnnotationRetentionPolicyMembers.CLASS) {
+      return true;
+    }
+    return false;
   }
 
   private void stripAttributes(DexProgramClass clazz, KeepClassInfo keepInfo) {

@@ -13,10 +13,9 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.shaking.enums.EnumInAnnotationTest.MyAnnotation;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.google.common.collect.ImmutableList;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -28,7 +27,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class AlwaysRetainRetentionAnnotationTest extends TestBase {
+public class AlwaysRetainNonDefaultRetentionAnnotationTest extends TestBase {
 
   private final boolean enableProguardCompatibilityMode;
   private final boolean keepAllowShrinking;
@@ -42,7 +41,7 @@ public class AlwaysRetainRetentionAnnotationTest extends TestBase {
         getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public AlwaysRetainRetentionAnnotationTest(
+  public AlwaysRetainNonDefaultRetentionAnnotationTest(
       boolean enableProguardCompatibilityMode,
       boolean keepAllowShrinking,
       TestParameters parameters) {
@@ -57,6 +56,7 @@ public class AlwaysRetainRetentionAnnotationTest extends TestBase {
     testForR8Compat(parameters.getBackend(), enableProguardCompatibilityMode)
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
+        .addKeepRuntimeInvisibleAnnotations()
         .addKeepRuntimeVisibleAnnotations()
         .applyIf(
             keepAllowShrinking,
@@ -64,45 +64,64 @@ public class AlwaysRetainRetentionAnnotationTest extends TestBase {
               assertFalse(enableProguardCompatibilityMode);
               builder.addKeepRules(
                   "-keep,allowshrinking,allowobfuscation class "
-                      + MyAnnotation.class.getTypeName());
+                      + MyClassAnnotation.class.getTypeName());
+              builder.addKeepRules(
+                  "-keep,allowshrinking,allowobfuscation class "
+                      + MyRuntimeAnnotation.class.getTypeName());
             })
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             inspector -> {
-              ClassSubject annotationClassSubject = inspector.clazz(MyAnnotation.class);
-              assertThat(annotationClassSubject, isPresent());
-
-              AnnotationSubject retentionAnnotationSubject =
-                  annotationClassSubject.annotation(Retention.class.getTypeName());
-              assertThat(retentionAnnotationSubject, isPresent());
-
-              AnnotationSubject targetAnnotationSubject =
-                  annotationClassSubject.annotation(Target.class.getTypeName());
-              assertThat(targetAnnotationSubject, onlyIf(shouldOnlyRetainRetention(), isAbsent()));
-
-              AnnotationSubject myAnnotationAnnotationSubject =
-                  annotationClassSubject.annotation(MyAnnotation.class.getTypeName());
+              ClassSubject classAnnotationClassSubject = inspector.clazz(MyClassAnnotation.class);
+              assertThat(classAnnotationClassSubject, isPresent());
               assertThat(
-                  myAnnotationAnnotationSubject, onlyIf(shouldOnlyRetainRetention(), isAbsent()));
+                  classAnnotationClassSubject.annotation(Retention.class.getTypeName()),
+                  onlyIf(isFullModeWithoutKeepRule(), isAbsent()));
+              assertThat(
+                  classAnnotationClassSubject.annotation(Target.class.getTypeName()),
+                  onlyIf(isFullModeWithoutKeepRule(), isAbsent()));
+              assertThat(
+                  classAnnotationClassSubject.annotation(MyClassAnnotation.class.getTypeName()),
+                  onlyIf(isFullModeWithoutKeepRule(), isAbsent()));
+
+              ClassSubject runtimeAnnotationClassSubject =
+                  inspector.clazz(MyRuntimeAnnotation.class);
+              assertThat(runtimeAnnotationClassSubject, isPresent());
+              assertThat(
+                  runtimeAnnotationClassSubject.annotation(Retention.class.getTypeName()),
+                  isPresent());
+              assertThat(
+                  runtimeAnnotationClassSubject.annotation(Target.class.getTypeName()),
+                  onlyIf(isFullModeWithoutKeepRule(), isAbsent()));
+              assertThat(
+                  runtimeAnnotationClassSubject.annotation(MyRuntimeAnnotation.class.getTypeName()),
+                  onlyIf(isFullModeWithoutKeepRule(), isAbsent()));
             })
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines(shouldOnlyRetainRetention() ? "1" : "3");
+        .assertSuccessWithOutputLines(
+            isFullModeWithoutKeepRule() ? ImmutableList.of("0", "1") : ImmutableList.of("2", "3"));
   }
 
-  private boolean shouldOnlyRetainRetention() {
+  private boolean isFullModeWithoutKeepRule() {
     return !enableProguardCompatibilityMode && !keepAllowShrinking;
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
-      System.out.println(MyAnnotation.class.getAnnotations().length);
+      System.out.println(MyClassAnnotation.class.getAnnotations().length);
+      System.out.println(MyRuntimeAnnotation.class.getAnnotations().length);
     }
   }
 
+  @Retention(RetentionPolicy.CLASS)
+  @Target({ElementType.TYPE})
+  @MyClassAnnotation
+  @interface MyClassAnnotation {}
+
   @Retention(RetentionPolicy.RUNTIME)
   @Target({ElementType.TYPE})
-  @MyAnnotation
-  @interface MyAnnotation {}
+  @MyRuntimeAnnotation
+  @interface MyRuntimeAnnotation {}
 }
