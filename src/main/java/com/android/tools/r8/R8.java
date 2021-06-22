@@ -812,16 +812,6 @@ public class R8 {
         options.syntheticProguardRulesConsumer.accept(synthesizedProguardRules);
       }
 
-      assert appView.checkForTesting(
-              () ->
-                  !options.isShrinking()
-                      || GenericSignatureCorrectnessHelper.createForVerification(
-                              appView,
-                              GenericSignatureContextBuilder.create(appView.appInfo().classes()))
-                          .run(appView.appInfo().classes())
-                          .isValid())
-          : "Could not validate generic signatures";
-
       NamingLens prefixRewritingNamingLens =
           PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
 
@@ -831,6 +821,16 @@ public class R8 {
 
       new GenericSignatureRewriter(appView, prefixRewritingNamingLens)
           .run(appView.appInfo().classes(), executorService);
+
+      assert appView.checkForTesting(
+              () ->
+                  !options.isShrinking()
+                      || GenericSignatureCorrectnessHelper.createForVerification(
+                              appView,
+                              GenericSignatureContextBuilder.create(appView.appInfo().classes()))
+                          .run(appView.appInfo().classes())
+                          .isValid())
+          : "Could not validate generic signatures";
 
       new DesugaredLibraryKeepRuleGenerator(appView, prefixRewritingNamingLens)
           .runIfNecessary(timing);
