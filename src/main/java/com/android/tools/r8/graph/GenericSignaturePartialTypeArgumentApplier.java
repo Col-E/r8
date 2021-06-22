@@ -210,14 +210,11 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
       assert fieldSignature.isTypeVariableSignature();
       String typeVariableName = fieldSignature.asTypeVariableSignature().typeVariable();
       if (!typeParameterContext.isLiveParameter(typeVariableName)) {
-        FieldTypeSignature substitution =
-            typeParameterContext.getPrunedSubstitution(typeVariableName);
+        DexType substitution = typeParameterContext.getPrunedSubstitution(typeVariableName);
         if (substitution == null) {
-          substitution = new ClassTypeSignature(appView.dexItemFactory().objectType);
+          substitution = appView.dexItemFactory().objectType;
         }
-        return substitution.isArgument()
-            ? substitution
-            : substitution.asArgument(WildcardIndicator.NONE);
+        return new ClassTypeSignature(substitution).asArgument(WildcardIndicator.NONE);
       }
       return fieldSignature;
     }
