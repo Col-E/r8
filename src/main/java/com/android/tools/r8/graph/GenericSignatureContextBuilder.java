@@ -6,8 +6,10 @@ package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.graph.GenericSignatureContextBuilder.TypeParameterContext.empty;
 
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
+import com.android.tools.r8.utils.WorkList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,26 +27,26 @@ public class GenericSignatureContextBuilder {
 
   private static class TypeParameterSubstitutions {
 
-    private final Map<String, DexType> parametersWithBounds;
+    private final Map<String, FieldTypeSignature> parametersWithBounds;
 
-    private TypeParameterSubstitutions(Map<String, DexType> parametersWithBounds) {
+    private TypeParameterSubstitutions(Map<String, FieldTypeSignature> parametersWithBounds) {
       this.parametersWithBounds = parametersWithBounds;
     }
 
     private static TypeParameterSubstitutions create(List<FormalTypeParameter> formals) {
-      Map<String, DexType> map = new IdentityHashMap<>();
+      Map<String, FieldTypeSignature> map = new HashMap<>();
       formals.forEach(
           formal -> {
-            DexType bound = null;
             if (formal.getClassBound() != null
                 && formal.getClassBound().hasSignature()
                 && formal.getClassBound().isClassTypeSignature()) {
-              bound = formal.getClassBound().asClassTypeSignature().type;
+              map.put(formal.getName(), formal.getClassBound());
             } else if (!formal.getInterfaceBounds().isEmpty()
                 && formal.getInterfaceBounds().get(0).isClassTypeSignature()) {
-              bound = formal.getInterfaceBounds().get(0).asClassTypeSignature().type;
+              map.put(formal.getName(), formal.getInterfaceBounds().get(0));
+            } else {
+              map.put(formal.getName(), null);
             }
-            map.put(formal.getName(), bound);
           });
       return new TypeParameterSubstitutions(map);
     }
@@ -55,11 +57,11 @@ public class GenericSignatureContextBuilder {
     private static final TypeParameterContext EMPTY =
         new TypeParameterContext(Collections.emptyMap(), Collections.emptySet());
 
-    private final Map<String, DexType> prunedParametersWithBounds;
+    private final Map<String, FieldTypeSignature> prunedParametersWithBounds;
     private final Set<String> liveParameters;
 
     private TypeParameterContext(
-        Map<String, DexType> prunedParametersWithBounds, Set<String> liveParameters) {
+        Map<String, FieldTypeSignature> prunedParametersWithBounds, Set<String> liveParameters) {
       this.prunedParametersWithBounds = prunedParametersWithBounds;
       this.liveParameters = liveParameters;
     }
@@ -81,7 +83,7 @@ public class GenericSignatureContextBuilder {
       return liveParameters.contains(parameterName);
     }
 
-    public DexType getPrunedSubstitution(String parameterName) {
+    public FieldTypeSignature getPrunedSubstitution(String parameterName) {
       assert !isLiveParameter(parameterName);
       return prunedParametersWithBounds.get(parameterName);
     }
@@ -93,7 +95,7 @@ public class GenericSignatureContextBuilder {
       HashSet<String> newLiveParameters = new HashSet<>();
       newLiveParameters.addAll(liveParameters);
       newLiveParameters.addAll(typeParameters);
-      HashMap<String, DexType> newPruned = new HashMap<>();
+      HashMap<String, FieldTypeSignature> newPruned = new HashMap<>();
       prunedParametersWithBounds.forEach(
           (name, type) -> {
             if (!typeParameters.contains(name)) {
@@ -103,11 +105,12 @@ public class GenericSignatureContextBuilder {
       return new TypeParameterContext(newPruned, newLiveParameters);
     }
 
-    public TypeParameterContext addPrunedSubstitutions(Map<String, DexType> substitutions) {
+    public TypeParameterContext addPrunedSubstitutions(
+        Map<String, FieldTypeSignature> substitutions) {
       if (substitutions.isEmpty()) {
         return this;
       }
-      HashMap<String, DexType> newPruned = new HashMap<>();
+      HashMap<String, FieldTypeSignature> newPruned = new HashMap<>();
       newPruned.putAll(prunedParametersWithBounds);
       newPruned.putAll(substitutions);
       HashSet<String> newLiveParameters = new HashSet<>();
@@ -121,38 +124,6 @@ public class GenericSignatureContextBuilder {
     }
   }
 
-  public static class AlwaysLiveTypeParameterContext extends TypeParameterContext {
-
-    private AlwaysLiveTypeParameterContext() {
-      super(Collections.emptyMap(), Collections.emptySet());
-    }
-
-    public static AlwaysLiveTypeParameterContext create() {
-      return new AlwaysLiveTypeParameterContext();
-    }
-
-    @Override
-    public boolean isLiveParameter(String parameterName) {
-      return true;
-    }
-
-    @Override
-    public DexType getPrunedSubstitution(String parameterName) {
-      assert false;
-      return null;
-    }
-
-    @Override
-    public TypeParameterContext addLiveParameters(Collection<String> typeParameters) {
-      return this;
-    }
-
-    @Override
-    public TypeParameterContext addPrunedSubstitutions(Map<String, DexType> substitutions) {
-      return this;
-    }
-  }
-
   private GenericSignatureContextBuilder(
       Map<DexReference, TypeParameterSubstitutions> formalsInfo,
       Map<DexReference, DexReference> enclosingInfo) {
@@ -160,7 +131,7 @@ public class GenericSignatureContextBuilder {
     this.enclosingInfo = enclosingInfo;
   }
 
-  public static GenericSignatureContextBuilder create(List<DexProgramClass> programClasses) {
+  public static GenericSignatureContextBuilder create(Collection<DexProgramClass> programClasses) {
     Map<DexReference, TypeParameterSubstitutions> formalsInfo = new IdentityHashMap<>();
     Map<DexReference, DexReference> enclosingInfo = new IdentityHashMap<>();
     programClasses.forEach(
@@ -199,6 +170,24 @@ public class GenericSignatureContextBuilder {
           }
         });
     return new GenericSignatureContextBuilder(formalsInfo, enclosingInfo);
+  }
+
+  public static GenericSignatureContextBuilder createForSingleClass(
+      AppView<?> appView, DexProgramClass clazz) {
+    WorkList<DexProgramClass> workList = WorkList.newIdentityWorkList(clazz);
+    while (workList.hasNext()) {
+      DexProgramClass current = workList.next();
+      DexClass outer = null;
+      if (current.getEnclosingMethodAttribute() != null) {
+        outer = appView.definitionFor(current.getEnclosingMethodAttribute().getEnclosingType());
+      } else if (current.getInnerClassAttributeForThisClass() != null) {
+        outer = appView.definitionFor(current.getInnerClassAttributeForThisClass().getOuter());
+      }
+      if (outer != null && outer.isProgramClass()) {
+        workList.addIfNotSeen(outer.asProgramClass());
+      }
+    }
+    return create(workList.getSeenSet());
   }
 
   public TypeParameterContext computeTypeParameterContext(
