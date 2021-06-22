@@ -172,14 +172,24 @@ class EnumUnboxingTreeFixer {
                     .getInstanceInitializerInfo(constructorInvoke)
                     .fieldInitializationInfos()
                     .get(ordinalField);
-            assert ordinalInitializationInfo.isArgumentInitializationInfo();
 
-            Value ordinalValue =
-                constructorInvoke
-                    .getArgument(
-                        ordinalInitializationInfo.asArgumentInitializationInfo().getArgumentIndex())
-                    .getAliasedValue();
-            assert ordinalValue.isDefinedByInstructionSatisfying(Instruction::isConstNumber);
+            int ordinal;
+            if (ordinalInitializationInfo.isArgumentInitializationInfo()) {
+              Value ordinalValue =
+                  constructorInvoke
+                      .getArgument(
+                          ordinalInitializationInfo
+                              .asArgumentInitializationInfo()
+                              .getArgumentIndex())
+                      .getAliasedValue();
+              assert ordinalValue.isDefinedByInstructionSatisfying(Instruction::isConstNumber);
+              ordinal = ordinalValue.getDefinition().asConstNumber().getIntValue();
+            } else {
+              assert ordinalInitializationInfo.isSingleValue();
+              assert ordinalInitializationInfo.asSingleValue().isSingleNumberValue();
+              ordinal =
+                  ordinalInitializationInfo.asSingleValue().asSingleNumberValue().getIntValue();
+            }
 
             // Replace by an instruction that produces a value of class type UnboxedEnum (for the
             // code to type check), which can easily be rewritten to a const-number instruction in
@@ -187,7 +197,7 @@ class EnumUnboxingTreeFixer {
             instructionIterator.replaceCurrentInstruction(
                 new NewUnboxedEnumInstance(
                     unboxedEnum.getType(),
-                    ordinalValue.getDefinition().asConstNumber().getIntValue(),
+                    ordinal,
                     code.createValue(
                         ClassTypeElement.create(
                             unboxedEnum.getType(), definitelyNotNull(), appView))));
