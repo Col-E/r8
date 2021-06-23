@@ -173,15 +173,15 @@ public class SimpleInliningConstraintAnalysis {
       case EQ:
         if (isZeroTest) {
           if (argumentType.isReferenceType()) {
-            return factory.createNullConstraint(argumentIndex);
+            return factory.createEqualToNullConstraint(argumentIndex);
           }
           if (argumentType.isBooleanType()) {
-            return factory.createBooleanFalseConstraint(argumentIndex);
+            return factory.createEqualToFalseConstraint(argumentIndex);
           }
         } else if (argumentType.isPrimitiveType()) {
           OptionalLong rawValue = getRawNumberValue(otherOperand);
           if (rawValue.isPresent()) {
-            return factory.createNumberConstraint(argumentIndex, rawValue.getAsLong());
+            return factory.createEqualToNumberConstraint(argumentIndex, rawValue.getAsLong());
           }
         }
         return NeverSimpleInliningConstraint.getInstance();
@@ -189,15 +189,15 @@ public class SimpleInliningConstraintAnalysis {
       case NE:
         if (isZeroTest) {
           if (argumentType.isReferenceType()) {
-            return factory.createNotNullConstraint(argumentIndex);
+            return factory.createNotEqualToNullConstraint(argumentIndex);
           }
           if (argumentType.isBooleanType()) {
-            return factory.createBooleanTrueConstraint(argumentIndex);
+            return factory.createEqualToTrueConstraint(argumentIndex);
           }
         } else if (argumentType.isPrimitiveType()) {
           OptionalLong rawValue = getRawNumberValue(otherOperand);
           if (rawValue.isPresent()) {
-            return factory.createNotNumberConstraint(argumentIndex, rawValue.getAsLong());
+            return factory.createNotEqualToNumberConstraint(argumentIndex, rawValue.getAsLong());
           }
         }
         return NeverSimpleInliningConstraint.getInstance();
