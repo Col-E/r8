@@ -8,48 +8,41 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import it.unimi.dsi.fastutil.ints.IntList;
 
-/** Constraint that is satisfied if a specific argument is always null. */
-public class NullSimpleInliningConstraint extends SimpleInliningArgumentConstraint {
+/** Constraint that is satisfied if a specific argument is always true. */
+public class BooleanTrueSimpleInliningConstraint extends SimpleInliningArgumentConstraint {
 
-  private NullSimpleInliningConstraint(int argumentIndex) {
+  private BooleanTrueSimpleInliningConstraint(int argumentIndex) {
     super(argumentIndex);
   }
 
-  static NullSimpleInliningConstraint create(
+  static BooleanTrueSimpleInliningConstraint create(
       int argumentIndex, SimpleInliningConstraintFactory witness) {
     assert witness != null;
-    return new NullSimpleInliningConstraint(argumentIndex);
+    return new BooleanTrueSimpleInliningConstraint(argumentIndex);
   }
 
   @Override
-  public boolean isNull() {
+  public boolean isBooleanTrue() {
     return true;
   }
 
   @Override
   public boolean isSatisfied(InvokeMethod invoke) {
-    // Take the root value to also deal with the following case, which may happen in dead code,
-    // where v1 is actually guaranteed to be null, despite the value's type being non-null:
-    //   v0 <- ConstNumber 0
-    //   v1 <- AssumeNotNull v0
-    Value argumentRoot = getArgument(invoke).getAliasedValue();
-    assert argumentRoot.getType().isReferenceType();
-    return argumentRoot.getType().isDefinitelyNull();
+    Value argument = getArgument(invoke);
+    assert argument.getType().isInt();
+    return argument.isConstBoolean(true);
   }
 
   @Override
   public SimpleInliningConstraint fixupAfterRemovingThisParameter(
       SimpleInliningConstraintFactory factory) {
     assert getArgumentIndex() > 0;
-    return factory.createNullConstraint(getArgumentIndex() - 1);
+    return factory.createBooleanTrueConstraint(getArgumentIndex() - 1);
   }
 
   @Override
   public SimpleInliningConstraint rewrittenWithUnboxedArguments(
       IntList unboxedArgumentIndices, SimpleInliningConstraintFactory factory) {
-    if (unboxedArgumentIndices.contains(getArgumentIndex())) {
-      return factory.createNumberConstraint(getArgumentIndex(), 0);
-    }
     return this;
   }
 }
