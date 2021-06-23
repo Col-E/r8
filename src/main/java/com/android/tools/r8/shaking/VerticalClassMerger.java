@@ -1197,12 +1197,14 @@ public class VerticalClassMerger {
       // The variables in the class signature is now rewritten to use the targets argument.
       ClassSignatureBuilder builder = ClassSignature.builder();
       builder.addFormalTypeParameters(targetSignature.getFormalTypeParameters());
-      if (rewrittenSource.hasSignature()) {
-        builder.setSuperClassSignature(rewrittenSource.superClassSignature());
-      } else if (source.isInterface()) {
-        builder.setSuperClassSignature(targetSignature.superClassSignature());
+      if (!source.isInterface()) {
+        if (rewrittenSource.hasSignature()) {
+          builder.setSuperClassSignature(rewrittenSource.superClassSignature());
+        } else {
+          builder.setSuperClassSignature(new ClassTypeSignature(source.superType));
+        }
       } else {
-        builder.setSuperClassSignature(new ClassTypeSignature(source.superType));
+        builder.setSuperClassSignature(targetSignature.superClassSignature());
       }
       // Compute the seen set for interfaces to add. This is similar to the merging of interfaces
       // but allow us to maintain the type arguments.
