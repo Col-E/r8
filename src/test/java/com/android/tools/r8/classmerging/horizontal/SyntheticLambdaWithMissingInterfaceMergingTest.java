@@ -4,17 +4,13 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
-import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import java.util.List;
-import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -43,33 +39,12 @@ public class SyntheticLambdaWithMissingInterfaceMergingTest extends TestBase {
         .addDontWarn(J.class)
         .addKeepClassAndMembersRules(Main.class)
         .addHorizontallyMergedClassesInspector(
-            inspector -> {
-              if (enableOptimization) {
-                inspector.assertNoClassesMerged();
-              } else {
-                // TODO(b/191747442): Should not merge lambdas.
-                Set<Set<DexType>> groups = inspector.getMergeGroups();
-                assertEquals(1, groups.size());
-
-                Set<DexType> group = groups.iterator().next();
-                assertEquals(2, group.size());
-                assertTrue(
-                    group.stream()
-                        .allMatch(
-                            member ->
-                                SyntheticItemsTestUtils.isExternalLambda(
-                                    member.asClassReference())));
-              }
-            })
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .applyIf(!enableOptimization, TestShrinkerBuilder::addDontOptimize)
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/191747442): Should succeed.
-        .applyIf(
-            enableOptimization,
-            result -> result.assertSuccessWithOutputLines("I"),
-            result -> result.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
+        .assertSuccessWithOutputLines("I");
   }
 
   static class Main {

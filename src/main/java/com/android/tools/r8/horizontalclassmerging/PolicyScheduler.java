@@ -150,12 +150,11 @@ public class PolicyScheduler {
       RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
     ImmutableList.Builder<Policy> builder = ImmutableList.builder();
 
-    addRequiredMultiClassPolicies(appView, mode, builder);
+    addRequiredMultiClassPolicies(appView, mode, runtimeTypeCheckInfo, builder);
 
     if (!appView.options().horizontalClassMergerOptions().isRestrictedToSynthetics()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      addMultiClassPoliciesForMergingNonSyntheticClasses(
-          appViewWithLiveness, runtimeTypeCheckInfo, builder);
+      addMultiClassPoliciesForMergingNonSyntheticClasses(appViewWithLiveness, builder);
     }
 
     if (mode.isInitial()) {
@@ -189,6 +188,7 @@ public class PolicyScheduler {
   private static void addRequiredMultiClassPolicies(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       Mode mode,
+      RuntimeTypeCheckInfo runtimeTypeCheckInfo,
       ImmutableList.Builder<Policy> builder) {
     builder.add(
         new CheckAbstractClasses(appView),
@@ -201,15 +201,14 @@ public class PolicyScheduler {
         new SyntheticItemsPolicy(appView, mode),
         new RespectPackageBoundaries(appView),
         new NoDifferentApiReferenceLevel(appView),
+        new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
         new PreventClassMethodAndDefaultMethodCollisions(appView));
   }
 
   private static void addMultiClassPoliciesForMergingNonSyntheticClasses(
       AppView<AppInfoWithLiveness> appView,
-      RuntimeTypeCheckInfo runtimeTypeCheckInfo,
       ImmutableList.Builder<Policy> builder) {
-    builder.add(
-        new NoDeadLocks(appView), new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo));
+    builder.add(new NoDeadLocks(appView));
   }
 
   private static void addMultiClassPoliciesForInterfaceMerging(
