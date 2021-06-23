@@ -812,16 +812,6 @@ public class R8 {
         options.syntheticProguardRulesConsumer.accept(synthesizedProguardRules);
       }
 
-      NamingLens prefixRewritingNamingLens =
-          PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
-
-      timing.begin("MinifyKotlinMetadata");
-      new KotlinMetadataRewriter(appView, prefixRewritingNamingLens).runForR8(executorService);
-      timing.end();
-
-      new GenericSignatureRewriter(appView, prefixRewritingNamingLens)
-          .run(appView.appInfo().classes(), executorService);
-
       assert appView.checkForTesting(
               () ->
                   !options.isShrinking()
@@ -831,6 +821,16 @@ public class R8 {
                           .run(appView.appInfo().classes())
                           .isValid())
           : "Could not validate generic signatures";
+
+      NamingLens prefixRewritingNamingLens =
+          PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
+
+      timing.begin("MinifyKotlinMetadata");
+      new KotlinMetadataRewriter(appView, prefixRewritingNamingLens).runForR8(executorService);
+      timing.end();
+
+      new GenericSignatureRewriter(appView, prefixRewritingNamingLens)
+          .run(appView.appInfo().classes(), executorService);
 
       new DesugaredLibraryKeepRuleGenerator(appView, prefixRewritingNamingLens)
           .runIfNecessary(timing);

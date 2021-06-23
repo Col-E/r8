@@ -111,11 +111,7 @@ public class GenericSignatureKeepAttributesTest extends TestBase {
       assertEquals("(TO;TM;)TI;", testMethod.getFinalSignatureAttribute());
     } else {
       assertEquals(
-          "(L"
-              + binaryName(Supplier.class)
-              + "<*>;L"
-              + binaryName(Predicate.class)
-              + "<Ljava/lang/Object;>;)TI;",
+          "(" + descriptor(Supplier.class) + descriptor(Predicate.class) + ")TI;",
           testMethod.getFinalSignatureAttribute());
     }
   }

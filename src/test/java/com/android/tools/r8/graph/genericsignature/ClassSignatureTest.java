@@ -6,7 +6,6 @@ package com.android.tools.r8.graph.genericsignature;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.google.common.base.Predicates.alwaysFalse;
-import static com.google.common.base.Predicates.alwaysTrue;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -180,8 +179,7 @@ public class ClassSignatureTest extends TestBase {
             factory,
             dexType -> dexType.toDescriptorString().equals("Lj$/util/Spliterator$OfPrimitive;"),
             Function.identity(),
-            null,
-            alwaysTrue());
+            null);
     MethodTypeSignature rewritten = rewriter.rewrite(parsedMethodSignature);
     assertNotNull(rewritten);
     assertTrue(rewritten.hasSignature());

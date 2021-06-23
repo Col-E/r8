@@ -4,17 +4,15 @@
 
 package com.android.tools.r8.graph.genericsignature;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.containsString;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import java.lang.reflect.Type;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,31 +33,26 @@ public class GenericSignatureVerticalMergeTest extends TestBase {
     this.parameters = parameters;
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void testR8() throws Exception {
-    R8TestRunResult runResult =
-        testForR8Compat(parameters.getBackend())
-            .addInnerClasses(getClass())
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(Main.class)
-            .addKeepClassRules(I.class, J.class)
-            .addKeepClassAndMembersRulesWithAllowObfuscation(Base.class)
-            .addKeepAttributeInnerClassesAndEnclosingMethod()
-            .addKeepAttributeSignature()
-            .enableInliningAnnotations()
-            .enableNeverClassInliningAnnotations()
-            .enableNoVerticalClassMergingAnnotations()
-            .addVerticallyMergedClassesInspector(
-                inspector -> inspector.assertMergedIntoSubtype(A.class))
-            .run(parameters.getRuntime(), Main.class);
-    ClassSubject baseSubject = runResult.inspector().clazz(Base.class);
-    assertThat(baseSubject, isPresent());
-    runResult.assertSuccessWithOutputLines(
-        baseSubject.getFinalName() + "<" + String.class.getTypeName() + ">",
-        J.class.getTypeName() + "<X>",
-        I.class.getTypeName() + "<X>",
-        "I::t",
-        "B::r");
+    testForR8Compat(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .addKeepClassRules(I.class, J.class)
+        .addKeepClassAndMembersRulesWithAllowObfuscation(Base.class)
+        .addKeepAttributeInnerClassesAndEnclosingMethod()
+        .addKeepAttributeSignature()
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
+        .addVerticallyMergedClassesInspector(
+            inspector -> inspector.assertMergedIntoSubtype(A.class))
+        .compileWithExpectedDiagnostics(
+            diagnostics -> {
+              diagnostics.assertErrorMessageThatMatches(
+                  containsString("Super type inconsistency in generic signature"));
+            });
   }
 
   public interface I<T> {

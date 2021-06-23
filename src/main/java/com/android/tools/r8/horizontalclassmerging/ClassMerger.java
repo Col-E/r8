@@ -24,7 +24,6 @@ import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.code.ClassInitializerMerger;
@@ -326,8 +325,6 @@ public class ClassMerger {
     mergeInterfaces();
     mergeFields();
     mergeMethods(syntheticArgumentClass, syntheticInitializerConverterBuilder);
-    group.getTarget().clearClassSignature();
-    group.getTarget().forEachProgramMember(ProgramMember::clearGenericSignature);
   }
 
   public static class Builder {
