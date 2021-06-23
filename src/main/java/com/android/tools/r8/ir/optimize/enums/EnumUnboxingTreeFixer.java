@@ -411,7 +411,8 @@ class EnumUnboxingTreeFixer {
     return method
         .getOptimizationInfo()
         .getSimpleInliningConstraint()
-        .rewrittenWithUnboxedArguments(unboxedArgumentIndices);
+        .rewrittenWithUnboxedArguments(
+            unboxedArgumentIndices, appView.simpleInliningConstraintFactory());
   }
 
   private DexMethod ensureUniqueMethod(DexEncodedMethod encodedMethod, DexMethod newMethod) {

@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
+import java.util.OptionalLong;
 import java.util.Set;
 
 /**
@@ -105,43 +106,46 @@ public class SimpleInliningConstraintAnalysis {
     switch (instruction.opcode()) {
       case IF:
         If ifInstruction = instruction.asIf();
-        if (ifInstruction.isZeroTest()) {
-          Value lhs = ifInstruction.lhs().getAliasedValue();
-          if (lhs.isArgument() && !lhs.isThis()) {
-            int argumentIndex = lhs.getDefinition().asArgument().getIndex();
-            DexType argumentType = method.getDefinition().getArgumentType(argumentIndex);
-            int currentDepth = instructionDepth;
-
-            // Compute the constraint for which paths through the true target are guaranteed to exit
-            // early.
-            SimpleInliningConstraint trueTargetConstraint =
-                computeConstraintFromIfZeroTest(
-                        argumentIndex, argumentType, ifInstruction.getType())
-                    // Only recurse into the true target if the constraint from the if-instruction
-                    // is not 'never'.
-                    .lazyMeet(
-                        () ->
-                            analyzeInstructionsInBlock(
-                                ifInstruction.getTrueTarget(), currentDepth));
-
-            // Compute the constraint for which paths through the false target are guaranteed to
-            // exit early.
-            SimpleInliningConstraint fallthroughTargetConstraint =
-                computeConstraintFromIfZeroTest(
-                        argumentIndex, argumentType, ifInstruction.getType().inverted())
-                    // Only recurse into the false target if the constraint from the if-instruction
-                    // is not 'never'.
-                    .lazyMeet(
-                        () ->
-                            analyzeInstructionsInBlock(
-                                ifInstruction.fallthroughBlock(), currentDepth));
-
-            // Paths going through this basic block are guaranteed to exit early if the true target
-            // is guaranteed to exit early or the false target is.
-            return trueTargetConstraint.join(fallthroughTargetConstraint);
-          }
+        Value singleArgumentOperand = getSingleArgumentOperand(ifInstruction);
+        if (singleArgumentOperand == null || singleArgumentOperand.isThis()) {
+          break;
         }
-        break;
+
+        Value otherOperand =
+            ifInstruction.isZeroTest()
+                ? null
+                : ifInstruction.getOperand(
+                    1 - ifInstruction.inValues().indexOf(singleArgumentOperand));
+
+        int argumentIndex =
+            singleArgumentOperand.getAliasedValue().getDefinition().asArgument().getIndex();
+        DexType argumentType = method.getDefinition().getArgumentType(argumentIndex);
+        int currentDepth = instructionDepth;
+
+        // Compute the constraint for which paths through the true target are guaranteed to exit
+        // early.
+        SimpleInliningConstraint trueTargetConstraint =
+            computeConstraintFromIfTest(
+                    argumentIndex, argumentType, otherOperand, ifInstruction.getType())
+                // Only recurse into the true target if the constraint from the if-instruction
+                // is not 'never'.
+                .lazyMeet(
+                    () -> analyzeInstructionsInBlock(ifInstruction.getTrueTarget(), currentDepth));
+
+        // Compute the constraint for which paths through the false target are guaranteed to
+        // exit early.
+        SimpleInliningConstraint fallthroughTargetConstraint =
+            computeConstraintFromIfTest(
+                    argumentIndex, argumentType, otherOperand, ifInstruction.getType().inverted())
+                // Only recurse into the false target if the constraint from the if-instruction
+                // is not 'never'.
+                .lazyMeet(
+                    () ->
+                        analyzeInstructionsInBlock(ifInstruction.fallthroughBlock(), currentDepth));
+
+        // Paths going through this basic block are guaranteed to exit early if the true target
+        // is guaranteed to exit early or the false target is.
+        return trueTargetConstraint.join(fallthroughTargetConstraint);
 
       case GOTO:
         return analyzeInstructionsInBlock(instruction.asGoto().getTarget(), instructionDepth);
@@ -162,29 +166,73 @@ public class SimpleInliningConstraintAnalysis {
     return NeverSimpleInliningConstraint.getInstance();
   }
 
-  private SimpleInliningConstraint computeConstraintFromIfZeroTest(
-      int argumentIndex, DexType argumentType, If.Type type) {
+  private SimpleInliningConstraint computeConstraintFromIfTest(
+      int argumentIndex, DexType argumentType, Value otherOperand, If.Type type) {
+    boolean isZeroTest = otherOperand == null;
     switch (type) {
       case EQ:
-        if (argumentType.isReferenceType()) {
-          return factory.createNullConstraint(argumentIndex);
-        }
-        if (argumentType.isBooleanType()) {
-          return factory.createBooleanFalseConstraint(argumentIndex);
+        if (isZeroTest) {
+          if (argumentType.isReferenceType()) {
+            return factory.createNullConstraint(argumentIndex);
+          }
+          if (argumentType.isBooleanType()) {
+            return factory.createBooleanFalseConstraint(argumentIndex);
+          }
+        } else if (argumentType.isPrimitiveType()) {
+          OptionalLong rawValue = getRawNumberValue(otherOperand);
+          if (rawValue.isPresent()) {
+            return factory.createNumberConstraint(argumentIndex, rawValue.getAsLong());
+          }
         }
         return NeverSimpleInliningConstraint.getInstance();
 
       case NE:
-        if (argumentType.isReferenceType()) {
-          return factory.createNotNullConstraint(argumentIndex);
-        }
-        if (argumentType.isBooleanType()) {
-          return factory.createBooleanTrueConstraint(argumentIndex);
+        if (isZeroTest) {
+          if (argumentType.isReferenceType()) {
+            return factory.createNotNullConstraint(argumentIndex);
+          }
+          if (argumentType.isBooleanType()) {
+            return factory.createBooleanTrueConstraint(argumentIndex);
+          }
+        } else if (argumentType.isPrimitiveType()) {
+          OptionalLong rawValue = getRawNumberValue(otherOperand);
+          if (rawValue.isPresent()) {
+            return factory.createNotNumberConstraint(argumentIndex, rawValue.getAsLong());
+          }
         }
         return NeverSimpleInliningConstraint.getInstance();
 
       default:
         return NeverSimpleInliningConstraint.getInstance();
     }
+  }
+
+  private OptionalLong getRawNumberValue(Value value) {
+    Value root = value.getAliasedValue();
+    if (root.isDefinedByInstructionSatisfying(Instruction::isConstNumber)) {
+      return OptionalLong.of(root.getDefinition().asConstNumber().getRawValue());
+    }
+    return OptionalLong.empty();
+  }
+
+  private Value getSingleArgumentOperand(If ifInstruction) {
+    Value singleArgumentOperand = null;
+
+    Value lhs = ifInstruction.lhs();
+    if (lhs.getAliasedValue().isArgument()) {
+      singleArgumentOperand = lhs;
+    }
+
+    if (!ifInstruction.isZeroTest()) {
+      Value rhs = ifInstruction.rhs();
+      if (rhs.getAliasedValue().isArgument()) {
+        if (singleArgumentOperand != null) {
+          return null;
+        }
+        singleArgumentOperand = rhs;
+      }
+    }
+
+    return singleArgumentOperand;
   }
 }

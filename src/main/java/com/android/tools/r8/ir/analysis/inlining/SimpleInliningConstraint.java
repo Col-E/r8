@@ -110,5 +110,5 @@ public abstract class SimpleInliningConstraint {
       SimpleInliningConstraintFactory factory);
 
   public abstract SimpleInliningConstraint rewrittenWithUnboxedArguments(
-      IntList unboxedArgumentIndices);
+      IntList unboxedArgumentIndices, SimpleInliningConstraintFactory factory);
 }

@@ -41,7 +41,8 @@ public class BooleanTrueSimpleInliningConstraint extends SimpleInliningArgumentC
   }
 
   @Override
-  public SimpleInliningConstraint rewrittenWithUnboxedArguments(IntList unboxedArgumentIndices) {
+  public SimpleInliningConstraint rewrittenWithUnboxedArguments(
+      IntList unboxedArgumentIndices, SimpleInliningConstraintFactory factory) {
     return this;
   }
 }

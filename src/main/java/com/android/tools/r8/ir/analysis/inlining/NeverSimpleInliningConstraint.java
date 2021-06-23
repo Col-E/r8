@@ -35,7 +35,8 @@ public class NeverSimpleInliningConstraint extends SimpleInliningConstraint {
   }
 
   @Override
-  public SimpleInliningConstraint rewrittenWithUnboxedArguments(IntList unboxedArgumentIndices) {
+  public SimpleInliningConstraint rewrittenWithUnboxedArguments(
+      IntList unboxedArgumentIndices, SimpleInliningConstraintFactory factory) {
     return this;
   }
 }

@@ -77,11 +77,12 @@ public class SimpleInliningConstraintConjunction extends SimpleInliningConstrain
   }
 
   @Override
-  public SimpleInliningConstraint rewrittenWithUnboxedArguments(IntList unboxedArgumentIndices) {
+  public SimpleInliningConstraint rewrittenWithUnboxedArguments(
+      IntList unboxedArgumentIndices, SimpleInliningConstraintFactory factory) {
     List<SimpleInliningConstraint> rewrittenConstraints =
         ListUtils.mapOrElse(
             constraints,
-            constraint -> constraint.rewrittenWithUnboxedArguments(unboxedArgumentIndices),
+            constraint -> constraint.rewrittenWithUnboxedArguments(unboxedArgumentIndices, factory),
             null);
     return rewrittenConstraints != null
         ? new SimpleInliningConstraintConjunction(rewrittenConstraints)

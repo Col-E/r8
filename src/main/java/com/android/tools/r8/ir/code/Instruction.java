@@ -98,6 +98,10 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return position == null ? "???" : position.toString();
   }
 
+  public Value getOperand(int index) {
+    return inValues().get(index);
+  }
+
   public List<Value> inValues() {
     return inValues;
   }

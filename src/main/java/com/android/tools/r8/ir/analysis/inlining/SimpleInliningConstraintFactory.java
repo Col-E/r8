@@ -77,6 +77,16 @@ public class SimpleInliningConstraintFactory {
         () -> NullSimpleInliningConstraint.create(argumentIndex, this));
   }
 
+  public NotEqualToNumberSimpleInliningConstraint createNotNumberConstraint(
+      int argumentIndex, long rawValue) {
+    return NotEqualToNumberSimpleInliningConstraint.create(argumentIndex, rawValue, this);
+  }
+
+  public EqualToNumberSimpleInliningConstraint createNumberConstraint(
+      int argumentIndex, long rawValue) {
+    return EqualToNumberSimpleInliningConstraint.create(argumentIndex, rawValue, this);
+  }
+
   private <T extends SimpleInliningArgumentConstraint> T createArgumentConstraint(
       int argumentIndex, T[] lowConstraints, Map<Integer, T> highConstraints, Supplier<T> fn) {
     return argumentIndex < lowConstraints.length
