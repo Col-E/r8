@@ -42,7 +42,7 @@ public class ForNameTest extends CompatProguardSmaliTestBase {
                     .addKeepMainRule(CLASS_NAME)
                     // Add main dex rule to disable Class.forName() optimization.
                     .addMainDexRules("-keep class " + CLASS_NAME)
-                    .noOptimization()
+                    .addDontOptimize()
                     .noTreeShaking()
                     .setMinApi(AndroidApiLevel.B));
 
@@ -78,7 +78,7 @@ public class ForNameTest extends CompatProguardSmaliTestBase {
                     .addKeepMainRule(CLASS_NAME)
                     // Add main dex rule to disable Class.forName() optimization.
                     .addMainDexRules("-keep class " + CLASS_NAME)
-                    .noOptimization()
+                    .addDontOptimize()
                     .noMinification()
                     .noTreeShaking()
                     .setMinApi(AndroidApiLevel.B));

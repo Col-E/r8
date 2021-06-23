@@ -55,12 +55,12 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
 
   @Test
   public void testAsIs() throws Exception {
-    test(builder -> builder.noMinification().noOptimization().noTreeShaking());
+    test(builder -> builder.noMinification().addDontOptimize().noTreeShaking());
   }
 
   @Test
   public void testDontShrinkAndDontOptimize() throws Exception {
-    test(builder -> builder.noOptimization().noTreeShaking());
+    test(builder -> builder.addDontOptimize().noTreeShaking());
   }
 
   @Test
@@ -100,7 +100,7 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
 
   @Test
   public void testDontOptimize() throws Exception {
-    test(TestShrinkerBuilder::noOptimization);
+    test(TestShrinkerBuilder::addDontOptimize);
   }
 
   @Test

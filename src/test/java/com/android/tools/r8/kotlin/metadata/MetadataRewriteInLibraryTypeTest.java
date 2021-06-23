@@ -98,7 +98,7 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
             .addDontWarn(PKG + ".**")
             .allowDiagnosticWarningMessages()
             // -dontoptimize so that basic code structure is kept.
-            .noOptimization()
+            .addDontOptimize()
             .compile()
             .inspect(this::inspect)
             .assertAllWarningMessagesMatch(

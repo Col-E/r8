@@ -30,7 +30,6 @@ public abstract class TestShrinkerBuilder<
     extends TestCompilerBuilder<C, B, CR, RR, T> {
 
   protected boolean enableTreeShaking = true;
-  protected boolean enableOptimization = true;
   protected boolean enableMinification = true;
 
   private final Set<Class<? extends Annotation>> addedTestingAnnotations =
@@ -74,15 +73,6 @@ public abstract class TestShrinkerBuilder<
     return treeShaking(false);
   }
 
-  public T optimization(boolean enable) {
-    enableOptimization = enable;
-    return self();
-  }
-
-  public T noOptimization() {
-    return optimization(false);
-  }
-
   public T minification(boolean enable) {
     enableMinification = enable;
     return self();
@@ -110,6 +100,10 @@ public abstract class TestShrinkerBuilder<
 
   public T addKeepRules(String... rules) {
     return addKeepRules(Arrays.asList(rules));
+  }
+
+  public T addDontOptimize() {
+    return addKeepRules("-dontoptimize");
   }
 
   public T addDontWarn(Class<?>... classes) {
