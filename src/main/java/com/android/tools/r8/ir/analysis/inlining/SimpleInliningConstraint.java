@@ -19,14 +19,6 @@ public abstract class SimpleInliningConstraint {
     return false;
   }
 
-  public boolean isBooleanFalse() {
-    return false;
-  }
-
-  public boolean isBooleanTrue() {
-    return false;
-  }
-
   public boolean isConjunction() {
     return false;
   }
@@ -44,14 +36,6 @@ public abstract class SimpleInliningConstraint {
   }
 
   public boolean isNever() {
-    return false;
-  }
-
-  public boolean isNotNull() {
-    return false;
-  }
-
-  public boolean isNull() {
     return false;
   }
 

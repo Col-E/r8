@@ -15,6 +15,13 @@ public abstract class SimpleInliningArgumentConstraint extends SimpleInliningCon
     this.argumentIndex = argumentIndex;
   }
 
+  @Override
+  public final SimpleInliningConstraint fixupAfterRemovingThisParameter(
+      SimpleInliningConstraintFactory factory) {
+    assert getArgumentIndex() > 0;
+    return withArgumentIndex(getArgumentIndex() - 1, factory);
+  }
+
   Value getArgument(InvokeMethod invoke) {
     return invoke.getArgument(argumentIndex);
   }
@@ -27,4 +34,7 @@ public abstract class SimpleInliningArgumentConstraint extends SimpleInliningCon
   public boolean isArgumentConstraint() {
     return true;
   }
+
+  abstract SimpleInliningArgumentConstraint withArgumentIndex(
+      int argumentIndex, SimpleInliningConstraintFactory factory);
 }

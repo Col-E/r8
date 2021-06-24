@@ -4,18 +4,10 @@
 
 package com.android.tools.r8.ir.analysis.inlining;
 
-import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.Value;
-import it.unimi.dsi.fastutil.ints.IntList;
-
-public class NotEqualToNumberSimpleInliningConstraint extends SimpleInliningArgumentConstraint {
-
-  private final long rawValue;
+public class NotEqualToNumberSimpleInliningConstraint extends NumberSimpleInliningConstraint {
 
   private NotEqualToNumberSimpleInliningConstraint(int argumentIndex, long rawValue) {
-    super(argumentIndex);
-    this.rawValue = rawValue;
+    super(argumentIndex, rawValue);
   }
 
   static NotEqualToNumberSimpleInliningConstraint create(
@@ -25,22 +17,13 @@ public class NotEqualToNumberSimpleInliningConstraint extends SimpleInliningArgu
   }
 
   @Override
-  public boolean isSatisfied(InvokeMethod invoke) {
-    Value argumentRoot = getArgument(invoke).getAliasedValue();
-    return argumentRoot.isDefinedByInstructionSatisfying(Instruction::isConstNumber)
-        && argumentRoot.getDefinition().asConstNumber().getRawValue() != rawValue;
+  boolean test(long argumentValue) {
+    return argumentValue != getRawValue();
   }
 
   @Override
-  public SimpleInliningConstraint fixupAfterRemovingThisParameter(
-      SimpleInliningConstraintFactory factory) {
-    assert getArgumentIndex() > 0;
-    return factory.createNotNumberConstraint(getArgumentIndex() - 1, rawValue);
-  }
-
-  @Override
-  public SimpleInliningConstraint rewrittenWithUnboxedArguments(
-      IntList unboxedArgumentIndices, SimpleInliningConstraintFactory factory) {
-    return this;
+  SimpleInliningArgumentConstraint withArgumentIndex(
+      int argumentIndex, SimpleInliningConstraintFactory factory) {
+    return factory.createNotEqualToNumberConstraint(argumentIndex, getRawValue());
   }
 }
