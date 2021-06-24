@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.dex.Constants.ACC_STATIC;
 import static com.android.tools.r8.graph.DexCode.FAKE_THIS_PREFIX;
 import static com.android.tools.r8.graph.DexCode.FAKE_THIS_SUFFIX;
 
@@ -896,15 +895,11 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
 
   private Int2ReferenceSortedMap<FrameType> computeInitialLocals(
       DexType context, DexEncodedMethod method, RewrittenPrototypeDescription protoTypeChanges) {
-    int accessFlags =
-        protoTypeChanges.isEmpty()
-            ? method.accessFlags.modifiedFlags
-            : method.accessFlags.originalFlags;
     Int2ReferenceSortedMap<FrameType> initialLocals = new Int2ReferenceAVLTreeMap<>();
     int index = 0;
     if (method.isInstanceInitializer()) {
       initialLocals.put(index++, FrameType.uninitializedThis());
-    } else if (!MethodAccessFlags.isSet(ACC_STATIC, accessFlags)) {
+    } else if (!method.getAccessFlags().isStatic()) {
       initialLocals.put(index++, FrameType.initialized(context));
     }
     ArgumentInfoCollection argumentsInfo = protoTypeChanges.getArgumentInfoCollection();

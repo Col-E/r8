@@ -26,21 +26,21 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,17 +50,16 @@ import org.objectweb.asm.Opcodes;
 
 public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
-  public static final String ENUM_UNBOXING_SHARED_UTILITY_CLASS_SUFFIX =
-      "$r8$EnumUnboxingSharedUtility";
-
   private final DexProgramClass sharedUtilityClass;
-  private final ProgramField valuesField;
+  private final DexProgramClass synthesizingContext;
   private final ProgramMethod valuesMethod;
 
   public SharedEnumUnboxingUtilityClass(
-      DexProgramClass sharedUtilityClass, ProgramField valuesField, ProgramMethod valuesMethod) {
+      DexProgramClass sharedUtilityClass,
+      DexProgramClass synthesizingContext,
+      ProgramMethod valuesMethod) {
     this.sharedUtilityClass = sharedUtilityClass;
-    this.valuesField = valuesField;
+    this.synthesizingContext = synthesizingContext;
     this.valuesMethod = valuesMethod;
   }
 
@@ -73,13 +72,44 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         appView, enumDataMap, enumsToUnbox, fieldAccessInfoCollectionModifierBuilder);
   }
 
+  public ProgramMethod ensureCompareToMethod(
+      AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
+      MethodProcessor methodProcessor) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    // TODO(b/191957637): Consider creating free flowing static methods instead. The synthetic
+    //  infrastructure needs to be augmented with a new method ensureFixedMethod() or
+    //  ensureFixedFreeFlowingMethod() for this, if we want to create only one utility method (and
+    //  not one per use context).
+    return appView
+        .getSyntheticItems()
+        .ensureFixedClassMethod(
+            dexItemFactory.enumMembers.compareTo.getName(),
+            dexItemFactory.createProto(
+                dexItemFactory.intType, dexItemFactory.intType, dexItemFactory.intType),
+            SyntheticKind.ENUM_UNBOXING_SHARED_UTILITY_CLASS,
+            synthesizingContext,
+            appView,
+            ConsumerUtils.emptyConsumer(),
+            methodBuilder ->
+                methodBuilder
+                    .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                    .setCode(
+                        method ->
+                            EnumUnboxingCfMethods.EnumUnboxingMethods_compareTo(
+                                appView.options(), method))
+                    .setClassFileVersion(CfVersion.V1_6),
+            newMethod ->
+                converter.processDesugaredMethod(
+                    newMethod,
+                    OptimizationFeedbackSimple.getInstance(),
+                    methodProcessor,
+                    methodProcessor.createMethodProcessingContext(newMethod)));
+  }
+
   @Override
   public DexProgramClass getDefinition() {
     return sharedUtilityClass;
-  }
-
-  public ProgramField getValuesField() {
-    return valuesField;
   }
 
   public ProgramMethod getValuesMethod() {
@@ -95,12 +125,10 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     private final AppView<AppInfoWithLiveness> appView;
     private final DexItemFactory dexItemFactory;
     private final EnumDataMap enumDataMap;
-    private final Set<DexProgramClass> enumsToUnbox;
     private final FieldAccessInfoCollectionModifier.Builder
         fieldAccessInfoCollectionModifierBuilder;
-    private final DexType sharedUtilityClassType;
+    private final DexProgramClass synthesizingContext;
 
-    private DexEncodedField valuesField;
     private DexEncodedMethod valuesMethod;
 
     private Builder(
@@ -108,52 +136,40 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         EnumDataMap enumDataMap,
         Set<DexProgramClass> enumsToUnbox,
         FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder) {
+      DexProgramClass synthesizingContext = findDeterministicContextType(enumsToUnbox);
       this.appView = appView;
       this.dexItemFactory = appView.dexItemFactory();
       this.enumDataMap = enumDataMap;
-      this.enumsToUnbox = enumsToUnbox;
       this.fieldAccessInfoCollectionModifierBuilder = fieldAccessInfoCollectionModifierBuilder;
-      this.sharedUtilityClassType =
-          EnumUnboxingUtilityClasses.Builder.getUtilityClassType(
-              findDeterministicContextType(enumsToUnbox),
-              ENUM_UNBOXING_SHARED_UTILITY_CLASS_SUFFIX,
-              dexItemFactory);
-
-      assert appView.appInfo().definitionForWithoutExistenceAssert(sharedUtilityClassType) == null;
+      this.synthesizingContext = synthesizingContext;
     }
 
-    SharedEnumUnboxingUtilityClass build(DirectMappedDexApplication.Builder appBuilder) {
+    SharedEnumUnboxingUtilityClass build() {
       DexProgramClass clazz = createClass();
-      appBuilder.addSynthesizedClass(clazz);
-      appView.appInfo().addSynthesizedClassToBase(clazz, enumsToUnbox);
       return new SharedEnumUnboxingUtilityClass(
-          clazz, new ProgramField(clazz, valuesField), new ProgramMethod(clazz, valuesMethod));
+          clazz, synthesizingContext, new ProgramMethod(clazz, valuesMethod));
     }
 
     private DexProgramClass createClass() {
-      DexEncodedField valuesField = createValuesField(sharedUtilityClassType);
-      return new DexProgramClass(
-          sharedUtilityClassType,
-          null,
-          new SynthesizedOrigin("enum unboxing", EnumUnboxer.class),
-          ClassAccessFlags.createPublicFinalSynthetic(),
-          dexItemFactory.objectType,
-          DexTypeList.empty(),
-          null,
-          null,
-          Collections.emptyList(),
-          null,
-          Collections.emptyList(),
-          ClassSignature.noSignature(),
-          DexAnnotationSet.empty(),
-          new DexEncodedField[] {valuesField},
-          DexEncodedField.EMPTY_ARRAY,
-          new DexEncodedMethod[] {
-            createClassInitializer(valuesField), createValuesMethod(valuesField)
-          },
-          DexEncodedMethod.EMPTY_ARRAY,
-          dexItemFactory.getSkipNameValidationForTesting(),
-          DexProgramClass::checksumFromType);
+      DexProgramClass clazz =
+          appView
+              .getSyntheticItems()
+              .createFixedClass(
+                  SyntheticKind.ENUM_UNBOXING_SHARED_UTILITY_CLASS,
+                  synthesizingContext,
+                  appView,
+                  classBuilder -> {
+                    DexType sharedUtilityClassType = classBuilder.getType();
+                    DexEncodedField valuesField = createValuesField(sharedUtilityClassType);
+                    classBuilder
+                        .setDirectMethods(
+                            ImmutableList.of(
+                                createClassInitializer(sharedUtilityClassType, valuesField),
+                                createValuesMethod(sharedUtilityClassType, valuesField)))
+                        .setStaticFields(ImmutableList.of(valuesField));
+                  });
+      assert clazz.getAccessFlags().equals(ClassAccessFlags.createPublicFinalSynthetic());
+      return clazz;
     }
 
     // Fields.
@@ -172,25 +188,26 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
       fieldAccessInfoCollectionModifierBuilder
           .recordFieldReadInUnknownContext(valuesField.getReference())
           .recordFieldWriteInUnknownContext(valuesField.getReference());
-      this.valuesField = valuesField;
       return valuesField;
     }
 
     // Methods.
 
-    private DexEncodedMethod createClassInitializer(DexEncodedField valuesField) {
+    private DexEncodedMethod createClassInitializer(
+        DexType sharedUtilityClassType, DexEncodedField valuesField) {
       return new DexEncodedMethod(
           dexItemFactory.createClassInitializer(sharedUtilityClassType),
           MethodAccessFlags.createForClassInitializer(),
           MethodTypeSignature.noSignature(),
           DexAnnotationSet.empty(),
           ParameterAnnotationsList.empty(),
-          createClassInitializerCode(valuesField),
+          createClassInitializerCode(sharedUtilityClassType, valuesField),
           DexEncodedMethod.D8_R8_SYNTHESIZED,
           CfVersion.V1_6);
     }
 
-    private CfCode createClassInitializerCode(DexEncodedField valuesField) {
+    private CfCode createClassInitializerCode(
+        DexType sharedUtilityClassType, DexEncodedField valuesField) {
       int maxValuesArraySize = enumDataMap.getMaxValuesSize();
       int numberOfInstructions = 4 + maxValuesArraySize * 4;
       List<CfInstruction> instructions = new ArrayList<>(numberOfInstructions);
@@ -217,7 +234,8 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
           Collections.emptyList());
     }
 
-    private DexEncodedMethod createValuesMethod(DexEncodedField valuesField) {
+    private DexEncodedMethod createValuesMethod(
+        DexType sharedUtilityClassType, DexEncodedField valuesField) {
       DexEncodedMethod valuesMethod =
           new DexEncodedMethod(
               dexItemFactory.createMethod(
@@ -228,14 +246,15 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
               MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              createValuesMethodCode(valuesField),
+              createValuesMethodCode(sharedUtilityClassType, valuesField),
               DexEncodedMethod.D8_R8_SYNTHESIZED,
               CfVersion.V1_6);
       this.valuesMethod = valuesMethod;
       return valuesMethod;
     }
 
-    private CfCode createValuesMethodCode(DexEncodedField valuesField) {
+    private CfCode createValuesMethodCode(
+        DexType sharedUtilityClassType, DexEncodedField valuesField) {
       int maxStack = 5;
       int maxLocals = 2;
       int argumentLocalSlot = 0;

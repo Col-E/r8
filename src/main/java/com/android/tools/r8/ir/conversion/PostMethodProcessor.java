@@ -43,6 +43,11 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
   }
 
   @Override
+  public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
+    return processorContext.createMethodProcessingContext(method);
+  }
+
+  @Override
   public boolean shouldApplyCodeRewritings(ProgramMethod method) {
     assert !wave.contains(method);
     return !processed.contains(method);
@@ -132,8 +137,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
         assert feedback.noUpdatesLeft();
         ThreadUtils.processItems(
             wave,
-            method ->
-                consumer.accept(method, processorContext.createMethodProcessingContext(method)),
+            method -> consumer.accept(method, createMethodProcessingContext(method)),
             executorService);
         feedback.updateVisibleOptimizationInfo();
         processed.addAll(wave);

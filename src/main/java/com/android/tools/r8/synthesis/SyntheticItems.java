@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
+
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
@@ -568,15 +570,37 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       DexString name,
       DexProto proto,
       SyntheticKind kind,
-      DexProgramClass context,
+      ProgramDefinition context,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> buildClassCallback,
       Consumer<SyntheticMethodBuilder> buildMethodCallback) {
+    return ensureFixedClassMethod(
+        name,
+        proto,
+        kind,
+        context,
+        appView,
+        buildClassCallback,
+        buildMethodCallback,
+        emptyConsumer());
+  }
+
+  public ProgramMethod ensureFixedClassMethod(
+      DexString name,
+      DexProto proto,
+      SyntheticKind kind,
+      ProgramDefinition context,
+      AppView<?> appView,
+      Consumer<SyntheticProgramClassBuilder> buildClassCallback,
+      Consumer<SyntheticMethodBuilder> buildMethodCallback,
+      Consumer<ProgramMethod> newMethodCallback) {
     DexProgramClass clazz =
-        ensureFixedClass(kind, context, appView, buildClassCallback, ignored -> {});
+        ensureFixedClass(
+            kind, context.getContextClass(), appView, buildClassCallback, emptyConsumer());
     DexMethod methodReference = appView.dexItemFactory().createMethod(clazz.getType(), proto, name);
     DexEncodedMethod methodDefinition =
-        internalEnsureMethod(methodReference, clazz, kind, appView, buildMethodCallback);
+        internalEnsureMethod(
+            methodReference, clazz, kind, appView, buildMethodCallback, newMethodCallback);
     return new ProgramMethod(clazz, methodDefinition);
   }
 
@@ -637,16 +661,18 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     DexMethod methodReference =
         appView.dexItemFactory().createMethod(clazz.getType(), methodProto, methodName);
     DexEncodedMethod methodDefinition =
-        internalEnsureMethod(methodReference, clazz, kind, appView, buildMethodCallback);
+        internalEnsureMethod(
+            methodReference, clazz, kind, appView, buildMethodCallback, emptyConsumer());
     return DexClassAndMethod.create(clazz, methodDefinition);
   }
 
-  private DexEncodedMethod internalEnsureMethod(
+  private <T extends DexClassAndMethod> DexEncodedMethod internalEnsureMethod(
       DexMethod methodReference,
       DexClass clazz,
       SyntheticKind kind,
       AppView<?> appView,
-      Consumer<SyntheticMethodBuilder> buildMethodCallback) {
+      Consumer<SyntheticMethodBuilder> buildMethodCallback,
+      Consumer<T> newMethodCallback) {
     MethodCollection methodCollection = clazz.getMethodCollection();
     DexEncodedMethod methodDefinition = methodCollection.getMethod(methodReference);
     if (methodDefinition != null) {
@@ -667,6 +693,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       //  and the creation of the method code. The code can then be constructed outside the lock.
       methodDefinition = builder.build();
       methodCollection.addMethod(methodDefinition);
+      newMethodCallback.accept((T) DexClassAndMethod.create(clazz, methodDefinition));
       return methodDefinition;
     }
   }

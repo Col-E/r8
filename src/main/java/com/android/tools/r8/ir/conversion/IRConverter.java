@@ -750,6 +750,11 @@ public class IRConverter {
     }
     timing.end();
 
+    if (enumUnboxer != null) {
+      // TODO(b/190098858): Uncomment when methods are synthesized on-the-fly.
+      // enumUnboxer.unsetRewriter();
+    }
+
     // All the code that should be impacted by the lenses inserted between phase 1 and phase 2
     // have now been processed and rewritten, we clear code lens rewriting so that the class
     // staticizer and phase 3 does not perform again the rewriting.
@@ -1206,7 +1211,7 @@ public class IRConverter {
     if (appView.graphLens().hasCodeRewritings()) {
       assert lensCodeRewriter != null;
       timing.begin("Lens rewrite");
-      lensCodeRewriter.rewrite(code, context);
+      lensCodeRewriter.rewrite(code, context, methodProcessor);
       timing.end();
     }
 

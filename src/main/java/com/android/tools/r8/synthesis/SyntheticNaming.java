@@ -9,6 +9,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 
 public class SyntheticNaming {
 
@@ -23,6 +25,7 @@ public class SyntheticNaming {
    */
   public enum SyntheticKind {
     // Class synthetics.
+    ENUM_UNBOXING_SHARED_UTILITY_CLASS("$EnumUnboxingSharedUtility", 24, false, true),
     RECORD_TAG("", 1, false, true, true),
     COMPANION_CLASS("$-CC", 2, false, true),
     EMULATED_INTERFACE_CLASS("$-EL", 3, false, true),
@@ -47,6 +50,10 @@ public class SyntheticNaming {
     TWR_CLOSE_RESOURCE("TwrCloseResource", 17, true),
     SERVICE_LOADER("ServiceLoad", 18, true),
     OUTLINE("Outline", 19, true);
+
+    static {
+      assert verifyNoOverlappingIds();
+    }
 
     public final String descriptor;
     public final int id;
@@ -99,6 +106,16 @@ public class SyntheticNaming {
         }
       }
       return null;
+    }
+
+    private static boolean verifyNoOverlappingIds() {
+      Int2ReferenceMap<SyntheticKind> idToKind = new Int2ReferenceOpenHashMap<>();
+      for (SyntheticKind kind : values()) {
+        SyntheticKind kindWithSameId = idToKind.put(kind.id, kind);
+        assert kindWithSameId == null
+            : "Synthetic kind " + idToKind + " has same id as " + kindWithSameId;
+      }
+      return true;
     }
   }
 

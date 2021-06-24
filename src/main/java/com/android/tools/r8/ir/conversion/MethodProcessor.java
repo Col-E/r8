@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.ProgramMethod;
 
 public abstract class MethodProcessor {
@@ -10,6 +11,8 @@ public abstract class MethodProcessor {
   public boolean isPrimaryMethodProcessor() {
     return false;
   }
+
+  public abstract MethodProcessingContext createMethodProcessingContext(ProgramMethod method);
 
   public abstract boolean isProcessedConcurrently(ProgramMethod method);
 

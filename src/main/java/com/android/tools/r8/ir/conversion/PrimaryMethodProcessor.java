@@ -41,6 +41,8 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
   private final PostMethodProcessor.Builder postMethodProcessorBuilder;
   private final Deque<SortedProgramMethodSet> waves;
 
+  private ProcessorContext processorContext;
+
   private PrimaryMethodProcessor(
       AppView<AppInfoWithLiveness> appView,
       PostMethodProcessor.Builder postMethodProcessorBuilder,
@@ -59,6 +61,11 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
       throws ExecutionException {
     CallGraph callGraph = CallGraph.builder(appView).build(executorService, timing);
     return new PrimaryMethodProcessor(appView, postMethodProcessorBuilder, callGraph);
+  }
+
+  @Override
+  public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
+    return processorContext.createMethodProcessingContext(method);
   }
 
   @Override
@@ -125,7 +132,7 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
     TimingMerger merger =
         timing.beginMerger("primary-processor", ThreadUtils.getNumberOfThreads(executorService));
     while (!waves.isEmpty()) {
-      ProcessorContext processorContext = appView.createProcessorContext();
+      processorContext = appView.createProcessorContext();
       wave = waves.removeFirst();
       assert !wave.isEmpty();
       assert waveExtension.isEmpty();
@@ -135,9 +142,7 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
             ThreadUtils.processItemsWithResults(
                 wave,
                 method -> {
-                  Timing time =
-                      consumer.apply(
-                          method, processorContext.createMethodProcessingContext(method));
+                  Timing time = consumer.apply(method, createMethodProcessingContext(method));
                   time.end();
                   return time;
                 },

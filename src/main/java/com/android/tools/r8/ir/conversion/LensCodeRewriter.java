@@ -140,9 +140,11 @@ public class LensCodeRewriter {
   }
 
   /** Replace type appearances, invoke targets and field accesses with actual definitions. */
-  public void rewrite(IRCode code, ProgramMethod method) {
+  public void rewrite(IRCode code, ProgramMethod method, MethodProcessor methodProcessor) {
     Set<Phi> affectedPhis =
-        enumUnboxer != null ? enumUnboxer.rewriteCode(code) : Sets.newIdentityHashSet();
+        enumUnboxer != null
+            ? enumUnboxer.rewriteCode(code, methodProcessor)
+            : Sets.newIdentityHashSet();
     GraphLens graphLens = appView.graphLens();
     DexItemFactory factory = appView.dexItemFactory();
     // Rewriting types that affects phi can cause us to compute TOP for cyclic phi's. To solve this

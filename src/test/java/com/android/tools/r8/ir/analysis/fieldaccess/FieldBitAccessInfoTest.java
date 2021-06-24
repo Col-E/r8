@@ -15,6 +15,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -210,6 +211,11 @@ public class FieldBitAccessInfoTest extends TestBase {
   }
 
   static class PrimaryMethodProcessorMock extends MethodProcessorWithWave {
+
+    @Override
+    public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
+      throw new Unreachable();
+    }
 
     @Override
     public boolean shouldApplyCodeRewritings(ProgramMethod method) {

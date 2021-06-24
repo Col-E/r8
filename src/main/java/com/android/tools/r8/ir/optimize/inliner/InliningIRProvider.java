@@ -60,6 +60,10 @@ public class InliningIRProvider {
     assert existing == null;
   }
 
+  public MethodProcessor getMethodProcessor() {
+    return methodProcessor;
+  }
+
   public boolean verifyIRCacheIsEmpty() {
     assert cache.isEmpty();
     return true;

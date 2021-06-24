@@ -71,6 +71,7 @@ import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
@@ -533,12 +534,12 @@ public class EnumUnboxer {
         utilityClass -> utilityClass.getDefinition().forEachProgramMethod(postBuilder::add));
 
     fieldAccessInfoCollectionModifierBuilder.build().modify(appView);
-    enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumDataMap, utilityClasses);
     EnumUnboxingTreeFixer.Result treeFixerResult =
         new EnumUnboxingTreeFixer(appView, enumDataMap, enumClassesToUnbox, utilityClasses)
             .fixupTypeReferences(converter, executorService);
     EnumUnboxingLens enumUnboxingLens = treeFixerResult.getLens();
-    enumUnboxerRewriter.setEnumUnboxingLens(enumUnboxingLens);
+    enumUnboxerRewriter =
+        new EnumUnboxingRewriter(appView, converter, enumUnboxingLens, enumDataMap, utilityClasses);
     appView.setUnboxedEnums(enumDataMap);
     GraphLens previousLens = appView.graphLens();
     appView.rewriteWithLensAndApplication(enumUnboxingLens, appBuilder.build());
@@ -1287,8 +1288,13 @@ public class EnumUnboxer {
       return new UnsupportedLibraryInvokeReason(singleTargetReference);
     }
     // TODO(b/147860220): EnumSet and EnumMap may be interesting to model.
-    if (singleTargetReference == factory.enumMembers.compareTo) {
-      return Reason.ELIGIBLE;
+    if (singleTargetReference == factory.enumMembers.compareTo
+        || singleTargetReference == factory.enumMembers.compareToWithObject) {
+      DexProgramClass otherEnumClass =
+          getEnumUnboxingCandidateOrNull(invoke.getLastArgument().getType());
+      if (otherEnumClass == enumClass || invoke.getLastArgument().getType().isNullType()) {
+        return Reason.ELIGIBLE;
+      }
     } else if (singleTargetReference == factory.enumMembers.equals) {
       return Reason.ELIGIBLE;
     } else if (singleTargetReference == factory.enumMembers.nameMethod
@@ -1423,11 +1429,11 @@ public class EnumUnboxer {
     return false;
   }
 
-  public Set<Phi> rewriteCode(IRCode code) {
+  public Set<Phi> rewriteCode(IRCode code, MethodProcessor methodProcessor) {
     // This has no effect during primary processing since the enumUnboxerRewriter is set
     // in between primary and post processing.
     if (enumUnboxerRewriter != null) {
-      return enumUnboxerRewriter.rewriteCode(code);
+      return enumUnboxerRewriter.rewriteCode(code, methodProcessor);
     }
     return Sets.newIdentityHashSet();
   }
@@ -1437,5 +1443,9 @@ public class EnumUnboxer {
     if (enumUnboxerRewriter != null) {
       enumUnboxerRewriter.synthesizeEnumUnboxingUtilityMethods(converter, executorService);
     }
+  }
+
+  public void unsetRewriter() {
+    enumUnboxerRewriter = null;
   }
 }

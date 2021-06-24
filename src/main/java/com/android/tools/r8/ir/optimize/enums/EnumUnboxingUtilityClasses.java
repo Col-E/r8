@@ -73,7 +73,7 @@ public class EnumUnboxingUtilityClasses {
       SharedEnumUnboxingUtilityClass sharedUtilityClass =
           SharedEnumUnboxingUtilityClass.builder(
                   appView, enumDataMap, enumsToUnbox, fieldAccessInfoCollectionModifierBuilder)
-              .build(appBuilder);
+              .build();
       ImmutableMap<DexType, LocalEnumUnboxingUtilityClass> localUtilityClasses =
           createLocalUtilityClasses(enumsToUnbox, appBuilder);
       this.localUtilityClasses = localUtilityClasses;

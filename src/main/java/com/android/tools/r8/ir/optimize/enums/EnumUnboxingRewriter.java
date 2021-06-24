@@ -42,6 +42,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
 import com.android.tools.r8.ir.synthetic.EnumUnboxingCfCodeProvider;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -69,10 +70,11 @@ public class EnumUnboxingRewriter {
   private static final CfVersion REQUIRED_CLASS_FILE_VERSION = CfVersion.V1_8;
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final IRConverter converter;
   private final DexItemFactory factory;
   private final InternalOptions options;
   private final EnumDataMap unboxedEnumsData;
-  private EnumUnboxingLens enumUnboxingLens;
+  private final EnumUnboxingLens enumUnboxingLens;
   private final EnumUnboxingUtilityClasses utilityClasses;
 
   private final Map<DexMethod, DexEncodedMethod> utilityMethods = new ConcurrentHashMap<>();
@@ -85,11 +87,15 @@ public class EnumUnboxingRewriter {
 
   EnumUnboxingRewriter(
       AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
+      EnumUnboxingLens enumUnboxingLens,
       EnumDataMap unboxedEnumsInstanceFieldData,
       EnumUnboxingUtilityClasses utilityClasses) {
     this.appView = appView;
+    this.converter = converter;
     this.factory = appView.dexItemFactory();
     this.options = appView.options();
+    this.enumUnboxingLens = enumUnboxingLens;
     this.unboxedEnumsData = unboxedEnumsInstanceFieldData;
     this.utilityClasses = utilityClasses;
 
@@ -131,11 +137,7 @@ public class EnumUnboxingRewriter {
     return utilityClasses.getSharedUtilityClass();
   }
 
-  public void setEnumUnboxingLens(EnumUnboxingLens enumUnboxingLens) {
-    this.enumUnboxingLens = enumUnboxingLens;
-  }
-
-  Set<Phi> rewriteCode(IRCode code) {
+  Set<Phi> rewriteCode(IRCode code, MethodProcessor methodProcessor) {
     // We should not process the enum methods, they will be removed and they may contain invalid
     // rewriting rules.
     if (unboxedEnumsData.isEmpty()) {
@@ -182,9 +184,13 @@ public class EnumUnboxingRewriter {
               replaceEnumInvoke(
                   iterator, invokeMethod, equalsUtilityMethod, m -> synthesizeEqualsMethod());
               continue;
-            } else if (invokedMethod == factory.enumMembers.compareTo) {
+            } else if (invokedMethod == factory.enumMembers.compareTo
+                || invokedMethod == factory.enumMembers.compareToWithObject) {
               replaceEnumInvoke(
-                  iterator, invokeMethod, compareToUtilityMethod, m -> synthesizeCompareToMethod());
+                  iterator,
+                  invokeMethod,
+                  getSharedUtilityClass()
+                      .ensureCompareToMethod(appView, converter, methodProcessor));
               continue;
             } else if (invokedMethod == factory.enumMembers.nameMethod) {
               rewriteNameMethod(iterator, invokeMethod, enumType);
@@ -466,11 +472,18 @@ public class EnumUnboxingRewriter {
   }
 
   private void replaceEnumInvoke(
+      InstructionListIterator iterator, InvokeMethod invoke, ProgramMethod method) {
+    replaceEnumInvoke(iterator, invoke, method.getReference(), null);
+  }
+
+  private void replaceEnumInvoke(
       InstructionListIterator iterator,
       InvokeMethod invoke,
       DexMethod method,
       Function<DexMethod, DexEncodedMethod> synthesizor) {
-    utilityMethods.computeIfAbsent(method, synthesizor);
+    if (synthesizor != null) {
+      utilityMethods.computeIfAbsent(method, synthesizor);
+    }
     InvokeStatic replacement =
         new InvokeStatic(
             method, invoke.hasUnusedOutValue() ? null : invoke.outValue(), invoke.arguments());

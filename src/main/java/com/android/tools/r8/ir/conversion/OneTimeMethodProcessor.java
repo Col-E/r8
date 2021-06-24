@@ -45,6 +45,11 @@ public class OneTimeMethodProcessor extends MethodProcessorWithWave {
   }
 
   @Override
+  public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
+    return processorContext.createMethodProcessingContext(method);
+  }
+
+  @Override
   public boolean shouldApplyCodeRewritings(ProgramMethod method) {
     return true;
   }

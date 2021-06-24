@@ -65,6 +65,11 @@ public class SyntheticItemsTestUtils {
         originalMethod.getMethodDescriptor());
   }
 
+  public static boolean isEnumUnboxingSharedUtilityClass(ClassReference reference) {
+    return SyntheticNaming.isSynthetic(
+        reference, null, SyntheticKind.ENUM_UNBOXING_SHARED_UTILITY_CLASS);
+  }
+
   public static boolean isExternalSynthetic(ClassReference reference) {
     for (SyntheticKind kind : SyntheticKind.values()) {
       if (kind == SyntheticKind.RECORD_TAG) {

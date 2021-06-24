@@ -1546,6 +1546,8 @@ public class DexItemFactory {
     public final DexMethod nameMethod;
     public final DexMethod toString;
     public final DexMethod compareTo;
+    public final DexMethod compareToWithObject =
+        createMethod(enumType, createProto(intType, objectType), "compareTo");
     public final DexMethod equals;
     public final DexMethod hashCode;
 

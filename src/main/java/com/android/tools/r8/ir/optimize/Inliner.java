@@ -732,7 +732,7 @@ public class Inliner implements PostOptimization {
 
       if (inliningIRProvider.shouldApplyCodeRewritings(target)) {
         assert lensCodeRewriter != null;
-        lensCodeRewriter.rewrite(code, target);
+        lensCodeRewriter.rewrite(code, target, inliningIRProvider.getMethodProcessor());
       }
       if (options.testing.inlineeIrModifier != null) {
         options.testing.inlineeIrModifier.accept(code);
