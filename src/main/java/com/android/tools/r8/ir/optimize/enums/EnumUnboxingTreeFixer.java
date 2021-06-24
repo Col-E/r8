@@ -23,11 +23,14 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
 import com.android.tools.r8.ir.code.StaticPut;
@@ -44,6 +47,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -138,6 +142,8 @@ class EnumUnboxingTreeFixer {
 
     ProgramMethod classInitializer = unboxedEnum.getProgramClassInitializer();
     EnumData enumData = enumDataMap.get(unboxedEnum);
+    LocalEnumUnboxingUtilityClass localUtilityClass =
+        utilityClasses.getLocalUtilityClass(unboxedEnum);
 
     // Rewrite enum instantiations + remove static-puts to pruned fields.
     IRCode code = classInitializer.buildIR(appView);
@@ -153,7 +159,41 @@ class EnumUnboxingTreeFixer {
           continue;
         }
 
-        if (instruction.isNewInstance()) {
+        if (instruction.isConstClass()) {
+          // Rewrite MyEnum.class.desiredAssertionStatus() to
+          // LocalEnumUtility.class.desiredAssertionStatus() instead of
+          // int.class.desiredAssertionStatus().
+          ConstClass constClass = instruction.asConstClass();
+          if (constClass.getType() != unboxedEnum.getType()) {
+            continue;
+          }
+
+          List<InvokeVirtual> desiredAssertionStatusUsers = new ArrayList<>();
+          for (Instruction user : constClass.outValue().aliasedUsers()) {
+            if (user.isInvokeVirtual()) {
+              InvokeVirtual invoke = user.asInvokeVirtual();
+              if (invoke.getInvokedMethod()
+                  == appView.dexItemFactory().classMethods.desiredAssertionStatus) {
+                desiredAssertionStatusUsers.add(invoke);
+              }
+            }
+          }
+
+          if (!desiredAssertionStatusUsers.isEmpty()) {
+            ConstClass newConstClass =
+                ConstClass.builder()
+                    .setType(localUtilityClass.getType())
+                    .setFreshOutValue(
+                        code, TypeElement.classClassType(appView, definitelyNotNull()))
+                    .setPosition(constClass.getPosition())
+                    .build();
+            instructionIterator.add(newConstClass);
+            constClass
+                .outValue()
+                .replaceSelectiveInstructionUsers(
+                    newConstClass.outValue(), desiredAssertionStatusUsers::contains);
+          }
+        } else if (instruction.isNewInstance()) {
           NewInstance newInstance = instruction.asNewInstance();
           DexType rewrittenType = appView.graphLens().lookupType(newInstance.getType());
           if (rewrittenType == unboxedEnum.getType()) {

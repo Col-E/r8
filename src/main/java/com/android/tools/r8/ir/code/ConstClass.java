@@ -32,6 +32,14 @@ public class ConstClass extends ConstInstruction {
     this.clazz = clazz;
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public DexType getType() {
+    return clazz;
+  }
+
   @Override
   public int opcode() {
     return Opcodes.CONST_CLASS;
@@ -188,5 +196,25 @@ public class ConstClass extends ConstInstruction {
       return appView.abstractValueFactory().createSingleConstClassValue(clazz);
     }
     return UnknownValue.getInstance();
+  }
+
+  public static class Builder extends BuilderBase<Builder, ConstClass> {
+
+    private DexType type;
+
+    public Builder setType(DexType type) {
+      this.type = type;
+      return this;
+    }
+
+    @Override
+    public ConstClass build() {
+      return amend(new ConstClass(outValue, type));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }

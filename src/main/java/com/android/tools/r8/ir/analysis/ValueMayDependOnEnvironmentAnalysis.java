@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -23,6 +24,8 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeNewArray;
+import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.LogicalBinop;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
@@ -77,10 +80,12 @@ public class ValueMayDependOnEnvironmentAnalysis {
 
   private final AppView<?> appView;
   private final ProgramMethod context;
+  private final DexItemFactory dexItemFactory;
 
   public ValueMayDependOnEnvironmentAnalysis(AppView<?> appView, IRCode code) {
     this.appView = appView;
     this.context = code.context();
+    this.dexItemFactory = appView.dexItemFactory();
   }
 
   public boolean anyValueMayDependOnEnvironment(Iterable<Value> values) {
@@ -145,6 +150,10 @@ public class ValueMayDependOnEnvironmentAnalysis {
       WorkList<Value> worklist) {
     return addConstantValueToValueGraph(value)
         || addArrayValueToValueGraph(
+            value, node, graph, consumedInstructions, mutableValues, worklist)
+        || addInvokeVirtualValueToValueGraph(
+            value, node, graph, consumedInstructions, mutableValues, worklist)
+        || addLogicalBinopValueToValueGraph(
             value, node, graph, consumedInstructions, mutableValues, worklist)
         || addNewInstanceValueToValueGraph(
             value, node, graph, consumedInstructions, mutableValues, worklist);
@@ -237,6 +246,54 @@ public class ValueMayDependOnEnvironmentAnalysis {
     return true;
   }
 
+  private boolean addInvokeVirtualValueToValueGraph(
+      Value value,
+      Node node,
+      ValueGraph graph,
+      Set<Instruction> consumedInstructions,
+      Set<Value> mutableValues,
+      WorkList<Value> worklist) {
+    if (!value.isDefinedByInstructionSatisfying(Instruction::isInvokeVirtual)) {
+      return false;
+    }
+
+    InvokeVirtual invoke = value.getDefinition().asInvokeVirtual();
+    if (invoke.getInvokedMethod() == dexItemFactory.classMethods.desiredAssertionStatus) {
+      // We treat the value from calling MyClass.class.desiredAssertionStatus() as being independent
+      // of the environment if MyClass is not pinned.
+      return isNonPinnedClassConstant(invoke.getReceiver());
+    }
+
+    return false;
+  }
+
+  private boolean isNonPinnedClassConstant(Value value) {
+    Value root = value.getAliasedValue();
+    return root.isDefinedByInstructionSatisfying(Instruction::isConstClass)
+        && !appView.getKeepInfo().isPinned(root.getDefinition().asConstClass().getType(), appView);
+  }
+
+  private boolean addLogicalBinopValueToValueGraph(
+      Value value,
+      Node node,
+      ValueGraph graph,
+      Set<Instruction> consumedInstructions,
+      Set<Value> mutableValues,
+      WorkList<Value> worklist) {
+    if (!value.isDefinedByInstructionSatisfying(Instruction::isLogicalBinop)) {
+      return false;
+    }
+
+    // The result of a logical binop depends on the environment if any of the operands does.
+    LogicalBinop logicalBinop = value.getDefinition().asLogicalBinop();
+    for (Value inValue : logicalBinop.inValues()) {
+      graph.addDirectedEdge(node, graph.createNodeIfAbsent(inValue));
+      worklist.addIfNotSeen(inValue);
+    }
+
+    return true;
+  }
+
   private boolean addNewInstanceValueToValueGraph(
       Value value,
       Node node,
@@ -255,8 +312,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
     }
 
     // Find the single constructor invocation.
-    InvokeDirect constructorInvoke =
-        newInstance.getUniqueConstructorInvoke(appView.dexItemFactory());
+    InvokeDirect constructorInvoke = newInstance.getUniqueConstructorInvoke(dexItemFactory);
     if (constructorInvoke == null || constructorInvoke.getInvokedMethod().holder != clazz.type) {
       // Didn't find a (valid) constructor invocation, give up.
       return false;

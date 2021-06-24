@@ -63,6 +63,7 @@ import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Opcodes;
 import com.android.tools.r8.ir.code.Phi;
@@ -370,34 +371,56 @@ public class EnumUnboxer {
       return;
     }
     for (Instruction user : constClass.outValue().aliasedUsers()) {
-      if (user.isAssume()) {
-        continue;
+      if (!isLegitimateConstClassUser(user, context, enumClass)) {
+        markEnumAsUnboxable(Reason.CONST_CLASS, enumClass);
+        return;
       }
-      if (user.isInvokeVirtual()
-          && isUnboxableNameMethod(user.asInvokeVirtual().getInvokedMethod())) {
-        continue;
-      }
-      if (user.isInvokeStatic()) {
-        DexClassAndMethod singleTarget = user.asInvokeStatic().lookupSingleTarget(appView, context);
-        if (singleTarget != null) {
-          if (singleTarget.getReference() == factory.enumMembers.valueOf) {
-            // The name data is required for the correct mapping from the enum name to the ordinal
-            // in the valueOf utility method.
-            addRequiredNameData(enumClass);
-            markMethodDependsOnLibraryModelisation(context);
-            continue;
-          }
-          if (singleTarget.getReference()
-              == factory.javaLangReflectArrayMembers.newInstanceMethodWithDimensions) {
-            markMethodDependsOnLibraryModelisation(context);
-            continue;
-          }
-        }
-      }
-      markEnumAsUnboxable(Reason.CONST_CLASS, enumClass);
-      return;
     }
     eligibleEnums.add(enumType);
+  }
+
+  private boolean isLegitimateConstClassUser(
+      Instruction user, ProgramMethod context, DexProgramClass enumClass) {
+    if (user.isAssume()) {
+      if (user.outValue().hasPhiUsers()) {
+        return false;
+      }
+      return true;
+    }
+
+    if (user.isInvokeStatic()) {
+      DexClassAndMethod singleTarget = user.asInvokeStatic().lookupSingleTarget(appView, context);
+      if (singleTarget == null) {
+        return false;
+      }
+      if (singleTarget.getReference() == factory.enumMembers.valueOf) {
+        // The name data is required for the correct mapping from the enum name to the ordinal
+        // in the valueOf utility method.
+        addRequiredNameData(enumClass);
+        markMethodDependsOnLibraryModelisation(context);
+        return true;
+      }
+      if (singleTarget.getReference()
+          == factory.javaLangReflectArrayMembers.newInstanceMethodWithDimensions) {
+        markMethodDependsOnLibraryModelisation(context);
+        return true;
+      }
+    }
+
+    if (user.isInvokeVirtual()) {
+      InvokeVirtual invoke = user.asInvokeVirtual();
+      DexMethod invokedMethod = invoke.getInvokedMethod();
+      if (invokedMethod == factory.classMethods.desiredAssertionStatus) {
+        // Only valid in the enum's class initializer, since the class constant must be rewritten
+        // to LocalEnumUtility.class instead of int.class.
+        return context.getDefinition().isClassInitializer() && context.getHolder() == enumClass;
+      }
+      if (isUnboxableNameMethod(invokedMethod)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private void addRequiredNameData(DexProgramClass enumClass) {

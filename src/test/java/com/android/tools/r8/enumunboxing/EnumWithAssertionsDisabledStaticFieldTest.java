@@ -50,9 +50,7 @@ public class EnumWithAssertionsDisabledStaticFieldTest extends TestBase {
         .addKeepMainRule(EnumWithAssertionsDisabledStaticFieldMainClass.class)
         .addEnumUnboxingInspector(
             inspector ->
-                inspector.assertUnboxedIf(
-                    assertionTransformation != AssertionTransformation.PASSTHROUGH,
-                    EnumWithAssertionsDisabledStaticFieldEnumClass.class))
+                inspector.assertUnboxed(EnumWithAssertionsDisabledStaticFieldEnumClass.class))
         .addAssertionsConfiguration(
             builder -> builder.setTransformation(assertionTransformation).setScopeAll().build())
         .enableInliningAnnotations()

@@ -68,6 +68,7 @@ public class LibraryMethodSideEffectModelCollection {
     return ImmutableSet.<DexMethod>builder()
         .add(dexItemFactory.booleanMembers.toString)
         .add(dexItemFactory.byteMembers.toString)
+        .add(dexItemFactory.classMethods.desiredAssertionStatus)
         .add(dexItemFactory.charMembers.toString)
         .add(dexItemFactory.doubleMembers.toString)
         .add(dexItemFactory.enumMembers.constructor)
