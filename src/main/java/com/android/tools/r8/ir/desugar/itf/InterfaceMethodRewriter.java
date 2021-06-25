@@ -32,7 +32,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
@@ -75,17 +74,13 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.Pair;
-import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
@@ -132,7 +127,6 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   public static final String PRIVATE_METHOD_PREFIX = "$private$";
 
   private final AppView<?> appView;
-  private final IRConverter converter;
   private final InternalOptions options;
   final DexItemFactory factory;
   private final Map<DexType, DexType> emulatedInterfaces;
@@ -165,7 +159,6 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       BackportedMethodRewriter rewriter,
       DesugaredLibraryRetargeter desugaredLibraryRetargeter) {
     this.appView = appView;
-    this.converter = null;
     this.backportedMethodRewriter = rewriter;
     this.desugaredLibraryRetargeter = desugaredLibraryRetargeter;
     this.options = appView.options();
@@ -179,7 +172,6 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   public InterfaceMethodRewriter(AppView<?> appView, IRConverter converter) {
     assert converter != null;
     this.appView = appView;
-    this.converter = converter;
     this.backportedMethodRewriter = null;
     this.desugaredLibraryRetargeter = null;
     this.options = appView.options();
@@ -1374,71 +1366,22 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         });
   }
 
-  /**
-   * Move static and default interface methods to companion classes, add missing methods to forward
-   * to moved default methods implementation.
-   */
-  public void desugarInterfaceMethods(Flavor flavour, ExecutorService executorService)
-      throws ExecutionException {
-    // During L8 compilation, emulated interfaces are processed to be renamed, to have
-    // their interfaces fixed-up and to generate the emulated dispatch code.
-    EmulatedInterfaceProcessor emulatedInterfaceProcessor =
-        new EmulatedInterfaceProcessor(appView, this);
-
-    // Process all classes first. Add missing forwarding methods to
-    // replace desugared default interface methods.
-    ClassProcessor classProcessor = new ClassProcessor(appView, this);
-
-    // Process interfaces, create companion or dispatch class if needed, move static
-    // methods to companion class, copy default interface methods to companion classes,
-    // make original default methods abstract, remove bridge methods, create dispatch
-    // classes if needed.
-    InterfaceProcessor interfaceProcessor = new InterfaceProcessor(appView, this);
-
-    // The interface processors must be ordered so that finalization of the processing is performed
-    // in that order. The emulatedInterfaceProcessor has to be last at this point to avoid renaming
-    // emulated interfaces before the other processing.
-    ImmutableList<InterfaceDesugaringProcessor> orderedInterfaceDesugaringProcessors =
-        ImmutableList.of(classProcessor, interfaceProcessor, emulatedInterfaceProcessor);
-    processClassesConcurrently(orderedInterfaceDesugaringProcessors, flavour, executorService);
-
+  public void finalizeInterfaceMethodRewritingThroughIR(
+      IRConverter converter, ExecutorService executorService) throws ExecutionException {
     SortedProgramMethodSet sortedSynthesizedMethods = SortedProgramMethodSet.create();
     sortedSynthesizedMethods.addAll(synthesizedMethods);
     converter.processMethodsConcurrently(sortedSynthesizedMethods, executorService);
 
     // Cached data is not needed any more.
-    clear();
-  }
-
-  private void clear() {
     this.cache.clear();
     this.synthesizedMethods.clear();
   }
 
-  private boolean shouldProcess(DexProgramClass clazz, Flavor flavour) {
-    if (appView.isAlreadyLibraryDesugared(clazz)) {
-      return false;
-    }
-    return (!clazz.originatesFromDexResource() || flavour == Flavor.IncludeAllResources);
-  }
-
-  private void processClassesConcurrently(
-      List<InterfaceDesugaringProcessor> processors,
-      Flavor flavour,
-      ExecutorService executorService)
+  public void runInterfaceDesugaringProcessors(
+      IRConverter converter, Flavor flavour, ExecutorService executorService)
       throws ExecutionException {
-    ThreadUtils.processItems(
-        Iterables.filter(
-            appView.appInfo().classes(), (DexProgramClass clazz) -> shouldProcess(clazz, flavour)),
-        clazz -> {
-          for (InterfaceDesugaringProcessor processor : processors) {
-            processor.process(clazz, synthesizedMethods);
-          }
-        },
-        executorService);
-    for (InterfaceDesugaringProcessor processor : processors) {
-      processor.finalizeProcessing(synthesizedMethods);
-    }
+    new InterfaceMethodProcessorFacade(appView)
+        .runInterfaceDesugaringProcessors(this, converter, flavour, executorService);
   }
 
   final boolean isDefaultMethod(DexEncodedMethod method) {

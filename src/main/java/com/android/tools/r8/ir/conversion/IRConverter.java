@@ -386,13 +386,20 @@ public class IRConverter {
     }
   }
 
-  private void desugarInterfaceMethods(
-      Flavor includeAllResources,
-      ExecutorService executorService)
+  private void finalizeInterfaceMethodRewritingThroughIR(ExecutorService executorService)
       throws ExecutionException {
     assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
     if (interfaceMethodRewriter != null) {
-      interfaceMethodRewriter.desugarInterfaceMethods(includeAllResources, executorService);
+      interfaceMethodRewriter.finalizeInterfaceMethodRewritingThroughIR(this, executorService);
+    }
+  }
+
+  private void runInterfaceDesugaringProcessors(
+      Flavor includeAllResources, ExecutorService executorService) throws ExecutionException {
+    assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
+    if (interfaceMethodRewriter != null) {
+      interfaceMethodRewriter.runInterfaceDesugaringProcessors(
+          this, includeAllResources, executorService);
     }
   }
 
@@ -433,10 +440,10 @@ public class IRConverter {
     // Build a new application with jumbo string info,
     Builder<?> builder = application.builder().setHighestSortingString(highestSortingString);
 
+    runInterfaceDesugaringProcessors(ExcludeDexResources, executor);
     if (appView.options().isDesugaredLibraryCompilation()) {
       EmulatedInterfaceProcessor.filterEmulatedInterfaceSubInterfaces(appView, builder);
     }
-    desugarInterfaceMethods(ExcludeDexResources, executor);
     processCovariantReturnTypeAnnotations(builder);
     generateDesugaredLibraryAPIWrappers(builder, executor);
 
@@ -786,7 +793,8 @@ public class IRConverter {
     builder.setHighestSortingString(highestSortingString);
 
     printPhase("Interface method desugaring");
-    desugarInterfaceMethods(IncludeAllResources, executorService);
+    finalizeInterfaceMethodRewritingThroughIR(executorService);
+    runInterfaceDesugaringProcessors(IncludeAllResources, executorService);
     feedback.updateVisibleOptimizationInfo();
 
     printPhase("Utility classes synthesis");
