@@ -1260,58 +1260,93 @@ public class EnumUnboxer {
       Value enumValue,
       DexMethod singleTargetReference,
       DexClass targetHolder) {
-    if (targetHolder.getType() != factory.enumType) {
-      // System.identityHashCode(Object) is supported for proto enums.
-      // Object#getClass without outValue and Objects.requireNonNull are supported since R8
-      // rewrites explicit null checks to such instructions.
-      if (singleTargetReference == factory.javaLangSystemMethods.identityHashCode) {
+    // Calls to java.lang.Enum.
+    if (targetHolder.getType() == factory.enumType) {
+      // TODO(b/147860220): EnumSet and EnumMap may be interesting to model.
+      if (singleTargetReference == factory.enumMembers.compareTo
+          || singleTargetReference == factory.enumMembers.compareToWithObject) {
+        DexProgramClass otherEnumClass =
+            getEnumUnboxingCandidateOrNull(invoke.getLastArgument().getType());
+        if (otherEnumClass == enumClass || invoke.getLastArgument().getType().isNullType()) {
+          return Reason.ELIGIBLE;
+        }
+      } else if (singleTargetReference == factory.enumMembers.equals) {
         return Reason.ELIGIBLE;
-      }
-      if (singleTargetReference == factory.stringMembers.valueOf) {
+      } else if (singleTargetReference == factory.enumMembers.nameMethod
+          || singleTargetReference == factory.enumMembers.toString) {
+        assert invoke.asInvokeMethodWithReceiver().getReceiver() == enumValue;
         addRequiredNameData(enumClass);
         return Reason.ELIGIBLE;
-      }
-      if (singleTargetReference == factory.stringBuilderMethods.appendObject
-          || singleTargetReference == factory.stringBufferMethods.appendObject) {
-        addRequiredNameData(enumClass);
+      } else if (singleTargetReference == factory.enumMembers.ordinalMethod) {
         return Reason.ELIGIBLE;
+      } else if (singleTargetReference == factory.enumMembers.hashCode) {
+        return Reason.ELIGIBLE;
+      } else if (singleTargetReference == factory.enumMembers.constructor) {
+        // Enum constructor call is allowed only if called from an enum initializer.
+        if (code.method().isInstanceInitializer() && code.context().getHolder() == enumClass) {
+          return Reason.ELIGIBLE;
+        }
       }
-      if (singleTargetReference == factory.objectMembers.getClass
-          && (!invoke.hasOutValue() || !invoke.outValue().hasAnyUsers())) {
+      return new UnsupportedLibraryInvokeReason(singleTargetReference);
+    }
+
+    // Calls to java.lang.Object.
+    if (targetHolder.getType() == factory.objectType) {
+      // Object#getClass without outValue is important since R8 rewrites explicit null checks to
+      // such instructions.
+      if (singleTargetReference == factory.objectMembers.getClass && invoke.hasUnusedOutValue()) {
         // This is a hidden null check.
         return Reason.ELIGIBLE;
       }
+      return new UnsupportedLibraryInvokeReason(singleTargetReference);
+    }
+
+    // Calls to java.lang.Objects.
+    if (targetHolder.getType() == factory.objectsType) {
+      // Objects#requireNonNull is important since R8 rewrites explicit null checks to such
+      // instructions.
       if (singleTargetReference == factory.objectsMethods.requireNonNull
           || singleTargetReference == factory.objectsMethods.requireNonNullWithMessage) {
         return Reason.ELIGIBLE;
       }
       return new UnsupportedLibraryInvokeReason(singleTargetReference);
     }
-    // TODO(b/147860220): EnumSet and EnumMap may be interesting to model.
-    if (singleTargetReference == factory.enumMembers.compareTo
-        || singleTargetReference == factory.enumMembers.compareToWithObject) {
-      DexProgramClass otherEnumClass =
-          getEnumUnboxingCandidateOrNull(invoke.getLastArgument().getType());
-      if (otherEnumClass == enumClass || invoke.getLastArgument().getType().isNullType()) {
+
+    // Calls to java.lang.String.
+    if (targetHolder.getType() == factory.stringType) {
+      if (singleTargetReference == factory.stringMembers.valueOf) {
+        addRequiredNameData(enumClass);
         return Reason.ELIGIBLE;
       }
-    } else if (singleTargetReference == factory.enumMembers.equals) {
-      return Reason.ELIGIBLE;
-    } else if (singleTargetReference == factory.enumMembers.nameMethod
-        || singleTargetReference == factory.enumMembers.toString) {
-      assert invoke.asInvokeMethodWithReceiver().getReceiver() == enumValue;
-      addRequiredNameData(enumClass);
-      return Reason.ELIGIBLE;
-    } else if (singleTargetReference == factory.enumMembers.ordinalMethod) {
-      return Reason.ELIGIBLE;
-    } else if (singleTargetReference == factory.enumMembers.hashCode) {
-      return Reason.ELIGIBLE;
-    } else if (singleTargetReference == factory.enumMembers.constructor) {
-      // Enum constructor call is allowed only if called from an enum initializer.
-      if (code.method().isInstanceInitializer() && code.context().getHolder() == enumClass) {
-        return Reason.ELIGIBLE;
-      }
+      return new UnsupportedLibraryInvokeReason(singleTargetReference);
     }
+
+    // Calls to java.lang.StringBuilder and java.lang.StringBuffer.
+    if (targetHolder.getType() == factory.stringBuilderType
+        || targetHolder.getType() == factory.stringBufferType) {
+      if (singleTargetReference == factory.stringBuilderMethods.appendObject
+          || singleTargetReference == factory.stringBufferMethods.appendObject) {
+        addRequiredNameData(enumClass);
+        return Reason.ELIGIBLE;
+      }
+      return new UnsupportedLibraryInvokeReason(singleTargetReference);
+    }
+
+    // Calls to java.lang.System.
+    if (targetHolder.getType() == factory.javaLangSystemType) {
+      if (singleTargetReference == factory.javaLangSystemMethods.arraycopy) {
+        // Important for Kotlin 1.5 enums, which use arraycopy to create a copy of $VALUES instead
+        // of int[].clone().
+        return Reason.ELIGIBLE;
+      }
+      if (singleTargetReference == factory.javaLangSystemMethods.identityHashCode) {
+        // Important for proto enum unboxing.
+        return Reason.ELIGIBLE;
+      }
+      return new UnsupportedLibraryInvokeReason(singleTargetReference);
+    }
+
+    // Unsupported holder.
     return new UnsupportedLibraryInvokeReason(singleTargetReference);
   }
 

@@ -9,7 +9,6 @@ import static com.android.tools.r8.KotlinTestBase.getCompileMemoizer;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase.KotlinCompileMemoizer;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -72,13 +71,7 @@ public class SimpleKotlinEnumUnboxingTest extends EnumUnboxingTestBase {
         .addKeepRules(enumKeepRules.getKeepRules())
         .addKeepRuntimeVisibleAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-        .addEnumUnboxingInspector(
-            inspector ->
-                // TODO(b/191617661): Color should also be unboxed with kotlinc 1.5.
-                inspector.assertUnboxedIf(
-                    kotlinParameters.getCompiler().getCompilerVersion()
-                        != KotlinCompilerVersion.KOTLINC_1_5_0_M2,
-                    PKG + ".Color"))
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(PKG + ".Color"))
         .allowDiagnosticMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
