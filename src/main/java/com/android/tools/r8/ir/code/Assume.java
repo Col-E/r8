@@ -246,7 +246,7 @@ public class Assume extends Instruction {
 
   @Override
   public boolean throwsOnNullInput() {
-    return true;
+    return hasNonNullAssumption();
   }
 
   @Override
