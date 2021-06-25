@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
-import com.android.tools.r8.ir.desugar.record.RecordDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer;
 
 public abstract class CfClassDesugaringEventConsumer implements RecordDesugaringEventConsumer {
 

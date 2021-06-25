@@ -48,7 +48,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
-import com.android.tools.r8.ir.desugar.record.RecordRewriter;
+import com.android.tools.r8.ir.desugar.records.RecordRewriter;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.NestReducer;

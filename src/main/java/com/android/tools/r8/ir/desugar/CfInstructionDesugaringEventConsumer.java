@@ -21,7 +21,7 @@ import com.android.tools.r8.ir.desugar.itf.InterfaceMethodDesugaringEventConsume
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.record.RecordDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.twr.TwrCloseResourceDesugaringEventConsumer;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;

@@ -20,7 +20,7 @@ import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
-import com.android.tools.r8.ir.desugar.record.RecordRewriter;
+import com.android.tools.r8.ir.desugar.records.RecordRewriter;
 import com.android.tools.r8.ir.desugar.stringconcat.StringConcatInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.twr.TwrCloseResourceInstructionDesugaring;
 import com.android.tools.r8.utils.IntBox;

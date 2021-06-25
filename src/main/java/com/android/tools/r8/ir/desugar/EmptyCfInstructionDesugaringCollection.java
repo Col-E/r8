@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection.EmptyCfClassDesugaringCollection;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
-import com.android.tools.r8.ir.desugar.record.RecordRewriter;
+import com.android.tools.r8.ir.desugar.records.RecordRewriter;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import java.util.function.Consumer;
 
