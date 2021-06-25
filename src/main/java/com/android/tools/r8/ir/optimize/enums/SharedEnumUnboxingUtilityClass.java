@@ -25,6 +25,8 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
@@ -39,6 +41,7 @@ import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
+import com.android.tools.r8.synthesis.SyntheticMethodBuilder.SyntheticCodeGenerator;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.google.common.collect.ImmutableList;
@@ -72,11 +75,87 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         appView, enumDataMap, enumsToUnbox, fieldAccessInfoCollectionModifierBuilder);
   }
 
+  public ProgramMethod ensureCheckNotZeroMethod(
+      AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
+      MethodProcessor methodProcessor) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    return internalEnsureMethod(
+        appView,
+        converter,
+        methodProcessor,
+        dexItemFactory.createString("checkNotZero"),
+        dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.intType),
+        method -> EnumUnboxingCfMethods.EnumUnboxingMethods_zeroCheck(appView.options(), method));
+  }
+
+  public ProgramMethod ensureCheckNotZeroWithMessageMethod(
+      AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
+      MethodProcessor methodProcessor) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    return internalEnsureMethod(
+        appView,
+        converter,
+        methodProcessor,
+        dexItemFactory.createString("checkNotZero"),
+        dexItemFactory.createProto(
+            dexItemFactory.voidType, dexItemFactory.intType, dexItemFactory.stringType),
+        method ->
+            EnumUnboxingCfMethods.EnumUnboxingMethods_zeroCheckMessage(appView.options(), method));
+  }
+
   public ProgramMethod ensureCompareToMethod(
       AppView<AppInfoWithLiveness> appView,
       IRConverter converter,
       MethodProcessor methodProcessor) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
+    return internalEnsureMethod(
+        appView,
+        converter,
+        methodProcessor,
+        dexItemFactory.enumMembers.compareTo.getName(),
+        dexItemFactory.createProto(
+            dexItemFactory.intType, dexItemFactory.intType, dexItemFactory.intType),
+        method -> EnumUnboxingCfMethods.EnumUnboxingMethods_compareTo(appView.options(), method));
+  }
+
+  public ProgramMethod ensureEqualsMethod(
+      AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
+      MethodProcessor methodProcessor) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    return internalEnsureMethod(
+        appView,
+        converter,
+        methodProcessor,
+        dexItemFactory.enumMembers.equals.getName(),
+        dexItemFactory.createProto(
+            dexItemFactory.booleanType, dexItemFactory.intType, dexItemFactory.intType),
+        method -> EnumUnboxingCfMethods.EnumUnboxingMethods_equals(appView.options(), method));
+  }
+
+  public ProgramMethod ensureOrdinalMethod(
+      AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
+      MethodProcessor methodProcessor) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    return internalEnsureMethod(
+        appView,
+        converter,
+        methodProcessor,
+        dexItemFactory.enumMembers.ordinalMethod.getName(),
+        dexItemFactory.createProto(dexItemFactory.intType, dexItemFactory.intType),
+        method -> EnumUnboxingCfMethods.EnumUnboxingMethods_ordinal(appView.options(), method));
+  }
+
+  private ProgramMethod internalEnsureMethod(
+      AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
+      MethodProcessor methodProcessor,
+      DexString methodName,
+      DexProto methodProto,
+      SyntheticCodeGenerator codeGenerator) {
     // TODO(b/191957637): Consider creating free flowing static methods instead. The synthetic
     //  infrastructure needs to be augmented with a new method ensureFixedMethod() or
     //  ensureFixedFreeFlowingMethod() for this, if we want to create only one utility method (and
@@ -84,9 +163,8 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     return appView
         .getSyntheticItems()
         .ensureFixedClassMethod(
-            dexItemFactory.enumMembers.compareTo.getName(),
-            dexItemFactory.createProto(
-                dexItemFactory.intType, dexItemFactory.intType, dexItemFactory.intType),
+            methodName,
+            methodProto,
             SyntheticKind.ENUM_UNBOXING_SHARED_UTILITY_CLASS,
             synthesizingContext,
             appView,
@@ -94,10 +172,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
             methodBuilder ->
                 methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                    .setCode(
-                        method ->
-                            EnumUnboxingCfMethods.EnumUnboxingMethods_compareTo(
-                                appView.options(), method))
+                    .setCode(codeGenerator)
                     .setClassFileVersion(CfVersion.V1_6),
             newMethod ->
                 converter.processDesugaredMethod(
