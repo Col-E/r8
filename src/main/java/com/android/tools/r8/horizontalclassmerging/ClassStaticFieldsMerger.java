@@ -14,27 +14,31 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ClassStaticFieldsMerger {
-  private final Builder lensBuilder;
-  private final MergeGroup group;
-  private final Map<DexField, DexEncodedField> targetFields = new LinkedHashMap<>();
+
   private final DexItemFactory dexItemFactory;
+  private final MergeGroup group;
+  private final Builder lensBuilder;
+
+  private final Map<DexField, DexEncodedField> targetFields = new LinkedHashMap<>();
 
   public ClassStaticFieldsMerger(
       AppView<?> appView, HorizontalClassMergerGraphLens.Builder lensBuilder, MergeGroup group) {
-    this.lensBuilder = lensBuilder;
-
-    this.group = group;
-    // Add mappings for all target fields.
-    group
-        .getTarget()
-        .staticFields()
-        .forEach(field -> targetFields.put(field.getReference(), field));
-
     this.dexItemFactory = appView.dexItemFactory();
+    this.group = group;
+    this.lensBuilder = lensBuilder;
   }
 
   private boolean isFresh(DexField fieldReference) {
-    return !targetFields.containsKey(fieldReference);
+    if (group.getTarget().lookupField(fieldReference) != null) {
+      // The target class has an instance or static field with the given reference.
+      return false;
+    }
+    if (targetFields.containsKey(fieldReference)) {
+      // We have already committed another static field from a source class in the merge group to
+      // the given field reference (but the field is not yet added to the target class).
+      return false;
+    }
+    return true;
   }
 
   private void addField(DexEncodedField field) {
@@ -53,10 +57,10 @@ public class ClassStaticFieldsMerger {
   }
 
   public void addFields(DexProgramClass toMerge) {
-    toMerge.staticFields().forEach(this::addField);
+    toMerge.forEachStaticField(this::addField);
   }
 
-  public void merge(DexProgramClass clazz) {
-    clazz.setStaticFields(targetFields.values().toArray(DexEncodedField.EMPTY_ARRAY));
+  public void merge() {
+    group.getTarget().appendStaticFields(targetFields.values());
   }
 }

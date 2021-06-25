@@ -5,7 +5,9 @@
 package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.NestedGraphLens;
@@ -15,6 +17,7 @@ import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
@@ -83,18 +86,21 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
 
   public static class Builder {
 
-    private final MutableBidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap =
-        BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
-    private final BidirectionalManyToOneHashMap<DexMethod, DexMethod> methodMap =
+    private final MutableBidirectionalManyToOneRepresentativeMap<DexField, DexField>
+        newFieldSignatures = BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
+    private final MutableBidirectionalManyToOneMap<DexMethod, DexMethod> methodMap =
         BidirectionalManyToOneHashMap.newIdentityHashMap();
-    private final BidirectionalManyToOneRepresentativeHashMap<DexMethod, DexMethod>
+    private final MutableBidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod>
         newMethodSignatures = BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
     private final Map<DexMethod, List<ExtraParameter>> methodExtraParameters =
         new IdentityHashMap<>();
 
-    private final BidirectionalManyToOneHashMap<DexMethod, DexMethod> pendingMethodMapUpdates =
+    private final MutableBidirectionalManyToOneMap<DexMethod, DexMethod> pendingMethodMapUpdates =
         BidirectionalManyToOneHashMap.newIdentityHashMap();
-    private final BidirectionalManyToOneRepresentativeHashMap<DexMethod, DexMethod>
+    private final MutableBidirectionalManyToOneRepresentativeMap<DexField, DexField>
+        pendingNewFieldSignatureUpdates =
+            BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
+    private final MutableBidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod>
         pendingNewMethodSignatureUpdates =
             BidirectionalManyToOneRepresentativeHashMap.newIdentityHashMap();
 
@@ -103,6 +109,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
     HorizontalClassMergerGraphLens build(
         AppView<?> appView, HorizontallyMergedClasses mergedClasses) {
       assert pendingMethodMapUpdates.isEmpty();
+      assert pendingNewFieldSignatureUpdates.isEmpty();
       assert pendingNewMethodSignatureUpdates.isEmpty();
       assert newMethodSignatures.values().stream()
           .allMatch(
@@ -115,7 +122,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
           appView,
           mergedClasses,
           methodExtraParameters,
-          fieldMap,
+          newFieldSignatures,
           methodMap.getForwardMap(),
           newMethodSignatures);
     }
@@ -126,7 +133,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
     }
 
     void recordNewFieldSignature(DexField oldFieldSignature, DexField newFieldSignature) {
-      fieldMap.put(oldFieldSignature, newFieldSignature);
+      newFieldSignatures.put(oldFieldSignature, newFieldSignature);
     }
 
     void recordNewFieldSignature(
@@ -135,26 +142,20 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
         DexField representative) {
       assert Streams.stream(oldFieldSignatures)
           .anyMatch(oldFieldSignature -> oldFieldSignature != newFieldSignature);
-      assert Streams.stream(oldFieldSignatures).noneMatch(fieldMap::containsValue);
+      assert Streams.stream(oldFieldSignatures).noneMatch(newFieldSignatures::containsValue);
       assert Iterables.contains(oldFieldSignatures, representative);
       for (DexField oldFieldSignature : oldFieldSignatures) {
         recordNewFieldSignature(oldFieldSignature, newFieldSignature);
       }
-      fieldMap.setRepresentative(newFieldSignature, representative);
+      newFieldSignatures.setRepresentative(newFieldSignature, representative);
     }
 
     void fixupField(DexField oldFieldSignature, DexField newFieldSignature) {
-      DexField representative = fieldMap.removeRepresentativeFor(oldFieldSignature);
-      Set<DexField> originalFieldSignatures = fieldMap.removeValue(oldFieldSignature);
-      if (originalFieldSignatures.isEmpty()) {
-        fieldMap.put(oldFieldSignature, newFieldSignature);
-      } else if (originalFieldSignatures.size() == 1) {
-        fieldMap.put(originalFieldSignatures, newFieldSignature);
-      } else {
-        assert representative != null;
-        fieldMap.put(originalFieldSignatures, newFieldSignature);
-        fieldMap.setRepresentative(newFieldSignature, representative);
-      }
+      fixupOriginalMemberSignatures(
+          oldFieldSignature,
+          newFieldSignature,
+          newFieldSignatures,
+          pendingNewFieldSignatureUpdates);
     }
 
     void mapMethod(DexMethod oldMethodSignature, DexMethod newMethodSignature) {
@@ -195,7 +196,11 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
 
     void fixupMethod(DexMethod oldMethodSignature, DexMethod newMethodSignature) {
       fixupMethodMap(oldMethodSignature, newMethodSignature);
-      fixupOriginalMethodSignatures(oldMethodSignature, newMethodSignature);
+      fixupOriginalMemberSignatures(
+          oldMethodSignature,
+          newMethodSignature,
+          newMethodSignatures,
+          pendingNewMethodSignatureUpdates);
     }
 
     private void fixupMethodMap(DexMethod oldMethodSignature, DexMethod newMethodSignature) {
@@ -209,18 +214,22 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       }
     }
 
-    private void fixupOriginalMethodSignatures(
-        DexMethod oldMethodSignature, DexMethod newMethodSignature) {
-      Set<DexMethod> oldMethodSignatures = newMethodSignatures.getKeys(oldMethodSignature);
-      if (oldMethodSignatures.isEmpty()) {
-        pendingNewMethodSignatureUpdates.put(oldMethodSignature, newMethodSignature);
+    private <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
+        void fixupOriginalMemberSignatures(
+            R oldMemberSignature,
+            R newMemberSignature,
+            MutableBidirectionalManyToOneRepresentativeMap<R, R> newMemberSignatures,
+            MutableBidirectionalManyToOneRepresentativeMap<R, R> pendingNewMemberSignatureUpdates) {
+      Set<R> oldMemberSignatures = newMemberSignatures.getKeys(oldMemberSignature);
+      if (oldMemberSignatures.isEmpty()) {
+        pendingNewMemberSignatureUpdates.put(oldMemberSignature, newMemberSignature);
       } else {
-        for (DexMethod originalMethodSignature : oldMethodSignatures) {
-          pendingNewMethodSignatureUpdates.put(originalMethodSignature, newMethodSignature);
+        for (R originalMethodSignature : oldMemberSignatures) {
+          pendingNewMemberSignatureUpdates.put(originalMethodSignature, newMemberSignature);
         }
-        DexMethod representative = newMethodSignatures.getRepresentativeKey(oldMethodSignature);
+        R representative = newMemberSignatures.getRepresentativeKey(oldMemberSignature);
         if (representative != null) {
-          pendingNewMethodSignatureUpdates.setRepresentative(newMethodSignature, representative);
+          pendingNewMemberSignatureUpdates.setRepresentative(newMemberSignature, representative);
         }
       }
     }
@@ -231,16 +240,24 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       pendingMethodMapUpdates.forEachManyToOneMapping(methodMap::put);
       pendingMethodMapUpdates.clear();
 
-      // Commit pending original method signatures updates.
-      newMethodSignatures.removeAll(pendingNewMethodSignatureUpdates.keySet());
-      pendingNewMethodSignatureUpdates.forEachManyToOneMapping(
+      // Commit pending original field and method signatures updates.
+      commitPendingNewMemberSignatureUpdates(newFieldSignatures, pendingNewFieldSignatureUpdates);
+      commitPendingNewMemberSignatureUpdates(newMethodSignatures, pendingNewMethodSignatureUpdates);
+    }
+
+    private <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
+        void commitPendingNewMemberSignatureUpdates(
+            MutableBidirectionalManyToOneRepresentativeMap<R, R> newMemberSignatures,
+            MutableBidirectionalManyToOneRepresentativeMap<R, R> pendingNewMemberSignatureUpdates) {
+      newMemberSignatures.removeAll(pendingNewMemberSignatureUpdates.keySet());
+      pendingNewMemberSignatureUpdates.forEachManyToOneMapping(
           (keys, value, representative) -> {
-            newMethodSignatures.put(keys, value);
+            newMemberSignatures.put(keys, value);
             if (keys.size() > 1) {
-              newMethodSignatures.setRepresentative(value, representative);
+              newMemberSignatures.setRepresentative(value, representative);
             }
           });
-      pendingNewMethodSignatureUpdates.clear();
+      pendingNewMemberSignatureUpdates.clear();
     }
 
     /**

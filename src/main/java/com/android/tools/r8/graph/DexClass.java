@@ -375,8 +375,10 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     assert verifyNoDuplicateFields();
   }
 
-  public void clearStaticFields() {
+  public DexEncodedField[] clearStaticFields() {
+    DexEncodedField[] previousFields = staticFields;
     setStaticFields(DexEncodedField.EMPTY_ARRAY);
+    return previousFields;
   }
 
   public void removeStaticField(int index) {
@@ -465,8 +467,10 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     assert verifyNoDuplicateFields();
   }
 
-  public void clearInstanceFields() {
+  public DexEncodedField[] clearInstanceFields() {
+    DexEncodedField[] previousFields = instanceFields;
     instanceFields = DexEncodedField.EMPTY_ARRAY;
+    return previousFields;
   }
 
   private boolean verifyCorrectnessOfFieldHolder(DexEncodedField field) {

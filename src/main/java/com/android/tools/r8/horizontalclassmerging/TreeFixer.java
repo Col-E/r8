@@ -7,7 +7,6 @@ package com.android.tools.r8.horizontalclassmerging;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass.FieldSetter;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -22,6 +21,7 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AnnotationFixer;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -168,8 +168,11 @@ class TreeFixer extends TreeFixerBase {
         .getMethodCollection()
         .replaceAllDirectMethods(method -> fixupDirectMethod(newMethodReferences, method));
 
-    fixupFields(clazz.staticFields(), clazz::setStaticField);
-    fixupFields(clazz.instanceFields(), clazz::setInstanceField);
+    Set<DexField> newFieldReferences = Sets.newIdentityHashSet();
+    DexEncodedField[] instanceFields = clazz.clearInstanceFields();
+    DexEncodedField[] staticFields = clazz.clearStaticFields();
+    clazz.setInstanceFields(fixupFields(instanceFields, newFieldReferences));
+    clazz.setStaticFields(fixupFields(staticFields, newFieldReferences));
 
     lensBuilder.commitPendingUpdates();
 
@@ -219,8 +222,13 @@ class TreeFixer extends TreeFixerBase {
         .getMethodCollection()
         .replaceDirectMethods(method -> fixupDirectMethod(newDirectMethods, method));
     iface.getMethodCollection().replaceVirtualMethods(this::fixupVirtualInterfaceMethod);
-    fixupFields(iface.staticFields(), iface::setStaticField);
-    fixupFields(iface.instanceFields(), iface::setInstanceField);
+
+    assert !iface.hasInstanceFields();
+
+    Set<DexField> newFieldReferences = Sets.newIdentityHashSet();
+    DexEncodedField[] staticFields = iface.clearStaticFields();
+    iface.setStaticFields(fixupFields(staticFields, newFieldReferences));
+
     lensBuilder.commitPendingUpdates();
   }
 
@@ -371,35 +379,40 @@ class TreeFixer extends TreeFixerBase {
     return fixupProgramMethod(newMethodReference, method);
   }
 
-  private void fixupFields(List<DexEncodedField> fields, FieldSetter setter) {
-    if (fields == null) {
-      return;
+  private DexEncodedField[] fixupFields(
+      DexEncodedField[] fields, Set<DexField> newFieldReferences) {
+    if (fields == null || ArrayUtils.isEmpty(fields)) {
+      return DexEncodedField.EMPTY_ARRAY;
     }
-    Set<DexField> existingFields = Sets.newIdentityHashSet();
 
-    for (int i = 0; i < fields.size(); i++) {
-      DexEncodedField oldField = fields.get(i);
+    DexEncodedField[] newFields = new DexEncodedField[fields.length];
+    for (int i = 0; i < fields.length; i++) {
+      DexEncodedField oldField = fields[i];
       DexField oldFieldReference = oldField.getReference();
       DexField newFieldReference = fixupFieldReference(oldFieldReference);
 
       // Rename the field if it already exists.
-      if (!existingFields.add(newFieldReference)) {
+      if (!newFieldReferences.add(newFieldReference)) {
         DexField template = newFieldReference;
         newFieldReference =
             dexItemFactory.createFreshMember(
                 tryName ->
                     Optional.of(template.withName(tryName, dexItemFactory))
-                        .filter(tryMethod -> !existingFields.contains(tryMethod)),
+                        .filter(tryMethod -> !newFieldReferences.contains(tryMethod)),
                 newFieldReference.name.toSourceString());
-        boolean added = existingFields.add(newFieldReference);
+        boolean added = newFieldReferences.add(newFieldReference);
         assert added;
       }
 
       if (newFieldReference != oldFieldReference) {
         lensBuilder.fixupField(oldFieldReference, newFieldReference);
-        setter.setField(i, oldField.toTypeSubstitutedField(newFieldReference));
+        newFields[i] = oldField.toTypeSubstitutedField(newFieldReference);
+      } else {
+        newFields[i] = oldField;
       }
     }
+
+    return newFields;
   }
 
   @Override
