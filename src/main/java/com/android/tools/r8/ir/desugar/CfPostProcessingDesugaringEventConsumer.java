@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
+import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import java.util.function.Consumer;
 
@@ -20,7 +21,8 @@ import java.util.function.Consumer;
  * explicit calls must be done here.
  */
 public abstract class CfPostProcessingDesugaringEventConsumer
-    implements DesugaredLibraryRetargeterPostProcessingEventConsumer {
+    implements DesugaredLibraryRetargeterPostProcessingEventConsumer,
+        InterfaceProcessingDesugaringEventConsumer {
   protected DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
 
   protected CfPostProcessingDesugaringEventConsumer(AppView<?> appView) {
@@ -72,6 +74,16 @@ public abstract class CfPostProcessingDesugaringEventConsumer
       // TODO(b/189912077): Uncomment when API conversion is performed cf to cf in D8.
       // desugaredLibraryAPIConverter.generateCallbackIfRequired(method);
     }
+
+    @Override
+    public void acceptCompanionClassClinit(ProgramMethod method) {
+      methodProcessor.scheduleDesugaredMethodForProcessing(method);
+    }
+
+    @Override
+    public void acceptEmulatedInterfaceMethod(ProgramMethod method) {
+      methodProcessor.scheduleDesugaredMethodForProcessing(method);
+    }
   }
 
   public static class R8PostProcessingDesugaringEventConsumer
@@ -108,6 +120,16 @@ public abstract class CfPostProcessingDesugaringEventConsumer
       if (callback != null) {
         methodConsumer.accept(callback);
       }
+    }
+
+    @Override
+    public void acceptCompanionClassClinit(ProgramMethod method) {
+      assert false : "TODO(b/183998768): Support Interface processing in R8";
+    }
+
+    @Override
+    public void acceptEmulatedInterfaceMethod(ProgramMethod method) {
+      assert false : "TODO(b/183998768): Support Interface processing in R8";
     }
   }
 }

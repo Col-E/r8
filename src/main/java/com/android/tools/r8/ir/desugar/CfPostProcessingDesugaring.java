@@ -3,7 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+
 public interface CfPostProcessingDesugaring {
 
-  void postProcessingDesugaring(CfPostProcessingDesugaringEventConsumer eventConsumer);
+  void postProcessingDesugaring(
+      CfPostProcessingDesugaringEventConsumer eventConsumer, ExecutorService executorService)
+      throws ExecutionException;
 }

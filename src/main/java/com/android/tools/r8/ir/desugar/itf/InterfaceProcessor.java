@@ -47,7 +47,6 @@ import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentati
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
-import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -80,12 +79,13 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   }
 
   @Override
-  public void process(DexProgramClass iface, ProgramMethodSet synthesizedMethods) {
+  public void process(
+      DexProgramClass iface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     if (!iface.isInterface()) {
       return;
     }
     analyzeBridges(iface);
-    ensureCompanionClassMethods(iface, synthesizedMethods);
+    ensureCompanionClassMethods(iface, eventConsumer);
   }
 
   private void analyzeBridges(DexProgramClass iface) {
@@ -99,8 +99,8 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   }
 
   private void ensureCompanionClassMethods(
-      DexProgramClass iface, ProgramMethodSet synthesizedMethods) {
-    ensureCompanionClassInitializesInterface(iface, synthesizedMethods);
+      DexProgramClass iface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
+    ensureCompanionClassInitializesInterface(iface, eventConsumer);
     // TODO(b/183998768): Once fixed, the methods should be added for processing.
     // D8 and R8 don't need to optimize the methods since they are just moved from interfaces and
     // don't need to be re-processed.
@@ -134,7 +134,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   }
 
   private void ensureCompanionClassInitializesInterface(
-      DexProgramClass iface, ProgramMethodSet synthesizedMethods) {
+      DexProgramClass iface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     if (!hasStaticMethodThatTriggersNonTrivialClassInitializer(iface)) {
       return;
     }
@@ -146,7 +146,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
             appView.dexItemFactory().createProto(appView.dexItemFactory().voidType),
             appView,
             methodBuilder -> createCompanionClassInitializer(iface, clinitField, methodBuilder));
-    synthesizedMethods.add(clinit);
+    eventConsumer.acceptCompanionClassClinit(clinit);
   }
 
   private DexEncodedField ensureStaticClinitFieldToTriggerInterfaceInitialization(
@@ -441,7 +441,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   }
 
   @Override
-  public void finalizeProcessing(ProgramMethodSet synthesizedMethods) {
+  public void finalizeProcessing(InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     InterfaceProcessorNestedGraphLens graphLens = postProcessInterfaces();
     if (appView.enableWholeProgramOptimizations() && graphLens != null) {
       appView.setGraphLens(graphLens);

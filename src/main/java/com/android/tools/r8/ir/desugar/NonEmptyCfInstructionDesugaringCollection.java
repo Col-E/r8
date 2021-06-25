@@ -17,7 +17,9 @@ import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection.NonEmptyCfCla
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaring;
+import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
+import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
@@ -42,6 +44,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
   private final NestBasedAccessDesugaring nestBasedAccessDesugaring;
   private final RecordRewriter recordRewriter;
   private final DesugaredLibraryRetargeter desugaredLibraryRetargeter;
+  private final InterfaceMethodRewriter interfaceMethodRewriter;
 
   NonEmptyCfInstructionDesugaringCollection(AppView<?> appView) {
     this.appView = appView;
@@ -49,6 +52,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       this.nestBasedAccessDesugaring = null;
       this.recordRewriter = null;
       this.desugaredLibraryRetargeter = null;
+      this.interfaceMethodRewriter = null;
       return;
     }
     this.nestBasedAccessDesugaring = NestBasedAccessDesugaring.create(appView);
@@ -68,11 +72,14 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       desugarings.add(new TwrCloseResourceInstructionDesugaring(appView));
     }
     // TODO(b/183998768): Enable interface method rewriter cf to cf also in R8.
-    if (appView.options().isInterfaceMethodDesugaringEnabled()
-        && !appView.enableWholeProgramOptimizations()) {
-      desugarings.add(
-          new InterfaceMethodRewriter(
-              appView, backportedMethodRewriter, desugaredLibraryRetargeter));
+    interfaceMethodRewriter =
+        appView.options().isInterfaceMethodDesugaringEnabled()
+                && !appView.enableWholeProgramOptimizations()
+            ? new InterfaceMethodRewriter(
+                appView, backportedMethodRewriter, desugaredLibraryRetargeter)
+            : null;
+    if (interfaceMethodRewriter != null) {
+      desugarings.add(interfaceMethodRewriter);
     }
     desugarings.add(new LambdaInstructionDesugaring(appView));
     desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
@@ -303,6 +310,13 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       assert nestBasedAccessDesugaring instanceof D8NestBasedAccessDesugaring;
       consumer.accept((D8NestBasedAccessDesugaring) nestBasedAccessDesugaring);
     }
+  }
+
+  @Override
+  public InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaring(Flavor flavor) {
+    return interfaceMethodRewriter != null
+        ? interfaceMethodRewriter.getPostProcessingDesugaring(flavor)
+        : null;
   }
 
   @Override

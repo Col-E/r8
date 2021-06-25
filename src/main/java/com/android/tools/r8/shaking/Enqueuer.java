@@ -3655,15 +3655,15 @@ public class Enqueuer {
     }
   }
 
-  private void postProcessingDesugaring() {
+  private void postProcessingDesugaring() throws ExecutionException {
     SyntheticAdditions syntheticAdditions =
         new SyntheticAdditions(appView.createProcessorContext());
 
     R8PostProcessingDesugaringEventConsumer eventConsumer =
         CfPostProcessingDesugaringEventConsumer.createForR8(
             appView, syntheticAdditions::addLiveMethod, syntheticAdditions);
-    CfPostProcessingDesugaringCollection.create(appView, desugaring.getRetargetingInfo())
-        .postProcessingDesugaring(eventConsumer);
+    CfPostProcessingDesugaringCollection.create(appView, null, desugaring.getRetargetingInfo())
+        .postProcessingDesugaring(eventConsumer, executorService);
 
     if (syntheticAdditions.isEmpty()) {
       return;
