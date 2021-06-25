@@ -38,6 +38,9 @@ import time
 import utils
 import run_on_app
 
+import chrome_data
+import iosched_data
+import r8_data
 import youtube_data
 
 # How often the bot/tester should check state
@@ -57,54 +60,18 @@ STDOUT = 'stdout'
 EXITCODE = 'exitcode'
 TIMED_OUT = 'timed_out'
 
-BENCHMARK_APPS = [
-    {
-        'app': 'r8',
-        'version': 'cf',
-        'find-xmx-min': 128,
-        'find-xmx-max': 400,
-        'find-xmx-range': 16,
-        'oom-threshold': 247,
-    },
-    {
-        'app': 'chrome',
-        'version': '180917',
-        'find-xmx-min': 256,
-        'find-xmx-max': 450,
-        'find-xmx-range': 16,
-        'oom-threshold': 340,
-    },
-    {
-        'app': 'youtube',
-        'version': youtube_data.LATEST_VERSION,
-        'find-xmx-min': 2800,
-        'find-xmx-max': 3200,
-        'find-xmx-range': 64,
-        'oom-threshold': 3000,
-        # TODO(b/143431825): Youtube can OOM randomly in memory configurations
-        #  that should work.
-        'skip-find-xmx-max': True,
-    },
-    {
-        'app': 'iosched',
-        'version': '2019',
-        'find-xmx-min': 128,
-        'find-xmx-max': 1024,
-        'find-xmx-range': 16,
-        # TODO(b/183371778): Figure out why the need to bump this
-        'oom-threshold': 329,
-    },
-]
+BENCHMARK_APPS = [chrome_data, iosched_data, r8_data, youtube_data]
 
-def find_min_xmx_command(record):
+def find_min_xmx_command(app_data):
+  record = app_data.GetMemoryData(app_data.GetLatestVersion())
   assert record['find-xmx-min'] < record['find-xmx-max']
   assert record['find-xmx-range'] < record['find-xmx-max'] - record['find-xmx-min']
   return [
       'tools/run_on_app.py',
       '--compiler=r8',
       '--compiler-build=lib',
-      '--app=%s' % record['app'],
-      '--version=%s' % record['version'],
+      '--app=%s' % app_data.GetName(),
+      '--version=%s' % app_data.GetLatestVersion(),
       '--no-debug',
       '--no-build',
       '--find-min-xmx',
@@ -113,27 +80,29 @@ def find_min_xmx_command(record):
       '--find-min-xmx-range-size=%s' % record['find-xmx-range'],
       '--find-min-xmx-archive']
 
-def compile_with_memory_max_command(record):
+def compile_with_memory_max_command(app_data):
   # TODO(b/152939233): Remove this special handling when fixed.
-  factor = 1.25 if record['app'] == 'chrome' else 1.15
+  factor = 1.25 if app_data.GetName() == 'chrome' else 1.15
+  record = app_data.GetMemoryData(app_data.GetLatestVersion())
   return [] if 'skip-find-xmx-max' in record else [
       'tools/run_on_app.py',
       '--compiler=r8',
       '--compiler-build=lib',
-      '--app=%s' % record['app'],
-      '--version=%s' % record['version'],
+      '--app=%s' % app_data.GetName(),
+      '--version=%s' % app_data.GetLatestVersion(),
       '--no-debug',
       '--no-build',
       '--max-memory=%s' % int(record['oom-threshold'] * factor)
   ]
 
-def compile_with_memory_min_command(record):
+def compile_with_memory_min_command(app_data):
+  record = app_data.GetMemoryData(app_data.GetLatestVersion())
   return [
       'tools/run_on_app.py',
       '--compiler=r8',
       '--compiler-build=lib',
-      '--app=%s' % record['app'],
-      '--version=%s' % record['version'],
+      '--app=%s' % app_data.GetName(),
+      '--version=%s' % app_data.GetLatestVersion(),
       '--no-debug',
       '--no-build',
       '--expect-oom',
@@ -176,16 +145,23 @@ def ParseOptions():
        default=False, action='store_true')
   return result.parse_args()
 
-def get_own_file_content():
+def get_file_contents():
+  contents = []
   with open(sys.argv[0], 'r') as us:
-    return us.read()
+    contents.append(us.read())
+  for app_data in BENCHMARK_APPS:
+    with open(app_data.__file__, 'r') as us:
+      contents.append(us.read())
+  return contents
 
-def restart_if_new_version(original_content):
-  new_content = get_own_file_content()
-  log('Lengths %s %s' % (len(original_content), len(new_content)))
+def restart_if_new_version(original_contents):
+  new_contents = get_file_contents()
+  log('Lengths %s %s' % (
+      [len(data) for data in original_contents],
+      [len(data) for data in new_contents]))
   log('is main %s ' % utils.is_main())
   # Restart if the script got updated.
-  if new_content != original_content:
+  if new_contents != original_contents:
     log('Restarting tools/internal_test.py, content changed')
     os.execv(sys.argv[0], sys.argv)
 
@@ -313,7 +289,7 @@ def run_bot():
 
 def run_continuously():
   # If this script changes, we will restart ourselves
-  own_content = get_own_file_content()
+  own_content = get_file_contents()
   while True:
     restart_if_new_version(own_content)
     print_magic_file_state()

@@ -8,7 +8,7 @@ import os
 ANDROID_L_API = '21'
 
 VERSIONS = {
-    'cf': {
+    '1.2.11-dev': {
       'deploy': {
           'inputs': [utils.PINNED_R8_JAR],
           'pgconf': [os.path.join(utils.REPO_ROOT, 'src', 'main', 'keep.txt')],
@@ -22,3 +22,18 @@ VERSIONS = {
       }
     }
 }
+
+def GetLatestVersion():
+  return '1.2.11-dev'
+
+def GetName():
+  return 'r8'
+
+def GetMemoryData(version):
+  assert version == '1.2.11-dev'
+  return {
+      'find-xmx-min': 128,
+      'find-xmx-max': 400,
+      'find-xmx-range': 16,
+      'oom-threshold': 247,
+  }

@@ -176,3 +176,19 @@ VERSIONS = {
     },
   },
 }
+
+def GetLatestVersion():
+  return '2019'
+
+def GetName():
+  return 'iosched'
+
+def GetMemoryData(version):
+  assert version == '2019'
+  return {
+      'find-xmx-min': 128,
+      'find-xmx-max': 1024,
+      'find-xmx-range': 16,
+      # TODO(b/183371778): Figure out why the need to bump this.
+      'oom-threshold': 329,
+  }

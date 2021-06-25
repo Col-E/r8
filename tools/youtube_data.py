@@ -115,3 +115,21 @@ VERSIONS = {
     }
   },
 }
+
+def GetLatestVersion():
+  return LATEST_VERSION
+
+def GetName():
+  return 'youtube'
+
+def GetMemoryData(version):
+  assert version == '16.20'
+  return {
+      'find-xmx-min': 2800,
+      'find-xmx-max': 3200,
+      'find-xmx-range': 64,
+      'oom-threshold': 3000,
+      # TODO(b/143431825): Youtube can OOM randomly in memory configurations
+      #  that should work.
+      'skip-find-xmx-max': True,
+  }

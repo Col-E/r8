@@ -278,3 +278,18 @@ VERSIONS = {
     },
   },
 }
+
+def GetLatestVersion():
+  return '200520-monochrome_public_minimal_apks'
+
+def GetName():
+  return 'chrome'
+
+def GetMemoryData(version):
+  assert version == '200520-monochrome_public_minimal_apks'
+  return {
+      'find-xmx-min': 600,
+      'find-xmx-max': 700,
+      'find-xmx-range': 16,
+      'oom-threshold': 625,
+  }
