@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 
@@ -21,5 +20,5 @@ public interface InterfaceDesugaringProcessor {
   // All finalization phases of all desugaring processors are performed sequentially.
   // Complex computations should be avoided if possible here and be moved to the concurrent phase.
   // Classes may be mutated here (new methods can be inserted, etc.).
-  void finalizeProcessing(DexApplication.Builder<?> builder, ProgramMethodSet synthesizedMethods);
+  void finalizeProcessing(ProgramMethodSet synthesizedMethods);
 }

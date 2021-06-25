@@ -54,6 +54,7 @@ import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter.Mode;
+import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceProcessor;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
@@ -386,14 +387,12 @@ public class IRConverter {
   }
 
   private void desugarInterfaceMethods(
-      Builder<?> builder,
       Flavor includeAllResources,
       ExecutorService executorService)
       throws ExecutionException {
     assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
     if (interfaceMethodRewriter != null) {
-      interfaceMethodRewriter.desugarInterfaceMethods(
-          builder, includeAllResources, executorService);
+      interfaceMethodRewriter.desugarInterfaceMethods(includeAllResources, executorService);
     }
   }
 
@@ -434,7 +433,10 @@ public class IRConverter {
     // Build a new application with jumbo string info,
     Builder<?> builder = application.builder().setHighestSortingString(highestSortingString);
 
-    desugarInterfaceMethods(builder, ExcludeDexResources, executor);
+    if (appView.options().isDesugaredLibraryCompilation()) {
+      EmulatedInterfaceProcessor.filterEmulatedInterfaceSubInterfaces(appView, builder);
+    }
+    desugarInterfaceMethods(ExcludeDexResources, executor);
     processCovariantReturnTypeAnnotations(builder);
     generateDesugaredLibraryAPIWrappers(builder, executor);
 
@@ -784,7 +786,7 @@ public class IRConverter {
     builder.setHighestSortingString(highestSortingString);
 
     printPhase("Interface method desugaring");
-    desugarInterfaceMethods(builder, IncludeAllResources, executorService);
+    desugarInterfaceMethods(IncludeAllResources, executorService);
     feedback.updateVisibleOptimizationInfo();
 
     printPhase("Utility classes synthesis");

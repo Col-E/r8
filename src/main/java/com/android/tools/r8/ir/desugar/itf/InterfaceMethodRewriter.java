@@ -25,7 +25,6 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
-import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -250,10 +249,17 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   }
 
   void addCompanionClassRewriteRule(DexType interfaceType, String rewrittenType) {
+    addCompanionClassRewriteRule(interfaceType, rewrittenType, appView);
+  }
+
+  static void addCompanionClassRewriteRule(
+      DexType interfaceType, String rewrittenType, AppView<?> appView) {
     appView.rewritePrefix.rewriteType(
-        getCompanionClassType(interfaceType),
-        factory.createType(
-            DescriptorUtils.javaTypeToDescriptor(rewrittenType + COMPANION_CLASS_NAME_SUFFIX)));
+        getCompanionClassType(interfaceType, appView.dexItemFactory()),
+        appView
+            .dexItemFactory()
+            .createType(
+                DescriptorUtils.javaTypeToDescriptor(rewrittenType + COMPANION_CLASS_NAME_SUFFIX)));
   }
 
   boolean isEmulatedInterface(DexType itf) {
@@ -1372,8 +1378,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
    * Move static and default interface methods to companion classes, add missing methods to forward
    * to moved default methods implementation.
    */
-  public void desugarInterfaceMethods(
-      Builder<?> builder, Flavor flavour, ExecutorService executorService)
+  public void desugarInterfaceMethods(Flavor flavour, ExecutorService executorService)
       throws ExecutionException {
     // During L8 compilation, emulated interfaces are processed to be renamed, to have
     // their interfaces fixed-up and to generate the emulated dispatch code.
@@ -1395,8 +1400,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     // emulated interfaces before the other processing.
     ImmutableList<InterfaceDesugaringProcessor> orderedInterfaceDesugaringProcessors =
         ImmutableList.of(classProcessor, interfaceProcessor, emulatedInterfaceProcessor);
-    processClassesConcurrently(
-        orderedInterfaceDesugaringProcessors, builder, flavour, executorService);
+    processClassesConcurrently(orderedInterfaceDesugaringProcessors, flavour, executorService);
 
     SortedProgramMethodSet sortedSynthesizedMethods = SortedProgramMethodSet.create();
     sortedSynthesizedMethods.addAll(synthesizedMethods);
@@ -1420,13 +1424,12 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
 
   private void processClassesConcurrently(
       List<InterfaceDesugaringProcessor> processors,
-      Builder<?> builder,
       Flavor flavour,
       ExecutorService executorService)
       throws ExecutionException {
     ThreadUtils.processItems(
         Iterables.filter(
-            builder.getProgramClasses(), (DexProgramClass clazz) -> shouldProcess(clazz, flavour)),
+            appView.appInfo().classes(), (DexProgramClass clazz) -> shouldProcess(clazz, flavour)),
         clazz -> {
           for (InterfaceDesugaringProcessor processor : processors) {
             processor.process(clazz, synthesizedMethods);
@@ -1434,7 +1437,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         },
         executorService);
     for (InterfaceDesugaringProcessor processor : processors) {
-      processor.finalizeProcessing(builder, synthesizedMethods);
+      processor.finalizeProcessing(synthesizedMethods);
     }
   }
 

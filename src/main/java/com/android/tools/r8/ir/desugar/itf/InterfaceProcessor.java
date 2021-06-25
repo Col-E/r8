@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -442,7 +441,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   }
 
   @Override
-  public void finalizeProcessing(Builder<?> builder, ProgramMethodSet synthesizedMethods) {
+  public void finalizeProcessing(ProgramMethodSet synthesizedMethods) {
     InterfaceProcessorNestedGraphLens graphLens = postProcessInterfaces();
     if (appView.enableWholeProgramOptimizations() && graphLens != null) {
       appView.setGraphLens(graphLens);
