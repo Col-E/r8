@@ -27,7 +27,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
 
   public DexClass ensureEmulatedHolderDispatchMethod(
       DexClassAndMethod emulatedDispatchMethod,
-      DesugaredLibraryRetargeterEventConsumer eventConsumer) {
+      DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
     assert eventConsumer != null || appView.enableWholeProgramOptimizations();
     DexClass interfaceClass =
         ensureEmulatedInterfaceDispatchMethod(emulatedDispatchMethod, eventConsumer);
@@ -74,7 +74,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
 
   public DexClass ensureEmulatedInterfaceDispatchMethod(
       DexClassAndMethod emulatedDispatchMethod,
-      DesugaredLibraryRetargeterEventConsumer eventConsumer) {
+      DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
     assert eventConsumer != null || appView.enableWholeProgramOptimizations();
     DexClass interfaceDispatch;
     if (appView.options().isDesugaredLibraryCompilation()) {

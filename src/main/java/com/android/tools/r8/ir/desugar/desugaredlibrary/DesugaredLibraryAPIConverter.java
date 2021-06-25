@@ -164,6 +164,18 @@ public class DesugaredLibraryAPIConverter {
     }
   }
 
+  public ProgramMethod generateCallbackIfRequired(ProgramMethod method) {
+    if (!shouldRegisterCallback(method)) {
+      return null;
+    }
+    if (trackedCallBackAPIs != null) {
+      trackedCallBackAPIs.add(method.getReference());
+    }
+    ProgramMethod callback = generateCallbackMethod(method.getDefinition(), method.getHolder());
+    method.getHolder().addVirtualMethod(callback.getDefinition());
+    return callback;
+  }
+
   public boolean shouldRegisterCallback(ProgramMethod method) {
     // Any override of a library method can be called by the library.
     // We duplicate the method to have a vivified type version callable by the library and
@@ -185,6 +197,19 @@ public class DesugaredLibraryAPIConverter {
             .getEmulateLibraryInterface()
             .containsKey(method.getHolderType())) {
       return false;
+    }
+    // In R8 we should be in the enqueuer, therefore we can duplicate a default method and both
+    // methods will be desugared.
+    // In D8, this happens after interface method desugaring, we cannot introduce new default
+    // methods, but we do not need to since this is a library override (invokes will resolve) and
+    // all implementors have been enhanced with a forwarding method which will be duplicated.
+    if (!appView.enableWholeProgramOptimizations()) {
+      if (method.getHolder().isInterface()
+          && method.getDefinition().isDefaultMethod()
+          && (!appView.options().canUseDefaultAndStaticInterfaceMethods()
+              || appView.options().isDesugaredLibraryCompilation())) {
+        return false;
+      }
     }
     if (!appView.options().desugaredLibraryConfiguration.supportAllCallbacksFromLibrary
         && appView.options().isDesugaredLibraryCompilation()) {
@@ -247,19 +272,6 @@ public class DesugaredLibraryAPIConverter {
   }
 
   private synchronized void registerCallback(ProgramMethod method) {
-    // In R8 we should be in the enqueuer, therefore we can duplicate a default method and both
-    // methods will be desugared.
-    // In D8, this happens after interface method desugaring, we cannot introduce new default
-    // methods, but we do not need to since this is a library override (invokes will resolve) and
-    // all implementors have been enhanced with a forwarding method which will be duplicated.
-    if (!appView.enableWholeProgramOptimizations()) {
-      if (method.getHolder().isInterface()
-          && method.getDefinition().isDefaultMethod()
-          && (!appView.options().canUseDefaultAndStaticInterfaceMethods()
-              || appView.options().isDesugaredLibraryCompilation())) {
-        return;
-      }
-    }
     if (trackedCallBackAPIs != null) {
       trackedCallBackAPIs.add(method.getReference());
     }
@@ -315,12 +327,7 @@ public class DesugaredLibraryAPIConverter {
   }
 
   public SortedProgramMethodSet generateCallbackMethods() {
-    if (appView.options().testing.trackDesugaredAPIConversions) {
-      generateTrackDesugaredAPIWarnings(trackedAPIs, "");
-      generateTrackDesugaredAPIWarnings(trackedCallBackAPIs, "callback ");
-      trackedAPIs.clear();
-      trackedCallBackAPIs.clear();
-    }
+    generateTrackingWarnings();
     SortedProgramMethodSet allCallbackMethods = SortedProgramMethodSet.create();
     pendingCallBackMethods.forEach(
         (clazz, callbacks) -> {
@@ -335,6 +342,15 @@ public class DesugaredLibraryAPIConverter {
         });
     pendingCallBackMethods.clear();
     return allCallbackMethods;
+  }
+
+  public void generateTrackingWarnings() {
+    if (appView.options().testing.trackDesugaredAPIConversions) {
+      generateTrackDesugaredAPIWarnings(trackedAPIs, "");
+      generateTrackDesugaredAPIWarnings(trackedCallBackAPIs, "callback ");
+      trackedAPIs.clear();
+      trackedCallBackAPIs.clear();
+    }
   }
 
   public void synthesizeWrappers(Consumer<DexClasspathClass> synthesizedCallback) {

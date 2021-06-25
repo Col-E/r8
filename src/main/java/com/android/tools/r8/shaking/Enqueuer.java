@@ -100,6 +100,9 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.R8CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringCollection;
+import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer.R8PostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
@@ -360,7 +363,7 @@ public class Enqueuer {
   private final LiveFieldsSet liveFields;
 
   /** A queue of items that need processing. Different items trigger different actions. */
-  private final EnqueuerWorklist workList;
+  private EnqueuerWorklist workList;
 
   private final ProguardCompatibilityActions.Builder proguardCompatibilityActionsBuilder;
 
@@ -3120,7 +3123,7 @@ public class Enqueuer {
     }
   }
 
-  private static class SyntheticAdditions {
+  public static class SyntheticAdditions {
 
     private final ProcessorContext processorContext;
     private Map<DexMethod, MethodProcessingContext> methodProcessingContexts =
@@ -3131,6 +3134,8 @@ public class Enqueuer {
     Map<DexMethod, ProgramMethod> liveMethods = new IdentityHashMap<>();
 
     Map<DexType, DexClasspathClass> syntheticClasspathClasses = new IdentityHashMap<>();
+
+    Map<DexProgramClass, List<DexClass>> injectedInterfaces = new IdentityHashMap<>();
 
     // Subset of live methods that need have keep requirements.
     List<Pair<ProgramMethod, Consumer<KeepMethodInfo.Joiner>>> liveMethodsWithKeepActions =
@@ -3154,15 +3159,21 @@ public class Enqueuer {
       return empty;
     }
 
-    void addLiveClasspathClass(DexClasspathClass clazz) {
+    public void addLiveClasspathClass(DexClasspathClass clazz) {
       DexClasspathClass old = syntheticClasspathClasses.put(clazz.type, clazz);
       assert old == null;
     }
 
-    void addLiveMethod(ProgramMethod method) {
+    public void addLiveMethod(ProgramMethod method) {
       DexMethod signature = method.getDefinition().getReference();
       assert !liveMethods.containsKey(signature);
       liveMethods.put(signature, method);
+    }
+
+    public void injectInterface(DexProgramClass clazz, DexClass newInterface) {
+      List<DexClass> newInterfaces =
+          injectedInterfaces.computeIfAbsent(clazz, ignored -> new ArrayList<>());
+      newInterfaces.add(newInterface);
     }
 
     void addLiveMethodWithKeepAction(
@@ -3171,8 +3182,13 @@ public class Enqueuer {
       liveMethodsWithKeepActions.add(new Pair<>(method, keepAction));
     }
 
+    public ProgramMethodSet getLiveMethods() {
+      ProgramMethodSet set = ProgramMethodSet.create();
+      liveMethods.values().forEach(set::add);
+      return set;
+    }
+
     void enqueueWorkItems(Enqueuer enqueuer) {
-      assert !isEmpty();
       assert enqueuer.mode.isInitialTreeShaking();
 
       // All synthetic additions are initial tree shaking only. No need to track keep reasons.
@@ -3190,6 +3206,11 @@ public class Enqueuer {
         enqueuer.workList.enqueueMarkMethodLiveAction(liveMethod, liveMethod, fakeReason);
       }
       enqueuer.liveNonProgramTypes.addAll(syntheticClasspathClasses.values());
+      injectedInterfaces.forEach(
+          (clazz, itfs) -> {
+            enqueuer.objectAllocationInfoCollection.injectInterfaces(
+                enqueuer.appInfo(), clazz, itfs);
+          });
     }
   }
 
@@ -3226,7 +3247,8 @@ public class Enqueuer {
         CfInstructionDesugaringEventConsumer.createForR8(
             appView,
             this::recordLambdaSynthesizingContext,
-            this::recordTwrCloseResourceMethodSynthesizingContext);
+            this::recordTwrCloseResourceMethodSynthesizingContext,
+            additions);
     ThreadUtils.processItems(
         pendingDesugaring,
         method ->
@@ -3614,6 +3636,10 @@ public class Enqueuer {
         break;
       }
 
+      if (mode.isInitialTreeShaking()) {
+        postProcessingDesugaring();
+      }
+
       if (Log.ENABLED) {
         Set<DexEncodedMethod> allLive = Sets.newIdentityHashSet();
         Set<DexEncodedMethod> reachableNotLive = Sets.difference(allLive, liveMethods.getItems());
@@ -3627,6 +3653,37 @@ public class Enqueuer {
     } finally {
       timing.end();
     }
+  }
+
+  private void postProcessingDesugaring() {
+    SyntheticAdditions syntheticAdditions =
+        new SyntheticAdditions(appView.createProcessorContext());
+
+    R8PostProcessingDesugaringEventConsumer eventConsumer =
+        CfPostProcessingDesugaringEventConsumer.createForR8(
+            appView, syntheticAdditions::addLiveMethod, syntheticAdditions);
+    CfPostProcessingDesugaringCollection.create(appView, desugaring.getRetargetingInfo())
+        .postProcessingDesugaring(eventConsumer);
+
+    if (syntheticAdditions.isEmpty()) {
+      return;
+    }
+
+    // Commit the pending synthetics and recompute subtypes.
+    appInfo = appInfo.rebuildWithClassHierarchy(app -> app);
+    appView.setAppInfo(appInfo);
+    subtypingInfo = new SubtypingInfo(appView);
+
+    syntheticAdditions.enqueueWorkItems(this);
+
+    workList = workList.nonPushable(syntheticAdditions.getLiveMethods());
+
+    while (!workList.isEmpty()) {
+      EnqueuerAction action = workList.poll();
+      action.run(this);
+    }
+
+    eventConsumer.finalizeDesugaring();
   }
 
   private long getNumberOfLiveItems() {

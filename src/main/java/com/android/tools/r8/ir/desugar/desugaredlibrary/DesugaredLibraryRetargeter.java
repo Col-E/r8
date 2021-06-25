@@ -24,19 +24,15 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
-import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
-import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.objectweb.asm.Opcodes;
@@ -46,6 +42,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   private final AppView<?> appView;
   private final DesugaredLibraryRetargeterSyntheticHelper syntheticHelper;
 
+  private final RetargetingInfo retargetingInfo;
   private final Map<DexMethod, DexMethod> retargetLibraryMember;
   private final Map<DexString, List<DexMethod>> nonFinalHolderRewrites;
   private final DexClassAndMethodSet emulatedDispatchMethods;
@@ -53,7 +50,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   public DesugaredLibraryRetargeter(AppView<?> appView) {
     this.appView = appView;
     this.syntheticHelper = new DesugaredLibraryRetargeterSyntheticHelper(appView);
-    RetargetingInfo retargetingInfo = RetargetingInfo.get(appView);
+    retargetingInfo = RetargetingInfo.get(appView);
     retargetLibraryMember = retargetingInfo.getRetargetLibraryMember();
     nonFinalHolderRewrites = retargetingInfo.getNonFinalHolderRewrites();
     emulatedDispatchMethods = retargetingInfo.getEmulatedDispatchMethods();
@@ -62,6 +59,10 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   // Used by the ListOfBackportedMethods utility.
   public void visit(Consumer<DexMethod> consumer) {
     retargetLibraryMember.keySet().forEach(consumer);
+  }
+
+  public RetargetingInfo getRetargetingInfo() {
+    return retargetingInfo;
   }
 
   @Override
@@ -123,7 +124,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
         new InvokeRetargetingResult(false, ignored -> null);
 
     private final boolean hasNewInvokeTarget;
-    private final Function<DesugaredLibraryRetargeterEventConsumer, DexMethod>
+    private final Function<DesugaredLibraryRetargeterInstructionEventConsumer, DexMethod>
         newInvokeTargetSupplier;
 
     static InvokeRetargetingResult createInvokeRetargetingResult(DexMethod retarget) {
@@ -135,7 +136,8 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
 
     private InvokeRetargetingResult(
         boolean hasNewInvokeTarget,
-        Function<DesugaredLibraryRetargeterEventConsumer, DexMethod> newInvokeTargetSupplier) {
+        Function<DesugaredLibraryRetargeterInstructionEventConsumer, DexMethod>
+            newInvokeTargetSupplier) {
       this.hasNewInvokeTarget = hasNewInvokeTarget;
       this.newInvokeTargetSupplier = newInvokeTargetSupplier;
     }
@@ -144,7 +146,8 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
       return hasNewInvokeTarget;
     }
 
-    public DexMethod getNewInvokeTarget(DesugaredLibraryRetargeterEventConsumer eventConsumer) {
+    public DexMethod getNewInvokeTarget(
+        DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
       assert hasNewInvokeTarget();
       return newInvokeTargetSupplier.apply(eventConsumer);
     }
@@ -241,19 +244,5 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     DexItemFactory factory = appView.dexItemFactory();
     DexProto newProto = isStatic ? method.getProto() : factory.prependHolderToProto(method);
     return factory.createMethod(newHolder, newProto, method.getName());
-  }
-
-
-  public void ensureDesugaringFinalized(DesugaredLibraryRetargeterEventConsumer eventConsumer) {
-    new DesugaredLibraryRetargeterPostProcessor(appView).ensureAppFixed(eventConsumer);
-  }
-
-  @Deprecated // Use Cf to Cf desugaring.
-  public void synthesizeRetargetClasses(IRConverter converter, ExecutorService executorService)
-      throws ExecutionException {
-    assert appView.enableWholeProgramOptimizations();
-    SortedProgramMethodSet forwardingMethods =
-        new DesugaredLibraryRetargeterPostProcessor(appView).ensureAppFixed(null);
-    converter.processMethodsConcurrently(forwardingMethods, executorService);
   }
 }

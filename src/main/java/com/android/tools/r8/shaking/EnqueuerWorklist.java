@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -14,10 +15,11 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
-public class EnqueuerWorklist {
+public abstract class EnqueuerWorklist {
 
   public abstract static class EnqueuerAction {
     public abstract void run(Enqueuer enqueuer);
@@ -279,15 +281,16 @@ public class EnqueuerWorklist {
     }
   }
 
-  private final Enqueuer enqueuer;
-  private final Queue<EnqueuerAction> queue = new ArrayDeque<>();
-
-  private EnqueuerWorklist(Enqueuer enqueuer) {
-    this.enqueuer = enqueuer;
-  }
+  final Enqueuer enqueuer;
+  final Queue<EnqueuerAction> queue;
 
   public static EnqueuerWorklist createWorklist(Enqueuer enqueuer) {
-    return new EnqueuerWorklist(enqueuer);
+    return new PushableEnqueuerWorkList(enqueuer);
+  }
+
+  private EnqueuerWorklist(Enqueuer enqueuer, Queue<EnqueuerAction> queue) {
+    this.enqueuer = enqueuer;
+    this.queue = queue;
   }
 
   public boolean isEmpty() {
@@ -298,88 +301,275 @@ public class EnqueuerWorklist {
     return queue.poll();
   }
 
-  boolean enqueueAssertAction(Action assertion) {
-    if (InternalOptions.assertionsEnabled()) {
-      queue.add(new AssertAction(assertion));
-    }
-    return true;
-  }
+  abstract EnqueuerWorklist nonPushable(ProgramMethodSet enqueuedMarkMethodLive);
 
-  void enqueueMarkReachableDirectAction(
-      DexMethod method, ProgramDefinition context, KeepReason reason) {
-    queue.add(new MarkReachableDirectAction(method, context, reason));
-  }
+  abstract boolean enqueueAssertAction(Action assertion);
 
-  void enqueueMarkReachableSuperAction(DexMethod method, ProgramMethod from) {
-    queue.add(new MarkReachableSuperAction(method, from));
-  }
+  abstract void enqueueMarkReachableDirectAction(
+      DexMethod method, ProgramDefinition context, KeepReason reason);
 
-  public void enqueueMarkFieldAsReachableAction(
-      ProgramField field, ProgramDefinition context, KeepReason reason) {
-    queue.add(new MarkFieldAsReachableAction(field, context, reason));
-  }
+  abstract void enqueueMarkReachableSuperAction(DexMethod method, ProgramMethod from);
 
-  // TODO(b/142378367): Context is the containing method that is cause of the instantiation.
-  // Consider updating call sites with the context information to increase precision where possible.
-  public void enqueueMarkInstantiatedAction(
+  public abstract void enqueueMarkFieldAsReachableAction(
+      ProgramField field, ProgramDefinition context, KeepReason reason);
+
+  public abstract void enqueueMarkInstantiatedAction(
       DexProgramClass clazz,
       ProgramMethod context,
       InstantiationReason instantiationReason,
-      KeepReason keepReason) {
-    assert !clazz.isAnnotation();
-    assert !clazz.isInterface();
-    queue.add(new MarkInstantiatedAction(clazz, context, instantiationReason, keepReason));
-  }
+      KeepReason keepReason);
 
-  void enqueueMarkAnnotationInstantiatedAction(DexProgramClass clazz, KeepReasonWitness reason) {
-    assert clazz.isAnnotation();
-    assert clazz.isInterface();
-    queue.add(new MarkAnnotationInstantiatedAction(clazz, reason));
-  }
+  abstract void enqueueMarkAnnotationInstantiatedAction(
+      DexProgramClass clazz, KeepReasonWitness reason);
 
-  void enqueueMarkInterfaceInstantiatedAction(DexProgramClass clazz, KeepReasonWitness reason) {
-    assert !clazz.isAnnotation();
-    assert clazz.isInterface();
-    queue.add(new MarkInterfaceInstantiatedAction(clazz, reason));
-  }
+  abstract void enqueueMarkInterfaceInstantiatedAction(
+      DexProgramClass clazz, KeepReasonWitness reason);
 
-  boolean enqueueMarkMethodLiveAction(
-      ProgramMethod method, ProgramDefinition context, KeepReason reason) {
-    if (enqueuer.addLiveMethod(method, reason)) {
-      queue.add(new MarkMethodLiveAction(method, context));
-      if (!enqueuer.isMethodTargeted(method)) {
-        queue.add(new TraceMethodDefinitionExcludingCodeAction(method));
+  abstract boolean enqueueMarkMethodLiveAction(
+      ProgramMethod method, ProgramDefinition context, KeepReason reason);
+
+  abstract void enqueueMarkMethodKeptAction(ProgramMethod method, KeepReason reason);
+
+  abstract void enqueueMarkFieldKeptAction(ProgramField field, KeepReasonWitness witness);
+
+  public abstract void enqueueTraceCodeAction(ProgramMethod method);
+
+  public abstract void enqueueTraceConstClassAction(DexType type, ProgramMethod context);
+
+  public abstract void enqueueTraceInvokeDirectAction(
+      DexMethod invokedMethod, ProgramMethod context);
+
+  public abstract void enqueueTraceNewInstanceAction(DexType type, ProgramMethod context);
+
+  public abstract void enqueueTraceStaticFieldRead(DexField field, ProgramMethod context);
+
+  static class PushableEnqueuerWorkList extends EnqueuerWorklist {
+
+    PushableEnqueuerWorkList(Enqueuer enqueuer) {
+      super(enqueuer, new ArrayDeque<>());
+    }
+
+    @Override
+    EnqueuerWorklist nonPushable(ProgramMethodSet enqueuedMarkMethodLive) {
+      return new NonPushableEnqueuerWorklist(this, enqueuedMarkMethodLive);
+    }
+
+    @Override
+    boolean enqueueAssertAction(Action assertion) {
+      if (InternalOptions.assertionsEnabled()) {
+        queue.add(new AssertAction(assertion));
       }
       return true;
     }
-    return false;
+
+    @Override
+    void enqueueMarkReachableDirectAction(
+        DexMethod method, ProgramDefinition context, KeepReason reason) {
+      queue.add(new MarkReachableDirectAction(method, context, reason));
+    }
+
+    @Override
+    void enqueueMarkReachableSuperAction(DexMethod method, ProgramMethod from) {
+      queue.add(new MarkReachableSuperAction(method, from));
+    }
+
+    @Override
+    public void enqueueMarkFieldAsReachableAction(
+        ProgramField field, ProgramDefinition context, KeepReason reason) {
+      queue.add(new MarkFieldAsReachableAction(field, context, reason));
+    }
+
+    // TODO(b/142378367): Context is the containing method that is cause of the instantiation.
+    // Consider updating call sites with the context information to increase precision where
+    // possible.
+    @Override
+    public void enqueueMarkInstantiatedAction(
+        DexProgramClass clazz,
+        ProgramMethod context,
+        InstantiationReason instantiationReason,
+        KeepReason keepReason) {
+      assert !clazz.isAnnotation();
+      assert !clazz.isInterface();
+      queue.add(new MarkInstantiatedAction(clazz, context, instantiationReason, keepReason));
+    }
+
+    @Override
+    void enqueueMarkAnnotationInstantiatedAction(DexProgramClass clazz, KeepReasonWitness reason) {
+      assert clazz.isAnnotation();
+      assert clazz.isInterface();
+      queue.add(new MarkAnnotationInstantiatedAction(clazz, reason));
+    }
+
+    @Override
+    void enqueueMarkInterfaceInstantiatedAction(DexProgramClass clazz, KeepReasonWitness reason) {
+      assert !clazz.isAnnotation();
+      assert clazz.isInterface();
+      queue.add(new MarkInterfaceInstantiatedAction(clazz, reason));
+    }
+
+    @Override
+    boolean enqueueMarkMethodLiveAction(
+        ProgramMethod method, ProgramDefinition context, KeepReason reason) {
+      if (enqueuer.addLiveMethod(method, reason)) {
+        queue.add(new MarkMethodLiveAction(method, context));
+        if (!enqueuer.isMethodTargeted(method)) {
+          queue.add(new TraceMethodDefinitionExcludingCodeAction(method));
+        }
+        return true;
+      }
+      return false;
+    }
+
+    @Override
+    void enqueueMarkMethodKeptAction(ProgramMethod method, KeepReason reason) {
+      queue.add(new MarkMethodKeptAction(method, reason));
+    }
+
+    @Override
+    void enqueueMarkFieldKeptAction(ProgramField field, KeepReasonWitness witness) {
+      queue.add(new MarkFieldKeptAction(field, witness));
+    }
+
+    @Override
+    public void enqueueTraceCodeAction(ProgramMethod method) {
+      queue.add(new TraceCodeAction(method));
+    }
+
+    @Override
+    public void enqueueTraceConstClassAction(DexType type, ProgramMethod context) {
+      queue.add(new TraceConstClassAction(type, context));
+    }
+
+    @Override
+    public void enqueueTraceInvokeDirectAction(DexMethod invokedMethod, ProgramMethod context) {
+      queue.add(new TraceInvokeDirectAction(invokedMethod, context));
+    }
+
+    @Override
+    public void enqueueTraceNewInstanceAction(DexType type, ProgramMethod context) {
+      queue.add(new TraceNewInstanceAction(type, context));
+    }
+
+    @Override
+    public void enqueueTraceStaticFieldRead(DexField field, ProgramMethod context) {
+      queue.add(new TraceStaticFieldReadAction(field, context));
+    }
   }
 
-  void enqueueMarkMethodKeptAction(ProgramMethod method, KeepReason reason) {
-    queue.add(new MarkMethodKeptAction(method, reason));
-  }
+  public static class NonPushableEnqueuerWorklist extends EnqueuerWorklist {
 
-  void enqueueMarkFieldKeptAction(ProgramField field, KeepReasonWitness witness) {
-    queue.add(new MarkFieldKeptAction(field, witness));
-  }
+    private ProgramMethodSet enqueuedMarkMethodLive;
 
-  public void enqueueTraceCodeAction(ProgramMethod method) {
-    queue.add(new TraceCodeAction(method));
-  }
+    private NonPushableEnqueuerWorklist(
+        PushableEnqueuerWorkList workList, ProgramMethodSet enqueuedMarkMethodLive) {
+      super(workList.enqueuer, workList.queue);
+      this.enqueuedMarkMethodLive = enqueuedMarkMethodLive;
+    }
 
-  public void enqueueTraceConstClassAction(DexType type, ProgramMethod context) {
-    queue.add(new TraceConstClassAction(type, context));
-  }
+    @Override
+    EnqueuerWorklist nonPushable(ProgramMethodSet enqueuedMarkMethodLive) {
+      return this;
+    }
 
-  public void enqueueTraceInvokeDirectAction(DexMethod invokedMethod, ProgramMethod context) {
-    queue.add(new TraceInvokeDirectAction(invokedMethod, context));
-  }
+    private Unreachable attemptToEnqueue() {
+      throw new Unreachable("Attempt to enqueue an action in a non pushable enqueuer work list.");
+    }
 
-  public void enqueueTraceNewInstanceAction(DexType type, ProgramMethod context) {
-    queue.add(new TraceNewInstanceAction(type, context));
-  }
+    @Override
+    boolean enqueueAssertAction(Action assertion) {
+      throw attemptToEnqueue();
+    }
 
-  public void enqueueTraceStaticFieldRead(DexField field, ProgramMethod context) {
-    queue.add(new TraceStaticFieldReadAction(field, context));
+    @Override
+    void enqueueMarkReachableDirectAction(
+        DexMethod method, ProgramDefinition context, KeepReason reason) {
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    void enqueueMarkReachableSuperAction(DexMethod method, ProgramMethod from) {
+
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    public void enqueueMarkFieldAsReachableAction(
+        ProgramField field, ProgramDefinition context, KeepReason reason) {
+
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    public void enqueueMarkInstantiatedAction(
+        DexProgramClass clazz,
+        ProgramMethod context,
+        InstantiationReason instantiationReason,
+        KeepReason keepReason) {
+
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    void enqueueMarkAnnotationInstantiatedAction(DexProgramClass clazz, KeepReasonWitness reason) {
+
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    void enqueueMarkInterfaceInstantiatedAction(DexProgramClass clazz, KeepReasonWitness reason) {
+
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    boolean enqueueMarkMethodLiveAction(
+        ProgramMethod method, ProgramDefinition context, KeepReason reason) {
+      if (enqueuedMarkMethodLive.contains(method)) {
+        return false;
+      }
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    void enqueueMarkMethodKeptAction(ProgramMethod method, KeepReason reason) {
+
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    void enqueueMarkFieldKeptAction(ProgramField field, KeepReasonWitness witness) {
+
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    public void enqueueTraceCodeAction(ProgramMethod method) {
+
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    public void enqueueTraceConstClassAction(DexType type, ProgramMethod context) {
+
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    public void enqueueTraceInvokeDirectAction(DexMethod invokedMethod, ProgramMethod context) {
+
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    public void enqueueTraceNewInstanceAction(DexType type, ProgramMethod context) {
+
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    public void enqueueTraceStaticFieldRead(DexField field, ProgramMethod context) {
+
+      throw attemptToEnqueue();
+    }
   }
 }

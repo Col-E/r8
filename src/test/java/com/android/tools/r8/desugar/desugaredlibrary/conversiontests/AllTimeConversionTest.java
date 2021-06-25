@@ -5,8 +5,9 @@
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
+import static junit.framework.TestCase.fail;
 
+import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -114,22 +115,20 @@ public class AllTimeConversionTest extends DesugaredLibraryTestBase {
   }
 
   private void assertTrackedAPIS(TestDiagnosticMessages diagnosticMessages) {
-    assertTrue(
-        diagnosticMessages
-            .getWarnings()
-            .get(0)
-            .getDiagnosticMessage()
-            .startsWith("Tracked desugared API conversions:"));
-    assertEquals(
-        9, diagnosticMessages.getWarnings().get(0).getDiagnosticMessage().split("\n").length);
-    assertTrue(
-        diagnosticMessages
-            .getWarnings()
-            .get(1)
-            .getDiagnosticMessage()
-            .startsWith("Tracked callback desugared API conversions:"));
-    assertEquals(
-        1, diagnosticMessages.getWarnings().get(1).getDiagnosticMessage().split("\n").length);
+    int trackedAPI = 0;
+    int trackedCallbackAPI = 0;
+    for (Diagnostic warning : diagnosticMessages.getWarnings()) {
+      String message = warning.getDiagnosticMessage();
+      if (message.startsWith("Tracked desugared API conversions:")) {
+        trackedAPI += message.split("\n").length - 1;
+      } else if (message.startsWith("Tracked callback desugared API conversions:")) {
+        trackedCallbackAPI += message.split("\n").length - 1;
+      } else {
+        fail();
+      }
+    }
+    assertEquals(8, trackedAPI);
+    assertEquals(0, trackedCallbackAPI);
   }
 
 

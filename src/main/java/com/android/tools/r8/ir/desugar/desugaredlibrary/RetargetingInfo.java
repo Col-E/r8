@@ -39,11 +39,7 @@ public class RetargetingInfo {
   }
 
   public static synchronized RetargetingInfo get(AppView<?> appView) {
-    if (appView.retargetingInfo == null) {
-      appView.retargetingInfo = new RetargetingInfoBuilder(appView).computeRetargetingInfo();
-    }
-    assert appView.retargetingInfo != null;
-    return appView.retargetingInfo;
+    return new RetargetingInfoBuilder(appView).computeRetargetingInfo();
   }
 
   public Map<DexMethod, DexMethod> getRetargetLibraryMember() {

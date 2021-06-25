@@ -7,11 +7,9 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeter;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
-import com.android.tools.r8.ir.desugar.records.RecordRewriter;
 import com.android.tools.r8.utils.ThrowingConsumer;
-import java.util.function.Consumer;
 
 /**
  * Abstracts a collection of low-level desugarings (i.e., mappings from class-file instructions to
@@ -58,8 +56,5 @@ public abstract class CfInstructionDesugaringCollection {
   public abstract <T extends Throwable> void withD8NestBasedAccessDesugaring(
       ThrowingConsumer<D8NestBasedAccessDesugaring, T> consumer) throws T;
 
-  public abstract void withDesugaredLibraryRetargeter(
-      Consumer<DesugaredLibraryRetargeter> consumer);
-
-  public abstract void withRecordRewriter(Consumer<RecordRewriter> consumer);
+  public abstract RetargetingInfo getRetargetingInfo();
 }

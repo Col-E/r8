@@ -4,15 +4,22 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary;
 
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 
-public interface DesugaredLibraryRetargeterEventConsumer {
+public interface DesugaredLibraryRetargeterInstructionEventConsumer {
 
   void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz);
 
   void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz);
 
-  void acceptForwardingMethod(ProgramMethod method);
+  void acceptInterfaceInjection(DexProgramClass clazz, DexClass newInterface);
+
+  interface DesugaredLibraryRetargeterPostProcessingEventConsumer
+      extends DesugaredLibraryRetargeterInstructionEventConsumer {
+
+    void acceptForwardingMethod(ProgramMethod method);
+  }
 }

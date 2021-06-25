@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
@@ -14,7 +15,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.ClassConverterResult;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethodDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialBridgeInfo;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodDesugaringEventConsumer;
@@ -23,6 +24,7 @@ import com.android.tools.r8.ir.desugar.lambda.LambdaDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.twr.TwrCloseResourceDesugaringEventConsumer;
+import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,7 +48,7 @@ public abstract class CfInstructionDesugaringEventConsumer
         RecordDesugaringEventConsumer,
         TwrCloseResourceDesugaringEventConsumer,
         InterfaceMethodDesugaringEventConsumer,
-        DesugaredLibraryRetargeterEventConsumer {
+        DesugaredLibraryRetargeterInstructionEventConsumer {
 
   public static D8CfInstructionDesugaringEventConsumer createForD8(
       D8MethodProcessor methodProcessor) {
@@ -56,9 +58,10 @@ public abstract class CfInstructionDesugaringEventConsumer
   public static R8CfInstructionDesugaringEventConsumer createForR8(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer,
-      BiConsumer<ProgramMethod, ProgramMethod> twrCloseResourceMethodConsumer) {
+      BiConsumer<ProgramMethod, ProgramMethod> twrCloseResourceMethodConsumer,
+      SyntheticAdditions additions) {
     return new R8CfInstructionDesugaringEventConsumer(
-        appView, lambdaClassConsumer, twrCloseResourceMethodConsumer);
+        appView, lambdaClassConsumer, twrCloseResourceMethodConsumer, additions);
   }
 
   public static CfInstructionDesugaringEventConsumer createForDesugaredCode() {
@@ -75,7 +78,7 @@ public abstract class CfInstructionDesugaringEventConsumer
       }
 
       @Override
-      public void acceptForwardingMethod(ProgramMethod method) {
+      public void acceptInterfaceInjection(DexProgramClass clazz, DexClass newInterface) {
         assert false;
       }
 
@@ -157,12 +160,12 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz) {
-      // Intentionnaly empty.
+      // Intentionally empty.
     }
 
     @Override
-    public void acceptForwardingMethod(ProgramMethod method) {
-      methodProcessor.scheduleDesugaredMethodForProcessing(method);
+    public void acceptInterfaceInjection(DexProgramClass clazz, DexClass newInterface) {
+      // Intentionally empty.
     }
 
     @Override
@@ -289,6 +292,7 @@ public abstract class CfInstructionDesugaringEventConsumer
     //  synthetic items.
     private final BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer;
     private final BiConsumer<ProgramMethod, ProgramMethod> twrCloseResourceMethodConsumer;
+    private final SyntheticAdditions additions;
 
     private final Map<LambdaClass, ProgramMethod> synthesizedLambdaClasses =
         new IdentityHashMap<>();
@@ -297,10 +301,12 @@ public abstract class CfInstructionDesugaringEventConsumer
     public R8CfInstructionDesugaringEventConsumer(
         AppView<? extends AppInfoWithClassHierarchy> appView,
         BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer,
-        BiConsumer<ProgramMethod, ProgramMethod> twrCloseResourceMethodConsumer) {
+        BiConsumer<ProgramMethod, ProgramMethod> twrCloseResourceMethodConsumer,
+        SyntheticAdditions additions) {
       this.appView = appView;
       this.lambdaClassConsumer = lambdaClassConsumer;
       this.twrCloseResourceMethodConsumer = twrCloseResourceMethodConsumer;
+      this.additions = additions;
     }
 
     @Override
@@ -310,15 +316,13 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz) {
-      // TODO(b/188767735): R8 currently relies on IR desugaring.
-      // The classpath class should be marked as liveNonProgramType.
+    public void acceptInterfaceInjection(DexProgramClass clazz, DexClass newInterface) {
+      additions.injectInterface(clazz, newInterface);
     }
 
     @Override
-    public void acceptForwardingMethod(ProgramMethod method) {
-      // TODO(b/188767735): R8 currently relies on IR desugaring.
-      // The method should be marked live, and assert everything it references is traced.
+    public void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz) {
+      additions.addLiveClasspathClass(clazz);
     }
 
     @Override

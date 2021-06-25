@@ -13,8 +13,11 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaring;
+import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
-import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,30 +27,30 @@ import java.util.Map;
 // The rewrite of virtual calls requires to go through emulate dispatch. This class is responsible
 // for inserting interfaces on library boundaries and forwarding methods in the program, and to
 // synthesize the interfaces and emulated dispatch classes in the desugared library.
-public class DesugaredLibraryRetargeterPostProcessor {
+public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessingDesugaring {
 
   private final AppView<?> appView;
   private final DesugaredLibraryRetargeterSyntheticHelper syntheticHelper;
   private final DexClassAndMethodSet emulatedDispatchMethods;
-  private final SortedProgramMethodSet forwardingMethods = SortedProgramMethodSet.create();
 
-  public DesugaredLibraryRetargeterPostProcessor(AppView<?> appView) {
+  public DesugaredLibraryRetargeterPostProcessor(
+      AppView<?> appView, RetargetingInfo retargetingInfo) {
     this.appView = appView;
     this.syntheticHelper = new DesugaredLibraryRetargeterSyntheticHelper(appView);
-    emulatedDispatchMethods = RetargetingInfo.get(appView).getEmulatedDispatchMethods();
+    emulatedDispatchMethods = retargetingInfo.getEmulatedDispatchMethods();
   }
 
-  SortedProgramMethodSet ensureAppFixed(DesugaredLibraryRetargeterEventConsumer eventConsumer) {
+  @Override
+  public void postProcessingDesugaring(CfPostProcessingDesugaringEventConsumer eventConsumer) {
     if (appView.options().isDesugaredLibraryCompilation()) {
       ensureEmulatedDispatchMethodsSynthesized(eventConsumer);
     } else {
       ensureInterfacesAndForwardingMethodsSynthesized(eventConsumer);
     }
-    return forwardingMethods;
   }
 
   private void ensureInterfacesAndForwardingMethodsSynthesized(
-      DesugaredLibraryRetargeterEventConsumer eventConsumer) {
+      DesugaredLibraryRetargeterPostProcessingEventConsumer eventConsumer) {
     assert !appView.options().isDesugaredLibraryCompilation();
     Map<DexType, List<DexClassAndMethod>> map = Maps.newIdentityHashMap();
     for (DexClassAndMethod emulatedDispatchMethod : emulatedDispatchMethods) {
@@ -96,7 +99,7 @@ public class DesugaredLibraryRetargeterPostProcessor {
   }
 
   private void ensureInterfacesAndForwardingMethodsSynthesized(
-      DesugaredLibraryRetargeterEventConsumer eventConsumer,
+      DesugaredLibraryRetargeterPostProcessingEventConsumer eventConsumer,
       DexProgramClass clazz,
       List<DexClassAndMethod> methods) {
     // DesugaredLibraryRetargeter emulate dispatch: insertion of a marker interface & forwarding
@@ -104,22 +107,19 @@ public class DesugaredLibraryRetargeterPostProcessor {
     // We cannot use the ClassProcessor since this applies up to 26, while the ClassProcessor
     // applies up to 24.
     for (DexClassAndMethod method : methods) {
-      DexClass dexClass =
+      DexClass newInterface =
           syntheticHelper.ensureEmulatedInterfaceDispatchMethod(method, eventConsumer);
-      if (clazz.interfaces.contains(dexClass.type)) {
+      if (clazz.interfaces.contains(newInterface.type)) {
         // The class has already been desugared.
         continue;
       }
-      clazz.addExtraInterfaces(Collections.singletonList(new ClassTypeSignature(dexClass.type)));
+      clazz.addExtraInterfaces(
+          Collections.singletonList(new ClassTypeSignature(newInterface.type)));
+      eventConsumer.acceptInterfaceInjection(clazz, newInterface);
       if (clazz.lookupVirtualMethod(method.getReference()) == null) {
         DexEncodedMethod newMethod = createForwardingMethod(method, clazz);
         clazz.addVirtualMethod(newMethod);
-        if (eventConsumer != null) {
-          eventConsumer.acceptForwardingMethod(new ProgramMethod(clazz, newMethod));
-        } else {
-          assert appView.enableWholeProgramOptimizations();
-          forwardingMethods.add(new ProgramMethod(clazz, newMethod));
-        }
+        eventConsumer.acceptForwardingMethod(new ProgramMethod(clazz, newMethod));
       }
     }
   }
@@ -132,12 +132,15 @@ public class DesugaredLibraryRetargeterPostProcessor {
     DexMethod forwardMethod =
         appView.options().desugaredLibraryConfiguration.retargetMethod(target, appView);
     assert forwardMethod != null && forwardMethod != target.getReference();
-    return DexEncodedMethod.createDesugaringForwardingMethod(
-        target, clazz, forwardMethod, appView.dexItemFactory());
+    DexEncodedMethod desugaringForwardingMethod =
+        DexEncodedMethod.createDesugaringForwardingMethod(
+            target, clazz, forwardMethod, appView.dexItemFactory());
+    desugaringForwardingMethod.setLibraryMethodOverride(OptionalBool.TRUE);
+    return desugaringForwardingMethod;
   }
 
   private void ensureEmulatedDispatchMethodsSynthesized(
-      DesugaredLibraryRetargeterEventConsumer eventConsumer) {
+      DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
     assert appView.options().isDesugaredLibraryCompilation();
     if (emulatedDispatchMethods.isEmpty()) {
       return;

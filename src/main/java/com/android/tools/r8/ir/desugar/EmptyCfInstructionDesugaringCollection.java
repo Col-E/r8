@@ -7,11 +7,9 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection.EmptyCfClassDesugaringCollection;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeter;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
-import com.android.tools.r8.ir.desugar.records.RecordRewriter;
 import com.android.tools.r8.utils.ThrowingConsumer;
-import java.util.function.Consumer;
 
 public class EmptyCfInstructionDesugaringCollection extends CfInstructionDesugaringCollection {
 
@@ -60,12 +58,7 @@ public class EmptyCfInstructionDesugaringCollection extends CfInstructionDesugar
   }
 
   @Override
-  public void withDesugaredLibraryRetargeter(Consumer<DesugaredLibraryRetargeter> consumer) {
-    // Intentionally empty.
-  }
-
-  @Override
-  public void withRecordRewriter(Consumer<RecordRewriter> consumer) {
-    // Intentionally empty.
+  public RetargetingInfo getRetargetingInfo() {
+    return null;
   }
 }

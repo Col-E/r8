@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection.EmptyCfClassDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection.NonEmptyCfClassDesugaringCollection;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeter;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaring;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
@@ -32,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.Consumer;
 
 public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesugaringCollection {
 
@@ -55,7 +55,6 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     BackportedMethodRewriter backportedMethodRewriter = null;
     desugaredLibraryRetargeter =
         appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()
-                || appView.enableWholeProgramOptimizations()
             ? null
             : new DesugaredLibraryRetargeter(appView);
     if (desugaredLibraryRetargeter != null) {
@@ -307,16 +306,10 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
   }
 
   @Override
-  public void withDesugaredLibraryRetargeter(Consumer<DesugaredLibraryRetargeter> consumer) {
+  public RetargetingInfo getRetargetingInfo() {
     if (desugaredLibraryRetargeter != null) {
-      consumer.accept(desugaredLibraryRetargeter);
+      return desugaredLibraryRetargeter.getRetargetingInfo();
     }
-  }
-
-  @Override
-  public void withRecordRewriter(Consumer<RecordRewriter> consumer) {
-    if (recordRewriter != null) {
-      consumer.accept(recordRewriter);
-    }
+    return null;
   }
 }
