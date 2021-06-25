@@ -679,6 +679,7 @@ abstract class CallGraphBuilderBase {
 
           // Break the cycle by removing the edge caller->callee.
           removeCallEdge(edge.caller, edge.callee);
+          revisit.add(edge.callee);
         }
 
         // Recover the stack.
