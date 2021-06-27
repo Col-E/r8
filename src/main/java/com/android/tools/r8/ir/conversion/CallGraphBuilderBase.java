@@ -424,7 +424,7 @@ abstract class CallGraphBuilderBase {
     // Subset of the DFS stack, where the nodes on the stack are class initializers.
     //
     // This stack is used to efficiently compute if there is a class initializer on the stack.
-    private Deque<Node> clinitStack = new ArrayDeque<>();
+    private Deque<Node> clinitCallStack = new ArrayDeque<>();
 
     // Subset of the DFS stack, where the nodes on the stack satisfy that the edge from the
     // predecessor to the node itself is a field read edge.
@@ -471,7 +471,7 @@ abstract class CallGraphBuilderBase {
 
     private void prepareForNewTraversal() {
       assert calleesToBeRemoved.isEmpty();
-      assert clinitStack.isEmpty();
+      assert clinitCallStack.isEmpty();
       assert stack.isEmpty();
       assert stackEntryInfo.isEmpty();
       assert writersToBeRemoved.isEmpty();
@@ -481,7 +481,7 @@ abstract class CallGraphBuilderBase {
     }
 
     private void reset() {
-      assert clinitStack.isEmpty();
+      assert clinitCallStack.isEmpty();
       assert marked.isEmpty();
       assert revisit.isEmpty();
       assert stack.isEmpty();
@@ -646,9 +646,9 @@ abstract class CallGraphBuilderBase {
 
         // Otherwise, check if there is a call edge to a <clinit> method in the cycle, and if so,
         // remove that edge.
-        if (!clinitStack.isEmpty()
+        if (!clinitCallStack.isEmpty()
             && removeIncomingEdgeOnStack(
-                clinitStack.peek(),
+                clinitCallStack.peek(),
                 calleeOrWriter,
                 calleeOrWriterStackEntryInfo,
                 this::removeCallEdge)) {
@@ -693,8 +693,8 @@ abstract class CallGraphBuilderBase {
       assert !stackEntryInfo.containsKey(node);
       stackEntryInfo.put(node, new StackEntryInfo(stack.size() - 1, predecessor));
       if (predecessor != null) {
-        if (node.getMethod().isClassInitializer()) {
-          clinitStack.push(node);
+        if (node.getMethod().isClassInitializer() && node.hasCaller(predecessor)) {
+          clinitCallStack.push(node);
         } else if (predecessor.getWritersWithDeterministicOrder().contains(node)) {
           writerStack.push(node);
         }
@@ -706,9 +706,9 @@ abstract class CallGraphBuilderBase {
       assert popped == node;
       assert stackEntryInfo.containsKey(node);
       stackEntryInfo.remove(node);
-      if (clinitStack.peek() == popped) {
+      if (clinitCallStack.peek() == popped) {
         assert writerStack.peek() != popped;
-        clinitStack.pop();
+        clinitCallStack.pop();
       } else if (writerStack.peek() == popped) {
         writerStack.pop();
       }
