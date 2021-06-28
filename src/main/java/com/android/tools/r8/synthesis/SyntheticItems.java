@@ -319,6 +319,9 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       assert verifyAllHaveSameFeature(types, LegacySyntheticReference::getFeatureSplit);
       return types.get(0).getFeatureSplit();
     }
+    if (isSyntheticOfKind(type, SyntheticKind.ENUM_UNBOXING_SHARED_UTILITY_CLASS)) {
+      return FeatureSplit.BASE;
+    }
     List<SynthesizingContext> contexts = getSynthesizingContexts(type);
     if (contexts.isEmpty()) {
       return null;
