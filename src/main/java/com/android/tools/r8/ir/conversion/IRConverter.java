@@ -397,13 +397,6 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeEnumUnboxingUtilityMethods(ExecutorService executorService)
-      throws ExecutionException {
-    if (enumUnboxer != null) {
-      enumUnboxer.synthesizeUtilityMethods(this, executorService);
-    }
-  }
-
   private void processCovariantReturnTypeAnnotations(Builder<?> builder) {
     if (covariantReturnTypeAnnotationTransformer != null) {
       covariantReturnTypeAnnotationTransformer.process(builder);
@@ -780,8 +773,7 @@ public class IRConverter {
     timing.end();
 
     if (enumUnboxer != null) {
-      // TODO(b/190098858): Uncomment when methods are synthesized on-the-fly.
-      // enumUnboxer.unsetRewriter();
+      enumUnboxer.unsetRewriter();
     }
 
     // All the code that should be impacted by the lenses inserted between phase 1 and phase 2
@@ -816,9 +808,6 @@ public class IRConverter {
     finalizeInterfaceMethodRewritingThroughIR(executorService);
     runInterfaceDesugaringProcessorsForR8(IncludeAllResources, executorService);
     feedback.updateVisibleOptimizationInfo();
-
-    printPhase("Utility classes synthesis");
-    synthesizeEnumUnboxingUtilityMethods(executorService);
 
     printPhase("Desugared library API Conversion finalization");
     generateDesugaredLibraryAPIWrappers(builder, executorService);

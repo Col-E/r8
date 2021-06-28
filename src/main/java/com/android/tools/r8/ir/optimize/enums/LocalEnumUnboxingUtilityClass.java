@@ -4,20 +4,28 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
+
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
-import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
-import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
+import com.android.tools.r8.ir.synthetic.EnumUnboxingCfCodeProvider;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.Collections;
+import com.android.tools.r8.synthesis.SyntheticMethodBuilder.SyntheticCodeGenerator;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 
 public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
@@ -25,13 +33,116 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
       "$r8$EnumUnboxingLocalUtility";
 
   private final DexProgramClass localUtilityClass;
+  private final EnumData data;
 
-  public LocalEnumUnboxingUtilityClass(DexProgramClass localUtilityClass) {
+  public LocalEnumUnboxingUtilityClass(
+      DexProgramClass localUtilityClass, EnumData data, DexProgramClass synthesizingContext) {
+    super(synthesizingContext);
     this.localUtilityClass = localUtilityClass;
+    this.data = data;
   }
 
-  public static Builder builder(AppView<AppInfoWithLiveness> appView, DexProgramClass enumToUnbox) {
-    return new Builder(appView, enumToUnbox);
+  public static Builder builder(
+      AppView<AppInfoWithLiveness> appView, DexProgramClass enumToUnbox, EnumData data) {
+    return new Builder(appView, enumToUnbox, data);
+  }
+
+  public ProgramMethod ensureGetInstanceFieldMethod(
+      AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
+      MethodProcessor methodProcessor,
+      DexField field) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    String fieldName = field.getName().toString();
+    DexString methodName;
+    if (field.getHolderType() == getSynthesizingContext().getType()) {
+      methodName =
+          dexItemFactory.createString(
+              "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1));
+    } else {
+      assert field == appView.dexItemFactory().enumMembers.nameField
+          || field == appView.dexItemFactory().enumMembers.ordinalField;
+      methodName = field.getName();
+    }
+    return internalEnsureMethod(
+        appView,
+        converter,
+        methodProcessor,
+        methodName,
+        dexItemFactory.createProto(field.getType(), dexItemFactory.intType),
+        method ->
+            new EnumUnboxingCfCodeProvider.EnumUnboxingInstanceFieldCfCodeProvider(
+                    appView, getType(), data, field)
+                .generateCfCode());
+  }
+
+  public ProgramMethod ensureStringValueOfMethod(
+      AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
+      MethodProcessor methodProcessor) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    AbstractValue defaultValue =
+        appView.abstractValueFactory().createSingleStringValue(dexItemFactory.createString("null"));
+    return internalEnsureMethod(
+        appView,
+        converter,
+        methodProcessor,
+        dexItemFactory.createString("stringValueOf"),
+        dexItemFactory.createProto(dexItemFactory.stringType, dexItemFactory.intType),
+        method ->
+            new EnumUnboxingCfCodeProvider.EnumUnboxingInstanceFieldCfCodeProvider(
+                    appView, getType(), data, dexItemFactory.enumMembers.nameField, defaultValue)
+                .generateCfCode());
+  }
+
+  public ProgramMethod ensureValueOfMethod(
+      AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
+      MethodProcessor methodProcessor) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    return internalEnsureMethod(
+        appView,
+        converter,
+        methodProcessor,
+        dexItemFactory.createString("valueOf"),
+        dexItemFactory.createProto(dexItemFactory.intType, dexItemFactory.stringType),
+        method ->
+            new EnumUnboxingCfCodeProvider.EnumUnboxingValueOfCfCodeProvider(
+                    appView,
+                    getType(),
+                    getSynthesizingContext().getType(),
+                    data.getInstanceFieldData(dexItemFactory.enumMembers.nameField)
+                        .asEnumFieldMappingData())
+                .generateCfCode());
+  }
+
+  private ProgramMethod internalEnsureMethod(
+      AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
+      MethodProcessor methodProcessor,
+      DexString methodName,
+      DexProto methodProto,
+      SyntheticCodeGenerator codeGenerator) {
+    return appView
+        .getSyntheticItems()
+        .ensureFixedClassMethod(
+            methodName,
+            methodProto,
+            SyntheticKind.ENUM_UNBOXING_LOCAL_UTILITY_CLASS,
+            getSynthesizingContext(),
+            appView,
+            emptyConsumer(),
+            methodBuilder ->
+                methodBuilder
+                    .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                    .setCode(codeGenerator)
+                    .setClassFileVersion(CfVersion.V1_6),
+            newMethod ->
+                converter.processDesugaredMethod(
+                    newMethod,
+                    OptimizationFeedbackSimple.getInstance(),
+                    methodProcessor,
+                    methodProcessor.createMethodProcessingContext(newMethod)));
   }
 
   @Override
@@ -46,49 +157,38 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
   public static class Builder {
 
     private final AppView<AppInfoWithLiveness> appView;
-    private final DexItemFactory dexItemFactory;
+    private final EnumData data;
     private final DexProgramClass enumToUnbox;
     private final DexType localUtilityClassType;
 
-    private Builder(AppView<AppInfoWithLiveness> appView, DexProgramClass enumToUnbox) {
+    private Builder(
+        AppView<AppInfoWithLiveness> appView, DexProgramClass enumToUnbox, EnumData data) {
       this.appView = appView;
-      this.dexItemFactory = appView.dexItemFactory();
+      this.data = data;
       this.enumToUnbox = enumToUnbox;
       this.localUtilityClassType =
           EnumUnboxingUtilityClasses.Builder.getUtilityClassType(
-              enumToUnbox, ENUM_UNBOXING_LOCAL_UTILITY_CLASS_SUFFIX, dexItemFactory);
+              enumToUnbox, ENUM_UNBOXING_LOCAL_UTILITY_CLASS_SUFFIX, appView.dexItemFactory());
 
       assert appView.appInfo().definitionForWithoutExistenceAssert(localUtilityClassType) == null;
     }
 
-    LocalEnumUnboxingUtilityClass build(DirectMappedDexApplication.Builder appBuilder) {
+    LocalEnumUnboxingUtilityClass build() {
       DexProgramClass clazz = createClass();
-      appBuilder.addSynthesizedClass(clazz);
-      appView.appInfo().addSynthesizedClass(clazz, enumToUnbox);
-      return new LocalEnumUnboxingUtilityClass(clazz);
+      return new LocalEnumUnboxingUtilityClass(clazz, data, enumToUnbox);
     }
 
     private DexProgramClass createClass() {
-      return new DexProgramClass(
-          localUtilityClassType,
-          null,
-          new SynthesizedOrigin("enum unboxing", EnumUnboxer.class),
-          ClassAccessFlags.createPublicFinalSynthetic(),
-          appView.dexItemFactory().objectType,
-          DexTypeList.empty(),
-          null,
-          null,
-          Collections.emptyList(),
-          null,
-          Collections.emptyList(),
-          ClassSignature.noSignature(),
-          DexAnnotationSet.empty(),
-          DexEncodedField.EMPTY_ARRAY,
-          DexEncodedField.EMPTY_ARRAY,
-          DexEncodedMethod.EMPTY_ARRAY,
-          DexEncodedMethod.EMPTY_ARRAY,
-          appView.dexItemFactory().getSkipNameValidationForTesting(),
-          DexProgramClass::checksumFromType);
+      DexProgramClass clazz =
+          appView
+              .getSyntheticItems()
+              .createFixedClass(
+                  SyntheticKind.ENUM_UNBOXING_LOCAL_UTILITY_CLASS,
+                  enumToUnbox,
+                  appView,
+                  emptyConsumer());
+      assert clazz.getAccessFlags().equals(ClassAccessFlags.createPublicFinalSynthetic());
+      return clazz;
     }
   }
 }

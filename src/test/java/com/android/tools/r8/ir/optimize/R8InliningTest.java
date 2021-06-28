@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
-import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -369,19 +368,11 @@ public class R8InliningTest extends TestBase {
       InstructionSubject instruction = iterator.next();
       if (instruction.isInstanceGet()) {
         ++instanceGetCount;
-      } else if (instruction.isInvoke() && !isEnumInvoke(instruction)) {
+      } else if (instruction.isInvoke()) {
         ++invokeCount;
       }
     }
     assertEquals(1, instanceGetCount);
     assertEquals(0, invokeCount);
-  }
-
-  private boolean isEnumInvoke(InstructionSubject instruction) {
-    return instruction
-        .getMethod()
-        .getName()
-        .toString()
-        .startsWith(EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_METHOD_PREFIX);
   }
 }

@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldMappingData;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
@@ -67,14 +68,19 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
     private final AbstractValue nullValue;
 
     public EnumUnboxingInstanceFieldCfCodeProvider(
+        AppView<?> appView, DexType holder, EnumData data, DexField field) {
+      this(appView, holder, data, field, null);
+    }
+
+    public EnumUnboxingInstanceFieldCfCodeProvider(
         AppView<?> appView,
         DexType holder,
-        DexType returnType,
-        EnumInstanceFieldMappingData fieldDataMap,
+        EnumData data,
+        DexField field,
         AbstractValue nullValue) {
       super(appView, holder);
-      this.returnType = returnType;
-      this.fieldDataMap = fieldDataMap;
+      this.returnType = field.getType();
+      this.fieldDataMap = data.getInstanceFieldData(field).asEnumFieldMappingData();
       this.nullValue = nullValue;
     }
 

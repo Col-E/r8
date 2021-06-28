@@ -1050,7 +1050,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             .collect(Collectors.toList()));
 
     CommittedItems committedItems = getSyntheticItems().commitRewrittenWithLens(application, lens);
-    DexDefinitionSupplier definitionSupplier = application.getDefinitionsSupplier(committedItems);
+    DexDefinitionSupplier definitionSupplier =
+        committedItems.getApplication().getDefinitionsSupplier(committedItems);
     return new AppInfoWithLiveness(
         committedItems,
         getClassToFeatureSplitMap().rewrittenWithLens(lens),

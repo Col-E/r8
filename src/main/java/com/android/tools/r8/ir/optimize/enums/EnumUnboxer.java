@@ -34,7 +34,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -518,7 +517,6 @@ public class EnumUnboxer {
     enumUnboxingCandidatesInfo.clear();
     // Update keep info on any of the enum methods of the removed classes.
     updateKeepInfo(enumsToUnbox);
-    DirectMappedDexApplication.Builder appBuilder = appView.appInfo().app().asDirect().builder();
     FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder =
         FieldAccessInfoCollectionModifier.builder();
 
@@ -527,7 +525,6 @@ public class EnumUnboxer {
             .synthesizeEnumUnboxingUtilityClasses(
                 enumClassesToUnbox,
                 enumDataMap,
-                appBuilder,
                 fieldAccessInfoCollectionModifierBuilder)
             .build();
     utilityClasses.forEach(
@@ -542,7 +539,7 @@ public class EnumUnboxer {
         new EnumUnboxingRewriter(appView, converter, enumUnboxingLens, enumDataMap, utilityClasses);
     appView.setUnboxedEnums(enumDataMap);
     GraphLens previousLens = appView.graphLens();
-    appView.rewriteWithLensAndApplication(enumUnboxingLens, appBuilder.build());
+    appView.rewriteWithLens(enumUnboxingLens);
     updateOptimizationInfos(executorService, feedback, treeFixerResult.getPrunedItems());
     postBuilder.put(dependencies);
     // Methods depending on library modelisation need to be reprocessed so they are peephole
@@ -1471,13 +1468,6 @@ public class EnumUnboxer {
       return enumUnboxerRewriter.rewriteCode(code, methodProcessor);
     }
     return Sets.newIdentityHashSet();
-  }
-
-  public void synthesizeUtilityMethods(IRConverter converter, ExecutorService executorService)
-      throws ExecutionException {
-    if (enumUnboxerRewriter != null) {
-      enumUnboxerRewriter.synthesizeEnumUnboxingUtilityMethods(converter, executorService);
-    }
   }
 
   public void unsetRewriter() {

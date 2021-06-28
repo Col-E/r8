@@ -8,5 +8,15 @@ import com.android.tools.r8.graph.DexProgramClass;
 
 public abstract class EnumUnboxingUtilityClass {
 
+  private final DexProgramClass synthesizingContext;
+
+  EnumUnboxingUtilityClass(DexProgramClass synthesizingContext) {
+    this.synthesizingContext = synthesizingContext;
+  }
+
   public abstract DexProgramClass getDefinition();
+
+  public final DexProgramClass getSynthesizingContext() {
+    return synthesizingContext;
+  }
 }

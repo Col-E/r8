@@ -367,12 +367,13 @@ class EnumUnboxingTreeFixer {
       Predicate<DexMethod> availableMethodSignatures) {
     DexMethod methodReference = method.getReference();
 
-    // Create a new, fresh method signature on the local utility class.
+    // Create a new, fresh method signature on the local utility class. We prefix the method by "_"
+    // such that this does not collide with the utility methods we synthesize for unboxing.
     DexMethod newMethod =
         method.getDefinition().isClassInitializer()
             ? factory.createClassInitializer(localUtilityClass.getType())
             : factory.createFreshMethodNameWithoutHolder(
-                method.getName().toString(),
+                "_" + method.getName().toString(),
                 fixupProto(
                     method.getAccessFlags().isStatic()
                         ? method.getProto()

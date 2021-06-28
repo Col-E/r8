@@ -54,15 +54,14 @@ import org.objectweb.asm.Opcodes;
 public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
   private final DexProgramClass sharedUtilityClass;
-  private final DexProgramClass synthesizingContext;
   private final ProgramMethod valuesMethod;
 
   public SharedEnumUnboxingUtilityClass(
       DexProgramClass sharedUtilityClass,
       DexProgramClass synthesizingContext,
       ProgramMethod valuesMethod) {
+    super(synthesizingContext);
     this.sharedUtilityClass = sharedUtilityClass;
-    this.synthesizingContext = synthesizingContext;
     this.valuesMethod = valuesMethod;
   }
 
@@ -166,7 +165,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
             methodName,
             methodProto,
             SyntheticKind.ENUM_UNBOXING_SHARED_UTILITY_CLASS,
-            synthesizingContext,
+            getSynthesizingContext(),
             appView,
             ConsumerUtils.emptyConsumer(),
             methodBuilder ->
