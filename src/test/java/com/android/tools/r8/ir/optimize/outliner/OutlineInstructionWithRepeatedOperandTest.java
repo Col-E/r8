@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.outliner;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -27,7 +26,7 @@ public class OutlineInstructionWithRepeatedOperandTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void test() throws Exception {
     testForR8Compat(parameters.getBackend())
         .addInnerClasses(getClass())
