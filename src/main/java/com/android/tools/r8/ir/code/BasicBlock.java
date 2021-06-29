@@ -69,7 +69,6 @@ public class BasicBlock {
       assert instruction.getBlock() == this;
       assert !instruction.isArgument() || argumentsAllowed;
       assert !instruction.isDebugLocalRead() || !instruction.getDebugValues().isEmpty();
-      assert !instruction.isInitClass() || !instruction.outValue().hasAnyUsers();
       if (instruction.isMoveException()) {
         assert instruction == entry();
         for (BasicBlock pred : getPredecessors()) {
