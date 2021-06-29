@@ -8,10 +8,13 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -25,6 +28,8 @@ public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
 
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
 
+  private static Path CUSTOM_LIB;
+
   @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
   public static List<Object[]> data() {
     return buildParameters(
@@ -34,6 +39,16 @@ public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
   public SuperAPIConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
+  }
+
+  @BeforeClass
+  public static void compileCustomLib() throws Exception {
+    CUSTOM_LIB =
+        testForD8(getStaticTemp())
+            .addProgramClasses(CustomLibClass.class)
+            .setMinApi(MIN_SUPPORTED)
+            .compile()
+            .writeToZip();
   }
 
   @Test
@@ -52,7 +67,7 @@ public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-        .addInnerClasses(SuperAPIConversionTest.class)
+        .addProgramClasses(Executor.class, ParallelRandom.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
@@ -71,7 +86,7 @@ public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-        .addInnerClasses(SuperAPIConversionTest.class)
+        .addProgramClasses(Executor.class, ParallelRandom.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Executor.class)
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -83,6 +98,29 @@ public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutputLines("IntStream$VivifiedWrapper");
+  }
+
+  @Test
+  public void testAPIConversionDesugaringD8B192351030() throws Exception {
+    Assume.assumeFalse("TODO(b/189435770): fix", shrinkDesugaredLibrary);
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForD8()
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryClasses(CustomLibClass.class)
+        .addProgramClasses(ExecutorB192351030.class, A.class, B.class, C.class)
+        .setMinApi(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), ExecutorB192351030.class)
+        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+    // TODO(b/192351030): Should succeed.
+    // .assertSuccessWithOutputLines("Hello, ", "world!");
   }
 
   static class ParallelRandom extends Random {
@@ -98,6 +136,39 @@ public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
     public static void main(String[] args) {
       IntStream intStream = new ParallelRandom().ints();
       System.out.println(intStream.getClass().getSimpleName());
+    }
+  }
+
+  static class A extends CustomLibClass {
+    // TODO(b/192351030): If this bridge is added the code runs as expected.
+    // public void m(Consumer<String> consumer) {
+    //   super.m(consumer);
+    // }
+  }
+
+  static class B extends A {}
+
+  static class C extends B {
+    void test(Consumer<String> consumer) {
+      super.m(consumer);
+    }
+  }
+
+  static class ExecutorB192351030 {
+
+    public static void main(String[] args) {
+      new C().test(System.out::println);
+    }
+  }
+
+  // This class will be put at compilation time as library and on the runtime class path.
+  // This class is convenient for easy testing. Each method plays the role of methods in the
+  // platform APIs for which argument/return values need conversion.
+  static class CustomLibClass {
+
+    public void m(Consumer<String> consumer) {
+      consumer.accept("Hello, ");
+      consumer.accept("world!");
     }
   }
 }
