@@ -240,7 +240,8 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
                             ImmutableList.of(
                                 createClassInitializer(sharedUtilityClassType, valuesField),
                                 createValuesMethod(sharedUtilityClassType, valuesField)))
-                        .setStaticFields(ImmutableList.of(valuesField));
+                        .setStaticFields(ImmutableList.of(valuesField))
+                        .setUseSortedMethodBacking(true);
                   });
       assert clazz.getAccessFlags().equals(ClassAccessFlags.createPublicFinalSynthetic());
       return clazz;

@@ -186,7 +186,7 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
                   SyntheticKind.ENUM_UNBOXING_LOCAL_UTILITY_CLASS,
                   enumToUnbox,
                   appView,
-                  emptyConsumer());
+                  builder -> builder.setUseSortedMethodBacking(true));
       assert clazz.getAccessFlags().equals(ClassAccessFlags.createPublicFinalSynthetic());
       return clazz;
     }
