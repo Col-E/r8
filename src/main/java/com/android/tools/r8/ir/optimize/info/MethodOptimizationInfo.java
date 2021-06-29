@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
+import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.utils.InternalOptions;
@@ -35,6 +36,8 @@ public abstract class MethodOptimizationInfo
   public abstract boolean classInitializerMayBePostponed();
 
   public abstract ClassInlinerMethodConstraint getClassInlinerMethodConstraint();
+
+  public abstract EnumUnboxerMethodClassification getEnumUnboxerMethodClassification();
 
   public abstract TypeElement getDynamicUpperBoundType();
 

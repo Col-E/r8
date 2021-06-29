@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
+import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -115,6 +116,10 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   @Override
   public void setClassInlinerMethodConstraint(
       ProgramMethod method, ClassInlinerMethodConstraint classInlinerConstraint) {}
+
+  @Override
+  public void setEnumUnboxerMethodClassification(
+      ProgramMethod method, EnumUnboxerMethodClassification enumUnboxerMethodClassification) {}
 
   @Override
   public void setInstanceInitializerInfoCollection(

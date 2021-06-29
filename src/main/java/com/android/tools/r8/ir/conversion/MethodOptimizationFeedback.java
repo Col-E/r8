@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
+import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -61,6 +62,9 @@ public interface MethodOptimizationFeedback {
 
   void setClassInlinerMethodConstraint(
       ProgramMethod method, ClassInlinerMethodConstraint classInlinerConstraint);
+
+  void setEnumUnboxerMethodClassification(
+      ProgramMethod method, EnumUnboxerMethodClassification enumUnboxerMethodClassification);
 
   void setInstanceInitializerInfoCollection(
       DexEncodedMethod method, InstanceInitializerInfoCollection instanceInitializerInfoCollection);

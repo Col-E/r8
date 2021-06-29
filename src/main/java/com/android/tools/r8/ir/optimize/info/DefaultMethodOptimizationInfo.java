@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
+import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
@@ -62,6 +63,11 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   @Override
   public ClassInlinerMethodConstraint getClassInlinerMethodConstraint() {
     return ClassInlinerMethodConstraint.alwaysFalse();
+  }
+
+  @Override
+  public EnumUnboxerMethodClassification getEnumUnboxerMethodClassification() {
+    return EnumUnboxerMethodClassification.unknown();
   }
 
   @Override

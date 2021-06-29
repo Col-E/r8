@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
+import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
@@ -41,6 +42,8 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
       DefaultMethodOptimizationInfo.UNKNOWN_ABSTRACT_RETURN_VALUE;
   private ClassInlinerMethodConstraint classInlinerConstraint =
       ClassInlinerMethodConstraint.alwaysFalse();
+  private EnumUnboxerMethodClassification enumUnboxerMethodClassification =
+      EnumUnboxerMethodClassification.unknown();
   private TypeElement returnsObjectWithUpperBoundType = DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
   private ClassTypeElement returnsObjectWithLowerBoundType =
       DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
@@ -154,6 +157,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     nonNullParamOrThrow = template.nonNullParamOrThrow;
     nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
     classInlinerConstraint = template.classInlinerConstraint;
+    enumUnboxerMethodClassification = template.enumUnboxerMethodClassification;
     apiReferenceLevel = template.apiReferenceLevel;
   }
 
@@ -243,6 +247,16 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
 
   void setClassInlinerMethodConstraint(ClassInlinerMethodConstraint classInlinerConstraint) {
     this.classInlinerConstraint = classInlinerConstraint;
+  }
+
+  @Override
+  public EnumUnboxerMethodClassification getEnumUnboxerMethodClassification() {
+    return enumUnboxerMethodClassification;
+  }
+
+  void setEnumUnboxerMethodClassification(
+      EnumUnboxerMethodClassification enumUnboxerMethodClassification) {
+    this.enumUnboxerMethodClassification = enumUnboxerMethodClassification;
   }
 
   @Override
@@ -555,6 +569,8 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   public void adjustOptimizationInfoAfterRemovingThisParameter(
       AppView<AppInfoWithLiveness> appView) {
     classInlinerConstraint = classInlinerConstraint.fixupAfterRemovingThisParameter();
+    enumUnboxerMethodClassification =
+        enumUnboxerMethodClassification.fixupAfterRemovingThisParameter();
     simpleInliningConstraint =
         simpleInliningConstraint.fixupAfterRemovingThisParameter(
             appView.simpleInliningConstraintFactory());
