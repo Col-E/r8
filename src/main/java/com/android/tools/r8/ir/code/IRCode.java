@@ -577,7 +577,8 @@ public class IRCode implements ValueFactory {
   }
 
   public boolean isConsistentSSABeforeTypesAreCorrect() {
-    assert isConsistentGraph();
+    assert isConsistentGraph(true);
+    assert consistentBlockInstructions(true);
     assert consistentDefUseChains();
     assert validThrowingInstructions();
     assert noCriticalEdges();
@@ -608,11 +609,15 @@ public class IRCode implements ValueFactory {
   }
 
   public boolean isConsistentGraph() {
+    return isConsistentGraph(false);
+  }
+
+  public boolean isConsistentGraph(boolean ssa) {
     assert noColorsInUse();
     assert consistentBlockNumbering();
     assert consistentPredecessorSuccessors();
     assert consistentCatchHandlers();
-    assert consistentBlockInstructions();
+    assert consistentBlockInstructions(ssa);
     assert consistentMetadata();
     assert !allThrowingInstructionsHavePositions || computeAllThrowingInstructionsHavePositions();
     return true;
@@ -804,12 +809,13 @@ public class IRCode implements ValueFactory {
     return true;
   }
 
-  private boolean consistentBlockInstructions() {
+  private boolean consistentBlockInstructions(boolean ssa) {
     boolean argumentsAllowed = true;
     for (BasicBlock block : blocks) {
       assert block.consistentBlockInstructions(
           argumentsAllowed,
-          options.debug || method().getOptimizationInfo().isReachabilitySensitive());
+          options.debug || method().getOptimizationInfo().isReachabilitySensitive(),
+          ssa);
       argumentsAllowed = false;
     }
     return true;

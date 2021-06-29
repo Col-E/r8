@@ -63,12 +63,14 @@ public class BasicBlock {
 
   private Int2ReferenceMap<DebugLocalInfo> localsAtEntry;
 
-  public boolean consistentBlockInstructions(boolean argumentsAllowed, boolean debug) {
+  public boolean consistentBlockInstructions(boolean argumentsAllowed, boolean debug, boolean ssa) {
     for (Instruction instruction : getInstructions()) {
       assert instruction.verifyValidPositionInfo(debug);
       assert instruction.getBlock() == this;
       assert !instruction.isArgument() || argumentsAllowed;
       assert !instruction.isDebugLocalRead() || !instruction.getDebugValues().isEmpty();
+      assert !instruction.isInitClass()
+          || consistentInitClassInstruction(instruction.asInitClass(), ssa);
       if (instruction.isMoveException()) {
         assert instruction == entry();
         for (BasicBlock pred : getPredecessors()) {
@@ -80,6 +82,17 @@ public class BasicBlock {
         argumentsAllowed = false;
       }
     }
+    return true;
+  }
+
+  public boolean consistentInitClassInstruction(InitClass initClass, boolean ssa) {
+    if (!ssa) {
+      return true;
+    }
+    assert initClass.hasOutValue();
+    assert !initClass.outValue().hasDebugUsers();
+    assert !initClass.outValue().hasPhiUsers();
+    assert initClass.outValue().uniqueUsers().stream().allMatch(Instruction::isPop);
     return true;
   }
 
