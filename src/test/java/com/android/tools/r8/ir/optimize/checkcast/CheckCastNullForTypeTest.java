@@ -57,9 +57,8 @@ public class CheckCastNullForTypeTest extends TestBase {
               assertThat(main, isPresent());
               MethodSubject mainMethod = main.uniqueMethodWithName("main");
               assertThat(mainMethod, isPresent());
-              // TODO(b/160856783): Investigate if this can be removed.
               assertEquals(
-                  1,
+                  0,
                   mainMethod
                       .streamInstructions()
                       .filter(instruction -> instruction.isCheckCast(Main.class.getTypeName()))

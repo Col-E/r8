@@ -127,6 +127,7 @@ public class DeadCodeRemover {
           if (!checkCast.isRefiningStaticType()
               && checkCast.outValue().getLocalInfo() == checkCast.object().getLocalInfo()) {
             checkCast.outValue().replaceUsers(checkCast.object());
+            checkCast.object().uniquePhiUsers().forEach(Phi::removeTrivialPhi);
           }
         }
         // Remove unused invoke results.
