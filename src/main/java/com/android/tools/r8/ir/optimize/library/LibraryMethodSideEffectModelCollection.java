@@ -40,6 +40,9 @@ public class LibraryMethodSideEffectModelCollection {
     ImmutableMap.Builder<DexMethod, BiPredicate<DexMethod, List<Value>>> builder =
         ImmutableMap.<DexMethod, BiPredicate<DexMethod, List<Value>>>builder()
             .put(
+                dexItemFactory.byteMembers.byteValue,
+                (method, arguments) -> arguments.get(0).isNeverNull())
+            .put(
                 dexItemFactory.objectsMethods.toStringWithObject,
                 (method, arguments) ->
                     !JavaLangObjectsSideEffectCollection.toStringMayHaveSideEffects(
@@ -68,6 +71,7 @@ public class LibraryMethodSideEffectModelCollection {
     return ImmutableSet.<DexMethod>builder()
         .add(dexItemFactory.booleanMembers.toString)
         .add(dexItemFactory.byteMembers.toString)
+        .add(dexItemFactory.byteMembers.valueOf)
         .add(dexItemFactory.classMethods.desiredAssertionStatus)
         .add(dexItemFactory.charMembers.toString)
         .add(dexItemFactory.doubleMembers.toString)

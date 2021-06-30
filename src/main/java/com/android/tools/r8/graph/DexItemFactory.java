@@ -1008,8 +1008,12 @@ public class DexItemFactory {
 
   public class ByteMembers extends LibraryMembers {
 
+    public final DexMethod byteValue =
+        createMethod(boxedByteType, createProto(byteType), "byteValue");
     public final DexMethod toString =
         createMethod(boxedByteType, createProto(stringType), "toString");
+    public final DexMethod valueOf =
+        createMethod(boxedByteType, createProto(boxedByteType, byteType), "valueOf");
 
     private ByteMembers() {}
   }

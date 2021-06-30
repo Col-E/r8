@@ -41,6 +41,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
   public LibraryMemberOptimizer(AppView<?> appView) {
     this.appView = appView;
     register(new BooleanMethodOptimizer(appView));
+    register(new ByteMethodOptimizer(appView));
     register(new ObjectMethodOptimizer(appView));
     register(new ObjectsMethodOptimizer(appView));
     register(new StringBuilderMethodOptimizer(appView));
