@@ -119,9 +119,15 @@ public class DeadCodeRemover {
     InstructionListIterator iterator = block.listIterator(code, block.getInstructions().size());
     while (iterator.hasPrevious()) {
       Instruction current = iterator.previous();
-      // Remove unused invoke results.
-      if (current.isInvoke() && current.hasOutValue() && !current.outValue().isUsed()) {
-        current.setOutValue(null);
+      if (current.hasOutValue()) {
+        // Replace unnecessary cast values.
+        if (current.isCheckCast() && !current.asCheckCast().isRefiningStaticType()) {
+          current.outValue().replaceUsers(current.asCheckCast().object());
+        }
+        // Remove unused invoke results.
+        if (current.isInvoke() && !current.outValue().isUsed()) {
+          current.setOutValue(null);
+        }
       }
       DeadInstructionResult deadInstructionResult = current.canBeDeadCode(appView, code);
       if (deadInstructionResult.isNotDead()) {

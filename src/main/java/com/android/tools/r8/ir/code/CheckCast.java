@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -40,6 +41,20 @@ public class CheckCast extends Instruction {
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  public boolean isRefiningStaticType() {
+    TypeElement inType = object().getType();
+    if (inType.isNullType()) {
+      return false;
+    }
+    if (!inType.isClassType()) {
+      // Conservatively return true.
+      assert inType.isArrayType();
+      return true;
+    }
+    ClassTypeElement inClassType = inType.asClassType();
+    return type != inClassType.getClassType();
   }
 
   @Override
