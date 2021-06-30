@@ -109,7 +109,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     this.type = type;
     setStaticFields(staticFields);
     setInstanceFields(instanceFields);
-    this.methodCollection = new MethodCollection(this, directMethods, virtualMethods);
+    this.methodCollection = MethodCollection.create(this, directMethods, virtualMethods);
     this.nestHost = nestHost;
     this.nestMembers = nestMembers;
     assert nestMembers != null;

@@ -102,6 +102,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // This makes life easier when running R8 in a debugger.
   public static final boolean DETERMINISTIC_DEBUGGING = false;
 
+  // Use a MethodCollection where most interleavings between reading and mutating is caught.
+  public static final boolean USE_METHOD_COLLECTION_CONCURRENCY_CHECKED = false;
+
   public enum LineNumberOptimization {
     OFF,
     ON
