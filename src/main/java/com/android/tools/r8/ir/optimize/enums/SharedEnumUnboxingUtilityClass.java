@@ -36,9 +36,6 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.conversion.MethodProcessor;
-import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder.SyntheticCodeGenerator;
@@ -74,29 +71,28 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         appView, enumDataMap, enumsToUnbox, fieldAccessInfoCollectionModifierBuilder);
   }
 
-  public ProgramMethod ensureCheckNotZeroMethod(
-      AppView<AppInfoWithLiveness> appView,
-      IRConverter converter,
-      MethodProcessor methodProcessor) {
+  @Override
+  public void ensureMethods(AppView<AppInfoWithLiveness> appView) {
+    ensureCheckNotZeroMethod(appView);
+    ensureCheckNotZeroWithMessageMethod(appView);
+    ensureCompareToMethod(appView);
+    ensureEqualsMethod(appView);
+    ensureOrdinalMethod(appView);
+  }
+
+  public ProgramMethod ensureCheckNotZeroMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return internalEnsureMethod(
         appView,
-        converter,
-        methodProcessor,
         dexItemFactory.createString("checkNotZero"),
         dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.intType),
         method -> EnumUnboxingCfMethods.EnumUnboxingMethods_zeroCheck(appView.options(), method));
   }
 
-  public ProgramMethod ensureCheckNotZeroWithMessageMethod(
-      AppView<AppInfoWithLiveness> appView,
-      IRConverter converter,
-      MethodProcessor methodProcessor) {
+  public ProgramMethod ensureCheckNotZeroWithMessageMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return internalEnsureMethod(
         appView,
-        converter,
-        methodProcessor,
         dexItemFactory.createString("checkNotZero"),
         dexItemFactory.createProto(
             dexItemFactory.voidType, dexItemFactory.intType, dexItemFactory.stringType),
@@ -104,45 +100,30 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
             EnumUnboxingCfMethods.EnumUnboxingMethods_zeroCheckMessage(appView.options(), method));
   }
 
-  public ProgramMethod ensureCompareToMethod(
-      AppView<AppInfoWithLiveness> appView,
-      IRConverter converter,
-      MethodProcessor methodProcessor) {
+  public ProgramMethod ensureCompareToMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return internalEnsureMethod(
         appView,
-        converter,
-        methodProcessor,
         dexItemFactory.enumMembers.compareTo.getName(),
         dexItemFactory.createProto(
             dexItemFactory.intType, dexItemFactory.intType, dexItemFactory.intType),
         method -> EnumUnboxingCfMethods.EnumUnboxingMethods_compareTo(appView.options(), method));
   }
 
-  public ProgramMethod ensureEqualsMethod(
-      AppView<AppInfoWithLiveness> appView,
-      IRConverter converter,
-      MethodProcessor methodProcessor) {
+  public ProgramMethod ensureEqualsMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return internalEnsureMethod(
         appView,
-        converter,
-        methodProcessor,
         dexItemFactory.enumMembers.equals.getName(),
         dexItemFactory.createProto(
             dexItemFactory.booleanType, dexItemFactory.intType, dexItemFactory.intType),
         method -> EnumUnboxingCfMethods.EnumUnboxingMethods_equals(appView.options(), method));
   }
 
-  public ProgramMethod ensureOrdinalMethod(
-      AppView<AppInfoWithLiveness> appView,
-      IRConverter converter,
-      MethodProcessor methodProcessor) {
+  public ProgramMethod ensureOrdinalMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return internalEnsureMethod(
         appView,
-        converter,
-        methodProcessor,
         dexItemFactory.enumMembers.ordinalMethod.getName(),
         dexItemFactory.createProto(dexItemFactory.intType, dexItemFactory.intType),
         method -> EnumUnboxingCfMethods.EnumUnboxingMethods_ordinal(appView.options(), method));
@@ -150,8 +131,6 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
   private ProgramMethod internalEnsureMethod(
       AppView<AppInfoWithLiveness> appView,
-      IRConverter converter,
-      MethodProcessor methodProcessor,
       DexString methodName,
       DexProto methodProto,
       SyntheticCodeGenerator codeGenerator) {
@@ -172,13 +151,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
                 methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                     .setCode(codeGenerator)
-                    .setClassFileVersion(CfVersion.V1_6),
-            newMethod ->
-                converter.processDesugaredMethod(
-                    newMethod,
-                    OptimizationFeedbackSimple.getInstance(),
-                    methodProcessor,
-                    methodProcessor.createMethodProcessingContext(newMethod)));
+                    .setClassFileVersion(CfVersion.V1_6));
   }
 
   @Override
@@ -220,8 +193,10 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
     SharedEnumUnboxingUtilityClass build() {
       DexProgramClass clazz = createClass();
-      return new SharedEnumUnboxingUtilityClass(
-          clazz, synthesizingContext, new ProgramMethod(clazz, valuesMethod));
+      SharedEnumUnboxingUtilityClass sharedUtilityClass =
+          new SharedEnumUnboxingUtilityClass(
+              clazz, synthesizingContext, new ProgramMethod(clazz, valuesMethod));
+      return sharedUtilityClass;
     }
 
     private DexProgramClass createClass() {

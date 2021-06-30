@@ -18,10 +18,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
-import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.EnumUnboxingCfCodeProvider;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder.SyntheticCodeGenerator;
@@ -47,10 +44,22 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     return new Builder(appView, enumToUnbox, data);
   }
 
+  @Override
+  public void ensureMethods(AppView<AppInfoWithLiveness> appView) {
+    data.instanceFieldMap.forEach(
+        (field, fieldData) -> {
+          if (fieldData.isMapping()) {
+            ensureGetInstanceFieldMethod(appView, field);
+          }
+        });
+    if (data.instanceFieldMap.containsKey(appView.dexItemFactory().enumMembers.nameField)) {
+      ensureStringValueOfMethod(appView);
+      ensureValueOfMethod(appView);
+    }
+  }
+
   public ProgramMethod ensureGetInstanceFieldMethod(
       AppView<AppInfoWithLiveness> appView,
-      IRConverter converter,
-      MethodProcessor methodProcessor,
       DexField field) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     String fieldName = field.getName().toString();
@@ -66,8 +75,6 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     }
     return internalEnsureMethod(
         appView,
-        converter,
-        methodProcessor,
         methodName,
         dexItemFactory.createProto(field.getType(), dexItemFactory.intType),
         method ->
@@ -76,17 +83,12 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
                 .generateCfCode());
   }
 
-  public ProgramMethod ensureStringValueOfMethod(
-      AppView<AppInfoWithLiveness> appView,
-      IRConverter converter,
-      MethodProcessor methodProcessor) {
+  public ProgramMethod ensureStringValueOfMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     AbstractValue defaultValue =
         appView.abstractValueFactory().createSingleStringValue(dexItemFactory.createString("null"));
     return internalEnsureMethod(
         appView,
-        converter,
-        methodProcessor,
         dexItemFactory.createString("stringValueOf"),
         dexItemFactory.createProto(dexItemFactory.stringType, dexItemFactory.intType),
         method ->
@@ -95,15 +97,10 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
                 .generateCfCode());
   }
 
-  public ProgramMethod ensureValueOfMethod(
-      AppView<AppInfoWithLiveness> appView,
-      IRConverter converter,
-      MethodProcessor methodProcessor) {
+  public ProgramMethod ensureValueOfMethod(AppView<AppInfoWithLiveness> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return internalEnsureMethod(
         appView,
-        converter,
-        methodProcessor,
         dexItemFactory.createString("valueOf"),
         dexItemFactory.createProto(dexItemFactory.intType, dexItemFactory.stringType),
         method ->
@@ -118,8 +115,6 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
   private ProgramMethod internalEnsureMethod(
       AppView<AppInfoWithLiveness> appView,
-      IRConverter converter,
-      MethodProcessor methodProcessor,
       DexString methodName,
       DexProto methodProto,
       SyntheticCodeGenerator codeGenerator) {
@@ -136,13 +131,7 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
                 methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                     .setCode(codeGenerator)
-                    .setClassFileVersion(CfVersion.V1_6),
-            newMethod ->
-                converter.processDesugaredMethod(
-                    newMethod,
-                    OptimizationFeedbackSimple.getInstance(),
-                    methodProcessor,
-                    methodProcessor.createMethodProcessingContext(newMethod)));
+                    .setClassFileVersion(CfVersion.V1_6));
   }
 
   @Override

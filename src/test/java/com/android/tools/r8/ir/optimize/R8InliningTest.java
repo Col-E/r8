@@ -9,7 +9,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -17,12 +16,14 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
-import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -38,7 +39,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,6 +49,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class R8InliningTest extends TestBase {
 
   private static final String DEFAULT_DEX_FILENAME = "classes.dex";
+  private static final String DEFAULT_JAR_FILENAME = "out.jar";
   private static final String DEFAULT_MAP_FILENAME = "proguard.map";
   private static final String NAME = "inlining";
   private static final String KEEP_RULES_FILE = ToolHelper.EXAMPLES_DIR + NAME + "/keep-rules.txt";
@@ -77,18 +78,17 @@ public class R8InliningTest extends TestBase {
     return outputDir.resolve(DEFAULT_DEX_FILENAME);
   }
 
-  private List<Path> getGeneratedFiles(Path dir) throws IOException {
+  private Path getGeneratedFile(Path dir) {
     if (parameters.isDexRuntime()) {
-      return Collections.singletonList(dir.resolve(Paths.get(DEFAULT_DEX_FILENAME)));
+      return dir.resolve(DEFAULT_DEX_FILENAME);
+    } else {
+      assert parameters.isCfRuntime();
+      return dir.resolve(DEFAULT_JAR_FILENAME);
     }
-    assert parameters.isCfRuntime();
-    return Files.walk(dir)
-        .filter(f -> f.toString().endsWith(".class"))
-        .collect(Collectors.toList());
   }
 
-  private List<Path> getGeneratedFiles() throws IOException {
-    return getGeneratedFiles(outputDir);
+  private Path getGeneratedFile() {
+    return getGeneratedFile(outputDir);
   }
 
   private String getGeneratedProguardMap() {
@@ -109,38 +109,45 @@ public class R8InliningTest extends TestBase {
 
   private void generateR8Version(Path out, Path mapFile, boolean inlining) throws Exception {
     assert parameters.isDexRuntime() || parameters.isCfRuntime();
-    R8Command.Builder commandBuilder =
-        R8Command.builder()
-            .addProgramFiles(getInputFile())
-            .setOutput(out, outputMode(parameters.getBackend()))
-            .addProguardConfigurationFiles(Paths.get(KEEP_RULES_FILE))
-            .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
-            .setDisableMinification(true);
-    if (mapFile != null) {
-      commandBuilder.setProguardMapOutputPath(mapFile);
-    }
-    if (parameters.isDexRuntime()) {
-      commandBuilder.setMinApiLevel(parameters.getApiLevel().getLevel());
-    }
-    if (allowAccessModification) {
-      commandBuilder.addProguardConfiguration(
-          ImmutableList.of("-allowaccessmodification"), Origin.unknown());
-    }
-    ToolHelper.allowTestProguardOptions(commandBuilder);
-    ToolHelper.runR8(
-        commandBuilder.build(),
-        o -> {
-          // Disable class inlining to prevent that the instantiation of Nullability is removed, and
-          // that the class is therefore made abstract.
-          o.enableClassInlining = false;
-          o.enableInlining = inlining;
-          o.enableInliningOfInvokesWithNullableReceivers = false;
-          o.inliningInstructionLimit = 6;
-          // Tests depend on nullability of receiver and argument in general. Learning very accurate
-          // nullability from actual usage in tests bothers what we want to test.
-          o.callSiteOptimizationOptions().disableTypePropagationForTesting();
-          o.testing.horizontallyMergedClassesConsumer = this::fixInliningNullabilityClass;
-        });
+    testForR8(parameters.getBackend())
+        .addProgramFiles(getInputFile())
+        .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
+        .addKeepRuleFiles(Paths.get(KEEP_RULES_FILE))
+        .addOptionsModification(
+            o -> {
+              // Disable class inlining to prevent that the instantiation of Nullability is removed,
+              // and
+              // that the class is therefore made abstract.
+              o.enableClassInlining = false;
+              o.enableInlining = inlining;
+              o.enableInliningOfInvokesWithNullableReceivers = false;
+              o.inliningInstructionLimit = 6;
+              // Tests depend on nullability of receiver and argument in general. Learning very
+              // accurate
+              // nullability from actual usage in tests bothers what we want to test.
+              o.callSiteOptimizationOptions().disableTypePropagationForTesting();
+              o.testing.horizontallyMergedClassesConsumer = this::fixInliningNullabilityClass;
+              o.testing.horizontalClassMergingTarget =
+                  (appView, candidates, target) -> {
+                    for (DexProgramClass candidate : candidates) {
+                      if (SyntheticItemsTestUtils.isEnumUnboxingSharedUtilityClass(
+                          candidate.getClassReference())) {
+                        return candidate;
+                      }
+                    }
+                    return target;
+                  };
+            })
+        .allowAccessModification(allowAccessModification)
+        .enableProguardTestOptions()
+        .noMinification()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .applyIf(
+            parameters.isCfRuntime(),
+            result -> result.writeToZip(out.resolve(DEFAULT_JAR_FILENAME)),
+            result -> result.writeSingleDexOutputToFile(out.resolve(DEFAULT_DEX_FILENAME)))
+        .applyIf(mapFile != null, result -> result.writeProguardMap(mapFile));
   }
 
   @Before
@@ -162,7 +169,7 @@ public class R8InliningTest extends TestBase {
           ToolHelper.runJava(
                   parameters.getRuntime().asCf(),
                   Collections.singletonList("-noverify"),
-                  Collections.singletonList(outputDir),
+                  Collections.singletonList(outputDir.resolve(DEFAULT_JAR_FILENAME)),
                   "inlining.Inlining")
               .stdout;
     }
@@ -198,7 +205,7 @@ public class R8InliningTest extends TestBase {
   @Test
   public void checkNoInvokes() throws Throwable {
     CodeInspector inspector =
-        new CodeInspector(getGeneratedFiles(), getGeneratedProguardMap(), null);
+        new CodeInspector(ImmutableList.of(getGeneratedFile()), getGeneratedProguardMap(), null);
     ClassSubject clazz = inspector.clazz("inlining.Inlining");
 
     // Simple constant inlining.
@@ -221,13 +228,9 @@ public class R8InliningTest extends TestBase {
   }
 
   private long sumOfClassFileSizes(Path dir) throws IOException {
-    long size = 0;
-    for (Path p : getGeneratedFiles(dir)) {
-      if (ZipUtils.isClassFile(p.toString())) {
-        size += p.toFile().length();
-      }
-    }
-    return size;
+    IntBox size = new IntBox();
+    ZipUtils.iter(getGeneratedFile(dir), (a, b) -> size.increment((int) a.getSize()));
+    return size.get();
   }
 
   @Test
@@ -240,11 +243,6 @@ public class R8InliningTest extends TestBase {
       Path nonInlinedDexFile = nonInlinedOutputDir.resolve(DEFAULT_DEX_FILENAME);
       nonInlinedSize = Files.size(nonInlinedDexFile);
       inlinedSize = Files.size(getGeneratedDexFile());
-      final boolean ALWAYS_DUMP = false; // Used for debugging.
-      if (ALWAYS_DUMP || inlinedSize > nonInlinedSize) {
-        dump(nonInlinedDexFile, "No inlining");
-        dump(getGeneratedDexFile(), "Inlining enabled");
-      }
     } else {
       assert parameters.isCfRuntime();
       nonInlinedSize = sumOfClassFileSizes(nonInlinedOutputDir);
@@ -315,7 +313,7 @@ public class R8InliningTest extends TestBase {
   @Test
   public void invokeOnNullableReceiver() throws Exception {
     CodeInspector inspector =
-        new CodeInspector(getGeneratedFiles(), getGeneratedProguardMap(), null);
+        new CodeInspector(ImmutableList.of(getGeneratedFile()), getGeneratedProguardMap(), null);
 
     // These constants describe the expected number of invoke instructions calling a possibly
     // inlined method.
@@ -352,7 +350,7 @@ public class R8InliningTest extends TestBase {
   @Test
   public void invokeOnNonNullReceiver() throws Exception {
     CodeInspector inspector =
-        new CodeInspector(getGeneratedFiles(), getGeneratedProguardMap(), null);
+        new CodeInspector(ImmutableList.of(getGeneratedFile()), getGeneratedProguardMap(), null);
     ClassSubject clazz = inspector.clazz(nullabilityClass);
     assertThat(clazz.uniqueMethodWithName("conditionalOperator"), isAbsent());
 
@@ -368,11 +366,17 @@ public class R8InliningTest extends TestBase {
       InstructionSubject instruction = iterator.next();
       if (instruction.isInstanceGet()) {
         ++instanceGetCount;
-      } else if (instruction.isInvoke()) {
+      } else if (instruction.isInvoke() && !isEnumInvoke(instruction)) {
         ++invokeCount;
       }
     }
     assertEquals(1, instanceGetCount);
     assertEquals(0, invokeCount);
+  }
+
+  // TODO(b/192426913): This is only required due to inadequate inlining.
+  private boolean isEnumInvoke(InstructionSubject instruction) {
+    return SyntheticItemsTestUtils.isEnumUnboxingSharedUtilityClass(
+        instruction.getMethod().getHolderType().asClassReference());
   }
 }

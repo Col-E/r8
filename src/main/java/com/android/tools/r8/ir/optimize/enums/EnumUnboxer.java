@@ -528,7 +528,10 @@ public class EnumUnboxer {
                 fieldAccessInfoCollectionModifierBuilder)
             .build();
     utilityClasses.forEach(
-        utilityClass -> utilityClass.getDefinition().forEachProgramMethod(postBuilder::add));
+        utilityClass -> {
+          utilityClass.ensureMethods(appView);
+          utilityClass.getDefinition().forEachProgramMethod(postBuilder::add);
+        });
 
     fieldAccessInfoCollectionModifierBuilder.build().modify(appView);
     EnumUnboxingTreeFixer.Result treeFixerResult =

@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class EnumUnboxingUtilityClass {
 
@@ -13,6 +15,8 @@ public abstract class EnumUnboxingUtilityClass {
   EnumUnboxingUtilityClass(DexProgramClass synthesizingContext) {
     this.synthesizingContext = synthesizingContext;
   }
+
+  public abstract void ensureMethods(AppView<AppInfoWithLiveness> appView);
 
   public abstract DexProgramClass getDefinition();
 
