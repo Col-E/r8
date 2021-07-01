@@ -91,6 +91,7 @@ public class RootSetUtils {
     private final Iterable<? extends ProguardConfigurationRule> rules;
     private final MutableItemsWithRules noShrinking = new MutableItemsWithRules();
     private final MutableItemsWithRules softPinned = new MutableItemsWithRules();
+    private final Set<DexReference> noAnnotationRemoval = Sets.newIdentityHashSet();
     private final Set<DexReference> noObfuscation = Sets.newIdentityHashSet();
     private final LinkedHashMap<DexReference, DexReference> reasonAsked = new LinkedHashMap<>();
     private final LinkedHashMap<DexReference, DexReference> checkDiscarded = new LinkedHashMap<>();
@@ -346,10 +347,12 @@ public class RootSetUtils {
       assert Sets.intersection(neverInline, alwaysInline).isEmpty()
               && Sets.intersection(neverInline, forceInline).isEmpty()
           : "A method cannot be marked as both -neverinline and -forceinline/-alwaysinline.";
+      assert appView.options().isAnnotationRemovalEnabled() || noAnnotationRemoval.isEmpty();
       assert appView.options().isMinificationEnabled() || noObfuscation.isEmpty();
       return new RootSet(
           noShrinking,
           softPinned,
+          noAnnotationRemoval,
           noObfuscation,
           ImmutableList.copyOf(reasonAsked.values()),
           ImmutableList.copyOf(checkDiscarded.values()),
@@ -447,6 +450,7 @@ public class RootSetUtils {
           neverClassInline,
           noShrinking,
           softPinned,
+          noAnnotationRemoval,
           noObfuscation,
           dependentNoShrinking,
           dependentSoftPinned,
@@ -1188,6 +1192,10 @@ public class RootSetUtils {
           context.markAsUsed();
         }
 
+        if (appView.options().isAnnotationRemovalEnabled() && !modifiers.allowsAnnotationRemoval) {
+          noAnnotationRemoval.add(item.getReference());
+          context.markAsUsed();
+        }
         if (appView.options().isMinificationEnabled() && !modifiers.allowsObfuscation) {
           noObfuscation.add(item.getReference());
           context.markAsUsed();
@@ -1410,6 +1418,7 @@ public class RootSetUtils {
     final Set<DexType> neverClassInline;
     final MutableItemsWithRules noShrinking;
     final MutableItemsWithRules softPinned;
+    final Set<DexReference> noAnnotationRemoval;
     final Set<DexReference> noObfuscation;
     final Map<DexReference, MutableItemsWithRules> dependentNoShrinking;
     final Map<DexReference, MutableItemsWithRules> dependentSoftPinned;
@@ -1422,6 +1431,7 @@ public class RootSetUtils {
         Set<DexType> neverClassInline,
         MutableItemsWithRules noShrinking,
         MutableItemsWithRules softPinned,
+        Set<DexReference> noAnnotationRemoval,
         Set<DexReference> noObfuscation,
         Map<DexReference, MutableItemsWithRules> dependentNoShrinking,
         Map<DexReference, MutableItemsWithRules> dependentSoftPinned,
@@ -1432,6 +1442,7 @@ public class RootSetUtils {
       this.neverClassInline = neverClassInline;
       this.noShrinking = noShrinking;
       this.softPinned = softPinned;
+      this.noAnnotationRemoval = noAnnotationRemoval;
       this.noObfuscation = noObfuscation;
       this.dependentNoShrinking = dependentNoShrinking;
       this.dependentSoftPinned = dependentSoftPinned;
@@ -1835,6 +1846,7 @@ public class RootSetUtils {
     private RootSet(
         MutableItemsWithRules noShrinking,
         MutableItemsWithRules softPinned,
+        Set<DexReference> noAnnotationRemoval,
         Set<DexReference> noObfuscation,
         ImmutableList<DexReference> reasonAsked,
         ImmutableList<DexReference> checkDiscarded,
@@ -1869,6 +1881,7 @@ public class RootSetUtils {
           neverClassInline,
           noShrinking,
           softPinned,
+          noAnnotationRemoval,
           noObfuscation,
           dependentNoShrinking,
           dependentSoftPinned,
@@ -1916,6 +1929,7 @@ public class RootSetUtils {
       neverInline.addAll(consequentRootSet.neverInline);
       neverInlineDueToSingleCaller.addAll(consequentRootSet.neverInlineDueToSingleCaller);
       neverClassInline.addAll(consequentRootSet.neverClassInline);
+      noAnnotationRemoval.addAll(consequentRootSet.noAnnotationRemoval);
       noObfuscation.addAll(consequentRootSet.noObfuscation);
       if (addNoShrinking) {
         noShrinking.addAll(consequentRootSet.noShrinking);
@@ -1945,6 +1959,9 @@ public class RootSetUtils {
       if (noShrinking.containsReference(original)) {
         noShrinking.putReferenceWithRules(rewritten, noShrinking.getRulesForReference(original));
       }
+      if (noAnnotationRemoval.contains(original)) {
+        noAnnotationRemoval.add(rewritten);
+      }
       if (noObfuscation.contains(original)) {
         noObfuscation.add(rewritten);
       }
@@ -1962,6 +1979,7 @@ public class RootSetUtils {
 
     public void prune(DexReference reference) {
       noShrinking.removeReference(reference);
+      noAnnotationRemoval.remove(reference);
       noObfuscation.remove(reference);
       noSideEffects.remove(reference);
       assumedValues.remove(reference);
@@ -2154,6 +2172,7 @@ public class RootSetUtils {
       StringBuilder builder = new StringBuilder();
       builder.append("RootSet");
       builder.append("\nnoShrinking: " + noShrinking.size());
+      builder.append("\nnoAnnotationRemoval: " + noAnnotationRemoval.size());
       builder.append("\nnoObfuscation: " + noObfuscation.size());
       builder.append("\nreasonAsked: " + reasonAsked.size());
       builder.append("\ncheckDiscarded: " + checkDiscarded.size());
@@ -2210,6 +2229,7 @@ public class RootSetUtils {
         Set<DexType> neverClassInline,
         MutableItemsWithRules noShrinking,
         MutableItemsWithRules softPinned,
+        Set<DexReference> noAnnotationRemoval,
         Set<DexReference> noObfuscation,
         Map<DexReference, MutableItemsWithRules> dependentNoShrinking,
         Map<DexReference, MutableItemsWithRules> dependentSoftPinned,
@@ -2221,6 +2241,7 @@ public class RootSetUtils {
           neverClassInline,
           noShrinking,
           softPinned,
+          noAnnotationRemoval,
           noObfuscation,
           dependentNoShrinking,
           dependentSoftPinned,
@@ -2276,6 +2297,7 @@ public class RootSetUtils {
       super(
           noShrinking,
           new MutableItemsWithRules(),
+          Collections.emptySet(),
           Collections.emptySet(),
           reasonAsked,
           checkDiscarded,

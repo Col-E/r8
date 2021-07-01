@@ -265,15 +265,17 @@ public class AnnotationRemover {
   private void removeAnnotations(ProgramDefinition definition, KeepInfo<?, ?> keepInfo) {
     boolean isAnnotation =
         definition.isProgramClass() && definition.asProgramClass().isAnnotation();
-    if ((options.isForceProguardCompatibilityEnabled() || keepInfo.isPinned())) {
-      definition.rewriteAllAnnotations(
-          (annotation, kind) -> rewriteAnnotation(definition, annotation, kind));
-    } else if (!isAnnotation) {
-      definition.clearAllAnnotations();
+    if (keepInfo.isAnnotationRemovalAllowed(options)) {
+      if (isAnnotation) {
+        definition.rewriteAllAnnotations(
+            (annotation, isParameterAnnotation) ->
+                shouldRetainAnnotationOnAnnotationClass(annotation) ? annotation : null);
+      } else {
+        definition.clearAllAnnotations();
+      }
     } else {
       definition.rewriteAllAnnotations(
-          (annotation, isParameterAnnotation) ->
-              shouldRetainAnnotationOnAnnotationClass(annotation) ? annotation : null);
+          (annotation, kind) -> rewriteAnnotation(definition, annotation, kind));
     }
   }
 

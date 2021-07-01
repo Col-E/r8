@@ -64,8 +64,6 @@ public class KeepClassMethodsAllowShrinkingCompatibilityTest extends TestBase {
     if (shrinker.isR8()) {
       run(
           testForR8(parameters.getBackend())
-              // Allowing all of shrinking, optimization and obfuscation will amount to a nop rule.
-              .allowUnusedProguardConfigurationRules(allowOptimization && allowObfuscation)
               .enableNoHorizontalClassMergingAnnotations());
     } else {
       run(

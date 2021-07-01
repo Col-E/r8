@@ -11,32 +11,55 @@ import com.android.tools.r8.shaking.KeepInfo.Builder;
 public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>> {
 
   private final boolean pinned;
-  private final boolean allowMinification;
   private final boolean allowAccessModification;
+  private final boolean allowAnnotationRemoval;
+  private final boolean allowMinification;
   private final boolean requireAccessModificationForRepackaging;
 
   private KeepInfo(
       boolean pinned,
-      boolean allowMinification,
       boolean allowAccessModification,
+      boolean allowAnnotationRemoval,
+      boolean allowMinification,
       boolean requireAccessModificationForRepackaging) {
     this.pinned = pinned;
-    this.allowMinification = allowMinification;
     this.allowAccessModification = allowAccessModification;
+    this.allowAnnotationRemoval = allowAnnotationRemoval;
+    this.allowMinification = allowMinification;
     this.requireAccessModificationForRepackaging = requireAccessModificationForRepackaging;
   }
 
   KeepInfo(B builder) {
     this(
         builder.isPinned(),
-        builder.isMinificationAllowed(),
         builder.isAccessModificationAllowed(),
+        builder.isAnnotationRemovalAllowed(),
+        builder.isMinificationAllowed(),
         builder.isAccessModificationRequiredForRepackaging());
   }
 
   abstract B builder();
 
-  /** True if an item must be present in the output. */
+  /**
+   * True if an item may have all of its annotations removed.
+   *
+   * <p>If this returns false, some annotations may still be removed if the configuration does not
+   * keep all annotation attributes.
+   */
+  public boolean isAnnotationRemovalAllowed(GlobalKeepInfoConfiguration configuration) {
+    return configuration.isAnnotationRemovalEnabled() && internalIsAnnotationRemovalAllowed();
+  }
+
+  boolean internalIsAnnotationRemovalAllowed() {
+    return allowAnnotationRemoval;
+  }
+
+  /**
+   * True if an item must be present in the output.
+   *
+   * @deprecated Prefer task dependent predicates.
+   */
+  @Deprecated
   public boolean isPinned() {
     return pinned;
   }
@@ -151,8 +174,9 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     private K original;
     private boolean pinned;
-    private boolean allowMinification;
     private boolean allowAccessModification;
+    private boolean allowAnnotationRemoval;
+    private boolean allowMinification;
     private boolean requireAccessModificationForRepackaging;
 
     Builder() {
@@ -162,25 +186,28 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     Builder(K original) {
       this.original = original;
       pinned = original.isPinned();
-      allowMinification = original.internalIsMinificationAllowed();
       allowAccessModification = original.internalIsAccessModificationAllowed();
+      allowAnnotationRemoval = original.internalIsAnnotationRemovalAllowed();
+      allowMinification = original.internalIsMinificationAllowed();
       requireAccessModificationForRepackaging =
           original.internalIsAccessModificationRequiredForRepackaging();
     }
 
     B makeTop() {
       pin();
+      disallowAccessModification();
+      disallowAnnotationRemoval();
       disallowMinification();
       requireAccessModificationForRepackaging();
-      disallowAccessModification();
       return self();
     }
 
     B makeBottom() {
       unpin();
+      allowAccessModification();
+      allowAnnotationRemoval();
       allowMinification();
       unsetRequireAccessModificationForRepackaging();
-      allowAccessModification();
       return self();
     }
 
@@ -201,19 +228,16 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     private boolean internalIsEqualTo(K other) {
       return isPinned() == other.isPinned()
+          && isAccessModificationAllowed() == other.internalIsAccessModificationAllowed()
+          && isAnnotationRemovalAllowed() == other.internalIsAnnotationRemovalAllowed()
           && isMinificationAllowed() == other.internalIsMinificationAllowed()
           && isAccessModificationRequiredForRepackaging()
               == other.internalIsAccessModificationRequiredForRepackaging()
-          && isAccessModificationAllowed() == other.internalIsAccessModificationAllowed()
           && isEqualTo(other);
     }
 
     public boolean isPinned() {
       return pinned;
-    }
-
-    public boolean isMinificationAllowed() {
-      return allowMinification;
     }
 
     public boolean isAccessModificationRequiredForRepackaging() {
@@ -222,6 +246,14 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     public boolean isAccessModificationAllowed() {
       return allowAccessModification;
+    }
+
+    public boolean isAnnotationRemovalAllowed() {
+      return allowAnnotationRemoval;
+    }
+
+    public boolean isMinificationAllowed() {
+      return allowMinification;
     }
 
     public B setPinned(boolean pinned) {
@@ -276,6 +308,19 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     public B disallowAccessModification() {
       return setAllowAccessModification(false);
     }
+
+    public B setAllowAnnotationRemoval(boolean allowAnnotationRemoval) {
+      this.allowAnnotationRemoval = allowAnnotationRemoval;
+      return self();
+    }
+
+    public B allowAnnotationRemoval() {
+      return setAllowAnnotationRemoval(true);
+    }
+
+    public B disallowAnnotationRemoval() {
+      return setAllowAnnotationRemoval(false);
+    }
   }
 
   /** Joiner to construct monotonically increasing keep info object. */
@@ -304,13 +349,18 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return self();
     }
 
-    public J disallowMinification() {
-      builder.disallowMinification();
+    public J disallowAccessModification() {
+      builder.disallowAccessModification();
       return self();
     }
 
-    public J disallowAccessModification() {
-      builder.disallowAccessModification();
+    public J disallowAnnotationRemoval() {
+      builder.disallowAnnotationRemoval();
+      return self();
+    }
+
+    public J disallowMinification() {
+      builder.disallowMinification();
       return self();
     }
 

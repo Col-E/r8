@@ -63,10 +63,7 @@ public class KeepClassFieldsAllowShrinkingCompatibilityTest extends TestBase {
   @Test
   public void test() throws Exception {
     if (shrinker.isR8()) {
-      run(
-          testForR8(parameters.getBackend())
-              // Allowing all of shrinking, optimization and obfuscation will amount to a nop rule.
-              .allowUnusedProguardConfigurationRules(allowOptimization && allowObfuscation));
+      run(testForR8(parameters.getBackend()));
     } else {
       run(testForProguard(shrinker.getProguardVersion()).addDontWarn(getClass()));
     }

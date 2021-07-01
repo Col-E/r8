@@ -388,6 +388,12 @@ public class ProguardConfiguration {
                   // TODO(b/189807246): This should be removed.
                   modifiers.setAllowsOptimization(true);
                   modifiers.setAllowsObfuscation(isObfuscating());
+
+                  // In non-compatibility mode, adding -dontoptimize does not cause all annotations
+                  // to be retained.
+                  if (!forceProguardCompatibility && isShrinking()) {
+                    modifiers.setAllowsAnnotationRemoval(true);
+                  }
                 });
         addRule(rule);
         this.keepAllRule = rule;

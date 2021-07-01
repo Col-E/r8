@@ -7,6 +7,7 @@ public class ProguardKeepRuleModifiers {
   public static class Builder {
 
     private boolean allowsAccessModification = false;
+    private boolean allowsAnnotationRemoval = false;
     private boolean allowsShrinking = false;
     private boolean allowsOptimization = false;
     private boolean allowsObfuscation = false;
@@ -16,6 +17,11 @@ public class ProguardKeepRuleModifiers {
 
     public Builder setAllowsAccessModification(boolean allowsAccessModification) {
       this.allowsAccessModification = allowsAccessModification;
+      return this;
+    }
+
+    public Builder setAllowsAnnotationRemoval(boolean allowsAnnotationRemoval) {
+      this.allowsAnnotationRemoval = allowsAnnotationRemoval;
       return this;
     }
 
@@ -39,6 +45,7 @@ public class ProguardKeepRuleModifiers {
     ProguardKeepRuleModifiers build() {
       return new ProguardKeepRuleModifiers(
           allowsAccessModification,
+          allowsAnnotationRemoval,
           allowsShrinking,
           allowsOptimization,
           allowsObfuscation,
@@ -47,6 +54,7 @@ public class ProguardKeepRuleModifiers {
   }
 
   public final boolean allowsAccessModification;
+  public final boolean allowsAnnotationRemoval;
   public final boolean allowsShrinking;
   public final boolean allowsOptimization;
   public final boolean allowsObfuscation;
@@ -54,11 +62,13 @@ public class ProguardKeepRuleModifiers {
 
   private ProguardKeepRuleModifiers(
       boolean allowsAccessModification,
+      boolean allowsAnnotationRemoval,
       boolean allowsShrinking,
       boolean allowsOptimization,
       boolean allowsObfuscation,
       boolean includeDescriptorClasses) {
     this.allowsAccessModification = allowsAccessModification;
+    this.allowsAnnotationRemoval = allowsAnnotationRemoval;
     this.allowsShrinking = allowsShrinking;
     this.allowsOptimization = allowsOptimization;
     this.allowsObfuscation = allowsObfuscation;
@@ -79,6 +89,7 @@ public class ProguardKeepRuleModifiers {
     }
     ProguardKeepRuleModifiers that = (ProguardKeepRuleModifiers) o;
     return allowsAccessModification == that.allowsAccessModification
+        && allowsAnnotationRemoval == that.allowsAnnotationRemoval
         && allowsShrinking == that.allowsShrinking
         && allowsOptimization == that.allowsOptimization
         && allowsObfuscation == that.allowsObfuscation
@@ -88,16 +99,18 @@ public class ProguardKeepRuleModifiers {
   @Override
   public int hashCode() {
     return (allowsAccessModification ? 1 : 0)
-        | (allowsShrinking ? 2 : 0)
-        | (allowsOptimization ? 4 : 0)
-        | (allowsObfuscation ? 8 : 0)
-        | (includeDescriptorClasses ? 16 : 0);
+        | (allowsAnnotationRemoval ? 2 : 0)
+        | (allowsShrinking ? 4 : 0)
+        | (allowsOptimization ? 8 : 0)
+        | (allowsObfuscation ? 16 : 0)
+        | (includeDescriptorClasses ? 32 : 0);
   }
 
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
     appendWithComma(builder, allowsAccessModification, "allowaccessmodification");
+    appendWithComma(builder, allowsAnnotationRemoval, "allowannotationremoval");
     appendWithComma(builder, allowsObfuscation, "allowobfuscation");
     appendWithComma(builder, allowsShrinking, "allowshrinking");
     appendWithComma(builder, allowsOptimization, "allowoptimization");

@@ -5,8 +5,15 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.AccessFlags;
+import java.lang.annotation.Annotation;
 
 public abstract class ClassOrMemberSubject extends Subject {
+
+  public abstract AnnotationSubject annotation(String name);
+
+  public final AnnotationSubject annotation(Class<? extends Annotation> clazz) {
+    return annotation(clazz.getTypeName());
+  }
 
   public abstract AccessFlags<?> getAccessFlags();
 

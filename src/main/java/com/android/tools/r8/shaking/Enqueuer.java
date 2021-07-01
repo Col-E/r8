@@ -3036,7 +3036,12 @@ public class Enqueuer {
       // This is simulating the effect of the "root set" applied rules.
       // This is done only in the initial pass, in subsequent passes the "rules" are reapplied
       // by iterating the instances.
+      assert appView.options().isAnnotationRemovalEnabled()
+          || rootSet.noAnnotationRemoval.isEmpty();
       assert appView.options().isMinificationEnabled() || rootSet.noObfuscation.isEmpty();
+      for (DexReference reference : rootSet.noAnnotationRemoval) {
+        keepInfo.evaluateRule(reference, appInfo, Joiner::disallowAnnotationRemoval);
+      }
       for (DexReference reference : rootSet.noObfuscation) {
         keepInfo.evaluateRule(reference, appInfo, Joiner::disallowMinification);
       }
@@ -3114,11 +3119,14 @@ public class Enqueuer {
           joiner.requireAccessModificationForRepackaging();
         }
       }
-      if (!modifiers.allowsObfuscation) {
-        joiner.disallowMinification();
-      }
       if (!modifiers.allowsAccessModification) {
         joiner.disallowAccessModification();
+      }
+      if (!modifiers.allowsAnnotationRemoval) {
+        joiner.disallowAnnotationRemoval();
+      }
+      if (!modifiers.allowsObfuscation) {
+        joiner.disallowMinification();
       }
     }
   }
@@ -3733,6 +3741,9 @@ public class Enqueuer {
     // TODO(b/132600955): This modifies the root set. Should the consequent be persistent?
     rootSet.addConsequentRootSet(consequentRootSet, addNoShrinking);
     if (mode.isInitialTreeShaking()) {
+      for (DexReference reference : consequentRootSet.noAnnotationRemoval) {
+        keepInfo.evaluateRule(reference, appView, Joiner::disallowAnnotationRemoval);
+      }
       for (DexReference reference : consequentRootSet.noObfuscation) {
         keepInfo.evaluateRule(reference, appView, Joiner::disallowMinification);
       }

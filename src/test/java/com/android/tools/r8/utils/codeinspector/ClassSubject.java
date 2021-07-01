@@ -191,8 +191,6 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract DexProgramClass getDexProgramClass();
 
-  public abstract AnnotationSubject annotation(String name);
-
   @Override
   public abstract String getOriginalName();
 

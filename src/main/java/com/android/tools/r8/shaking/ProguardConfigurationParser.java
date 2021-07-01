@@ -1024,6 +1024,10 @@ public class ProguardConfigurationParser {
             builder.getModifiersBuilder().setAllowsObfuscation(true);
           } else if (acceptString("accessmodification")) {
             builder.getModifiersBuilder().setAllowsAccessModification(true);
+          } else if (allowTestOptions) {
+            if (acceptString("annotationremoval")) {
+              builder.getModifiersBuilder().setAllowsAnnotationRemoval(true);
+            }
           }
         } else if (acceptString("includedescriptorclasses")) {
           builder.getModifiersBuilder().setIncludeDescriptorClasses(true);

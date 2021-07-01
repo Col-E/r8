@@ -38,8 +38,6 @@ public abstract class MemberSubject extends ClassOrMemberSubject {
 
   public abstract String getFinalSignatureAttribute();
 
-  public abstract AnnotationSubject annotation(String name);
-
   public FieldSubject asFieldSubject() {
     return null;
   }

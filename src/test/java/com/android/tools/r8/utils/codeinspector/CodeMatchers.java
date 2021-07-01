@@ -44,6 +44,27 @@ public class CodeMatchers {
     };
   }
 
+  public static Matcher<MethodSubject> containsThrow() {
+    return new TypeSafeMatcher<MethodSubject>() {
+      @Override
+      protected boolean matchesSafely(MethodSubject subject) {
+        return subject.isPresent()
+            && subject.getMethod().hasCode()
+            && subject.streamInstructions().anyMatch(InstructionSubject::isThrow);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("contains throw");
+      }
+
+      @Override
+      public void describeMismatchSafely(final MethodSubject subject, Description description) {
+        description.appendText("method did not");
+      }
+    };
+  }
+
   public static Matcher<MethodSubject> instantiatesClass(Class<?> clazz) {
     return instantiatesClass(clazz.getTypeName());
   }

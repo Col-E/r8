@@ -587,6 +587,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   @Override
+  public boolean isAnnotationRemovalEnabled() {
+    return !isForceProguardCompatibilityEnabled();
+  }
+
+  @Override
   public boolean isTreeShakingEnabled() {
     return isShrinking();
   }

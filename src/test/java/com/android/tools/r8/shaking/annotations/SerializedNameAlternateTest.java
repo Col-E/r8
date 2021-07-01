@@ -66,7 +66,7 @@ public class SerializedNameAlternateTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public SerializedNameAlternateTest(TestParameters parameters) {
@@ -83,7 +83,14 @@ public class SerializedNameAlternateTest extends TestBase {
             .addKeepMainRule(Main.class)
             .addKeepClassRules(Foo.class)
             .addKeepClassRules(SerializedName.class)
-            .setMinApi(parameters.getRuntime())
+            .addKeepRules(
+                // Non-compat mode only retains annotations for items matched by a -keep rule.
+                "-keepclassmembers,allowobfuscation,allowshrinking class "
+                    + Foo.class.getTypeName()
+                    + " {",
+                "  @" + SerializedName.class.getTypeName() + " <fields>;",
+                "}")
+            .setMinApi(parameters.getApiLevel())
             .noMinification()
             .run(parameters.getRuntime(), Main.class);
     checkRunResult(result);
