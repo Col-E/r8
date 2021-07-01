@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -127,10 +128,20 @@ public class DesugaredLibraryAPIConverter {
           continue;
         }
         InvokeMethod invokeMethod = instruction.asInvokeMethod();
-        DexMethod invokedMethod = invokeMethod.getInvokedMethod();
+        DexMethod invokedMethod;
+        if (invokeMethod.isInvokeSuper()) {
+          DexClassAndMethod result =
+              appView
+                  .appInfoForDesugaring()
+                  .lookupSuperTarget(invokeMethod.getInvokedMethod(), code.context());
+          invokedMethod = result != null ? result.getReference() : null;
+        } else {
+          // TODO(b/192439456): Make a test to prove resolution is needed here and fix it.
+          invokedMethod = invokeMethod.getInvokedMethod();
+        }
         // Library methods do not understand desugared types, hence desugared types have to be
         // converted around non desugared library calls for the invoke to resolve.
-        if (shouldRewriteInvoke(invokedMethod)) {
+        if (invokedMethod != null && shouldRewriteInvoke(invokedMethod)) {
           rewriteLibraryInvoke(code, invokeMethod, iterator, blockIterator);
         }
       }

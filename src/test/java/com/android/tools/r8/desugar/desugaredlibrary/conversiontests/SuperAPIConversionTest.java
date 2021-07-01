@@ -118,9 +118,29 @@ public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
             shrinkDesugaredLibrary)
         .addRunClasspathFiles(CUSTOM_LIB)
         .run(parameters.getRuntime(), ExecutorB192351030.class)
-        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
-    // TODO(b/192351030): Should succeed.
-    // .assertSuccessWithOutputLines("Hello, ", "world!");
+        .assertSuccessWithOutputLines("Hello, ", "world!", "C");
+  }
+
+  @Test
+  public void testAPIConversionDesugaringR8B192351030() throws Exception {
+    Assume.assumeFalse("TODO(b/189435770): fix", shrinkDesugaredLibrary);
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForR8(parameters.getBackend())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryClasses(CustomLibClass.class)
+        .addProgramClasses(ExecutorB192351030.class, A.class, B.class, C.class)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(ExecutorB192351030.class)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), ExecutorB192351030.class)
+        .assertSuccessWithOutputLines("Hello, ", "world!", "C");
   }
 
   static class ParallelRandom extends Random {
@@ -140,10 +160,6 @@ public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
   }
 
   static class A extends CustomLibClass {
-    // TODO(b/192351030): If this bridge is added the code runs as expected.
-    // public void m(Consumer<String> consumer) {
-    //   super.m(consumer);
-    // }
   }
 
   static class B extends A {}
@@ -152,12 +168,17 @@ public class SuperAPIConversionTest extends DesugaredLibraryTestBase {
     void test(Consumer<String> consumer) {
       super.m(consumer);
     }
+
+    public void m(Consumer<String> consumer) {
+      consumer.accept("C");
+    }
   }
 
   static class ExecutorB192351030 {
 
     public static void main(String[] args) {
       new C().test(System.out::println);
+      new C().m(System.out::println);
     }
   }
 

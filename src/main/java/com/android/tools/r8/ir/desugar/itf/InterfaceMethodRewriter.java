@@ -467,6 +467,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
             eventConsumer.acceptInvokeStaticInterfaceOutliningMethod(
                 staticOutliningMethod, context);
           };
+      // TODO(b/192439456): Make a test to prove resolution is needed here and fix it.
       return rewriteInvokeStatic(
           invoke.getMethod(),
           invoke.isInterface(),
@@ -671,6 +672,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                   methodProcessor,
                   methodProcessingContext);
       if (instruction.isInvokeStatic()) {
+        // TODO(b/192439456): Make a test to prove resolution is needed here and fix it.
         rewriteInvokeStatic(
             invoke.getInvokedMethod(),
             invoke.getInterfaceBit(),
