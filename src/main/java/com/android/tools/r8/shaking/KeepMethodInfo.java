@@ -73,7 +73,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     @Override
     public boolean isEqualTo(KeepMethodInfo other) {
-      return true;
+      return internalIsEqualTo(other);
     }
 
     @Override

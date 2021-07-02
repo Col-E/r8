@@ -226,14 +226,13 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return doBuild();
     }
 
-    private boolean internalIsEqualTo(K other) {
+    boolean internalIsEqualTo(K other) {
       return isPinned() == other.isPinned()
           && isAccessModificationAllowed() == other.internalIsAccessModificationAllowed()
           && isAnnotationRemovalAllowed() == other.internalIsAnnotationRemovalAllowed()
           && isMinificationAllowed() == other.internalIsMinificationAllowed()
           && isAccessModificationRequiredForRepackaging()
-              == other.internalIsAccessModificationRequiredForRepackaging()
-          && isEqualTo(other);
+              == other.internalIsAccessModificationRequiredForRepackaging();
     }
 
     public boolean isPinned() {

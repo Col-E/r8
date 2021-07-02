@@ -73,7 +73,7 @@ public final class KeepFieldInfo extends KeepMemberInfo<KeepFieldInfo.Builder, K
 
     @Override
     public boolean isEqualTo(KeepFieldInfo other) {
-      return true;
+      return internalIsEqualTo(other);
     }
 
     @Override

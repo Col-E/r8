@@ -110,7 +110,7 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
 
     @Override
     public boolean isEqualTo(KeepClassInfo other) {
-      return true;
+      return internalIsEqualTo(other);
     }
 
     @Override
