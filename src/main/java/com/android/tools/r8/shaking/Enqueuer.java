@@ -3137,17 +3137,19 @@ public class Enqueuer {
     private Map<DexMethod, MethodProcessingContext> methodProcessingContexts =
         new ConcurrentHashMap<>();
 
-    List<ProgramMethod> desugaredMethods = new LinkedList<>();
+    private final List<ProgramMethod> desugaredMethods = new LinkedList<>();
 
-    Map<DexMethod, ProgramMethod> liveMethods = new IdentityHashMap<>();
+    private final Map<DexMethod, ProgramMethod> liveMethods = new ConcurrentHashMap<>();
 
-    Map<DexType, DexClasspathClass> syntheticClasspathClasses = new IdentityHashMap<>();
+    private final Map<DexType, DexClasspathClass> syntheticClasspathClasses =
+        new ConcurrentHashMap<>();
 
-    Map<DexProgramClass, List<DexClass>> injectedInterfaces = new IdentityHashMap<>();
+    private final Map<DexProgramClass, Set<DexClass>> injectedInterfaces =
+        new ConcurrentHashMap<>();
 
     // Subset of live methods that need have keep requirements.
-    List<Pair<ProgramMethod, Consumer<KeepMethodInfo.Joiner>>> liveMethodsWithKeepActions =
-        new ArrayList<>();
+    private final List<Pair<ProgramMethod, Consumer<KeepMethodInfo.Joiner>>>
+        liveMethodsWithKeepActions = new ArrayList<>();
 
     SyntheticAdditions(ProcessorContext processorContext) {
       this.processorContext = processorContext;
@@ -3162,7 +3164,8 @@ public class Enqueuer {
       boolean empty =
           desugaredMethods.isEmpty()
               && liveMethods.isEmpty()
-              && syntheticClasspathClasses.isEmpty();
+              && syntheticClasspathClasses.isEmpty()
+              && injectedInterfaces.isEmpty();
       assert !empty || liveMethodsWithKeepActions.isEmpty();
       return empty;
     }
@@ -3172,6 +3175,10 @@ public class Enqueuer {
       assert old == null;
     }
 
+    public void addLiveMethods(Iterable<ProgramMethod> methods) {
+      methods.forEach(this::addLiveMethod);
+    }
+
     public void addLiveMethod(ProgramMethod method) {
       DexMethod signature = method.getDefinition().getReference();
       assert !liveMethods.containsKey(signature);
@@ -3179,8 +3186,8 @@ public class Enqueuer {
     }
 
     public void injectInterface(DexProgramClass clazz, DexClass newInterface) {
-      List<DexClass> newInterfaces =
-          injectedInterfaces.computeIfAbsent(clazz, ignored -> new ArrayList<>());
+      Set<DexClass> newInterfaces =
+          injectedInterfaces.computeIfAbsent(clazz, ignored -> Sets.newConcurrentHashSet());
       newInterfaces.add(newInterface);
     }
 
@@ -3543,7 +3550,7 @@ public class Enqueuer {
 
     // Generate first the callbacks since they may require extra wrappers.
     ProgramMethodSet callbacks = desugaredLibraryWrapperAnalysis.generateCallbackMethods();
-    callbacks.forEach(additions::addLiveMethod);
+    additions.addLiveMethods(callbacks);
 
     // Generate wrappers on classpath so types are defined.
     desugaredLibraryWrapperAnalysis.generateWrappers(additions::addLiveClasspathClass);
@@ -3668,8 +3675,7 @@ public class Enqueuer {
         new SyntheticAdditions(appView.createProcessorContext());
 
     R8PostProcessingDesugaringEventConsumer eventConsumer =
-        CfPostProcessingDesugaringEventConsumer.createForR8(
-            appView, syntheticAdditions::addLiveMethod, syntheticAdditions);
+        CfPostProcessingDesugaringEventConsumer.createForR8(appView, syntheticAdditions);
     CfPostProcessingDesugaringCollection.create(appView, null, desugaring.getRetargetingInfo())
         .postProcessingDesugaring(eventConsumer, executorService);
 

@@ -13,7 +13,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConve
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
-import java.util.function.Consumer;
 
 /**
  * Specialized Event consumer for desugaring finalization. During finalization, it is not possible
@@ -35,8 +34,8 @@ public abstract class CfPostProcessingDesugaringEventConsumer
   }
 
   public static R8PostProcessingDesugaringEventConsumer createForR8(
-      AppView<?> appView, Consumer<ProgramMethod> methodConsumer, SyntheticAdditions additions) {
-    return new R8PostProcessingDesugaringEventConsumer(appView, methodConsumer, additions);
+      AppView<?> appView, SyntheticAdditions additions) {
+    return new R8PostProcessingDesugaringEventConsumer(appView, additions);
   }
 
   public void finalizeDesugaring() {
@@ -88,19 +87,17 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
   public static class R8PostProcessingDesugaringEventConsumer
       extends CfPostProcessingDesugaringEventConsumer {
-    private final Consumer<ProgramMethod> methodConsumer;
     private final SyntheticAdditions additions;
 
     protected R8PostProcessingDesugaringEventConsumer(
-        AppView<?> appView, Consumer<ProgramMethod> methodConsumer, SyntheticAdditions additions) {
+        AppView<?> appView, SyntheticAdditions additions) {
       super(appView);
-      this.methodConsumer = methodConsumer;
       this.additions = additions;
     }
 
     @Override
     public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
-      clazz.programMethods().forEach(methodConsumer);
+      additions.addLiveMethods(clazz.programMethods());
     }
 
     @Override
@@ -115,10 +112,10 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     @Override
     public void acceptForwardingMethod(ProgramMethod method) {
-      methodConsumer.accept(method);
+      additions.addLiveMethod(method);
       ProgramMethod callback = desugaredLibraryAPIConverter.generateCallbackIfRequired(method);
       if (callback != null) {
-        methodConsumer.accept(callback);
+        additions.addLiveMethod(callback);
       }
     }
 

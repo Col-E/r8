@@ -376,7 +376,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
     }
 
     public void injectInterfaces(
-        DexDefinitionSupplier definitions, DexProgramClass clazz, List<DexClass> newInterfaces) {
+        DexDefinitionSupplier definitions, DexProgramClass clazz, Set<DexClass> newInterfaces) {
       for (DexClass newInterface : newInterfaces) {
         populateInstantiatedHierarchy(definitions, newInterface.type, clazz);
       }
