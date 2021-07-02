@@ -203,7 +203,7 @@ public class GenericSignatureContextBuilder {
 
   public TypeParameterContext computeTypeParameterContext(
       AppView<?> appView, DexReference reference, Predicate<DexType> wasPruned) {
-    assert !wasPruned.test(reference.getContextType());
+    assert !wasPruned.test(reference.getContextType()) : "Building context for pruned type";
     return computeTypeParameterContext(appView, reference, wasPruned, false);
   }
 
