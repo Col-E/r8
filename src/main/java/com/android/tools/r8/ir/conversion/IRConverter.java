@@ -55,7 +55,7 @@ import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer.D
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter.Mode;
-import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceProcessor;
+import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceApplicationRewriter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor;
@@ -431,7 +431,7 @@ public class IRConverter {
     Builder<?> builder = application.builder().setHighestSortingString(highestSortingString);
 
     if (appView.options().isDesugaredLibraryCompilation()) {
-      EmulatedInterfaceProcessor.filterEmulatedInterfaceSubInterfaces(appView, builder);
+      new EmulatedInterfaceApplicationRewriter(appView).rewriteApplication(builder);
     }
     processCovariantReturnTypeAnnotations(builder);
 

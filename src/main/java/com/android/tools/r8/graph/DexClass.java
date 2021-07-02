@@ -47,7 +47,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
   }
 
   public final Origin origin;
-  public DexType type;
+  public final DexType type;
   public final ClassAccessFlags accessFlags;
   public DexType superType;
   public DexTypeList interfaces;

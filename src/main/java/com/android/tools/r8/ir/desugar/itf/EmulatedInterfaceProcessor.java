@@ -6,21 +6,17 @@ package com.android.tools.r8.ir.desugar.itf;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.emulateInterfaceLibraryMethod;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GenericSignature;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming;
-import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Iterables;
@@ -35,8 +31,6 @@ import java.util.Map;
 import java.util.Set;
 
 public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProcessor {
-
-  private static final String JUNK_SUFFIX = "$JUNK";
 
   private final AppView<?> appView;
   private final InterfaceMethodRewriter rewriter;
@@ -91,49 +85,6 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
         }
       }
     }
-  }
-
-  // The method transforms emulated interface such as they implement the rewritten version
-  // of each emulated interface they implement. Such change should have no effect on the look-up
-  // results, since each class implementing an emulated interface should also implement the
-  // rewritten one.
-  private void replaceInterfacesInEmulatedInterface(DexProgramClass emulatedInterface) {
-    List<GenericSignature.ClassTypeSignature> newInterfaces = new ArrayList<>();
-    ClassSignature classSignature = emulatedInterface.getClassSignature();
-    for (int i = 0; i < emulatedInterface.interfaces.size(); i++) {
-      DexType itf = emulatedInterface.interfaces.values[i];
-      if (emulatedInterfaces.containsKey(itf)) {
-        List<GenericSignature.FieldTypeSignature> typeArguments;
-        if (classSignature == null) {
-          typeArguments = Collections.emptyList();
-        } else {
-          GenericSignature.ClassTypeSignature classTypeSignature =
-              classSignature.superInterfaceSignatures().get(i);
-          assert itf == classTypeSignature.type();
-          typeArguments = classTypeSignature.typeArguments();
-        }
-        newInterfaces.add(
-            new GenericSignature.ClassTypeSignature(emulatedInterfaces.get(itf), typeArguments));
-      }
-    }
-    emulatedInterface.replaceInterfaces(newInterfaces);
-  }
-
-  private void renameEmulatedInterface(DexProgramClass emulatedInterface) {
-    DexType newType = emulatedInterfaces.get(emulatedInterface.type);
-    assert newType != null;
-    emulatedInterface.type = newType;
-    emulatedInterface.setVirtualMethods(renameHolder(emulatedInterface.virtualMethods(), newType));
-    emulatedInterface.setDirectMethods(renameHolder(emulatedInterface.directMethods(), newType));
-  }
-
-  private DexEncodedMethod[] renameHolder(Iterable<DexEncodedMethod> methods, DexType newName) {
-    List<DexEncodedMethod> methods1 = IterableUtils.toNewArrayList(methods);
-    DexEncodedMethod[] newMethods = new DexEncodedMethod[methods1.size()];
-    for (int i = 0; i < newMethods.length; i++) {
-      newMethods[i] = methods1.get(i).toRenamedHolderMethod(newName, appView.dexItemFactory());
-    }
-    return newMethods;
   }
 
   DexProgramClass ensureEmulateInterfaceLibrary(
@@ -285,72 +236,6 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
   @Override
   public void finalizeProcessing(InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     warnMissingEmulatedInterfaces();
-    if (!appView.options().isDesugaredLibraryCompilation()) {
-      return;
-    }
-    for (DexType interfaceType : emulatedInterfaces.keySet()) {
-      DexClass theInterface = appView.definitionFor(interfaceType);
-      if (theInterface != null && theInterface.isProgramClass()) {
-        DexProgramClass emulatedInterface = theInterface.asProgramClass();
-        if (!appView.isAlreadyLibraryDesugared(emulatedInterface)) {
-          replaceInterfacesInEmulatedInterface(emulatedInterface);
-          renameEmulatedInterface(emulatedInterface);
-        }
-      }
-    }
-  }
-
-  // TODO(b/183918843): Investigate what to do. The whole method is trying to fill a hole in the
-  //  desugaring library specifications by patching types and classes through questionable renaming.
-  public static void filterEmulatedInterfaceSubInterfaces(
-      AppView<?> appView, DexApplication.Builder<?> builder) {
-    assert appView.options().isDesugaredLibraryCompilation();
-    ArrayList<DexProgramClass> filteredProgramClasses = new ArrayList<>();
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (clazz.isInterface()
-          && !appView
-              .options()
-              .desugaredLibraryConfiguration
-              .getEmulateLibraryInterface()
-              .containsKey(clazz.type)
-          && !appView.rewritePrefix.hasRewrittenType(clazz.type, appView)
-          && isEmulatedInterfaceSubInterface(clazz, appView)) {
-        String newName =
-            appView
-                .options()
-                .desugaredLibraryConfiguration
-                .convertJavaNameToDesugaredLibrary(clazz.type);
-        InterfaceMethodRewriter.addCompanionClassRewriteRule(clazz.type, newName, appView);
-      } else {
-        filteredProgramClasses.add(clazz);
-      }
-    }
-    builder.replaceProgramClasses(filteredProgramClasses);
-  }
-
-  private static boolean isEmulatedInterfaceSubInterface(
-      DexClass subInterface, AppView<?> appView) {
-    assert !appView
-        .options()
-        .desugaredLibraryConfiguration
-        .getEmulateLibraryInterface()
-        .containsKey(subInterface.type);
-    LinkedList<DexType> workList = new LinkedList<>(Arrays.asList(subInterface.interfaces.values));
-    while (!workList.isEmpty()) {
-      DexType next = workList.removeFirst();
-      if (appView
-          .options()
-          .desugaredLibraryConfiguration
-          .getEmulateLibraryInterface()
-          .containsKey(next)) {
-        return true;
-      }
-      DexClass nextClass = appView.definitionFor(next);
-      if (nextClass != null) {
-        workList.addAll(Arrays.asList(nextClass.interfaces.values));
-      }
-    }
-    return false;
   }
 
   private void warnMissingEmulatedInterfaces() {

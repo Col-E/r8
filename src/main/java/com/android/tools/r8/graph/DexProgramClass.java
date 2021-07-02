@@ -672,25 +672,6 @@ public class DexProgramClass extends DexClass
     methodCollection.replaceVirtualMethod(virtualMethod, replacement);
   }
 
-  public void replaceInterfaces(List<ClassTypeSignature> newInterfaces) {
-    if (newInterfaces.isEmpty()) {
-      return;
-    }
-    clearInterfaces();
-    addExtraInterfaces(newInterfaces);
-  }
-
-  private void clearInterfaces() {
-    interfaces = DexTypeList.empty();
-    if (classSignature.hasSignature()) {
-      classSignature =
-          new ClassSignature(
-              classSignature.formalTypeParameters,
-              classSignature.superClassSignature,
-              ImmutableList.of());
-    }
-  }
-
   public void addExtraInterfaces(List<ClassTypeSignature> extraInterfaces) {
     if (extraInterfaces.isEmpty()) {
       return;
