@@ -124,7 +124,7 @@ public class DeadCodeRemover {
         // Replace unnecessary cast values.
         if (current.isCheckCast()) {
           CheckCast checkCast = current.asCheckCast();
-          if (!checkCast.isRefiningStaticType()
+          if (!checkCast.isRefiningStaticType(appView.options())
               && checkCast.outValue().getLocalInfo() == checkCast.object().getLocalInfo()) {
             checkCast.outValue().replaceUsers(checkCast.object());
             checkCast.object().uniquePhiUsers().forEach(Phi::removeTrivialPhi);
