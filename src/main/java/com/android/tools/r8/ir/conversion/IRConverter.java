@@ -95,7 +95,6 @@ import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
-import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.position.MethodPosition;
@@ -581,18 +580,14 @@ public class IRConverter {
     }
   }
 
-  private boolean needsIRConversion(ProgramMethod method) {
+  private boolean needsIRConversion() {
     if (appView.enableWholeProgramOptimizations()) {
       return true;
     }
     if (options.testing.forceIRForCfToCfDesugar) {
       return true;
     }
-    if (!options.cfToCfDesugar) {
-      return true;
-    }
-    // SynthesizedCode needs IR to generate the code.
-    return method.getDefinition().getCode() instanceof SynthesizedCode;
+    return !options.cfToCfDesugar;
   }
 
   private void checkPrefixMerging(ProgramMethod method) {
@@ -1126,7 +1121,7 @@ public class IRConverter {
       options.testing.hookInIrConversion.run();
     }
 
-    if (!needsIRConversion(method) || options.skipIR) {
+    if (!needsIRConversion() || options.skipIR) {
       feedback.markProcessed(method.getDefinition(), ConstraintWithTarget.NEVER);
       return Timing.empty();
     }
