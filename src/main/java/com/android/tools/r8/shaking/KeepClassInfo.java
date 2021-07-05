@@ -52,7 +52,8 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
       GlobalKeepInfoConfiguration configuration, boolean kotlinMetadataKept) {
     return !kotlinMetadataKept
         || !isPinned()
-        || !configuration.isKeepRuntimeVisibleAnnotationsEnabled();
+        || !configuration.isKeepRuntimeVisibleAnnotationsEnabled()
+        || isAnnotationRemovalAllowed(configuration);
   }
 
   public static boolean isKotlinMetadataClassKept(AppView<?> appView) {
