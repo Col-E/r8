@@ -4,10 +4,13 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary;
 
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DebugLocalInfo;
-import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
@@ -17,6 +20,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
+import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -25,11 +31,22 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaring;
+import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.FreshLocalProvider;
+import com.android.tools.r8.ir.desugar.LocalStackAllocator;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverterEventConsumer.DesugaredLibraryAPIConverterPostProcessingEventConsumer;
+import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
+import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConversionCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperCfCodeProvider;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.OptionalBool;
@@ -38,15 +55,17 @@ import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
+import org.jetbrains.annotations.Nullable;
+import org.objectweb.asm.Opcodes;
 
 // I convert library calls with desugared parameters/return values so they can work normally.
 // In the JSON of the desugared library, one can specify conversions between desugared and
@@ -62,22 +81,31 @@ import java.util.function.Consumer;
 // DesugarType is only a rewritten type (generated through rewriting of type).
 // The type, from the library, may either be rewritten to the desugarType,
 // or be a rewritten type (generated through rewriting of vivifiedType).
-public class DesugaredLibraryAPIConverter {
+public class DesugaredLibraryAPIConverter
+    implements CfInstructionDesugaring, CfPostProcessingDesugaring {
 
   static final String VIVIFIED_PREFIX = "$-vivified-$.";
   public static final String DESCRIPTOR_VIVIFIED_PREFIX = "L$-vivified-$/";
+  private static final String SUPER_CONVERSION_METHOD_PREFIX = "api$super$conversion$";
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
   // For debugging only, allows to assert that synthesized code in R8 have been synthesized in the
   // Enqueuer and not during IR processing.
   private final Mode mode;
+  // This is used to filter out double desugaring on backported methods.
+  private final BackportedMethodRewriter backportedMethodRewriter;
+  private final InterfaceMethodRewriter interfaceMethodRewriter;
+  private final DesugaredLibraryRetargeter retargeter;
+
   private final DesugaredLibraryWrapperSynthesizer wrapperSynthesizor;
   private final Map<DexClass, Set<DexEncodedMethod>> callBackMethods = new IdentityHashMap<>();
   private final Map<DexProgramClass, List<DexEncodedMethod>> pendingCallBackMethods =
       new IdentityHashMap<>();
   private final Set<DexMethod> trackedCallBackAPIs;
   private final Set<DexMethod> trackedAPIs;
+  private final MethodAccessFlags superAPIConversionMethodAccessFlags =
+      MethodAccessFlags.createPublicStaticSynthetic();
 
   public enum Mode {
     GENERATE_CALLBACKS_AND_WRAPPERS,
@@ -85,9 +113,29 @@ public class DesugaredLibraryAPIConverter {
   }
 
   public DesugaredLibraryAPIConverter(AppView<?> appView, Mode mode) {
+    this(appView, mode, null, null, null);
+  }
+
+  public DesugaredLibraryAPIConverter(
+      AppView<?> appView,
+      InterfaceMethodRewriter interfaceMethodRewriter,
+      DesugaredLibraryRetargeter retargeter,
+      BackportedMethodRewriter backportedMethodRewriter) {
+    this(appView, null, interfaceMethodRewriter, retargeter, backportedMethodRewriter);
+  }
+
+  private DesugaredLibraryAPIConverter(
+      AppView<?> appView,
+      Mode mode,
+      InterfaceMethodRewriter interfaceMethodRewriter,
+      DesugaredLibraryRetargeter retargeter,
+      BackportedMethodRewriter backportedMethodRewriter) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.mode = mode;
+    this.interfaceMethodRewriter = interfaceMethodRewriter;
+    this.retargeter = retargeter;
+    this.backportedMethodRewriter = backportedMethodRewriter;
     this.wrapperSynthesizor = new DesugaredLibraryWrapperSynthesizer(appView, this);
     if (appView.options().testing.trackDesugaredAPIConversions) {
       trackedCallBackAPIs = Sets.newConcurrentHashSet();
@@ -96,6 +144,95 @@ public class DesugaredLibraryAPIConverter {
       trackedCallBackAPIs = null;
       trackedAPIs = null;
     }
+  }
+
+  // TODO(b/191656218): Consider parallelizing post processing across classes instead of per
+  // implementor
+  // method.
+  @Override
+  public void postProcessingDesugaring(
+      CfPostProcessingDesugaringEventConsumer eventConsumer, ExecutorService executorService) {
+    assert noPendingWrappersOrConversions();
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      if (!appView.isAlreadyLibraryDesugared(clazz)) {
+        ArrayList<DexEncodedMethod> callbacks = new ArrayList<>();
+        for (ProgramMethod virtualProgramMethod : clazz.virtualProgramMethods()) {
+          if (shouldRegisterCallback(virtualProgramMethod)) {
+            if (trackedCallBackAPIs != null) {
+              trackedCallBackAPIs.add(virtualProgramMethod.getReference());
+            }
+            ProgramMethod callback =
+                generateCallbackMethod(
+                    virtualProgramMethod.getDefinition(),
+                    virtualProgramMethod.getHolder(),
+                    eventConsumer);
+            callbacks.add(callback.getDefinition());
+          }
+        }
+        if (!callbacks.isEmpty()) {
+          clazz.addVirtualMethods(callbacks);
+        }
+      }
+    }
+    assert noPendingWrappersOrConversions();
+    generateTrackingWarnings();
+  }
+
+  private boolean noPendingWrappersOrConversions() {
+    for (DexProgramClass pendingSyntheticClass :
+        appView.getSyntheticItems().getPendingSyntheticClasses()) {
+      assert !isAPIConversionSyntheticType(pendingSyntheticClass.type);
+    }
+    return true;
+  }
+
+  @Override
+  public Collection<CfInstruction> desugarInstruction(
+      CfInstruction instruction,
+      FreshLocalProvider freshLocalProvider,
+      LocalStackAllocator localStackAllocator,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramMethod context,
+      MethodProcessingContext methodProcessingContext,
+      DexItemFactory dexItemFactory) {
+    assert !appView.enableWholeProgramOptimizations();
+    if (needsDesugaring(instruction, context)) {
+      assert instruction.isInvoke();
+      return Collections.singletonList(
+          rewriteLibraryInvoke(
+              instruction.asInvoke(), methodProcessingContext, eventConsumer, context));
+    }
+    return null;
+  }
+
+  @Override
+  public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
+    if (!instruction.isInvoke()) {
+      return false;
+    }
+    if (skipDesugaring(context)) {
+      return false;
+    }
+    CfInvoke invoke = instruction.asInvoke();
+    return shouldRewriteInvoke(
+        invoke.getMethod(), invoke.getInvokeType(context), invoke.isInterface(), context);
+  }
+
+  // We should not generate conversion for Wrappers and for conversion methods.
+  private boolean skipDesugaring(ProgramMethod method) {
+    return isAPIConversionSyntheticType(method.getHolderType())
+        || isSuperAPIConversionMethod(method);
+  }
+
+  private boolean isSuperAPIConversionMethod(ProgramMethod method) {
+    return method.getDefinition().isD8R8Synthesized()
+        && method.getAccessFlags().equals(superAPIConversionMethodAccessFlags)
+        && method.getName().toString().startsWith(SUPER_CONVERSION_METHOD_PREFIX);
+  }
+
+  private boolean isAPIConversionSyntheticType(DexType type) {
+    return wrapperSynthesizor.isSyntheticWrapper(type)
+        || appView.getSyntheticItems().isSyntheticOfKind(type, SyntheticKind.API_CONVERSION);
   }
 
   public static boolean isVivifiedType(DexType type) {
@@ -107,6 +244,8 @@ public class DesugaredLibraryAPIConverter {
   }
 
   public void desugar(IRCode code) {
+
+    assert appView.enableWholeProgramOptimizations();
 
     if (wrapperSynthesizor.isSyntheticWrapper(code.method().getHolderType())) {
       return;
@@ -128,24 +267,32 @@ public class DesugaredLibraryAPIConverter {
           continue;
         }
         InvokeMethod invokeMethod = instruction.asInvokeMethod();
-        DexMethod invokedMethod;
-        if (invokeMethod.isInvokeSuper()) {
-          DexClassAndMethod result =
-              appView
-                  .appInfoForDesugaring()
-                  .lookupSuperTarget(invokeMethod.getInvokedMethod(), code.context());
-          invokedMethod = result != null ? result.getReference() : null;
-        } else {
-          // TODO(b/192439456): Make a test to prove resolution is needed here and fix it.
-          invokedMethod = invokeMethod.getInvokedMethod();
-        }
+        DexMethod invokedMethod = invokeMethod.getInvokedMethod();
         // Library methods do not understand desugared types, hence desugared types have to be
         // converted around non desugared library calls for the invoke to resolve.
-        if (invokedMethod != null && shouldRewriteInvoke(invokedMethod)) {
+        if (invokedMethod != null
+            && shouldRewriteInvoke(
+                invokedMethod,
+                invokeMethod.getType(),
+                invokeMethod.getInterfaceBit(),
+                code.context())) {
           rewriteLibraryInvoke(code, invokeMethod, iterator, blockIterator);
         }
       }
     }
+  }
+
+  @Nullable
+  private DexMethod getMethodForDesugaring(
+      DexMethod invokedMethod, boolean isInvokeSuper, ProgramMethod context) {
+    if (isInvokeSuper) {
+      // TODO(b/191656218): Use lookupInvokeSpecial instead when this is all to Cf.
+      DexClassAndMethod result =
+          appView.appInfoForDesugaring().lookupSuperTarget(invokedMethod, context);
+      return result != null ? result.getReference() : null;
+    }
+    // TODO(b/192439456): Make a test to prove resolution is needed here and fix it.
+    return invokedMethod;
   }
 
   private boolean validateCallbackWasGeneratedInEnqueuer(ProgramMethod method) {
@@ -157,13 +304,36 @@ public class DesugaredLibraryAPIConverter {
     return true;
   }
 
-  public boolean shouldRewriteInvoke(DexMethod invokedMethod) {
+  private boolean shouldRewriteInvoke(
+      DexMethod unresolvedInvokedMethod,
+      Type invokeType,
+      Boolean isInterface,
+      ProgramMethod context) {
+    DexMethod invokedMethod =
+        getMethodForDesugaring(unresolvedInvokedMethod, invokeType == Type.SUPER, context);
+    if (invokedMethod == null) {
+      // Implies a resolution/look-up failure, we do not convert to keep the runtime error.
+      return false;
+    }
     if (appView.rewritePrefix.hasRewrittenType(invokedMethod.holder, appView)
         || invokedMethod.holder.isArrayType()) {
       return false;
     }
     DexClass dexClass = appView.definitionFor(invokedMethod.holder);
     if (dexClass == null || !dexClass.isLibraryClass()) {
+      return false;
+    }
+    if (interfaceMethodRewriter != null
+        && interfaceMethodRewriter.needsRewriting(invokedMethod, invokeType, context)) {
+      return false;
+    }
+    assert retargeter == null || isInterface != null;
+    if (retargeter != null
+        && retargeter.hasNewInvokeTarget(invokedMethod, false, invokeType == Type.SUPER, context)) {
+      return false;
+    }
+    if (backportedMethodRewriter != null
+        && backportedMethodRewriter.methodIsBackport(invokedMethod)) {
       return false;
     }
     return appView.rewritePrefix.hasRewrittenTypeInSignature(invokedMethod.proto, appView);
@@ -175,16 +345,18 @@ public class DesugaredLibraryAPIConverter {
     }
   }
 
-  public ProgramMethod generateCallbackIfRequired(ProgramMethod method) {
+  public void generateCallbackIfRequired(
+      ProgramMethod method, DesugaredLibraryAPIConverterPostProcessingEventConsumer eventConsumer) {
     if (!shouldRegisterCallback(method)) {
-      return null;
+      return;
     }
     if (trackedCallBackAPIs != null) {
       trackedCallBackAPIs.add(method.getReference());
     }
-    ProgramMethod callback = generateCallbackMethod(method.getDefinition(), method.getHolder());
-    method.getHolder().addVirtualMethod(callback.getDefinition());
-    return callback;
+    ProgramMethod callback =
+        generateCallbackMethod(method.getDefinition(), method.getHolder(), eventConsumer);
+    callback.getHolder().addVirtualMethod(callback.getDefinition());
+    assert noPendingWrappersOrConversions();
   }
 
   public boolean shouldRegisterCallback(ProgramMethod method) {
@@ -198,6 +370,7 @@ public class DesugaredLibraryAPIConverter {
     DexEncodedMethod definition = method.getDefinition();
     if (definition.isPrivateMethod()
         || definition.isStatic()
+        || definition.isAbstract()
         || definition.isLibraryMethodOverride().isFalse()) {
       return false;
     }
@@ -322,19 +495,9 @@ public class DesugaredLibraryAPIConverter {
     return appView.dexItemFactory().createMethod(holder, newProto, originalMethod.name);
   }
 
-  public void finalizeWrappers(
-      DexApplication.Builder<?> builder, IRConverter irConverter, ExecutorService executorService)
-      throws ExecutionException {
-    // In D8, we generate the wrappers here. In R8, wrappers have already been generated in the
-    // enqueuer, so nothing needs to be done.
-    if (appView.enableWholeProgramOptimizations()) {
-      return;
-    }
-    SortedProgramMethodSet callbacks = generateCallbackMethods();
-    irConverter.processMethodsConcurrently(callbacks, executorService);
-    if (appView.options().isDesugaredLibraryCompilation()) {
-      wrapperSynthesizor.finalizeWrappersForL8();
-    }
+  public void ensureWrappersForL8(CfInstructionDesugaringEventConsumer eventConsumer) {
+    assert appView.options().isDesugaredLibraryCompilation();
+    wrapperSynthesizor.ensureWrappersForL8(eventConsumer);
   }
 
   public SortedProgramMethodSet generateCallbackMethods() {
@@ -345,7 +508,7 @@ public class DesugaredLibraryAPIConverter {
           List<DexEncodedMethod> newVirtualMethods = new ArrayList<>();
           callbacks.forEach(
               callback -> {
-                ProgramMethod callbackMethod = generateCallbackMethod(callback, clazz);
+                ProgramMethod callbackMethod = generateCallbackMethod(callback, clazz, null);
                 newVirtualMethods.add(callbackMethod.getDefinition());
                 allCallbackMethods.add(callbackMethod);
               });
@@ -369,12 +532,14 @@ public class DesugaredLibraryAPIConverter {
   }
 
   private ProgramMethod generateCallbackMethod(
-      DexEncodedMethod originalMethod, DexProgramClass clazz) {
+      DexEncodedMethod originalMethod,
+      DexProgramClass clazz,
+      DesugaredLibraryAPIConverterPostProcessingEventConsumer eventConsumer) {
     DexMethod methodToInstall =
         methodWithVivifiedTypeInSignature(originalMethod.getReference(), clazz.type, appView);
     CfCode cfCode =
         new APIConverterWrapperCfCodeProvider(
-                appView, originalMethod.getReference(), null, this, clazz.isInterface())
+                appView, originalMethod.getReference(), null, this, clazz.isInterface(), null)
             .generateCfCode();
     DexEncodedMethod newMethod =
         wrapperSynthesizor.newSynthesizedMethod(methodToInstall, originalMethod, cfCode);
@@ -382,7 +547,13 @@ public class DesugaredLibraryAPIConverter {
     if (originalMethod.isLibraryMethodOverride().isTrue()) {
       newMethod.setLibraryMethodOverride(OptionalBool.TRUE);
     }
-    return new ProgramMethod(clazz, newMethod);
+    ProgramMethod callback = new ProgramMethod(clazz, newMethod);
+    if (eventConsumer != null) {
+      eventConsumer.acceptAPIConversionCallback(callback);
+    } else {
+      assert appView.enableWholeProgramOptimizations();
+    }
+    return callback;
   }
 
   private void generateTrackDesugaredAPIWarnings(Set<DexMethod> tracked, String inner) {
@@ -425,8 +596,10 @@ public class DesugaredLibraryAPIConverter {
     return vivifiedType;
   }
 
-  public void registerWrappersForLibraryInvokeIfRequired(DexMethod invokedMethod) {
-    if (!shouldRewriteInvoke(invokedMethod)) {
+  public void registerWrappersForLibraryInvokeIfRequired(
+      DexMethod invokedMethod, Type invokeType, ProgramMethod context) {
+    // TODO(b/191656218): Once R8 support is done, use an unboxed boolean here.
+    if (!shouldRewriteInvoke(invokedMethod, invokeType, null, context)) {
       return;
     }
     if (trackedAPIs != null) {
@@ -441,6 +614,120 @@ public class DesugaredLibraryAPIConverter {
         registerConversionWrappers(argType);
       }
     }
+  }
+
+  private DexMethod computeReturnConversion(
+      DexMethod invokedMethod, CfInstructionDesugaringEventConsumer eventConsumer) {
+    DexType returnType = invokedMethod.proto.returnType;
+    if (!appView.rewritePrefix.hasRewrittenType(returnType, appView)) {
+      return null;
+    }
+    if (canConvert(returnType)) {
+      DexType newReturnType = DesugaredLibraryAPIConverter.vivifiedTypeFor(returnType, appView);
+      return ensureConversionMethod(returnType, newReturnType, returnType, eventConsumer);
+    }
+    reportInvalidInvoke(returnType, invokedMethod, "return ");
+    return null;
+  }
+
+  private DexMethod[] computeParameterConversions(
+      DexMethod invokedMethod, CfInstructionDesugaringEventConsumer eventConsumer) {
+    DexMethod[] parameterConversions = new DexMethod[invokedMethod.getArity()];
+    DexType[] parameters = invokedMethod.proto.parameters.values;
+    for (int i = 0; i < parameters.length; i++) {
+      DexType argType = parameters[i];
+      if (appView.rewritePrefix.hasRewrittenType(argType, appView)) {
+        if (canConvert(argType)) {
+          DexType argVivifiedType = vivifiedTypeFor(argType, appView);
+          parameterConversions[i] =
+              ensureConversionMethod(argType, argType, argVivifiedType, eventConsumer);
+        } else {
+          reportInvalidInvoke(argType, invokedMethod, "parameter ");
+        }
+      }
+    }
+    return parameterConversions;
+  }
+
+  private CfInvoke rewriteLibraryInvoke(
+      CfInvoke invoke,
+      MethodProcessingContext methodProcessingContext,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramMethod context) {
+    DexMethod invokedMethod = invoke.getMethod();
+    if (trackedAPIs != null) {
+      trackedAPIs.add(invokedMethod);
+    }
+    DexProto newProto =
+        invoke.isInvokeStatic()
+            ? invokedMethod.proto
+            : factory.prependTypeToProto(invokedMethod.getHolderType(), invokedMethod.getProto());
+    DexMethod apiConversionMethod =
+        invoke.isInvokeSuper(context.getHolderType())
+            ? createSuperAPIConversion(
+                invoke, methodProcessingContext, eventConsumer, newProto, context)
+            : createOutlinedAPIConversion(invoke, methodProcessingContext, eventConsumer, newProto);
+    return new CfInvoke(Opcodes.INVOKESTATIC, apiConversionMethod, false);
+  }
+
+  private DexMethod createSuperAPIConversion(
+      CfInvoke invoke,
+      MethodProcessingContext methodProcessingContext,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      DexProto newProto,
+      ProgramMethod context) {
+    DexMethod invokedMethod = invoke.getMethod();
+    String uniqueSuffix = methodProcessingContext.createUniqueContext().getSyntheticSuffix();
+    DexMethod method =
+        factory.createMethod(
+            context.getHolderType(), newProto, SUPER_CONVERSION_METHOD_PREFIX + uniqueSuffix);
+    DexEncodedMethod apiConversion =
+        new DexEncodedMethod(
+            method,
+            superAPIConversionMethodAccessFlags,
+            MethodTypeSignature.noSignature(),
+            DexAnnotationSet.empty(),
+            ParameterAnnotationsList.empty(),
+            new APIConversionCfCodeProvider(
+                    appView,
+                    method.holder,
+                    invoke,
+                    computeReturnConversion(invokedMethod, eventConsumer),
+                    computeParameterConversions(invokedMethod, eventConsumer))
+                .generateCfCode(),
+            true);
+    eventConsumer.acceptSuperAPIConversion(new ProgramMethod(context.getHolder(), apiConversion));
+    return method;
+  }
+
+  private DexMethod createOutlinedAPIConversion(
+      CfInvoke invoke,
+      MethodProcessingContext methodProcessingContext,
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      DexProto newProto) {
+    DexMethod invokedMethod = invoke.getMethod();
+    ProgramMethod outline =
+        appView
+            .getSyntheticItems()
+            .createMethod(
+                SyntheticKind.API_CONVERSION,
+                methodProcessingContext.createUniqueContext(),
+                appView,
+                builder ->
+                    builder
+                        .setProto(newProto)
+                        .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                        .setCode(
+                            methodSig ->
+                                new APIConversionCfCodeProvider(
+                                        appView,
+                                        methodSig.holder,
+                                        invoke,
+                                        computeReturnConversion(invokedMethod, eventConsumer),
+                                        computeParameterConversions(invokedMethod, eventConsumer))
+                                    .generateCfCode()));
+    eventConsumer.acceptAPIConversion(outline);
+    return outline.getReference();
   }
 
   private void rewriteLibraryInvoke(
@@ -574,7 +861,7 @@ public class DesugaredLibraryAPIConverter {
 
   private Instruction createParameterConversion(
       IRCode code, DexType argType, DexType argVivifiedType, Value inValue) {
-    DexMethod conversionMethod = ensureConversionMethod(argType, argType, argVivifiedType);
+    DexMethod conversionMethod = ensureConversionMethod(argType, argType, argVivifiedType, null);
     // The value is null only if the input is null.
     Value convertedValue =
         createConversionValue(code, inValue.getType().nullability(), argVivifiedType, null);
@@ -583,7 +870,8 @@ public class DesugaredLibraryAPIConverter {
 
   private Instruction createReturnConversionAndReplaceUses(
       IRCode code, InvokeMethod invokeMethod, DexType returnType, DexType returnVivifiedType) {
-    DexMethod conversionMethod = ensureConversionMethod(returnType, returnVivifiedType, returnType);
+    DexMethod conversionMethod =
+        ensureConversionMethod(returnType, returnVivifiedType, returnType, null);
     Value outValue = invokeMethod.outValue();
     Value convertedValue =
         createConversionValue(code, Nullability.maybeNull(), returnType, outValue.getLocalInfo());
@@ -600,7 +888,11 @@ public class DesugaredLibraryAPIConverter {
     }
   }
 
-  public DexMethod ensureConversionMethod(DexType type, DexType srcType, DexType destType) {
+  public DexMethod ensureConversionMethod(
+      DexType type,
+      DexType srcType,
+      DexType destType,
+      DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
     // ConversionType holds the methods "rewrittenType convert(type)" and the other way around.
     // But everything is going to be rewritten, so we need to use vivifiedType and type".
     DexType conversionHolder =
@@ -608,8 +900,8 @@ public class DesugaredLibraryAPIConverter {
     if (conversionHolder == null) {
       conversionHolder =
           type == srcType
-              ? wrapperSynthesizor.ensureTypeWrapper(type)
-              : wrapperSynthesizor.ensureVivifiedTypeWrapper(type);
+              ? wrapperSynthesizor.ensureTypeWrapper(type, eventConsumer)
+              : wrapperSynthesizor.ensureVivifiedTypeWrapper(type, eventConsumer);
     }
     assert conversionHolder != null;
     return factory.createMethod(
