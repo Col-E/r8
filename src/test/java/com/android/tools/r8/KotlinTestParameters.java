@@ -93,7 +93,7 @@ public class KotlinTestParameters {
           // KotlinTargetVersion java 6 is deprecated from kotlinc 1.5 and forward, no need to run
           // tests on that target.
           if (targetVersion != KotlinTargetVersion.JAVA_6
-              || kotlinc.isNot(KotlinCompilerVersion.KOTLINC_1_5_0_M2)) {
+              || kotlinc.isNot(KotlinCompilerVersion.KOTLINC_1_5_0)) {
             testParameters.add(new KotlinTestParameters(kotlinc, targetVersion, index++));
           }
         }

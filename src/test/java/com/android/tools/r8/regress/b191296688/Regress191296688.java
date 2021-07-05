@@ -42,7 +42,7 @@ public class Regress191296688 extends KotlinTestBase {
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),
         getKotlinTestParameters()
             .withTargetVersion(KotlinTargetVersion.JAVA_8)
-            .withCompiler(ToolHelper.getKotlinC_1_5_0_m2())
+            .withCompiler(ToolHelper.getKotlinC_1_5_0())
             .build());
   }
 

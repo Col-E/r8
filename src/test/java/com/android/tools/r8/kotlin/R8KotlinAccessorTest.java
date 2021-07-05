@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0_M2;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -278,7 +278,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
               assertTrue(fieldSubject.getField().accessFlags.isPublic());
 
               // kotlinc 1.5 do not generate accessors for public late-init properties.
-              if (kotlinc.isNot(KOTLINC_1_5_0_M2)) {
+              if (kotlinc.isNot(KOTLINC_1_5_0)) {
                 checkMethodIsRemoved(outerClass, getterAccessor);
                 checkMethodIsRemoved(outerClass, setterAccessor);
               }
@@ -311,7 +311,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
               assertTrue(fieldSubject.getField().accessFlags.isPublic());
 
               // kotlinc 1.5 do not generate accessors for public late-init properties.
-              if (kotlinc.isNot(KOTLINC_1_5_0_M2)) {
+              if (kotlinc.isNot(KOTLINC_1_5_0)) {
                 checkMethodIsRemoved(outerClass, getterAccessor);
                 checkMethodIsRemoved(outerClass, setterAccessor);
               }
@@ -376,7 +376,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
   @Test
   public void testAccessorForInnerClassIsRemovedWhenNotUsed() throws Exception {
     // TODO(b/185493636): Kotlinc 1.5 generated property accessors are not removed.
-    assumeTrue(kotlinc.isNot(KOTLINC_1_5_0_M2));
+    assumeTrue(kotlinc.isNot(KOTLINC_1_5_0));
     String mainClass =
         addMainToClasspath(
             "accessors.PropertyAccessorForInnerClassKt", "noUseOfPropertyAccessorFromInnerClass");

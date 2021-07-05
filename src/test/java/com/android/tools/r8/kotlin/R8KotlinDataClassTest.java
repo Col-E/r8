@@ -80,7 +80,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             inspector -> {
               if (allowAccessModification
                   && kotlinParameters.is(
-                      KotlinCompilerVersion.KOTLINC_1_5_0_M2, KotlinTargetVersion.JAVA_8)) {
+                      KotlinCompilerVersion.KOTLINC_1_5_0, KotlinTargetVersion.JAVA_8)) {
                 checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
               } else {
                 ClassSubject dataClass =
@@ -131,7 +131,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             inspector -> {
               if (allowAccessModification
                   && kotlinParameters.is(
-                      KotlinCompilerVersion.KOTLINC_1_5_0_M2, KotlinTargetVersion.JAVA_8)) {
+                      KotlinCompilerVersion.KOTLINC_1_5_0, KotlinTargetVersion.JAVA_8)) {
                 checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
               } else {
                 ClassSubject dataClass =

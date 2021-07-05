@@ -5,7 +5,7 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0_M2;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -62,7 +62,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
   @Test
   public void testJStyleLambdas() throws Exception {
     // TODO(b/185497606): Unable to class inline j style lambdas.
-    assumeTrue(kotlinc.isNot(KOTLINC_1_5_0_M2));
+    assumeTrue(kotlinc.isNot(KOTLINC_1_5_0));
     String mainClassName = "class_inliner_lambda_j_style.MainKt";
     runTest(
             "class_inliner_lambda_j_style",

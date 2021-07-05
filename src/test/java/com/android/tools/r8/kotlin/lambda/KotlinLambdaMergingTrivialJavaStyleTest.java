@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.kotlin.lambda;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0_M2;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.PredicateUtils.not;
 import static junit.framework.TestCase.assertEquals;
@@ -75,7 +75,7 @@ public class KotlinLambdaMergingTrivialJavaStyleTest extends KotlinTestBase {
   @Test
   public void testR8() throws Exception {
     // TODO(b/185497606): Unable to merge jstyle lambda.
-    assumeTrue(kotlinc.isNot(KOTLINC_1_5_0_M2));
+    assumeTrue(kotlinc.isNot(KOTLINC_1_5_0));
     testForR8(parameters.getBackend())
         .addProgramFiles(getProgramFiles())
         .addKeepMainRule(getMainClassName())

@@ -164,7 +164,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
             .compileRaw();
 
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    if (kotlinc.is(KotlinCompilerVersion.KOTLINC_1_5_0_M2)) {
+    if (kotlinc.is(KotlinCompilerVersion.KOTLINC_1_5_0)) {
       assertThat(
           kotlinTestCompileResult.stderr,
           containsString(

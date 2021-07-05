@@ -5,7 +5,7 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0_M2;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
@@ -2169,12 +2169,12 @@ public class ToolHelper {
     return new KotlinCompiler(KOTLINC_1_4_20);
   }
 
-  public static KotlinCompiler getKotlinC_1_5_0_m2() {
-    return new KotlinCompiler(KOTLINC_1_5_0_M2);
+  public static KotlinCompiler getKotlinC_1_5_0() {
+    return new KotlinCompiler(KOTLINC_1_5_0);
   }
 
   public static KotlinCompiler[] getKotlinCompilers() {
-    return new KotlinCompiler[] {getKotlinC_1_3_72(), getKotlinC_1_4_20(), getKotlinC_1_5_0_m2()};
+    return new KotlinCompiler[] {getKotlinC_1_3_72(), getKotlinC_1_4_20(), getKotlinC_1_5_0()};
   }
 
   public static void disassemble(AndroidApp app, PrintStream ps) throws IOException {

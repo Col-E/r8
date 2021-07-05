@@ -74,6 +74,6 @@ public class EnumMinificationKotlinTest extends KotlinTestBase {
     // TODO(b/179994975): Kotlin enum changed in 1.5.
     assertThat(
         enumClass.clinit(),
-        kotlinc.is(KotlinCompilerVersion.KOTLINC_1_5_0_M2) ? isPresent() : isAbsent());
+        kotlinc.is(KotlinCompilerVersion.KOTLINC_1_5_0) ? isPresent() : isAbsent());
   }
 }

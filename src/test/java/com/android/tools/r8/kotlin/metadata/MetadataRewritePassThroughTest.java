@@ -50,8 +50,8 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
       return 597;
     } else if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_4_20)) {
       return 685;
-    } else if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_5_0_M2)) {
-      return 694;
+    } else if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_5_0)) {
+      return 696;
     } else {
       throw new Unreachable("Should not compile in this configuration");
     }
@@ -62,8 +62,8 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
       return 327;
     } else if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_4_20)) {
       return 413;
-    } else if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_5_0_M2)) {
-      return 417;
+    } else if (kotlinParameters.getCompiler().is(KotlinCompilerVersion.KOTLINC_1_5_0)) {
+      return 419;
     } else {
       throw new Unreachable("Should not compile in this configuration");
     }
