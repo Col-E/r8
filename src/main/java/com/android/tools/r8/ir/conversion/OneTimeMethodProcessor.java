@@ -25,6 +25,10 @@ public class OneTimeMethodProcessor extends MethodProcessorWithWave {
     this.wave = wave;
   }
 
+  public static Builder builder(ProcessorContext processorContext) {
+    return new Builder(processorContext);
+  }
+
   public static OneTimeMethodProcessor create(ProgramMethod methodToProcess, AppView<?> appView) {
     return create(SortedProgramMethodSet.create(methodToProcess), appView);
   }
@@ -76,6 +80,25 @@ public class OneTimeMethodProcessor extends MethodProcessorWithWave {
           method -> consumer.accept(method, processorContext.createMethodProcessingContext(method)),
           executorService);
       prepareForWaveExtensionProcessing();
+    }
+  }
+
+  public static class Builder {
+
+    private final SortedProgramMethodSet methodsToProcess = SortedProgramMethodSet.create();
+    private final ProcessorContext processorContext;
+
+    Builder(ProcessorContext processorContext) {
+      this.processorContext = processorContext;
+    }
+
+    public Builder add(ProgramMethod methodToProcess) {
+      methodsToProcess.add(methodToProcess);
+      return this;
+    }
+
+    public OneTimeMethodProcessor build() {
+      return create(methodsToProcess, processorContext);
     }
   }
 }

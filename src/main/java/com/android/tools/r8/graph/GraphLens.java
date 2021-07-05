@@ -89,8 +89,9 @@ public abstract class GraphLens {
       return rewritings.getOrDefault(reboundReference, reboundReference);
     }
 
-    public R getRewrittenReboundReference(Map<R, R> rewritings) {
-      return rewritings.getOrDefault(reboundReference, reboundReference);
+    public R getRewrittenReboundReference(Function<R, R> rewritings) {
+      R rewrittenReboundReference = rewritings.apply(reboundReference);
+      return rewrittenReboundReference != null ? rewrittenReboundReference : reboundReference;
     }
 
     abstract static class Builder<R extends DexMember<?, R>, Self extends Builder<R, Self>> {

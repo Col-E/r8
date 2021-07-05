@@ -10,12 +10,16 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.NestedGraphLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.collections.BidirectionalOneToManyRepresentativeHashMap;
+import com.android.tools.r8.utils.collections.BidirectionalOneToManyRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalOneToManyRepresentativeMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.collect.ImmutableMap;
 import java.util.IdentityHashMap;
@@ -29,10 +33,10 @@ class EnumUnboxingLens extends NestedGraphLens {
   EnumUnboxingLens(
       AppView<?> appView,
       BidirectionalOneToOneMap<DexField, DexField> fieldMap,
-      BidirectionalOneToOneMap<DexMethod, DexMethod> methodMap,
+      BidirectionalOneToManyRepresentativeMap<DexMethod, DexMethod> methodMap,
       Map<DexType, DexType> typeMap,
       Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod) {
-    super(appView, fieldMap, methodMap, typeMap);
+    super(appView, fieldMap, methodMap::getRepresentativeValue, typeMap, methodMap);
     this.prototypeChangesPerMethod = prototypeChangesPerMethod;
   }
 
@@ -67,8 +71,8 @@ class EnumUnboxingLens extends NestedGraphLens {
     private final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
     private final MutableBidirectionalOneToOneMap<DexField, DexField> newFieldSignatures =
         new BidirectionalOneToOneHashMap<>();
-    private final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> newMethodSignatures =
-        new BidirectionalOneToOneHashMap<>();
+    private final MutableBidirectionalOneToManyRepresentativeMap<DexMethod, DexMethod>
+        newMethodSignatures = new BidirectionalOneToManyRepresentativeHashMap<>();
 
     private Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod =
         new IdentityHashMap<>();
@@ -133,6 +137,19 @@ class EnumUnboxingLens extends NestedGraphLens {
           to,
           RewrittenPrototypeDescription.createForRewrittenTypes(returnInfo, builder.build())
               .withExtraUnusedNullParameters(numberOfExtraNullParameters));
+    }
+
+    void recordCheckNotZeroMethod(
+        ProgramMethod checkNotNullMethod, ProgramMethod checkNotZeroMethod) {
+      DexMethod originalCheckNotNullMethodSignature =
+          newMethodSignatures.getKeyOrDefault(
+              checkNotNullMethod.getReference(), checkNotNullMethod.getReference());
+      newMethodSignatures.put(
+          originalCheckNotNullMethodSignature, checkNotNullMethod.getReference());
+      newMethodSignatures.put(
+          originalCheckNotNullMethodSignature, checkNotZeroMethod.getReference());
+      newMethodSignatures.setRepresentative(
+          originalCheckNotNullMethodSignature, checkNotNullMethod.getReference());
     }
 
     public EnumUnboxingLens build(AppView<?> appView) {

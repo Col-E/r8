@@ -114,7 +114,6 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1041,16 +1040,6 @@ public class IRConverter {
     return options.useSmaliSyntax ? method.toSmaliString(null) : method.codeToString();
   }
 
-  List<CodeOptimization> getOptimizationsForPrimaryIRProcessing() {
-    // TODO(b/140766440): Remove unnecessary steps once all sub steps are converted.
-    return ImmutableList.of(this::optimize);
-  }
-
-  List<CodeOptimization> getOptimizationsForPostIRProcessing() {
-    // TODO(b/140766440): Remove unnecessary steps once all sub steps are converted.
-    return ImmutableList.of(this::optimize);
-  }
-
   // TODO(b/140766440): Make this receive a list of CodeOptimizations to conduct.
   public Timing processDesugaredMethod(
       ProgramMethod method,
@@ -1676,7 +1665,13 @@ public class IRConverter {
           .recordStaticValues(method.getHolder(), staticFieldValues);
     }
     methodOptimizationInfoCollector.collectMethodOptimizationInfo(
-        method, code, feedback, dynamicTypeOptimization, instanceFieldInitializationInfos, timing);
+        method,
+        code,
+        feedback,
+        dynamicTypeOptimization,
+        instanceFieldInitializationInfos,
+        methodProcessor,
+        timing);
   }
 
   public void removeDeadCodeAndFinalizeIR(

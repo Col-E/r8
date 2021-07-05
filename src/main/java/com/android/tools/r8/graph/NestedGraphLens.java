@@ -12,6 +12,7 @@ import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentati
 import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -33,7 +34,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
   protected static final Map<DexType, DexType> EMPTY_TYPE_MAP = Collections.emptyMap();
 
   protected final BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap;
-  protected final Map<DexMethod, DexMethod> methodMap;
+  protected final Function<DexMethod, DexMethod> methodMap;
   protected final Map<DexType, DexType> typeMap;
 
   // Map that stores the new signature of methods that have been affected by class merging, unused
@@ -84,11 +85,20 @@ public class NestedGraphLens extends NonIdentityGraphLens {
       Map<DexMethod, DexMethod> methodMap,
       Map<DexType, DexType> typeMap,
       BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> newMethodSignatures) {
-    super(appView);
+    this(appView, fieldMap, methodMap::get, typeMap, newMethodSignatures);
     assert !typeMap.isEmpty()
         || !methodMap.isEmpty()
         || !fieldMap.isEmpty()
         || isLegitimateToHaveEmptyMappings();
+  }
+
+  public NestedGraphLens(
+      AppView<?> appView,
+      BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
+      Function<DexMethod, DexMethod> methodMap,
+      Map<DexType, DexType> typeMap,
+      BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> newMethodSignatures) {
+    super(appView);
     this.fieldMap = fieldMap;
     this.methodMap = methodMap;
     this.typeMap = typeMap;
@@ -199,7 +209,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
     } else {
       // TODO(b/168282032): We should always have the rebound reference, so this should become
       //  unreachable.
-      DexMethod newMethod = methodMap.get(previous.getReference());
+      DexMethod newMethod = methodMap.apply(previous.getReference());
       if (newMethod == null) {
         return previous;
       }
@@ -305,13 +315,6 @@ public class NestedGraphLens extends NonIdentityGraphLens {
                 .append(from.getTypeName())
                 .append(" -> ")
                 .append(to.getTypeName())
-                .append(System.lineSeparator()));
-    methodMap.forEach(
-        (from, to) ->
-            builder
-                .append(from.toSourceString())
-                .append(" -> ")
-                .append(to.toSourceString())
                 .append(System.lineSeparator()));
     fieldMap.forEachManyToOneMapping(
         (fromSet, to) -> {

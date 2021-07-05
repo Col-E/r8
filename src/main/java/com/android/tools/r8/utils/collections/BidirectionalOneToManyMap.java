@@ -22,4 +22,6 @@ public interface BidirectionalOneToManyMap<K, V> extends BidirectionalManyToMany
   Set<V> getOrDefault(Object key, Set<V> defaultValue);
 
   K getKey(V value);
+
+  K getKeyOrDefault(V value, K defaultValue);
 }

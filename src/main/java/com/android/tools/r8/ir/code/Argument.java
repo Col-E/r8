@@ -32,6 +32,10 @@ public class Argument extends Instruction {
     this.knownToBeBoolean = knownToBeBoolean;
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   public int getIndex() {
     assert verifyIndex();
     return index;
@@ -140,5 +144,26 @@ public class Argument extends Instruction {
   @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
+  }
+
+  public static class Builder extends BuilderBase<Builder, Argument> {
+
+    private int index;
+    private boolean knownToBeBoolean;
+
+    public Builder setIndex(int index) {
+      this.index = index;
+      return this;
+    }
+
+    @Override
+    public Argument build() {
+      return amend(new Argument(outValue, index, knownToBeBoolean));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }

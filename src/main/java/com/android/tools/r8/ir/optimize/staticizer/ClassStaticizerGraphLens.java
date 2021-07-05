@@ -22,7 +22,7 @@ class ClassStaticizerGraphLens extends NestedGraphLens {
 
   @Override
   protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
-    if (methodMap.get(originalMethod) == newMethod) {
+    if (methodMap.apply(originalMethod) == newMethod) {
       assert type == Type.VIRTUAL || type == Type.DIRECT;
       return Type.STATIC;
     }

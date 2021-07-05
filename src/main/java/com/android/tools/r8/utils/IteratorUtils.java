@@ -155,6 +155,12 @@ public class IteratorUtils {
     removeIf((Iterator<Instruction>) iterator, predicate);
   }
 
+  public static void skip(InstructionIterator iterator, int times) {
+    for (int i = 0; i < times; i++) {
+      iterator.next();
+    }
+  }
+
   public static <T> boolean allRemainingMatch(ListIterator<T> iterator, Predicate<T> predicate) {
     return !anyRemainingMatch(iterator, remaining -> !predicate.test(remaining));
   }

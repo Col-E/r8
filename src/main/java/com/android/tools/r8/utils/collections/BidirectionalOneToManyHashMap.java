@@ -78,6 +78,11 @@ public class BidirectionalOneToManyHashMap<K, V> implements MutableBidirectional
   }
 
   @Override
+  public K getKeyOrDefault(V value, K defaultValue) {
+    return inverse.getOrDefault(value, defaultValue);
+  }
+
+  @Override
   public Set<K> getKeys(V value) {
     K key = inverse.get(value);
     return key != null ? Collections.singleton(key) : Collections.emptySet();

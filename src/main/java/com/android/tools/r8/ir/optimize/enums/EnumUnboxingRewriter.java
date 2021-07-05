@@ -34,6 +34,8 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
+import com.android.tools.r8.ir.optimize.enums.classification.CheckNotNullEnumUnboxerMethodClassification;
+import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -48,6 +50,7 @@ import java.util.Set;
 public class EnumUnboxingRewriter {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping;
   private final IRConverter converter;
   private final DexItemFactory factory;
   private final InternalOptions options;
@@ -57,11 +60,13 @@ public class EnumUnboxingRewriter {
 
   EnumUnboxingRewriter(
       AppView<AppInfoWithLiveness> appView,
+      Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping,
       IRConverter converter,
       EnumUnboxingLens enumUnboxingLens,
       EnumDataMap unboxedEnumsInstanceFieldData,
       EnumUnboxingUtilityClasses utilityClasses) {
     this.appView = appView;
+    this.checkNotNullToCheckNotZeroMapping = checkNotNullToCheckNotZeroMapping;
     this.converter = converter;
     this.factory = appView.dexItemFactory();
     this.options = appView.options();
@@ -391,6 +396,29 @@ public class EnumUnboxingRewriter {
         }
       }
       return;
+    }
+
+    if (singleTarget.isProgramMethod()) {
+      EnumUnboxerMethodClassification classification =
+          singleTarget.getOptimizationInfo().getEnumUnboxerMethodClassification();
+      if (classification.isCheckNotNullClassification()) {
+        CheckNotNullEnumUnboxerMethodClassification checkNotNullClassification =
+            classification.asCheckNotNullClassification();
+        Value argument = invoke.getArgument(checkNotNullClassification.getArgumentIndex());
+        DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
+        if (enumType != null) {
+          InvokeStatic replacement =
+              InvokeStatic.builder()
+                  .setMethod(checkNotNullToCheckNotZeroMapping.get(singleTarget.getReference()))
+                  .setArguments(invoke.arguments())
+                  .setPosition(invoke.getPosition())
+                  .build();
+          instructionIterator.replaceCurrentInstruction(replacement);
+          convertedEnums.put(replacement, enumType);
+        }
+      } else {
+        assert !checkNotNullToCheckNotZeroMapping.containsKey(singleTarget.getReference());
+      }
     }
   }
 

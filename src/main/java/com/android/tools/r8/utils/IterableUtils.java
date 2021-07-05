@@ -62,10 +62,11 @@ public class IterableUtils {
     return Collections.unmodifiableList(list);
   }
 
-  public static <T> T findOrDefault(Iterable<T> iterable, Predicate<T> predicate, T defaultValue) {
+  public static <T, R extends T> R findOrDefault(
+      Iterable<T> iterable, Predicate<T> predicate, R defaultValue) {
     for (T element : iterable) {
       if (predicate.test(element)) {
-        return element;
+        return (R) element;
       }
     }
     return defaultValue;

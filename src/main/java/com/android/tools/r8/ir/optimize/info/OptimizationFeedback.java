@@ -36,6 +36,10 @@ public abstract class OptimizationFeedback
     }
   }
 
+  public static OptimizationFeedbackSimple getSimple() {
+    return OptimizationFeedbackSimple.getInstance();
+  }
+
   public void fixupOptimizationInfos(
       AppView<?> appView, ExecutorService executorService, OptimizationInfoFixer fixer)
       throws ExecutionException {

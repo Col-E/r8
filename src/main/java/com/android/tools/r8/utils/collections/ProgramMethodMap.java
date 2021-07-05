@@ -10,7 +10,9 @@ import com.google.common.base.Equivalence.Wrapper;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -24,6 +26,10 @@ public class ProgramMethodMap<V> {
 
   public static <V> ProgramMethodMap<V> create() {
     return new ProgramMethodMap<>(HashMap::new);
+  }
+
+  public static <V> ProgramMethodMap<V> createConcurrent() {
+    return new ProgramMethodMap<>(ConcurrentHashMap::new);
   }
 
   public static <V> ProgramMethodMap<V> createLinked() {
@@ -49,6 +55,10 @@ public class ProgramMethodMap<V> {
   public V put(ProgramMethod method, V value) {
     Wrapper<ProgramMethod> wrapper = ProgramMethodEquivalence.get().wrap(method);
     return backing.put(wrapper, value);
+  }
+
+  public void removeIf(BiPredicate<ProgramMethod, V> predicate) {
+    backing.entrySet().removeIf(entry -> predicate.test(entry.getKey().get(), entry.getValue()));
   }
 
   private static Wrapper<ProgramMethod> wrap(ProgramMethod method) {

@@ -848,6 +848,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return classFileVersion;
   }
 
+  public CfVersion getClassFileVersionOrElse(CfVersion defaultValue) {
+    return hasClassFileVersion() ? getClassFileVersion() : defaultValue;
+  }
+
   public boolean hasClassFileVersion() {
     checkIfObsolete();
     return classFileVersion != null;

@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.ir.optimize.enums.classification;
 
+import static com.android.tools.r8.ir.code.Opcodes.ASSUME;
+import static com.android.tools.r8.ir.code.Opcodes.IF;
+import static com.android.tools.r8.ir.code.Opcodes.RETURN;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -15,6 +19,7 @@ import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Set;
 
@@ -26,7 +31,10 @@ public class EnumUnboxerMethodClassificationAnalysis {
    * type Object, which has a single if-zero user.
    */
   public static EnumUnboxerMethodClassification analyze(
-      AppView<AppInfoWithLiveness> appView, ProgramMethod method, IRCode code) {
+      AppView<AppInfoWithLiveness> appView,
+      ProgramMethod method,
+      IRCode code,
+      MethodProcessor methodProcessor) {
     if (!appView.options().enableEnumUnboxing) {
       // The classification is unused when enum unboxing is disabled.
       return EnumUnboxerMethodClassification.unknown();
@@ -47,7 +55,7 @@ public class EnumUnboxerMethodClassificationAnalysis {
       }
 
       Argument argument = entryIterator.next().asArgument();
-      if (hasSingleIfZeroUser(argument)) {
+      if (onlyHasCheckNotNullUsers(argument, methodProcessor)) {
         return new CheckNotNullEnumUnboxerMethodClassification(index);
       }
     }
@@ -55,20 +63,44 @@ public class EnumUnboxerMethodClassificationAnalysis {
     return EnumUnboxerMethodClassification.unknown();
   }
 
-  private static boolean hasSingleIfZeroUser(Argument argument) {
+  private static boolean onlyHasCheckNotNullUsers(
+      Argument argument, MethodProcessor methodProcessor) {
+    // Check that the argument has an if-zero user and a return user (optional).
     Value value = argument.outValue();
     if (value.hasDebugUsers() || value.hasPhiUsers()) {
       return false;
     }
-    Set<Instruction> users = value.uniqueUsers();
-    if (users.size() != 1) {
-      return false;
+    Set<Instruction> users = value.aliasedUsers();
+    boolean seenIf = false;
+    for (Instruction user : users) {
+      switch (user.opcode()) {
+        case ASSUME:
+          if (user.outValue().hasDebugUsers() || user.outValue().hasPhiUsers()) {
+            return false;
+          }
+          break;
+        case IF:
+          {
+            If ifUser = user.asIf();
+            if (!ifUser.isZeroTest()
+                || (ifUser.getType() != Type.EQ && ifUser.getType() != Type.NE)) {
+              return false;
+            }
+            seenIf = true;
+            break;
+          }
+        case RETURN:
+          break;
+        default:
+          return false;
+      }
     }
-    Instruction user = users.iterator().next();
-    if (!user.isIf()) {
-      return false;
-    }
-    If ifUser = user.asIf();
-    return ifUser.isZeroTest() && (ifUser.getType() == Type.EQ || ifUser.getType() == Type.NE);
+
+    // During the primary optimization pass, we require seeing an if instruction (to limit the
+    // amount of method duplication). For monotonicity, we do not require seeing an if instruction
+    // in the subsequent optimization passes, since the if instruction that lead us to return a
+    // CheckNotNullEnumUnboxerMethodClassification may be eliminated by (for example) the call site
+    // optimization.
+    return !methodProcessor.isPrimaryMethodProcessor() || seenIf;
   }
 }

@@ -51,6 +51,10 @@ public class Return extends JumpInstruction {
     return returnValue().getType();
   }
 
+  public boolean hasReturnValue() {
+    return !isReturnVoid();
+  }
+
   public Value returnValue() {
     assert !isReturnVoid();
     return inValues.get(0);

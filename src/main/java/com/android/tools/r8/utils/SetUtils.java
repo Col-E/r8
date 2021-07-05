@@ -13,6 +13,15 @@ import java.util.function.Function;
 
 public class SetUtils {
 
+  public static <T> boolean containsAnyOf(Set<T> set, Iterable<T> elements) {
+    for (T element : elements) {
+      if (set.contains(element)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public static <T> Set<T> newIdentityHashSet(T element) {
     Set<T> result = Sets.newIdentityHashSet();
     result.add(element);

@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.ir.optimize.enums.classification;
 
+import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.Value;
+
 public final class CheckNotNullEnumUnboxerMethodClassification
     extends EnumUnboxerMethodClassification {
 
@@ -15,6 +18,16 @@ public final class CheckNotNullEnumUnboxerMethodClassification
 
   public int getArgumentIndex() {
     return argumentIndex;
+  }
+
+  public boolean isUseEligibleForUnboxing(InvokeStatic invoke, Value enumValue) {
+    for (int argumentIndex = 0; argumentIndex < invoke.arguments().size(); argumentIndex++) {
+      Value argument = invoke.getArgument(argumentIndex);
+      if (argument == enumValue && argumentIndex != getArgumentIndex()) {
+        return false;
+      }
+    }
+    return invoke.hasUnusedOutValue();
   }
 
   @Override

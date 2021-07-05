@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.enums;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
+import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -18,6 +19,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
@@ -36,19 +38,28 @@ import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
+import com.android.tools.r8.ir.optimize.enums.classification.CheckNotNullEnumUnboxerMethodClassification;
+import com.android.tools.r8.ir.optimize.enums.code.CheckNotZeroCode;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.ImmutableArrayUtils;
 import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -62,6 +73,7 @@ class EnumUnboxingTreeFixer {
 
   private final EnumUnboxingLens.Builder lensBuilder;
   private final AppView<AppInfoWithLiveness> appView;
+  private final ProgramMethodMap<Set<DexProgramClass>> checkNotNullMethods;
   private final DexItemFactory factory;
   private final EnumDataMap enumDataMap;
   private final Set<DexProgramClass> unboxedEnums;
@@ -69,10 +81,12 @@ class EnumUnboxingTreeFixer {
 
   EnumUnboxingTreeFixer(
       AppView<AppInfoWithLiveness> appView,
+      ProgramMethodMap<Set<DexProgramClass>> checkNotNullMethods,
       EnumDataMap enumDataMap,
       Set<DexProgramClass> unboxedEnums,
       EnumUnboxingUtilityClasses utilityClasses) {
     this.appView = appView;
+    this.checkNotNullMethods = checkNotNullMethods;
     this.enumDataMap = enumDataMap;
     this.factory = appView.dexItemFactory();
     this.lensBuilder =
@@ -117,8 +131,81 @@ class EnumUnboxingTreeFixer {
       }
     }
 
-    return new Result(lensBuilder.build(appView), prunedItemsBuilder.build());
+    // Create mapping from checkNotNull() to checkNotZero() methods.
+    Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping =
+        duplicateCheckNotNullMethods(converter, executorService);
+
+    return new Result(
+        checkNotNullToCheckNotZeroMapping, lensBuilder.build(appView), prunedItemsBuilder.build());
   }
+
+  private Map<DexMethod, DexMethod> duplicateCheckNotNullMethods(
+      IRConverter converter, ExecutorService executorService) throws ExecutionException {
+    Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping = new IdentityHashMap<>();
+    ProcessorContext processorContext = appView.createProcessorContext();
+    OneTimeMethodProcessor.Builder methodProcessorBuilder =
+        OneTimeMethodProcessor.builder(processorContext);
+
+    // Only duplicate checkNotNull() methods that are required for enum unboxing.
+    checkNotNullMethods.removeIf(
+        (checkNotNullMethod, dependentEnums) ->
+            !SetUtils.containsAnyOf(unboxedEnums, dependentEnums));
+
+    // For each checkNotNull() method, synthesize a free flowing static checkNotZero() method that
+    // takes an int instead of an Object with the same implementation.
+    checkNotNullMethods.forEach(
+        (checkNotNullMethod, dependentEnums) -> {
+          CheckNotNullEnumUnboxerMethodClassification checkNotNullClassification =
+              checkNotNullMethod
+                  .getOptimizationInfo()
+                  .getEnumUnboxerMethodClassification()
+                  .asCheckNotNullClassification();
+          DexProto newProto =
+              factory.createProto(
+                  factory.voidType,
+                  ImmutableArrayUtils.set(
+                      checkNotNullMethod.getParameters().getBacking(),
+                      checkNotNullClassification.getArgumentIndex(),
+                      factory.intType));
+          ProgramMethod checkNotZeroMethod =
+              appView
+                  .getSyntheticItems()
+                  .createMethod(
+                      SyntheticKind.ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD,
+                      // Use the context of the checkNotNull() method to ensure the method is placed
+                      // in the same feature split.
+                      processorContext
+                          .createMethodProcessingContext(checkNotNullMethod)
+                          .createUniqueContext(),
+                      appView,
+                      builder ->
+                          builder
+                              .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                              .setClassFileVersion(
+                                  checkNotNullMethod
+                                      .getDefinition()
+                                      .getClassFileVersionOrElse(null))
+                              .setCode(method -> new CheckNotZeroCode(checkNotNullMethod))
+                              .setProto(newProto));
+          checkNotNullToCheckNotZeroMapping.put(
+              checkNotNullMethod.getReference(), checkNotZeroMethod.getReference());
+          lensBuilder.recordCheckNotZeroMethod(checkNotNullMethod, checkNotZeroMethod);
+          methodProcessorBuilder.add(checkNotZeroMethod);
+        });
+
+    // Convert each of the synthesized methods. These methods are converted eagerly, since their
+    // code objects are of type 'CheckNotZeroCode', which implements most methods using throw new
+    // Unreachable().
+    OneTimeMethodProcessor methodProcessor = methodProcessorBuilder.build();
+    methodProcessor.forEachWaveWithExtension(
+        (method, methodProcessingContext) ->
+            converter.processDesugaredMethod(
+                method, OptimizationFeedback.getSimple(), methodProcessor, methodProcessingContext),
+        executorService);
+
+    return checkNotNullToCheckNotZeroMapping;
+  }
+
 
   private void fixupEnumClassInitializers(IRConverter converter, ExecutorService executorService)
       throws ExecutionException {
@@ -532,12 +619,21 @@ class EnumUnboxingTreeFixer {
 
   public static class Result {
 
+    private final Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping;
     private final EnumUnboxingLens lens;
     private final PrunedItems prunedItems;
 
-    Result(EnumUnboxingLens lens, PrunedItems prunedItems) {
+    Result(
+        Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping,
+        EnumUnboxingLens lens,
+        PrunedItems prunedItems) {
+      this.checkNotNullToCheckNotZeroMapping = checkNotNullToCheckNotZeroMapping;
       this.lens = lens;
       this.prunedItems = prunedItems;
+    }
+
+    Map<DexMethod, DexMethod> getCheckNotNullToCheckNotZeroMapping() {
+      return checkNotNullToCheckNotZeroMapping;
     }
 
     EnumUnboxingLens getLens() {

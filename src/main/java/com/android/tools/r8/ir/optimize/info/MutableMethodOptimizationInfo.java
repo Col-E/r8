@@ -256,6 +256,9 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
 
   void setEnumUnboxerMethodClassification(
       EnumUnboxerMethodClassification enumUnboxerMethodClassification) {
+    // Check monotonicity.
+    assert !this.enumUnboxerMethodClassification.isCheckNotNullClassification()
+        || enumUnboxerMethodClassification.isCheckNotNullClassification();
     this.enumUnboxerMethodClassification = enumUnboxerMethodClassification;
   }
 

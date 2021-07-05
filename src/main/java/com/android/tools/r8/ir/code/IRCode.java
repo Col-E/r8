@@ -1305,6 +1305,10 @@ public class IRCode implements ValueFactory {
     }
   }
 
+  public LinkedList<BasicBlock> getBlocks() {
+    return blocks;
+  }
+
   /**
    * Returns the set of blocks that are reachable from the given source. The source itself is only
    * included if there is a path from the given block to itself.

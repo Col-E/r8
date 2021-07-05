@@ -122,7 +122,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
         }
       }
     }
-    DexMethod newMethod = methodMap.get(previous.getReference());
+    DexMethod newMethod = methodMap.apply(previous.getReference());
     if (newMethod == null) {
       return previous;
     }

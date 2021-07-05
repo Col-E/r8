@@ -102,6 +102,10 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return inValues().get(index);
   }
 
+  public Value getFirstOperand() {
+    return getOperand(0);
+  }
+
   public List<Value> inValues() {
     return inValues;
   }
