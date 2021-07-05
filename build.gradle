@@ -45,7 +45,7 @@ ext {
     mockitoVersion = '2.10.0'
     // The kotlin version is only here to specify the kotlin language level,
     // all kotlin compilations are done in tests.
-    kotlinVersion = '1.3.72'
+    kotlinVersion = '1.5.0'
     kotlinExtMetadataJVMVersion = '0.2.0'
     smaliVersion = '2.2b4'
     errorproneVersion = '2.3.2'
