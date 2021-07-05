@@ -40,7 +40,7 @@ public class SyntheticNaming {
     HORIZONTAL_INIT_TYPE_ARGUMENT_2(SYNTHETIC_CLASS_SEPARATOR + "IA$2", 7, false, true),
     HORIZONTAL_INIT_TYPE_ARGUMENT_3(SYNTHETIC_CLASS_SEPARATOR + "IA$3", 8, false, true),
     // Method synthetics.
-    ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD("CheckNotZero", 26, true),
+    ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD("CheckNotZero", 27, true),
     RECORD_HELPER("Record", 9, true),
     BACKPORT("Backport", 10, true),
     STATIC_INTERFACE_CALL("StaticInterfaceCall", 11, true),
