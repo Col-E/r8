@@ -11,6 +11,7 @@ import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.getEmu
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
+import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 import static java.util.Collections.emptySet;
 
 import com.android.tools.r8.Diagnostic;
@@ -111,14 +112,15 @@ import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLook
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringTypeLookupResult;
 import com.android.tools.r8.shaking.AnnotationMatchResult.MatchedAnnotation;
 import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
+import com.android.tools.r8.shaking.EnqueuerEvent.ClassEnqueuerEvent;
+import com.android.tools.r8.shaking.EnqueuerEvent.InstantiatedClassEnqueuerEvent;
+import com.android.tools.r8.shaking.EnqueuerEvent.LiveClassEnqueuerEvent;
 import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
-import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.shaking.KeepInfoCollection.MutableKeepInfoCollection;
 import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSetBuilder;
 import com.android.tools.r8.shaking.RootSetUtils.ItemsWithRules;
-import com.android.tools.r8.shaking.RootSetUtils.MutableItemsWithRules;
 import com.android.tools.r8.shaking.RootSetUtils.RootSet;
 import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
@@ -135,7 +137,9 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
+import com.android.tools.r8.utils.collections.ProgramFieldMap;
 import com.android.tools.r8.utils.collections.ProgramFieldSet;
+import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
@@ -283,6 +287,10 @@ public class Enqueuer {
    */
   private final SetWithReportedReason<DexProgramClass> liveTypes = new SetWithReportedReason<>();
 
+  /** Set of interfaces that have been transitioned to being instantiated indirectly. */
+  private final Set<DexProgramClass> interfacesTransitionedToInstantiated =
+      Sets.newIdentityHashSet();
+
   /** Set of classes whose initializer may execute. */
   private final SetWithReportedReason<DexProgramClass> initializedClasses =
       new SetWithReportedReason<>();
@@ -376,6 +384,30 @@ public class Enqueuer {
 
   /** Collection of keep requirements for the program. */
   private final MutableKeepInfoCollection keepInfo = new MutableKeepInfoCollection();
+
+  /**
+   * The minimum keep info for classes, fields, and methods. The minimum keep info for a program
+   * item should be applied to the {@link KeepInfo} of that item when the item becomes live.
+   */
+  private final Map<DexProgramClass, KeepClassInfo.Joiner> minimumKeepClassInfo =
+      new IdentityHashMap<>();
+
+  private final ProgramFieldMap<KeepFieldInfo.Joiner> minimumKeepFieldInfo =
+      ProgramFieldMap.create();
+  private final ProgramMethodMap<KeepMethodInfo.Joiner> minimumKeepMethodInfo =
+      ProgramMethodMap.create();
+
+  /**
+   * Conditional minimum keep info for classes, fields, and methods, which should only be applied if
+   * the outermost {@link EnqueuerEvent} is triggered during tracing (e.g., class X becomes live).
+   */
+  private final Map<EnqueuerEvent, Map<DexProgramClass, KeepClassInfo.Joiner>>
+      dependentMinimumKeepClassInfo = new HashMap<>();
+
+  private final Map<EnqueuerEvent, ProgramFieldMap<KeepFieldInfo.Joiner>>
+      dependentMinimumKeepFieldInfo = new HashMap<>();
+  private final Map<EnqueuerEvent, ProgramMethodMap<KeepMethodInfo.Joiner>>
+      dependentMinimumKeepMethodInfo = new HashMap<>();
 
   /**
    * A set of seen const-class references that serve as an initial lock-candidate set and will
@@ -861,10 +893,6 @@ public class Enqueuer {
     keepMethodWithRules(method, rules);
     workList.enqueueMarkMethodKeptAction(
         method, graphReporter.reportKeepMethod(precondition, rules, method.getDefinition()));
-  }
-
-  private void enqueueRootItem(ProgramDefinition item, Set<ProguardKeepRuleBase> rules) {
-    internalEnqueueRootItem(item, rules, null);
   }
 
   private void internalEnqueueRootItem(
@@ -1830,7 +1858,9 @@ public class Enqueuer {
       enqueueFirstNonSerializableClassInitializer(clazz, reason);
     }
 
-    checkDefinitionForSoftPinning(clazz);
+    // Update keep info.
+    applyMinimumKeepInfo(clazz);
+    applyMinimumKeepInfoDependentOn(new LiveClassEnqueuerEvent(clazz));
 
     processAnnotations(clazz);
 
@@ -2622,16 +2652,46 @@ public class Enqueuer {
   }
 
   private void transitionDependentItemsForInstantiatedItem(DexProgramClass clazz) {
-    do {
-      // Handle keep rules that are dependent on the class being instantiated.
-      rootSet.forEachDependentNonStaticMember(clazz, appView, this::enqueueDependentMember);
+    WorkList<DexProgramClass> interfacesToTransition =
+        WorkList.newWorkList(interfacesTransitionedToInstantiated);
+    if (clazz.getAccessFlags().isInterface()) {
+      interfacesToTransition.addIfNotSeen(clazz);
+    } else {
+      do {
+        // Handle keep rules that are dependent on the class being instantiated.
+        rootSet.forEachDependentNonStaticMember(clazz, appView, this::enqueueDependentMember);
+        applyMinimumKeepInfoDependentOn(new InstantiatedClassEnqueuerEvent(clazz));
 
-      // Visit the super type.
-      clazz =
-          clazz.superType != null
-              ? asProgramClassOrNull(appView.definitionFor(clazz.superType))
-              : null;
-    } while (clazz != null && !objectAllocationInfoCollection.isInstantiatedDirectly(clazz));
+        for (DexType interfaceType : clazz.getInterfaces()) {
+          DexProgramClass interfaceClass =
+              asProgramClassOrNull(definitionFor(interfaceType, clazz));
+          if (interfaceClass != null) {
+            interfacesToTransition.addIfNotSeen(interfaceClass);
+          }
+        }
+
+        // Visit the super type.
+        clazz =
+            clazz.superType != null
+                ? asProgramClassOrNull(appView.definitionFor(clazz.superType))
+                : null;
+      } while (clazz != null && !objectAllocationInfoCollection.isInstantiatedDirectly(clazz));
+    }
+
+    while (interfacesToTransition.hasNext()) {
+      DexProgramClass interfaceClass = interfacesToTransition.next();
+      rootSet.forEachDependentNonStaticMember(
+          interfaceClass, appView, this::enqueueDependentMember);
+      applyMinimumKeepInfoDependentOn(new InstantiatedClassEnqueuerEvent(interfaceClass));
+
+      for (DexType indirectInterfaceType : interfaceClass.getInterfaces()) {
+        DexProgramClass indirectInterfaceClass =
+            asProgramClassOrNull(definitionFor(indirectInterfaceType, interfaceClass));
+        if (indirectInterfaceClass != null) {
+          interfacesToTransition.addIfNotSeen(indirectInterfaceClass);
+        }
+      }
+    }
   }
 
   private void transitionUnusedInterfaceToLive(DexProgramClass clazz) {
@@ -2670,10 +2730,11 @@ public class Enqueuer {
       traceFieldDefinition(field);
     }
 
+    // Update keep info.
+    applyMinimumKeepInfo(field);
+
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(field.getDefinition()));
-
-    checkDefinitionForSoftPinning(field);
 
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processNewlyLiveField(field, context));
@@ -2773,6 +2834,27 @@ public class Enqueuer {
         : info.isWritten();
   }
 
+  public boolean isPreconditionForMinimumKeepInfoSatisfied(EnqueuerEvent preconditionEvent) {
+    if (preconditionEvent == null) {
+      return true;
+    }
+    if (preconditionEvent.isClassEvent()) {
+      ClassEnqueuerEvent classEvent = preconditionEvent.asClassEvent();
+      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(classEvent.getType()));
+      if (clazz == null) {
+        return false;
+      }
+      if (preconditionEvent.isLiveClassEvent()) {
+        return liveTypes.contains(clazz);
+      }
+      if (preconditionEvent.isInstantiatedClassEvent()) {
+        return objectAllocationInfoCollection.isInstantiatedDirectlyOrHasInstantiatedSubtype(clazz);
+      }
+    }
+    assert false;
+    return false;
+  }
+
   public boolean isMemberLive(DexEncodedMember<?, ?> member) {
     assert member != null;
     return member.isDexEncodedField()
@@ -2808,7 +2890,7 @@ public class Enqueuer {
   }
 
   public void forAllLiveClasses(Consumer<DexProgramClass> consumer) {
-    liveTypes.items.forEach(consumer);
+    liveTypes.getItems().forEach(consumer);
   }
 
   private void markVirtualMethodAsReachable(
@@ -3046,29 +3128,26 @@ public class Enqueuer {
     if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
       registerAnalysis(new ApiModelAnalysis(appView, apiReferenceLevelCache));
     }
+
+    // Transfer the minimum keep info from the root set into the Enqueuer state.
+    rootSet.forEachMinimumKeepInfo(
+        appView,
+        this::recordDependentMinimumKeepInfo,
+        this::recordDependentMinimumKeepInfo,
+        this::recordDependentMinimumKeepInfo);
+
     if (mode.isInitialTreeShaking()) {
       // This is simulating the effect of the "root set" applied rules.
       // This is done only in the initial pass, in subsequent passes the "rules" are reapplied
       // by iterating the instances.
-      assert appView.options().isAnnotationRemovalEnabled()
-          || rootSet.noAnnotationRemoval.isEmpty();
-      assert appView.options().isMinificationEnabled() || rootSet.noObfuscation.isEmpty();
-      for (DexReference reference : rootSet.noAnnotationRemoval) {
-        keepInfo.evaluateRule(reference, appInfo, Joiner::disallowAnnotationRemoval);
-      }
-      for (DexReference reference : rootSet.noObfuscation) {
-        keepInfo.evaluateRule(reference, appInfo, Joiner::disallowMinification);
-      }
     } else if (appView.getKeepInfo() != null) {
       appView
           .getKeepInfo()
-          .getRuleInstances()
-          .forEach(
-              (reference, rules) -> {
-                for (Consumer<Joiner<?, ?, ?>> rule : rules) {
-                  keepInfo.evaluateRule(reference, appInfo, rule);
-                }
-              });
+          .forEachRuleInstance(
+              appView,
+              this::applyMinimumKeepInfoWhenLive,
+              this::applyMinimumKeepInfoWhenLive,
+              this::applyMinimumKeepInfoWhenLiveOrTargeted);
     }
     if (appView.options().isShrinking() || appView.options().getProguardConfiguration() == null) {
       enqueueRootItems(rootSet.noShrinking);
@@ -3106,16 +3185,131 @@ public class Enqueuer {
     return createEnqueuerResult(appInfo);
   }
 
+  private void applyMinimumKeepInfo(DexProgramClass clazz) {
+    KeepClassInfo.Joiner minimumKeepInfoForClass = minimumKeepClassInfo.remove(clazz);
+    if (minimumKeepInfoForClass != null) {
+      keepInfo.joinClass(clazz, info -> info.merge(minimumKeepInfoForClass));
+    }
+  }
+
+  private void applyMinimumKeepInfoWhenLive(
+      DexProgramClass clazz, KeepClassInfo.Joiner minimumKeepInfo) {
+    if (liveTypes.contains(clazz)) {
+      keepInfo.joinClass(clazz, info -> info.merge(minimumKeepInfo));
+    } else {
+      minimumKeepClassInfo
+          .computeIfAbsent(clazz, ignoreKey(KeepClassInfo::newEmptyJoiner))
+          .merge(minimumKeepInfo);
+    }
+  }
+
+  private void recordDependentMinimumKeepInfo(
+      EnqueuerEvent preconditionEvent,
+      DexProgramClass clazz,
+      KeepClassInfo.Joiner minimumKeepInfo) {
+    if (isPreconditionForMinimumKeepInfoSatisfied(preconditionEvent)) {
+      applyMinimumKeepInfoWhenLive(clazz, minimumKeepInfo);
+    } else {
+      dependentMinimumKeepClassInfo
+          .computeIfAbsent(preconditionEvent, ignoreKey(IdentityHashMap::new))
+          .computeIfAbsent(clazz, ignoreKey(KeepClassInfo::newEmptyJoiner))
+          .merge(minimumKeepInfo);
+    }
+  }
+
+  private void applyMinimumKeepInfo(ProgramField field) {
+    KeepFieldInfo.Joiner minimumKeepInfoForField = minimumKeepFieldInfo.remove(field);
+    if (minimumKeepInfoForField != null) {
+      keepInfo.joinField(field, info -> info.merge(minimumKeepInfoForField));
+    }
+  }
+
+  private void applyMinimumKeepInfoWhenLive(
+      ProgramField field, KeepFieldInfo.Joiner minimumKeepInfo) {
+    if (liveFields.contains(field)) {
+      keepInfo.joinField(field, info -> info.merge(minimumKeepInfo));
+    } else {
+      minimumKeepFieldInfo
+          .computeIfAbsent(field, ignoreKey(KeepFieldInfo::newEmptyJoiner))
+          .merge(minimumKeepInfo);
+    }
+  }
+
+  private void recordDependentMinimumKeepInfo(
+      EnqueuerEvent preconditionEvent, ProgramField field, KeepFieldInfo.Joiner minimumKeepInfo) {
+    if (isPreconditionForMinimumKeepInfoSatisfied(preconditionEvent)) {
+      applyMinimumKeepInfoWhenLive(field, minimumKeepInfo);
+    } else {
+      dependentMinimumKeepFieldInfo
+          .computeIfAbsent(preconditionEvent, ignoreKey(ProgramFieldMap::create))
+          .computeIfAbsent(field, ignoreKey(KeepFieldInfo::newEmptyJoiner))
+          .merge(minimumKeepInfo);
+    }
+  }
+
+  private void applyMinimumKeepInfo(ProgramMethod method) {
+    KeepMethodInfo.Joiner minimumKeepInfoForMethod = minimumKeepMethodInfo.remove(method);
+    if (minimumKeepInfoForMethod != null) {
+      keepInfo.joinMethod(method, info -> info.merge(minimumKeepInfoForMethod));
+    }
+  }
+
+  private void applyMinimumKeepInfoWhenLiveOrTargeted(
+      ProgramMethod method, KeepMethodInfo.Joiner minimumKeepInfo) {
+    if (liveMethods.contains(method) || targetedMethods.contains(method)) {
+      keepInfo.joinMethod(method, info -> info.merge(minimumKeepInfo));
+    } else {
+      minimumKeepMethodInfo
+          .computeIfAbsent(method, ignoreKey(KeepMethodInfo::newEmptyJoiner))
+          .merge(minimumKeepInfo);
+    }
+  }
+
+  private void recordDependentMinimumKeepInfo(
+      EnqueuerEvent preconditionEvent,
+      ProgramMethod method,
+      KeepMethodInfo.Joiner minimumKeepInfo) {
+    if (isPreconditionForMinimumKeepInfoSatisfied(preconditionEvent)) {
+      applyMinimumKeepInfoWhenLiveOrTargeted(method, minimumKeepInfo);
+    } else {
+      dependentMinimumKeepMethodInfo
+          .computeIfAbsent(preconditionEvent, ignoreKey(ProgramMethodMap::create))
+          .computeIfAbsent(method, ignoreKey(KeepMethodInfo::newEmptyJoiner))
+          .merge(minimumKeepInfo);
+    }
+  }
+
+  private void applyMinimumKeepInfoDependentOn(EnqueuerEvent precondition) {
+    Map<DexProgramClass, KeepClassInfo.Joiner> minimumKeepClassInfoDependentOnPrecondition =
+        dependentMinimumKeepClassInfo.remove(precondition);
+    if (minimumKeepClassInfoDependentOnPrecondition != null) {
+      minimumKeepClassInfoDependentOnPrecondition.forEach(this::applyMinimumKeepInfoWhenLive);
+    }
+
+    ProgramFieldMap<KeepFieldInfo.Joiner> minimumKeepFieldInfoDependentOnPrecondition =
+        dependentMinimumKeepFieldInfo.remove(precondition);
+    if (minimumKeepFieldInfoDependentOnPrecondition != null) {
+      minimumKeepFieldInfoDependentOnPrecondition.forEach(this::applyMinimumKeepInfoWhenLive);
+    }
+
+    ProgramMethodMap<KeepMethodInfo.Joiner> minimumKeepMethodInfoDependentOnPrecondition =
+        dependentMinimumKeepMethodInfo.remove(precondition);
+    if (minimumKeepMethodInfoDependentOnPrecondition != null) {
+      minimumKeepMethodInfoDependentOnPrecondition.forEach(
+          this::applyMinimumKeepInfoWhenLiveOrTargeted);
+    }
+  }
+
   private void keepClassWithRules(DexProgramClass clazz, Set<ProguardKeepRuleBase> rules) {
     keepInfo.joinClass(clazz, info -> applyKeepRules(clazz, rules, info));
   }
 
-  private void keepMethodWithRules(ProgramMethod method, Set<ProguardKeepRuleBase> rules) {
-    keepInfo.joinMethod(method, info -> applyKeepRules(method, rules, info));
-  }
-
   private void keepFieldWithRules(ProgramField field, Set<ProguardKeepRuleBase> rules) {
     keepInfo.joinField(field, info -> applyKeepRules(field, rules, info));
+  }
+
+  private void keepMethodWithRules(ProgramMethod method, Set<ProguardKeepRuleBase> rules) {
+    keepInfo.joinMethod(method, info -> applyKeepRules(method, rules, info));
   }
 
   private void applyKeepRules(
@@ -3674,8 +3868,8 @@ public class Enqueuer {
         Set<DexEncodedMethod> reachableNotLive = Sets.difference(allLive, liveMethods.getItems());
         Log.debug(getClass(), "%s methods are reachable but not live", reachableNotLive.size());
         Log.info(getClass(), "Only reachable: %s", reachableNotLive);
-        SetView<DexEncodedMethod> targetedButNotLive = Sets
-            .difference(targetedMethods.getItems(), liveMethods.getItems());
+        SetView<DexEncodedMethod> targetedButNotLive =
+            Sets.difference(targetedMethods.getItems(), liveMethods.getItems());
         Log.debug(getClass(), "%s methods are targeted but not live", targetedButNotLive.size());
         Log.info(getClass(), "Targeted but not live: %s", targetedButNotLive);
       }
@@ -3715,7 +3909,7 @@ public class Enqueuer {
   }
 
   private long getNumberOfLiveItems() {
-    long result = liveTypes.items.size();
+    long result = liveTypes.getItems().size();
     result += liveMethods.items.size();
     result += liveFields.fields.size();
     return result;
@@ -3746,31 +3940,18 @@ public class Enqueuer {
             enqueueRootItems(dependentItems);
           }
         });
-    consequentRootSet.dependentSoftPinned.forEach(
-        (reference, dependentItems) -> {
-          if (isLiveProgramReference(reference)) {
-            dependentItems.forEachReference(
-                item -> {
-                  if (isLiveProgramReference(item)) {
-                    keepInfo.joinInfo(item, appView, Joiner::pin);
-                  }
-                });
-          }
-        });
 
     // TODO(b/132600955): This modifies the root set. Should the consequent be persistent?
     rootSet.addConsequentRootSet(consequentRootSet, addNoShrinking);
-    if (mode.isInitialTreeShaking()) {
-      for (DexReference reference : consequentRootSet.noAnnotationRemoval) {
-        keepInfo.evaluateRule(reference, appView, Joiner::disallowAnnotationRemoval);
-      }
-      for (DexReference reference : consequentRootSet.noObfuscation) {
-        keepInfo.evaluateRule(reference, appView, Joiner::disallowMinification);
-      }
-      consequentRootSet.softPinned.forEachReference(
-          reference -> keepInfo.evaluateRule(reference, appView, Joiner::pin));
-    }
+
     enqueueRootItems(consequentRootSet.noShrinking);
+
+    consequentRootSet.forEachMinimumKeepInfo(
+        appView,
+        this::recordDependentMinimumKeepInfo,
+        this::recordDependentMinimumKeepInfo,
+        this::recordDependentMinimumKeepInfo);
+
     // Check for compatibility rules indicating that the holder must be implicitly kept.
     if (forceProguardCompatibility) {
       consequentRootSet.dependentKeepClassCompatRule.forEach(
@@ -3781,19 +3962,6 @@ public class Enqueuer {
             compatEnqueueHolderIfDependentNonStaticMember(preconditionHolder, compatRules);
           });
     }
-  }
-
-  private boolean isLiveProgramReference(DexReference reference) {
-    if (reference.isDexType()) {
-      DexProgramClass clazz =
-          DexProgramClass.asProgramClassOrNull(appInfo().definitionFor(reference.asDexType()));
-      return clazz != null && isTypeLive(clazz);
-    }
-    DexMember<?, ?> member = reference.asDexMember();
-    DexProgramClass holder =
-        DexProgramClass.asProgramClassOrNull(appInfo().definitionFor(member.holder));
-    ProgramMember<?, ?> programMember = member.lookupOnProgramClass(holder);
-    return programMember != null && isMemberLive(programMember.getDefinition());
   }
 
   private ConsequentRootSet computeDelayedInterfaceMethodSyntheticBridges() {
@@ -4016,7 +4184,6 @@ public class Enqueuer {
   }
 
   void traceMethodDefinitionExcludingCode(ProgramMethod method) {
-    checkDefinitionForSoftPinning(method);
     markReferencedTypesAsLive(method);
     processAnnotations(method);
     method
@@ -4024,6 +4191,9 @@ public class Enqueuer {
         .getParameterAnnotations()
         .forEachAnnotation(
             annotation -> processAnnotation(method, annotation, AnnotatedKind.PARAMETER));
+
+    // Update keep info.
+    applyMinimumKeepInfo(method);
   }
 
   private void traceNonDesugaredCode(ProgramMethod method) {
@@ -4041,22 +4211,6 @@ public class Enqueuer {
     method.registerCodeReferences(registry);
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processTracedCode(method, registry));
-  }
-
-  private void checkDefinitionForSoftPinning(ProgramDefinition definition) {
-    DexReference reference = definition.getReference();
-    Set<ProguardKeepRuleBase> softPinRules = rootSet.softPinned.getRulesForReference(reference);
-    if (softPinRules != null) {
-      assert softPinRules.stream().noneMatch(r -> r.getModifiers().allowsOptimization);
-      keepInfo.joinInfo(reference, appInfo, Joiner::pin);
-    }
-    // Identify dependent soft pinning.
-    MutableItemsWithRules items = rootSet.dependentSoftPinned.get(definition.getContextType());
-    if (items != null && items.containsReference(reference)) {
-      assert items.getRulesForReference(reference).stream()
-          .noneMatch(r -> r.getModifiers().allowsOptimization);
-      keepInfo.joinInfo(reference, appInfo, Joiner::pin);
-    }
   }
 
   private void markReferencedTypesAsLive(ProgramMethod method) {
@@ -4571,30 +4725,6 @@ public class Enqueuer {
     }
 
     Set<DexEncodedMethod> getItems() {
-      return Collections.unmodifiableSet(items);
-    }
-  }
-
-  private static class SetWithReason<T> {
-
-    private final Set<T> items = Sets.newIdentityHashSet();
-
-    private final BiConsumer<T, KeepReason> register;
-
-    public SetWithReason(BiConsumer<T, KeepReason> register) {
-      this.register = register;
-    }
-
-    boolean add(T item, KeepReason reason) {
-      register.accept(item, reason);
-      return items.add(item);
-    }
-
-    boolean contains(T item) {
-      return items.contains(item);
-    }
-
-    Set<T> getItems() {
       return Collections.unmodifiableSet(items);
     }
   }

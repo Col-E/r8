@@ -389,6 +389,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return getReference().getParameters();
   }
 
+  public DexType getReturnType() {
+    return getReference().getReturnType();
+  }
+
   public DexMethodSignature getSignature() {
     return new DexMethodSignature(getReference());
   }

@@ -12,6 +12,8 @@ public interface GlobalKeepInfoConfiguration {
 
   boolean isMinificationEnabled();
 
+  boolean isOptimizationEnabled();
+
   boolean isAccessModificationEnabled();
 
   boolean isRepackagingEnabled();

@@ -27,6 +27,10 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     return BOTTOM;
   }
 
+  public static Joiner newEmptyJoiner() {
+    return bottom().joiner();
+  }
+
   private KeepClassInfo(Builder builder) {
     super(builder);
   }
@@ -124,6 +128,17 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
 
     public Joiner(KeepClassInfo info) {
       super(info.builder());
+    }
+
+    @Override
+    public Joiner asClassJoiner() {
+      return this;
+    }
+
+    @Override
+    public Joiner merge(Joiner joiner) {
+      // Should be extended to merge the fields of this class in case any are added.
+      return super.merge(joiner);
     }
 
     @Override

@@ -20,6 +20,10 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     return BOTTOM;
   }
 
+  public static Joiner newEmptyJoiner() {
+    return bottom().joiner();
+  }
+
   private KeepMethodInfo(Builder builder) {
     super(builder);
   }
@@ -86,6 +90,17 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     public Joiner(KeepMethodInfo info) {
       super(info.builder());
+    }
+
+    @Override
+    public Joiner asMethodJoiner() {
+      return this;
+    }
+
+    @Override
+    public Joiner merge(Joiner joiner) {
+      // Should be extended to merge the fields of this class in case any are added.
+      return super.merge(joiner);
     }
 
     @Override

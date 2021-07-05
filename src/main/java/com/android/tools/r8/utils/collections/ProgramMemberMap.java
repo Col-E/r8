@@ -1,0 +1,57 @@
+// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.utils.collections;
+
+import com.android.tools.r8.graph.ProgramMember;
+import com.google.common.base.Equivalence.Wrapper;
+import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+public abstract class ProgramMemberMap<K extends ProgramMember<?, ?>, V> {
+
+  private final Map<Wrapper<K>, V> backing;
+
+  ProgramMemberMap(Supplier<Map<Wrapper<K>, V>> backingFactory) {
+    backing = backingFactory.get();
+  }
+
+  public void clear() {
+    backing.clear();
+  }
+
+  public V computeIfAbsent(K member, Function<K, V> fn) {
+    return backing.computeIfAbsent(wrap(member), key -> fn.apply(key.get()));
+  }
+
+  public void forEach(BiConsumer<K, V> consumer) {
+    backing.forEach((wrapper, value) -> consumer.accept(wrapper.get(), value));
+  }
+
+  public V get(K member) {
+    return backing.get(wrap(member));
+  }
+
+  public boolean isEmpty() {
+    return backing.isEmpty();
+  }
+
+  public V put(K member, V value) {
+    Wrapper<K> wrapper = wrap(member);
+    return backing.put(wrapper, value);
+  }
+
+  public V remove(K member) {
+    return backing.remove(wrap(member));
+  }
+
+  public void removeIf(BiPredicate<K, V> predicate) {
+    backing.entrySet().removeIf(entry -> predicate.test(entry.getKey().get(), entry.getValue()));
+  }
+
+  abstract Wrapper<K> wrap(K member);
+}

@@ -82,6 +82,15 @@ public class ProguardKeepRuleModifiers {
     return new Builder();
   }
 
+  public boolean isBottom() {
+    return allowsAccessModification
+        && allowsAnnotationRemoval
+        && allowsObfuscation
+        && allowsOptimization
+        && allowsShrinking
+        && !includeDescriptorClasses;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof ProguardKeepRuleModifiers)) {

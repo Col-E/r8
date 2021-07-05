@@ -602,6 +602,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   @Override
+  public boolean isOptimizationEnabled() {
+    return isOptimizing();
+  }
+
+  @Override
   public boolean isRepackagingEnabled() {
     return proguardConfiguration.getPackageObfuscationMode().isSome()
         && (isMinifying() || testing.repackageWithNoMinification);
