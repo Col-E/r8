@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -39,7 +40,8 @@ public class InlineMethodWithRetargetedLibMemberTest extends TestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(
+            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(

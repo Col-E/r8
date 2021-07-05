@@ -10,12 +10,15 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.DesugaredLibraryMismatchDiagnostic;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.Box;
 import java.nio.file.Path;
 import java.util.Collection;
 import org.junit.Test;
@@ -60,7 +63,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
           .addProgramFiles(libraryDex)
           .addProgramClasses(TestRunner.class)
           .setMinApi(apiLevel)
-          .enableCoreLibraryDesugaring(apiLevel)
+          .enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration.forApiLevel(apiLevel))
           .compileWithExpectedDiagnostics(
               diagnostics -> {
                 diagnostics.assertNoInfos();
@@ -69,12 +72,8 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
                         containsString(
                             "The compilation is slowed down due to a mix of class file and dex"
                                 + " file inputs in the context of desugared library.")));
-                if (apiLevel.isLessThan(AndroidApiLevel.O)) {
-                  diagnostics.assertErrorsMatch(
-                      diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
-                } else {
-                  diagnostics.assertNoMessages();
-                }
+                diagnostics.assertErrorsMatch(
+                    diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
               });
 
     } catch (CompilationFailedException e) {
@@ -97,7 +96,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
         .addProgramFiles(desugaredLibrary)
         .addProgramClasses(TestRunner.class)
         .setMinApi(apiLevel)
-        .enableCoreLibraryDesugaring(apiLevel)
+        .enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration.forApiLevel(apiLevel))
         .compile();
   }
 
@@ -125,7 +124,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
         .addProgramFiles(desugaredLibraryDex)
         .addProgramClasses(TestRunner.class)
         .setMinApi(apiLevel)
-        .enableCoreLibraryDesugaring(apiLevel)
+        .enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration.forApiLevel(apiLevel))
         .compile();
   }
 
@@ -136,7 +135,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
         testForD8(Backend.CF)
             .addProgramClasses(Library.class)
             .setMinApi(apiLevel)
-            .enableCoreLibraryDesugaring(apiLevel)
+            .enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration.forApiLevel(apiLevel))
             .compile()
             .writeToZip();
 
@@ -148,13 +147,9 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
           .setMinApi(apiLevel)
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                if (apiLevel.isLessThan(AndroidApiLevel.O)) {
-                  diagnostics.assertOnlyErrors();
-                  diagnostics.assertErrorsMatch(
-                      diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
-                } else {
-                  diagnostics.assertNoMessages();
-                }
+                diagnostics.assertOnlyErrors();
+                diagnostics.assertErrorsMatch(
+                    diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
               });
     } catch (CompilationFailedException e) {
     }
@@ -168,7 +163,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramClasses(Library.class)
             .setMinApi(apiLevel)
-            .enableCoreLibraryDesugaring(apiLevel)
+            .enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration.forApiLevel(apiLevel))
             .compile()
             .writeToZip();
 
@@ -187,13 +182,9 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
           .setMinApi(apiLevel)
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                if (apiLevel.isLessThan(AndroidApiLevel.O)) {
-                  diagnostics.assertOnlyErrors();
-                  diagnostics.assertErrorsMatch(
-                      diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
-                } else {
-                  diagnostics.assertNoMessages();
-                }
+                diagnostics.assertOnlyErrors();
+                diagnostics.assertErrorsMatch(
+                    diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
               });
     } catch (CompilationFailedException e) {
     }
@@ -203,24 +194,30 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
   public void testMergeDifferentLibraryDesugarVersions() throws Exception {
     // DEX code with library desugaring using a desugared library configuration with a
     // different identifier.
-    String identifier = "my-identifier";
+    Box<DesugaredLibraryConfiguration> box = new Box<>();
     Path libraryDex =
         testForD8(Backend.DEX)
-            .applyIf(
-                apiLevel.isLessThan(AndroidApiLevel.O),
-                builder ->
-                    builder.addOptionsModification(
-                        options ->
-                            options.desugaredLibraryConfiguration =
-                                DesugaredLibraryConfiguration.builder(
-                                        options.dexItemFactory(),
-                                        options.reporter,
-                                        Origin.unknown())
-                                    .setDesugaredLibraryIdentifier(identifier)
-                                    .build()))
             .addProgramClasses(Library.class)
             .setMinApi(apiLevel)
-            .enableCoreLibraryDesugaring(apiLevel)
+            .enableCoreLibraryDesugaring(
+                LibraryDesugaringTestConfiguration.builder()
+                    .setMinApi(apiLevel)
+                    // Minimal configuration with a different identifier.
+                    .addDesugaredLibraryConfiguration(
+                        StringResource.fromString(
+                            "{"
+                                + "\"configuration_format_version\":3,"
+                                + "\"group_id\":\"my_group\","
+                                + "\"artifact_id\":\"my_artifact\","
+                                + "\"version\":\"1.0.9\","
+                                + "\"synthesized_library_classes_package_prefix\":\"my_prefix\","
+                                + "\"required_compilation_api_level\":\"30\","
+                                + "\"common_flags\":[],"
+                                + "\"library_flags\":[],"
+                                + "\"program_flags\":[]"
+                                + "}",
+                            Origin.unknown()))
+                    .build())
             .compile()
             .writeToZip();
 
@@ -239,15 +236,11 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
           .setMinApi(apiLevel)
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                if (apiLevel.isLessThan(AndroidApiLevel.O)) {
-                  diagnostics.assertOnlyErrors();
-                  diagnostics.assertErrorsMatch(
-                      allOf(
-                          diagnosticType(DesugaredLibraryMismatchDiagnostic.class),
-                          diagnosticMessage(containsString(identifier))));
-                } else {
-                  diagnostics.assertNoMessages();
-                }
+                diagnostics.assertOnlyErrors();
+                diagnostics.assertErrorsMatch(
+                    allOf(
+                        diagnosticType(DesugaredLibraryMismatchDiagnostic.class),
+                        diagnosticMessage(containsString("my_group:my_artifact:1.0.9"))));
               });
     } catch (CompilationFailedException e) {
     }

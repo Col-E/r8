@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.StringContains.containsString;
 
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
@@ -40,11 +41,10 @@ public class DoubleUtilityClassTest extends DesugaredLibraryTestBase {
       testForD8()
           .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
           .addProgramClasses(executor)
-          .enableCoreLibraryDesugaring(parameters.getApiLevel())
+          .enableCoreLibraryDesugaring(
+              LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
           .setMinApi(parameters.getApiLevel())
           .compile()
-          .addDesugaredCoreLibraryRunClassPath(
-              this::buildDesugaredLibrary, parameters.getApiLevel())
           .run(parameters.getRuntime(), executor)
           .assertSuccess()
           // Verification error on some Dalvik VMs (4,api 1;4,api 15;4.4,api 1).

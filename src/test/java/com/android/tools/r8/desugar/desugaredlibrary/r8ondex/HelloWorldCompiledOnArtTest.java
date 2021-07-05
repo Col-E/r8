@@ -13,6 +13,7 @@ import com.android.tools.r8.D8;
 import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.D8TestRunResult;
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
@@ -130,7 +131,8 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
         d8TestBuilder
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(
+                LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
             .addOptionsModification(opt -> opt.testing.trackDesugaredAPIConversions = true)
             .compile();
     TestDiagnosticMessages diagnosticMessages = compile.getDiagnosticMessages();
@@ -139,7 +141,6 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
             || diagnosticMessages.getWarnings().stream()
                 .noneMatch(x -> x.getDiagnosticMessage().contains("andThen")));
     return compile
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .withArt6Plus64BitsLib()
         .withArtFrameworks();
   }

@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import static junit.framework.TestCase.assertEquals;
 
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper;
@@ -59,7 +60,11 @@ public class DuplicateAPIDesugaredLibTest extends DesugaredLibraryTestBase {
               .setMinApi(AndroidApiLevel.B)
               .addProgramClasses(Executor.class)
               .addLibraryClasses(CustomLibClass.class)
-              .enableCoreLibraryDesugaring(AndroidApiLevel.B)
+              .enableCoreLibraryDesugaring(
+                  LibraryDesugaringTestConfiguration.builder()
+                      .setMinApi(AndroidApiLevel.B)
+                      .dontAddRunClasspath()
+                      .build())
               .compile()
               .addDesugaredCoreLibraryRunClassPath(
                   (AndroidApiLevel api) -> {

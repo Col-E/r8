@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
@@ -94,10 +95,10 @@ public class NeverMergeCoreLibDesugarClasses extends DesugaredLibraryTestBase {
     testForD8()
         .addInnerClasses(NeverMergeCoreLibDesugarClasses.class)
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-        .setMinApi(parameters.getRuntime())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .setMinApi(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(
+            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
         .compile()
-        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello, world!");
   }

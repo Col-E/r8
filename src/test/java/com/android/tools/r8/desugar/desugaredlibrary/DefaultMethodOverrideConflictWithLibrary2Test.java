@@ -7,6 +7,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
@@ -82,10 +83,9 @@ public class DefaultMethodOverrideConflictWithLibrary2Test extends DesugaredLibr
           .addProgramClasses(getClasses())
           .addProgramClassFileData(getTransforms())
           .setMinApi(parameters.getApiLevel())
-          .enableCoreLibraryDesugaring(parameters.getApiLevel())
+          .enableCoreLibraryDesugaring(
+              LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
           .compile()
-          .addDesugaredCoreLibraryRunClassPath(
-              this::buildDesugaredLibrary, parameters.getApiLevel())
           .run(parameters.getRuntime(), Main.class)
           .apply(this::checkResult);
     }

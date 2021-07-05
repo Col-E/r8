@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -48,7 +49,8 @@ public class DisableDesugarTest extends DesugaredLibraryTestBase {
           .addInnerClasses(DisableDesugarTest.class)
           .setMinApi(parameters.getApiLevel())
           .disableDesugaring()
-          .enableCoreLibraryDesugaring(AndroidApiLevel.B)
+          .enableCoreLibraryDesugaring(
+              LibraryDesugaringTestConfiguration.forApiLevel(AndroidApiLevel.B))
           .compileWithExpectedDiagnostics(this::checkExpectedDiagnostics);
     } catch (CompilationFailedException e) {
       // Expected compilation failed.
@@ -65,7 +67,8 @@ public class DisableDesugarTest extends DesugaredLibraryTestBase {
           .addKeepMainRule(TestClass.class)
           .setMinApi(parameters.getApiLevel())
           .disableDesugaring()
-          .enableCoreLibraryDesugaring(AndroidApiLevel.B)
+          .enableCoreLibraryDesugaring(
+              LibraryDesugaringTestConfiguration.forApiLevel(AndroidApiLevel.B))
           .compileWithExpectedDiagnostics(this::checkExpectedDiagnostics);
     } catch (CompilationFailedException e) {
       // Expected compilation failed.

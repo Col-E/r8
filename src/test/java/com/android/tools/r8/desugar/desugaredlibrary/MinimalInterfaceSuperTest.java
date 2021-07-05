@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
@@ -49,10 +50,10 @@ public class MinimalInterfaceSuperTest extends DesugaredLibraryTestBase {
         .addInnerClasses(MinimalInterfaceSuperTest.class)
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(
+            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
         .compile()
         .assertNoMessages()
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }

@@ -187,6 +187,10 @@ public class LibraryDesugaringTestConfiguration {
     return new Builder();
   }
 
+  public static LibraryDesugaringTestConfiguration forApiLevel(AndroidApiLevel apiLevel) {
+    return LibraryDesugaringTestConfiguration.builder().setMinApi(apiLevel).build();
+  }
+
   public boolean isEnabled() {
     return this != DISABLED;
   }

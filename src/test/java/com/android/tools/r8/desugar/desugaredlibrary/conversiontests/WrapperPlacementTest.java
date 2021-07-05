@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
@@ -65,7 +66,11 @@ public class WrapperPlacementTest extends DesugaredLibraryTestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addProgramClasses(TestClass.class)
         .addAndroidBuildVersion()
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(
+            LibraryDesugaringTestConfiguration.builder()
+                .setMinApi(parameters.getApiLevel())
+                .dontAddRunClasspath()
+                .build())
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::assertNoWrappers)
@@ -88,7 +93,8 @@ public class WrapperPlacementTest extends DesugaredLibraryTestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addProgramClassesAndInnerClasses(clazz)
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(
+            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
         .compile()
         .inspect(this::assertNoWrappers)
         .writeToZip();

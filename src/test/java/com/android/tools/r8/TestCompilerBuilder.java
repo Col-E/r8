@@ -436,10 +436,6 @@ public abstract class TestCompilerBuilder<
     return allowStderrMessages();
   }
 
-  public T enableCoreLibraryDesugaring(AndroidApiLevel minAPILevel) {
-    return enableCoreLibraryDesugaring(minAPILevel, null);
-  }
-
   public T enableCoreLibraryDesugaring(
       AndroidApiLevel minApiLevel, StringConsumer keepRuleConsumer) {
     return enableCoreLibraryDesugaring(

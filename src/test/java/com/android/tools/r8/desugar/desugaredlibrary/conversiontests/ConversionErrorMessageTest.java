@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
@@ -79,9 +80,9 @@ public class ConversionErrorMessageTest extends DesugaredLibraryTestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addProgramClasses(Executor.class, MyIntUnaryOperator.class)
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(
+            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(getExpectedResult());
   }

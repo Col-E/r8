@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
@@ -83,10 +84,9 @@ public class DefaultMethodOverrideConflictWithLibraryTest extends DesugaredLibra
           .setMinApi(parameters.getApiLevel())
           .addProgramClasses(CLASSES)
           .addProgramClassFileData(getTransforms())
-          .enableCoreLibraryDesugaring(parameters.getApiLevel())
+          .enableCoreLibraryDesugaring(
+              LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
           .compile()
-          .addDesugaredCoreLibraryRunClassPath(
-              this::buildDesugaredLibrary, parameters.getApiLevel())
           .run(parameters.getRuntime(), Main.class)
           .assertFailureWithErrorThatMatches(getExpectedError());
     }

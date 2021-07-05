@@ -13,6 +13,7 @@ import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
@@ -72,7 +73,8 @@ public class InvokeSuperToRewrittenDefaultMethodTest extends DesugaredLibraryTes
               rtWithoutConsumer
                   ? ToolHelper.getAndroidJar(AndroidApiLevel.B)
                   : ToolHelper.getAndroidJar(AndroidApiLevel.P))
-          .enableCoreLibraryDesugaring(parameters.getApiLevel())
+          .enableCoreLibraryDesugaring(
+              LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
           .compileWithExpectedDiagnostics(
               diagnostics -> {
                 if (rtWithoutConsumer) {
@@ -86,8 +88,6 @@ public class InvokeSuperToRewrittenDefaultMethodTest extends DesugaredLibraryTes
                   diagnostics.assertNoMessages();
                 }
               })
-          .addDesugaredCoreLibraryRunClassPath(
-              this::buildDesugaredLibrary, parameters.getApiLevel())
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(EXPECTED);
       assertFalse(rtWithoutConsumer);

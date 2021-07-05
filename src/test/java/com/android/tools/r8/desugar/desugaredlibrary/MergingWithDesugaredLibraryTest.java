@@ -22,6 +22,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.ExtractMarker;
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -66,7 +67,11 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
               .addProgramFiles(buildPart1DesugaredLibrary(), buildPart2NoDesugaredLibrary())
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .setMinApi(parameters.getApiLevel())
-              .enableCoreLibraryDesugaring(parameters.getApiLevel())
+              .applyIf(
+                  someLibraryDesugaringRequired(),
+                  b ->
+                      b.enableCoreLibraryDesugaring(
+                          LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel())))
               .compileWithExpectedDiagnostics(this::assertError);
       assertFalse(expectError());
     } catch (CompilationFailedException e) {
@@ -75,8 +80,6 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
     }
     assert !expectError();
     assert compileResult != null;
-    compileResult.addDesugaredCoreLibraryRunClassPath(
-        this::buildDesugaredLibrary, parameters.getApiLevel());
     compileResult
         .run(parameters.getRuntime(), Part1.class)
         .assertSuccessWithOutputLines(JAVA_RESULT);
@@ -110,7 +113,11 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
             .addProgramFiles(buildPart1DesugaredLibrary(), shrunkenLib)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel())
+            .applyIf(
+                someLibraryDesugaringRequired(),
+                b ->
+                    b.enableCoreLibraryDesugaring(
+                        LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel())))
             .compile()
             .writeToZip();
 
@@ -217,11 +224,13 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
             .addProgramClasses(Part2.class)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel())
+            .applyIf(
+                someLibraryDesugaringRequired(),
+                b ->
+                    b.enableCoreLibraryDesugaring(
+                        LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel())))
             .compile()
-            .inspectDiagnosticMessages(this::assertWarningPresent)
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary, parameters.getApiLevel());
+            .inspectDiagnosticMessages(this::assertWarningPresent);
     if (parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel()) {
       compileResult
           .run(parameters.getRuntime(), Part1.class)
@@ -240,7 +249,7 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
   }
 
   private void assertWarningPresent(TestDiagnosticMessages testDiagnosticMessages) {
-    if (parameters.getApiLevel().getLevel() > AndroidApiLevel.N.getLevel()) {
+    if (!someLibraryDesugaringRequired()) {
       return;
     }
     assertTrue(
@@ -254,7 +263,11 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addProgramClasses(Part1.class)
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .applyIf(
+            someLibraryDesugaringRequired(),
+            b ->
+                b.enableCoreLibraryDesugaring(
+                    LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel())))
         .compile()
         .writeToZip();
   }

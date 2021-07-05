@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -46,7 +47,8 @@ public class IterateTest extends DesugaredLibraryTestBase {
         testForD8(Backend.CF)
             .addInnerClasses(IterateTest.class)
             .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(
+                LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
             .compile()
             .writeToZip();
 
