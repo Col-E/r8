@@ -10,7 +10,6 @@ import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.emulat
 import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.getEmulateLibraryInterfaceClassType;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
-import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 import static java.util.Collections.emptySet;
 
@@ -110,6 +109,7 @@ import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringTypeLookupResult;
+import com.android.tools.r8.shaking.AnnotationMatchResult.MatchedAnnotation;
 import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
 import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
@@ -1968,13 +1968,13 @@ public class Enqueuer {
     }
   }
 
-  private void processAnnotation(
+  void processAnnotation(
       ProgramDefinition annotatedItem, DexAnnotation annotation, AnnotatedKind kind) {
     DexType type = annotation.getAnnotationType();
     DexClass clazz = definitionFor(type, annotatedItem);
     boolean annotationTypeIsLibraryClass = clazz == null || clazz.isNotProgramClass();
     boolean isLive = annotationTypeIsLibraryClass || liveTypes.contains(clazz.asProgramClass());
-    if (!shouldKeepAnnotation(appView, annotatedItem, annotation, isLive, kind)) {
+    if (!shouldKeepAnnotation(annotatedItem, annotation, kind, isLive)) {
       // Remember this annotation for later.
       if (!annotationTypeIsLibraryClass) {
         Map<DexType, Map<DexAnnotation, List<ProgramDefinition>>> deferredAnnotations =
@@ -1996,6 +1996,20 @@ public class Enqueuer {
     AnnotationReferenceMarker referenceMarker =
         new AnnotationReferenceMarker(annotation, annotatedItem);
     annotation.annotation.collectIndexedItems(referenceMarker);
+  }
+
+  private boolean shouldKeepAnnotation(
+      ProgramDefinition annotatedItem,
+      DexAnnotation annotation,
+      AnnotatedKind annotatedKind,
+      boolean isLive) {
+    if (annotationRemoverBuilder != null
+        && annotationRemoverBuilder.isRetainedForFinalTreeShaking(annotation)) {
+      assert mode.isInitialTreeShaking();
+      return true;
+    }
+    return AnnotationRemover.shouldKeepAnnotation(
+        appView, annotatedItem, annotation, isLive, annotatedKind);
   }
 
   private FieldResolutionResult resolveField(DexField field, ProgramDefinition context) {
@@ -3827,10 +3841,16 @@ public class Enqueuer {
     action.getAction().accept(builder);
   }
 
-  void retainAnnotationForFinalTreeShaking(List<DexAnnotation> annotations) {
+  void retainAnnotationForFinalTreeShaking(List<MatchedAnnotation> matchedAnnotations) {
     assert mode.isInitialTreeShaking();
     if (annotationRemoverBuilder != null) {
-      annotations.forEach(annotationRemoverBuilder::retainAnnotation);
+      for (MatchedAnnotation matchedAnnotation : matchedAnnotations) {
+        annotationRemoverBuilder.retainAnnotation(matchedAnnotation.getAnnotation());
+        workList.enqueueTraceAnnotationAction(
+            matchedAnnotation.getAnnotatedItem(),
+            matchedAnnotation.getAnnotation(),
+            matchedAnnotation.getAnnotatedKind());
+      }
     }
   }
 

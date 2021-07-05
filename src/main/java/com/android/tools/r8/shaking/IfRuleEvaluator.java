@@ -8,6 +8,8 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -258,10 +260,14 @@ public class IfRuleEvaluator {
     // combination as the size of member rules to satisfy.
     for (Set<DexDefinition> combination :
         Sets.combinations(filteredMembers, memberKeepRules.size())) {
-      Collection<DexEncodedField> fieldsInCombination =
-          DexDefinition.filterDexEncodedField(combination.stream()).collect(Collectors.toList());
-      Collection<DexEncodedMethod> methodsInCombination =
-          DexDefinition.filterDexEncodedMethod(combination.stream()).collect(Collectors.toList());
+      Collection<DexClassAndField> fieldsInCombination =
+          DexDefinition.filterDexEncodedField(
+                  combination.stream(), field -> DexClassAndField.create(targetClass, field))
+              .collect(Collectors.toList());
+      Collection<DexClassAndMethod> methodsInCombination =
+          DexDefinition.filterDexEncodedMethod(
+                  combination.stream(), method -> DexClassAndMethod.create(targetClass, method))
+              .collect(Collectors.toList());
       // Member rules are combined as AND logic: if found unsatisfied member rule, this
       // combination of live members is not a good fit.
       boolean satisfied =

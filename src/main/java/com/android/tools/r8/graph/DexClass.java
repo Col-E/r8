@@ -181,6 +181,10 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     this.sourceFile = sourceFile;
   }
 
+  public Iterable<DexClassAndField> classFields() {
+    return Iterables.transform(fields(), field -> DexClassAndField.create(this, field));
+  }
+
   public Iterable<DexEncodedField> fields() {
     return fields(Predicates.alwaysTrue());
   }
@@ -202,6 +206,10 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
   @Override
   public MethodCollection getMethodCollection() {
     return methodCollection;
+  }
+
+  public Iterable<DexClassAndMethod> classMethods() {
+    return Iterables.transform(methods(), method -> DexClassAndMethod.create(this, method));
   }
 
   public Iterable<DexEncodedMethod> methods() {

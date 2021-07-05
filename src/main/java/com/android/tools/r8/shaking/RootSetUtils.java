@@ -12,9 +12,14 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.BottomUpClassHierarchyTraversal;
+import com.android.tools.r8.graph.Definition;
 import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
+import com.android.tools.r8.graph.DexClassAndMember;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -39,6 +44,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AnnotationMatchResult.AnnotationsIgnoredMatchResult;
 import com.android.tools.r8.shaking.AnnotationMatchResult.ConcreteAnnotationMatchResult;
+import com.android.tools.r8.shaking.AnnotationMatchResult.MatchedAnnotation;
 import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Consumer3;
@@ -496,24 +502,17 @@ public class RootSetUtils {
           break;
         }
         // In compat mode traverse all direct methods in the hierarchy.
-        currentClass
-            .getMethodCollection()
-            .forEachDirectMethodMatching(
-                method ->
-                    currentClass == clazz
-                        || (method.isStatic() && !method.isPrivate() && !method.isInitializer())
-                        || options.forceProguardCompatibility,
-                method -> {
-                  DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-                  markMethod(method, memberKeepRules, methodsMarked, rule, precondition, ifRule);
-                });
-        currentClass
-            .virtualMethods()
-            .forEach(
-                method -> {
-                  DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-                  markMethod(method, memberKeepRules, methodsMarked, rule, precondition, ifRule);
-                });
+        currentClass.forEachClassMethodMatching(
+            method ->
+                method.belongsToVirtualPool()
+                    || currentClass == clazz
+                    || (method.isStatic() && !method.isPrivate() && !method.isInitializer())
+                    || options.forceProguardCompatibility,
+            method -> {
+              DexDefinition precondition =
+                  testAndGetPrecondition(method.getDefinition(), preconditionSupplier);
+              markMethod(method, memberKeepRules, methodsMarked, rule, precondition, ifRule);
+            });
         if (currentClass.superType != null) {
           DexClass dexClass = application.definitionFor(currentClass.superType);
           if (dexClass != null) {
@@ -586,21 +585,24 @@ public class RootSetUtils {
         if (originalClazz == clazz) {
           return;
         }
-        for (DexEncodedMethod method : clazz.virtualMethods()) {
-          // Check if we already added this.
-          Wrapper<DexMethod> wrapped = MethodSignatureEquivalence.get().wrap(method.getReference());
-          if (!seenMethods.add(wrapped)) {
-            continue;
-          }
-          for (ProguardMemberRule rule : memberKeepRules) {
-            if (rule.matches(method, appView, this::handleMatchedAnnotation, dexStringCache)) {
-              tryAndKeepMethodOnClass(method, rule);
-            }
-          }
-        }
+        clazz.forEachClassMethodMatching(
+            DexEncodedMethod::belongsToVirtualPool,
+            method -> {
+              // Check if we already added this.
+              Wrapper<DexMethod> wrapped =
+                  MethodSignatureEquivalence.get().wrap(method.getReference());
+              if (!seenMethods.add(wrapped)) {
+                return;
+              }
+              for (ProguardMemberRule rule : memberKeepRules) {
+                if (rule.matches(method, appView, this::handleMatchedAnnotation, dexStringCache)) {
+                  tryAndKeepMethodOnClass(method, rule);
+                }
+              }
+            });
       }
 
-      private void tryAndKeepMethodOnClass(DexEncodedMethod method, ProguardMemberRule rule) {
+      private void tryAndKeepMethodOnClass(DexClassAndMethod method, ProguardMemberRule rule) {
         SingleResolutionResult resolutionResult =
             appView
                 .appInfo()
@@ -680,13 +682,13 @@ public class RootSetUtils {
         if (!onlyIncludeProgramClasses && currentClazz.isNotProgramClass()) {
           continue;
         }
-        currentClazz
-            .virtualMethods()
-            .forEach(
-                method -> {
-                  DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-                  markMethod(method, memberKeepRules, null, rule, precondition, ifRule);
-                });
+        currentClazz.forEachClassMethodMatching(
+            DexEncodedMethod::belongsToVirtualPool,
+            method -> {
+              DexDefinition precondition =
+                  testAndGetPrecondition(method.getDefinition(), preconditionSupplier);
+              markMethod(method, memberKeepRules, null, rule, precondition, ifRule);
+            });
         worklist.addAll(subtypingInfo.allImmediateSubtypes(currentClazz.type));
       }
     }
@@ -697,9 +699,10 @@ public class RootSetUtils {
         ProguardConfigurationRule rule,
         Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
         ProguardIfRule ifRule) {
-      clazz.forEachMethod(
+      clazz.forEachClassMethod(
           method -> {
-            DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
+            DexDefinition precondition =
+                testAndGetPrecondition(method.getDefinition(), preconditionSupplier);
             markMethod(method, memberKeepRules, null, rule, precondition, ifRule);
           });
     }
@@ -715,9 +718,10 @@ public class RootSetUtils {
         if (!includeLibraryClasses && clazz.isNotProgramClass()) {
           return;
         }
-        clazz.forEachField(
+        clazz.forEachClassField(
             field -> {
-              DexDefinition precondition = testAndGetPrecondition(field, preconditionSupplier);
+              DexDefinition precondition =
+                  testAndGetPrecondition(field.getDefinition(), preconditionSupplier);
               markField(field, memberKeepRules, rule, precondition, ifRule);
             });
         clazz = clazz.superType == null ? null : application.definitionFor(clazz.superType);
@@ -730,9 +734,10 @@ public class RootSetUtils {
         ProguardConfigurationRule rule,
         Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
         ProguardIfRule ifRule) {
-      clazz.forEachField(
+      clazz.forEachClassField(
           field -> {
-            DexDefinition precondition = testAndGetPrecondition(field, preconditionSupplier);
+            DexDefinition precondition =
+                testAndGetPrecondition(field.getDefinition(), preconditionSupplier);
             markField(field, memberKeepRules, rule, precondition, ifRule);
           });
     }
@@ -928,15 +933,13 @@ public class RootSetUtils {
      * account.
      */
     private boolean ruleSatisfied(ProguardMemberRule rule, DexClass clazz) {
-      return ruleSatisfiedByMethods(rule, clazz.directMethods())
-          || ruleSatisfiedByMethods(rule, clazz.virtualMethods())
-          || ruleSatisfiedByFields(rule, clazz.staticFields())
-          || ruleSatisfiedByFields(rule, clazz.instanceFields());
+      return ruleSatisfiedByMethods(rule, clazz.classMethods())
+          || ruleSatisfiedByFields(rule, clazz.classFields());
     }
 
-    boolean ruleSatisfiedByMethods(ProguardMemberRule rule, Iterable<DexEncodedMethod> methods) {
+    boolean ruleSatisfiedByMethods(ProguardMemberRule rule, Iterable<DexClassAndMethod> methods) {
       if (rule.getRuleType().includesMethods()) {
-        for (DexEncodedMethod method : methods) {
+        for (DexClassAndMethod method : methods) {
           if (rule.matches(method, appView, this::handleMatchedAnnotation, dexStringCache)) {
             return true;
           }
@@ -945,9 +948,9 @@ public class RootSetUtils {
       return false;
     }
 
-    boolean ruleSatisfiedByFields(ProguardMemberRule rule, Iterable<DexEncodedField> fields) {
+    boolean ruleSatisfiedByFields(ProguardMemberRule rule, Iterable<DexClassAndField> fields) {
       if (rule.getRuleType().includesFields()) {
-        for (DexEncodedField field : fields) {
+        for (DexClassAndField field : fields) {
           if (rule.matches(field, appView, this::handleMatchedAnnotation, dexStringCache)) {
             return true;
           }
@@ -958,25 +961,34 @@ public class RootSetUtils {
 
     static AnnotationMatchResult containsAllAnnotations(
         List<ProguardTypeMatcher> annotationMatchers, DexClass clazz) {
-      return containsAllAnnotations(annotationMatchers, clazz.annotations());
+      return containsAllAnnotations(
+          annotationMatchers, clazz, clazz.annotations(), AnnotatedKind.TYPE);
     }
 
     static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
         boolean containsAllAnnotations(
             List<ProguardTypeMatcher> annotationMatchers,
-            DexEncodedMember<D, R> member,
+            DexClassAndMember<D, R> member,
             Consumer<AnnotationMatchResult> matchedAnnotationsConsumer) {
       AnnotationMatchResult annotationMatchResult =
-          containsAllAnnotations(annotationMatchers, member.annotations());
+          containsAllAnnotations(
+              annotationMatchers,
+              member,
+              member.getAnnotations(),
+              member.isField() ? AnnotatedKind.FIELD : AnnotatedKind.METHOD);
       if (annotationMatchResult != null) {
         matchedAnnotationsConsumer.accept(annotationMatchResult);
         return true;
       }
-      if (member.isDexEncodedMethod()) {
-        DexEncodedMethod method = member.asDexEncodedMethod();
-        for (int i = 0; i < method.parameterAnnotationsList.size(); i++) {
+      if (member.isMethod()) {
+        DexClassAndMethod method = member.asMethod();
+        for (int i = 0; i < method.getParameterAnnotations().size(); i++) {
           annotationMatchResult =
-              containsAllAnnotations(annotationMatchers, method.parameterAnnotationsList.get(i));
+              containsAllAnnotations(
+                  annotationMatchers,
+                  method,
+                  method.getParameterAnnotation(i),
+                  AnnotatedKind.PARAMETER);
           if (annotationMatchResult != null) {
             matchedAnnotationsConsumer.accept(annotationMatchResult);
             return true;
@@ -987,18 +999,25 @@ public class RootSetUtils {
     }
 
     private static AnnotationMatchResult containsAllAnnotations(
-        List<ProguardTypeMatcher> annotationMatchers, DexAnnotationSet annotations) {
+        List<ProguardTypeMatcher> annotationMatchers,
+        Definition annotatedItem,
+        DexAnnotationSet annotations,
+        AnnotatedKind annotatedKind) {
       if (annotationMatchers.isEmpty()) {
         return AnnotationsIgnoredMatchResult.getInstance();
       }
-      List<DexAnnotation> matchedAnnotations = new ArrayList<>();
+      List<MatchedAnnotation> matchedAnnotations = new ArrayList<>();
       for (ProguardTypeMatcher annotationMatcher : annotationMatchers) {
         DexAnnotation matchedAnnotation =
             getFirstAnnotationThatMatches(annotationMatcher, annotations);
         if (matchedAnnotation == null) {
           return null;
         }
-        matchedAnnotations.add(matchedAnnotation);
+        if (annotatedItem.isProgramDefinition()) {
+          matchedAnnotations.add(
+              new MatchedAnnotation(
+                  annotatedItem.asProgramDefinition(), matchedAnnotation, annotatedKind));
+        }
       }
       return new ConcreteAnnotationMatchResult(matchedAnnotations);
     }
@@ -1014,7 +1033,7 @@ public class RootSetUtils {
     }
 
     private void markMethod(
-        DexEncodedMethod method,
+        DexClassAndMethod method,
         Collection<ProguardMemberRule> rules,
         Set<Wrapper<DexMethod>> methodsMarked,
         ProguardConfigurationRule context,
@@ -1034,13 +1053,13 @@ public class RootSetUtils {
           if (methodsMarked != null) {
             methodsMarked.add(MethodSignatureEquivalence.get().wrap(method.getReference()));
           }
-          addItemToSets(method, context, rule, precondition, ifRule);
+          addItemToSets(method.getDefinition(), context, rule, precondition, ifRule);
         }
       }
     }
 
     private void markField(
-        DexEncodedField field,
+        DexClassAndField field,
         Collection<ProguardMemberRule> rules,
         ProguardConfigurationRule context,
         DexDefinition precondition,
@@ -1050,7 +1069,7 @@ public class RootSetUtils {
           if (Log.ENABLED) {
             Log.verbose(getClass(), "Marking field `%s` due to `%s { %s }`.", field, context, rule);
           }
-          addItemToSets(field, context, rule, precondition, ifRule);
+          addItemToSets(field.getDefinition(), context, rule, precondition, ifRule);
         }
       }
     }
@@ -1955,36 +1974,6 @@ public class RootSetUtils {
                   .putAll(dependence));
     }
 
-    public void copy(DexReference original, DexReference rewritten) {
-      if (noShrinking.containsReference(original)) {
-        noShrinking.putReferenceWithRules(rewritten, noShrinking.getRulesForReference(original));
-      }
-      if (noAnnotationRemoval.contains(original)) {
-        noAnnotationRemoval.add(rewritten);
-      }
-      if (noObfuscation.contains(original)) {
-        noObfuscation.add(rewritten);
-      }
-      if (original.isDexMember()) {
-        assert rewritten.isDexMember();
-        DexMember<?, ?> originalMember = original.asDexMember();
-        if (noSideEffects.containsKey(originalMember)) {
-          noSideEffects.put(rewritten.asDexMember(), noSideEffects.get(originalMember));
-        }
-        if (assumedValues.containsKey(originalMember)) {
-          assumedValues.put(rewritten.asDexMember(), assumedValues.get(originalMember));
-        }
-      }
-    }
-
-    public void prune(DexReference reference) {
-      noShrinking.removeReference(reference);
-      noAnnotationRemoval.remove(reference);
-      noObfuscation.remove(reference);
-      noSideEffects.remove(reference);
-      assumedValues.remove(reference);
-    }
-
     public void pruneDeadItems(DexDefinitionSupplier definitions, Enqueuer enqueuer) {
       pruneDeadReferences(noUnusedInterfaceRemoval, definitions, enqueuer);
       pruneDeadReferences(noVerticalClassMerging, definitions, enqueuer);
@@ -2023,11 +2012,6 @@ public class RootSetUtils {
             }
             return !enqueuer.isNonProgramTypeLive(holder);
           });
-    }
-
-    public void move(DexReference original, DexReference rewritten) {
-      copy(original, rewritten);
-      prune(original);
     }
 
     void shouldNotBeMinified(DexReference reference) {

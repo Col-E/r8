@@ -66,6 +66,14 @@ public abstract class DexClassAndMethod extends DexClassAndMember<DexEncodedMeth
     return getReference().getParameters();
   }
 
+  public DexAnnotationSet getParameterAnnotation(int index) {
+    return getParameterAnnotations().get(index);
+  }
+
+  public final ParameterAnnotationsList getParameterAnnotations() {
+    return getDefinition().getParameterAnnotations();
+  }
+
   public DexProto getProto() {
     return getReference().getProto();
   }

@@ -100,19 +100,33 @@ public abstract class DexDefinition extends DexItem {
 
   public abstract DexReference getReference();
 
-  private static <T extends DexDefinition> Stream<T> filter(
-      Stream<DexDefinition> stream,
-      Predicate<DexDefinition> pred,
-      Function<DexDefinition, T> f) {
+  private static <T> Stream<T> filter(
+      Stream<DexDefinition> stream, Predicate<DexDefinition> pred, Function<DexDefinition, T> f) {
     return stream.filter(pred).map(f);
   }
 
   public static Stream<DexEncodedField> filterDexEncodedField(Stream<DexDefinition> stream) {
-    return filter(stream, DexDefinition::isDexEncodedField, DexDefinition::asDexEncodedField);
+    return filterDexEncodedField(stream, DexDefinition::asDexEncodedField);
+  }
+
+  public static <T> Stream<T> filterDexEncodedField(
+      Stream<DexDefinition> stream, Function<DexEncodedField, T> transform) {
+    return filter(
+        stream,
+        DexDefinition::isDexEncodedField,
+        field -> transform.apply(field.asDexEncodedField()));
   }
 
   public static Stream<DexEncodedMethod> filterDexEncodedMethod(Stream<DexDefinition> stream) {
-    return filter(stream, DexDefinition::isDexEncodedMethod, DexDefinition::asDexEncodedMethod);
+    return filterDexEncodedMethod(stream, DexDefinition::asDexEncodedMethod);
+  }
+
+  public static <T> Stream<T> filterDexEncodedMethod(
+      Stream<DexDefinition> stream, Function<DexEncodedMethod, T> transform) {
+    return filter(
+        stream,
+        DexDefinition::isDexEncodedMethod,
+        field -> transform.apply(field.asDexEncodedMethod()));
   }
 
   public abstract boolean isStatic();

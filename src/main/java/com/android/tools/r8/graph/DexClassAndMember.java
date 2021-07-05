@@ -24,6 +24,10 @@ public abstract class DexClassAndMember<D extends DexEncodedMember<D, R>, R exte
 
   public abstract AccessFlags<?> getAccessFlags();
 
+  public final DexAnnotationSet getAnnotations() {
+    return definition.annotations();
+  }
+
   @Override
   public DexType getContextType() {
     return getHolderType();

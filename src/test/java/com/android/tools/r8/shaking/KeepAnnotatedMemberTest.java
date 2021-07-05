@@ -197,14 +197,12 @@ public class KeepAnnotatedMemberTest extends TestBase {
                   inspector.clazz(CLASS_WITH_ANNOTATED_METHOD).allMethods();
               assertEquals(
                   1, methods.stream().filter(m -> m.getOriginalName().equals("<init>")).count());
-              // TODO(b/132318609): This should have the annotated method, but does not due to the
-              //  annotation being removed.
               assertEquals(
-                  0,
+                  1,
                   methods.stream()
                       .filter(m -> m.getOriginalName().equals(ANNOTATED_METHOD))
                       .count());
-              assertEquals(1, methods.size());
+              assertEquals(2, methods.size());
             });
   }
 
@@ -216,8 +214,6 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .addProgramFiles(R8_JAR)
             .addKeepMainRule(R8.class)
             .addKeepClassRules(CLASS_WITH_ANNOTATED_METHOD)
-            // TODO(b/132318609): Remove keep annotation once fixed.
-            .addKeepClassRules(PRESENT_ANNOTATION)
             .addKeepRules("-keepclassmembers class * { @" + PRESENT_ANNOTATION + " *** *(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
@@ -231,8 +227,6 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .addProgramFiles(R8_JAR)
             .addKeepMainRule(R8.class)
             .addKeepClassRules(CLASS_WITH_ANNOTATED_METHOD)
-            // TODO(b/132318609): Remove keep annotation once fixed.
-            .addKeepClassRules(PRESENT_ANNOTATION)
             .addKeepRules(
                 "-if class * "
                     + "-keepclassmembers class <1> { @"
@@ -251,8 +245,6 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .addProgramFiles(R8_JAR)
             .addKeepMainRule(R8.class)
             .addKeepClassRules(CLASS_WITH_ANNOTATED_METHOD)
-            // TODO(b/132318609): Remove keep annotation once fixed.
-            .addKeepClassRules(PRESENT_ANNOTATION)
             .addKeepRules(
                 "-if class * "
                     + "-keepclasseswithmembers class <1> { @"
@@ -271,8 +263,6 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .addProgramFiles(R8_JAR)
             .addKeepMainRule(R8.class)
             .addKeepClassRules(CLASS_WITH_ANNOTATED_METHOD)
-            // TODO(b/132318609): Remove keep annotation once fixed.
-            .addKeepClassRules(PRESENT_ANNOTATION)
             .addKeepRules(
                 "-if class * { @"
                     + PRESENT_ANNOTATION

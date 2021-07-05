@@ -357,7 +357,7 @@ public class R8 {
         }
 
         AnnotationRemover.Builder annotationRemoverBuilder =
-            options.isShrinking() ? AnnotationRemover.builder() : null;
+            options.isShrinking() ? AnnotationRemover.builder(Mode.INITIAL_TREE_SHAKING) : null;
         AppView<AppInfoWithLiveness> appViewWithLiveness =
             runEnqueuer(
                 annotationRemoverBuilder,
@@ -654,7 +654,7 @@ public class R8 {
                 executorService);
 
             // Remove annotations that refer to types that no longer exist.
-            AnnotationRemover.builder()
+            AnnotationRemover.builder(Mode.FINAL_TREE_SHAKING)
                 .build(appView.withLiveness(), removedClasses)
                 .run(executorService);
             new GenericSignatureRewriter(

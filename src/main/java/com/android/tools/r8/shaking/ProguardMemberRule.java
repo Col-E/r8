@@ -5,8 +5,8 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndField;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -181,7 +181,7 @@ public class ProguardMemberRule {
   }
 
   public boolean matches(
-      DexEncodedField field,
+      DexClassAndField field,
       AppView<?> appView,
       Consumer<AnnotationMatchResult> matchedAnnotationsConsumer,
       DexStringCache stringCache) {
@@ -192,8 +192,8 @@ public class ProguardMemberRule {
       case ALL_FIELDS:
         {
           // Access flags check.
-          if (!getAccessFlags().containsAll(field.accessFlags)
-              || !getNegatedAccessFlags().containsNone(field.accessFlags)) {
+          if (!getAccessFlags().containsAll(field.getAccessFlags())
+              || !getNegatedAccessFlags().containsNone(field.getAccessFlags())) {
             break;
           }
           // Annotations check.
@@ -209,8 +209,8 @@ public class ProguardMemberRule {
             break;
           }
           // Access flags check.
-          if (!getAccessFlags().containsAll(field.accessFlags)
-              || !getNegatedAccessFlags().containsNone(field.accessFlags)) {
+          if (!getAccessFlags().containsAll(field.getAccessFlags())
+              || !getNegatedAccessFlags().containsNone(field.getAccessFlags())) {
             break;
           }
           // Type check.
@@ -233,7 +233,7 @@ public class ProguardMemberRule {
   }
 
   public boolean matches(
-      DexEncodedMethod method,
+      DexClassAndMethod method,
       AppView<?> appView,
       Consumer<AnnotationMatchResult> matchedAnnotationsConsumer,
       DexStringCache stringCache) {
@@ -241,7 +241,7 @@ public class ProguardMemberRule {
         appView.graphLens().getOriginalMethodSignature(method.getReference());
     switch (getRuleType()) {
       case ALL_METHODS:
-        if (method.isClassInitializer()) {
+        if (method.getDefinition().isClassInitializer()) {
           break;
         }
         // Fall through for all other methods.
@@ -249,8 +249,8 @@ public class ProguardMemberRule {
       case ALL:
         {
           // Access flags check.
-          if (!getAccessFlags().containsAll(method.accessFlags)
-              || !getNegatedAccessFlags().containsNone(method.accessFlags)) {
+          if (!getAccessFlags().containsAll(method.getAccessFlags())
+              || !getNegatedAccessFlags().containsNone(method.getAccessFlags())) {
             break;
           }
           // Annotations check.
@@ -260,7 +260,7 @@ public class ProguardMemberRule {
 
       case METHOD:
         // Check return type.
-        if (!type.matches(originalSignature.proto.returnType, appView)) {
+        if (!type.matches(originalSignature.getReturnType(), appView)) {
           break;
         }
         // Fall through for access flags, name and arguments.
@@ -275,8 +275,8 @@ public class ProguardMemberRule {
             break;
           }
           // Access flags check.
-          if (!getAccessFlags().containsAll(method.accessFlags)
-              || !getNegatedAccessFlags().containsNone(method.accessFlags)) {
+          if (!getAccessFlags().containsAll(method.getAccessFlags())
+              || !getNegatedAccessFlags().containsNone(method.getAccessFlags())) {
             break;
           }
           // Annotations check.
@@ -289,7 +289,7 @@ public class ProguardMemberRule {
           if (arguments.size() == 1 && arguments.get(0).isTripleDotPattern()) {
             return true;
           }
-          DexType[] parameters = originalSignature.proto.parameters.values;
+          DexType[] parameters = originalSignature.getParameters().values;
           if (parameters.length != arguments.size()) {
             break;
           }

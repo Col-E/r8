@@ -5,7 +5,10 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
+import com.android.tools.r8.graph.ProgramDefinition;
 import java.util.List;
+import java.util.Objects;
 
 public abstract class AnnotationMatchResult {
 
@@ -31,13 +34,13 @@ public abstract class AnnotationMatchResult {
 
   static class ConcreteAnnotationMatchResult extends AnnotationMatchResult {
 
-    private final List<DexAnnotation> matchedAnnotations;
+    private final List<MatchedAnnotation> matchedAnnotations;
 
-    public ConcreteAnnotationMatchResult(List<DexAnnotation> matchedAnnotations) {
+    public ConcreteAnnotationMatchResult(List<MatchedAnnotation> matchedAnnotations) {
       this.matchedAnnotations = matchedAnnotations;
     }
 
-    public List<DexAnnotation> getMatchedAnnotations() {
+    public List<MatchedAnnotation> getMatchedAnnotations() {
       return matchedAnnotations;
     }
 
@@ -49,6 +52,51 @@ public abstract class AnnotationMatchResult {
     @Override
     public ConcreteAnnotationMatchResult asConcreteAnnotationMatchResult() {
       return this;
+    }
+  }
+
+  static class MatchedAnnotation {
+
+    private final ProgramDefinition annotatedItem;
+    private final DexAnnotation annotation;
+    private final AnnotatedKind annotatedKind;
+
+    MatchedAnnotation(
+        ProgramDefinition annotatedItem, DexAnnotation annotation, AnnotatedKind annotatedKind) {
+      this.annotatedItem = annotatedItem;
+      this.annotation = annotation;
+      this.annotatedKind = annotatedKind;
+    }
+
+    public ProgramDefinition getAnnotatedItem() {
+      return annotatedItem;
+    }
+
+    public DexAnnotation getAnnotation() {
+      return annotation;
+    }
+
+    public AnnotatedKind getAnnotatedKind() {
+      return annotatedKind;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == this) {
+        return true;
+      }
+      if (obj instanceof MatchedAnnotation) {
+        MatchedAnnotation annotationToRetain = (MatchedAnnotation) obj;
+        return annotatedItem == annotationToRetain.annotatedItem
+            && annotation == annotationToRetain.annotation
+            && annotatedKind == annotationToRetain.annotatedKind;
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(annotatedItem, annotation, annotatedKind);
     }
   }
 }

@@ -5,6 +5,8 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -191,6 +193,24 @@ public abstract class EnqueuerWorklist {
     }
   }
 
+  static class TraceAnnotationAction extends EnqueuerAction {
+    private final ProgramDefinition annotatedItem;
+    private final DexAnnotation annotation;
+    private final AnnotatedKind annotatedKind;
+
+    TraceAnnotationAction(
+        ProgramDefinition annotatedItem, DexAnnotation annotation, AnnotatedKind annotatedKind) {
+      this.annotatedItem = annotatedItem;
+      this.annotation = annotation;
+      this.annotatedKind = annotatedKind;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.processAnnotation(annotatedItem, annotation, annotatedKind);
+    }
+  }
+
   static class TraceCodeAction extends EnqueuerAction {
     private final ProgramMethod method;
 
@@ -332,6 +352,9 @@ public abstract class EnqueuerWorklist {
 
   abstract void enqueueMarkFieldKeptAction(ProgramField field, KeepReasonWitness witness);
 
+  abstract void enqueueTraceAnnotationAction(
+      ProgramDefinition annotatedItem, DexAnnotation annotation, AnnotatedKind annotatedKind);
+
   public abstract void enqueueTraceCodeAction(ProgramMethod method);
 
   public abstract void enqueueTraceConstClassAction(DexType type, ProgramMethod context);
@@ -428,6 +451,12 @@ public abstract class EnqueuerWorklist {
     @Override
     void enqueueMarkFieldKeptAction(ProgramField field, KeepReasonWitness witness) {
       queue.add(new MarkFieldKeptAction(field, witness));
+    }
+
+    @Override
+    void enqueueTraceAnnotationAction(
+        ProgramDefinition annotatedItem, DexAnnotation annotation, AnnotatedKind annotatedKind) {
+      queue.add(new TraceAnnotationAction(annotatedItem, annotation, annotatedKind));
     }
 
     @Override
@@ -539,6 +568,12 @@ public abstract class EnqueuerWorklist {
     @Override
     void enqueueMarkFieldKeptAction(ProgramField field, KeepReasonWitness witness) {
 
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    void enqueueTraceAnnotationAction(
+        ProgramDefinition annotatedItem, DexAnnotation annotation, AnnotatedKind annotatedKind) {
       throw attemptToEnqueue();
     }
 

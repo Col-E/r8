@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.kotlin.KotlinMemberLevelInfo;
 import com.android.tools.r8.kotlin.KotlinPropertyInfo;
+import com.android.tools.r8.shaking.Enqueuer.Mode;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
@@ -33,6 +34,7 @@ import java.util.concurrent.ExecutorService;
 public class AnnotationRemover {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final Mode mode;
   private final InternalOptions options;
   private final Set<DexAnnotation> annotationsToRetain;
   private final ProguardKeepAttributes keep;
@@ -41,16 +43,18 @@ public class AnnotationRemover {
   private AnnotationRemover(
       AppView<AppInfoWithLiveness> appView,
       Set<DexAnnotation> annotationsToRetain,
+      Mode mode,
       Set<DexType> removedClasses) {
     this.appView = appView;
+    this.mode = mode;
     this.options = appView.options();
     this.annotationsToRetain = annotationsToRetain;
     this.keep = appView.options().getProguardConfiguration().getKeepAttributes();
     this.removedClasses = removedClasses;
   }
 
-  public static Builder builder() {
-    return new Builder();
+  public static Builder builder(Mode mode) {
+    return new Builder(mode);
   }
 
   /** Used to filter annotations on classes, methods and fields. */
@@ -263,6 +267,7 @@ public class AnnotationRemover {
   }
 
   private void removeAnnotations(ProgramDefinition definition, KeepInfo<?, ?> keepInfo) {
+    assert mode.isInitialTreeShaking() || annotationsToRetain.isEmpty();
     boolean isAnnotation =
         definition.isProgramClass() && definition.asProgramClass().isAnnotation();
     if (keepInfo.isAnnotationRemovalAllowed(options)) {
@@ -270,6 +275,10 @@ public class AnnotationRemover {
         definition.rewriteAllAnnotations(
             (annotation, isParameterAnnotation) ->
                 shouldRetainAnnotationOnAnnotationClass(annotation) ? annotation : null);
+      } else if (mode.isInitialTreeShaking()) {
+        definition.rewriteAllAnnotations(
+            (annotation, isParameterAnnotation) ->
+                annotationsToRetain.contains(annotation) ? annotation : null);
       } else {
         definition.clearAllAnnotations();
       }
@@ -286,7 +295,7 @@ public class AnnotationRemover {
     if (DexAnnotation.isJavaLangRetentionAnnotation(annotation, appView.dexItemFactory())) {
       return shouldRetainRetentionAnnotationOnAnnotationClass(annotation);
     }
-    return false;
+    return annotationsToRetain.contains(annotation);
   }
 
   private boolean shouldRetainAnnotationDefaultAnnotationOnAnnotationClass(
@@ -389,13 +398,23 @@ public class AnnotationRemover {
      */
     private final Set<DexAnnotation> annotationsToRetain = Sets.newIdentityHashSet();
 
+    private final Mode mode;
+
+    Builder(Mode mode) {
+      this.mode = mode;
+    }
+
+    public boolean isRetainedForFinalTreeShaking(DexAnnotation annotation) {
+      return annotationsToRetain.contains(annotation);
+    }
+
     public void retainAnnotation(DexAnnotation annotation) {
       annotationsToRetain.add(annotation);
     }
 
     public AnnotationRemover build(
         AppView<AppInfoWithLiveness> appView, Set<DexType> removedClasses) {
-      return new AnnotationRemover(appView, annotationsToRetain, removedClasses);
+      return new AnnotationRemover(appView, annotationsToRetain, mode, removedClasses);
     }
   }
 }
