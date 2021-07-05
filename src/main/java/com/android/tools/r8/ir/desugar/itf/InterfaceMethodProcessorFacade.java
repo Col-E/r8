@@ -34,7 +34,6 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
 
   private List<InterfaceDesugaringProcessor> instantiateInterfaceDesugaringProcessors(
       AppView<?> appView, InterfaceMethodRewriter rewriter) {
-    final List<InterfaceDesugaringProcessor> interfaceDesugaringProcessors;
 
     // During L8 compilation, emulated interfaces are processed to be renamed, to have
     // their interfaces fixed-up and to generate the emulated dispatch code.
@@ -51,9 +50,7 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
     // classes if needed.
     InterfaceProcessor interfaceProcessor = new InterfaceProcessor(appView, rewriter);
 
-    // The interface processors must be ordered so that finalization of the processing is performed
-    // in that order. The emulatedInterfaceProcessor has to be last at this point to avoid renaming
-    // emulated interfaces before the other processing.
+    // The processors can be listed in any order.
     return ImmutableList.of(classProcessor, interfaceProcessor, emulatedInterfaceProcessor);
   }
 
