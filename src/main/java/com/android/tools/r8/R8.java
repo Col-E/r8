@@ -640,6 +640,7 @@ public class R8 {
 
             assert appView.allMergedClasses().verifyAllSourcesPruned(appViewWithLiveness);
             assert appView.validateUnboxedEnumsHaveBeenPruned();
+            assert appView.withLiveness().appInfo().verifyNoIteratingOverPrunedClasses();
 
             processWhyAreYouKeepingAndCheckDiscarded(
                 appView.rootSet(),

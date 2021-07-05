@@ -681,7 +681,7 @@ public class LensCodeRewriter {
       new DestructivePhiTypeUpdater(appView).recomputeAndPropagateTypes(code, affectedPhis);
     }
     assert code.isConsistentSSABeforeTypesAreCorrect();
-    assert code.hasNoVerticallyMergedClasses(appView);
+    assert code.hasNoMergedClasses(appView);
   }
 
   private DexField rewriteFieldReference(FieldLookupResult lookup, ProgramMethod context) {

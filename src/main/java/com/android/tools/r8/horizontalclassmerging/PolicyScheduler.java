@@ -24,6 +24,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoDefaultInterfaceMe
 import com.android.tools.r8.horizontalclassmerging.policies.NoDifferentApiReferenceLevel;
 import com.android.tools.r8.horizontalclassmerging.policies.NoDirectRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoEnums;
+import com.android.tools.r8.horizontalclassmerging.policies.NoFailedResolutionTargets;
 import com.android.tools.r8.horizontalclassmerging.policies.NoIllegalInlining;
 import com.android.tools.r8.horizontalclassmerging.policies.NoIndirectRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInnerClasses;
@@ -116,6 +117,7 @@ public class PolicyScheduler {
         new NoAnnotationClasses(),
         new NoDirectRuntimeTypeChecks(appView, mode, runtimeTypeCheckInfo),
         new NoEnums(appView),
+        new NoFailedResolutionTargets(appView),
         new NoInterfaces(appView, mode),
         new NoInnerClasses(),
         new NoInstanceFieldAnnotations(),

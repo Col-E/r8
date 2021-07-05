@@ -1473,4 +1473,13 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public boolean isNoVerticalClassMergingOfType(DexType type) {
     return noClassMerging.contains(type) || noVerticalClassMerging.contains(type);
   }
+
+  public boolean verifyNoIteratingOverPrunedClasses() {
+    classes()
+        .forEach(
+            clazz -> {
+              assert !wasPruned(clazz.type) : clazz.type + " was not pruned";
+            });
+    return true;
+  }
 }

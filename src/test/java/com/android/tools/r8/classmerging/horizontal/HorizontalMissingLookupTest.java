@@ -4,11 +4,9 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
-import static org.hamcrest.core.StringContains.containsString;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -20,7 +18,7 @@ public class HorizontalMissingLookupTest extends HorizontalClassMergingTestBase 
     super(parameters);
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, A.class)
@@ -29,12 +27,9 @@ public class HorizontalMissingLookupTest extends HorizontalClassMergingTestBase 
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertMergedInto(B.class, A.class))
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertErrorMessageThatMatches(
-                  containsString("Building context for pruned type"));
-            });
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("A::baz", "B::bar");
   }
 
   public static class A {
