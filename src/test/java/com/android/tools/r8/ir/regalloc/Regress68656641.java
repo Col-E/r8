@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.smali.SmaliBuilder;
@@ -62,18 +63,21 @@ public class Regress68656641 extends SmaliTestBase {
     MyRegisterAllocator allocator = new MyRegisterAllocator(appView, code);
     // Setup live an inactive live interval with ranges [0, 10[ and [20, 30[ with only
     // uses in the first interval and which is linked to another interval.
-    LiveIntervals inactiveIntervals = new LiveIntervals(new Value(0, TypeElement.getInt(), null));
+    LiveIntervals inactiveIntervals =
+        new LiveIntervals(ensureDefinition(new Value(0, TypeElement.getInt(), null), 0));
     inactiveIntervals.addRange(new LiveRange(0, 10));
     inactiveIntervals.addUse(new LiveIntervalsUse(0, 10));
     inactiveIntervals.addUse(new LiveIntervalsUse(4, 10));
     inactiveIntervals.addRange(new LiveRange(20, 30));
     inactiveIntervals.setRegister(0);
-    LiveIntervals linked = new LiveIntervals(new Value(1, TypeElement.getInt(), null));
+    LiveIntervals linked =
+        new LiveIntervals(ensureDefinition(new Value(1, TypeElement.getInt(), null), 1));
     linked.setRegister(1);
     inactiveIntervals.link(linked);
     allocator.addInactiveIntervals(inactiveIntervals);
     // Setup an unhandled interval that overlaps the inactive interval.
-    LiveIntervals unhandledIntervals = new LiveIntervals(new Value(2, TypeElement.getInt(), null));
+    LiveIntervals unhandledIntervals =
+        new LiveIntervals(ensureDefinition(new Value(2, TypeElement.getInt(), null), 2));
     unhandledIntervals.addRange(new LiveRange(12, 24));
     // Split the overlapping inactive intervals and check that after the split, the second
     // part of the inactive interval is unhandled and will therefore get a new register
@@ -82,5 +86,11 @@ public class Regress68656641 extends SmaliTestBase {
     assert allocator.getUnhandled().size() == 1;
     assert allocator.getUnhandled().peek().getStart() == 20;
     assert allocator.getUnhandled().peek().getEnd() == 30;
+  }
+
+  private Value ensureDefinition(Value value, int index) {
+    Argument argument = new Argument(value, index, false);
+    value.definition = argument;
+    return value;
   }
 }

@@ -416,6 +416,9 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
       register = NO_REGISTER;
       return this;
     }
+
+    assert !getValue().isDefinedByInstructionSatisfying(Instruction::isInitClass);
+
     start = toGapPosition(start);
     LiveIntervals splitChild = new LiveIntervals(splitParent);
     splitParent.splitChildren.add(splitChild);
