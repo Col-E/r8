@@ -26,6 +26,8 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
   private final BiPredicate<DexType, DexType> enclosingPruned;
   private final Predicate<DexType> hasGenericTypeParameters;
   private final AppView<?> appView;
+  private final ClassTypeSignature objectArgument;
+  private boolean makeAllTypeArgumentsObject = false;
 
   private GenericSignaturePartialTypeArgumentApplier(
       AppView<?> appView,
@@ -36,6 +38,9 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
     this.typeParameterContext = typeParameterContext;
     this.enclosingPruned = enclosingPruned;
     this.hasGenericTypeParameters = hasGenericTypeParameters;
+    objectArgument =
+        new ClassTypeSignature(appView.dexItemFactory().objectType)
+            .asArgument(WildcardIndicator.NONE);
   }
 
   public static GenericSignaturePartialTypeArgumentApplier build(
@@ -78,6 +83,10 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
 
   @Override
   public DexType visitType(DexType type) {
+    // It is important that the type is not looked up in the applier. The type-parameter context is
+    // a mapping from fully applied -> old references, which may seem a bit odd, but that is simply
+    // because we do not rewrite the signatures in lock step with rewriting the app.
+    // The actual lookup will be performed in the GenericSignatureTypeRewriter.
     return type;
   }
 
@@ -117,8 +126,12 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
 
   @Override
   public List<FieldTypeSignature> visitTypeArguments(
-      DexType type, List<FieldTypeSignature> typeArguments) {
-    if (typeArguments.isEmpty() || !hasGenericTypeParameters.test(type)) {
+      DexType originalType, DexType lookedUpType, List<FieldTypeSignature> typeArguments) {
+    assert originalType == lookedUpType;
+    if (typeArguments.isEmpty()) {
+      return typeArguments;
+    }
+    if (!hasGenericTypeParameters.test(appView.graphLens().lookupType(originalType))) {
       return getEmptyTypeArguments();
     }
     return ListUtils.mapOrElse(typeArguments, this::visitFieldTypeSignature);
@@ -145,7 +158,9 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
   @Override
   public ClassTypeSignature visitEnclosing(
       ClassTypeSignature enclosingSignature, ClassTypeSignature enclosedSignature) {
-    if (enclosingPruned.test(enclosingSignature.type(), enclosedSignature.type())) {
+    DexType enclosingType = appView.graphLens().lookupType(enclosingSignature.type());
+    DexType enclosedType = appView.graphLens().lookupType(enclosedSignature.type());
+    if (enclosingPruned.test(enclosingType, enclosedType)) {
       return null;
     } else {
       return enclosingSignature.visit(this);
@@ -208,15 +223,26 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
       return fieldSignature.asArrayTypeSignature().visit(this);
     } else {
       assert fieldSignature.isTypeVariableSignature();
-      String typeVariableName = fieldSignature.asTypeVariableSignature().typeVariable();
-      if (!typeParameterContext.isLiveParameter(typeVariableName)) {
-        DexType substitution = typeParameterContext.getPrunedSubstitution(typeVariableName);
-        if (substitution == null) {
-          substitution = appView.dexItemFactory().objectType;
-        }
-        return new ClassTypeSignature(substitution).asArgument(WildcardIndicator.NONE);
+      // TODO(b/b/191871201): If we track where type-variables are introduced, we can move this
+      //  past typeParameterContext.isLiveParameter(typeVariableName) and get more precision.
+      if (makeAllTypeArgumentsObject) {
+        return objectArgument;
       }
-      return fieldSignature;
+      String typeVariableName = fieldSignature.asTypeVariableSignature().typeVariable();
+      if (typeParameterContext.isLiveParameter(typeVariableName)) {
+        return fieldSignature;
+      }
+      FieldTypeSignature substitution =
+          typeParameterContext.getPrunedSubstitution(typeVariableName);
+      if (substitution == null) {
+        return objectArgument;
+      }
+      makeAllTypeArgumentsObject = true;
+      substitution = visitFieldTypeSignature(substitution);
+      makeAllTypeArgumentsObject = false;
+      return substitution.isArgument()
+          ? substitution
+          : substitution.asArgument(WildcardIndicator.NONE);
     }
   }
 }

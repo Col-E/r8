@@ -16,7 +16,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -47,9 +46,7 @@ public class B124357885Test extends TestBase {
   }
 
   private void checkSignature(CodeInspector inspector, String signature) {
-    String fooImplFinalDescriptor =
-        DescriptorUtils.javaTypeToDescriptor(inspector.clazz(FooImpl.class).getFinalName());
-    assertEquals("()" + fooImplFinalDescriptor, signature);
+    assertEquals("()" + inspector.clazz(FooImpl.class).getFinalDescriptor(), signature);
   }
 
   @Test

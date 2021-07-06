@@ -29,26 +29,31 @@ public class GenericSignatureTypeRewriter {
   private final DexProgramClass context;
 
   private final ClassTypeSignature objectTypeSignature;
+  private final Predicate<DexType> hasGenericTypeVariables;
 
-  public GenericSignatureTypeRewriter(AppView<?> appView, DexProgramClass context) {
+  public GenericSignatureTypeRewriter(
+      AppView<?> appView, DexProgramClass context, Predicate<DexType> hasGenericTypeVariables) {
     this(
         appView.dexItemFactory(),
         appView.appInfo().hasLiveness()
             ? appView.appInfo().withLiveness()::wasPruned
             : alwaysFalse(),
         appView.graphLens()::lookupType,
-        context);
+        context,
+        hasGenericTypeVariables);
   }
 
   public GenericSignatureTypeRewriter(
       DexItemFactory factory,
       Predicate<DexType> wasPruned,
       Function<DexType, DexType> lookupType,
-      DexProgramClass context) {
+      DexProgramClass context,
+      Predicate<DexType> hasGenericTypeVariables) {
     this.factory = factory;
     this.wasPruned = wasPruned;
     this.lookupType = lookupType;
     this.context = context;
+    this.hasGenericTypeVariables = hasGenericTypeVariables;
     objectTypeSignature = new ClassTypeSignature(factory.objectType, getEmptyTypeArguments());
   }
 
@@ -138,10 +143,13 @@ public class GenericSignatureTypeRewriter {
 
     @Override
     public ClassTypeSignature visitSuperClass(ClassTypeSignature classTypeSignature) {
+      if (context.superType == factory.objectType) {
+        return classTypeSignature.type == factory.objectType
+            ? classTypeSignature
+            : objectTypeSignature;
+      }
       ClassTypeSignature rewritten = classTypeSignature.visit(this);
-      return rewritten == null || rewritten.type() == context.type
-          ? objectTypeSignature
-          : rewritten;
+      return rewritten == null ? objectTypeSignature : rewritten;
     }
 
     @Override
@@ -239,9 +247,16 @@ public class GenericSignatureTypeRewriter {
 
     @Override
     public List<FieldTypeSignature> visitTypeArguments(
-        DexType type, List<FieldTypeSignature> typeArguments) {
+        DexType originalType, DexType lookedUpType, List<FieldTypeSignature> typeArguments) {
+      assert lookedUpType != null;
       if (typeArguments.isEmpty()) {
         return typeArguments;
+      }
+      // If the original type has been pruned it must be because the old type has been merged into
+      // the looked up type. We can therefore not guarantee the type arguments to be consistent and
+      // have to remove them.
+      if (wasPruned.test(originalType) || !hasGenericTypeVariables.test(lookedUpType)) {
+        return getEmptyTypeArguments();
       }
       return ListUtils.mapOrElse(
           typeArguments,

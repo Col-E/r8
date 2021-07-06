@@ -13,19 +13,23 @@ import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature;
+import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignatureContextBuilder.TypeParameterContext;
 import com.android.tools.r8.graph.GenericSignaturePartialTypeArgumentApplier;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BiPredicateUtils;
+import com.android.tools.r8.utils.MapUtils;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
@@ -113,7 +117,15 @@ public class GenericSignaturePartialTypeArgumentApplierTest extends TestBase {
         GenericSignaturePartialTypeArgumentApplier.build(
             appView,
             TypeParameterContext.empty()
-                .addPrunedSubstitutions(substitutions)
+                .addPrunedSubstitutions(
+                    MapUtils.transform(
+                        substitutions,
+                        HashMap::new,
+                        s -> s,
+                        ClassTypeSignature::new,
+                        (val1, val2) -> {
+                          throw new Unreachable("No keys should be merged");
+                        }))
                 .addLiveParameters(liveVariables),
             removedLink,
             hasFormalTypeParameters);

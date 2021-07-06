@@ -300,6 +300,7 @@ def run1(out, args, otherargs, jdkhome=None):
       cmd.append('-Xmx' + args.xmx)
     if args.ea:
       cmd.append('-ea')
+      cmd.append('-Dcom.android.tools.r8.enableTestAssertions=1')
     if args.print_times:
       cmd.append('-Dcom.android.tools.r8.printtimes=1')
     if hasattr(args, 'properties'):

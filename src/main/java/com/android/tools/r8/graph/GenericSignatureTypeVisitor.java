@@ -144,7 +144,7 @@ class GenericSignatureTypeVisitor implements GenericSignatureVisitor {
 
   @Override
   public List<FieldTypeSignature> visitTypeArguments(
-      DexType type, List<FieldTypeSignature> typeArguments) {
+      DexType originalType, DexType lookedUpType, List<FieldTypeSignature> typeArguments) {
     typeArguments.forEach(this::visitFieldTypeSignature);
     return typeArguments;
   }

@@ -15,6 +15,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.GenericSignatureFormatError;
 import java.nio.CharBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -292,6 +293,53 @@ public class GenericSignature {
 
     public ClassSignature toObjectBoundWithSameFormals(ClassTypeSignature objectBound) {
       return new ClassSignature(formalTypeParameters, objectBound, getEmptySuperInterfaces());
+    }
+
+    public List<FieldTypeSignature> getGenericArgumentsToSuperType(DexType type) {
+      assert hasSignature();
+      if (superClassSignature.type == type) {
+        return superClassSignature.typeArguments;
+      }
+      for (ClassTypeSignature superInterfaceSignature : superInterfaceSignatures) {
+        if (superInterfaceSignature.type == type) {
+          return superInterfaceSignature.typeArguments;
+        }
+      }
+      return null;
+    }
+
+    public static ClassSignatureBuilder builder() {
+      return new ClassSignatureBuilder();
+    }
+
+    public static class ClassSignatureBuilder {
+
+      private List<FormalTypeParameter> formalTypeParameters = new ArrayList<>();
+      private ClassTypeSignature superClassSignature = null;
+      private List<ClassTypeSignature> superInterfaceSignatures = new ArrayList<>();
+
+      private ClassSignatureBuilder() {}
+
+      public ClassSignatureBuilder addFormalTypeParameters(List<FormalTypeParameter> formals) {
+        formalTypeParameters.addAll(formals);
+        return this;
+      }
+
+      public ClassSignatureBuilder setSuperClassSignature(ClassTypeSignature superClassSignature) {
+        this.superClassSignature = superClassSignature;
+        return this;
+      }
+
+      public ClassSignatureBuilder addInterface(ClassTypeSignature iface) {
+        superInterfaceSignatures.add(iface);
+        return this;
+      }
+
+      public ClassSignature build() {
+        ClassSignature classSignature =
+            new ClassSignature(formalTypeParameters, superClassSignature, superInterfaceSignatures);
+        return classSignature;
+      }
     }
   }
 
@@ -585,7 +633,7 @@ public class GenericSignature {
         return null;
       }
       List<FieldTypeSignature> rewrittenArguments =
-          visitor.visitTypeArguments(visitedType, typeArguments);
+          visitor.visitTypeArguments(type, visitedType, typeArguments);
       ClassTypeSignature rewrittenOuter = null;
       if (enclosingTypeSignature != null) {
         rewrittenOuter = visitor.visitEnclosing(enclosingTypeSignature, this);

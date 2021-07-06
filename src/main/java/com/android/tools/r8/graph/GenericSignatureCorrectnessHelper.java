@@ -234,8 +234,7 @@ public class GenericSignatureCorrectnessHelper {
       if (context.superType == appView.dexItemFactory().objectType
           && classSignature.superClassSignature().hasNoSignature()) {
         // We represent no signature as object.
-      } else if (context.superType
-          != appView.graphLens().lookupClassType(classSignature.superClassSignature().type())) {
+      } else if (context.superType != classSignature.superClassSignature().type()) {
         assert mode.doNotVerify() : "Super type inconsistency in generic signature";
         return INVALID_SUPER_TYPE;
       }
@@ -393,10 +392,7 @@ public class GenericSignatureCorrectnessHelper {
         }
       }
       // TODO(b/187035453): We should visit generic signatures in the enqueuer.
-      DexClass clazz =
-          appView
-              .appInfo()
-              .definitionForWithoutExistenceAssert(appView.graphLens().lookupClassType(type));
+      DexClass clazz = appView.appInfo().definitionForWithoutExistenceAssert(type);
       if (clazz == null) {
         // We do not know if the application of arguments works or not.
         return VALID;

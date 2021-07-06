@@ -146,7 +146,7 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
 
   @Override
   public List<FieldTypeSignature> visitTypeArguments(
-      DexType type, List<FieldTypeSignature> typeArguments) {
+      DexType originalType, DexType lookedUpType, List<FieldTypeSignature> typeArguments) {
     if (typeArguments.isEmpty()) {
       return typeArguments;
     }
@@ -207,7 +207,7 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
         }
         sb.append(".").append(innerClassName);
       }
-      visitTypeArguments(null, classTypeSignature.typeArguments);
+      visitTypeArguments(null, null, classTypeSignature.typeArguments);
       if (!printingOuter) {
         sb.append(";");
       }

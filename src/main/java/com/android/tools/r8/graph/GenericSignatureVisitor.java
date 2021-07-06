@@ -84,7 +84,7 @@ public interface GenericSignatureVisitor {
   }
 
   default List<FieldTypeSignature> visitTypeArguments(
-      DexType type, List<FieldTypeSignature> typeArguments) {
+      DexType originalType, DexType lookedUpType, List<FieldTypeSignature> typeArguments) {
     throw new Unreachable("Implement if visited");
   }
 

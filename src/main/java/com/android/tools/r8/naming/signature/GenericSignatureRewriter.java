@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.GenericSignatureContextBuilder;
 import com.android.tools.r8.graph.GenericSignaturePartialTypeArgumentApplier;
 import com.android.tools.r8.graph.GenericSignatureTypeRewriter;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -50,13 +51,15 @@ public class GenericSignatureRewriter {
     // ClassNameMinifier.
     Predicate<DexType> wasPruned =
         appView.hasLiveness() ? appView.withLiveness().appInfo()::wasPruned : alwaysFalse();
+    Predicate<DexType> hasGenericTypeVariables =
+        type -> GenericSignatureContextBuilder.hasGenericTypeVariables(appView, type, wasPruned);
     BiPredicate<DexType, DexType> hasPrunedRelationship =
         (enclosing, enclosed) ->
             contextBuilder.hasPrunedRelationship(appView, enclosing, enclosed, wasPruned);
-    Predicate<DexType> hasGenericTypeVariables =
-        type -> contextBuilder.hasGenericTypeVariables(appView, type, wasPruned);
     ThreadUtils.processItems(
-        classes,
+        // Final merging of classes can introduce pruned types that still exists in classes, we
+        // therefore prune them from work here.
+        IterableUtils.filter(classes, clazz -> !wasPruned.test(clazz.getType())),
         clazz -> {
           GenericSignaturePartialTypeArgumentApplier classArgumentApplier =
               contextBuilder != null
@@ -68,7 +71,7 @@ public class GenericSignatureRewriter {
                       hasGenericTypeVariables)
                   : null;
           GenericSignatureTypeRewriter genericSignatureTypeRewriter =
-              new GenericSignatureTypeRewriter(appView, clazz);
+              new GenericSignatureTypeRewriter(appView, clazz, hasGenericTypeVariables);
           clazz.setClassSignature(
               genericSignatureTypeRewriter.rewrite(
                   classArgumentApplier != null

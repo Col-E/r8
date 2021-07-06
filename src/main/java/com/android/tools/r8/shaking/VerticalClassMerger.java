@@ -29,7 +29,16 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature.ClassSignatureBuilder;
+import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
+import com.android.tools.r8.graph.GenericSignatureContextBuilder;
+import com.android.tools.r8.graph.GenericSignatureContextBuilder.TypeParameterContext;
+import com.android.tools.r8.graph.GenericSignatureCorrectnessHelper;
+import com.android.tools.r8.graph.GenericSignaturePartialTypeArgumentApplier;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
@@ -56,6 +65,7 @@ import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
@@ -1079,6 +1089,9 @@ public class VerticalClassMerger {
         return false;
       }
 
+      // Rewrite generic signatures before we merge fields.
+      rewriteGenericSignatures(target, source, directMethods.values(), virtualMethods.values());
+
       // Step 2: Merge fields
       Set<DexString> existingFieldNames = new HashSet<>();
       for (DexEncodedField field : target.fields()) {
@@ -1139,7 +1152,146 @@ public class VerticalClassMerger {
       // Step 4: Record merging.
       mergedClasses.put(source.type, target.type);
       assert !abortMerge;
+      assert GenericSignatureCorrectnessHelper.createForVerification(
+              appView, GenericSignatureContextBuilder.createForSingleClass(appView, target))
+          .evaluateSignaturesForClass(target)
+          .isValid();
       return true;
+    }
+
+    /**
+     * The rewriting of generic signatures is pretty simple, but require some bookkeeping. We take
+     * the arguments to the base type:
+     *
+     * <pre>
+     *   class Sub<X> extends Base<X, String>
+     * </pre>
+     *
+     * for
+     *
+     * <pre>
+     *   class Base<T,R> extends OtherBase<T> implements I<R> {
+     *     T t() { ... };
+     *   }
+     * </pre>
+     *
+     * and substitute T -> X and R -> String
+     */
+    private void rewriteGenericSignatures(
+        DexProgramClass target,
+        DexProgramClass source,
+        Collection<DexEncodedMethod> directMethods,
+        Collection<DexEncodedMethod> virtualMethods) {
+      ClassSignature targetSignature = target.getClassSignature();
+      if (targetSignature.hasNoSignature()) {
+        // Null out all source signatures that is moved, but do not clear out the class since this
+        // could be referred to by other generic signatures.
+        // TODO(b/147504070): If merging classes with enclosing/innerclasses, this needs to be
+        //  reconsidered.
+        directMethods.forEach(DexEncodedMethod::clearGenericSignature);
+        virtualMethods.forEach(DexEncodedMethod::clearGenericSignature);
+        source.fields().forEach(DexEncodedMember::clearGenericSignature);
+        return;
+      }
+      GenericSignaturePartialTypeArgumentApplier classApplier =
+          getGenericSignatureArgumentApplier(target, source);
+      if (classApplier == null) {
+        target.clearClassSignature();
+        target.members().forEach(DexEncodedMember::clearGenericSignature);
+        return;
+      }
+      // We could generate a substitution map.
+      ClassSignature rewrittenSource = classApplier.visitClassSignature(source.getClassSignature());
+      // The variables in the class signature is now rewritten to use the targets argument.
+      ClassSignatureBuilder builder = ClassSignature.builder();
+      builder.addFormalTypeParameters(targetSignature.getFormalTypeParameters());
+      if (!source.isInterface()) {
+        if (rewrittenSource.hasSignature()) {
+          builder.setSuperClassSignature(rewrittenSource.superClassSignature());
+        } else {
+          builder.setSuperClassSignature(new ClassTypeSignature(source.superType));
+        }
+      } else {
+        builder.setSuperClassSignature(targetSignature.superClassSignature());
+      }
+      // Compute the seen set for interfaces to add. This is similar to the merging of interfaces
+      // but allow us to maintain the type arguments.
+      Set<DexType> seenInterfaces = new HashSet<>();
+      if (source.isInterface()) {
+        seenInterfaces.add(source.type);
+      }
+      for (ClassTypeSignature iFace : targetSignature.superInterfaceSignatures()) {
+        if (seenInterfaces.add(iFace.type())) {
+          builder.addInterface(iFace);
+        }
+      }
+      if (rewrittenSource.hasSignature()) {
+        for (ClassTypeSignature iFace : rewrittenSource.superInterfaceSignatures()) {
+          if (!seenInterfaces.contains(iFace.type())) {
+            builder.addInterface(iFace);
+          }
+        }
+      } else {
+        // Synthesize raw uses of interfaces to align with the actual class
+        for (DexType iFace : source.interfaces) {
+          if (!seenInterfaces.contains(iFace)) {
+            builder.addInterface(new ClassTypeSignature(iFace));
+          }
+        }
+      }
+      target.setClassSignature(builder.build());
+
+      // Go through all type-variable references for members and update them.
+      CollectionUtils.forEach(
+          method -> {
+            MethodTypeSignature methodSignature = method.getGenericSignature();
+            if (methodSignature.hasNoSignature()) {
+              return;
+            }
+            method.setGenericSignature(
+                classApplier
+                    .buildForMethod(methodSignature.getFormalTypeParameters())
+                    .visitMethodSignature(methodSignature));
+          },
+          directMethods,
+          virtualMethods);
+
+      source.forEachField(
+          field -> {
+            if (field.getGenericSignature().hasNoSignature()) {
+              return;
+            }
+            field.setGenericSignature(
+                classApplier.visitFieldTypeSignature(field.getGenericSignature()));
+          });
+    }
+
+    private GenericSignaturePartialTypeArgumentApplier getGenericSignatureArgumentApplier(
+        DexProgramClass target, DexProgramClass source) {
+      assert target.getClassSignature().hasSignature();
+      // We can assert proper structure below because the generic signature validator has run
+      // before and pruned invalid signatures.
+      List<FieldTypeSignature> genericArgumentsToSuperType =
+          target.getClassSignature().getGenericArgumentsToSuperType(source.type);
+      if (genericArgumentsToSuperType == null) {
+        assert false : "Type should be present in generic signature";
+        return null;
+      }
+      List<FormalTypeParameter> formals = source.getClassSignature().getFormalTypeParameters();
+      if (genericArgumentsToSuperType.size() != formals.size()) {
+        assert false : "Invalid argument count to formals";
+        return null;
+      }
+      Map<String, FieldTypeSignature> substitutionMap = new HashMap<>();
+      for (int i = 0; i < formals.size(); i++) {
+        // It is OK to override a generic type variable so we just use put.
+        substitutionMap.put(formals.get(i).getName(), genericArgumentsToSuperType.get(i));
+      }
+      return GenericSignaturePartialTypeArgumentApplier.build(
+          appView,
+          TypeParameterContext.empty().addPrunedSubstitutions(substitutionMap),
+          (type1, type2) -> true,
+          type -> true);
     }
 
     private boolean restoreDebuggingState(Stream<DexEncodedMethod> toBeDiscarded) {

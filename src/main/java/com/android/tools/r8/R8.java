@@ -660,6 +660,14 @@ public class R8 {
             new GenericSignatureRewriter(
                     appView, NamingLens.getIdentityLens(), genericContextBuilder)
                 .run(appView.appInfo().classes(), executorService);
+            assert appView.checkForTesting(
+                    () ->
+                        GenericSignatureCorrectnessHelper.createForVerification(
+                                appView,
+                                GenericSignatureContextBuilder.create(appView.appInfo().classes()))
+                            .run(appView.appInfo().classes())
+                            .isValid())
+                : "Could not validate generic signatures";
 
             // Synthesize fields for triggering class initializers.
             new ClassInitFieldSynthesizer(appViewWithLiveness).run(executorService);
@@ -739,6 +747,9 @@ public class R8 {
       // need to build IR.
       appView.dexItemFactory().clearTypeElementsCache();
 
+      GenericSignatureContextBuilder genericContextBuilderBeforeFinalMerging =
+          GenericSignatureContextBuilder.create(appView.appInfo().classes());
+
       // Run horizontal class merging. This runs even if shrinking is disabled to ensure synthetics
       // are always merged.
       HorizontalClassMerger.createForFinalClassMerging(appView)
@@ -813,6 +824,17 @@ public class R8 {
         options.syntheticProguardRulesConsumer.accept(synthesizedProguardRules);
       }
 
+      NamingLens prefixRewritingNamingLens =
+          PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
+
+      timing.begin("MinifyKotlinMetadata");
+      new KotlinMetadataRewriter(appView, prefixRewritingNamingLens).runForR8(executorService);
+      timing.end();
+
+      new GenericSignatureRewriter(
+              appView, prefixRewritingNamingLens, genericContextBuilderBeforeFinalMerging)
+          .run(appView.appInfo().classes(), executorService);
+
       assert appView.checkForTesting(
               () ->
                   !options.isShrinking()
@@ -822,16 +844,6 @@ public class R8 {
                           .run(appView.appInfo().classes())
                           .isValid())
           : "Could not validate generic signatures";
-
-      NamingLens prefixRewritingNamingLens =
-          PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
-
-      timing.begin("MinifyKotlinMetadata");
-      new KotlinMetadataRewriter(appView, prefixRewritingNamingLens).runForR8(executorService);
-      timing.end();
-
-      new GenericSignatureRewriter(appView, prefixRewritingNamingLens)
-          .run(appView.appInfo().classes(), executorService);
 
       new DesugaredLibraryKeepRuleGenerator(appView, prefixRewritingNamingLens)
           .runIfNecessary(timing);

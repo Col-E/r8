@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.graph.genericsignature.testclasses.Foo;
@@ -29,68 +30,73 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class GenericSignatureKeepReferencesPruneTest extends TestBase {
 
-  private final String[] EXPECTED =
-      new String[] {
-        Foo.class.getTypeName() + "<java.lang.String>",
-        I.class.getTypeName()
-            + "<java.lang.Integer, "
-            + Foo.class.getTypeName()
-            + "<java.lang.Integer>>",
-        I.class.getTypeName()
-            + "<java.lang.String, "
-            + Foo.class.getTypeName()
-            + "<java.lang.String>>",
-        "Hello world"
-      };
-
-  private final String[] EXPECTED_FULL_MODE =
-      new String[] {
-        "class " + Foo.class.getTypeName(),
-        "interface " + I.class.getTypeName(),
-        "interface " + I.class.getTypeName(),
-        "Hello world"
-      };
-
   private final TestParameters parameters;
   private final boolean isCompat;
+  private final boolean minify;
 
-  @Parameters(name = "{0}, isCompat: {1}")
+  @Parameters(name = "{0}, isCompat: {1}, minify: {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        BooleanUtils.values(),
+        BooleanUtils.values());
   }
 
-  public GenericSignatureKeepReferencesPruneTest(TestParameters parameters, boolean isCompat) {
+  public GenericSignatureKeepReferencesPruneTest(
+      TestParameters parameters, boolean isCompat, boolean minify) {
     this.parameters = parameters;
     this.isCompat = isCompat;
+    this.minify = minify;
   }
 
   @Test
   public void testJvm() throws Exception {
     assumeTrue(parameters.isCfRuntime());
+    assumeTrue(isCompat);
+    assumeTrue(!minify);
     testForJvm()
         .addProgramClasses(I.class, Foo.class, J.class, K.class, L.class)
         .addProgramClassesAndInnerClasses(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
+        .assertSuccessWithOutputLines(getExpected(Foo.class.getTypeName(), I.class.getTypeName()));
   }
 
   @Test
   public void testR8() throws Exception {
-    (isCompat ? testForR8Compat(parameters.getBackend()) : testForR8(parameters.getBackend()))
-        .addProgramClasses(I.class, Foo.class, J.class, K.class, L.class)
-        .addProgramClassesAndInnerClasses(Main.class)
-        .addKeepClassAndMembersRules(Main.class)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepAttributeSignature()
-        .addKeepAttributeInnerClassesAndEnclosingMethod()
-        .enableInliningAnnotations()
-        .enableNeverClassInliningAnnotations()
-        .noMinification()
-        .compile()
-        .inspect(this::inspectSignatures)
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(isCompat ? EXPECTED : EXPECTED_FULL_MODE);
+    R8TestRunResult runResult =
+        (isCompat ? testForR8Compat(parameters.getBackend()) : testForR8(parameters.getBackend()))
+            .addProgramClasses(I.class, Foo.class, J.class, K.class, L.class)
+            .addProgramClassesAndInnerClasses(Main.class)
+            .addKeepClassAndMembersRules(Main.class)
+            .setMinApi(parameters.getApiLevel())
+            .addKeepAttributeSignature()
+            .addKeepAttributeInnerClassesAndEnclosingMethod()
+            .enableInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
+            .compile()
+            .inspect(this::inspectSignatures)
+            .run(parameters.getRuntime(), Main.class);
+    runResult.assertSuccess();
+    CodeInspector inspector = runResult.inspector();
+    // Foo and I exists due to the assertions in the inspection.
+    runResult.assertSuccessWithOutputLines(
+        getExpected(
+            inspector.clazz(Foo.class).getFinalName(), inspector.clazz(I.class).getFinalName()));
+  }
+
+  private String[] getExpected(String fooName, String iName) {
+    if (isCompat) {
+      return new String[] {
+        fooName + "<java.lang.String>",
+        iName + "<java.lang.Integer, " + fooName + "<java.lang.Integer>>",
+        iName + "<java.lang.String, " + fooName + "<java.lang.String>>",
+        "Hello world"
+      };
+    } else {
+      return new String[] {
+        "class " + fooName, "interface " + iName, "interface " + iName, "Hello world"
+      };
+    }
   }
 
   private void inspectSignatures(CodeInspector inspector) {
@@ -104,7 +110,7 @@ public class GenericSignatureKeepReferencesPruneTest extends TestBase {
     assertEquals(
         isCompat
             ? "<T::Ljava/lang/Comparable<TT;>;R:L"
-                + binaryName(Foo.class)
+                + fooClass.getFinalBinaryName()
                 + "<TT;>;>Ljava/lang/Object;"
             : null,
         iClass.getFinalSignatureAttribute());
@@ -113,9 +119,9 @@ public class GenericSignatureKeepReferencesPruneTest extends TestBase {
     assertEquals(
         isCompat
             ? "Ljava/lang/Object;L"
-                + binaryName(I.class)
+                + iClass.getFinalBinaryName()
                 + "<Ljava/lang/String;L"
-                + binaryName(Foo.class)
+                + fooClass.getFinalBinaryName()
                 + "<Ljava/lang/String;>;>;"
             : null,
         fooInnerClass.getFinalSignatureAttribute());

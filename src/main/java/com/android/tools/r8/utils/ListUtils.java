@@ -48,6 +48,17 @@ public class ListUtils {
     return result != null ? result : defaultValue;
   }
 
+  public static <T> List<T> filter(List<T> list, Predicate<? super T> predicate) {
+    ArrayList<T> filtered = new ArrayList<>(list.size());
+    list.forEach(
+        t -> {
+          if (predicate.test(t)) {
+            filtered.add(t);
+          }
+        });
+    return filtered;
+  }
+
   public static <T> T first(List<T> list) {
     return list.get(0);
   }
