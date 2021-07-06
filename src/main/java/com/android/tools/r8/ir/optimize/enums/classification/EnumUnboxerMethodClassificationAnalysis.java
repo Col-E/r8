@@ -49,12 +49,12 @@ public class EnumUnboxerMethodClassificationAnalysis {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     InstructionIterator entryIterator = code.entryBlock().iterator();
     for (int index = 0; index < method.getParameters().size(); index++) {
+      Argument argument = entryIterator.next().asArgument();
       DexType parameter = method.getParameter(index);
       if (parameter != dexItemFactory.objectType) {
         continue;
       }
 
-      Argument argument = entryIterator.next().asArgument();
       if (onlyHasCheckNotNullUsers(argument, methodProcessor)) {
         return new CheckNotNullEnumUnboxerMethodClassification(index);
       }
