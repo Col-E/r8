@@ -55,4 +55,14 @@ public abstract class FieldOptimizationInfo
   public abstract boolean isDead();
 
   public abstract boolean valueHasBeenPropagated();
+
+  @Override
+  public boolean isFieldOptimizationInfo() {
+    return true;
+  }
+
+  @Override
+  public FieldOptimizationInfo asFieldOptimizationInfo() {
+    return this;
+  }
 }

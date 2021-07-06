@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMeth
 import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import java.util.BitSet;
@@ -103,17 +104,31 @@ public abstract class MethodOptimizationInfo
 
   public abstract boolean returnValueHasBeenPropagated();
 
+  public abstract boolean hasApiReferenceLevelForCode();
+
+  public abstract AndroidApiLevel getApiReferenceLevelForCode(AndroidApiLevel minApi);
+
   public static OptionalBool isApiSafeForInlining(
       MethodOptimizationInfo caller, MethodOptimizationInfo inlinee, InternalOptions options) {
     if (!options.apiModelingOptions().enableApiCallerIdentification) {
       return OptionalBool.TRUE;
     }
-    if (!caller.hasApiReferenceLevel() || !inlinee.hasApiReferenceLevel()) {
+    if (!caller.hasApiReferenceLevelForCode() || !inlinee.hasApiReferenceLevelForCode()) {
       return UNKNOWN;
     }
     return OptionalBool.of(
         caller
-            .getApiReferenceLevel(options.minApiLevel)
-            .isGreaterThanOrEqualTo(inlinee.getApiReferenceLevel(options.minApiLevel)));
+            .getApiReferenceLevelForCode(options.minApiLevel)
+            .isGreaterThanOrEqualTo(inlinee.getApiReferenceLevelForCode(options.minApiLevel)));
+  }
+
+  @Override
+  public boolean isMethodOptimizationInfo() {
+    return true;
+  }
+
+  @Override
+  public MethodOptimizationInfo asMethodOptimizationInfo() {
+    return this;
   }
 }

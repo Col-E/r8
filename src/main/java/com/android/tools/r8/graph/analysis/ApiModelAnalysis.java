@@ -7,13 +7,16 @@ package com.android.tools.r8.graph.analysis;
 import com.android.tools.r8.androidapi.AndroidApiReferenceLevelCache;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMember;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.DefaultFieldOptimizationWithMinApiInfo;
+import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationWithMinApiInfo;
 import com.android.tools.r8.ir.optimize.info.MemberOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.shaking.DefaultEnqueuerUseRegistry;
 import com.android.tools.r8.utils.AndroidApiLevel;
 
@@ -31,13 +34,13 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
 
   @Override
   public void processNewlyLiveField(ProgramField field, ProgramDefinition context) {
-    setApiLevelForMember(
+    setApiLevelForMemberDefinition(
         field.getDefinition(), computeApiLevelForReferencedTypes(field.getReference()));
   }
 
   @Override
   public void processNewlyLiveMethod(ProgramMethod method, ProgramDefinition context) {
-    setApiLevelForMember(
+    setApiLevelForMemberDefinition(
         method.getDefinition(), computeApiLevelForReferencedTypes(method.getReference()));
   }
 
@@ -51,10 +54,13 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
           .tracedMethodApiLevelCallback
           .accept(method.getMethodReference(), registry.getMaxApiReferenceLevel());
     }
-    setApiLevelForMember(method.getDefinition(), registry.getMaxApiReferenceLevel());
+    setApiLevelForMemberDefinition(
+        method.getDefinition(), computeApiLevelForReferencedTypes(method.getReference()));
+    setApiLevelForCode(method.getDefinition(), registry.getMaxApiReferenceLevel());
   }
 
-  private void setApiLevelForMember(DexEncodedMember<?, ?> member, AndroidApiLevel apiLevel) {
+  private void setApiLevelForMemberDefinition(
+      DexEncodedMember<?, ?> member, AndroidApiLevel apiLevel) {
     // To not have mutable update information for all members that all has min api level we
     // swap the default optimization info for one with that marks the api level to be min api.
     MemberOptimizationInfo<?> optimizationInfo = member.getOptimizationInfo();
@@ -68,17 +74,27 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
           });
     } else {
       AndroidApiLevel maxApiLevel =
-          optimizationInfo.hasApiReferenceLevel()
-              ? apiLevel.max(optimizationInfo.getApiReferenceLevel(minApiLevel))
+          optimizationInfo.hasApiReferenceLevelForDefinition()
+              ? apiLevel.max(optimizationInfo.getApiReferenceLevelForDefinition(minApiLevel))
               : apiLevel;
       member.accept(
           field -> {
-            field.getMutableOptimizationInfo().setApiReferenceLevel(maxApiLevel);
+            field.getMutableOptimizationInfo().setApiReferenceLevelForDefinition(maxApiLevel);
           },
           method -> {
-            method.getMutableOptimizationInfo().setApiReferenceLevel(maxApiLevel);
+            method.getMutableOptimizationInfo().setApiReferenceLevelForDefinition(maxApiLevel);
           });
     }
+  }
+
+  private void setApiLevelForCode(DexEncodedMethod method, AndroidApiLevel apiLevel) {
+    MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
+    assert optimizationInfo != DefaultMethodOptimizationInfo.getInstance();
+    if (!optimizationInfo.isMutableOptimizationInfo() && apiLevel == minApiLevel) {
+      assert optimizationInfo == DefaultMethodOptimizationWithMinApiInfo.getInstance();
+      return;
+    }
+    method.getMutableOptimizationInfo().setApiReferenceLevelForCode(apiLevel);
   }
 
   private AndroidApiLevel computeApiLevelForReferencedTypes(DexMember<?, ?> member) {

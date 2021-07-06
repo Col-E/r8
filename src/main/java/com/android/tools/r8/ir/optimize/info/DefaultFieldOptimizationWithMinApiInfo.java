@@ -16,12 +16,12 @@ public class DefaultFieldOptimizationWithMinApiInfo extends DefaultFieldOptimiza
   }
 
   @Override
-  public boolean hasApiReferenceLevel() {
+  public boolean hasApiReferenceLevelForDefinition() {
     return true;
   }
 
   @Override
-  public AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApi) {
+  public AndroidApiLevel getApiReferenceLevelForDefinition(AndroidApiLevel minApi) {
     return minApi;
   }
 

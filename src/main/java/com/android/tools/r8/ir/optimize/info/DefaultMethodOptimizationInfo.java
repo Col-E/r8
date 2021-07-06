@@ -197,12 +197,22 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
-  public AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApi) {
+  public boolean hasApiReferenceLevelForCode() {
+    return false;
+  }
+
+  @Override
+  public AndroidApiLevel getApiReferenceLevelForCode(AndroidApiLevel minApi) {
     throw new RuntimeException("Should never be called");
   }
 
   @Override
-  public boolean hasApiReferenceLevel() {
+  public AndroidApiLevel getApiReferenceLevelForDefinition(AndroidApiLevel minApi) {
+    throw new RuntimeException("Should never be called");
+  }
+
+  @Override
+  public boolean hasApiReferenceLevelForDefinition() {
     return false;
   }
 

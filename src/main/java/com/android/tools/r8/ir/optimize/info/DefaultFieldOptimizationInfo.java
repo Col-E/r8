@@ -56,7 +56,7 @@ public class DefaultFieldOptimizationInfo extends FieldOptimizationInfo {
   }
 
   @Override
-  public AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApi) {
+  public AndroidApiLevel getApiReferenceLevelForDefinition(AndroidApiLevel minApi) {
     throw new RuntimeException("Should never be called");
   }
 

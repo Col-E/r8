@@ -16,12 +16,22 @@ public class DefaultMethodOptimizationWithMinApiInfo extends DefaultMethodOptimi
   }
 
   @Override
-  public boolean hasApiReferenceLevel() {
+  public boolean hasApiReferenceLevelForDefinition() {
     return true;
   }
 
   @Override
-  public AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApi) {
+  public AndroidApiLevel getApiReferenceLevelForDefinition(AndroidApiLevel minApi) {
+    return minApi;
+  }
+
+  @Override
+  public boolean hasApiReferenceLevelForCode() {
+    return true;
+  }
+
+  @Override
+  public AndroidApiLevel getApiReferenceLevelForCode(AndroidApiLevel minApi) {
     return minApi;
   }
 

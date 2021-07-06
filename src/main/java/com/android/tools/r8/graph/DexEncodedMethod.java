@@ -70,6 +70,7 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -1405,6 +1406,20 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public MethodOptimizationInfo getOptimizationInfo() {
     checkIfObsolete();
     return optimizationInfo;
+  }
+
+  public AndroidApiLevel getApiReferenceLevelForDefinition(AndroidApiLevel minApiLevel) {
+    return optimizationInfo.getApiReferenceLevelForDefinition(minApiLevel);
+  }
+
+  public AndroidApiLevel getApiReferenceLevelForCode(AndroidApiLevel minApiLevel) {
+    return optimizationInfo.getApiReferenceLevelForCode(minApiLevel);
+  }
+
+  @Override
+  public AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApiLevel) {
+    return getApiReferenceLevelForDefinition(minApiLevel)
+        .max(getApiReferenceLevelForCode(minApiLevel));
   }
 
   public synchronized MutableMethodOptimizationInfo getMutableOptimizationInfo() {

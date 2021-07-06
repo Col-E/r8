@@ -10,5 +10,5 @@ public interface MutableOptimizationInfo {
 
   void setMinApiReferenceLevel();
 
-  void setApiReferenceLevel(AndroidApiLevel apiReferenceLevel);
+  void setApiReferenceLevelForDefinition(AndroidApiLevel apiLevel);
 }

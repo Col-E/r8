@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.kotlin.KotlinFieldLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
@@ -125,6 +126,11 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   @Override
   public FieldOptimizationInfo getOptimizationInfo() {
     return optimizationInfo;
+  }
+
+  @Override
+  public AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApiLevel) {
+    return optimizationInfo.getApiReferenceLevelForDefinition(minApiLevel);
   }
 
   public synchronized MutableFieldOptimizationInfo getMutableOptimizationInfo() {

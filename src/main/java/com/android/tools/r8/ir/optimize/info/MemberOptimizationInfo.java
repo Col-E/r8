@@ -21,11 +21,27 @@ public interface MemberOptimizationInfo<
     return null;
   }
 
-  default boolean hasApiReferenceLevel() {
+  default boolean hasApiReferenceLevelForDefinition() {
     return false;
   }
 
-  AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApi);
+  AndroidApiLevel getApiReferenceLevelForDefinition(AndroidApiLevel minApi);
 
   T toMutableOptimizationInfo();
+
+  default boolean isFieldOptimizationInfo() {
+    return false;
+  }
+
+  default boolean isMethodOptimizationInfo() {
+    return false;
+  }
+
+  default FieldOptimizationInfo asFieldOptimizationInfo() {
+    return null;
+  }
+
+  default MethodOptimizationInfo asMethodOptimizationInfo() {
+    return null;
+  }
 }

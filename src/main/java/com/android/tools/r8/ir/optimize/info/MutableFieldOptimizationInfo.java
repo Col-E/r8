@@ -69,6 +69,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
   public MutableFieldOptimizationInfo mutableCopy() {
     MutableFieldOptimizationInfo copy = new MutableFieldOptimizationInfo();
     copy.flags = flags;
+    copy.apiReferenceLevel = apiReferenceLevel;
     return copy;
   }
 
@@ -156,13 +157,13 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
 
   @SuppressWarnings("OptionalAssignedToNull")
   @Override
-  public boolean hasApiReferenceLevel() {
+  public boolean hasApiReferenceLevelForDefinition() {
     return apiReferenceLevel != null;
   }
 
   @Override
-  public AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApi) {
-    assert hasApiReferenceLevel();
+  public AndroidApiLevel getApiReferenceLevelForDefinition(AndroidApiLevel minApi) {
+    assert hasApiReferenceLevelForDefinition();
     return apiReferenceLevel.orElse(minApi);
   }
 
@@ -174,7 +175,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
   }
 
   @Override
-  public void setApiReferenceLevel(AndroidApiLevel apiReferenceLevel) {
+  public void setApiReferenceLevelForDefinition(AndroidApiLevel apiReferenceLevel) {
     assert apiReferenceLevel != null;
     this.apiReferenceLevel = Optional.of(apiReferenceLevel);
   }
