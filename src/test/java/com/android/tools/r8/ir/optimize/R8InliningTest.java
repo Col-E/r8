@@ -366,17 +366,11 @@ public class R8InliningTest extends TestBase {
       InstructionSubject instruction = iterator.next();
       if (instruction.isInstanceGet()) {
         ++instanceGetCount;
-      } else if (instruction.isInvoke() && !isEnumInvoke(instruction)) {
+      } else if (instruction.isInvoke()) {
         ++invokeCount;
       }
     }
     assertEquals(1, instanceGetCount);
     assertEquals(0, invokeCount);
-  }
-
-  // TODO(b/192426913): This is only required due to inadequate inlining.
-  private boolean isEnumInvoke(InstructionSubject instruction) {
-    return SyntheticItemsTestUtils.isEnumUnboxingSharedUtilityClass(
-        instruction.getMethod().getHolderType().asClassReference());
   }
 }

@@ -94,7 +94,6 @@ import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -525,23 +524,12 @@ public class EnumUnboxer {
     enumUnboxingCandidatesInfo.clear();
     // Update keep info on any of the enum methods of the removed classes.
     updateKeepInfo(enumsToUnbox);
-    FieldAccessInfoCollectionModifier.Builder fieldAccessInfoCollectionModifierBuilder =
-        FieldAccessInfoCollectionModifier.builder();
 
     EnumUnboxingUtilityClasses utilityClasses =
         EnumUnboxingUtilityClasses.builder(appView)
-            .synthesizeEnumUnboxingUtilityClasses(
-                enumClassesToUnbox,
-                enumDataMap,
-                fieldAccessInfoCollectionModifierBuilder)
-            .build();
-    utilityClasses.forEach(
-        utilityClass -> {
-          utilityClass.ensureMethods(appView);
-          utilityClass.getDefinition().forEachProgramMethod(postBuilder::add);
-        });
+            .synthesizeEnumUnboxingUtilityClasses(enumClassesToUnbox, enumDataMap)
+            .build(converter, executorService);
 
-    fieldAccessInfoCollectionModifierBuilder.build().modify(appView);
     EnumUnboxingTreeFixer.Result treeFixerResult =
         new EnumUnboxingTreeFixer(
                 appView, checkNotNullMethods, enumDataMap, enumClassesToUnbox, utilityClasses)
