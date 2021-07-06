@@ -2574,7 +2574,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             addLiveRange(
                 definition,
                 block,
-                instruction.getNumber() + INSTRUCTION_NUMBER_DELTA,
+                instruction.getNumber() + INSTRUCTION_NUMBER_DELTA - 1,
                 liveIntervals,
                 options);
             assert !options.isGeneratingClassFiles() || instruction.isArgument()
