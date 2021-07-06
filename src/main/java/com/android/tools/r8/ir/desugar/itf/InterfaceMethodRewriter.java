@@ -1167,10 +1167,6 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     return factory.createSynthesizedType(ccTypeDescriptor);
   }
 
-  public DexType getCompanionClassType(DexType type) {
-    return getCompanionClassType(type, factory);
-  }
-
   // Checks if `type` is a companion class.
   public static boolean isCompanionClassType(DexType type) {
     return type.descriptor.toString().endsWith(COMPANION_CLASS_NAME_SUFFIX + ";");
