@@ -123,8 +123,7 @@ public class DumpOptions {
 
   private boolean hasDesugaredLibraryConfiguration() {
     return desugaredLibraryConfiguration != null
-        && desugaredLibraryConfiguration
-            != DesugaredLibraryConfiguration.EMPTY_DESUGARED_LIBRARY_CONFIGURATION;
+        && !desugaredLibraryConfiguration.isEmptyConfiguration();
   }
 
   public String getDesugaredLibraryJsonSource() {

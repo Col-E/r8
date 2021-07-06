@@ -38,23 +38,6 @@ import java.util.stream.Collectors;
 public class DesugaredLibraryConfiguration {
   public static final String FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX = "j$/";
   public static final boolean FALL_BACK_SUPPORT_ALL_CALLBACKS_FROM_LIBRARY = true;
-  public static final DesugaredLibraryConfiguration EMPTY_DESUGARED_LIBRARY_CONFIGURATION =
-      new DesugaredLibraryConfiguration(
-          AndroidApiLevel.B,
-          false,
-          FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
-          null,
-          null,
-          FALL_BACK_SUPPORT_ALL_CALLBACKS_FROM_LIBRARY,
-          ImmutableMap.of(),
-          ImmutableMap.of(),
-          ImmutableMap.of(),
-          ImmutableMap.of(),
-          ImmutableMap.of(),
-          ImmutableSet.of(),
-          ImmutableList.of(),
-          ImmutableList.of(),
-          PrefixRewritingMapper.empty());
   private final AndroidApiLevel requiredCompilationAPILevel;
   private final boolean libraryCompilation;
   private final String synthesizedLibraryClassesPackagePrefix;
@@ -103,7 +86,33 @@ public class DesugaredLibraryConfiguration {
   }
 
   public static DesugaredLibraryConfiguration empty() {
-    return EMPTY_DESUGARED_LIBRARY_CONFIGURATION;
+    return new DesugaredLibraryConfiguration(
+        AndroidApiLevel.B,
+        false,
+        FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
+        null,
+        null,
+        FALL_BACK_SUPPORT_ALL_CALLBACKS_FROM_LIBRARY,
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableSet.of(),
+        ImmutableList.of(),
+        ImmutableList.of(),
+        PrefixRewritingMapper.empty()) {
+
+      @Override
+      public boolean isSupported(DexReference reference, AppView<?> appView) {
+        return false;
+      }
+
+      @Override
+      public boolean isEmptyConfiguration() {
+        return true;
+      }
+    };
   }
 
   private DesugaredLibraryConfiguration(
@@ -230,6 +239,10 @@ public class DesugaredLibraryConfiguration {
 
   public String getJsonSource() {
     return jsonSource;
+  }
+
+  public boolean isEmptyConfiguration() {
+    return false;
   }
 
   public static class Builder {
