@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.TraversalContinuation;
@@ -23,17 +24,18 @@ public class AndroidApiReferenceLevelCache {
 
   private final Map<DexType, AndroidApiClass> apiTypeLookup;
   private final Map<DexReference, AndroidApiLevel> apiMemberLookup = new IdentityHashMap<>();
+  private final DesugaredLibraryConfiguration desugaredLibraryConfiguration;
   private final AppView<?> appView;
 
   private AndroidApiReferenceLevelCache(AppView<?> appView) {
-    this.appView = appView;
-    this.apiTypeLookup = new IdentityHashMap<>();
+    this(appView, new IdentityHashMap<>());
   }
 
   private AndroidApiReferenceLevelCache(
       AppView<?> appView, Map<DexType, AndroidApiClass> apiTypeLookup) {
     this.appView = appView;
     this.apiTypeLookup = apiTypeLookup;
+    desugaredLibraryConfiguration = appView.options().desugaredLibraryConfiguration;
   }
 
   public static AndroidApiReferenceLevelCache create(AppView<?> appView) {
@@ -76,6 +78,11 @@ public class AndroidApiReferenceLevelCache {
       return AndroidApiLevel.UNKNOWN;
     }
     if (!clazz.isLibraryClass()) {
+      return appView.options().minApiLevel;
+    }
+    if (desugaredLibraryConfiguration.isSupported(reference, appView)) {
+      // If we end up desugaring the reference, the library classes is bridged by j$ which is part
+      // of the program.
       return appView.options().minApiLevel;
     }
     AndroidApiClass androidApiClass =

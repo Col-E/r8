@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
@@ -181,8 +182,8 @@ public class DesugaredLibraryConfiguration {
     return emulateLibraryInterface;
   }
 
-  public boolean isSupported(DexMethod method, AppView<?> appView) {
-    return prefixRewritingMapper.hasRewrittenType(method.getHolderType(), appView);
+  public boolean isSupported(DexReference reference, AppView<?> appView) {
+    return prefixRewritingMapper.hasRewrittenType(reference.getContextType(), appView);
   }
 
   // If the method is retargeted, answers the retargeted method, else null.
