@@ -459,13 +459,11 @@ public class IRConverter {
       throws ExecutionException {
     D8CfPostProcessingDesugaringEventConsumer eventConsumer =
         CfPostProcessingDesugaringEventConsumer.createForD8(methodProcessor);
-    methodProcessor.newWave();
     InterfaceMethodProcessorFacade interfaceDesugaring =
         instructionDesugaring.getInterfaceMethodPostProcessingDesugaring(ExcludeDexResources);
     CfPostProcessingDesugaringCollection.create(
             appView, interfaceDesugaring, instructionDesugaring.getRetargetingInfo())
         .postProcessingDesugaring(eventConsumer, executorService);
-    methodProcessor.awaitMethodProcessing();
     eventConsumer.finalizeDesugaring();
   }
 

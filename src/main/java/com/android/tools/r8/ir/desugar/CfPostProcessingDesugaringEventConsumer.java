@@ -14,6 +14,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConve
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Specialized Event consumer for desugaring finalization. During finalization, it is not possible
@@ -35,13 +37,14 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     return new R8PostProcessingDesugaringEventConsumer(appView, additions);
   }
 
-  public void finalizeDesugaring() {
-    // Intentionally empty.
-  }
+  public abstract void finalizeDesugaring() throws ExecutionException;
 
   public static class D8CfPostProcessingDesugaringEventConsumer
       extends CfPostProcessingDesugaringEventConsumer {
     private final D8MethodProcessor methodProcessor;
+    // Methods cannot be processed directly because we cannot add method to classes while
+    // concurrently processing other methods.
+    private final ProgramMethodSet methodsToReprocess = ProgramMethodSet.createConcurrent();
 
     private D8CfPostProcessingDesugaringEventConsumer(D8MethodProcessor methodProcessor) {
       this.methodProcessor = methodProcessor;
@@ -49,7 +52,7 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     @Override
     public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
-      methodProcessor.scheduleDesugaredMethodsForProcessing(clazz.programMethods());
+      methodsToReprocess.addAll(clazz.programMethods());
     }
 
     @Override
@@ -64,22 +67,30 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     @Override
     public void acceptForwardingMethod(ProgramMethod method) {
-      methodProcessor.scheduleDesugaredMethodForProcessing(method);
+      methodsToReprocess.add(method);
     }
 
     @Override
     public void acceptCompanionClassClinit(ProgramMethod method) {
-      methodProcessor.scheduleDesugaredMethodForProcessing(method);
+      methodsToReprocess.add(method);
     }
 
     @Override
     public void acceptEmulatedInterfaceMethod(ProgramMethod method) {
-      methodProcessor.scheduleDesugaredMethodForProcessing(method);
+      methodsToReprocess.add(method);
     }
 
     @Override
     public void acceptAPIConversionCallback(ProgramMethod method) {
-      methodProcessor.scheduleDesugaredMethodForProcessing(method);
+      methodsToReprocess.add(method);
+    }
+
+    @Override
+    public void finalizeDesugaring() throws ExecutionException {
+      assert methodProcessor.verifyNoPendingMethodProcessing();
+      methodProcessor.newWave();
+      methodProcessor.scheduleDesugaredMethodsForProcessing(methodsToReprocess);
+      methodProcessor.awaitMethodProcessing();
     }
   }
 
@@ -98,7 +109,7 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void finalizeDesugaring() {
+    public void finalizeDesugaring() throws ExecutionException {
       desugaredLibraryAPIConverter.generateTrackingWarnings();
     }
 
