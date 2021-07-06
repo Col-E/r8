@@ -140,11 +140,15 @@ public class MethodOptimizationInfoCollector {
     if (options.enableInlining) {
       identifyInvokeSemanticsForInlining(definition, code, feedback, timing);
     }
-    computeClassInlinerMethodConstraint(method, code, feedback, timing);
+    if (options.enableClassInlining) {
+      computeClassInlinerMethodConstraint(method, code, feedback, timing);
+    }
     computeEnumUnboxerMethodClassification(method, code, feedback, methodProcessor, timing);
     computeSimpleInliningConstraint(method, code, feedback, timing);
     computeDynamicReturnType(dynamicTypeOptimization, feedback, definition, code, timing);
-    computeInitializedClassesOnNormalExit(feedback, definition, code, timing);
+    if (options.enableInitializedClassesAnalysis) {
+      computeInitializedClassesOnNormalExit(feedback, definition, code, timing);
+    }
     computeInstanceInitializerInfo(
         definition, code, feedback, instanceFieldInitializationInfos, timing);
     computeMayHaveSideEffects(feedback, definition, code, timing);
