@@ -18,8 +18,8 @@ import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import java.util.ArrayDeque;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public abstract class EnqueuerWorklist {
 
@@ -369,7 +369,7 @@ public abstract class EnqueuerWorklist {
   static class PushableEnqueuerWorkList extends EnqueuerWorklist {
 
     PushableEnqueuerWorkList(Enqueuer enqueuer) {
-      super(enqueuer, new ArrayDeque<>());
+      super(enqueuer, new ConcurrentLinkedQueue<>());
     }
 
     @Override
