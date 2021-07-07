@@ -56,6 +56,7 @@ public abstract class ClassConverter {
     D8CfClassDesugaringEventConsumer classDesugaringEventConsumer =
         CfClassDesugaringEventConsumer.createForD8(methodProcessor);
     converter.desugarClassesForD8(classes, classDesugaringEventConsumer, executorService);
+    converter.prepareDesugaringForD8(executorService);
 
     while (!classes.isEmpty()) {
       Set<DexType> seenNestHosts = Sets.newIdentityHashSet();

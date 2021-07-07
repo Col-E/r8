@@ -226,17 +226,17 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptNestFieldGetBridge(ProgramField target, ProgramMethod bridge) {
-      methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
+      assert false;
     }
 
     @Override
     public void acceptNestFieldPutBridge(ProgramField target, ProgramMethod bridge) {
-      methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
+      assert false;
     }
 
     @Override
     public void acceptNestMethodBridge(ProgramMethod target, ProgramMethod bridge) {
-      methodProcessor.scheduleDesugaredMethodForProcessing(bridge);
+      assert false;
     }
 
     @Override
@@ -456,20 +456,17 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptNestFieldGetBridge(ProgramField target, ProgramMethod bridge) {
-      // Intentionally empty. These bridges will be hit by the tracing in R8 as if they were present
-      // in the input code, and thus nothing needs to be done.
+      assert false;
     }
 
     @Override
     public void acceptNestFieldPutBridge(ProgramField target, ProgramMethod bridge) {
-      // Intentionally empty. These bridges will be hit by the tracing in R8 as if they were present
-      // in the input code, and thus nothing needs to be done.
+      assert false;
     }
 
     @Override
     public void acceptNestMethodBridge(ProgramMethod target, ProgramMethod bridge) {
-      // Intentionally empty. These bridges will be hit by the tracing in R8 as if they were present
-      // in the input code, and thus nothing needs to be done.
+      assert false;
     }
 
     @Override

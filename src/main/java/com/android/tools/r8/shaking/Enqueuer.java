@@ -105,6 +105,7 @@ import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer.R8PostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
+import com.android.tools.r8.ir.desugar.ProgramAdditions;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;
 import com.android.tools.r8.logging.Log;
@@ -3466,6 +3467,13 @@ public class Enqueuer {
     if (pendingDesugaring.isEmpty()) {
       return;
     }
+
+    // Prepare desugaring by collecting all the synthetic methods required on program classes.
+    ProgramAdditions programAdditions = new ProgramAdditions();
+    ThreadUtils.processItems(
+        pendingDesugaring, method -> desugaring.prepare(method, programAdditions), executorService);
+    programAdditions.apply(executorService);
+
     R8CfInstructionDesugaringEventConsumer desugaringEventConsumer =
         CfInstructionDesugaringEventConsumer.createForR8(
             appView,

@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar;
 import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.cf.CfVersion;
@@ -77,43 +76,22 @@ public class ConcurrencyTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    try {
-      testForD8(parameters.getBackend())
-          .addProgramClasses(getClasses())
-          .addProgramClassFileData(getTransformedClasses())
-          .compile();
-    } catch (CompilationFailedException e) {
-      if (e.getCause() instanceof ArrayIndexOutOfBoundsException) {
-        // TODO(b/192310793): This should not happen.
-        return;
-      }
-      throw e;
-    }
+    testForD8(parameters.getBackend())
+        .addProgramClasses(getClasses())
+        .addProgramClassFileData(getTransformedClasses())
+        .compile();
   }
 
   @Test
   public void testR8() throws Exception {
     assumeTrue(parameters.getBackend().isDex());
 
-    try {
-      testForR8(parameters.getBackend())
-          .addProgramClasses(getClasses())
-          .addProgramClassFileData(getTransformedClasses())
-          .setMinApi(parameters.getApiLevel())
-          .addKeepAllClassesRule()
-          .compile();
-    } catch (CompilationFailedException e) {
-      if (e.getCause() instanceof AssertionError
-          && e.getCause()
-              .getStackTrace()[0]
-              .getClassName()
-              .equals(
-                  "com.android.tools.r8.ir.desugar.NonEmptyCfInstructionDesugaringCollection")) {
-        // TODO(b/192446461): This should not happen.
-        return;
-      }
-      throw e;
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(getClasses())
+        .addProgramClassFileData(getTransformedClasses())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepAllClassesRule()
+        .compile();
   }
 
   static class Host {

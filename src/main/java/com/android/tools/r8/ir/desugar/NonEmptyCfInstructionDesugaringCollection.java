@@ -149,6 +149,12 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
   }
 
   @Override
+  public void prepare(ProgramMethod method, ProgramAdditions programAdditions) {
+    ensureCfCode(method);
+    desugarings.forEach(d -> d.prepare(method, programAdditions));
+  }
+
+  @Override
   public void scan(ProgramMethod method, CfInstructionDesugaringEventConsumer eventConsumer) {
     ensureCfCode(method);
     desugarings.forEach(d -> d.scan(method, eventConsumer));

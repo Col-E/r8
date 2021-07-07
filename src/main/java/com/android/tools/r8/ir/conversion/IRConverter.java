@@ -53,6 +53,7 @@ import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer.D8CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
+import com.android.tools.r8.ir.desugar.ProgramAdditions;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter.Mode;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceApplicationRewriter;
@@ -499,11 +500,25 @@ public class IRConverter {
         classes, clazz -> desugarClassForD8(clazz, desugaringEventConsumer), executorService);
   }
 
-  public void desugarClassForD8(
+  private void desugarClassForD8(
       DexProgramClass clazz, D8CfClassDesugaringEventConsumer desugaringEventConsumer) {
     if (classDesugaring.needsDesugaring(clazz)) {
       classDesugaring.desugar(clazz, desugaringEventConsumer);
     }
+  }
+
+  public void prepareDesugaringForD8(ExecutorService executorService) throws ExecutionException {
+    // Prepare desugaring by collecting all the synthetic methods required on program classes.
+    ProgramAdditions programAdditions = new ProgramAdditions();
+    ThreadUtils.processItems(
+        appView.appInfo().classes(),
+        clazz -> {
+          clazz.forEachProgramMethodMatching(
+              method -> method.hasCode() && method.getCode().isCfCode(),
+              method -> instructionDesugaring.prepare(method, programAdditions));
+        },
+        executorService);
+    programAdditions.apply(executorService);
   }
 
   void convertMethods(
