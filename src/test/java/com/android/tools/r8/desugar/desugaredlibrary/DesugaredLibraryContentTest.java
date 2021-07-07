@@ -41,9 +41,18 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testDesugaredLibraryContent() throws Exception {
+  public void testDesugaredLibraryContentD8() throws Exception {
     Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
     CodeInspector inspector = new CodeInspector(buildDesugaredLibrary(parameters.getApiLevel()));
+    assertCorrect(inspector);
+  }
+
+  @Test
+  public void testDesugaredLibraryContentR8() throws Exception {
+    Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
+    CodeInspector inspector =
+        new CodeInspector(
+            buildDesugaredLibrary(parameters.getApiLevel(), "-keep class * { *; }", true));
     assertCorrect(inspector);
   }
 

@@ -197,6 +197,10 @@ public class ToolHelper {
     return Paths.get(getDesugarLibraryJsonDir(), "desugar_jdk_libs.json");
   }
 
+  public static Path getCHMOnlyDesugarLibJsonForTesting() {
+    return Paths.get(getDesugarLibraryJsonDir(), "chm_only_desugar_jdk_libs.json");
+  }
+
   public static Path getDesugarLibJsonForTestingAlternative3() {
     return Paths.get(getDesugarLibraryJsonDir(), "desugar_jdk_libs_alternative_3.json");
   }
