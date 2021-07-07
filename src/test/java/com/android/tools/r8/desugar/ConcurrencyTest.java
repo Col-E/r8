@@ -57,7 +57,8 @@ public class ConcurrencyTest extends TestBase {
                 }));
     for (String s : new String[] {"a", "b", "c", "d", "e"}) {
       for (int i = 0; i < 10; i++) {
-        transformer.setPrivate(Host.class.getDeclaredMethod(s + "0" + i));
+        transformer.setPrivate(Host.class.getDeclaredMethod(s + "0" + i, int.class));
+        transformer.setPrivate(Host.class.getDeclaredField("f" + s + "0" + i));
       }
     }
 
@@ -116,65 +117,320 @@ public class ConcurrencyTest extends TestBase {
   }
 
   static class Host {
-    /* will be private */ void a00() {}
-    /* will be private */ void a01() {}
-    /* will be private */ void a02() {}
-    /* will be private */ void a03() {}
-    /* will be private */ void a04() {}
-    /* will be private */ void a05() {}
-    /* will be private */ void a06() {}
-    /* will be private */ void a07() {}
-    /* will be private */ void a08() {}
-    /* will be private */ void a09() {}
+    /* will be private */ int fa00;
+    /* will be private */ int fa01;
+    /* will be private */ int fa02;
+    /* will be private */ int fa03;
+    /* will be private */ int fa04;
+    /* will be private */ int fa05;
+    /* will be private */ int fa06;
+    /* will be private */ int fa07;
+    /* will be private */ int fa08;
+    /* will be private */ int fa09;
 
-    /* will be private */ void b00() {}
-    /* will be private */ void b01() {}
-    /* will be private */ void b02() {}
-    /* will be private */ void b03() {}
-    /* will be private */ void b04() {}
-    /* will be private */ void b05() {}
-    /* will be private */ void b06() {}
-    /* will be private */ void b07() {}
-    /* will be private */ void b08() {}
-    /* will be private */ void b09() {}
+    /* will be private */ int fb00;
+    /* will be private */ int fb01;
+    /* will be private */ int fb02;
+    /* will be private */ int fb03;
+    /* will be private */ int fb04;
+    /* will be private */ int fb05;
+    /* will be private */ int fb06;
+    /* will be private */ int fb07;
+    /* will be private */ int fb08;
+    /* will be private */ int fb09;
 
-    /* will be private */ void c00() {}
-    /* will be private */ void c01() {}
-    /* will be private */ void c02() {}
-    /* will be private */ void c03() {}
-    /* will be private */ void c04() {}
-    /* will be private */ void c05() {}
-    /* will be private */ void c06() {}
-    /* will be private */ void c07() {}
-    /* will be private */ void c08() {}
-    /* will be private */ void c09() {}
+    /* will be private */ int fc00;
+    /* will be private */ int fc01;
+    /* will be private */ int fc02;
+    /* will be private */ int fc03;
+    /* will be private */ int fc04;
+    /* will be private */ int fc05;
+    /* will be private */ int fc06;
+    /* will be private */ int fc07;
+    /* will be private */ int fc08;
+    /* will be private */ int fc09;
 
-    /* will be private */ void d00() {}
-    /* will be private */ void d01() {}
-    /* will be private */ void d02() {}
-    /* will be private */ void d03() {}
-    /* will be private */ void d04() {}
-    /* will be private */ void d05() {}
-    /* will be private */ void d06() {}
-    /* will be private */ void d07() {}
-    /* will be private */ void d08() {}
-    /* will be private */ void d09() {}
+    /* will be private */ int fd00;
+    /* will be private */ int fd01;
+    /* will be private */ int fd02;
+    /* will be private */ int fd03;
+    /* will be private */ int fd04;
+    /* will be private */ int fd05;
+    /* will be private */ int fd06;
+    /* will be private */ int fd07;
+    /* will be private */ int fd08;
+    /* will be private */ int fd09;
 
-    /* will be private */ void e00() {}
-    /* will be private */ void e01() {}
-    /* will be private */ void e02() {}
-    /* will be private */ void e03() {}
-    /* will be private */ void e04() {}
-    /* will be private */ void e05() {}
-    /* will be private */ void e06() {}
-    /* will be private */ void e07() {}
-    /* will be private */ void e08() {}
-    /* will be private */ void e09() {}
+    /* will be private */ int fe00;
+    /* will be private */ int fe01;
+    /* will be private */ int fe02;
+    /* will be private */ int fe03;
+    /* will be private */ int fe04;
+    /* will be private */ int fe05;
+    /* will be private */ int fe06;
+    /* will be private */ int fe07;
+    /* will be private */ int fe08;
+    /* will be private */ int fe09;
+
+    /* will be private */ int a00(int x) {
+      return x;
+    }
+    /* will be private */ int a01(int x) {
+      return x;
+    }
+    /* will be private */ int a02(int x) {
+      return x;
+    }
+    /* will be private */ int a03(int x) {
+      return x;
+    }
+    /* will be private */ int a04(int x) {
+      return x;
+    }
+    /* will be private */ int a05(int x) {
+      return x;
+    }
+    /* will be private */ int a06(int x) {
+      return x;
+    }
+    /* will be private */ int a07(int x) {
+      return x;
+    }
+    /* will be private */ int a08(int x) {
+      return x;
+    }
+    /* will be private */ int a09(int x) {
+      return x;
+    }
+
+    /* will be private */ int b00(int x) {
+      return x;
+    }
+    /* will be private */ int b01(int x) {
+      return x;
+    }
+    /* will be private */ int b02(int x) {
+      return x;
+    }
+    /* will be private */ int b03(int x) {
+      return x;
+    }
+    /* will be private */ int b04(int x) {
+      return x;
+    }
+    /* will be private */ int b05(int x) {
+      return x;
+    }
+    /* will be private */ int b06(int x) {
+      return x;
+    }
+    /* will be private */ int b07(int x) {
+      return x;
+    }
+    /* will be private */ int b08(int x) {
+      return x;
+    }
+    /* will be private */ int b09(int x) {
+      return x;
+    }
+
+    /* will be private */ int c00(int x) {
+      return x;
+    }
+    /* will be private */ int c01(int x) {
+      return x;
+    }
+    /* will be private */ int c02(int x) {
+      return x;
+    }
+    /* will be private */ int c03(int x) {
+      return x;
+    }
+    /* will be private */ int c04(int x) {
+      return x;
+    }
+    /* will be private */ int c05(int x) {
+      return x;
+    }
+    /* will be private */ int c06(int x) {
+      return x;
+    }
+    /* will be private */ int c07(int x) {
+      return x;
+    }
+    /* will be private */ int c08(int x) {
+      return x;
+    }
+    /* will be private */ int c09(int x) {
+      return x;
+    }
+
+    /* will be private */ int d00(int x) {
+      return x;
+    }
+    /* will be private */ int d01(int x) {
+      return x;
+    }
+    /* will be private */ int d02(int x) {
+      return x;
+    }
+    /* will be private */ int d03(int x) {
+      return x;
+    }
+    /* will be private */ int d04(int x) {
+      return x;
+    }
+    /* will be private */ int d05(int x) {
+      return x;
+    }
+    /* will be private */ int d06(int x) {
+      return x;
+    }
+    /* will be private */ int d07(int x) {
+      return x;
+    }
+    /* will be private */ int d08(int x) {
+      return x;
+    }
+    /* will be private */ int d09(int x) {
+      return x;
+    }
+
+    /* will be private */ int e00(int x) {
+      return x;
+    }
+    /* will be private */ int e01(int x) {
+      return x;
+    }
+    /* will be private */ int e02(int x) {
+      return x;
+    }
+    /* will be private */ int e03(int x) {
+      return x;
+    }
+    /* will be private */ int e04(int x) {
+      return x;
+    }
+    /* will be private */ int e05(int x) {
+      return x;
+    }
+    /* will be private */ int e06(int x) {
+      return x;
+    }
+    /* will be private */ int e07(int x) {
+      return x;
+    }
+    /* will be private */ int e08(int x) {
+      return x;
+    }
+    /* will be private */ int e09(int x) {
+      return x;
+    }
 
     private void hello() {}
 
     public static void callPrivate() {
       // The private method "hello" is called with invokevirtual.
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
+      new Host().hello();
       new Host().hello();
       new Host().hello();
       new Host().hello();
@@ -281,80 +537,85 @@ public class ConcurrencyTest extends TestBase {
   static class A {
     public void foo() {
       // Will be virtual invoke to private methods.
-      new Host().a00();
-      new Host().a01();
-      new Host().a02();
-      new Host().a03();
-      new Host().a04();
-      new Host().a05();
-      new Host().a06();
-      new Host().a07();
-      new Host().a08();
-      new Host().a09();
+      Host host = new Host();
+      host.fa00 = host.a00(host.fa00);
+      host.fa01 = host.a01(host.fa01);
+      host.fa02 = host.a02(host.fa02);
+      host.fa03 = host.a03(host.fa03);
+      host.fa04 = host.a04(host.fa04);
+      host.fa05 = host.a05(host.fa05);
+      host.fa06 = host.a06(host.fa06);
+      host.fa07 = host.a07(host.fa07);
+      host.fa08 = host.a08(host.fa08);
+      host.fa09 = host.a09(host.fa09);
     }
   }
 
   static class B {
     public void foo() {
       // Will be virtual invoke to private methods.
-      new Host().b00();
-      new Host().b01();
-      new Host().b02();
-      new Host().b03();
-      new Host().b04();
-      new Host().b05();
-      new Host().b06();
-      new Host().b07();
-      new Host().b08();
-      new Host().b09();
+      Host host = new Host();
+      host.fb00 = host.b00(host.fb00);
+      host.fb01 = host.b01(host.fb01);
+      host.fb02 = host.b02(host.fb02);
+      host.fb03 = host.b03(host.fb03);
+      host.fb04 = host.b04(host.fb04);
+      host.fb05 = host.b05(host.fb05);
+      host.fb06 = host.b06(host.fb06);
+      host.fb07 = host.b07(host.fb07);
+      host.fb08 = host.b08(host.fb08);
+      host.fb09 = host.b09(host.fb09);
     }
   }
 
   static class C {
     public void foo() {
       // Will be virtual invoke to private methods.
-      new Host().c00();
-      new Host().c01();
-      new Host().c02();
-      new Host().c03();
-      new Host().c04();
-      new Host().c05();
-      new Host().c06();
-      new Host().c07();
-      new Host().c08();
-      new Host().c09();
+      Host host = new Host();
+      host.fc00 = host.c00(host.fc00);
+      host.fc01 = host.c01(host.fc01);
+      host.fc02 = host.c02(host.fc02);
+      host.fc03 = host.c03(host.fc03);
+      host.fc04 = host.c04(host.fc04);
+      host.fc05 = host.c05(host.fc05);
+      host.fc06 = host.c06(host.fc06);
+      host.fc07 = host.c07(host.fc07);
+      host.fc08 = host.c08(host.fc08);
+      host.fc09 = host.c09(host.fc09);
     }
   }
 
   static class D {
     public void foo() {
       // Will be virtual invoke to private methods.
-      new Host().d00();
-      new Host().d01();
-      new Host().d02();
-      new Host().d03();
-      new Host().d04();
-      new Host().d05();
-      new Host().d06();
-      new Host().d07();
-      new Host().d08();
-      new Host().d09();
+      Host host = new Host();
+      host.fd00 = host.d00(host.fd00);
+      host.fd01 = host.d01(host.fd01);
+      host.fd02 = host.d02(host.fd02);
+      host.fd03 = host.d03(host.fd03);
+      host.fd04 = host.d04(host.fd04);
+      host.fd05 = host.d05(host.fd05);
+      host.fd06 = host.d06(host.fd06);
+      host.fd07 = host.d07(host.fd07);
+      host.fd08 = host.d08(host.fd08);
+      host.fd09 = host.d09(host.fd09);
     }
   }
 
   static class E {
     public void foo() {
       // Will be virtual invoke to private methods.
-      new Host().e00();
-      new Host().e01();
-      new Host().e02();
-      new Host().e03();
-      new Host().e04();
-      new Host().e05();
-      new Host().e06();
-      new Host().e07();
-      new Host().e08();
-      new Host().e09();
+      Host host = new Host();
+      host.fe00 = host.e00(host.fe00);
+      host.fe01 = host.e01(host.fe01);
+      host.fe02 = host.e02(host.fe02);
+      host.fe03 = host.e03(host.fe03);
+      host.fe04 = host.e04(host.fe04);
+      host.fe05 = host.e05(host.fe05);
+      host.fe06 = host.e06(host.fe06);
+      host.fe07 = host.e07(host.fe07);
+      host.fe08 = host.e08(host.fe08);
+      host.fe09 = host.e09(host.fe09);
     }
   }
 
