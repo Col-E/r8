@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.shaking.ifrule.interfacemethoddesugaring;
 
-import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;
@@ -74,7 +74,7 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
             .inspector();
 
     ClassSubject classSubject =
-        inspector.clazz(Interface.class.getTypeName() + COMPANION_CLASS_NAME_SUFFIX);
+        inspector.clazz(Interface.class.getTypeName() + getCompanionClassNameSuffix());
     assertThat(classSubject, isPresent());
     assertEquals(2, classSubject.allMethods().size());
 

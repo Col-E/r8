@@ -120,11 +120,11 @@ import java.util.function.Predicate;
 //
 public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
 
-  // Public for testing.
-  public static final String EMULATE_LIBRARY_CLASS_NAME_SUFFIX = "$-EL";
-  public static final String COMPANION_CLASS_NAME_SUFFIX = "$-CC";
-  public static final String DEFAULT_METHOD_PREFIX = "$default$";
-  public static final String PRIVATE_METHOD_PREFIX = "$private$";
+  // Use InterfaceDesugaringForTesting for public accesses in tests.
+  static final String EMULATE_LIBRARY_CLASS_NAME_SUFFIX = "$-EL";
+  static final String COMPANION_CLASS_NAME_SUFFIX = "$-CC";
+  static final String DEFAULT_METHOD_PREFIX = "$default$";
+  static final String PRIVATE_METHOD_PREFIX = "$private$";
 
   private final AppView<?> appView;
   private final InternalOptions options;
@@ -1155,7 +1155,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     }
   }
 
-  public static String getCompanionClassDescriptor(String descriptor) {
+  // Use InterfaceDesugaringForTesting for public accesses in tests.
+  static String getCompanionClassDescriptor(String descriptor) {
     return descriptor.substring(0, descriptor.length() - 1) + COMPANION_CLASS_NAME_SUFFIX + ";";
   }
 

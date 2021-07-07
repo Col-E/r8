@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
 
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexMethod;
@@ -232,7 +232,9 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
     String descriptor = reference.getDescriptor();
     return codeInspector.clazz(
         Reference.classFromDescriptor(
-            descriptor.substring(0, descriptor.length() - 1) + COMPANION_CLASS_NAME_SUFFIX + ";"));
+            descriptor.substring(0, descriptor.length() - 1)
+                + getCompanionClassNameSuffix()
+                + ";"));
   }
 
   public abstract RetraceClassResult retrace();

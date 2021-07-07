@@ -5,7 +5,7 @@ package com.android.tools.r8.synthesis;
 
 import static org.hamcrest.CoreMatchers.containsString;
 
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
+import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
@@ -22,7 +22,7 @@ public class SyntheticItemsTestUtils {
 
   public static ClassReference syntheticCompanionClass(Class<?> clazz) {
     return Reference.classFromDescriptor(
-        InterfaceMethodRewriter.getCompanionClassDescriptor(
+        InterfaceDesugaringForTesting.getCompanionClassDescriptor(
             Reference.classFromClass(clazz).getDescriptor()));
   }
 

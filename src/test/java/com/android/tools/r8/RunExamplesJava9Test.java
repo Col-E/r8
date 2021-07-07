@@ -4,6 +4,8 @@
 
 package com.android.tools.r8;
 
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getPrivateMethodPrefix;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -13,7 +15,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
@@ -218,21 +219,24 @@ public abstract class RunExamplesJava9Test
   public void desugaredPrivateInterfaceMethods() throws Throwable {
     assumeFalse("CF backend does not desugar", this instanceof R8CFRunExamplesJava9Test);
     final String iName = "privateinterfacemethods.I";
-    test("desugared-private-interface-methods",
-        "privateinterfacemethods", "PrivateInterfaceMethods")
+    test(
+            "desugared-private-interface-methods",
+            "privateinterfacemethods",
+            "PrivateInterfaceMethods")
         .withMinApiLevel(AndroidApiLevel.M.getLevel())
         .withKeepAll()
-        .withDexCheck(dexInspector -> {
-          ClassSubject companion = dexInspector.clazz(
-              iName + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX);
-          assertThat(companion, isPresent());
-          MethodSubject iFoo = companion.method(
-              "java.lang.String",
-              InterfaceMethodRewriter.PRIVATE_METHOD_PREFIX + "iFoo",
-              ImmutableList.of(iName, "boolean"));
-          assertThat(iFoo, isPresent());
-          assertTrue(iFoo.getMethod().isPublicMethod());
-        })
+        .withDexCheck(
+            dexInspector -> {
+              ClassSubject companion = dexInspector.clazz(iName + getCompanionClassNameSuffix());
+              assertThat(companion, isPresent());
+              MethodSubject iFoo =
+                  companion.method(
+                      "java.lang.String",
+                      getPrivateMethodPrefix() + "iFoo",
+                      ImmutableList.of(iName, "boolean"));
+              assertThat(iFoo, isPresent());
+              assertTrue(iFoo.getMethod().isPublicMethod());
+            })
         .run();
   }
 

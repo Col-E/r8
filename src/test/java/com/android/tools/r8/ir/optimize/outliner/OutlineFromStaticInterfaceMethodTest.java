@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.outliner;
 
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -12,7 +13,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
@@ -65,8 +65,7 @@ public class OutlineFromStaticInterfaceMethodTest extends TestBase {
                     .getApiLevel()
                     .isGreaterThanOrEqualTo(apiLevelWithStaticInterfaceMethodsSupport())
             ? inspector.clazz(I.class)
-            : inspector.clazz(
-                I.class.getTypeName() + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX);
+            : inspector.clazz(I.class.getTypeName() + getCompanionClassNameSuffix());
     assertThat(interfaceSubject, isPresent());
 
     MethodSubject greetMethodSubject = interfaceSubject.uniqueMethodWithName("greet");

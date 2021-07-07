@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.debug;
 
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getDefaultMethodPrefix;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
+import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -52,12 +54,12 @@ public class InterfaceMethodTest extends DebugTestBase {
       defaultMethodName = "doSomething";
       defaultMethodThisName = "this";
     } else {
-      defaultMethodContainerClass = "InterfaceWithDefaultAndStaticMethods"
-          + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
+      defaultMethodContainerClass =
+          "InterfaceWithDefaultAndStaticMethods" + getCompanionClassNameSuffix();
       // IntelliJ's debugger does not know about the companion class. The only way to match it with
       // the source file or the desguared interface is to make it an inner class.
-      assertEquals('$', InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX.charAt(0));
-      defaultMethodName = InterfaceMethodRewriter.DEFAULT_METHOD_PREFIX + "doSomething";
+      assertEquals('$', getCompanionClassNameSuffix().charAt(0));
+      defaultMethodName = getDefaultMethodPrefix() + "doSomething";
       defaultMethodThisName = "_this";
     }
 
@@ -121,8 +123,9 @@ public class InterfaceMethodTest extends DebugTestBase {
     if (supportsDefaultMethod(config)) {
       staticMethodContainerClass = "InterfaceWithDefaultAndStaticMethods";
     } else {
-      staticMethodContainerClass = "InterfaceWithDefaultAndStaticMethods"
-          + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
+      staticMethodContainerClass =
+          "InterfaceWithDefaultAndStaticMethods"
+              + InterfaceDesugaringForTesting.getCompanionClassNameSuffix();
     }
 
     List<Command> commands = new ArrayList<>();

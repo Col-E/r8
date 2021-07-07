@@ -4,6 +4,7 @@
 
 package com.android.tools.r8;
 
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static org.junit.Assert.assertEquals;
 
@@ -13,7 +14,6 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
@@ -97,7 +97,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
           // interface, the main class/interface, or for JDK9, desugaring of try-with-resources.
           ClassReference reference = Reference.classFromDescriptor(descriptor);
           Assert.assertTrue(
-              descriptor.endsWith(InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX + ";")
+              descriptor.endsWith(getCompanionClassNameSuffix() + ";")
                   || SyntheticItemsTestUtils.isExternalTwrCloseMethod(reference)
                   || SyntheticItemsTestUtils.isExternalLambda(reference)
                   || SyntheticItemsTestUtils.isExternalStaticInterfaceCall(reference)

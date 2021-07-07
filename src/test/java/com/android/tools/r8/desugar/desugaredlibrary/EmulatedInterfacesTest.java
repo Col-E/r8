@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getEmulateLibraryClassNameSuffix;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
@@ -14,7 +15,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -75,11 +75,7 @@ public class EmulatedInterfacesTest extends DesugaredLibraryTestBase {
 
   private List<FoundClassSubject> getEmulatedInterfaces(CodeInspector inspector) {
     return inspector.allClasses().stream()
-        .filter(
-            clazz ->
-                clazz
-                    .getOriginalName()
-                    .contains(InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX))
+        .filter(clazz -> clazz.getOriginalName().contains(getEmulateLibraryClassNameSuffix()))
         .collect(Collectors.toList());
   }
 

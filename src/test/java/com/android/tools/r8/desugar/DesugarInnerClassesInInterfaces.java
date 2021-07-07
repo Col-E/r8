@@ -3,11 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
+
 import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -24,16 +25,16 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
 
   private final List<String> EXPECTED_RESULT_WITH_DESUGARING =
       ImmutableList.of(
-          WithAnonymousInner.class.getName() + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX,
+          WithAnonymousInner.class.getName() + getCompanionClassNameSuffix(),
           "true",
-          WithLocalInner.class.getName() + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX,
+          WithLocalInner.class.getName() + getCompanionClassNameSuffix(),
           "true");
 
   private final List<String> EXPECTED_RESULT_WITH_DESUGARING_B168697955 =
       ImmutableList.of(
-          WithAnonymousInner.class.getName() + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX,
+          WithAnonymousInner.class.getName() + getCompanionClassNameSuffix(),
           "false",
-          WithLocalInner.class.getName() + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX,
+          WithLocalInner.class.getName() + getCompanionClassNameSuffix(),
           "false");
 
   @Parameterized.Parameters(name = "{0}")

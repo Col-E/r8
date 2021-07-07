@@ -10,7 +10,7 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
+import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -84,9 +84,11 @@ public class DefaultInterfaceMethodTest extends TestBase {
     assertTrue(inspector.clazz(LibraryInterface.class).isPresent());
     assertTrue(inspector.method(LibraryInterface.class.getMethod("foo")).isPresent());
     if (willDesugarDefaultInterfaceMethods(parameters.getApiLevel())) {
-      ClassSubject companion = inspector.clazz(Reference.classFromDescriptor(
-          InterfaceMethodRewriter.getCompanionClassDescriptor(
-              classFromClass(LibraryInterface.class).getDescriptor())));
+      ClassSubject companion =
+          inspector.clazz(
+              Reference.classFromDescriptor(
+                  InterfaceDesugaringForTesting.getCompanionClassDescriptor(
+                      classFromClass(LibraryInterface.class).getDescriptor())));
       // Check that we included the companion class.
       assertTrue(companion.isPresent());
       // TODO(b/129223905): Check the method is also present on the companion class.

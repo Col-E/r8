@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.DEFAULT_METHOD_PREFIX;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getDefaultMethodPrefix;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
@@ -372,7 +372,7 @@ public class FoundMethodSubject extends MethodSubject {
             .build();
     return companionClass.method(
         reference.getReturnType().getTypeName(),
-        DEFAULT_METHOD_PREFIX + reference.getMethodName(),
+        getDefaultMethodPrefix() + reference.getMethodName(),
         p);
   }
 }
