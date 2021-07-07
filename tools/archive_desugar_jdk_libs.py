@@ -104,7 +104,7 @@ def BuildDesugaredLibrary(checkout_dir, variant):
           checkout_dir, 'bazel-bin', 'src', 'share', 'classes', 'java', 'libjava.jar')
     else:
       library_jar = os.path.join(
-          checkout_dir, 'bazel-bin', 'jdk11', 'src', 'java_base_selected.jar')
+          checkout_dir, 'bazel-bin', 'jdk11', 'src', 'd8_java_base_selected.jar')
     maven_zip = os.path.join(
       checkout_dir,
       'bazel-bin',
