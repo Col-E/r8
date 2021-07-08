@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # Copyright (c) 2016, the R8 project authors. Please see the AUTHORS file
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
@@ -14,7 +14,7 @@ import os
 import shutil
 import subprocess
 import sys
-import _thread
+import thread
 import time
 import uuid
 
@@ -190,8 +190,8 @@ def archive_failures():
   destination = 'gs://%s/%s' % (BUCKET, u_dir)
   utils.upload_dir_to_cloud_storage(upload_dir, destination, is_html=True)
   url = 'https://storage.googleapis.com/%s/%s/test/index.html' % (BUCKET, u_dir)
-  print('Test results available at: %s' % url)
-  print('@@@STEP_LINK@Test failures@%s@@@' % url)
+  print 'Test results available at: %s' % url
+  print '@@@STEP_LINK@Test failures@%s@@@' % url
 
 def Main():
   (options, args) = ParseOptions()
@@ -341,7 +341,7 @@ def Main():
     if args is None:
       return 1
     if len(args) == 0:
-      print("No failing tests")
+      print "No failing tests"
       return 0
   # Test filtering. Must always follow the 'test' task.
   for testFilter in args:
@@ -368,7 +368,7 @@ def Main():
     print_stacks_timeout = (print_stacks_timeout
                             if print_stacks_timeout != -1
                             else TIMEOUT_HANDLER_PERIOD)
-    _thread.start_new_thread(timeout_handler, (timestamp_file, print_stacks_timeout,))
+    thread.start_new_thread(timeout_handler, (timestamp_file, print_stacks_timeout,))
   rotate_test_reports()
 
   if options.only_jctf:
@@ -379,7 +379,7 @@ def Main():
   # Now run tests on selected runtime(s).
   if options.runtimes:
     if options.dex_vm != 'default':
-      print('Unexpected runtimes and dex_vm argument: ' + options.dex_vm)
+      print 'Unexpected runtimes and dex_vm argument: ' + options.dex_vm
       sys.exit(1)
     if options.runtimes == 'empty':
       # Set runtimes with no content will configure no runtimes.
@@ -393,9 +393,9 @@ def Main():
       for prefix in prefixes:
         matches = [ rt for rt in VALID_RUNTIMES if rt.startswith(prefix) ]
         if len(matches) == 0:
-          print("Invalid runtime prefix '%s'." % prefix)
-          print("Must be just 'all', 'empty'," \
-                " or a prefix of %s" % ', '.join(VALID_RUNTIMES))
+          print "Invalid runtime prefix '%s'." % prefix
+          print "Must be just 'all', 'empty'," \
+                " or a prefix of %s" % ', '.join(VALID_RUNTIMES)
           sys.exit(1)
         runtimes.extend(matches)
       gradle_args.append('-Pruntimes=%s' % ':'.join(runtimes))
@@ -472,7 +472,7 @@ def timeout_handler(timestamp_file, timeout_handler_period):
     last_timestamp = new_timestamp
 
 def report_dir_path(index):
-  if index == 0:
+  if index is 0:
     return REPORTS_PATH
   return '%s%d' % (REPORTS_PATH, index)
 
@@ -494,7 +494,7 @@ def rotate_test_reports():
 
 def compute_failed_tests(args):
   if len(args) > 1:
-    print("Running with --failed can take an optional path to a report index (or report number).")
+    print "Running with --failed can take an optional path to a report index (or report number)."
     return None
   report = report_index_path(0)
   # If the default report does not exist, fall back to the previous report as it may be a failed
@@ -512,9 +512,9 @@ def compute_failed_tests(args):
       # if integer parsing failed assume it is a report file path.
       report = args[0]
   if not os.path.exists(report):
-    print("Can't re-run failing, no report at:", report)
+    print "Can't re-run failing, no report at:", report
     return None
-  print("Reading failed tests in", report)
+  print "Reading failed tests in", report
   failing = set()
   inFailedSection = False
   for line in file(report):
