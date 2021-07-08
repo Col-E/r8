@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 
 // The rewrite of virtual calls requires to go through emulate dispatch. This class is responsible
 // for inserting interfaces on library boundaries and forwarding methods in the program, and to
@@ -43,9 +41,7 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
   }
 
   @Override
-  public void postProcessingDesugaring(
-      CfPostProcessingDesugaringEventConsumer eventConsumer, ExecutorService executorService)
-      throws ExecutionException {
+  public void postProcessingDesugaring(CfPostProcessingDesugaringEventConsumer eventConsumer) {
     if (appView.options().isDesugaredLibraryCompilation()) {
       ensureEmulatedDispatchMethodsSynthesized(eventConsumer);
     } else {

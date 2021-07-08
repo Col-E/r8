@@ -1380,15 +1380,11 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     this.synthesizedMethods.clear();
   }
 
-  public void runInterfaceDesugaringProcessorsForR8(
+  public void runInterfaceDesugaringProcessors(
       IRConverter converter, Flavor flavour, ExecutorService executorService)
       throws ExecutionException {
-    getPostProcessingDesugaring(flavour)
-        .runInterfaceDesugaringProcessorsForR8(converter, executorService);
-  }
-
-  public InterfaceMethodProcessorFacade getPostProcessingDesugaring(Flavor flavour) {
-    return new InterfaceMethodProcessorFacade(appView, flavour, this);
+    new InterfaceMethodProcessorFacade(appView)
+        .runInterfaceDesugaringProcessors(this, converter, flavour, executorService);
   }
 
   final boolean isDefaultMethod(DexEncodedMethod method) {

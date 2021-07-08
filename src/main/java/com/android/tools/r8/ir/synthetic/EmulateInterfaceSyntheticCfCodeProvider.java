@@ -36,13 +36,12 @@ public class EmulateInterfaceSyntheticCfCodeProvider extends SyntheticCfCodeProv
   private final List<Pair<DexType, DexMethod>> extraDispatchCases;
 
   public EmulateInterfaceSyntheticCfCodeProvider(
-      DexType holder,
       DexType interfaceType,
       DexMethod companionMethod,
       DexMethod libraryMethod,
       List<Pair<DexType, DexMethod>> extraDispatchCases,
       AppView<?> appView) {
-    super(appView, holder);
+    super(appView, interfaceType);
     this.interfaceType = interfaceType;
     this.companionMethod = companionMethod;
     this.libraryMethod = libraryMethod;

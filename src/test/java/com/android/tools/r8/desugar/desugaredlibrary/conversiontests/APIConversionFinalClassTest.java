@@ -68,9 +68,7 @@ public class APIConversionFinalClassTest extends DesugaredLibraryTestBase {
         .inspectDiagnosticMessages(this::assertDiagnosis)
         .addRunClasspathFiles(customLib)
         .run(parameters.getRuntime(), Executor.class)
-        .assertFailureWithErrorThatMatches(
-            containsString(
-                "conversion was impossible because of the non convertible type java.time.Year"));
+        .assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"));
   }
 
   private void assertDiagnosis(TestDiagnosticMessages d) {

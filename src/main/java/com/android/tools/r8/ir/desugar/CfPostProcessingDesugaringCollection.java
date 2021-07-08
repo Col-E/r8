@@ -4,24 +4,17 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterPostProcessor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 
 public abstract class CfPostProcessingDesugaringCollection {
 
   public static CfPostProcessingDesugaringCollection create(
-      AppView<?> appView,
-      InterfaceMethodProcessorFacade interfaceMethodProcessorFacade,
-      RetargetingInfo retargetingInfo) {
+      AppView<?> appView, RetargetingInfo retargetingInfo) {
     if (appView.options().desugarState.isOn()) {
-      return NonEmptyCfPostProcessingDesugaringCollection.create(
-          appView, interfaceMethodProcessorFacade, retargetingInfo);
+      return NonEmptyCfPostProcessingDesugaringCollection.create(appView, retargetingInfo);
     }
     return empty();
   }
@@ -31,8 +24,7 @@ public abstract class CfPostProcessingDesugaringCollection {
   }
 
   public abstract void postProcessingDesugaring(
-      CfPostProcessingDesugaringEventConsumer eventConsumer, ExecutorService executorService)
-      throws ExecutionException;
+      CfPostProcessingDesugaringEventConsumer eventConsumer);
 
   public static class NonEmptyCfPostProcessingDesugaringCollection
       extends CfPostProcessingDesugaringCollection {
@@ -45,37 +37,19 @@ public abstract class CfPostProcessingDesugaringCollection {
     }
 
     public static CfPostProcessingDesugaringCollection create(
-        AppView<?> appView,
-        InterfaceMethodProcessorFacade interfaceMethodProcessorFacade,
-        RetargetingInfo retargetingInfo) {
-      ArrayList<CfPostProcessingDesugaring> desugarings = new ArrayList<>();
-      if (!appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
-        desugarings.add(new DesugaredLibraryRetargeterPostProcessor(appView, retargetingInfo));
-      }
-      if (interfaceMethodProcessorFacade != null) {
-        desugarings.add(interfaceMethodProcessorFacade);
-      }
-      DesugaredLibraryAPIConverter desugaredLibraryAPIConverter =
-          appView.rewritePrefix.isRewriting() && !appView.enableWholeProgramOptimizations()
-              ? new DesugaredLibraryAPIConverter(appView, null)
-              : null;
-      // At this point the desugaredLibraryAPIConverter is required to be last to generate
-      // call-backs on the forwarding methods.
-      if (desugaredLibraryAPIConverter != null) {
-        desugarings.add(desugaredLibraryAPIConverter);
-      }
-      if (desugarings.isEmpty()) {
+        AppView<?> appView, RetargetingInfo retargetingInfo) {
+      if (appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
         return empty();
       }
-      return new NonEmptyCfPostProcessingDesugaringCollection(desugarings);
+      return new NonEmptyCfPostProcessingDesugaringCollection(
+          Collections.singletonList(
+              new DesugaredLibraryRetargeterPostProcessor(appView, retargetingInfo)));
     }
 
     @Override
-    public void postProcessingDesugaring(
-        CfPostProcessingDesugaringEventConsumer eventConsumer, ExecutorService executorService)
-        throws ExecutionException {
+    public void postProcessingDesugaring(CfPostProcessingDesugaringEventConsumer eventConsumer) {
       for (CfPostProcessingDesugaring desugaring : desugarings) {
-        desugaring.postProcessingDesugaring(eventConsumer, executorService);
+        desugaring.postProcessingDesugaring(eventConsumer);
       }
     }
   }
@@ -93,9 +67,7 @@ public abstract class CfPostProcessingDesugaringCollection {
     }
 
     @Override
-    public void postProcessingDesugaring(
-        CfPostProcessingDesugaringEventConsumer eventConsumer, ExecutorService executorService)
-        throws ExecutionException {
+    public void postProcessingDesugaring(CfPostProcessingDesugaringEventConsumer eventConsumer) {
       // Intentionally empty.
     }
   }

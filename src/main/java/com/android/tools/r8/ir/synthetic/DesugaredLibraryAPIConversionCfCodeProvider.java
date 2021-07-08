@@ -32,8 +32,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverterEventConsumer;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import java.util.ArrayList;
@@ -64,25 +62,22 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
   public static class APIConverterVivifiedWrapperCfCodeProvider
       extends DesugaredLibraryAPIConversionCfCodeProvider {
 
-    private final DexField wrapperField;
-    private final DexMethod forwardMethod;
-    private final DesugaredLibraryAPIConverter converter;
-    private final boolean itfCall;
-    private final DesugaredLibraryAPIConverterEventConsumer eventConsumer;
+    DexField wrapperField;
+    DexMethod forwardMethod;
+    DesugaredLibraryAPIConverter converter;
+    boolean itfCall;
 
     public APIConverterVivifiedWrapperCfCodeProvider(
         AppView<?> appView,
         DexMethod forwardMethod,
         DexField wrapperField,
         DesugaredLibraryAPIConverter converter,
-        boolean itfCall,
-        DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+        boolean itfCall) {
       super(appView, wrapperField.holder);
       this.forwardMethod = forwardMethod;
       this.wrapperField = wrapperField;
       this.converter = converter;
       this.itfCall = itfCall;
-      this.eventConsumer = eventConsumer;
     }
 
     @Override
@@ -103,8 +98,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
           instructions.add(
               new CfInvoke(
                   Opcodes.INVOKESTATIC,
-                  converter.ensureConversionMethod(
-                      param, param, vivifiedTypeFor(param), eventConsumer),
+                  converter.ensureConversionMethod(param, param, vivifiedTypeFor(param)),
                   false));
           newParameters[index - 1] = vivifiedTypeFor(param);
         }
@@ -136,7 +130,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
             new CfInvoke(
                 Opcodes.INVOKESTATIC,
                 converter.ensureConversionMethod(
-                    returnType, vivifiedTypeFor(returnType), returnType, eventConsumer),
+                    returnType, vivifiedTypeFor(returnType), returnType),
                 false));
       }
       if (returnType == factory.voidType) {
@@ -155,22 +149,19 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
     DexMethod forwardMethod;
     DesugaredLibraryAPIConverter converter;
     boolean itfCall;
-    private final DesugaredLibraryAPIConverterEventConsumer eventConsumer;
 
     public APIConverterWrapperCfCodeProvider(
         AppView<?> appView,
         DexMethod forwardMethod,
         DexField wrapperField,
         DesugaredLibraryAPIConverter converter,
-        boolean itfCall,
-        DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+        boolean itfCall) {
       //  Var wrapperField is null if should forward to receiver.
       super(appView, wrapperField == null ? forwardMethod.holder : wrapperField.holder);
       this.forwardMethod = forwardMethod;
       this.wrapperField = wrapperField;
       this.converter = converter;
       this.itfCall = itfCall;
-      this.eventConsumer = eventConsumer;
     }
 
     @Override
@@ -194,8 +185,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
           instructions.add(
               new CfInvoke(
                   Opcodes.INVOKESTATIC,
-                  converter.ensureConversionMethod(
-                      param, vivifiedTypeFor(param), param, eventConsumer),
+                  converter.ensureConversionMethod(param, vivifiedTypeFor(param), param),
                   false));
         }
         if (param == factory.longType || param == factory.doubleType) {
@@ -216,7 +206,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
             new CfInvoke(
                 Opcodes.INVOKESTATIC,
                 converter.ensureConversionMethod(
-                    returnType, returnType, vivifiedTypeFor(returnType), eventConsumer),
+                    returnType, returnType, vivifiedTypeFor(returnType)),
                 false));
         returnType = vivifiedTypeFor(returnType);
       }
@@ -288,105 +278,6 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
                   factory.constructorMethodName),
               false));
       instructions.add(new CfReturn(ValueType.fromDexType(wrapperField.holder)));
-      return standardCfCodeFromInstructions(instructions);
-    }
-  }
-
-  public static class APIConversionCfCodeProvider extends SyntheticCfCodeProvider {
-
-    private final CfInvoke initialInvoke;
-    private final DexMethod returnConversion;
-    private final DexMethod[] parameterConversions;
-
-    public APIConversionCfCodeProvider(
-        AppView<?> appView,
-        DexType holder,
-        CfInvoke initialInvoke,
-        DexMethod returnConversion,
-        DexMethod[] parameterConversions) {
-      super(appView, holder);
-      this.initialInvoke = initialInvoke;
-      this.returnConversion = returnConversion;
-      this.parameterConversions = parameterConversions;
-    }
-
-    private DexType invalidType(DexMethod invokedMethod, DexMethod convertedMethod) {
-      if (invokedMethod.getReturnType() != convertedMethod.getReturnType()
-          && returnConversion == null) {
-        return invokedMethod.getReturnType();
-      }
-      for (int i = 0; i < invokedMethod.getArity(); i++) {
-        if (invokedMethod.getParameter(i) != convertedMethod.getParameter(i)
-            && parameterConversions[i] == null) {
-          return invokedMethod.getParameter(i);
-        }
-      }
-      return null;
-    }
-
-    @Override
-    public CfCode generateCfCode() {
-      DexMethod invokedMethod = initialInvoke.getMethod();
-      DexMethod convertedMethod =
-          DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(
-              invokedMethod, invokedMethod.holder, appView);
-
-      DexType invalidType = invalidType(invokedMethod, convertedMethod);
-      if (invalidType != null) {
-        // This is true if the API conversion requires to convert a type which is impossible to
-        // convert: no custom conversion and no wrapping possible. This is extremely rare and
-        // should happen only with broken desugared library set-ups. A warning has already been
-        // reported at this point.
-        DexString message =
-            appView
-                .dexItemFactory()
-                .createString(
-                    "The method "
-                        + invokedMethod
-                        + " requires API conversion, but conversion was impossible because of the"
-                        + " non convertible type "
-                        + invalidType
-                        + ".");
-        return new APIConverterThrowRuntimeExceptionCfCodeProvider(
-                appView, message, invokedMethod.getHolderType())
-            .generateCfCode();
-      }
-
-      List<CfInstruction> instructions = new ArrayList<>();
-
-      boolean isStatic = initialInvoke.getOpcode() == Opcodes.INVOKESTATIC;
-      if (!isStatic) {
-        instructions.add(new CfLoad(ValueType.fromDexType(invokedMethod.holder), 0));
-      }
-      int receiverShift = BooleanUtils.intValue(!isStatic);
-      int stackIndex = 0;
-      for (int i = 0; i < invokedMethod.getArity(); i++) {
-        DexType param = invokedMethod.getParameter(i);
-        instructions.add(new CfLoad(ValueType.fromDexType(param), stackIndex + receiverShift));
-        if (parameterConversions[i] != null) {
-          instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, parameterConversions[i], false));
-        }
-        if (param == appView.dexItemFactory().longType
-            || param == appView.dexItemFactory().doubleType) {
-          stackIndex++;
-        }
-        stackIndex++;
-      }
-
-      // Actual call to converted value.
-      instructions.add(
-          new CfInvoke(initialInvoke.getOpcode(), convertedMethod, initialInvoke.isInterface()));
-
-      // Return conversion.
-      if (returnConversion != null) {
-        instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, returnConversion, false));
-      }
-
-      if (invokedMethod.getReturnType().isVoidType()) {
-        instructions.add(new CfReturnVoid());
-      } else {
-        instructions.add(new CfReturn(ValueType.fromDexType(invokedMethod.getReturnType())));
-      }
       return standardCfCodeFromInstructions(instructions);
     }
   }
