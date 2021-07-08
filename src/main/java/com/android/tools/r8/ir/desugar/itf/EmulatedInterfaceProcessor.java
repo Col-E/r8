@@ -177,22 +177,17 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
       for (int i = subInterfaces.size() - 1; i >= 0; i--) {
         DexClass subInterfaceClass = appView.definitionFor(subInterfaces.get(i));
         assert subInterfaceClass != null;
+        assert subInterfaceClass.isProgramClass();
         // Else computation of subInterface would have failed.
         // if the method is implemented, extra dispatch is required.
         DexEncodedMethod result = subInterfaceClass.lookupVirtualMethod(method.getReference());
         if (result != null && !result.isAbstract()) {
+          assert result.isDefaultMethod();
           extraDispatchCases.add(
               new Pair<>(
                   subInterfaceClass.type,
-                  appView
-                      .dexItemFactory()
-                      .createMethod(
-                          rewriter.getCompanionClassType(subInterfaceClass.type),
-                          appView
-                              .dexItemFactory()
-                              .protoWithDifferentFirstParameter(
-                                  companionMethod.proto, subInterfaceClass.type),
-                          companionMethod.name)));
+                  InterfaceMethodRewriter.defaultAsMethodOfCompanionClass(
+                      result.getReference(), appView.dexItemFactory())));
         }
       }
     } else {
