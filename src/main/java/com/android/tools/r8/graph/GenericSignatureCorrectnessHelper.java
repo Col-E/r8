@@ -21,9 +21,6 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.graph.GenericSignatureContextBuilder.TypeParameterContext;
-import com.android.tools.r8.shaking.KeepClassInfo;
-import com.android.tools.r8.shaking.KeepFieldInfo;
-import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.ListUtils;
 import java.util.List;
 import java.util.function.Consumer;
@@ -128,12 +125,7 @@ public class GenericSignatureCorrectnessHelper {
     SignatureEvaluationResult result =
         genericSignatureContextEvaluator.evaluateClassSignatureForContext(typeParameterContext);
     if (result.isInvalid() && mode.clearIfInvalid()) {
-      // Only report info messages for classes that are kept explicitly. This is to ensure we do not
-      // spam the developer with messages they can do nothing about.
-      KeepClassInfo classInfo = appView.getKeepInfo().getClassInfo(clazz);
-      if (appView.hasLiveness() && !classInfo.isShrinkingAllowed(appView.options())) {
-        // If/when this no longer holds it should be moved into the condition.
-        assert !classInfo.isSignatureAttributeRemovalAllowed(appView.options());
+      if (appView.hasLiveness() && appView.getKeepInfo().getClassInfo(clazz).isPinned()) {
         appView
             .options()
             .reporter
@@ -155,13 +147,8 @@ public class GenericSignatureCorrectnessHelper {
                       genericSignatureContextEvaluator.visitMethodSignature(
                           methodSignature, typeParameterContext),
                   invalidResult -> {
-                    // Only report info messages for methods that are kept explicitly. This is to
-                    // ensure we do not spam the developer with messages they can do nothing about.
-                    KeepMethodInfo methodInfo = appView.getKeepInfo().getMethodInfo(method, clazz);
                     if (appView.hasLiveness()
-                        && !methodInfo.isShrinkingAllowed(appView.options())) {
-                      // If/when this no longer holds it should be moved into the condition.
-                      assert !methodInfo.isSignatureAttributeRemovalAllowed(appView.options());
+                        && appView.getKeepInfo().getMethodInfo(method, clazz).isPinned()) {
                       appView
                           .options()
                           .reporter
@@ -184,12 +171,8 @@ public class GenericSignatureCorrectnessHelper {
                       genericSignatureContextEvaluator.visitFieldTypeSignature(
                           fieldSignature, typeParameterContext),
                   invalidResult -> {
-                    KeepFieldInfo fieldInfo = appView.getKeepInfo().getFieldInfo(field, clazz);
-                    // Only report info messages for fields that are kept explicitly. This is to
-                    // ensure we do not spam the developer with messages they can do nothing about.
-                    if (appView.hasLiveness() && !fieldInfo.isShrinkingAllowed(appView.options())) {
-                      // If/when this no longer holds it should be moved into the condition.
-                      assert !fieldInfo.isSignatureAttributeRemovalAllowed(appView.options());
+                    if (appView.hasLiveness()
+                        && appView.getKeepInfo().getFieldInfo(field, clazz).isPinned()) {
                       appView
                           .options()
                           .reporter
