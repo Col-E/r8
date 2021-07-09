@@ -28,11 +28,6 @@ public interface ClassDefinition extends Definition {
     return true;
   }
 
-  @Override
-  default ClassDefinition asClass() {
-    return this;
-  }
-
   boolean isClasspathClass();
 
   DexClasspathClass asClasspathClass();
@@ -40,8 +35,4 @@ public interface ClassDefinition extends Definition {
   boolean isLibraryClass();
 
   DexLibraryClass asLibraryClass();
-
-  boolean isProgramClass();
-
-  DexProgramClass asProgramClass();
 }

@@ -38,6 +38,11 @@ public class ProgramField extends DexClassAndField
   }
 
   @Override
+  public ProgramField asField() {
+    return this;
+  }
+
+  @Override
   public ProgramField asProgramField() {
     return this;
   }

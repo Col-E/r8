@@ -116,6 +116,7 @@ import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSynt
 import com.android.tools.r8.shaking.EnqueuerEvent.ClassEnqueuerEvent;
 import com.android.tools.r8.shaking.EnqueuerEvent.InstantiatedClassEnqueuerEvent;
 import com.android.tools.r8.shaking.EnqueuerEvent.LiveClassEnqueuerEvent;
+import com.android.tools.r8.shaking.EnqueuerEvent.UnconditionalKeepInfoEvent;
 import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.shaking.KeepInfoCollection.MutableKeepInfoCollection;
@@ -385,18 +386,6 @@ public class Enqueuer {
 
   /** Collection of keep requirements for the program. */
   private final MutableKeepInfoCollection keepInfo = new MutableKeepInfoCollection();
-
-  /**
-   * The minimum keep info for classes, fields, and methods. The minimum keep info for a program
-   * item should be applied to the {@link KeepInfo} of that item when the item becomes live.
-   */
-  private final Map<DexProgramClass, KeepClassInfo.Joiner> minimumKeepClassInfo =
-      new IdentityHashMap<>();
-
-  private final ProgramFieldMap<KeepFieldInfo.Joiner> minimumKeepFieldInfo =
-      ProgramFieldMap.create();
-  private final ProgramMethodMap<KeepMethodInfo.Joiner> minimumKeepMethodInfo =
-      ProgramMethodMap.create();
 
   /**
    * Conditional minimum keep info for classes, fields, and methods, which should only be applied if
@@ -2290,9 +2279,9 @@ public class Enqueuer {
     }
   }
 
-  private void shouldNotBeMinified(DexReference reference) {
+  private void shouldNotBeMinified(ProgramDefinition definition) {
     if (options.isMinificationEnabled()) {
-      rootSet.shouldNotBeMinified(reference);
+      rootSet.shouldNotBeMinified(definition);
     }
   }
 
@@ -2300,17 +2289,17 @@ public class Enqueuer {
     KeepReasonWitness keepReasonWitness = graphReporter.registerClass(clazz, keepReason);
     markClassAsInstantiatedWithCompatRule(clazz.asProgramClass(), () -> keepReasonWitness);
     keepInfo.keepClass(clazz);
-    shouldNotBeMinified(clazz.getReference());
+    shouldNotBeMinified(clazz);
     clazz.forEachProgramField(
         field -> {
           keepInfo.keepField(field);
-          shouldNotBeMinified(field.getReference());
+          shouldNotBeMinified(field);
           markFieldAsKept(field, keepReasonWitness);
         });
     clazz.forEachProgramMethod(
         method -> {
           keepInfo.keepMethod(method);
-          shouldNotBeMinified(method.getReference());
+          shouldNotBeMinified(method);
           markMethodAsKept(method, keepReasonWitness);
         });
   }
@@ -2836,7 +2825,7 @@ public class Enqueuer {
   }
 
   public boolean isPreconditionForMinimumKeepInfoSatisfied(EnqueuerEvent preconditionEvent) {
-    if (preconditionEvent == null) {
+    if (preconditionEvent == null || preconditionEvent.isUnconditionalKeepInfoEvent()) {
       return true;
     }
     if (preconditionEvent.isClassEvent()) {
@@ -3039,7 +3028,7 @@ public class Enqueuer {
       // marking for not renaming it is in the root set.
       workList.enqueueMarkMethodKeptAction(valuesMethod, reason);
       keepInfo.joinMethod(valuesMethod, joiner -> joiner.pin().disallowMinification());
-      shouldNotBeMinified(valuesMethod.getReference());
+      shouldNotBeMinified(valuesMethod);
     }
   }
 
@@ -3187,9 +3176,13 @@ public class Enqueuer {
   }
 
   private void applyMinimumKeepInfo(DexProgramClass clazz) {
-    KeepClassInfo.Joiner minimumKeepInfoForClass = minimumKeepClassInfo.remove(clazz);
-    if (minimumKeepInfoForClass != null) {
-      keepInfo.joinClass(clazz, info -> info.merge(minimumKeepInfoForClass));
+    Map<DexProgramClass, KeepClassInfo.Joiner> minimumKeepClassInfo =
+        dependentMinimumKeepClassInfo.get(UnconditionalKeepInfoEvent.get());
+    if (minimumKeepClassInfo != null) {
+      KeepClassInfo.Joiner minimumKeepInfoForClass = minimumKeepClassInfo.remove(clazz);
+      if (minimumKeepInfoForClass != null) {
+        keepInfo.joinClass(clazz, info -> info.merge(minimumKeepInfoForClass));
+      }
     }
   }
 
@@ -3198,7 +3191,8 @@ public class Enqueuer {
     if (liveTypes.contains(clazz)) {
       keepInfo.joinClass(clazz, info -> info.merge(minimumKeepInfo));
     } else {
-      minimumKeepClassInfo
+      dependentMinimumKeepClassInfo
+          .computeIfAbsent(UnconditionalKeepInfoEvent.get(), ignoreKey(IdentityHashMap::new))
           .computeIfAbsent(clazz, ignoreKey(KeepClassInfo::newEmptyJoiner))
           .merge(minimumKeepInfo);
     }
@@ -3219,9 +3213,13 @@ public class Enqueuer {
   }
 
   private void applyMinimumKeepInfo(ProgramField field) {
-    KeepFieldInfo.Joiner minimumKeepInfoForField = minimumKeepFieldInfo.remove(field);
-    if (minimumKeepInfoForField != null) {
-      keepInfo.joinField(field, info -> info.merge(minimumKeepInfoForField));
+    ProgramFieldMap<KeepFieldInfo.Joiner> minimumKeepFieldInfo =
+        dependentMinimumKeepFieldInfo.get(UnconditionalKeepInfoEvent.get());
+    if (minimumKeepFieldInfo != null) {
+      KeepFieldInfo.Joiner minimumKeepInfoForField = minimumKeepFieldInfo.remove(field);
+      if (minimumKeepInfoForField != null) {
+        keepInfo.joinField(field, info -> info.merge(minimumKeepInfoForField));
+      }
     }
   }
 
@@ -3230,7 +3228,8 @@ public class Enqueuer {
     if (liveFields.contains(field)) {
       keepInfo.joinField(field, info -> info.merge(minimumKeepInfo));
     } else {
-      minimumKeepFieldInfo
+      dependentMinimumKeepFieldInfo
+          .computeIfAbsent(UnconditionalKeepInfoEvent.get(), ignoreKey(ProgramFieldMap::create))
           .computeIfAbsent(field, ignoreKey(KeepFieldInfo::newEmptyJoiner))
           .merge(minimumKeepInfo);
     }
@@ -3249,9 +3248,13 @@ public class Enqueuer {
   }
 
   private void applyMinimumKeepInfo(ProgramMethod method) {
-    KeepMethodInfo.Joiner minimumKeepInfoForMethod = minimumKeepMethodInfo.remove(method);
-    if (minimumKeepInfoForMethod != null) {
-      keepInfo.joinMethod(method, info -> info.merge(minimumKeepInfoForMethod));
+    ProgramMethodMap<KeepMethodInfo.Joiner> minimumKeepMethodInfo =
+        dependentMinimumKeepMethodInfo.get(UnconditionalKeepInfoEvent.get());
+    if (minimumKeepMethodInfo != null) {
+      KeepMethodInfo.Joiner minimumKeepInfoForMethod = minimumKeepMethodInfo.remove(method);
+      if (minimumKeepInfoForMethod != null) {
+        keepInfo.joinMethod(method, info -> info.merge(minimumKeepInfoForMethod));
+      }
     }
   }
 
@@ -3260,7 +3263,8 @@ public class Enqueuer {
     if (liveMethods.contains(method) || targetedMethods.contains(method)) {
       keepInfo.joinMethod(method, info -> info.merge(minimumKeepInfo));
     } else {
-      minimumKeepMethodInfo
+      dependentMinimumKeepMethodInfo
+          .computeIfAbsent(UnconditionalKeepInfoEvent.get(), ignoreKey(ProgramMethodMap::create))
           .computeIfAbsent(method, ignoreKey(KeepMethodInfo::newEmptyJoiner))
           .merge(minimumKeepInfo);
     }

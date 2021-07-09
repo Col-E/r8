@@ -24,7 +24,11 @@ public interface Definition {
 
   ProgramDerivedContext asProgramDerivedContext(ProgramDerivedContext witness);
 
+  AccessFlags<?> getAccessFlags();
+
   DexType getContextType();
+
+  DexDefinition getDefinition();
 
   Origin getOrigin();
 
@@ -34,7 +38,7 @@ public interface Definition {
     return false;
   }
 
-  default ClassDefinition asClass() {
+  default DexClass asClass() {
     return null;
   }
 
@@ -46,6 +50,14 @@ public interface Definition {
     return null;
   }
 
+  default boolean isMember() {
+    return !isClass();
+  }
+
+  default DexClassAndMember<?, ?> asMember() {
+    return null;
+  }
+
   default boolean isMethod() {
     return false;
   }
@@ -54,11 +66,83 @@ public interface Definition {
     return null;
   }
 
+  default boolean isClasspathField() {
+    return false;
+  }
+
+  default ClasspathField asClasspathField() {
+    return null;
+  }
+
+  default boolean isClasspathMember() {
+    return false;
+  }
+
+  default boolean isClasspathMethod() {
+    return false;
+  }
+
+  default ClasspathMethod asClasspathMethod() {
+    return null;
+  }
+
+  default boolean isLibraryField() {
+    return false;
+  }
+
+  default LibraryField asLibraryField() {
+    return null;
+  }
+
+  default boolean isLibraryMember() {
+    return false;
+  }
+
+  default boolean isLibraryMethod() {
+    return false;
+  }
+
+  default LibraryMethod asLibraryMethod() {
+    return null;
+  }
+
+  default boolean isProgramClass() {
+    return false;
+  }
+
+  default DexProgramClass asProgramClass() {
+    return null;
+  }
+
   default boolean isProgramDefinition() {
     return false;
   }
 
   default ProgramDefinition asProgramDefinition() {
+    return null;
+  }
+
+  default boolean isProgramField() {
+    return false;
+  }
+
+  default ProgramField asProgramField() {
+    return null;
+  }
+
+  default boolean isProgramMember() {
+    return false;
+  }
+
+  default ProgramMember<?, ?> asProgramMember() {
+    return null;
+  }
+
+  default boolean isProgramMethod() {
+    return false;
+  }
+
+  default ProgramMethod asProgramMethod() {
     return null;
   }
 }

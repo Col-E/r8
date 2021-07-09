@@ -19,6 +19,16 @@ public interface ProgramDefinition extends Definition, ProgramDerivedContext {
   }
 
   @Override
+  default ProgramField asField() {
+    return null;
+  }
+
+  @Override
+  default ProgramMethod asMethod() {
+    return null;
+  }
+
+  @Override
   default ProgramDerivedContext asProgramDerivedContext(ProgramDerivedContext witness) {
     return this;
   }
@@ -34,18 +44,6 @@ public interface ProgramDefinition extends Definition, ProgramDerivedContext {
 
   DexProgramClass getContextClass();
 
-  AccessFlags<?> getAccessFlags();
-
-  DexDefinition getDefinition();
-
-  default boolean isProgramClass() {
-    return false;
-  }
-
-  default DexProgramClass asProgramClass() {
-    return null;
-  }
-
   @Override
   default boolean isProgramDefinition() {
     return true;
@@ -54,29 +52,5 @@ public interface ProgramDefinition extends Definition, ProgramDerivedContext {
   @Override
   default ProgramDefinition asProgramDefinition() {
     return this;
-  }
-
-  default boolean isProgramField() {
-    return false;
-  }
-
-  default ProgramField asProgramField() {
-    return null;
-  }
-
-  default boolean isProgramMember() {
-    return false;
-  }
-
-  default ProgramMember<?, ?> asProgramMember() {
-    return null;
-  }
-
-  default boolean isProgramMethod() {
-    return false;
-  }
-
-  default ProgramMethod asProgramMethod() {
-    return null;
   }
 }

@@ -33,6 +33,10 @@ public abstract class EnqueuerEvent {
     return null;
   }
 
+  public boolean isUnconditionalKeepInfoEvent() {
+    return false;
+  }
+
   public abstract static class ClassEnqueuerEvent extends EnqueuerEvent {
 
     private final DexType clazz;
@@ -121,6 +125,22 @@ public abstract class EnqueuerEvent {
     @Override
     public int hashCode() {
       return (getType().hashCode() << 1) | 1;
+    }
+  }
+
+  public static class UnconditionalKeepInfoEvent extends EnqueuerEvent {
+
+    private static final UnconditionalKeepInfoEvent INSTANCE = new UnconditionalKeepInfoEvent();
+
+    private UnconditionalKeepInfoEvent() {}
+
+    public static UnconditionalKeepInfoEvent get() {
+      return INSTANCE;
+    }
+
+    @Override
+    public boolean isUnconditionalKeepInfoEvent() {
+      return true;
     }
   }
 }

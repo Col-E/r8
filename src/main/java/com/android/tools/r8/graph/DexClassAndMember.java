@@ -22,8 +22,6 @@ public abstract class DexClassAndMember<D extends DexEncodedMember<D, R>, R exte
     this.definition = definition;
   }
 
-  public abstract AccessFlags<?> getAccessFlags();
-
   public final DexAnnotationSet getAnnotations() {
     return definition.annotations();
   }
@@ -41,6 +39,7 @@ public abstract class DexClassAndMember<D extends DexEncodedMember<D, R>, R exte
     return holder.type;
   }
 
+  @Override
   public D getDefinition() {
     return definition;
   }
@@ -61,18 +60,6 @@ public abstract class DexClassAndMember<D extends DexEncodedMember<D, R>, R exte
   @Override
   public Origin getOrigin() {
     return holder.origin;
-  }
-
-  public boolean isClasspathMember() {
-    return false;
-  }
-
-  public boolean isLibraryMember() {
-    return false;
-  }
-
-  public boolean isProgramMember() {
-    return false;
   }
 
   public String toSourceString() {

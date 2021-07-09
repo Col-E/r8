@@ -58,6 +58,10 @@ public abstract class DexDefinition extends DexItem {
         annotations().rewrite(annotation -> rewriter.apply(annotation, AnnotatedKind.from(this))));
   }
 
+  public DexClass asClass() {
+    return null;
+  }
+
   public boolean isDexClass() {
     return false;
   }

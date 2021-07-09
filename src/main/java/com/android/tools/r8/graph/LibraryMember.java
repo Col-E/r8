@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 public interface LibraryMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
     extends LibraryDefinition {
 
+  @Override
   D getDefinition();
 
   DexLibraryClass getHolder();

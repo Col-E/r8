@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 public interface ClasspathMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
     extends ClasspathDefinition {
 
+  @Override
   D getDefinition();
 
   DexClasspathClass getHolder();

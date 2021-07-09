@@ -98,31 +98,12 @@ public abstract class DexClassAndMethod extends DexClassAndMember<DexEncodedMeth
   }
 
   @Override
-  public DexClassAndMethod asMethod() {
+  public DexClassAndMethod asMember() {
     return this;
   }
 
-  public boolean isClasspathMethod() {
-    return false;
-  }
-
-  public ClasspathMethod asClasspathMethod() {
-    return null;
-  }
-
-  public boolean isLibraryMethod() {
-    return false;
-  }
-
-  public LibraryMethod asLibraryMethod() {
-    return null;
-  }
-
-  public boolean isProgramMethod() {
-    return false;
-  }
-
-  public ProgramMethod asProgramMethod() {
-    return null;
+  @Override
+  public DexClassAndMethod asMethod() {
+    return this;
   }
 }

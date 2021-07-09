@@ -83,6 +83,11 @@ public final class ProgramMethod extends DexClassAndMethod
   }
 
   @Override
+  public ProgramMethod asMethod() {
+    return this;
+  }
+
+  @Override
   public ProgramMethod asProgramMethod() {
     return this;
   }

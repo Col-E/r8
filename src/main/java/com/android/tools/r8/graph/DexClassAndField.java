@@ -55,27 +55,8 @@ public abstract class DexClassAndField extends DexClassAndMember<DexEncodedField
     return this;
   }
 
-  public boolean isClasspathField() {
-    return false;
-  }
-
-  public ClasspathField asClasspathField() {
-    return null;
-  }
-
-  public boolean isLibraryField() {
-    return false;
-  }
-
-  public LibraryField asLibraryField() {
-    return null;
-  }
-
-  public boolean isProgramField() {
-    return false;
-  }
-
-  public ProgramField asProgramField() {
-    return null;
+  @Override
+  public DexClassAndField asMember() {
+    return this;
   }
 }

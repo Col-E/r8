@@ -676,6 +676,11 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
   }
 
   @Override
+  public DexClass asClass() {
+    return this;
+  }
+
+  @Override
   public boolean isDexClass() {
     return true;
   }
@@ -734,6 +739,11 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
   @Override
   public ClassReference getClassReference() {
     return Reference.classFromDescriptor(getType().toDescriptorString());
+  }
+
+  @Override
+  public DexClass getDefinition() {
+    return this;
   }
 
   @Override
