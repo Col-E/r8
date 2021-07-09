@@ -23,9 +23,11 @@ luci.project(
                 acl.BUILDBUCKET_TRIGGERER,
             ],
             groups = [
-                "luci-scheduler@appspot.gserviceaccount.com",
                 "project-r8-committers"
-    ],
+            ],
+            users = [
+                "luci-scheduler@appspot.gserviceaccount.com"
+            ]
         ),
 
     ]
@@ -87,7 +89,7 @@ common_test_options = [
     "--archive_failures"
 ]
 
-def get_dimensions(windows=False, jctf=False, internal=False):
+def get_dimensions(windows=False, jctf=False, internal=False, normal=False):
   dimensions = {
     "cores" : "2" if internal else "8",
     "cpu" : "x86-64",
@@ -101,84 +103,72 @@ def get_dimensions(windows=False, jctf=False, internal=False):
     dimensions["jctf"] = "true"
   if internal:
     dimensions["internal"] = "true"
+  if normal:
+    dimensions["normal"] = "true"
   return dimensions
+
+def r8_builder(name, priority=26, **kwargs):
+  release = name.endswith("release")
+  triggered = ["branch-gitiles-trigger"] if release \
+      else ["main-gitiles-trigger"]
+
+  luci.builder(
+    name = name,
+    bucket = "ci",
+    service_account = "r8-ci-builder@chops-service-accounts." +
+        "iam.gserviceaccount.com",
+    build_numbers = True,
+    swarming_tags = ["vpython:native-python-wrapper"],
+    notifies = ["r8-failures"],
+    priority = priority,
+    triggered_by = triggered,
+    executable = "rex",
+    **kwargs
+  )
+  category = "R8 release" if release else "R8"
+  builder_view(name, category, name.split("-")[-1])
 
 def r8_tester(name,
     test_options,
     dimensions=None,
     execution_timeout=time.hour * 6,
     expiration_timeout=time.hour * 35):
-  dimensions = dimensions if dimensions else get_dimensions()
-  luci.builder(
-      name = name,
-      bucket = "ci",
-      service_account = "r8-ci-builder@chops-service-accounts.iam.gserviceaccount.com",
-      swarming_tags = ["vpython:native-python-wrapper"],
-      execution_timeout=execution_timeout,
-      expiration_timeout=expiration_timeout,
-      executable = "rex",
-      dimensions = dimensions,
-      triggered_by = ["main-gitiles-trigger"],
-      properties = {
-          "test_options" : test_options
-      },
-      notifies = ["r8-failures"]
-  )
-  builder_view(name, "R8", name.split("-")[-1])
-
-  # Branch version
-  release_name = name + "_release"
-  luci.builder(
-      name = release_name,
-      bucket = "ci",
-      service_account = "r8-ci-builder@chops-service-accounts.iam.gserviceaccount.com",
-      swarming_tags = ["vpython:native-python-wrapper"],
-      execution_timeout=execution_timeout,
-      expiration_timeout=expiration_timeout,
-      executable = "rex",
-      dimensions = dimensions,
-      triggered_by = ["branch-gitiles-trigger"],
-      properties = {
-          "test_options" : test_options
-      },
-      notifies = ["r8-failures"]
-  )
-  builder_view(release_name, "R8 release", name.split("-")[-1])
+  dimensions = dimensions if dimensions else get_dimensions(normal=True)
+  for name in [name, name + "_release"]:
+    r8_builder(
+        name = name,
+        execution_timeout=execution_timeout,
+        expiration_timeout=expiration_timeout,
+        dimensions = dimensions,
+        properties = {
+            "test_options" : test_options,
+            "builder_group" : "internal.client.r8"
+        },
+    )
 
 def r8_tester_with_default(name, test_options, dimensions=None):
   r8_tester(name, test_options + common_test_options, dimensions)
 
-luci.builder(
-    name = "archive",
-    bucket = "ci",
-    dimensions = get_dimensions(),
-    triggered_by = ["main-gitiles-trigger"],
-    executable = "rex",
-    execution_timeout = time.minute * 30,
-      triggering_policy = scheduler.policy(
-        kind = scheduler.GREEDY_BATCHING_KIND,
-        max_batch_size = 1,
-        max_concurrent_invocations = 3
-    ),
-    properties = {"archive": True}
-)
-builder_view("archive", "R8", "archive")
 
-luci.builder(
-    name = "archive_release",
-    bucket = "ci",
-    dimensions = get_dimensions(),
-    triggered_by = ["branch-gitiles-trigger"],
-    execution_timeout = time.minute * 30,
-    executable = "rex",
-    triggering_policy = scheduler.policy(
-        kind = scheduler.GREEDY_BATCHING_KIND,
-        max_batch_size = 1,
-        max_concurrent_invocations = 3
-    ),
-    properties = {"archive": True}
-)
-builder_view("archive_release", "R8", "archive_release")
+def archivers():
+  for name in ["archive", "archive_release"]:
+    r8_builder(
+        name,
+        dimensions = get_dimensions(),
+        triggering_policy = scheduler.policy(
+            kind = scheduler.GREEDY_BATCHING_KIND,
+            max_batch_size = 1,
+            max_concurrent_invocations = 3
+        ),
+        priority = 25,
+        properties = {
+            "archive": "true",
+            "builder_group" : "internal.client.r8"
+        },
+        execution_timeout = time.minute * 30,
+        expiration_timeout = time.hour * 35,
+    )
+archivers()
 
 r8_tester_with_default("linux-dex_default", ["--runtimes=dex-default"])
 r8_tester_with_default("linux-none", ["--runtimes=none"])
