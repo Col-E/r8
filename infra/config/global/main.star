@@ -130,9 +130,9 @@ def r8_builder(name, priority=26, **kwargs):
 
 def r8_tester(name,
     test_options,
-    dimensions=None,
-    execution_timeout=time.hour * 6,
-    expiration_timeout=time.hour * 35):
+    dimensions = None,
+    execution_timeout = time.hour * 6,
+    expiration_timeout = time.hour * 35):
   dimensions = dimensions if dimensions else get_dimensions(normal=True)
   for name in [name, name + "_release"]:
     r8_builder(
@@ -143,12 +143,11 @@ def r8_tester(name,
         properties = {
             "test_options" : test_options,
             "builder_group" : "internal.client.r8"
-        },
+        }
     )
 
 def r8_tester_with_default(name, test_options, dimensions=None):
   r8_tester(name, test_options + common_test_options, dimensions)
-
 
 def archivers():
   for name in ["archive", "archive_release"]:
@@ -170,13 +169,31 @@ def archivers():
     )
 archivers()
 
+def internal():
+  for name in ["linux-internal", "linux-internal_release"]:
+    r8_builder(
+        name,
+        dimensions = get_dimensions(internal=True),
+        triggering_policy = scheduler.policy(
+            kind = scheduler.GREEDY_BATCHING_KIND,
+            max_batch_size = 1,
+            max_concurrent_invocations = 1
+        ),
+        priority = 25,
+        properties = {
+            "internal": "true",
+            "builder_group" : "internal.client.r8"
+        },
+        execution_timeout = time.hour * 12,
+        expiration_timeout = time.hour * 35,
+    )
+internal()
+
 r8_tester_with_default("linux-dex_default", ["--runtimes=dex-default"])
 r8_tester_with_default("linux-none", ["--runtimes=none"])
 r8_tester_with_default("linux-jdk8", ["--runtimes=jdk8"])
 r8_tester_with_default("linux-jdk9", ["--runtimes=jdk9"])
 r8_tester_with_default("linux-jdk11", ["--runtimes=jdk11"])
-
-r8_tester_with_default("linux-internal", ["--runtimes=jdk11"])
 
 r8_tester_with_default("linux-android-4.0.4",
     ["--dex_vm=4.0.4", "--all_tests"])
