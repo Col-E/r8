@@ -1543,6 +1543,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enableTestAssertions =
         System.getProperty("com.android.tools.r8.enableTestAssertions") != null;
     public boolean testEnableTestAssertions = false;
+    public boolean keepMetadataInR8IfNotRewritten = true;
 
     public boolean allowConflictingSyntheticTypes = false;
 

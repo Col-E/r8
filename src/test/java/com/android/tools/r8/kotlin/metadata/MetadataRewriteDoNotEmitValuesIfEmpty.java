@@ -49,7 +49,7 @@ public class MetadataRewriteDoNotEmitValuesIfEmpty extends KotlinMetadataTestBas
     testForR8(parameters.getBackend())
         .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
         .setMinApi(parameters.getApiLevel())
-        .addKeepAllClassesRule()
+        .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepKotlinMetadata()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticWarningMessages()

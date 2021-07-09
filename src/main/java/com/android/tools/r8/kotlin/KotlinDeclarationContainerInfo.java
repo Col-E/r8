@@ -56,7 +56,8 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
       DexItemFactory factory,
       Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode,
-      KotlinJvmSignatureExtensionInformation extensionInformation) {
+      KotlinJvmSignatureExtensionInformation extensionInformation,
+      KotlinMetadataMembersTracker originalAssignmentTracker) {
     ImmutableList.Builder<KotlinFunctionInfo> notBackedFunctions = ImmutableList.builder();
     int functionCounter = 0;
     for (KmFunction kmFunction : container.getFunctions()) {
@@ -88,6 +89,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
       }
       keepIfInline(kmFunction.getFlags(), method, keepByteCode);
       method.setKotlinMemberInfo(kotlinFunctionInfo);
+      originalAssignmentTracker.add(method.getReference());
     }
 
     ImmutableList.Builder<KotlinPropertyInfo> notBackedProperties = ImmutableList.builder();
@@ -102,6 +104,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
         if (field != null) {
           hasBacking = true;
           field.setKotlinMemberInfo(kotlinPropertyInfo);
+          originalAssignmentTracker.add(field.getReference());
         }
       }
       if (propertyProcessor.getterSignature() != null) {
@@ -111,6 +114,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
           hasBacking = true;
           keepIfAccessorInline(kmProperty.getGetterFlags(), method, keepByteCode);
           method.setKotlinMemberInfo(kotlinPropertyInfo);
+          originalAssignmentTracker.add(method.getReference());
         }
       }
       if (propertyProcessor.setterSignature() != null) {
@@ -120,6 +124,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
           hasBacking = true;
           keepIfAccessorInline(kmProperty.getGetterFlags(), method, keepByteCode);
           method.setKotlinMemberInfo(kotlinPropertyInfo);
+          originalAssignmentTracker.add(method.getReference());
         }
       }
       if (!hasBacking) {
@@ -161,7 +166,8 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
       KmVisitorProviders.KmTypeAliasVisitorProvider typeAliasProvider,
       DexClass clazz,
       AppView<?> appView,
-      NamingLens namingLens) {
+      NamingLens namingLens,
+      KotlinMetadataMembersTracker rewrittenMembersWithKotlinInfo) {
     // Type aliases only have a representation here, so we can generate them directly.
     boolean rewritten = false;
     for (KotlinTypeAliasInfo typeAlias : typeAliases) {
@@ -175,6 +181,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
             .computeIfAbsent(
                 field.getKotlinInfo().asProperty(), ignored -> new KotlinPropertyGroup())
             .setBackingField(field);
+        rewrittenMembersWithKotlinInfo.add(field.getReference());
       }
     }
     for (DexEncodedMethod method : clazz.methods()) {
@@ -184,12 +191,14 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
                 .getKotlinInfo()
                 .asFunction()
                 .rewrite(functionProvider, method, appView, namingLens);
+        rewrittenMembersWithKotlinInfo.add(method.getReference());
         continue;
       }
       KotlinPropertyInfo kotlinPropertyInfo = method.getKotlinInfo().asProperty();
       if (kotlinPropertyInfo == null) {
         continue;
       }
+      rewrittenMembersWithKotlinInfo.add(method.getReference());
       KotlinPropertyGroup kotlinPropertyGroup =
           properties.computeIfAbsent(kotlinPropertyInfo, ignored -> new KotlinPropertyGroup());
       if (method.getReference().proto.returnType == appView.dexItemFactory().voidType) {

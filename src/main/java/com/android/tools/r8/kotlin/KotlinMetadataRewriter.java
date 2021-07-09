@@ -160,7 +160,8 @@ public class KotlinMetadataRewriter {
     try {
       Pair<KotlinClassHeader, Boolean> kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
       // TODO(b/185756596): Remove when special handling is no longer needed.
-      if (!kotlinClassHeader.getSecond() && !appView.enableWholeProgramOptimizations()) {
+      if (!kotlinClassHeader.getSecond()
+          && appView.options().testing.keepMetadataInR8IfNotRewritten) {
         // No rewrite occurred and the data is the same as before.
         assert appView.checkForTesting(
             () ->

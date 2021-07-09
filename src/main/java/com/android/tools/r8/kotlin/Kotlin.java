@@ -28,6 +28,8 @@ public final class Kotlin {
   public static final String NAME = "kotlin";
   public static final String PACKAGE_PREFIX = "L" + NAME + "/";
 
+  public final DexString kotlinJvmTypePrefix;
+
   public static final class ClassClassifiers {
 
     public static final String arrayBinaryName = NAME + "/Array";
@@ -41,6 +43,7 @@ public final class Kotlin {
     this.intrinsics = new Intrinsics();
     this.metadata = new Metadata();
     this.assertions = new _Assertions();
+    kotlinJvmTypePrefix = factory.createString("Lkotlin/jmv/");
   }
 
   public final class Functional {
@@ -67,10 +70,6 @@ public final class Kotlin {
     private Functional() {
     }
 
-    public final DexString kotlinStyleLambdaInstanceName = factory.createString("INSTANCE");
-
-    public final DexType functionBase =
-        factory.createType(PACKAGE_PREFIX + "jvm/internal/FunctionBase;");
     public final DexType lambdaType = factory.createType(PACKAGE_PREFIX + "jvm/internal/Lambda;");
 
     public final DexMethod lambdaInitializerMethod = factory.createMethod(

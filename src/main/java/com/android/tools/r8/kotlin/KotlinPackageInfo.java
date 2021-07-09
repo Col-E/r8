@@ -27,14 +27,17 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
   private final String moduleName;
   private final KotlinDeclarationContainerInfo containerInfo;
   private final KotlinLocalDelegatedPropertyInfo localDelegatedProperties;
+  private final KotlinMetadataMembersTracker originalMembersWithKotlinInfo;
 
   private KotlinPackageInfo(
       String moduleName,
       KotlinDeclarationContainerInfo containerInfo,
-      KotlinLocalDelegatedPropertyInfo localDelegatedProperties) {
+      KotlinLocalDelegatedPropertyInfo localDelegatedProperties,
+      KotlinMetadataMembersTracker originalMembersWithKotlinInfo) {
     this.moduleName = moduleName;
     this.containerInfo = containerInfo;
     this.localDelegatedProperties = localDelegatedProperties;
+    this.originalMembersWithKotlinInfo = originalMembersWithKotlinInfo;
   }
 
   public static KotlinPackageInfo create(
@@ -51,6 +54,8 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
     for (DexEncodedMethod method : clazz.methods()) {
       methodMap.put(toJvmMethodSignature(method.getReference()).asString(), method);
     }
+    KotlinMetadataMembersTracker originalMembersWithKotlinInfo =
+        new KotlinMetadataMembersTracker(appView);
     return new KotlinPackageInfo(
         JvmExtensionsKt.getModuleName(kmPackage),
         KotlinDeclarationContainerInfo.create(
@@ -60,14 +65,17 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
             appView.dexItemFactory(),
             appView.reporter(),
             keepByteCode,
-            extensionInformation),
+            extensionInformation,
+            originalMembersWithKotlinInfo),
         KotlinLocalDelegatedPropertyInfo.create(
             JvmExtensionsKt.getLocalDelegatedProperties(kmPackage),
             appView.dexItemFactory(),
-            appView.reporter()));
+            appView.reporter()),
+        originalMembersWithKotlinInfo);
   }
 
   boolean rewrite(KmPackage kmPackage, DexClass clazz, AppView<?> appView, NamingLens namingLens) {
+    KotlinMetadataMembersTracker rewrittenReferences = new KotlinMetadataMembersTracker(appView);
     boolean rewritten =
         containerInfo.rewrite(
             kmPackage::visitFunction,
@@ -75,7 +83,8 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
             kmPackage::visitTypeAlias,
             clazz,
             appView,
-            namingLens);
+            namingLens,
+            rewrittenReferences);
     JvmPackageExtensionVisitor extensionVisitor =
         (JvmPackageExtensionVisitor) kmPackage.visitExtensions(JvmPackageExtensionVisitor.TYPE);
     rewritten |=
@@ -83,7 +92,7 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
             extensionVisitor::visitLocalDelegatedProperty, appView, namingLens);
     extensionVisitor.visitModuleName(moduleName);
     extensionVisitor.visitEnd();
-    return rewritten;
+    return rewritten || !originalMembersWithKotlinInfo.isEqual(rewrittenReferences, appView);
   }
 
   @Override
