@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
-import static com.android.tools.r8.utils.OptionalBool.UNKNOWN;
-
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -19,7 +17,6 @@ import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OptionalBool;
 import java.util.BitSet;
 import java.util.Set;
 
