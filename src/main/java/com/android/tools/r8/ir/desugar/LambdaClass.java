@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import static com.android.tools.r8.ir.desugar.lambda.ForcefullyMovedLambdaMethodConsumer.emptyForcefullyMovedLambdaMethodConsumer;
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiLevelIfEnabledForNewMember;
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.dex.Constants;
@@ -43,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Represents lambda class generated for a lambda descriptor in context of lambda instantiation
@@ -241,7 +243,8 @@ public final class LambdaClass {
               DexAnnotationSet.empty(),
               null,
               deprecated,
-              d8R8Synthesized));
+              d8R8Synthesized,
+              getApiLevelIfEnabledForNewMember(appView, Function.identity())));
     }
     builder.setInstanceFields(fields);
   }
@@ -266,7 +269,8 @@ public final class LambdaClass {
                   DexAnnotationSet.empty(),
                   DexValueNull.NULL,
                   deprecated,
-                  d8R8Synthesized)));
+                  d8R8Synthesized,
+                  getApiLevelIfEnabledForNewMember(appView, Function.identity()))));
     }
   }
 

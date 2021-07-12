@@ -162,6 +162,8 @@ public class GenerateLintFiles {
               code,
               false,
               CfVersion.V1_6,
+              AndroidApiLevel.UNKNOWN,
+              AndroidApiLevel.UNKNOWN,
               false);
       if (method.isStatic() || method.isDirectMethod()) {
         directMethods.add(throwingMethod);

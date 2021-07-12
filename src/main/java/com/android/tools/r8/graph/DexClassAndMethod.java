@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.references.MethodReference;
+import java.util.function.Consumer;
 
 public abstract class DexClassAndMethod extends DexClassAndMember<DexEncodedMethod, DexMethod>
     implements LookupTarget {
@@ -105,5 +106,11 @@ public abstract class DexClassAndMethod extends DexClassAndMember<DexEncodedMeth
   @Override
   public DexClassAndMethod asMethod() {
     return this;
+  }
+
+  @Override
+  public void accept(
+      Consumer<DexClassAndMethod> methodConsumer, Consumer<LookupLambdaTarget> lambdaConsumer) {
+    methodConsumer.accept(this);
   }
 }

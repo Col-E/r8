@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import java.util.function.Consumer;
+
 public interface LookupTarget {
   default boolean isMethodTarget() {
     return false;
@@ -19,4 +21,7 @@ public interface LookupTarget {
   default LookupLambdaTarget asLambdaTarget() {
     return null;
   }
+
+  void accept(
+      Consumer<DexClassAndMethod> methodConsumer, Consumer<LookupLambdaTarget> lambdaConsumer);
 }

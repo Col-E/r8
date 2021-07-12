@@ -38,6 +38,7 @@ import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.synthesis.SyntheticMarker;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AsmUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -908,6 +909,8 @@ public class JarClassFileReader<T extends DexClass> {
               code,
               false,
               parent.version,
+              AndroidApiLevel.UNKNOWN,
+              AndroidApiLevel.UNKNOWN,
               deprecated);
       Wrapper<DexMethod> signature = MethodSignatureEquivalence.get().wrap(method);
       if (parent.methodSignatures.add(signature)) {

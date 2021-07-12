@@ -7,6 +7,7 @@ import static com.android.tools.r8.dex.Constants.TEMPORARY_INSTANCE_INITIALIZER_
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiLevelIfEnabledForNewMember;
 
 import com.android.tools.r8.androidapi.AndroidApiReferenceLevelCache;
 import com.android.tools.r8.errors.Unreachable;
@@ -441,11 +442,9 @@ public class VerticalClassMerger {
     // Only merge if api reference level of source class is equal to target class.
     if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
       AndroidApiLevel sourceApiLevel =
-          sourceClass.getApiReferenceLevel(
-              appView.options().minApiLevel, apiReferenceLevelCache::lookupMax);
+          sourceClass.getApiReferenceLevel(appView, apiReferenceLevelCache::lookupMax);
       AndroidApiLevel targetApiLevel =
-          targetClass.getApiReferenceLevel(
-              appView.options().minApiLevel, apiReferenceLevelCache::lookupMax);
+          targetClass.getApiReferenceLevel(appView, apiReferenceLevelCache::lookupMax);
       if (sourceApiLevel != targetApiLevel) {
         if (Log.ENABLED) {
           AbortReason.API_REFERENCE_LEVEL.printLogMessageForClass(sourceClass);
@@ -1441,7 +1440,9 @@ public class VerticalClassMerger {
               ParameterAnnotationsList.empty(),
               code,
               true,
-              method.hasClassFileVersion() ? method.getClassFileVersion() : null);
+              method.hasClassFileVersion() ? method.getClassFileVersion() : null,
+              getApiLevelIfEnabledForNewMember(appView, method::getApiReferenceLevelForDefinition),
+              getApiLevelIfEnabledForNewMember(appView, Function.identity()));
       bridge.setLibraryMethodOverride(method.isLibraryMethodOverride());
       if (method.accessFlags.isPromotedToPublic()) {
         // The bridge is now the public method serving the role of the original method, and should

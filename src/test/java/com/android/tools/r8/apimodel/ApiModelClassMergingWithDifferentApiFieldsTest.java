@@ -51,6 +51,7 @@ public class ApiModelClassMergingWithDifferentApiFieldsTest extends TestBase {
               }
             })
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .apply(ApiModelingTestHelper::disableCheckAllApiReferencesAreNotUnknown)
         .apply(setMockApiLevelForClass(Api.class, AndroidApiLevel.L_MR1))
         .compile()
         .addRunClasspathClasses(Api.class)

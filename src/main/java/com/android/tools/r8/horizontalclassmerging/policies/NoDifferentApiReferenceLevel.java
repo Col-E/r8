@@ -13,13 +13,13 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 public class NoDifferentApiReferenceLevel extends MultiClassSameReferencePolicy<AndroidApiLevel> {
 
   private final AndroidApiReferenceLevelCache apiReferenceLevelCache;
-  private final AndroidApiLevel minApi;
+  private final AppView<?> appView;
   // TODO(b/188388130): Remove when stabilized.
   private final boolean enableApiCallerIdentification;
 
   public NoDifferentApiReferenceLevel(AppView<?> appView) {
     apiReferenceLevelCache = AndroidApiReferenceLevelCache.create(appView);
-    minApi = appView.options().minApiLevel;
+    this.appView = appView;
     enableApiCallerIdentification =
         appView.options().apiModelingOptions().enableApiCallerIdentification;
   }
@@ -37,6 +37,6 @@ public class NoDifferentApiReferenceLevel extends MultiClassSameReferencePolicy<
   @Override
   public AndroidApiLevel getMergeKey(DexProgramClass clazz) {
     assert enableApiCallerIdentification;
-    return clazz.getApiReferenceLevel(minApi, apiReferenceLevelCache::lookupMax);
+    return clazz.getApiReferenceLevel(appView, apiReferenceLevelCache::lookupMax);
   }
 }

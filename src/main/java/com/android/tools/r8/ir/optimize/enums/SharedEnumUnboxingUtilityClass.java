@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiLevelIfEnabledForNewMember;
+
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfConstNumber;
@@ -46,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import org.objectweb.asm.Opcodes;
 
 public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
@@ -234,7 +237,8 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
               DexAnnotationSet.empty(),
               DexEncodedField.NO_STATIC_VALUE,
               DexEncodedField.NOT_DEPRECATED,
-              DexEncodedField.D8_R8_SYNTHESIZED);
+              DexEncodedField.D8_R8_SYNTHESIZED,
+              getApiLevelIfEnabledForNewMember(appView, Function.identity()));
       fieldAccessInfoCollectionModifierBuilder
           .recordFieldReadInUnknownContext(valuesField.getReference())
           .recordFieldWriteInUnknownContext(valuesField.getReference());
@@ -253,7 +257,9 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
           ParameterAnnotationsList.empty(),
           createClassInitializerCode(sharedUtilityClassType, valuesField),
           DexEncodedMethod.D8_R8_SYNTHESIZED,
-          CfVersion.V1_6);
+          CfVersion.V1_6,
+          getApiLevelIfEnabledForNewMember(appView, Function.identity()),
+          getApiLevelIfEnabledForNewMember(appView, Function.identity()));
     }
 
     private CfCode createClassInitializerCode(
@@ -298,7 +304,9 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
               ParameterAnnotationsList.empty(),
               createValuesMethodCode(sharedUtilityClassType, valuesField),
               DexEncodedMethod.D8_R8_SYNTHESIZED,
-              CfVersion.V1_6);
+              CfVersion.V1_6,
+              getApiLevelIfEnabledForNewMember(appView, Function.identity()),
+              getApiLevelIfEnabledForNewMember(appView, Function.identity()));
       this.valuesMethod = valuesMethod;
       return valuesMethod;
     }

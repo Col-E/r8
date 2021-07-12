@@ -17,9 +17,9 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeMatchers;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import java.lang.reflect.Method;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -61,7 +61,6 @@ public class ApiModelNoVerticalMergingTest extends TestBase {
                 inspector.assertNoClassesMerged();
               }
             })
-        .noMinification()
         .compile()
         .inspect(
             inspector -> {
@@ -70,12 +69,12 @@ public class ApiModelNoVerticalMergingTest extends TestBase {
                   && parameters.getApiLevel().isGreaterThanOrEqualTo(L_MR1)) {
                 assertThat(base, not(isPresent()));
                 ClassSubject sub = inspector.clazz(Sub.class);
-                List<FoundMethodSubject> callApis =
-                    sub.allMethods(
-                        method ->
-                            method.getOriginalName().equals(Base.class.getTypeName() + ".callApi"));
-                // TODO(b/191013233): Remove synthetic bridge. Remove noMinification after fixed.
-                assertEquals(2, callApis.size());
+                assertThat(sub, isPresent());
+                assertThat(sub.uniqueInstanceInitializer(), isPresent());
+                assertEquals(1, sub.virtualMethods().size());
+                FoundMethodSubject callCallApi = sub.virtualMethods().get(0);
+                assertEquals("callCallApi", callCallApi.getOriginalName());
+                assertThat(callCallApi, CodeMatchers.invokesMethodWithName("apiLevel22"));
               } else {
                 assertThat(base, isPresent());
               }

@@ -42,7 +42,6 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   static boolean UNKNOWN_RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS = false;
   static BitSet NO_NULL_PARAMETER_OR_THROW_FACTS = null;
   static BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
-  static AndroidApiLevel UNKNOWN_API_REFERENCE_LEVEL = null;
 
   protected DefaultMethodOptimizationInfo() {}
 

@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.MIN_API_LEVEL;
 
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
@@ -44,7 +45,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   /** Generic signature information if the attribute is present in the input */
   private FieldTypeSignature genericSignature;
 
-  private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
+  private FieldOptimizationInfo optimizationInfo;
   private KotlinFieldLevelInfo kotlinMemberInfo = getNoKotlinInfo();
 
   private static void specify(StructuralSpecification<DexEncodedField, ?> spec) {
@@ -77,7 +78,15 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       DexAnnotationSet annotations,
       DexValue staticValue,
       boolean deprecated) {
-    this(field, accessFlags, genericSignature, annotations, staticValue, deprecated, false);
+    this(
+        field,
+        accessFlags,
+        genericSignature,
+        annotations,
+        staticValue,
+        deprecated,
+        false,
+        AndroidApiLevel.UNKNOWN);
   }
 
   public DexEncodedField(
@@ -87,12 +96,22 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       DexAnnotationSet annotations,
       DexValue staticValue,
       boolean deprecated,
-      boolean d8R8Synthesized) {
+      boolean d8R8Synthesized,
+      AndroidApiLevel apiLevel) {
     super(field, annotations, d8R8Synthesized);
     this.accessFlags = accessFlags;
     this.staticValue = staticValue;
     this.deprecated = deprecated;
     this.genericSignature = genericSignature;
+    if (apiLevel == AndroidApiLevel.UNKNOWN) {
+      optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
+    } else if (apiLevel == MIN_API_LEVEL) {
+      optimizationInfo = DefaultFieldOptimizationWithMinApiInfo.getInstance();
+    } else {
+      MutableFieldOptimizationInfo optimizationInfo = new MutableFieldOptimizationInfo();
+      this.optimizationInfo = optimizationInfo;
+      optimizationInfo.setApiReferenceLevelForDefinition(apiLevel);
+    }
     assert genericSignature != null;
     assert GenericSignatureUtils.verifyNoDuplicateGenericDefinitions(genericSignature, annotations);
   }
@@ -448,7 +467,8 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
               annotations,
               staticValue,
               deprecated,
-              d8R8Synthesized);
+              d8R8Synthesized,
+              AndroidApiLevel.UNKNOWN);
       dexEncodedField.optimizationInfo = optimizationInfo;
       buildConsumer.accept(dexEncodedField);
       return dexEncodedField;

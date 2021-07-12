@@ -69,7 +69,9 @@ public class AndroidApiReferenceLevelCache {
 
   public AndroidApiLevel lookup(DexReference reference) {
     DexType contextType = reference.getContextType();
-    assert !contextType.isArrayType();
+    if (contextType.isArrayType()) {
+      return lookup(contextType.toBaseType(appView.dexItemFactory()));
+    }
     if (contextType.isPrimitiveType() || contextType.isVoidType()) {
       return AndroidApiLevel.B;
     }

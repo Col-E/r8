@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiLevelIfEnabledForNewMember;
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -32,6 +33,7 @@ import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConv
 import com.android.tools.r8.ir.analysis.value.NumberFromIntervalValue;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -43,6 +45,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * The class merger is responsible for moving methods from the sources in {@link ClassMerger#group}
@@ -127,6 +130,7 @@ public class ClassMerger {
         newMethodReference.withName("$r8$clinit$synthetic", dexItemFactory);
     lensBuilder.recordNewMethodSignature(syntheticMethodReference, newMethodReference, true);
 
+    AndroidApiLevel apiReferenceLevel = classInitializerMerger.getApiReferenceLevel(appView);
     DexEncodedMethod definition =
         new DexEncodedMethod(
             newMethodReference,
@@ -136,7 +140,9 @@ public class ClassMerger {
             ParameterAnnotationsList.empty(),
             classInitializerMerger.getCode(syntheticMethodReference),
             DexEncodedMethod.D8_R8_SYNTHESIZED,
-            classInitializerMerger.getCfVersion());
+            classInitializerMerger.getCfVersion(),
+            getApiLevelIfEnabledForNewMember(appView, ignored -> apiReferenceLevel),
+            getApiLevelIfEnabledForNewMember(appView, ignored -> apiReferenceLevel));
     classMethodsBuilder.addDirectMethod(definition);
 
     // In case we didn't synthesize CF code, we register the class initializer for conversion to dex
@@ -223,7 +229,8 @@ public class ClassMerger {
             DexAnnotationSet.empty(),
             null,
             deprecated,
-            d8R8Synthesized);
+            d8R8Synthesized,
+            getApiLevelIfEnabledForNewMember(appView, Function.identity()));
 
     // For the $r8$classId synthesized fields, we try to over-approximate the set of values it may
     // have. For example, for a merge group of size 4, we may compute the set {0, 2, 3}, if the

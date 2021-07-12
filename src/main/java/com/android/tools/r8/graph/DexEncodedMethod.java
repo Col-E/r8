@@ -11,6 +11,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.MIN_API_LEVEL;
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.cf.CfVersion;
@@ -258,7 +259,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         parameterAnnotationsList,
         code,
         false,
-        null);
+        null,
+        AndroidApiLevel.UNKNOWN,
+        AndroidApiLevel.UNKNOWN);
   }
 
   public DexEncodedMethod(
@@ -277,7 +280,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         parameterAnnotationsList,
         code,
         d8R8Synthesized,
-        null);
+        null,
+        AndroidApiLevel.UNKNOWN,
+        AndroidApiLevel.UNKNOWN);
   }
 
   public DexEncodedMethod(
@@ -288,7 +293,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       ParameterAnnotationsList parameterAnnotationsList,
       Code code,
       boolean d8R8Synthesized,
-      CfVersion classFileVersion) {
+      CfVersion classFileVersion,
+      AndroidApiLevel apiLevelForDefinition,
+      AndroidApiLevel apiLevelForCode) {
     this(
         method,
         accessFlags,
@@ -298,6 +305,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         code,
         d8R8Synthesized,
         classFileVersion,
+        apiLevelForDefinition,
+        apiLevelForCode,
         false);
   }
 
@@ -310,6 +319,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       Code code,
       boolean d8R8Synthesized,
       CfVersion classFileVersion,
+      AndroidApiLevel apiLevelForDefinition,
+      AndroidApiLevel apiLevelForCode,
       boolean deprecated) {
     super(method, annotations, d8R8Synthesized);
     this.accessFlags = accessFlags;
@@ -318,6 +329,18 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     this.parameterAnnotationsList = parameterAnnotationsList;
     this.code = code;
     this.classFileVersion = classFileVersion;
+    if (apiLevelForDefinition == AndroidApiLevel.UNKNOWN
+        && apiLevelForCode == AndroidApiLevel.UNKNOWN) {
+      optimizationInfo = DefaultMethodOptimizationInfo.getInstance();
+    } else if (apiLevelForDefinition == MIN_API_LEVEL && apiLevelForCode == MIN_API_LEVEL) {
+      optimizationInfo = DefaultMethodOptimizationWithMinApiInfo.getInstance();
+    } else {
+      MutableMethodOptimizationInfo optimizationInfo =
+          DefaultMethodOptimizationInfo.getInstance().toMutableOptimizationInfo();
+      optimizationInfo.setApiReferenceLevelForDefinition(apiLevelForDefinition);
+      optimizationInfo.setApiReferenceLevelForCode(apiLevelForCode);
+      this.optimizationInfo = optimizationInfo;
+    }
     assert accessFlags != null;
     assert code == null || !shouldNotHaveCode();
     assert parameterAnnotationsList != null;
@@ -1714,7 +1737,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
               parameterAnnotations,
               code,
               d8R8Synthesized,
-              classFileVersion);
+              classFileVersion,
+              AndroidApiLevel.UNKNOWN,
+              AndroidApiLevel.UNKNOWN);
       result.setKotlinMemberInfo(kotlinInfo);
       result.compilationState = compilationState;
       result.optimizationInfo = optimizationInfo;

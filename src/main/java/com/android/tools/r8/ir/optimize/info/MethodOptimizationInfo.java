@@ -113,12 +113,15 @@ public abstract class MethodOptimizationInfo
     if (!options.apiModelingOptions().enableApiCallerIdentification) {
       return OptionalBool.TRUE;
     }
-    if (!caller.hasApiReferenceLevelForCode() || !inlinee.hasApiReferenceLevelForCode()) {
+    if (!caller.hasApiReferenceLevelForCode()
+        || !caller.hasApiReferenceLevelForDefinition()
+        || !inlinee.hasApiReferenceLevelForCode()) {
       return UNKNOWN;
     }
     return OptionalBool.of(
         caller
             .getApiReferenceLevelForCode(options.minApiLevel)
+            .max(caller.getApiReferenceLevelForDefinition(options.minApiLevel))
             .isGreaterThanOrEqualTo(inlinee.getApiReferenceLevelForCode(options.minApiLevel)));
   }
 

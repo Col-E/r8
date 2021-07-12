@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMember;
+import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -57,6 +58,27 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
     setApiLevelForMemberDefinition(
         method.getDefinition(), computeApiLevelForReferencedTypes(method.getReference()));
     setApiLevelForCode(method.getDefinition(), registry.getMaxApiReferenceLevel());
+  }
+
+  @Override
+  public void notifyMarkMethodAsTargeted(ProgramMethod method) {
+    setApiLevelForMemberDefinition(method.getDefinition(), minApiLevel);
+  }
+
+  @Override
+  public void notifyMarkFieldAsReachable(ProgramField field) {
+    setApiLevelForMemberDefinition(field.getDefinition(), minApiLevel);
+  }
+
+  @Override
+  public void notifyMarkVirtualDispatchTargetAsLive(LookupTarget target) {
+    target.accept(
+        dexClassAndMethod -> {
+          setApiLevelForMemberDefinition(dexClassAndMethod.getDefinition(), minApiLevel);
+        },
+        lookupLambdaTarget -> {
+          // The implementation method will be assigned an api level when visited.
+        });
   }
 
   private void setApiLevelForMemberDefinition(

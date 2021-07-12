@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiLevelIfEnabledForNewMember;
+
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -267,7 +269,7 @@ public class VirtualMethodMerger {
             originalMethodReference.proto,
             originalMethodReference.getHolderType(),
             classMethodsBuilder::isFresh);
-
+    DexEncodedMethod representativeMethod = representative.getDefinition();
     DexMethod newMethodReference = getNewMethodReference();
     AbstractSynthesizedCode synthesizedCode =
         new VirtualMethodEntryPointSynthesizedCode(
@@ -286,7 +288,11 @@ public class VirtualMethodMerger {
             ParameterAnnotationsList.empty(),
             synthesizedCode,
             true,
-            classFileVersion);
+            classFileVersion,
+            getApiLevelIfEnabledForNewMember(
+                appView, representativeMethod::getApiReferenceLevelForDefinition),
+            getApiLevelIfEnabledForNewMember(
+                appView, representativeMethod::getApiReferenceLevelForCode));
     if (!representative.getDefinition().isLibraryMethodOverride().isUnknown()) {
       newMethod.setLibraryMethodOverride(representative.getDefinition().isLibraryMethodOverride());
     }

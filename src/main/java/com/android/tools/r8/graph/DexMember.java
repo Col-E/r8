@@ -65,7 +65,10 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
 
   public AndroidApiLevel computeApiLevelForReferencedTypes(
       AppView<?> appView, BiFunction<DexReference, AndroidApiLevel, AndroidApiLevel> computeMax) {
-    AndroidApiLevel computedLevel = appView.options().minApiLevel;
+    AndroidApiLevel computedLevel =
+        appView.options().apiModelingOptions().enableApiCallerIdentification
+            ? appView.options().minApiLevel
+            : AndroidApiLevel.UNKNOWN;
     for (DexType type : getReferencedBaseTypes(appView.dexItemFactory())) {
       computedLevel = computeMax.apply(type, computedLevel);
     }

@@ -2752,6 +2752,8 @@ public class Enqueuer {
     }
 
     traceFieldDefinition(field);
+
+    analyses.forEach(analysis -> analysis.notifyMarkFieldAsReachable(field));
   }
 
   private void traceFieldDefinition(ProgramField field) {
@@ -2968,12 +2970,10 @@ public class Enqueuer {
 
   private void markVirtualDispatchTargetAsLive(
       LookupTarget target, Function<ProgramMethod, KeepReasonWitness> reason) {
-    if (target.isMethodTarget()) {
-      markVirtualDispatchTargetAsLive(target.asMethodTarget(), reason);
-    } else {
-      assert target.isLambdaTarget();
-      markVirtualDispatchTargetAsLive(target.asLambdaTarget(), reason);
-    }
+    target.accept(
+        method -> markVirtualDispatchTargetAsLive(method, reason),
+        lambda -> markVirtualDispatchTargetAsLive(lambda, reason));
+    analyses.forEach(analysis -> analysis.notifyMarkVirtualDispatchTargetAsLive(target));
   }
 
   private void markVirtualDispatchTargetAsLive(
@@ -4193,6 +4193,7 @@ public class Enqueuer {
         markMethodAsLiveWithCompatRule(method);
       }
     }
+    analyses.forEach(analysis -> analysis.notifyMarkMethodAsTargeted(method));
   }
 
   void traceMethodDefinitionExcludingCode(ProgramMethod method) {

@@ -106,6 +106,7 @@ import com.android.tools.r8.shaking.VerticalClassMergerGraphLens;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.CollectionUtils;
@@ -370,7 +371,6 @@ public class R8 {
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptItemsAreKept(appView);
-
         appView.rootSet().checkAllRulesAreUsed(options);
 
         if (options.proguardSeedsConsumer != null) {
@@ -432,6 +432,7 @@ public class R8 {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
 
       assert verifyNoJarApplicationReaders(appView.appInfo().classes());
+      assert appView.checkForTesting(() -> allReferencesAssignedApiLevel(appViewWithLiveness));
       // Build conservative main dex content after first round of tree shaking. This is used
       // by certain optimizations to avoid introducing additional class references into main dex
       // classes, as that can cause the final number of main dex methods to grow.
@@ -530,6 +531,7 @@ public class R8 {
 
       // None of the optimizations above should lead to the creation of type lattice elements.
       assert appView.dexItemFactory().verifyNoCachedTypeElements();
+      assert appView.checkForTesting(() -> allReferencesAssignedApiLevel(appViewWithLiveness));
 
       // Collect switch maps and ordinals maps.
       if (options.enableEnumSwitchMapRemoval) {
@@ -870,6 +872,27 @@ public class R8 {
         timing.report();
       }
     }
+  }
+
+  private static boolean allReferencesAssignedApiLevel(AppView<?> appView) {
+    if (!appView.options().apiModelingOptions().checkAllApiReferencesAreSet) {
+      return true;
+    }
+    // This will return false if we find anything in the library which is not modeled.
+    appView
+        .appInfo()
+        .classes()
+        .forEach(
+            clazz -> {
+              if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
+                assert clazz.getMembersApiReferenceLevel(appView) != AndroidApiLevel.UNKNOWN
+                    : "Every member should have been analyzed";
+              } else {
+                assert clazz.getMembersApiReferenceLevel(appView) == AndroidApiLevel.UNKNOWN
+                    : "Every member should have level UNKNOWN";
+              }
+            });
+    return true;
   }
 
   private void performInitialMainDexTracing(

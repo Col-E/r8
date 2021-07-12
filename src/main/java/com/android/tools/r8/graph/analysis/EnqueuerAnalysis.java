@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph.analysis;
 
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -29,6 +30,12 @@ public abstract class EnqueuerAnalysis {
 
   /** Called when a method's code has been processed by the registry. */
   public void processTracedCode(ProgramMethod method, DefaultEnqueuerUseRegistry registry) {}
+
+  public void notifyMarkMethodAsTargeted(ProgramMethod method) {}
+
+  public void notifyMarkFieldAsReachable(ProgramField field) {}
+
+  public void notifyMarkVirtualDispatchTargetAsLive(LookupTarget target) {}
 
   /**
    * Called when the Enqueuer reaches a fixpoint. This may happen multiple times, since each

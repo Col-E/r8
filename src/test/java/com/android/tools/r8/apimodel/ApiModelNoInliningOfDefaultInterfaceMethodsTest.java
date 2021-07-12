@@ -6,8 +6,9 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.utils.AndroidApiLevel.L_MR1;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbstract;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
+import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -15,6 +16,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeMatchers;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Method;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,26 +48,36 @@ public class ApiModelNoInliningOfDefaultInterfaceMethodsTest extends TestBase {
         .addKeepMainRule(Main.class)
         .apply(setMockApiLevelForMethod(apiMethod, L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .noMinification()
         .compile()
         .inspect(
             inspector -> {
-              ClassSubject aSubject = inspector.clazz(A.class);
-              assertThat(aSubject, isPresent());
-              aSubject.forAllMethods(
-                  method -> {
-                    // TODO(b/191013385): noApiCall is inlined into Main, but the synthesized
-                    //  A.callApiLevel that dispatches to $CC is not. This should change after
-                    //  desugaring is moved up to the enqueuer.
-                    if (method
-                            .getOriginalName()
-                            .equals(ApiCaller.class.getTypeName() + ".callApiLevel")
-                        && !method.getAccessFlags().isBridge()) {
-                      // TODO(b/191008231): Should not invoke api here.
-                      assertThat(method, CodeMatchers.invokesMethodWithName("apiLevel22"));
-                      return;
-                    }
-                    assertThat(method, not(CodeMatchers.invokesMethodWithName("apiLevel")));
-                  });
+              assertThat(inspector.clazz(Main.class), isPresent());
+              if (parameters.isDexRuntime()
+                  && parameters.getApiLevel().isGreaterThanOrEqualTo(L_MR1)) {
+                assertEquals(1, inspector.allClasses().size());
+              } else {
+                ClassSubject aSubject = inspector.clazz(A.class);
+                ClassSubject apiCaller = inspector.clazz(ApiCaller.class);
+                assertThat(apiCaller, isPresent());
+                MethodSubject callApiLevel = apiCaller.uniqueMethodWithName("callApiLevel");
+                if (parameters.isCfRuntime()) {
+                  assertThat(aSubject, isPresent());
+                  assertThat(callApiLevel, CodeMatchers.invokesMethodWithName("apiLevel22"));
+                } else {
+                  assert parameters.isDexRuntime();
+                  // TODO(b/191013385): A has a virtual method that calls callApiLevel on $CC, but
+                  //  that call should be inlined.
+                  assertThat(aSubject, isPresent());
+                  assertThat(callApiLevel, isAbstract());
+                  ClassSubject classSubject = apiCaller.toCompanionClass();
+                  assertThat(classSubject, isPresent());
+                  assertEquals(1, classSubject.allMethods().size());
+                  assertThat(
+                      classSubject.allMethods().get(0),
+                      CodeMatchers.invokesMethodWithName("apiLevel22"));
+                }
+              }
             })
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)

@@ -4,8 +4,10 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
+import java.util.function.Consumer;
 
 public class LookupLambdaTarget implements LookupTarget {
+
   private final LambdaDescriptor lambda;
   private final DexClassAndMethod method;
 
@@ -24,6 +26,12 @@ public class LookupLambdaTarget implements LookupTarget {
   @Override
   public LookupLambdaTarget asLambdaTarget() {
     return this;
+  }
+
+  @Override
+  public void accept(
+      Consumer<DexClassAndMethod> methodConsumer, Consumer<LookupLambdaTarget> lambdaConsumer) {
+    lambdaConsumer.accept(this);
   }
 
   public DexClassAndMethod getImplementationMethod() {

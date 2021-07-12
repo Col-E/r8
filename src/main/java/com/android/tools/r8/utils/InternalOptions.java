@@ -1342,6 +1342,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public BiConsumer<MethodReference, AndroidApiLevel> tracedMethodApiLevelCallback = null;
 
     public boolean enableApiCallerIdentification = false;
+    public boolean checkAllApiReferencesAreSet = true;
 
     public void visitMockedApiReferences(BiConsumer<ClassReference, AndroidApiClass> consumer) {
       if (methodApiMapping.isEmpty() && fieldApiMapping.isEmpty() && classApiMapping.isEmpty()) {

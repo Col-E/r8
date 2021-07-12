@@ -89,6 +89,14 @@ public abstract class ApiModelingTestHelper {
         });
   }
 
+  static void disableCheckAllApiReferencesAreNotUnknown(
+      TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
+    compilerBuilder.addOptionsModification(
+        options -> {
+          options.apiModelingOptions().checkAllApiReferencesAreSet = false;
+        });
+  }
+
   static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
       ThrowableConsumer<T> addTracedApiReferenceLevelCallBack(
           BiConsumer<MethodReference, AndroidApiLevel> consumer) {
