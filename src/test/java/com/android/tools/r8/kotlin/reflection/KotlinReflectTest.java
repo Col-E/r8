@@ -11,6 +11,7 @@ import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.kotlin.metadata.KotlinMetadataTestBase;
@@ -96,7 +97,11 @@ public class KotlinReflectTest extends KotlinTestBase {
         .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
         .compile()
         .assertNoErrorMessages()
-        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
+        // -keepattributes Signature is added in kotlin-reflect from version 1.4.20.
+        .applyIf(
+            kotlinParameters.getCompiler().isNot(KOTLINC_1_3_72),
+            TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation,
+            TestCompileResult::assertNoInfoMessages)
         .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib)
         .writeToZip(foo.toPath())
         .run(parameters.getRuntime(), PKG + ".SimpleReflectKt")

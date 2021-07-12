@@ -21,6 +21,7 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
@@ -146,7 +147,11 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
         testBuilder
             .compile()
             .assertNoErrorMessages()
-            .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation)
+            // -keepattributes Signature is added in kotlin-reflect from version 1.4.20.
+            .applyIf(
+                kotlinParameters.getCompiler().isNot(KOTLINC_1_3_72),
+                TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation,
+                TestCompileResult::assertNoInfoMessages)
             .apply(KotlinMetadataTestBase::verifyExpectedWarningsFromKotlinReflectAndStdLib);
     if (desugarLibrary) {
       assertNotNull(keepRuleConsumer);

@@ -392,7 +392,7 @@ public class R8 {
           // Build enclosing information and type-parameter information before pruning.
           // TODO(b/187922482): Only consider referenced classes.
           GenericSignatureContextBuilder genericContextBuilder =
-              GenericSignatureContextBuilder.create(appView.appInfo().classes());
+              GenericSignatureContextBuilder.create(appView);
 
           // Compute if all signatures are valid before modifying them.
           GenericSignatureCorrectnessHelper.createForInitialCheck(appView, genericContextBuilder)
@@ -617,7 +617,7 @@ public class R8 {
                     DefaultTreePrunerConfiguration.getInstance());
 
             GenericSignatureContextBuilder genericContextBuilder =
-                GenericSignatureContextBuilder.create(appView.appInfo().classes());
+                GenericSignatureContextBuilder.create(appView);
 
             TreePruner pruner = new TreePruner(appViewWithLiveness, treePrunerConfiguration);
             DirectMappedDexApplication application = pruner.run(executorService);
@@ -665,8 +665,7 @@ public class R8 {
             assert appView.checkForTesting(
                     () ->
                         GenericSignatureCorrectnessHelper.createForVerification(
-                                appView,
-                                GenericSignatureContextBuilder.create(appView.appInfo().classes()))
+                                appView, GenericSignatureContextBuilder.create(appView))
                             .run(appView.appInfo().classes())
                             .isValid())
                 : "Could not validate generic signatures";
@@ -750,7 +749,7 @@ public class R8 {
       appView.dexItemFactory().clearTypeElementsCache();
 
       GenericSignatureContextBuilder genericContextBuilderBeforeFinalMerging =
-          GenericSignatureContextBuilder.create(appView.appInfo().classes());
+          GenericSignatureContextBuilder.create(appView);
 
       // Run horizontal class merging. This runs even if shrinking is disabled to ensure synthetics
       // are always merged.
@@ -841,8 +840,7 @@ public class R8 {
               () ->
                   !options.isShrinking()
                       || GenericSignatureCorrectnessHelper.createForVerification(
-                              appView,
-                              GenericSignatureContextBuilder.create(appView.appInfo().classes()))
+                              appView, GenericSignatureContextBuilder.create(appView))
                           .run(appView.appInfo().classes())
                           .isValid())
           : "Could not validate generic signatures";

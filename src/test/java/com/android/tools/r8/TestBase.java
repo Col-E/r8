@@ -56,6 +56,7 @@ import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
 import com.android.tools.r8.shaking.ProguardClassNameList;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.ProguardKeepRule.Builder;
 import com.android.tools.r8.shaking.ProguardKeepRuleType;
@@ -735,17 +736,17 @@ public class TestBase {
         MainDexInfo.none());
   }
 
-  protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierachy(
+  protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierarchy(
       AndroidApp app) throws Exception {
-    return computeAppViewWithClassHierachy(app, null);
+    return computeAppViewWithClassHierarchy(app, null);
   }
 
-  private static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierachy(
+  protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierarchy(
       AndroidApp app, Function<DexItemFactory, ProguardConfiguration> keepConfig) throws Exception {
-    return computeAppViewWithClassHierachy(app, keepConfig, null);
+    return computeAppViewWithClassHierarchy(app, keepConfig, null);
   }
 
-  private static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierachy(
+  private static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierarchy(
       AndroidApp app,
       Function<DexItemFactory, ProguardConfiguration> keepConfig,
       Consumer<InternalOptions> optionsConsumer)
@@ -753,9 +754,13 @@ public class TestBase {
     DexItemFactory dexItemFactory = new DexItemFactory();
     if (keepConfig == null) {
       keepConfig =
-          factory ->
-              buildConfigForRules(
-                  factory, ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})));
+          factory -> {
+            ProguardConfiguration.Builder builder =
+                ProguardConfiguration.builder(factory, new Reporter());
+            builder.addRule(ProguardKeepRule.defaultKeepAllRule(unused -> {}));
+            builder.addKeepAttributePatterns(ImmutableList.of(ProguardKeepAttributes.SIGNATURE));
+            return builder.build();
+          };
     }
     InternalOptions options = new InternalOptions(keepConfig.apply(dexItemFactory), new Reporter());
     if (optionsConsumer != null) {
@@ -791,7 +796,7 @@ public class TestBase {
       Consumer<InternalOptions> optionsConsumer)
       throws Exception {
     AppView<AppInfoWithClassHierarchy> appView =
-        computeAppViewWithClassHierachy(app, keepConfig, optionsConsumer);
+        computeAppViewWithClassHierarchy(app, keepConfig, optionsConsumer);
     // Run the tree shaker to compute an instance of AppInfoWithLiveness.
     ExecutorService executor = Executors.newSingleThreadExecutor();
     SubtypingInfo subtypingInfo = new SubtypingInfo(appView);

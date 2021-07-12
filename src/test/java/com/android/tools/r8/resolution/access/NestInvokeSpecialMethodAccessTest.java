@@ -142,7 +142,7 @@ public class NestInvokeSpecialMethodAccessTest extends TestBase {
   }
 
   private AppView<AppInfoWithClassHierarchy> getAppView() throws Exception {
-    return computeAppViewWithClassHierachy(
+    return computeAppViewWithClassHierarchy(
         buildClasses(getClasses()).addClassProgramData(getTransformedClasses()).build());
   }
 

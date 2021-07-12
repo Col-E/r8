@@ -382,9 +382,11 @@ public class JarClassFileReader<T extends DexClass> {
       assert superName != null || name.equals(Constants.JAVA_LANG_OBJECT_NAME);
       superType = superName == null ? null : application.getTypeFromName(superName);
       this.interfaces = application.getTypeListFromNames(interfaces);
-      classSignature =
-          GenericSignature.parseClassSignature(
-              name, signature, origin, application.getFactory(), application.options.reporter);
+      if (application.options.parseSignatureAttribute()) {
+        classSignature =
+            GenericSignature.parseClassSignature(
+                name, signature, origin, application.getFactory(), application.options.reporter);
+      }
     }
 
     @Override
@@ -621,7 +623,7 @@ public class JarClassFileReader<T extends DexClass> {
     private final String name;
     private final String desc;
     private final Object value;
-    private FieldTypeSignature fieldSignature;
+    private final FieldTypeSignature fieldSignature;
     private List<DexAnnotation> annotations = null;
 
     public CreateFieldVisitor(
@@ -638,12 +640,14 @@ public class JarClassFileReader<T extends DexClass> {
       this.desc = desc;
       this.value = value;
       this.fieldSignature =
-          GenericSignature.parseFieldTypeSignature(
-              name,
-              signature,
-              parent.origin,
-              parent.application.getFactory(),
-              parent.application.options.reporter);
+          parent.application.options.parseSignatureAttribute()
+              ? GenericSignature.parseFieldTypeSignature(
+                  name,
+                  signature,
+                  parent.origin,
+                  parent.application.getFactory(),
+                  parent.application.options.reporter)
+              : FieldTypeSignature.noSignature();
     }
 
     @Override
@@ -772,12 +776,14 @@ public class JarClassFileReader<T extends DexClass> {
             values, parent.application.getFactory()));
       }
       genericSignature =
-          GenericSignature.parseMethodSignature(
-              name,
-              signature,
-              parent.origin,
-              parent.application.getFactory(),
-              parent.application.options.reporter);
+          parent.application.options.parseSignatureAttribute()
+              ? GenericSignature.parseMethodSignature(
+                  name,
+                  signature,
+                  parent.origin,
+                  parent.application.getFactory(),
+                  parent.application.options.reporter)
+              : MethodTypeSignature.noSignature();
     }
 
     @Override

@@ -42,7 +42,9 @@ public class GenericSignatureRewriter {
       throws ExecutionException {
     // Rewrite signature annotations for applications that are minified or if we have liveness
     // information, since we could have pruned types.
-    if (namingLens.isIdentityLens() && !appView.appInfo().hasLiveness()) {
+    if (namingLens.isIdentityLens()
+        && !appView.appInfo().hasLiveness()
+        && !appView.options().parseSignatureAttribute()) {
       return;
     }
     // Classes may not be the same as appInfo().classes() if applymapping is used on classpath

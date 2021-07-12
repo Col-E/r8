@@ -166,7 +166,7 @@ public class NestInvokeSpecialInterfaceMethodAccessTest extends TestBase {
   }
 
   private AppView<AppInfoWithClassHierarchy> getAppView() throws Exception {
-    return computeAppViewWithClassHierachy(
+    return computeAppViewWithClassHierarchy(
         buildClasses(getClasses())
             .addClassProgramData(getTransformedClasses())
             .addLibraryFile(TestBase.runtimeJar(parameters.getBackend()))

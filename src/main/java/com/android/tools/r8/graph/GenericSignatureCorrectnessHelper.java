@@ -101,7 +101,8 @@ public class GenericSignatureCorrectnessHelper {
   }
 
   public SignatureEvaluationResult run(List<DexProgramClass> programClasses) {
-    if (appView.options().disableGenericSignatureValidation) {
+    if (appView.options().disableGenericSignatureValidation
+        || !appView.options().parseSignatureAttribute()) {
       return VALID;
     }
     SignatureEvaluationResult evaluationResult = VALID;
@@ -112,7 +113,8 @@ public class GenericSignatureCorrectnessHelper {
   }
 
   public SignatureEvaluationResult evaluateSignaturesForClass(DexProgramClass clazz) {
-    if (appView.options().disableGenericSignatureValidation) {
+    if (appView.options().disableGenericSignatureValidation
+        || !appView.options().parseSignatureAttribute()) {
       return VALID;
     }
 

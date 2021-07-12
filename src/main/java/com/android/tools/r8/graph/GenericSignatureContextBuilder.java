@@ -131,7 +131,15 @@ public class GenericSignatureContextBuilder {
     this.enclosingInfo = enclosingInfo;
   }
 
-  public static GenericSignatureContextBuilder create(Collection<DexProgramClass> programClasses) {
+  public static GenericSignatureContextBuilder create(AppView<?> appView) {
+    return create(appView, appView.appInfo().classes());
+  }
+
+  public static GenericSignatureContextBuilder create(
+      AppView<?> appView, Collection<DexProgramClass> programClasses) {
+    if (!appView.options().parseSignatureAttribute()) {
+      return null;
+    }
     Map<DexReference, TypeParameterSubstitutions> formalsInfo = new IdentityHashMap<>();
     Map<DexReference, DexReference> enclosingInfo = new IdentityHashMap<>();
     programClasses.forEach(
@@ -187,7 +195,7 @@ public class GenericSignatureContextBuilder {
         workList.addIfNotSeen(outer.asProgramClass());
       }
     }
-    return create(workList.getSeenSet());
+    return create(appView, workList.getSeenSet());
   }
 
   public TypeParameterContext computeTypeParameterContext(
