@@ -53,8 +53,12 @@ public class ApiModelNoClassInliningFieldTest extends TestBase {
         .compile()
         .inspect(
             inspector -> {
-              // TODO(b/138781768): Should not be class inlined.
-              assertThat(inspector.clazz(ApiCaller.class), not(isPresent()));
+              if (parameters.isDexRuntime()
+                  && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L_MR1)) {
+                assertThat(inspector.clazz(ApiCaller.class), not(isPresent()));
+              } else {
+                assertThat(inspector.clazz(ApiCaller.class), isPresent());
+              }
             })
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)

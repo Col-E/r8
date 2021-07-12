@@ -5,13 +5,15 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.apimodel.ApiModelNoClassInliningFieldTest.ApiCallerCaller;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.lang.reflect.Method;
 import org.junit.Test;
@@ -36,8 +38,6 @@ public class ApiModelNoClassInliningMethodTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     Method apiMethod = Api.class.getDeclaredMethod("apiLevel22");
-    Method apiCaller = ApiCaller.class.getDeclaredMethod("callApi");
-    Method apiCallerCaller = ApiCallerCaller.class.getDeclaredMethod("callCallApi");
     testForR8(parameters.getBackend())
         .addProgramClasses(ApiCaller.class, ApiCallerCaller.class, Main.class)
         .addLibraryClasses(Api.class)
@@ -50,8 +50,14 @@ public class ApiModelNoClassInliningMethodTest extends TestBase {
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()
         .inspect(
-            verifyThat(parameters, apiCaller)
-                .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1))
+            inspector -> {
+              if (parameters.isDexRuntime()
+                  && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L_MR1)) {
+                assertThat(inspector.clazz(ApiCaller.class), not(isPresent()));
+              } else {
+                assertThat(inspector.clazz(ApiCaller.class), isPresent());
+              }
+            })
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Api::apiLevel22");
@@ -72,19 +78,10 @@ public class ApiModelNoClassInliningMethodTest extends TestBase {
     }
   }
 
-  @NoHorizontalClassMerging
-  public static class ApiCallerCaller {
-
-    @NeverInline
-    public static void callCallApi() {
-      new ApiCaller().callApi();
-    }
-  }
-
   public static class Main {
 
     public static void main(String[] args) {
-      ApiCallerCaller.callCallApi();
+      new ApiCaller().callApi();
     }
   }
 }
