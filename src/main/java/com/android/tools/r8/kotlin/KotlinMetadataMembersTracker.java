@@ -43,7 +43,7 @@ public class KotlinMetadataMembersTracker {
         SetView<DexMember<?, ?>> diffComparedToOriginal =
             Sets.difference(tracker.references, references);
         // Known kotlin types may not exist directly in the way they are annotated in the metadata.
-        // As an example kotlin.Function2 exists in the metadata bu the concrete type is
+        // As an example kotlin.Function2 exists in the metadata but the concrete type is
         // kotlin.jvm.functions.Function2. As a result we may not rewrite metadata but the
         // underlying types are changed.
         diffComparedToRewritten.forEach(

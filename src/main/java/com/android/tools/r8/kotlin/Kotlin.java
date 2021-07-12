@@ -43,7 +43,7 @@ public final class Kotlin {
     this.intrinsics = new Intrinsics();
     this.metadata = new Metadata();
     this.assertions = new _Assertions();
-    kotlinJvmTypePrefix = factory.createString("Lkotlin/jmv/");
+    kotlinJvmTypePrefix = factory.createString("Lkotlin/jvm/");
   }
 
   public final class Functional {
