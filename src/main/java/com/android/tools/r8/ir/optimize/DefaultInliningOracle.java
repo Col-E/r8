@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import static com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo.isApiSafeForInlining;
 import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.addMonitorEnterValue;
 import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.collectAllMonitorEnterValues;
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.isApiSafeForInlining;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
@@ -130,11 +130,9 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     // Do not inline if the inlinee is greater than the api caller level.
-    MethodOptimizationInfo callerOptimizationInfo = method.getDefinition().getOptimizationInfo();
     // TODO(b/188498051): We should not force inline lower api method calls.
     if (reason != Reason.FORCE
-        && isApiSafeForInlining(callerOptimizationInfo, targetOptimizationInfo, appView.options())
-            .isPossiblyFalse()) {
+        && isApiSafeForInlining(method, singleTarget, appView.options()).isPossiblyFalse()) {
       whyAreYouNotInliningReporter.reportInlineeHigherApiCall();
       return false;
     }

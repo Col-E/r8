@@ -47,10 +47,7 @@ public class ApiModelInlineInSameClassDifferentApiLevelTest extends TestBase {
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .enableInliningAnnotations()
         .compile()
-        .inspect(
-            // TODO(b/193212145): We should inline methods on the same class.
-            verifyThat(parameters, callApi)
-                .inlinedIntoFromApiLevel(callCallApi, AndroidApiLevel.L_MR1))
+        .inspect(verifyThat(parameters, callApi).inlinedInto(callCallApi))
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Api::apiLevel22");

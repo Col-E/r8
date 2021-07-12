@@ -108,23 +108,6 @@ public abstract class MethodOptimizationInfo
 
   public abstract AndroidApiLevel getApiReferenceLevelForCode(AndroidApiLevel minApi);
 
-  public static OptionalBool isApiSafeForInlining(
-      MethodOptimizationInfo caller, MethodOptimizationInfo inlinee, InternalOptions options) {
-    if (!options.apiModelingOptions().enableApiCallerIdentification) {
-      return OptionalBool.TRUE;
-    }
-    if (!caller.hasApiReferenceLevelForCode()
-        || !caller.hasApiReferenceLevelForDefinition()
-        || !inlinee.hasApiReferenceLevelForCode()) {
-      return UNKNOWN;
-    }
-    return OptionalBool.of(
-        caller
-            .getApiReferenceLevelForCode(options.minApiLevel)
-            .max(caller.getApiReferenceLevelForDefinition(options.minApiLevel))
-            .isGreaterThanOrEqualTo(inlinee.getApiReferenceLevelForCode(options.minApiLevel)));
-  }
-
   @Override
   public boolean isMethodOptimizationInfo() {
     return true;

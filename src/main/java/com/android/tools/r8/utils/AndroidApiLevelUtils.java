@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ProgramMethod;
 import java.util.function.Function;
 
 public class AndroidApiLevelUtils {
@@ -27,5 +28,21 @@ public class AndroidApiLevelUtils {
       return AndroidApiLevel.UNKNOWN;
     }
     return getter.apply(appView.options().minApiLevel);
+  }
+
+  public static OptionalBool isApiSafeForInlining(
+      ProgramMethod caller, ProgramMethod inlinee, InternalOptions options) {
+    if (!options.apiModelingOptions().enableApiCallerIdentification) {
+      return OptionalBool.TRUE;
+    }
+    if (caller.getHolderType() == inlinee.getHolderType()) {
+      return OptionalBool.TRUE;
+    }
+    return OptionalBool.of(
+        caller
+            .getDefinition()
+            .getApiReferenceLevel(options.minApiLevel)
+            .isGreaterThanOrEqualTo(
+                inlinee.getDefinition().getApiReferenceLevelForCode(options.minApiLevel)));
   }
 }
