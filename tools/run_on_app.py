@@ -533,6 +533,9 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
   if options.print_times:
     extra_args.append('-Dcom.android.tools.r8.printtimes=1')
 
+  if not options.no_debug:
+    extra_args.append('-Dcom.android.tools.r8.enableTestAssertions=1')
+
   outdir = options.out
   (version_id, data) = get_version_and_data(options)
 
