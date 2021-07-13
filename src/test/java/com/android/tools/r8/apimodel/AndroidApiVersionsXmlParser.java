@@ -148,8 +148,19 @@ public class AndroidApiVersionsXmlParser {
       return apiLevel;
     }
 
-    public int getMemberCount() {
-      return fieldReferences.size() + methodReferences.size();
+    /**
+     * getMemberCount() returns the total number of members present on the max api level, that is it
+     * is the disjoint union of all members for all api levels.
+     */
+    public int getTotalMemberCount() {
+      int count = 0;
+      for (List<FieldReference> value : fieldReferences.values()) {
+        count += value.size();
+      }
+      for (List<MethodReference> value : methodReferences.values()) {
+        count += value.size();
+      }
+      return count;
     }
 
     private void register(FieldReference reference, AndroidApiLevel apiLevel) {

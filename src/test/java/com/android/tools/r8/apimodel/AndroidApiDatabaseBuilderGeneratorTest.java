@@ -237,7 +237,7 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
         apiClass -> {
           expected.add(apiClass.getClassReference().getDescriptor());
           expected.add(apiClass.getApiLevel().getName());
-          expected.add(apiClass.getMemberCount() + "");
+          expected.add(apiClass.getTotalMemberCount() + "");
           BooleanBox added = new BooleanBox(false);
           apiClass.visitFieldReferences(
               (apiLevel, fieldReferences) -> {

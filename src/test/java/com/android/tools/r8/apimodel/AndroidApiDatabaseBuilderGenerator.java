@@ -179,7 +179,7 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
   private static MethodTransformer getGetMemberCountTransformer(ParsedApiClass apiClass) {
     return replaceCode(
         "placeHolderForGetMemberCount",
-        transformer -> transformer.visitLdcInsn(apiClass.getMemberCount()));
+        transformer -> transformer.visitLdcInsn(apiClass.getTotalMemberCount()));
   }
 
   // The transformer below changes AndroidApiDatabaseClassTemplate.visitFields from:
