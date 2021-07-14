@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
@@ -102,7 +103,8 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
               .removeMethods(MethodPredicate.onName("placeHolderForGetMemberCount"))
               .removeMethods(MethodPredicate.onName("placeHolderForVisitFields"))
               .removeMethods(MethodPredicate.onName("placeHolderForVisitMethods"))
-              .transform());
+              .computeMaxs()
+              .transform(ClassWriter.COMPUTE_MAXS));
     }
 
     for (String pkg : packages) {
@@ -112,7 +114,8 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
               .setClassDescriptor(getPackageBuilderDescriptor(pkg))
               .addMethodTransformer(getBuildClassTransformer(packageToClassesMap.get(pkg)))
               .removeMethods(MethodPredicate.onName("placeHolder"))
-              .transform());
+              .computeMaxs()
+              .transform(ClassWriter.COMPUTE_MAXS));
     }
 
     consumer.accept(
@@ -123,7 +126,8 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
             .addMethodTransformer(getBuildPackageTransformer(packages))
             .removeMethods(MethodPredicate.onName("placeHolderForVisitApiClasses"))
             .removeMethods(MethodPredicate.onName("placeHolderForBuildClass"))
-            .transform());
+            .computeMaxs()
+            .transform(ClassWriter.COMPUTE_MAXS));
   }
 
   private static String getPackageBuilderDescriptor(String pkg) {
