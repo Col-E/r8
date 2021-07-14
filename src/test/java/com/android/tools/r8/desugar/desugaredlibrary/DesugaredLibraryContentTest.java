@@ -9,6 +9,7 @@ import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
@@ -17,8 +18,11 @@ import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import org.junit.Assume;
@@ -104,6 +108,21 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
     }
     assertThat(inspector.clazz("j$.util.Optional"), isPresent());
     assertThat(inspector.clazz("j$.util.function.Function"), isPresent());
+    if (parameters.getApiLevel().isLessThan(AndroidApiLevel.K)) {
+      inspector.forAllClasses(clazz -> clazz.forAllMethods(this::assertNoSupressedInvocations));
+    }
+  }
+
+  private void assertNoSupressedInvocations(FoundMethodSubject method) {
+    if (method.isAbstract()) {
+      return;
+    }
+    for (InstructionSubject instruction : method.instructions()) {
+      if (instruction.isInvoke() && instruction.getMethod() != null) {
+        assertNotEquals(
+            instruction.getMethod(), new DexItemFactory().throwableMethods.addSuppressed);
+      }
+    }
   }
 
 }

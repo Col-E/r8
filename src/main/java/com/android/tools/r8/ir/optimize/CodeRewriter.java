@@ -21,7 +21,6 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexItemFactory.ThrowableMethods;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
@@ -3649,75 +3648,6 @@ public class CodeRewriter {
       int newRegister = mapping.getOrDefault(oldRegister, oldRegister);
       locals.put(newRegister, entry.getValue());
     }
-  }
-
-  // Removes calls to Throwable.addSuppressed(Throwable) and rewrites
-  // Throwable.getSuppressed() into new Throwable[0].
-  //
-  // Note that addSuppressed() and getSuppressed() methods are final in
-  // Throwable, so these changes don't have to worry about overrides.
-  public void rewriteThrowableAddAndGetSuppressed(IRCode code) {
-    ThrowableMethods throwableMethods = dexItemFactory.throwableMethods;
-
-    for (BasicBlock block : code.blocks) {
-      InstructionListIterator iterator = block.listIterator(code);
-      while (iterator.hasNext()) {
-        Instruction current = iterator.next();
-        if (current.isInvokeMethod()) {
-          DexMethod invokedMethod = current.asInvokeMethod().getInvokedMethod();
-          if (matchesMethodOfThrowable(invokedMethod, throwableMethods.addSuppressed)) {
-            // Remove Throwable::addSuppressed(Throwable) call.
-            iterator.removeOrReplaceByDebugLocalRead();
-          } else if (matchesMethodOfThrowable(invokedMethod, throwableMethods.getSuppressed)) {
-            Value destValue = current.outValue();
-            if (destValue == null) {
-              // If the result of the call was not used we don't create
-              // an empty array and just remove the call.
-              iterator.removeOrReplaceByDebugLocalRead();
-              continue;
-            }
-
-            // Replace call to Throwable::getSuppressed() with new Throwable[0].
-
-            // First insert the constant value *before* the current instruction.
-            ConstNumber zero = code.createIntConstant(0);
-            zero.setPosition(current.getPosition());
-            assert iterator.hasPrevious();
-            iterator.previous();
-            iterator.add(zero);
-
-            // Then replace the invoke instruction with new-array instruction.
-            Instruction next = iterator.next();
-            assert current == next;
-            NewArrayEmpty newArray = new NewArrayEmpty(destValue, zero.outValue(),
-                dexItemFactory.createType(dexItemFactory.throwableArrayDescriptor));
-            iterator.replaceCurrentInstruction(newArray);
-          }
-        }
-      }
-    }
-    assert code.isConsistentSSA();
-  }
-
-  private boolean matchesMethodOfThrowable(DexMethod invoked, DexMethod expected) {
-    return invoked.name == expected.name
-        && invoked.proto == expected.proto
-        && isSubtypeOfThrowable(invoked.holder);
-  }
-
-  private boolean isSubtypeOfThrowable(DexType type) {
-    while (type != null && type != dexItemFactory.objectType) {
-      if (type == dexItemFactory.throwableType) {
-        return true;
-      }
-      DexClass dexClass = appView.definitionFor(type);
-      if (dexClass == null) {
-        throw new CompilationError("Class or interface " + type.toSourceString() +
-            " required for desugaring of try-with-resources is not found.");
-      }
-      type = dexClass.superType;
-    }
-    return false;
   }
 
   private Value addConstString(IRCode code, InstructionListIterator iterator, String s) {

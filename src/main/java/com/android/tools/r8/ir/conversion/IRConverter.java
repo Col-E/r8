@@ -105,7 +105,6 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -1444,12 +1443,6 @@ public class IRConverter {
     // dead code which is removed right before register allocation in performRegisterAllocation.
     deadCodeRemover.run(code, timing);
     assert code.isConsistentSSA();
-
-    if (options.desugarState == DesugarState.ON && options.enableTryWithResourcesDesugaring()) {
-      timing.begin("Rewrite Throwable suppresed methods");
-      codeRewriter.rewriteThrowableAddAndGetSuppressed(code);
-      timing.end();
-    }
 
     previous = printMethod(code, "IR after lambda desugaring (SSA)", previous);
 
