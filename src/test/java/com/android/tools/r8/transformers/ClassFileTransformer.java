@@ -56,9 +56,10 @@ public class ClassFileTransformer {
   public static byte[] transform(
       byte[] bytes,
       List<ClassTransformer> classTransformers,
-      List<MethodTransformer> methodTransformers) {
+      List<MethodTransformer> methodTransformers,
+      int flags) {
     ClassReader reader = new ClassReader(bytes);
-    ClassWriter writer = new ClassWriter(reader, 0);
+    ClassWriter writer = new ClassWriter(reader, flags);
     ClassVisitor subvisitor = new InnerMostClassTransformer(writer, methodTransformers);
     for (int i = classTransformers.size() - 1; i >= 0; i--) {
       classTransformers.get(i).setSubVisitor(subvisitor);
@@ -144,7 +145,11 @@ public class ClassFileTransformer {
   }
 
   public byte[] transform() {
-    return ClassFileTransformer.transform(bytes, classTransformers, methodTransformers);
+    return transform(0);
+  }
+
+  public byte[] transform(int flags) {
+    return ClassFileTransformer.transform(bytes, classTransformers, methodTransformers, flags);
   }
 
   /** Base addition of a transformer on the class. */
@@ -989,6 +994,16 @@ public class ClassFileTransformer {
             super.visitMaxs(
                 MethodPredicate.testContext(predicate, getContext()) ? newMaxStack : maxStack,
                 maxLocals);
+          }
+        });
+  }
+
+  public ClassFileTransformer computeMaxs() {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public void visitMaxs(int maxStack, int maxLocals) {
+            super.visitMaxs(maxStack, maxLocals);
           }
         });
   }
