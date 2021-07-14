@@ -158,14 +158,16 @@ public class DesugaredLibraryTestBase extends TestBase {
                   builder.inspectDiagnosticMessages(
                       diagnostics ->
                           assertTrue(
-                              diagnostics.getInfos().stream()
-                                  .noneMatch(
-                                      string ->
-                                          string
-                                              .getDiagnosticMessage()
-                                              .startsWith(
-                                                  "Invalid parameter counts in MethodParameter"
-                                                      + " attributes.")))))
+                              // TODO(b/193597730): Fix JDK11 desugared library message,
+                              isJDK11DesugaredLibrary()
+                                  || diagnostics.getInfos().stream()
+                                      .noneMatch(
+                                          string ->
+                                              string
+                                                  .getDiagnosticMessage()
+                                                  .startsWith(
+                                                      "Invalid parameter counts in MethodParameter"
+                                                          + " attributes.")))))
           .writeToZip();
     } catch (CompilationFailedException | ExecutionException | IOException e) {
       throw new RuntimeException(e);

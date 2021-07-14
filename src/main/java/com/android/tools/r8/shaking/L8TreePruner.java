@@ -42,13 +42,20 @@ public class L8TreePruner {
       typeMap.put(aClass.type, aClass);
     }
     List<DexProgramClass> toKeep = new ArrayList<>();
+    boolean pruneNestMember = false;
     for (DexProgramClass aClass : app.classes()) {
       if (rewritePrefix.hasRewrittenType(aClass.type, null)
           || emulatedInterfaces.contains(aClass.type)
           || interfaceImplementsEmulatedInterface(aClass, typeMap)) {
         toKeep.add(aClass);
       } else {
+        pruneNestMember |= aClass.isInANest();
         pruned.add(aClass.type);
+      }
+    }
+    if (pruneNestMember) {
+      for (DexProgramClass keptClass : toKeep) {
+        TreePruner.rewriteNestAttributes(keptClass, type -> !pruned.contains(type), typeMap::get);
       }
     }
     typeMap.clear();

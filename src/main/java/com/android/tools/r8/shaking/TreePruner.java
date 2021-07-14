@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class TreePruner {
@@ -195,21 +196,22 @@ public class TreePruner {
     }
     clazz.removeInnerClasses(this::isAttributeReferencingMissingOrPrunedType);
     clazz.removeEnclosingMethodAttribute(this::isAttributeReferencingPrunedItem);
-    rewriteNestAttributes(clazz);
+    rewriteNestAttributes(clazz, this::isTypeLive, appView::definitionFor);
     unusedItemsPrinter.visited();
     assert verifyNoDeadFields(clazz);
   }
 
-  private void rewriteNestAttributes(DexProgramClass clazz) {
-    if (!clazz.isInANest() || !isTypeLive(clazz.type)) {
+  public static void rewriteNestAttributes(
+      DexProgramClass clazz, Predicate<DexType> isLive, Function<DexType, DexClass> definition) {
+    if (!clazz.isInANest() || !isLive.test(clazz.type)) {
       return;
     }
     if (clazz.isNestHost()) {
-      clearDeadNestMembers(clazz);
+      clearDeadNestMembers(clazz, isLive, definition);
     } else {
       assert clazz.isNestMember();
-      if (!isTypeLive(clazz.getNestHost())) {
-        claimNestOwnership(clazz);
+      if (!isLive.test(clazz.getNestHost())) {
+        claimNestOwnership(clazz, isLive, definition);
       }
     }
   }
@@ -222,26 +224,28 @@ public class TreePruner {
     return appView.appInfo().isNonProgramTypeOrLiveProgramType(type);
   }
 
-  private void clearDeadNestMembers(DexClass nestHost) {
+  private static void clearDeadNestMembers(
+      DexClass nestHost, Predicate<DexType> isLive, Function<DexType, DexClass> definition) {
     // null definition should raise a warning which is raised later on in Nest specific passes.
     nestHost
         .getNestMembersClassAttributes()
         .removeIf(
             nestMemberAttr ->
-                appView.definitionFor(nestMemberAttr.getNestMember()) != null
-                    && !isTypeLive(nestMemberAttr.getNestMember()));
+                definition.apply(nestMemberAttr.getNestMember()) != null
+                    && !isLive.test(nestMemberAttr.getNestMember()));
   }
 
-  private void claimNestOwnership(DexClass newHost) {
-    DexClass previousHost = appView.definitionFor(newHost.getNestHost());
+  private static void claimNestOwnership(
+      DexClass newHost, Predicate<DexType> isLive, Function<DexType, DexClass> definition) {
+    DexClass previousHost = definition.apply(newHost.getNestHost());
     if (previousHost == null) {
       // Nest host will be cleared from all nest members in Nest specific passes.
       return;
     }
     newHost.clearNestHost();
     for (NestMemberClassAttribute attr : previousHost.getNestMembersClassAttributes()) {
-      if (attr.getNestMember() != newHost.type && isTypeLive(attr.getNestMember())) {
-        DexClass nestMember = appView.definitionFor(attr.getNestMember());
+      if (attr.getNestMember() != newHost.type && isLive.test(attr.getNestMember())) {
+        DexClass nestMember = definition.apply(attr.getNestMember());
         if (nestMember != null) {
           nestMember.setNestHost(newHost.type);
         }
