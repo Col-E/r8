@@ -63,7 +63,6 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
     testBuilder
         .addProgramFiles(getKotlinAnnotationJar(kotlinc))
         .setMinApi(parameters.getApiLevel())
-        // TODO(b/193224369): Check why this is needed.
         .addOptionsModification(options -> options.testing.keepMetadataInR8IfNotRewritten = false)
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
