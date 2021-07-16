@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GenericSignatureContextBuilder;
 import com.android.tools.r8.graph.GenericSignatureCorrectnessHelper;
 import com.android.tools.r8.graph.GenericSignatureCorrectnessHelper.SignatureEvaluationResult;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
@@ -188,8 +189,8 @@ public class GenericSignatureCorrectnessHelperTests extends TestBase {
       Class<?> classToVerify,
       SignatureEvaluationResult expected)
       throws Exception {
-    AppView<AppInfoWithClassHierarchy> appView =
-        computeAppViewWithClassHierarchy(
+    AppView<AppInfoWithLiveness> appView =
+        computeAppViewWithLiveness(
             buildClasses(classes)
                 .addClassProgramData(transformations)
                 .addLibraryFile(ToolHelper.getJava8RuntimeJar())
