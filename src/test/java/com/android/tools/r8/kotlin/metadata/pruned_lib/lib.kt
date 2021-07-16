@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.kotlin.metadata.pruned_lib
 
-import com.android.tools.r8.NeverInline
+annotation class NeverInline
 
 // The Base class will be removed during compilation
 open class Base

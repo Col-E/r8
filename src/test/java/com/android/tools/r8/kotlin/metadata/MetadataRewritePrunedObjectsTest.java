@@ -32,11 +32,7 @@ public class MetadataRewritePrunedObjectsTest extends KotlinMetadataTestBase {
 
   private static final KotlinCompileMemoizer libJars =
       getCompileMemoizer(
-              getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_LIB), "lib"))
-          .configure(
-              kotlinCompilerTool -> {
-                kotlinCompilerTool.addClasspathFiles(ToolHelper.getClassPathForTests());
-              });
+          getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_LIB), "lib"));
   private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0}, {1}")
@@ -74,13 +70,14 @@ public class MetadataRewritePrunedObjectsTest extends KotlinMetadataTestBase {
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
-            .enableInliningAnnotations()
             .addClasspathFiles(
                 ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinAnnotationJar(kotlinc))
             .addKeepRules(
                 "-keep class " + PKG_LIB + ".Sub { <init>(); *** kept(); *** keptProperty; }")
+            .addKeepRules("-neverinline class * { @" + PKG_LIB + ".NeverInline *; }")
             .addKeepClassAndMembersRules(PKG_LIB + ".SubUser")
             .addKeepRuntimeVisibleAnnotations()
+            .enableProguardTestOptions()
             .noMinification()
             .compile()
             .inspect(this::checkPruned)
