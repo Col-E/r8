@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.structural.Ordered;
 import java.io.IOException;
@@ -38,6 +39,10 @@ public class KotlinCompilerTool {
 
     KotlinCompilerVersion(String folder) {
       this.folder = folder;
+    }
+
+    public static KotlinCompilerVersion latest() {
+      return ArrayUtils.last(values());
     }
   }
 
