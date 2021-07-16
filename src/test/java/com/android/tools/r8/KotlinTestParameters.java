@@ -3,13 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static org.junit.Assert.assertNotNull;
-
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class KotlinTestParameters {
 
@@ -55,13 +54,23 @@ public class KotlinTestParameters {
 
   public static class Builder {
 
-    private KotlinCompiler[] compilers;
-    private KotlinTargetVersion[] targetVersions;
+    private Predicate<KotlinCompilerVersion> compilerFilter = c -> false;
+    private Predicate<KotlinTargetVersion> targetVersionFilter = t -> false;
 
     private Builder() {}
 
+    private Builder withCompilerFilter(Predicate<KotlinCompilerVersion> predicate) {
+      compilerFilter = compilerFilter.or(predicate);
+      return this;
+    }
+
+    private Builder withTargetVersionFilter(Predicate<KotlinTargetVersion> predicate) {
+      targetVersionFilter = targetVersionFilter.or(predicate);
+      return this;
+    }
+
     public Builder withAllCompilers() {
-      compilers = ToolHelper.getKotlinCompilers();
+      withCompilerFilter(compiler -> true);
       return this;
     }
 
@@ -69,41 +78,41 @@ public class KotlinTestParameters {
       return withAllCompilers().withAllTargetVersions();
     }
 
-    public Builder withCompiler(KotlinCompiler compiler) {
-      compilers = new KotlinCompiler[] {compiler};
+    public Builder withCompiler(KotlinCompilerVersion compilerVersion) {
+      withCompilerFilter(c -> c.isEqualTo(compilerVersion));
       return this;
     }
 
     public Builder withAllTargetVersions() {
-      targetVersions = KotlinTargetVersion.values();
+      withTargetVersionFilter(t -> true);
       return this;
     }
 
     public Builder withTargetVersion(KotlinTargetVersion targetVersion) {
-      targetVersions = new KotlinTargetVersion[] {targetVersion};
+      withTargetVersionFilter(t -> t.equals(targetVersion));
       return this;
     }
 
     public KotlinTestParametersCollection build() {
-      validate();
       List<KotlinTestParameters> testParameters = new ArrayList<>();
       int index = 0;
-      for (KotlinCompiler kotlinc : compilers) {
-        for (KotlinTargetVersion targetVersion : targetVersions) {
+      for (KotlinCompilerVersion kotlinVersion : KotlinCompilerVersion.values()) {
+        for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
           // KotlinTargetVersion java 6 is deprecated from kotlinc 1.5 and forward, no need to run
           // tests on that target.
-          if (targetVersion != KotlinTargetVersion.JAVA_6
-              || kotlinc.isNot(KotlinCompilerVersion.KOTLINC_1_5_0)) {
-            testParameters.add(new KotlinTestParameters(kotlinc, targetVersion, index++));
+          if (targetVersion == KotlinTargetVersion.JAVA_6
+              && kotlinVersion.equals(KotlinCompilerVersion.KOTLINC_1_5_0)) {
+            continue;
+          }
+          if (compilerFilter.test(kotlinVersion) && targetVersionFilter.test(targetVersion)) {
+            testParameters.add(
+                new KotlinTestParameters(
+                    new KotlinCompiler(kotlinVersion), targetVersion, index++));
           }
         }
       }
+      assert !testParameters.isEmpty();
       return new KotlinTestParametersCollection(testParameters);
-    }
-
-    private void validate() {
-      assertNotNull(compilers);
-      assertNotNull(targetVersions);
     }
   }
 }

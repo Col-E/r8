@@ -11,12 +11,12 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfRuntime;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -41,8 +41,8 @@ public class Regress191296688 extends KotlinTestBase {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),
         getKotlinTestParameters()
+            .withCompiler(KotlinCompilerVersion.KOTLINC_1_5_0)
             .withTargetVersion(KotlinTargetVersion.JAVA_8)
-            .withCompiler(ToolHelper.getKotlinC_1_5_0())
             .build());
   }
 
