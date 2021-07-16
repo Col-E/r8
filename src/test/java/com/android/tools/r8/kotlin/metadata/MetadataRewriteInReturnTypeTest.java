@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -35,7 +36,10 @@ public class MetadataRewriteInReturnTypeTest extends KotlinMetadataTestBase {
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
-        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
+        getKotlinTestParameters()
+            .withCompilersStartingFromIncluding(MIN_SUPPORTED_VERSION)
+            .withAllTargetVersions()
+            .build());
   }
 
   public MetadataRewriteInReturnTypeTest(

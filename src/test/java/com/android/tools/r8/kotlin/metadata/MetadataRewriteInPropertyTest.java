@@ -4,6 +4,7 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionProperty;
@@ -42,7 +43,10 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
-        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
+        getKotlinTestParameters()
+            .withCompilersStartingFromIncluding(MIN_SUPPORTED_VERSION)
+            .withAllTargetVersions()
+            .build());
   }
 
   public MetadataRewriteInPropertyTest(

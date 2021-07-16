@@ -325,6 +325,22 @@ public class KotlinMetadataWriter {
                 appendKmType(nextIndent, sb, kmType);
               });
         });
+    if (kmClass.getInlineClassUnderlyingPropertyName() != null) {
+      appendKeyValue(
+          indent,
+          "inlineClassUnderlyingPropertyName",
+          sb,
+          kmClass.getInlineClassUnderlyingPropertyName());
+    }
+    if (kmClass.getInlineClassUnderlyingType() != null) {
+      appendKeyValue(
+          indent,
+          "inlineClassUnderlyingType",
+          sb,
+          nextIndent -> {
+            appendKmType(nextIndent, sb, kmClass.getInlineClassUnderlyingType());
+          });
+    }
     String companionObject = kmClass.getCompanionObject();
     appendKeyValue(
         indent, "enumEntries", sb, "[" + StringUtils.join(",", kmClass.getEnumEntries()) + "]");
@@ -769,7 +785,7 @@ public class KotlinMetadataWriter {
               "arguments",
               sb,
               nextIndent -> {
-                Map<String, KmAnnotationArgument<?>> arguments = kmAnnotation.getArguments();
+                Map<String, KmAnnotationArgument> arguments = kmAnnotation.getArguments();
                 appendKmList(
                     nextIndent,
                     "{ key: String, value: KmAnnotationArgument<?> }",
@@ -795,9 +811,9 @@ public class KotlinMetadataWriter {
   }
 
   private static void appendKmArgument(
-      String indent, StringBuilder sb, KmAnnotationArgument<?> annotationArgument) {
+      String indent, StringBuilder sb, KmAnnotationArgument annotationArgument) {
     if (annotationArgument instanceof KmAnnotationArgument.ArrayValue) {
-      List<KmAnnotationArgument<?>> value = ((ArrayValue) annotationArgument).getValue();
+      List<KmAnnotationArgument> value = ((ArrayValue) annotationArgument).getElements();
       appendKmList(
           indent,
           "ArrayValue",

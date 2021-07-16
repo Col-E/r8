@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isDexClass;
@@ -42,8 +43,8 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
 
   private static final String LIB_PKG = PKG + ".typeargument_lib.";
 
-  private static int FLAG_NONE = 0;
-  private static int FLAG_REIFIED = 1;
+  private static final int FLAG_NONE = 0;
+  private static final int FLAG_REIFIED = 1;
 
   private static final String EXPECTED =
       StringUtils.lines(
@@ -80,7 +81,10 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
-        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
+        getKotlinTestParameters()
+            .withCompilersStartingFromIncluding(MIN_SUPPORTED_VERSION)
+            .withAllTargetVersions()
+            .build());
   }
 
   public MetadataRewriteInTypeArgumentsTest(

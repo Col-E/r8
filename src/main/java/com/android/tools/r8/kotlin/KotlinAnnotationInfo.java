@@ -63,7 +63,7 @@ public class KotlinAnnotationInfo implements EnqueuerMetadataTraceable {
                 return;
               }
               String classifier = DescriptorUtils.descriptorToKotlinClassifier(renamedDescriptor);
-              Map<String, KmAnnotationArgument<?>> rewrittenArguments = new LinkedHashMap<>();
+              Map<String, KmAnnotationArgument> rewrittenArguments = new LinkedHashMap<>();
               arguments.forEach(
                   (key, arg) ->
                       rewritten.or(

@@ -52,6 +52,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   private final String packageName;
   private final KotlinLocalDelegatedPropertyInfo localDelegatedProperties;
   private final int[] metadataVersion;
+  private final String inlineClassUnderlyingPropertyName;
+  private final KotlinTypeInfo inlineClassUnderlyingType;
 
   // List of tracked assignments of kotlin metadata.
   private final KotlinMetadataMembersTracker originalMembersWithKotlinInfo;
@@ -73,6 +75,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       String packageName,
       KotlinLocalDelegatedPropertyInfo localDelegatedProperties,
       int[] metadataVersion,
+      String inlineClassUnderlyingPropertyName,
+      KotlinTypeInfo inlineClassUnderlyingType,
       KotlinMetadataMembersTracker originalMembersWithKotlinInfo) {
     this.flags = flags;
     this.name = name;
@@ -91,6 +95,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     this.packageName = packageName;
     this.localDelegatedProperties = localDelegatedProperties;
     this.metadataVersion = metadataVersion;
+    this.inlineClassUnderlyingPropertyName = inlineClassUnderlyingPropertyName;
+    this.inlineClassUnderlyingType = inlineClassUnderlyingType;
     this.originalMembersWithKotlinInfo = originalMembersWithKotlinInfo;
   }
 
@@ -172,6 +178,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         KotlinLocalDelegatedPropertyInfo.create(
             JvmExtensionsKt.getLocalDelegatedProperties(kmClass), factory, reporter),
         metadataVersion,
+        kmClass.getInlineClassUnderlyingPropertyName(),
+        KotlinTypeInfo.create(kmClass.getInlineClassUnderlyingType(), factory, reporter),
         originalMembersWithKotlinInfo);
   }
 
@@ -353,6 +361,12 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     // TODO(b/154347404): Understand enum entries.
     kmClass.getEnumEntries().addAll(enumEntries);
     rewritten |= versionRequirements.rewrite(kmClass::visitVersionRequirement);
+    if (inlineClassUnderlyingPropertyName != null && inlineClassUnderlyingType != null) {
+      kmClass.setInlineClassUnderlyingPropertyName(inlineClassUnderlyingPropertyName);
+      rewritten |=
+          inlineClassUnderlyingType.rewrite(
+              kmClass::visitInlineClassUnderlyingType, appView, namingLens);
+    }
     JvmClassExtensionVisitor extensionVisitor =
         (JvmClassExtensionVisitor) kmClass.visitExtensions(JvmClassExtensionVisitor.TYPE);
     extensionVisitor.visitModuleName(moduleName);

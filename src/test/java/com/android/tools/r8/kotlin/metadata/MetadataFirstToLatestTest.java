@@ -6,7 +6,10 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
@@ -72,6 +75,11 @@ public class MetadataFirstToLatestTest extends KotlinMetadataTestBase {
             .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
             .addKeepAllClassesRule()
             .addKeepAllAttributes()
+            .addOptionsModification(
+                options -> {
+                  // Ensure that we rewrite the metadata with kotlin-metadata-jvm library.
+                  options.testing.keepMetadataInR8IfNotRewritten = false;
+                })
             .compile()
             .writeToZip();
     Path stdLibJar =
@@ -85,8 +93,15 @@ public class MetadataFirstToLatestTest extends KotlinMetadataTestBase {
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
             .writeToZip();
-    // TODO(b/187781614): This is expected to fail when upgrading.
-    runTest(KotlinCompilerVersion.KOTLINC_1_3_72, libJar, stdLibJar);
+    AssertionError assertionError =
+        assertThrows(
+            AssertionError.class,
+            () -> {
+              runTest(KotlinCompilerVersion.KOTLINC_1_3_72, libJar, stdLibJar);
+            });
+    assertThat(
+        assertionError.getMessage(),
+        containsString("compiled with an incompatible version of Kotlin"));
   }
 
   @Test

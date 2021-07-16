@@ -4,17 +4,18 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
+import static com.android.tools.r8.ToolHelper.KotlinTargetVersion.JAVA_8;
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertNull;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -44,10 +45,9 @@ public class MetadataRewriteValueClassTest extends KotlinMetadataTestBase {
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
-        // TODO(b/193765243): This should be run for all later compilers.
         getKotlinTestParameters()
-            .withCompiler(KotlinCompilerVersion.KOTLINC_1_5_0)
-            .withTargetVersion(KotlinTargetVersion.JAVA_8)
+            .withCompilersStartingFromIncluding(KOTLINC_1_5_0)
+            .withTargetVersion(JAVA_8)
             .build());
   }
 
@@ -134,6 +134,10 @@ public class MetadataRewriteValueClassTest extends KotlinMetadataTestBase {
       String expected = KotlinMetadataWriter.kotlinMetadataToString("", originalMetadata);
       String actual = KotlinMetadataWriter.kotlinMetadataToString("", rewrittenMetadata);
       TestCase.assertEquals(expected, actual);
+      if (r8Clazz.getFinalName().equals(PKG_LIB + ".Name")) {
+        assertThat(actual, containsString("inlineClassUnderlyingPropertyName"));
+        assertThat(actual, containsString("inlineClassUnderlyingType"));
+      }
     }
   }
 }

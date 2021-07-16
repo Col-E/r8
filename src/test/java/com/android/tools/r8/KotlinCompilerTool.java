@@ -35,6 +35,8 @@ public class KotlinCompilerTool {
     KOTLINC_1_4_20("kotlin-compiler-1.4.20"),
     KOTLINC_1_5_0("kotlin-compiler-1.5.0");
 
+    public static final KotlinCompilerVersion MIN_SUPPORTED_VERSION = KOTLINC_1_4_20;
+
     private final String folder;
 
     KotlinCompilerVersion(String folder) {

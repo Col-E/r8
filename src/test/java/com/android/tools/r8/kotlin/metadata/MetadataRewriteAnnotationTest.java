@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
 import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -62,7 +63,10 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
-        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
+        getKotlinTestParameters()
+            .withCompilersStartingFromIncluding(MIN_SUPPORTED_VERSION)
+            .withAllTargetVersions()
+            .build());
   }
 
   public MetadataRewriteAnnotationTest(
@@ -167,14 +171,14 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
     assertEquals(
         DescriptorUtils.getBinaryNameFromJavaType(PKG_LIB) + "/AnnoWithClassArr",
         annotation.getClassName());
-    Map<String, KmAnnotationArgument<?>> arguments = annotation.getArguments();
+    Map<String, KmAnnotationArgument> arguments = annotation.getArguments();
     assertEquals(1, arguments.size());
     ArrayValue classes = (ArrayValue) arguments.get("classes");
     assertEquals(
-        "KClassValue(value=" + foo.getFinalBinaryName() + ")",
-        classes.getValue().get(0).toString());
+        "KClassValue(className=" + foo.getFinalBinaryName() + ", arrayDimensionCount=0)",
+        classes.getElements().get(0).toString());
     assertEquals(
-        "KClassValue(value=" + bar.getFinalBinaryName() + ")",
-        classes.getValue().get(1).toString());
+        "KClassValue(className=" + bar.getFinalBinaryName() + ", arrayDimensionCount=0)",
+        classes.getElements().get(1).toString());
   }
 }
