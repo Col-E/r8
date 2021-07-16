@@ -8,6 +8,8 @@ import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection.EmptyCfClassDesugaringCollection;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
+import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
+import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.utils.ThrowingConsumer;
 
@@ -60,6 +62,11 @@ public class EmptyCfInstructionDesugaringCollection extends CfInstructionDesugar
   public <T extends Throwable> void withD8NestBasedAccessDesugaring(
       ThrowingConsumer<D8NestBasedAccessDesugaring, T> consumer) {
     // Intentionally empty.
+  }
+
+  @Override
+  public InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaring(Flavor flavor) {
+    return null;
   }
 
   @Override

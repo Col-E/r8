@@ -11,7 +11,10 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
+import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Specialized Event consumer for desugaring finalization. During finalization, it is not possible
@@ -19,7 +22,8 @@ import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
  * explicit calls must be done here.
  */
 public abstract class CfPostProcessingDesugaringEventConsumer
-    implements DesugaredLibraryRetargeterPostProcessingEventConsumer {
+    implements DesugaredLibraryRetargeterPostProcessingEventConsumer,
+        InterfaceProcessingDesugaringEventConsumer {
   protected DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
 
   protected CfPostProcessingDesugaringEventConsumer(AppView<?> appView) {
@@ -36,13 +40,14 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     return new R8PostProcessingDesugaringEventConsumer(appView, additions);
   }
 
-  public void finalizeDesugaring() {
-    desugaredLibraryAPIConverter.generateTrackingWarnings();
-  }
+  public abstract void finalizeDesugaring() throws ExecutionException;
 
   public static class D8CfPostProcessingDesugaringEventConsumer
       extends CfPostProcessingDesugaringEventConsumer {
     private final D8MethodProcessor methodProcessor;
+    // Methods cannot be processed directly because we cannot add method to classes while
+    // concurrently processing other methods.
+    private final ProgramMethodSet methodsToReprocess = ProgramMethodSet.createConcurrent();
 
     private D8CfPostProcessingDesugaringEventConsumer(
         D8MethodProcessor methodProcessor, AppView<?> appView) {
@@ -52,7 +57,7 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     @Override
     public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
-      methodProcessor.scheduleDesugaredMethodsForProcessing(clazz.programMethods());
+      methodsToReprocess.addAll(clazz.programMethods());
     }
 
     @Override
@@ -67,9 +72,25 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     @Override
     public void acceptForwardingMethod(ProgramMethod method) {
-      methodProcessor.scheduleDesugaredMethodForProcessing(method);
-      // TODO(b/189912077): Uncomment when API conversion is performed cf to cf in D8.
-      // desugaredLibraryAPIConverter.generateCallbackIfRequired(method);
+      methodsToReprocess.add(method);
+    }
+
+    @Override
+    public void acceptCompanionClassClinit(ProgramMethod method) {
+      methodsToReprocess.add(method);
+    }
+
+    @Override
+    public void acceptEmulatedInterfaceMethod(ProgramMethod method) {
+      methodsToReprocess.add(method);
+    }
+
+    @Override
+    public void finalizeDesugaring() throws ExecutionException {
+      assert methodProcessor.verifyNoPendingMethodProcessing();
+      methodProcessor.newWave();
+      methodProcessor.scheduleDesugaredMethodsForProcessing(methodsToReprocess);
+      methodProcessor.awaitMethodProcessing();
     }
   }
 
@@ -81,6 +102,11 @@ public abstract class CfPostProcessingDesugaringEventConsumer
         AppView<?> appView, SyntheticAdditions additions) {
       super(appView);
       this.additions = additions;
+    }
+
+    @Override
+    public void finalizeDesugaring() throws ExecutionException {
+      desugaredLibraryAPIConverter.generateTrackingWarnings();
     }
 
     @Override
@@ -105,6 +131,16 @@ public abstract class CfPostProcessingDesugaringEventConsumer
       if (callback != null) {
         additions.addLiveMethod(callback);
       }
+    }
+
+    @Override
+    public void acceptCompanionClassClinit(ProgramMethod method) {
+      assert false : "TODO(b/183998768): Support Interface processing in R8";
+    }
+
+    @Override
+    public void acceptEmulatedInterfaceMethod(ProgramMethod method) {
+      assert false : "TODO(b/183998768): Support Interface processing in R8";
     }
   }
 }

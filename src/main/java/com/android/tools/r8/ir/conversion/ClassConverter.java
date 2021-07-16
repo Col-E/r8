@@ -13,8 +13,6 @@ import com.android.tools.r8.ir.desugar.CfClassDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfClassDesugaringEventConsumer.D8CfClassDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer.D8CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -112,13 +110,6 @@ public abstract class ClassConverter {
 
       classes = deferred;
     }
-
-    D8CfPostProcessingDesugaringEventConsumer eventConsumer =
-        CfPostProcessingDesugaringEventConsumer.createForD8(methodProcessor, appView);
-    methodProcessor.newWave();
-    converter.postProcessDesugaring(eventConsumer);
-    methodProcessor.awaitMethodProcessing();
-    eventConsumer.finalizeDesugaring();
   }
 
   abstract void convertClass(
