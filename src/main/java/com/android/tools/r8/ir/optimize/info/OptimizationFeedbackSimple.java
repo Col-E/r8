@@ -163,6 +163,12 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
     method.getMutableOptimizationInfo().setBridgeInfo(bridgeInfo);
   }
 
+  public void unsetBridgeInfo(DexEncodedMethod method) {
+    if (method.getOptimizationInfo().isMutableOptimizationInfo()) {
+      method.getOptimizationInfo().asMutableMethodOptimizationInfo().unsetBridgeInfo();
+    }
+  }
+
   @Override
   public void setClassInlinerMethodConstraint(
       ProgramMethod method, ClassInlinerMethodConstraint classInlinerConstraint) {

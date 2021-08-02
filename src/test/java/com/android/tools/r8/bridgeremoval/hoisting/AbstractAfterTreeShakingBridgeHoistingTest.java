@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.bridgeremoval.hoisting;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -28,7 +27,7 @@ public class AbstractAfterTreeShakingBridgeHoistingTest extends TestBase {
     this.parameters = parameters;
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class, A.class)

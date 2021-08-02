@@ -993,9 +993,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     assert !accessFlags.isFinal();
     // static abstract is an invalid access combination and we should never create that.
     assert !accessFlags.isStatic();
-    accessFlags.setAbstract();
-    this.code = null;
-    return this;
+    return builder(this)
+        .modifyAccessFlags(MethodAccessFlags::setAbstract)
+        .unsetCode()
+        .addBuildConsumer(
+            method -> OptimizationFeedbackSimple.getInstance().unsetBridgeInfo(method))
+        .build();
   }
 
   /**
@@ -1585,7 +1588,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
                       new ProgramMethod(holder, newMethod), simpleInliningConstraint));
     }
 
-    private Builder addBuildConsumer(Consumer<DexEncodedMethod> consumer) {
+    public Builder addBuildConsumer(Consumer<DexEncodedMethod> consumer) {
       this.buildConsumer = this.buildConsumer.andThen(consumer);
       return this;
     }
@@ -1719,6 +1722,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     public Builder setCode(Code code) {
       this.code = code;
       return this;
+    }
+
+    public Builder unsetCode() {
+      return setCode(null);
     }
 
     public DexEncodedMethod build() {
