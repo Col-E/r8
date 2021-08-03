@@ -69,7 +69,7 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     DexClass kotlinMetadataClass = definitionForWithoutExistenceAssert.apply(kotlinMetadataType);
     return kotlinMetadataClass == null
         || kotlinMetadataClass.isNotProgramClass()
-        || getClassInfo.apply(kotlinMetadataClass.asProgramClass()).isPinned(options);
+        || !getClassInfo.apply(kotlinMetadataClass.asProgramClass()).isShrinkingAllowed(options);
   }
 
   @Override
