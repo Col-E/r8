@@ -995,7 +995,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     assert !accessFlags.isStatic();
     return builder(this)
         .modifyAccessFlags(MethodAccessFlags::setAbstract)
-        .setIsLibraryMethodOverrideIfKnown(isLibraryMethodOverride())
+        .setIsLibraryMethodOverrideIf(
+            isNonPrivateVirtualMethod() && !isLibraryMethodOverride().isUnknown(),
+            isLibraryMethodOverride())
         .unsetCode()
         .addBuildConsumer(
             method -> OptimizationFeedbackSimple.getInstance().unsetBridgeInfo(method))
