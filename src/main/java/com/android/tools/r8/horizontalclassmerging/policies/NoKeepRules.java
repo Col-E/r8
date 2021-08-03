@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
 import com.android.tools.r8.shaking.KeepInfoCollection;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Set;
@@ -19,20 +20,22 @@ public class NoKeepRules extends SingleClassPolicy {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final KeepInfoCollection keepInfo;
+  private final InternalOptions options;
 
   private final Set<DexType> dontMergeTypes = Sets.newIdentityHashSet();
 
   public NoKeepRules(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
     this.keepInfo = appView.getKeepInfo();
+    this.options = appView.options();
     appView.appInfo().classes().forEach(this::processClass);
   }
 
   private void processClass(DexProgramClass clazz) {
     DexType type = clazz.getType();
-    boolean pinHolder = keepInfo.getClassInfo(clazz).isPinned();
+    boolean pinHolder = keepInfo.getClassInfo(clazz).isPinned(options);
     for (DexEncodedMember<?, ?> member : clazz.members()) {
-      if (keepInfo.getMemberInfo(member, clazz).isPinned()) {
+      if (keepInfo.getMemberInfo(member, clazz).isPinned(options)) {
         pinHolder = true;
         Iterables.addAll(
             dontMergeTypes,

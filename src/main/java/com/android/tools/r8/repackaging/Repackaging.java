@@ -28,6 +28,7 @@ import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.BiMap;
@@ -319,12 +320,14 @@ public class Repackaging {
 
     private final AppView<?> appView;
     private final DexItemFactory dexItemFactory;
+    private final InternalOptions options;
     private final ProguardConfiguration proguardConfiguration;
     private final MinificationPackageNamingStrategy packageMinificationStrategy;
 
     public DefaultRepackagingConfiguration(AppView<?> appView) {
       this.appView = appView;
       this.dexItemFactory = appView.dexItemFactory();
+      this.options = appView.options();
       this.proguardConfiguration = appView.options().getProguardConfiguration();
       this.packageMinificationStrategy = new MinificationPackageNamingStrategy(appView);
     }
@@ -383,12 +386,12 @@ public class Repackaging {
       // item, in which case we cannot move it because there may be a reflective access to it.
       for (DexProgramClass clazz : pkg.classesInPackage()) {
         if (clazz.getAccessFlags().isPackagePrivateOrProtected()
-            && appView.getKeepInfo().getClassInfo(clazz).isPinned()) {
+            && appView.getKeepInfo().getClassInfo(clazz).isPinned(options)) {
           return true;
         }
         for (DexEncodedMember<?, ?> member : clazz.members()) {
           if (member.getAccessFlags().isPackagePrivateOrProtected()
-              && appView.getKeepInfo().getMemberInfo(member, clazz).isPinned()) {
+              && appView.getKeepInfo().getMemberInfo(member, clazz).isPinned(options)) {
             return true;
           }
         }

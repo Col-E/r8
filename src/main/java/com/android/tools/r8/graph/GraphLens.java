@@ -13,6 +13,7 @@ import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingLens;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
@@ -505,11 +506,12 @@ public abstract class GraphLens {
     return true;
   }
 
-  public <T extends DexReference> boolean assertPinnedNotModified(KeepInfoCollection keepInfo) {
+  public <T extends DexReference> boolean assertPinnedNotModified(
+      KeepInfoCollection keepInfo, InternalOptions options) {
     List<DexReference> pinnedItems = new ArrayList<>();
-    keepInfo.forEachPinnedType(pinnedItems::add);
-    keepInfo.forEachPinnedMethod(pinnedItems::add);
-    keepInfo.forEachPinnedField(pinnedItems::add);
+    keepInfo.forEachPinnedType(pinnedItems::add, options);
+    keepInfo.forEachPinnedMethod(pinnedItems::add, options);
+    keepInfo.forEachPinnedField(pinnedItems::add, options);
     return assertReferencesNotModified(pinnedItems);
   }
 

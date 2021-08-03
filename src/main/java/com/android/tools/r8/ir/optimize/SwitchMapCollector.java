@@ -88,7 +88,7 @@ public class SwitchMapCollector {
 
   private void processClasses(DexProgramClass clazz) {
     // Switchmap classes are synthetic and have a class initializer.
-    if (!clazz.accessFlags.isSynthetic() && !clazz.hasClassInitializer()) {
+    if (!clazz.accessFlags.isSynthetic() || !clazz.hasClassInitializer()) {
       return;
     }
     List<DexEncodedField> switchMapFields = clazz.staticFields().stream()

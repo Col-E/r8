@@ -19,6 +19,6 @@ public class DefaultTreePrunerConfiguration implements TreePrunerConfiguration {
 
   @Override
   public boolean isReachableOrReferencedField(AppInfoWithLiveness appInfo, DexEncodedField field) {
-    return appInfo.isFieldRead(field) || appInfo.isFieldWritten(field);
+    return appInfo.isReachableOrReferencedField(field);
   }
 }

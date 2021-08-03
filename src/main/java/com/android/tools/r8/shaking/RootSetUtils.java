@@ -769,6 +769,7 @@ public class RootSetUtils {
     // TODO(b/67934426): Test this code.
     public static void writeSeeds(
         AppInfoWithLiveness appInfo, PrintStream out, Predicate<DexType> include) {
+      InternalOptions options = appInfo.app().options;
       appInfo
           .getKeepInfo()
           .forEachPinnedType(
@@ -776,7 +777,8 @@ public class RootSetUtils {
                 if (include.test(type)) {
                   out.println(type.toSourceString());
                 }
-              });
+              },
+              options);
       appInfo
           .getKeepInfo()
           .forEachPinnedField(
@@ -789,7 +791,8 @@ public class RootSetUtils {
                           + " "
                           + field.name.toSourceString());
                 }
-              });
+              },
+              options);
       appInfo
           .getKeepInfo()
           .forEachPinnedMethod(
@@ -826,7 +829,8 @@ public class RootSetUtils {
                   out.print(param.toSourceString());
                 }
                 out.println(")");
-              });
+              },
+              options);
       out.close();
     }
 

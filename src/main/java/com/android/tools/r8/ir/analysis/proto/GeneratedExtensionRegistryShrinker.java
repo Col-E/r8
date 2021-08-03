@@ -30,6 +30,7 @@ import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.Mode;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.TreePrunerConfiguration;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.Sets;
@@ -75,6 +76,7 @@ import java.util.function.Consumer;
 public class GeneratedExtensionRegistryShrinker {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final InternalOptions options;
   private final ProtoReferences references;
 
   private final Map<DexType, Map<DexField, Mode>> removedExtensionFields = new IdentityHashMap<>();
@@ -83,6 +85,7 @@ public class GeneratedExtensionRegistryShrinker {
       AppView<AppInfoWithLiveness> appView, ProtoReferences references) {
     assert appView.options().protoShrinking().enableGeneratedExtensionRegistryShrinking;
     this.appView = appView;
+    this.options = appView.options();
     this.references = references;
   }
 
@@ -244,7 +247,7 @@ public class GeneratedExtensionRegistryShrinker {
       ProgramField field,
       FieldAccessInfoCollection<?> fieldAccessInfoCollection,
       KeepInfoCollection keepInfo) {
-    if (keepInfo.getFieldInfo(field).isPinned()) {
+    if (keepInfo.getFieldInfo(field).isPinned(options)) {
       return false;
     }
 

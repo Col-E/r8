@@ -1666,8 +1666,7 @@ public class IRConverter {
       timing.end();
     }
 
-    if (appView.appInfo().withLiveness().isPinned(code.context().getReference())
-        || !appView.options().isOptimizing()) {
+    if (appView.getKeepInfo().getMethodInfo(code.context()).isPinned(options)) {
       return;
     }
 

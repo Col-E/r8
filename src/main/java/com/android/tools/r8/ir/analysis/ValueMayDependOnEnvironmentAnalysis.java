@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
@@ -81,11 +82,13 @@ public class ValueMayDependOnEnvironmentAnalysis {
   private final AppView<?> appView;
   private final ProgramMethod context;
   private final DexItemFactory dexItemFactory;
+  private final InternalOptions options;
 
   public ValueMayDependOnEnvironmentAnalysis(AppView<?> appView, IRCode code) {
     this.appView = appView;
     this.context = code.context();
     this.dexItemFactory = appView.dexItemFactory();
+    this.options = appView.options();
   }
 
   public boolean anyValueMayDependOnEnvironment(Iterable<Value> values) {
@@ -270,7 +273,9 @@ public class ValueMayDependOnEnvironmentAnalysis {
   private boolean isNonPinnedClassConstant(Value value) {
     Value root = value.getAliasedValue();
     return root.isDefinedByInstructionSatisfying(Instruction::isConstClass)
-        && !appView.getKeepInfo().isPinned(root.getDefinition().asConstClass().getType(), appView);
+        && !appView
+            .getKeepInfo()
+            .isPinned(root.getDefinition().asConstClass().getType(), appView, options);
   }
 
   private boolean addLogicalBinopValueToValueGraph(

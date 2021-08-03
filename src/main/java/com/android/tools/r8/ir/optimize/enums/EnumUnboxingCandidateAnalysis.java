@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
+import com.android.tools.r8.utils.InternalOptions;
 
 class EnumUnboxingCandidateAnalysis {
 
@@ -100,8 +101,9 @@ class EnumUnboxingCandidateAnalysis {
     // also kept. This is to allow the keep rule -keepclassmembers to be used on enums while
     // enum unboxing can still be performed.
     KeepInfoCollection keepInfo = appView.appInfo().getKeepInfo();
-    keepInfo.forEachPinnedType(this::removePinnedCandidate);
-    keepInfo.forEachPinnedField(field -> removePinnedIfNotHolder(field, field.type));
+    InternalOptions options = appView.options();
+    keepInfo.forEachPinnedType(this::removePinnedCandidate, options);
+    keepInfo.forEachPinnedField(field -> removePinnedIfNotHolder(field, field.type), options);
     keepInfo.forEachPinnedMethod(
         method -> {
           DexProto proto = method.proto;
@@ -109,7 +111,8 @@ class EnumUnboxingCandidateAnalysis {
           for (DexType parameterType : proto.parameters.values) {
             removePinnedIfNotHolder(method, parameterType);
           }
-        });
+        },
+        options);
   }
 
   private void removePinnedIfNotHolder(DexMember<?, ?> member, DexType type) {

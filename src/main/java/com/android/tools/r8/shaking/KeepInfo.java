@@ -11,7 +11,6 @@ import java.util.function.Consumer;
 /** Keep information that can be associated with any item, i.e., class, method or field. */
 public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>> {
 
-  private final boolean pinned;
   private final boolean allowAccessModification;
   private final boolean allowAnnotationRemoval;
   private final boolean allowMinification;
@@ -20,14 +19,12 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
   private final boolean requireAccessModificationForRepackaging;
 
   private KeepInfo(
-      boolean pinned,
       boolean allowAccessModification,
       boolean allowAnnotationRemoval,
       boolean allowMinification,
       boolean allowOptimization,
       boolean allowShrinking,
       boolean requireAccessModificationForRepackaging) {
-    this.pinned = pinned;
     this.allowAccessModification = allowAccessModification;
     this.allowAnnotationRemoval = allowAnnotationRemoval;
     this.allowMinification = allowMinification;
@@ -38,7 +35,6 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
   KeepInfo(B builder) {
     this(
-        builder.isPinned(),
         builder.isAccessModificationAllowed(),
         builder.isAnnotationRemovalAllowed(),
         builder.isMinificationAllowed(),
@@ -69,8 +65,8 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
    * @deprecated Prefer task dependent predicates.
    */
   @Deprecated
-  public boolean isPinned() {
-    return pinned || !allowOptimization;
+  public boolean isPinned(GlobalKeepInfoConfiguration configuration) {
+    return !isOptimizationAllowed(configuration) || !isShrinkingAllowed(configuration);
   }
 
   /**
@@ -148,7 +144,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     if (!configuration.isKeepAttributesSignatureEnabled()) {
       return true;
     }
-    return !(configuration.isForceProguardCompatibilityEnabled() || isPinned());
+    return !(configuration.isForceProguardCompatibilityEnabled() || isPinned(configuration));
   }
 
   public boolean isEnclosingMethodAttributeRemovalAllowed(
@@ -161,14 +157,14 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     if (configuration.isForceProguardCompatibilityEnabled()) {
       return false;
     }
-    return !isPinned() || !enclosingMethodAttribute.isEnclosingPinned(appView);
+    return !isPinned(configuration) || !enclosingMethodAttribute.isEnclosingPinned(appView);
   }
 
   public boolean isInnerClassesAttributeRemovalAllowed(GlobalKeepInfoConfiguration configuration) {
     if (!configuration.isKeepInnerClassesAttributeEnabled()) {
       return true;
     }
-    return !(configuration.isForceProguardCompatibilityEnabled() || isPinned());
+    return !(configuration.isForceProguardCompatibilityEnabled() || isPinned(configuration));
   }
 
   public boolean isInnerClassesAttributeRemovalAllowed(
@@ -182,7 +178,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     }
     // The inner class is dependent on the enclosingMethodAttribute and since it has been pruned
     // we can also remove this inner class relationship.
-    return enclosingMethodAttribute == null || !isPinned();
+    return enclosingMethodAttribute == null || !isPinned(configuration);
   }
 
   public abstract boolean isTop();
@@ -192,8 +188,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
   public boolean isLessThanOrEquals(K other) {
     // An item is less, aka, lower in the lattice, if each of its attributes is at least as
     // permissive of that on other.
-    return (!pinned || other.isPinned())
-        && (allowAccessModification || !other.internalIsAccessModificationAllowed())
+    return (allowAccessModification || !other.internalIsAccessModificationAllowed())
         && (allowAnnotationRemoval || !other.internalIsAnnotationRemovalAllowed())
         && (allowMinification || !other.internalIsMinificationAllowed())
         && (allowOptimization || !other.internalIsOptimizationAllowed())
@@ -214,7 +209,6 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     abstract boolean isEqualTo(K other);
 
     private K original;
-    private boolean pinned;
     private boolean allowAccessModification;
     private boolean allowAnnotationRemoval;
     private boolean allowMinification;
@@ -228,7 +222,6 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     Builder(K original) {
       this.original = original;
-      pinned = original.isPinned();
       allowAccessModification = original.internalIsAccessModificationAllowed();
       allowAnnotationRemoval = original.internalIsAnnotationRemovalAllowed();
       allowMinification = original.internalIsMinificationAllowed();
@@ -239,7 +232,6 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     }
 
     B makeTop() {
-      pin();
       disallowAccessModification();
       disallowAnnotationRemoval();
       disallowMinification();
@@ -250,7 +242,6 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     }
 
     B makeBottom() {
-      unpin();
       allowAccessModification();
       allowAnnotationRemoval();
       allowMinification();
@@ -276,18 +267,13 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     }
 
     boolean internalIsEqualTo(K other) {
-      return isPinned() == other.isPinned()
-          && isAccessModificationAllowed() == other.internalIsAccessModificationAllowed()
+      return isAccessModificationAllowed() == other.internalIsAccessModificationAllowed()
           && isAnnotationRemovalAllowed() == other.internalIsAnnotationRemovalAllowed()
           && isMinificationAllowed() == other.internalIsMinificationAllowed()
           && isOptimizationAllowed() == other.internalIsOptimizationAllowed()
           && isShrinkingAllowed() == other.internalIsShrinkingAllowed()
           && isAccessModificationRequiredForRepackaging()
               == other.internalIsAccessModificationRequiredForRepackaging();
-    }
-
-    public boolean isPinned() {
-      return pinned;
     }
 
     public boolean isAccessModificationRequiredForRepackaging() {
@@ -312,19 +298,6 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     public boolean isShrinkingAllowed() {
       return allowShrinking;
-    }
-
-    public B setPinned(boolean pinned) {
-      this.pinned = pinned;
-      return self();
-    }
-
-    public B pin() {
-      return setPinned(true);
-    }
-
-    public B unpin() {
-      return setPinned(false);
     }
 
     public B setAllowMinification(boolean allowMinification) {
@@ -451,11 +424,6 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return self();
     }
 
-    public J pin() {
-      builder.pin();
-      return self();
-    }
-
     public J disallowAccessModification() {
       builder.disallowAccessModification();
       return self();
@@ -488,7 +456,6 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     public J merge(J joiner) {
       Builder<B, K> builder = joiner.builder;
-      applyIf(builder.isPinned(), Joiner::pin);
       applyIf(!builder.isAccessModificationAllowed(), Joiner::disallowAccessModification);
       applyIf(!builder.isAnnotationRemovalAllowed(), Joiner::disallowAnnotationRemoval);
       applyIf(!builder.isMinificationAllowed(), Joiner::disallowMinification);

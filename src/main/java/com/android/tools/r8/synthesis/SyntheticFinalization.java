@@ -674,12 +674,17 @@ public class SyntheticFinalization {
       return true;
     }
     DexProgramClass holder = definition.getHolder().asProgramClass();
+    // TODO(b/192924387): Change such that the keep info for internal synthetics is always bottom.
+    if (!appView.getSyntheticItems().isSubjectToKeepRules(holder)) {
+      return false;
+    }
     KeepInfoCollection keepInfo = appView.getKeepInfo();
-    if (keepInfo.getClassInfo(holder).isPinned()) {
+    InternalOptions options = appView.options();
+    if (keepInfo.getClassInfo(holder).isPinned(options)) {
       return true;
     }
     for (DexEncodedMember<?, ?> member : holder.members()) {
-      if (keepInfo.getMemberInfo(member, holder).isPinned()) {
+      if (keepInfo.getMemberInfo(member, holder).isPinned(options)) {
         return true;
       }
     }

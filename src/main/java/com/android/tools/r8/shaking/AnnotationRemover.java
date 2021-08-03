@@ -214,11 +214,13 @@ public class AnnotationRemover {
     if (memberInfo.isSignatureAttributeRemovalAllowed(options)) {
       member.clearGenericSignature();
     }
-    if (!member.getKotlinInfo().isProperty() && memberInfo.isKotlinMetadataRemovalAllowed(clazz)) {
+    if (!member.getKotlinInfo().isProperty()
+        && memberInfo.isKotlinMetadataRemovalAllowed(clazz, options)) {
       member.clearKotlinInfo();
     }
     // Postpone removal of kotlin property info until we have seen all fields, setters and getters.
-    if (member.getKotlinInfo().isProperty() && !memberInfo.isKotlinMetadataRemovalAllowed(clazz)) {
+    if (member.getKotlinInfo().isProperty()
+        && !memberInfo.isKotlinMetadataRemovalAllowed(clazz, options)) {
       pinnedKotlinProperties.add(member.getKotlinInfo().asProperty());
     }
   }

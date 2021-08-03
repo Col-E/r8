@@ -68,6 +68,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
@@ -213,6 +214,7 @@ public class VerticalClassMerger {
   private final DexApplication application;
   private final AppInfoWithLiveness appInfo;
   private final AppView<AppInfoWithLiveness> appView;
+  private final InternalOptions options;
   private final SubtypingInfo subtypingInfo;
   private final ExecutorService executorService;
   private final MethodPoolCollection methodPoolCollection;
@@ -248,6 +250,7 @@ public class VerticalClassMerger {
     this.application = application;
     this.appInfo = appView.appInfo();
     this.appView = appView;
+    this.options = appView.options();
     this.mainDexInfo = appInfo.getMainDexInfo();
     this.subtypingInfo = appInfo.computeSubtypingInfo();
     this.executorService = executorService;
@@ -291,9 +294,9 @@ public class VerticalClassMerger {
     // the return type and the parameter types of the method.
     // TODO(b/156715504): Compute referenced-by-pinned in the keep info objects.
     List<DexReference> pinnedItems = new ArrayList<>();
-    appInfo.getKeepInfo().forEachPinnedType(pinnedItems::add);
-    appInfo.getKeepInfo().forEachPinnedMethod(pinnedItems::add);
-    appInfo.getKeepInfo().forEachPinnedField(pinnedItems::add);
+    appInfo.getKeepInfo().forEachPinnedType(pinnedItems::add, options);
+    appInfo.getKeepInfo().forEachPinnedMethod(pinnedItems::add, options);
+    appInfo.getKeepInfo().forEachPinnedField(pinnedItems::add, options);
     extractPinnedItems(pinnedItems, AbortReason.PINNED_SOURCE);
 
     for (DexProgramClass clazz : classes) {
@@ -728,7 +731,7 @@ public class VerticalClassMerger {
     // that `invoke-super A.method` instructions, which are in one of the methods from C, needs to
     // be rewritten to `invoke-direct C.method$B`. This is valid even though A.method() is actually
     // pinned, because this rewriting does not affect A.method() in any way.
-    assert graphLens.assertPinnedNotModified(appInfo.getKeepInfo());
+    assert graphLens.assertPinnedNotModified(appInfo.getKeepInfo(), options);
 
     for (DexProgramClass clazz : appInfo.classes()) {
       for (DexEncodedMethod encodedMethod : clazz.methods()) {

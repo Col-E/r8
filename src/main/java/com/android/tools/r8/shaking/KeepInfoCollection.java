@@ -152,20 +152,30 @@ public abstract class KeepInfoCollection {
     throw new Unreachable();
   }
 
-  public final boolean isPinned(DexReference reference, DexDefinitionSupplier definitions) {
-    return getInfo(reference, definitions).isPinned();
+  public final boolean isPinned(
+      DexReference reference,
+      DexDefinitionSupplier definitions,
+      GlobalKeepInfoConfiguration configuration) {
+    return getInfo(reference, definitions).isPinned(configuration);
   }
 
-  public final boolean isPinned(DexType type, DexDefinitionSupplier definitions) {
-    return getClassInfo(type, definitions).isPinned();
+  public final boolean isPinned(
+      DexType type, DexDefinitionSupplier definitions, GlobalKeepInfoConfiguration configuration) {
+    return getClassInfo(type, definitions).isPinned(configuration);
   }
 
-  public final boolean isPinned(DexMethod method, DexDefinitionSupplier definitions) {
-    return getMethodInfo(method, definitions).isPinned();
+  public final boolean isPinned(
+      DexMethod method,
+      DexDefinitionSupplier definitions,
+      GlobalKeepInfoConfiguration configuration) {
+    return getMethodInfo(method, definitions).isPinned(configuration);
   }
 
-  public final boolean isPinned(DexField field, DexDefinitionSupplier definitions) {
-    return getFieldInfo(field, definitions).isPinned();
+  public final boolean isPinned(
+      DexField field,
+      DexDefinitionSupplier definitions,
+      GlobalKeepInfoConfiguration configuration) {
+    return getFieldInfo(field, definitions).isPinned(configuration);
   }
 
   public final boolean isMinificationAllowed(
@@ -176,19 +186,19 @@ public abstract class KeepInfoCollection {
         && getInfo(reference, definitions).isMinificationAllowed(configuration);
   }
 
-  public abstract boolean verifyPinnedTypesAreLive(Set<DexType> liveTypes);
+  public abstract boolean verifyPinnedTypesAreLive(Set<DexType> liveTypes, InternalOptions options);
 
   // TODO(b/156715504): We should try to avoid the need for iterating pinned items.
   @Deprecated
-  public abstract void forEachPinnedType(Consumer<DexType> consumer);
+  public abstract void forEachPinnedType(Consumer<DexType> consumer, InternalOptions options);
 
   // TODO(b/156715504): We should try to avoid the need for iterating pinned items.
   @Deprecated
-  public abstract void forEachPinnedMethod(Consumer<DexMethod> consumer);
+  public abstract void forEachPinnedMethod(Consumer<DexMethod> consumer, InternalOptions options);
 
   // TODO(b/156715504): We should try to avoid the need for iterating pinned items.
   @Deprecated
-  public abstract void forEachPinnedField(Consumer<DexField> consumer);
+  public abstract void forEachPinnedField(Consumer<DexField> consumer, InternalOptions options);
 
   public abstract KeepInfoCollection rewrite(NonIdentityGraphLens lens, InternalOptions options);
 
@@ -246,7 +256,7 @@ public abstract class KeepInfoCollection {
           (type, info) -> {
             DexType newType = lens.lookupType(type);
             assert newType == type
-                || !info.isPinned()
+                || !info.isPinned(options)
                 || info.isMinificationAllowed(options)
                 || info.isRepackagingAllowed(options);
             KeepClassInfo previous = newClassInfo.put(newType, info);
@@ -256,17 +266,17 @@ public abstract class KeepInfoCollection {
       keepMethodInfo.forEach(
           (method, info) -> {
             DexMethod newMethod = lens.getRenamedMethodSignature(method);
-            assert !info.isPinned()
+            assert !info.isPinned(options)
                 || info.isMinificationAllowed(options)
                 || newMethod.name == method.name;
-            assert !info.isPinned() || newMethod.getArity() == method.getArity();
-            assert !info.isPinned()
+            assert !info.isPinned(options) || newMethod.getArity() == method.getArity();
+            assert !info.isPinned(options)
                 || Streams.zip(
                         newMethod.getParameters().stream(),
                         method.getParameters().stream().map(lens::lookupType),
                         Object::equals)
                     .allMatch(x -> x);
-            assert !info.isPinned()
+            assert !info.isPinned(options)
                 || newMethod.getReturnType() == lens.lookupType(method.getReturnType());
             KeepMethodInfo previous = newMethodInfo.put(newMethod, info);
             // TODO(b/169927809): Avoid collisions.
@@ -277,7 +287,7 @@ public abstract class KeepInfoCollection {
           (field, info) -> {
             DexField newField = lens.getRenamedFieldSignature(field);
             assert newField.name == field.name
-                || !info.isPinned()
+                || !info.isPinned(options)
                 || info.isMinificationAllowed(options);
             KeepFieldInfo previous = newFieldInfo.put(newField, info);
             assert previous == null;
@@ -410,10 +420,6 @@ public abstract class KeepInfoCollection {
       joinClass(clazz, KeepInfo.Joiner::top);
     }
 
-    public void pinClass(DexProgramClass clazz) {
-      joinClass(clazz, KeepInfo.Joiner::pin);
-    }
-
     public void joinMethod(ProgramMethod method, Consumer<? super KeepMethodInfo.Joiner> fn) {
       KeepMethodInfo info = getMethodInfo(method);
       if (info.isTop()) {
@@ -430,19 +436,6 @@ public abstract class KeepInfoCollection {
 
     public void keepMethod(ProgramMethod method) {
       joinMethod(method, KeepInfo.Joiner::top);
-    }
-
-    public void pinMethod(ProgramMethod method) {
-      joinMethod(method, KeepInfo.Joiner::pin);
-    }
-
-    // TODO(b/157700141): Avoid pinning/unpinning references.
-    @Deprecated
-    public void unsafeUnpinMethod(DexMethod method) {
-      KeepMethodInfo info = keepMethodInfo.get(method);
-      if (info != null && info.isPinned()) {
-        keepMethodInfo.put(method, info.builder().unpin().build());
-      }
     }
 
     public void unsetRequireAllowAccessModificationForRepackaging(ProgramDefinition definition) {
@@ -486,10 +479,6 @@ public abstract class KeepInfoCollection {
       joinField(field, KeepInfo.Joiner::top);
     }
 
-    public void pinField(ProgramField field) {
-      joinField(field, KeepInfo.Joiner::pin);
-    }
-
     @Override
     public KeepInfoCollection mutate(Consumer<MutableKeepInfoCollection> mutator) {
       mutator.accept(this);
@@ -497,39 +486,39 @@ public abstract class KeepInfoCollection {
     }
 
     @Override
-    public boolean verifyPinnedTypesAreLive(Set<DexType> liveTypes) {
+    public boolean verifyPinnedTypesAreLive(Set<DexType> liveTypes, InternalOptions options) {
       keepClassInfo.forEach(
           (type, info) -> {
-            assert !info.isPinned() || liveTypes.contains(type);
+            assert !info.isPinned(options) || liveTypes.contains(type);
           });
       return true;
     }
 
     @Override
-    public void forEachPinnedType(Consumer<DexType> consumer) {
+    public void forEachPinnedType(Consumer<DexType> consumer, InternalOptions options) {
       keepClassInfo.forEach(
           (type, info) -> {
-            if (info.isPinned()) {
+            if (info.isPinned(options)) {
               consumer.accept(type);
             }
           });
     }
 
     @Override
-    public void forEachPinnedMethod(Consumer<DexMethod> consumer) {
+    public void forEachPinnedMethod(Consumer<DexMethod> consumer, InternalOptions options) {
       keepMethodInfo.forEach(
           (method, info) -> {
-            if (info.isPinned()) {
+            if (info.isPinned(options)) {
               consumer.accept(method);
             }
           });
     }
 
     @Override
-    public void forEachPinnedField(Consumer<DexField> consumer) {
+    public void forEachPinnedField(Consumer<DexField> consumer, InternalOptions options) {
       keepFieldInfo.forEach(
           (field, info) -> {
-            if (info.isPinned()) {
+            if (info.isPinned(options)) {
               consumer.accept(field);
             }
           });

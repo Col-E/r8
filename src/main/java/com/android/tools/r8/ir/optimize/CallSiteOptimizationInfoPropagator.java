@@ -63,14 +63,16 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
   }
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final CallSiteOptimizationOptions options;
+  private final InternalOptions options;
+  private final CallSiteOptimizationOptions optimizationOptions;
   private ProgramMethodSet revisitedMethods = null;
   private Mode mode = Mode.COLLECT;
 
   public CallSiteOptimizationInfoPropagator(AppView<AppInfoWithLiveness> appView) {
     assert appView.enableWholeProgramOptimizations();
     this.appView = appView;
-    this.options = appView.options().callSiteOptimizationOptions();
+    this.options = appView.options();
+    this.optimizationOptions = appView.options().callSiteOptimizationOptions();
     if (Log.isLoggingEnabledFor(CallSiteOptimizationInfoPropagator.class)) {
       revisitedMethods = ProgramMethodSet.create();
     }
@@ -189,7 +191,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       return;
     }
 
-    if (targets.size() > options.getMaxNumberOfDispatchTargetsBeforeAbandoning()) {
+    if (targets.size() > optimizationOptions.getMaxNumberOfDispatchTargetsBeforeAbandoning()) {
       // If the number of targets exceed the threshold, abandon call site optimization for all
       // targets.
       abandonCallSitePropagation(invoke, resolutionResult, targets, context);
@@ -327,7 +329,9 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       for (ProgramMethod virtualProgramMethod : clazz.virtualProgramMethods()) {
         if (virtualProgramMethod.getDefinition().isNonPrivateVirtualMethod()
-            && appView.getKeepInfo().isPinned(virtualProgramMethod.getReference(), appView)) {
+            && appView
+                .getKeepInfo()
+                .isPinned(virtualProgramMethod.getReference(), appView, options)) {
           consumer.accept(virtualProgramMethod);
         }
       }
@@ -404,7 +408,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       int argIndex = argumentsSeen - 1;
       AbstractValue abstractValue = callSiteOptimizationInfo.getAbstractArgumentValue(argIndex);
       if (abstractValue.isSingleValue()) {
-        assert options.isConstantPropagationEnabled();
+        assert optimizationOptions.isConstantPropagationEnabled();
         SingleValue singleValue = abstractValue.asSingleValue();
         if (singleValue.isMaterializableInContext(appView, code.context())) {
           Instruction replacement =

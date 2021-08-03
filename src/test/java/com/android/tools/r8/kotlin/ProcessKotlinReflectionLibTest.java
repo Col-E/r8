@@ -8,6 +8,7 @@ import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTL
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ThrowableConsumer;
@@ -36,7 +37,14 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
     this.parameters = parameters;
   }
 
-  private void test(ThrowableConsumer<R8FullTestBuilder> consumer) throws Exception {
+  private void test(ThrowableConsumer<R8FullTestBuilder> testBuilderConsumer) throws Exception {
+    test(testBuilderConsumer, ThrowableConsumer.empty());
+  }
+
+  private void test(
+      ThrowableConsumer<R8FullTestBuilder> testBuilderConsumer,
+      ThrowableConsumer<R8TestCompileResult> compileResultBuilder)
+      throws Exception {
     testForR8(parameters.getBackend())
         .addLibraryFiles(
             ToolHelper.getMostRecentAndroidJar(),
@@ -48,8 +56,9 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
         .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
         .allowUnusedDontWarnKotlinReflectJvmInternal(kotlinc.isNot(KOTLINC_1_3_72))
         .allowUnusedProguardConfigurationRules(kotlinc.isNot(KOTLINC_1_3_72))
-        .apply(consumer)
+        .apply(testBuilderConsumer)
         .compile()
+        .apply(compileResultBuilder)
         .apply(assertUnusedKeepRuleForKotlinMetadata(kotlinc.isNot(KOTLINC_1_3_72)));
   }
 

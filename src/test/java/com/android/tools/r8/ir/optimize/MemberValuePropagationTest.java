@@ -12,6 +12,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -61,15 +62,14 @@ public class MemberValuePropagationTest extends TestBase {
   public void testWriteOnlyField_dontoptimize() throws Exception {
     CodeInspector inspector = runR8(DONT_OPTIMIZE);
     ClassSubject clazz = inspector.clazz(QUALIFIED_CLASS_NAME);
-    clazz.forAllMethods(
-        methodSubject -> {
-          // Dead code removal is not part of -dontoptimize. That is, even with -dontoptimize,
-          // field put instructions are gone with better dead code removal.
-          assertTrue(
-              methodSubject
-                  .streamInstructions()
-                  .noneMatch(i -> i.isInstancePut() || i.isStaticPut()));
-        });
+    // With the support of 'allowshrinking' dontoptimize will effectivelys pin all
+    // items that are not tree shaken out. The field operations will thus remain.
+    assertTrue(clazz.clinit().streamInstructions().anyMatch(InstructionSubject::isStaticPut));
+    assertTrue(
+        clazz
+            .uniqueInstanceInitializer()
+            .streamInstructions()
+            .anyMatch(InstructionSubject::isInstancePut));
   }
 
   private CodeInspector runR8(Path proguardConfig) throws Exception {

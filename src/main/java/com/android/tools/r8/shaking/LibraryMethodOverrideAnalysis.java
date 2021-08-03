@@ -53,7 +53,8 @@ public class LibraryMethodOverrideAnalysis {
     appView
         .appInfo()
         .getKeepInfo()
-        .forEachPinnedType(initialNonEscapingClassesWithLibraryMethodOverrides::remove);
+        .forEachPinnedType(
+            initialNonEscapingClassesWithLibraryMethodOverrides::remove, appView.options());
 
     return initialNonEscapingClassesWithLibraryMethodOverrides;
   }

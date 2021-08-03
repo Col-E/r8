@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.GenericSignatureContextBuilder.TypeParameterCo
 import com.android.tools.r8.shaking.KeepClassInfo;
 import com.android.tools.r8.shaking.KeepFieldInfo;
 import com.android.tools.r8.shaking.KeepMethodInfo;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import java.util.List;
 import java.util.function.Consumer;
@@ -84,6 +85,7 @@ public class GenericSignatureCorrectnessHelper {
 
   private final AppView<?> appView;
   private final Mode mode;
+  private final InternalOptions options;
   private final GenericSignatureContextBuilder contextBuilder;
 
   private GenericSignatureCorrectnessHelper(
@@ -91,6 +93,7 @@ public class GenericSignatureCorrectnessHelper {
     this.appView = appView;
     this.contextBuilder = contextBuilder;
     this.mode = mode;
+    this.options = appView.options();
   }
 
   public static GenericSignatureCorrectnessHelper createForInitialCheck(

@@ -20,9 +20,10 @@ public abstract class KeepMemberInfo<B extends Builder<B, K>, K extends KeepInfo
         && !internalIsAccessModificationRequiredForRepackaging();
   }
 
-  public boolean isKotlinMetadataRemovalAllowed(DexProgramClass holder) {
+  public boolean isKotlinMetadataRemovalAllowed(
+      DexProgramClass holder, GlobalKeepInfoConfiguration configuration) {
     // Checking the holder for missing kotlin information relies on the holder being processed
     // before members.
-    return holder.getKotlinInfo().isNoKotlinInformation() || !isPinned();
+    return holder.getKotlinInfo().isNoKotlinInformation() || !isPinned(configuration);
   }
 }

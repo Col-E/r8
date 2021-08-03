@@ -54,6 +54,7 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
     boolean keepKotlinMetadata =
         KeepClassInfo.isKotlinMetadataClassKept(
             appView.dexItemFactory(),
+            appView.options(),
             appView.appInfo()::definitionForWithoutExistenceAssert,
             enqueuer::getKeepInfo);
     // In the first round of tree shaking build up all metadata such that it can be traced later.

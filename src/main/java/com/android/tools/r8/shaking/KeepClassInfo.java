@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.Function;
 
 /** Immutable keep requirements for a class. */
@@ -55,27 +55,21 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
   public boolean isKotlinMetadataRemovalAllowed(
       GlobalKeepInfoConfiguration configuration, boolean kotlinMetadataKept) {
     return !kotlinMetadataKept
-        || !isPinned()
+        || !isPinned(configuration)
         || !configuration.isKeepRuntimeVisibleAnnotationsEnabled()
         || isAnnotationRemovalAllowed(configuration);
   }
 
-  public static boolean isKotlinMetadataClassKept(AppView<?> appView) {
-    return isKotlinMetadataClassKept(
-        appView.dexItemFactory(),
-        appView.appInfo()::definitionForWithoutExistenceAssert,
-        appView.getKeepInfo()::getClassInfo);
-  }
-
   public static boolean isKotlinMetadataClassKept(
       DexItemFactory factory,
+      InternalOptions options,
       Function<DexType, DexClass> definitionForWithoutExistenceAssert,
       Function<DexProgramClass, KeepClassInfo> getClassInfo) {
     DexType kotlinMetadataType = factory.kotlinMetadataType;
     DexClass kotlinMetadataClass = definitionForWithoutExistenceAssert.apply(kotlinMetadataType);
     return kotlinMetadataClass == null
         || kotlinMetadataClass.isNotProgramClass()
-        || getClassInfo.apply(kotlinMetadataClass.asProgramClass()).isPinned();
+        || getClassInfo.apply(kotlinMetadataClass.asProgramClass()).isPinned(options);
   }
 
   @Override

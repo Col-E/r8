@@ -2516,7 +2516,8 @@ public class Enqueuer {
                                 assert appInfo.isSubtype(currentClass.type, type);
                                 instantiation.apply(subTypeConsumer, lambdaConsumer);
                               },
-                              definition -> keepInfo.isPinned(definition.getReference(), appInfo))
+                              definition ->
+                                  keepInfo.isPinned(definition.getReference(), appInfo, options))
                           .forEach(
                               target ->
                                   markVirtualDispatchTargetAsLive(
@@ -2958,7 +2959,7 @@ public class Enqueuer {
             (type, subTypeConsumer, lambdaConsumer) ->
                 objectAllocationInfoCollection.forEachInstantiatedSubType(
                     type, subTypeConsumer, lambdaConsumer, appInfo),
-            definition -> keepInfo.isPinned(definition.getReference(), appInfo))
+            definition -> keepInfo.isPinned(definition.getReference(), appInfo, options))
         .forEach(
             target ->
                 markVirtualDispatchTargetAsLive(
@@ -3027,7 +3028,9 @@ public class Enqueuer {
       // TODO(sgjesse): Does this have to be enqueued as a root item? Right now it is done as the
       // marking for not renaming it is in the root set.
       workList.enqueueMarkMethodKeptAction(valuesMethod, reason);
-      keepInfo.joinMethod(valuesMethod, joiner -> joiner.pin().disallowMinification());
+      keepInfo.joinMethod(
+          valuesMethod,
+          joiner -> joiner.disallowMinification().disallowOptimization().disallowShrinking());
       shouldNotBeMinified(valuesMethod);
     }
   }
@@ -3327,7 +3330,7 @@ public class Enqueuer {
               .getModifiers();
       if (!modifiers.allowsShrinking) {
         // TODO(b/159589281): Evaluate this interpretation.
-        joiner.pin();
+        joiner.disallowShrinking();
         if (definition.getAccessFlags().isPackagePrivateOrProtected()) {
           joiner.requireAccessModificationForRepackaging();
         }
@@ -3340,6 +3343,9 @@ public class Enqueuer {
       }
       if (!modifiers.allowsObfuscation) {
         joiner.disallowMinification();
+      }
+      if (!modifiers.allowsOptimization) {
+        joiner.disallowOptimization();
       }
     }
   }
@@ -3512,7 +3518,8 @@ public class Enqueuer {
       DexProgramClass holder = bridge.getHolder();
       DexEncodedMethod method = bridge.getDefinition();
       holder.addVirtualMethod(method);
-      additions.addLiveMethodWithKeepAction(bridge, KeepMethodInfo.Joiner::pin);
+      additions.addLiveMethodWithKeepAction(
+          bridge, joiner -> joiner.disallowOptimization().disallowShrinking());
     }
     syntheticInterfaceMethodBridges.clear();
   }
@@ -4359,8 +4366,8 @@ public class Enqueuer {
       }
       // To ensure we are not moving the class because we cannot prune it when there is a reflective
       // use of it.
-      if (!keepInfo.getClassInfo(clazz).isPinned()) {
-        keepInfo.pinClass(clazz);
+      if (keepInfo.getClassInfo(clazz).isShrinkingAllowed(options)) {
+        keepInfo.joinClass(clazz, joiner -> joiner.disallowOptimization().disallowShrinking());
       }
     } else if (referencedItem.isDexField()) {
       DexField field = referencedItem.asDexField();
@@ -4384,9 +4391,10 @@ public class Enqueuer {
         workList.enqueueMarkInstantiatedAction(
             clazz, null, InstantiationReason.REFLECTION, KeepReason.reflectiveUseIn(method));
       }
-      if (!keepInfo.getFieldInfo(encodedField, clazz).isPinned()) {
+      if (keepInfo.getFieldInfo(encodedField, clazz).isShrinkingAllowed(options)) {
         ProgramField programField = new ProgramField(clazz, encodedField);
-        keepInfo.pinField(programField);
+        keepInfo.joinField(
+            programField, joiner -> joiner.disallowOptimization().disallowShrinking());
         markFieldAsKept(programField, KeepReason.reflectiveUseIn(method));
       }
     } else {
@@ -4575,7 +4583,7 @@ public class Enqueuer {
         // Add this interface to the set of pinned items to ensure that we do not merge the
         // interface into its unique subtype, if any.
         // TODO(b/145344105): This should be superseded by the unknown interface hierarchy.
-        keepInfo.pinClass(clazz);
+        keepInfo.joinClass(clazz, joiner -> joiner.disallowOptimization().disallowShrinking());
         KeepReason reason = KeepReason.reflectiveUseIn(method);
         markInterfaceAsInstantiated(clazz, graphReporter.registerClass(clazz, reason));
 
@@ -4583,7 +4591,8 @@ public class Enqueuer {
         // illegal rewritings of invoke-interface instructions into invoke-virtual instructions.
         clazz.forEachProgramVirtualMethod(
             virtualMethod -> {
-              keepInfo.pinMethod(virtualMethod);
+              keepInfo.joinMethod(
+                  virtualMethod, joiner -> joiner.disallowOptimization().disallowShrinking());
               markVirtualMethodAsReachable(virtualMethod.getReference(), true, clazz, reason);
             });
       }
