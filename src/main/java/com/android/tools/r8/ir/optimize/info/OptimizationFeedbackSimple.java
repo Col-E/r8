@@ -175,6 +175,15 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
     // Ignored.
   }
 
+  public void unsetClassInlinerMethodConstraint(ProgramMethod method) {
+    if (method.getOptimizationInfo().isMutableOptimizationInfo()) {
+      method
+          .getOptimizationInfo()
+          .asMutableMethodOptimizationInfo()
+          .unsetClassInlinerMethodConstraint();
+    }
+  }
+
   @Override
   public void setEnumUnboxerMethodClassification(
       ProgramMethod method, EnumUnboxerMethodClassification enumUnboxerMethodClassification) {

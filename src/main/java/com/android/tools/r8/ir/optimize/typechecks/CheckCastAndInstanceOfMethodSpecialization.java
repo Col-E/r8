@@ -141,6 +141,7 @@ public class CheckCastAndInstanceOfMethodSpecialization implements Action {
       converter.markProcessed(code, feedback);
       // Fixup method optimization info (the method no longer returns a constant).
       feedback.unsetAbstractReturnValue(parentMethod.getDefinition());
+      feedback.unsetClassInlinerMethodConstraint(parentMethod);
     } else {
       return;
     }
