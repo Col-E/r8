@@ -98,6 +98,7 @@ import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
+import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
@@ -678,6 +679,8 @@ public class IRConverter {
 
     printPhase("Primary optimization pass");
 
+    // Setup the argument propagator for the primary optimization pass.
+    appView.withArgumentPropagator(ArgumentPropagator::initializeCodeScanner);
     appView.withCallSiteOptimizationInfoPropagator(
         optimization -> {
           optimization.abandonCallSitePropagationForLambdaImplementationMethods(
@@ -723,10 +726,19 @@ public class IRConverter {
     // Assure that no more optimization feedback left after primary processing.
     assert feedback.noUpdatesLeft();
     appView.setAllCodeProcessed();
+
     // All the code has been processed so the rewriting required by the lenses is done everywhere,
     // we clear lens code rewriting so that the lens rewriter can be re-executed in phase 2 if new
     // lenses with code rewriting are added.
     appView.clearCodeRewritings();
+
+    // Analyze the data collected by the argument propagator, use the analysis result to update
+    // the parameter optimization infos, and rewrite the application.
+    appView.withArgumentPropagator(
+        argumentPropagator -> {
+          argumentPropagator.populateParameterOptimizationInfo();
+          argumentPropagator.optimizeMethodParameters(postMethodProcessorBuilder);
+        });
 
     if (libraryMethodOverrideAnalysis != null) {
       libraryMethodOverrideAnalysis.finish();
@@ -1612,6 +1624,8 @@ public class IRConverter {
       MethodProcessor methodProcessor,
       MutableMethodConversionOptions conversionOptions,
       Timing timing) {
+    appView.withArgumentPropagator(
+        argumentPropagator -> argumentPropagator.scan(method, code, methodProcessor));
 
     if (enumUnboxer != null && methodProcessor.isPrimaryMethodProcessor()) {
       enumUnboxer.analyzeEnums(code, conversionOptions);

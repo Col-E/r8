@@ -1247,6 +1247,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return enableConstantPropagation || enableTypePropagation;
     }
 
+    public boolean isExperimentalArgumentPropagationEnabled() {
+      return false;
+    }
+
     public boolean isConstantPropagationEnabled() {
       return enableConstantPropagation;
     }
