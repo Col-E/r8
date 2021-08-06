@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverterEventConsumer.DesugaredLibraryAPIConverterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
@@ -24,12 +23,16 @@ import java.util.concurrent.ExecutionException;
  */
 public abstract class CfPostProcessingDesugaringEventConsumer
     implements DesugaredLibraryRetargeterPostProcessingEventConsumer,
-        InterfaceProcessingDesugaringEventConsumer,
-        DesugaredLibraryAPIConverterPostProcessingEventConsumer {
+        InterfaceProcessingDesugaringEventConsumer {
+  protected DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
+
+  protected CfPostProcessingDesugaringEventConsumer(AppView<?> appView) {
+    this.desugaredLibraryAPIConverter = new DesugaredLibraryAPIConverter(appView, null);
+  }
 
   public static D8CfPostProcessingDesugaringEventConsumer createForD8(
-      D8MethodProcessor methodProcessor) {
-    return new D8CfPostProcessingDesugaringEventConsumer(methodProcessor);
+      D8MethodProcessor methodProcessor, AppView<?> appView) {
+    return new D8CfPostProcessingDesugaringEventConsumer(methodProcessor, appView);
   }
 
   public static R8PostProcessingDesugaringEventConsumer createForR8(
@@ -46,7 +49,9 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     // concurrently processing other methods.
     private final ProgramMethodSet methodsToReprocess = ProgramMethodSet.createConcurrent();
 
-    private D8CfPostProcessingDesugaringEventConsumer(D8MethodProcessor methodProcessor) {
+    private D8CfPostProcessingDesugaringEventConsumer(
+        D8MethodProcessor methodProcessor, AppView<?> appView) {
+      super(appView);
       this.methodProcessor = methodProcessor;
     }
 
@@ -87,24 +92,15 @@ public abstract class CfPostProcessingDesugaringEventConsumer
       methodProcessor.scheduleDesugaredMethodsForProcessing(methodsToReprocess);
       methodProcessor.awaitMethodProcessing();
     }
-
-    @Override
-    public void acceptAPIConversionCallback(ProgramMethod method) {
-      methodProcessor.scheduleDesugaredMethodForProcessing(method);
-    }
   }
 
   public static class R8PostProcessingDesugaringEventConsumer
       extends CfPostProcessingDesugaringEventConsumer {
     private final SyntheticAdditions additions;
 
-    // The desugaredLibraryAPIConverter is required here because call-backs need to be generated
-    // once forwarding methods are generated. We should be able to remove it once the interface
-    // method desugaring and the API converter are moved cf to cf in R8.
-    private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
-
-    R8PostProcessingDesugaringEventConsumer(AppView<?> appView, SyntheticAdditions additions) {
-      this.desugaredLibraryAPIConverter = new DesugaredLibraryAPIConverter(appView, null);
+    protected R8PostProcessingDesugaringEventConsumer(
+        AppView<?> appView, SyntheticAdditions additions) {
+      super(appView);
       this.additions = additions;
     }
 
@@ -131,7 +127,10 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     @Override
     public void acceptForwardingMethod(ProgramMethod method) {
       additions.addLiveMethod(method);
-      desugaredLibraryAPIConverter.generateCallbackIfRequired(method, this);
+      ProgramMethod callback = desugaredLibraryAPIConverter.generateCallbackIfRequired(method);
+      if (callback != null) {
+        additions.addLiveMethod(callback);
+      }
     }
 
     @Override
@@ -142,11 +141,6 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     @Override
     public void acceptEmulatedInterfaceMethod(ProgramMethod method) {
       assert false : "TODO(b/183998768): Support Interface processing in R8";
-    }
-
-    @Override
-    public void acceptAPIConversionCallback(ProgramMethod method) {
-      additions.addLiveMethod(method);
     }
   }
 }

@@ -150,7 +150,6 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
               .setCode(
                   methodSig ->
                       new EmulateInterfaceSyntheticCfCodeProvider(
-                              methodSig.getHolderType(),
                               emulatedDispatchMethod.getHolderType(),
                               desugarMethod,
                               itfMethod,

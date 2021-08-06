@@ -4,7 +4,6 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterPostProcessor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
@@ -48,24 +47,16 @@ public abstract class CfPostProcessingDesugaringCollection {
         AppView<?> appView,
         InterfaceMethodProcessorFacade interfaceMethodProcessorFacade,
         RetargetingInfo retargetingInfo) {
+      if (appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()
+          && interfaceMethodProcessorFacade == null) {
+        return empty();
+      }
       ArrayList<CfPostProcessingDesugaring> desugarings = new ArrayList<>();
       if (!appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
         desugarings.add(new DesugaredLibraryRetargeterPostProcessor(appView, retargetingInfo));
       }
       if (interfaceMethodProcessorFacade != null) {
         desugarings.add(interfaceMethodProcessorFacade);
-      }
-      DesugaredLibraryAPIConverter desugaredLibraryAPIConverter =
-          appView.rewritePrefix.isRewriting() && !appView.enableWholeProgramOptimizations()
-              ? new DesugaredLibraryAPIConverter(appView, null)
-              : null;
-      // At this point the desugaredLibraryAPIConverter is required to be last to generate
-      // call-backs on the forwarding methods.
-      if (desugaredLibraryAPIConverter != null) {
-        desugarings.add(desugaredLibraryAPIConverter);
-      }
-      if (desugarings.isEmpty()) {
-        return empty();
       }
       return new NonEmptyCfPostProcessingDesugaringCollection(desugarings);
     }
