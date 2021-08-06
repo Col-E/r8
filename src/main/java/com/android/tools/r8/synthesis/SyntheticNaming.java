@@ -51,7 +51,9 @@ public class SyntheticNaming {
     THROW_NSME("ThrowNSME", 16, true),
     TWR_CLOSE_RESOURCE("TwrCloseResource", 17, true),
     SERVICE_LOADER("ServiceLoad", 18, true),
-    OUTLINE("Outline", 19, true);
+    OUTLINE("Outline", 19, true),
+    API_CONVERSION("APIConversion", 26, true),
+    API_CONVERSION_PARAMETERS("APIConversionParameters", 28, true);
 
     static {
       assert verifyNoOverlappingIds();

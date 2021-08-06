@@ -96,7 +96,6 @@ import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
-import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.position.MethodPosition;
@@ -228,8 +227,7 @@ public class IRConverter {
       this.instructionDesugaring = CfInstructionDesugaringCollection.create(appView);
       this.classDesugaring = instructionDesugaring.createClassDesugaringCollection();
       this.interfaceMethodRewriter = null;
-      this.desugaredLibraryAPIConverter =
-          new DesugaredLibraryAPIConverter(appView, Mode.GENERATE_CALLBACKS_AND_WRAPPERS);
+      this.desugaredLibraryAPIConverter = null;
       this.covariantReturnTypeAnnotationTransformer = null;
       this.dynamicTypeOptimization = null;
       this.classInliner = null;
@@ -321,10 +319,7 @@ public class IRConverter {
       this.identifierNameStringMarker = null;
       this.devirtualizer = null;
       this.typeChecker = null;
-      this.desugaredLibraryAPIConverter =
-          appView.rewritePrefix.isRewriting()
-              ? new DesugaredLibraryAPIConverter(appView, Mode.GENERATE_CALLBACKS_AND_WRAPPERS)
-              : null;
+      this.desugaredLibraryAPIConverter = null;
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
       this.enumValueOptimizer = null;
@@ -363,6 +358,13 @@ public class IRConverter {
   private void clearNestAttributes() {
     instructionDesugaring.withD8NestBasedAccessDesugaring(
         D8NestBasedAccessDesugaring::clearNestAttributes);
+  }
+
+  public void ensureWrappersForL8(
+      D8CfInstructionDesugaringEventConsumer instructionDesugaringEventConsumer) {
+    assert appView.options().isDesugaredLibraryCompilation();
+    instructionDesugaring.withDesugaredLibraryAPIConverter(
+        converter -> converter.ensureWrappersForL8(instructionDesugaringEventConsumer));
   }
 
   private void staticizeClasses(
@@ -430,7 +432,6 @@ public class IRConverter {
       new EmulatedInterfaceApplicationRewriter(appView).rewriteApplication(builder);
     }
     processCovariantReturnTypeAnnotations(builder);
-    generateDesugaredLibraryAPIWrappers(builder, executor);
 
     timing.end();
 
@@ -457,13 +458,14 @@ public class IRConverter {
       D8MethodProcessor methodProcessor, ExecutorService executorService)
       throws ExecutionException {
     D8CfPostProcessingDesugaringEventConsumer eventConsumer =
-        CfPostProcessingDesugaringEventConsumer.createForD8(methodProcessor, appView);
+        CfPostProcessingDesugaringEventConsumer.createForD8(methodProcessor);
     methodProcessor.newWave();
     InterfaceMethodProcessorFacade interfaceDesugaring =
         instructionDesugaring.getInterfaceMethodPostProcessingDesugaring(ExcludeDexResources);
     CfPostProcessingDesugaringCollection.create(
             appView, interfaceDesugaring, instructionDesugaring.getRetargetingInfo())
         .postProcessingDesugaring(eventConsumer, executorService);
+    methodProcessor.awaitMethodProcessing();
     eventConsumer.finalizeDesugaring();
   }
 
@@ -481,6 +483,9 @@ public class IRConverter {
 
     rewriteEnclosingLambdaMethodAttributes(
         appView, classConverterResult.getForcefullyMovedLambdaMethods());
+
+    instructionDesugaring.withDesugaredLibraryAPIConverter(
+        DesugaredLibraryAPIConverter::generateTrackingWarnings);
   }
 
   public void desugarClassesForD8(
@@ -589,32 +594,14 @@ public class IRConverter {
     }
   }
 
-  private boolean needsIRConversion(ProgramMethod method) {
+  private boolean needsIRConversion() {
     if (appView.enableWholeProgramOptimizations()) {
       return true;
     }
     if (options.testing.forceIRForCfToCfDesugar) {
       return true;
     }
-    if (options.isDesugaredLibraryCompilation()) {
-      return true;
-    }
-    if (!options.cfToCfDesugar) {
-      return true;
-    }
-    if (desugaredLibraryAPIConverter != null
-        && desugaredLibraryAPIConverter.shouldRegisterCallback(method)) {
-      return true;
-    }
-    if (method.getDefinition().getCode() instanceof SynthesizedCode) {
-      // SynthesizedCode needs IR to generate the code.
-      return true;
-    } else {
-      NeedsIRDesugarUseRegistry useRegistry =
-          new NeedsIRDesugarUseRegistry(method, appView, desugaredLibraryAPIConverter);
-      method.registerCodeReferences(useRegistry);
-      return useRegistry.needsDesugaring();
-    }
+    return !options.cfToCfDesugar;
   }
 
   private void checkPrefixMerging(ProgramMethod method) {
@@ -818,9 +805,6 @@ public class IRConverter {
     runInterfaceDesugaringProcessorsForR8(IncludeAllResources, executorService);
     feedback.updateVisibleOptimizationInfo();
 
-    printPhase("Desugared library API Conversion finalization");
-    generateDesugaredLibraryAPIWrappers(builder, executorService);
-
     if (serviceLoaderRewriter != null) {
       processSynthesizedServiceLoaderMethods(
           serviceLoaderRewriter.getServiceLoadMethods(), executorService);
@@ -982,14 +966,6 @@ public class IRConverter {
     assert code != null;
     codeRewriter.rewriteMoveResult(code);
     removeDeadCodeAndFinalizeIR(code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
-  }
-
-  private void generateDesugaredLibraryAPIWrappers(
-      DexApplication.Builder<?> builder, ExecutorService executorService)
-      throws ExecutionException {
-    if (desugaredLibraryAPIConverter != null) {
-      desugaredLibraryAPIConverter.finalizeWrappers(builder, this, executorService);
-    }
   }
 
   private void clearDexMethodCompilationState() {
@@ -1159,7 +1135,7 @@ public class IRConverter {
       options.testing.hookInIrConversion.run();
     }
 
-    if (!needsIRConversion(method) || options.skipIR) {
+    if (!needsIRConversion() || options.skipIR) {
       feedback.markProcessed(method.getDefinition(), ConstraintWithTarget.NEVER);
       return Timing.empty();
     }
@@ -1511,10 +1487,9 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after interface method rewriting (SSA)", previous);
 
-    // This pass has to be after interfaceMethodRewriter and BackportedMethodRewriter.
     if (desugaredLibraryAPIConverter != null
-        && (!appView.enableWholeProgramOptimizations()
-            || methodProcessor.isPrimaryMethodProcessor())) {
+        && appView.enableWholeProgramOptimizations()
+        && methodProcessor.isPrimaryMethodProcessor()) {
       timing.begin("Desugar library API");
       desugaredLibraryAPIConverter.desugar(code);
       timing.end();
