@@ -199,6 +199,7 @@ public class CfBuilder {
         Instruction throwing = instructions.removeLast();
         assert throwing.isThrow();
         UninitializedThisLocalRead read = new UninitializedThisLocalRead(code.getThis());
+        read.setPosition(throwing.getPosition());
         uninitializedThisLocalReads.add(read);
         read.setBlock(exitBlock);
         instructions.addLast(read);
