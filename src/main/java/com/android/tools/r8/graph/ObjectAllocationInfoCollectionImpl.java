@@ -39,6 +39,9 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
   /** Instantiated classes without contexts. */
   final Set<DexProgramClass> classesWithoutAllocationSiteTracking = Sets.newIdentityHashSet();
 
+  /** Set of annotation types for which the subtype hierarchy is unknown from that type. */
+  final Set<DexProgramClass> annotationsWithUnknownSubtypeHierarchy = Sets.newIdentityHashSet();
+
   /**
    * Set of interface types for which the subtype hierarchy is unknown from that type.
    *
@@ -103,7 +106,8 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
     if (!clazz.isInterface()) {
       return false;
     }
-    return interfacesWithUnknownSubtypeHierarchy.contains(clazz)
+    return annotationsWithUnknownSubtypeHierarchy.contains(clazz)
+        || interfacesWithUnknownSubtypeHierarchy.contains(clazz)
         || isImmediateInterfaceOfInstantiatedLambda(clazz);
   }
 
@@ -227,6 +231,8 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
         .removeIf(entry -> removedClasses.contains(entry.getKey().getType()));
     classesWithoutAllocationSiteTracking.removeIf(
         clazz -> removedClasses.contains(clazz.getType()));
+    annotationsWithUnknownSubtypeHierarchy.removeIf(
+        annotation -> removedClasses.contains(annotation.getType()));
     boolean removed =
         interfacesWithUnknownSubtypeHierarchy.removeIf(
             iface -> removedClasses.contains(iface.getType()));
@@ -241,6 +247,9 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
     }
     for (DexProgramClass clazz : classesWithoutAllocationSiteTracking) {
       assert liveTypes.contains(clazz.getType());
+    }
+    for (DexProgramClass annotation : annotationsWithUnknownSubtypeHierarchy) {
+      assert liveTypes.contains(annotation.getType());
     }
     for (DexProgramClass iface : interfacesWithUnknownSubtypeHierarchy) {
       assert liveTypes.contains(iface.getType());
@@ -334,6 +343,16 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
         Set<DexEncodedMethod> allocationSitesForClass =
             classesWithAllocationSiteTracking.remove(clazz);
         return allocationSitesForClass == null;
+      }
+      return false;
+    }
+
+    public boolean recordInstantiatedAnnotation(DexProgramClass annotation, AppInfo appInfo) {
+      assert annotation.isInterface();
+      assert annotation.isAnnotation();
+      if (annotationsWithUnknownSubtypeHierarchy.add(annotation)) {
+        populateInstantiatedHierarchy(appInfo, annotation);
+        return true;
       }
       return false;
     }

@@ -609,8 +609,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   @Override
   public boolean isRepackagingEnabled() {
-    return proguardConfiguration.getPackageObfuscationMode().isSome()
-        && (isMinifying() || testing.repackageWithNoMinification);
+    return proguardConfiguration.getPackageObfuscationMode().isSome() && isMinifying();
   }
 
   @Override
@@ -1548,7 +1547,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // TODO(b/177333791): Set to true
     public boolean checkForNotExpandingMainDexTracingResult = false;
     public Set<String> allowedUnusedDontWarnPatterns = new HashSet<>();
-    public boolean repackageWithNoMinification = false;
     public boolean enableTestAssertions =
         System.getProperty("com.android.tools.r8.enableTestAssertions") != null;
     public boolean testEnableTestAssertions = false;

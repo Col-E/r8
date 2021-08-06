@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramDefinition;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
@@ -91,8 +92,6 @@ public final class ClassAndMemberPublicizer {
 
   private void doPublicize(ProgramDefinition definition) {
     definition.getAccessFlags().promoteToPublic();
-    keepInfo.mutate(
-        keepInfo -> keepInfo.unsetRequireAllowAccessModificationForRepackaging(definition));
   }
 
   private void publicizeType(DexType type) {
@@ -107,21 +106,7 @@ public final class ClassAndMemberPublicizer {
     doPublicize(clazz);
 
     // Publicize fields.
-    clazz.forEachProgramField(
-        field -> {
-          DexEncodedField definition = field.getDefinition();
-          if (definition.isPublic()) {
-            return;
-          }
-          if (!appView.appInfo().isAccessModificationAllowed(field.getReference())) {
-            // TODO(b/131130038): Also do not publicize package-private and protected fields that
-            //  are kept.
-            if (definition.isPrivate()) {
-              return;
-            }
-          }
-          doPublicize(field);
-        });
+    clazz.forEachProgramField(this::publicizeField);
 
     // Publicize methods.
     Set<DexEncodedMethod> privateInstanceMethods = new LinkedHashSet<>();
@@ -143,6 +128,21 @@ public final class ClassAndMemberPublicizer {
           new InnerClassAttribute(
               accessFlags, attr.getInner(), attr.getOuter(), attr.getInnerName()));
     }
+  }
+
+  private void publicizeField(ProgramField field) {
+    DexEncodedField definition = field.getDefinition();
+    if (definition.isPublic()) {
+      return;
+    }
+    if (!appView.appInfo().isAccessModificationAllowed(field.getReference())) {
+      // TODO(b/131130038): Also do not publicize package-private and protected fields that
+      //  are kept.
+      if (definition.isPrivate()) {
+        return;
+      }
+    }
+    doPublicize(field);
   }
 
   private boolean publicizeMethod(ProgramMethod method) {

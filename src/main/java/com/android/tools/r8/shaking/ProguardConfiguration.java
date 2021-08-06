@@ -124,6 +124,10 @@ public class ProguardConfiguration {
       return this;
     }
 
+    boolean isAccessModificationEnabled() {
+      return allowAccessModification;
+    }
+
     boolean isObfuscating() {
       return obfuscating;
     }
@@ -380,14 +384,15 @@ public class ProguardConfiguration {
       }
       // If either of the flags -dontshrink or -dontobfuscate, or shrinking or minification is
       // turned off through the API, then add a match all rule which will apply that.
-      if (!isShrinking() || !isObfuscating()) {
+      if (!isObfuscating() || !isOptimizing() || !isShrinking()) {
         ProguardKeepRule rule =
             ProguardKeepRule.defaultKeepAllRule(
                 modifiers -> {
-                  modifiers.setAllowsShrinking(isShrinking());
-                  // TODO(b/189807246): This should be removed.
-                  modifiers.setAllowsOptimization(true);
-                  modifiers.setAllowsObfuscation(isObfuscating());
+                  modifiers
+                      .setAllowsAccessModification(isAccessModificationEnabled())
+                      .setAllowsObfuscation(isObfuscating())
+                      .setAllowsOptimization(isOptimizing())
+                      .setAllowsShrinking(isShrinking());
 
                   // In non-compatibility mode, adding -dontoptimize does not cause all annotations
                   // to be retained.

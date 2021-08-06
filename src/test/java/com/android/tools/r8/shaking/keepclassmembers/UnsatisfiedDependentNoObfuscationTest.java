@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.shaking.keepclassmembers;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
@@ -34,8 +34,8 @@ public class UnsatisfiedDependentNoObfuscationTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepRules(
-            // TODO(b/192636793): This rule should not have any impact on the compilation, since
-            //  GreeterConsumer is dead.
+            // This rule should not have any impact on the compilation, since GreeterConsumer is
+            // dead.
             "-keepclassmembers,includedescriptorclasses class "
                 + GreeterConsumer.class.getTypeName()
                 + " {",
@@ -44,11 +44,7 @@ public class UnsatisfiedDependentNoObfuscationTest extends TestBase {
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspect(
-            inspector -> {
-              // TODO(b/192636793): This should be renamed.
-              assertThat(inspector.clazz(Greeter.class), isPresentAndNotRenamed());
-            })
+        .inspect(inspector -> assertThat(inspector.clazz(Greeter.class), isPresentAndRenamed()))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello");
   }

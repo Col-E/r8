@@ -30,6 +30,7 @@ import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.ClassDefinition;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.ClasspathOrLibraryDefinition;
+import com.android.tools.r8.graph.Definition;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -73,7 +74,6 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramDerivedContext;
 import com.android.tools.r8.graph.ProgramField;
-import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.FailedResolutionResult;
@@ -122,8 +122,8 @@ import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.shaking.KeepInfoCollection.MutableKeepInfoCollection;
 import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSetBuilder;
-import com.android.tools.r8.shaking.RootSetUtils.ItemsWithRules;
 import com.android.tools.r8.shaking.RootSetUtils.RootSet;
+import com.android.tools.r8.shaking.RootSetUtils.RootSetBase;
 import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.synthesis.SyntheticItems.SynthesizingContextOracle;
@@ -792,28 +792,43 @@ public class Enqueuer {
     }
   }
 
-  private void enqueueRootItems(ItemsWithRules items) {
-    items.forEachField(this::enqueueRootField);
-    items.forEachMethod(this::enqueueRootMethod);
-    items.forEachClass(this::enqueueRootClass);
-  }
-
-  // TODO(b/123923324): Verify that root items are present.
-  private void enqueueRootClass(DexType type, Set<ProguardKeepRuleBase> rules) {
-    DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
-    if (clazz != null) {
-      enqueueRootClass(clazz, rules);
+  private void enqueueAllIfNotShrinking() {
+    if (appView.options().isShrinking()) {
+      return;
+    }
+    // Add everything if we are not shrinking.
+    assert appView.options().getProguardConfiguration().getKeepAllRule() != null;
+    ProguardKeepRuleBase keepAllRule =
+        appView.options().getProguardConfiguration().getKeepAllRule();
+    KeepClassInfo.Joiner keepClassInfo =
+        KeepClassInfo.newEmptyJoiner().addRule(keepAllRule).disallowShrinking();
+    KeepFieldInfo.Joiner keepFieldInfo =
+        KeepFieldInfo.newEmptyJoiner().addRule(keepAllRule).disallowShrinking();
+    KeepMethodInfo.Joiner keepMethodInfo =
+        KeepMethodInfo.newEmptyJoiner().addRule(keepAllRule).disallowShrinking();
+    EnqueuerEvent preconditionEvent = UnconditionalKeepInfoEvent.get();
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      if (appView.getSyntheticItems().isSyntheticClass(clazz)
+          && !appView.getSyntheticItems().isSubjectToKeepRules(clazz)) {
+        // Don't treat compiler synthesized classes as kept roots.
+        continue;
+      }
+      enqueueClassDueToNoShrinkingRule(clazz, keepClassInfo, preconditionEvent);
+      clazz.forEachProgramField(
+          field -> enqueueFieldDueToNoShrinkingRule(field, keepFieldInfo, preconditionEvent));
+      clazz.forEachProgramMethod(
+          method -> enqueueMethodDueToNoShrinkingRule(method, keepMethodInfo, preconditionEvent));
     }
   }
 
-  private void enqueueRootClass(DexProgramClass clazz, Set<ProguardKeepRuleBase> rules) {
-    enqueueRootClass(clazz, rules, null);
-  }
-
-  private void enqueueRootClass(
-      DexProgramClass clazz, Set<ProguardKeepRuleBase> rules, DexDefinition precondition) {
-    keepClassWithRules(clazz, rules);
-    enqueueKeepRuleInstantiatedType(clazz, rules, precondition);
+  private void enqueueClassDueToNoShrinkingRule(
+      DexProgramClass clazz,
+      KeepClassInfo.Joiner minimumKeepInfo,
+      EnqueuerEvent preconditionEvent) {
+    assert !minimumKeepInfo.isShrinkingAllowed();
+    assert !minimumKeepInfo.getRules().isEmpty();
+    DexDefinition precondition = preconditionEvent.getDefinition(appInfo());
+    enqueueKeepRuleInstantiatedType(clazz, minimumKeepInfo.getRules(), precondition);
   }
 
   private void enqueueKeepRuleInstantiatedType(
@@ -839,63 +854,28 @@ public class Enqueuer {
     }
   }
 
-  // TODO(b/123923324): Verify that root items are present.
-  private void enqueueRootField(DexField reference, Set<ProguardKeepRuleBase> rules) {
-    DexProgramClass holder =
-        asProgramClassOrNull(appInfo().definitionFor(reference.getHolderType()));
-    if (holder != null) {
-      ProgramField field = holder.lookupProgramField(reference);
-      if (field != null) {
-        enqueueRootField(field, rules);
-      }
-    }
-  }
-
-  private void enqueueRootField(ProgramField field, Set<ProguardKeepRuleBase> rules) {
-    enqueueRootField(field, rules, null);
-  }
-
-  private void enqueueRootField(
-      ProgramField field, Set<ProguardKeepRuleBase> rules, DexDefinition precondition) {
-    keepFieldWithRules(field, rules);
+  private void enqueueFieldDueToNoShrinkingRule(
+      ProgramField field, KeepFieldInfo.Joiner minimumKeepInfo, EnqueuerEvent preconditionEvent) {
+    assert !minimumKeepInfo.isShrinkingAllowed();
+    assert !minimumKeepInfo.getRules().isEmpty();
+    DexDefinition precondition = preconditionEvent.getDefinition(appInfo());
     workList.enqueueMarkFieldKeptAction(
-        field, graphReporter.reportKeepField(precondition, rules, field.getDefinition()));
+        field,
+        graphReporter.reportKeepField(
+            precondition, minimumKeepInfo.getRules(), field.getDefinition()));
   }
 
-  // TODO(b/123923324): Verify that root items are present.
-  private void enqueueRootMethod(DexMethod reference, Set<ProguardKeepRuleBase> rules) {
-    DexProgramClass holder =
-        asProgramClassOrNull(appInfo().definitionFor(reference.getHolderType()));
-    if (holder != null) {
-      ProgramMethod method = holder.lookupProgramMethod(reference);
-      if (method != null) {
-        enqueueRootMethod(method, rules, null);
-      }
-    }
-  }
-
-  private void enqueueRootMethod(ProgramMethod method, Set<ProguardKeepRuleBase> rules) {
-    enqueueRootMethod(method, rules, null);
-  }
-
-  private void enqueueRootMethod(
-      ProgramMethod method, Set<ProguardKeepRuleBase> rules, DexDefinition precondition) {
-    keepMethodWithRules(method, rules);
+  private void enqueueMethodDueToNoShrinkingRule(
+      ProgramMethod method,
+      KeepMethodInfo.Joiner minimumKeepInfo,
+      EnqueuerEvent preconditionEvent) {
+    assert !minimumKeepInfo.isShrinkingAllowed();
+    assert !minimumKeepInfo.getRules().isEmpty();
+    DexDefinition precondition = preconditionEvent.getDefinition(appInfo());
     workList.enqueueMarkMethodKeptAction(
-        method, graphReporter.reportKeepMethod(precondition, rules, method.getDefinition()));
-  }
-
-  private void internalEnqueueRootItem(
-      ProgramDefinition item, Set<ProguardKeepRuleBase> rules, DexDefinition precondition) {
-    if (item.isProgramClass()) {
-      enqueueRootClass(item.asProgramClass(), rules, precondition);
-    } else if (item.isProgramField()) {
-      enqueueRootField(item.asProgramField(), rules, precondition);
-    } else if (item.isProgramMethod()) {
-      enqueueRootMethod(item.asProgramMethod(), rules, precondition);
-    } else {
-      throw new IllegalArgumentException(item.toString());
-    }
+        method,
+        graphReporter.reportKeepMethod(
+            precondition, minimumKeepInfo.getRules(), method.getDefinition()));
   }
 
   private void enqueueFirstNonSerializableClassInitializer(
@@ -1861,9 +1841,6 @@ public class Enqueuer {
           clazz, deferredParameterAnnotations, annotatedItem -> AnnotatedKind.PARAMETER);
     }
 
-    rootSet.forEachDependentInstanceConstructor(
-        clazz, appView, this::enqueueHolderWithDependentInstanceConstructor);
-    rootSet.forEachDependentStaticMember(clazz, appView, this::enqueueDependentMember);
     compatEnqueueHolderIfDependentNonStaticMember(
         clazz, rootSet.getDependentKeepClassCompatRule(clazz.getType()));
 
@@ -1954,13 +1931,6 @@ public class Enqueuer {
         }
       }
     }
-  }
-
-  private void enqueueDependentMember(
-      DexDefinition precondition,
-      ProgramMember<?, ?> consequent,
-      Set<ProguardKeepRuleBase> reasons) {
-    internalEnqueueRootItem(consequent, reasons, precondition);
   }
 
   private void enqueueHolderWithDependentInstanceConstructor(
@@ -2400,6 +2370,9 @@ public class Enqueuer {
 
   void markAnnotationAsInstantiated(DexProgramClass clazz, KeepReasonWitness witness) {
     assert clazz.isAnnotation();
+    if (!objectAllocationInfoCollection.recordInstantiatedAnnotation(clazz, appInfo)) {
+      return;
+    }
     markTypeAsLive(clazz, witness);
     transitionDependentItemsForInstantiatedInterface(clazz);
   }
@@ -2650,7 +2623,6 @@ public class Enqueuer {
     } else {
       do {
         // Handle keep rules that are dependent on the class being instantiated.
-        rootSet.forEachDependentNonStaticMember(clazz, appView, this::enqueueDependentMember);
         applyMinimumKeepInfoDependentOn(new InstantiatedClassEnqueuerEvent(clazz));
 
         for (DexType interfaceType : clazz.getInterfaces()) {
@@ -2671,8 +2643,6 @@ public class Enqueuer {
 
     while (interfacesToTransition.hasNext()) {
       DexProgramClass interfaceClass = interfacesToTransition.next();
-      rootSet.forEachDependentNonStaticMember(
-          interfaceClass, appView, this::enqueueDependentMember);
       applyMinimumKeepInfoDependentOn(new InstantiatedClassEnqueuerEvent(interfaceClass));
 
       for (DexType indirectInterfaceType : interfaceClass.getInterfaces()) {
@@ -2723,9 +2693,6 @@ public class Enqueuer {
 
     // Update keep info.
     applyMinimumKeepInfo(field);
-
-    // Add all dependent members to the workqueue.
-    enqueueRootItems(rootSet.getDependentItems(field.getDefinition()));
 
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processNewlyLiveField(field, context));
@@ -2797,6 +2764,10 @@ public class Enqueuer {
     return info != null;
   }
 
+  public boolean isFieldReferenced(ProgramField field) {
+    return isFieldReferenced(field.getDefinition());
+  }
+
   public boolean isFieldLive(ProgramField field) {
     return liveFields.contains(field);
   }
@@ -2859,6 +2830,10 @@ public class Enqueuer {
     return liveMethods.contains(method);
   }
 
+  public boolean isMethodLive(ProgramMethod method) {
+    return isMethodLive(method.getDefinition());
+  }
+
   public boolean isMethodTargeted(DexEncodedMethod method) {
     return targetedMethods.contains(method);
   }
@@ -2880,6 +2855,29 @@ public class Enqueuer {
   public boolean isNonProgramTypeLive(DexClass clazz) {
     assert !clazz.isProgramClass();
     return liveNonProgramTypes.contains(clazz);
+  }
+
+  public boolean isReachable(Definition definition) {
+    assert definition != null;
+
+    if (definition.isClass()) {
+      return isTypeLive(definition.asClass());
+    }
+
+    assert definition.isMember();
+
+    if (definition.getContextClass().isProgramClass()) {
+      if (definition.isField()) {
+        ProgramField field = definition.asProgramField();
+        return isFieldLive(field) || isFieldReferenced(field);
+      } else {
+        assert definition.isMethod();
+        ProgramMethod method = definition.asProgramMethod();
+        return isMethodLive(method) || isMethodTargeted(method);
+      }
+    }
+
+    return isNonProgramTypeLive(definition.getContextClass());
   }
 
   public void forAllLiveClasses(Consumer<DexProgramClass> consumer) {
@@ -3086,7 +3084,7 @@ public class Enqueuer {
     assert mode.isMainDexTracing();
     this.rootSet = appView.getMainDexRootSet();
     // Translate the result of root-set computation into enqueuer actions.
-    enqueueRootItems(rootSet.noShrinking);
+    includeMinimumKeepInfo(rootSet);
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
     // Calculate the automatic main dex list according to legacy multidex constraints.
@@ -3123,43 +3121,27 @@ public class Enqueuer {
     }
 
     // Transfer the minimum keep info from the root set into the Enqueuer state.
-    rootSet.forEachMinimumKeepInfo(
-        appView,
-        this::recordDependentMinimumKeepInfo,
-        this::recordDependentMinimumKeepInfo,
-        this::recordDependentMinimumKeepInfo);
+    includeMinimumKeepInfo(rootSet);
 
     if (mode.isInitialTreeShaking()) {
       // This is simulating the effect of the "root set" applied rules.
       // This is done only in the initial pass, in subsequent passes the "rules" are reapplied
       // by iterating the instances.
     } else if (appView.getKeepInfo() != null) {
+      EnqueuerEvent preconditionEvent = UnconditionalKeepInfoEvent.get();
       appView
           .getKeepInfo()
           .forEachRuleInstance(
               appView,
-              this::applyMinimumKeepInfoWhenLive,
-              this::applyMinimumKeepInfoWhenLive,
-              this::applyMinimumKeepInfoWhenLiveOrTargeted);
+              (clazz, minimumKeepInfo) ->
+                  applyMinimumKeepInfoWhenLive(clazz, preconditionEvent, minimumKeepInfo),
+              (field, minimumKeepInfo) ->
+                  applyMinimumKeepInfoWhenLive(field, preconditionEvent, minimumKeepInfo),
+              (method, minimumKeepInfo) ->
+                  applyMinimumKeepInfoWhenLiveOrTargeted(
+                      method, preconditionEvent, minimumKeepInfo));
     }
-    if (appView.options().isShrinking() || appView.options().getProguardConfiguration() == null) {
-      enqueueRootItems(rootSet.noShrinking);
-    } else {
-      // Add everything if we are not shrinking.
-      assert appView.options().getProguardConfiguration().getKeepAllRule() != null;
-      ImmutableSet<ProguardKeepRuleBase> keepAllSet =
-          ImmutableSet.of(appView.options().getProguardConfiguration().getKeepAllRule());
-      for (DexProgramClass clazz : appView.appInfo().classes()) {
-        if (appView.getSyntheticItems().isSyntheticClass(clazz)
-            && !appView.getSyntheticItems().isSubjectToKeepRules(clazz)) {
-          // Don't treat compiler synthesized classes as kept roots.
-          continue;
-        }
-        enqueueRootClass(clazz, keepAllSet);
-        clazz.forEachProgramMethod(method -> enqueueRootMethod(method, keepAllSet));
-        clazz.forEachProgramField(field -> enqueueRootField(field, keepAllSet));
-      }
-    }
+    enqueueAllIfNotShrinking();
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
     finalizeLibraryMethodOverrideInformation();
@@ -3178,19 +3160,31 @@ public class Enqueuer {
     return createEnqueuerResult(appInfo);
   }
 
+  private void includeMinimumKeepInfo(RootSetBase rootSet) {
+    rootSet.forEachMinimumKeepInfo(
+        appView,
+        this::recordDependentMinimumKeepInfo,
+        this::recordDependentMinimumKeepInfo,
+        this::recordDependentMinimumKeepInfo);
+  }
+
   private void applyMinimumKeepInfo(DexProgramClass clazz) {
+    EnqueuerEvent preconditionEvent = UnconditionalKeepInfoEvent.get();
     Map<DexProgramClass, KeepClassInfo.Joiner> minimumKeepClassInfo =
-        dependentMinimumKeepClassInfo.get(UnconditionalKeepInfoEvent.get());
+        dependentMinimumKeepClassInfo.get(preconditionEvent);
     if (minimumKeepClassInfo != null) {
       KeepClassInfo.Joiner minimumKeepInfoForClass = minimumKeepClassInfo.remove(clazz);
       if (minimumKeepInfoForClass != null) {
         keepInfo.joinClass(clazz, info -> info.merge(minimumKeepInfoForClass));
+        enqueueClassIfShrinkingIsDisallowed(clazz, preconditionEvent, minimumKeepInfoForClass);
       }
     }
   }
 
   private void applyMinimumKeepInfoWhenLive(
-      DexProgramClass clazz, KeepClassInfo.Joiner minimumKeepInfo) {
+      DexProgramClass clazz,
+      EnqueuerEvent preconditionEvent,
+      KeepClassInfo.Joiner minimumKeepInfo) {
     if (liveTypes.contains(clazz)) {
       keepInfo.joinClass(clazz, info -> info.merge(minimumKeepInfo));
     } else {
@@ -3199,6 +3193,18 @@ public class Enqueuer {
           .computeIfAbsent(clazz, ignoreKey(KeepClassInfo::newEmptyJoiner))
           .merge(minimumKeepInfo);
     }
+    enqueueClassIfShrinkingIsDisallowed(clazz, preconditionEvent, minimumKeepInfo);
+  }
+
+  private void enqueueClassIfShrinkingIsDisallowed(
+      DexProgramClass clazz,
+      EnqueuerEvent preconditionEvent,
+      KeepClassInfo.Joiner minimumKeepInfo) {
+    if ((options.isShrinking() || mode.isMainDexTracing())
+        && !minimumKeepInfo.isShrinkingAllowed()) {
+      assert !minimumKeepInfo.getRules().isEmpty();
+      enqueueClassDueToNoShrinkingRule(clazz, minimumKeepInfo, preconditionEvent);
+    }
   }
 
   private void recordDependentMinimumKeepInfo(
@@ -3206,28 +3212,33 @@ public class Enqueuer {
       DexProgramClass clazz,
       KeepClassInfo.Joiner minimumKeepInfo) {
     if (isPreconditionForMinimumKeepInfoSatisfied(preconditionEvent)) {
-      applyMinimumKeepInfoWhenLive(clazz, minimumKeepInfo);
+      applyMinimumKeepInfoWhenLive(clazz, preconditionEvent, minimumKeepInfo);
     } else {
       dependentMinimumKeepClassInfo
           .computeIfAbsent(preconditionEvent, ignoreKey(IdentityHashMap::new))
           .computeIfAbsent(clazz, ignoreKey(KeepClassInfo::newEmptyJoiner))
           .merge(minimumKeepInfo);
     }
+    if (preconditionEvent.isUnconditionalKeepInfoEvent()) {
+      enqueueClassIfShrinkingIsDisallowed(clazz, preconditionEvent, minimumKeepInfo);
+    }
   }
 
   private void applyMinimumKeepInfo(ProgramField field) {
+    EnqueuerEvent preconditionEvent = UnconditionalKeepInfoEvent.get();
     ProgramFieldMap<KeepFieldInfo.Joiner> minimumKeepFieldInfo =
-        dependentMinimumKeepFieldInfo.get(UnconditionalKeepInfoEvent.get());
+        dependentMinimumKeepFieldInfo.get(preconditionEvent);
     if (minimumKeepFieldInfo != null) {
       KeepFieldInfo.Joiner minimumKeepInfoForField = minimumKeepFieldInfo.remove(field);
       if (minimumKeepInfoForField != null) {
         keepInfo.joinField(field, info -> info.merge(minimumKeepInfoForField));
+        enqueueFieldIfShrinkingIsDisallowed(field, preconditionEvent, minimumKeepInfoForField);
       }
     }
   }
 
   private void applyMinimumKeepInfoWhenLive(
-      ProgramField field, KeepFieldInfo.Joiner minimumKeepInfo) {
+      ProgramField field, EnqueuerEvent preconditionEvent, KeepFieldInfo.Joiner minimumKeepInfo) {
     if (liveFields.contains(field)) {
       keepInfo.joinField(field, info -> info.merge(minimumKeepInfo));
     } else {
@@ -3236,33 +3247,50 @@ public class Enqueuer {
           .computeIfAbsent(field, ignoreKey(KeepFieldInfo::newEmptyJoiner))
           .merge(minimumKeepInfo);
     }
+    enqueueFieldIfShrinkingIsDisallowed(field, preconditionEvent, minimumKeepInfo);
+  }
+
+  private void enqueueFieldIfShrinkingIsDisallowed(
+      ProgramField field, EnqueuerEvent preconditionEvent, KeepFieldInfo.Joiner minimumKeepInfo) {
+    if ((options.isShrinking() || mode.isMainDexTracing())
+        && !minimumKeepInfo.isShrinkingAllowed()) {
+      assert !minimumKeepInfo.getRules().isEmpty();
+      enqueueFieldDueToNoShrinkingRule(field, minimumKeepInfo, preconditionEvent);
+    }
   }
 
   private void recordDependentMinimumKeepInfo(
       EnqueuerEvent preconditionEvent, ProgramField field, KeepFieldInfo.Joiner minimumKeepInfo) {
     if (isPreconditionForMinimumKeepInfoSatisfied(preconditionEvent)) {
-      applyMinimumKeepInfoWhenLive(field, minimumKeepInfo);
+      applyMinimumKeepInfoWhenLive(field, preconditionEvent, minimumKeepInfo);
     } else {
       dependentMinimumKeepFieldInfo
           .computeIfAbsent(preconditionEvent, ignoreKey(ProgramFieldMap::create))
           .computeIfAbsent(field, ignoreKey(KeepFieldInfo::newEmptyJoiner))
           .merge(minimumKeepInfo);
     }
+    if (preconditionEvent.isUnconditionalKeepInfoEvent()) {
+      enqueueFieldIfShrinkingIsDisallowed(field, preconditionEvent, minimumKeepInfo);
+    }
   }
 
   private void applyMinimumKeepInfo(ProgramMethod method) {
+    EnqueuerEvent preconditionEvent = UnconditionalKeepInfoEvent.get();
     ProgramMethodMap<KeepMethodInfo.Joiner> minimumKeepMethodInfo =
-        dependentMinimumKeepMethodInfo.get(UnconditionalKeepInfoEvent.get());
+        dependentMinimumKeepMethodInfo.get(preconditionEvent);
     if (minimumKeepMethodInfo != null) {
       KeepMethodInfo.Joiner minimumKeepInfoForMethod = minimumKeepMethodInfo.remove(method);
       if (minimumKeepInfoForMethod != null) {
         keepInfo.joinMethod(method, info -> info.merge(minimumKeepInfoForMethod));
+        enqueueMethodIfShrinkingIsDisallowed(method, preconditionEvent, minimumKeepInfoForMethod);
       }
     }
   }
 
   private void applyMinimumKeepInfoWhenLiveOrTargeted(
-      ProgramMethod method, KeepMethodInfo.Joiner minimumKeepInfo) {
+      ProgramMethod method,
+      EnqueuerEvent preconditionEvent,
+      KeepMethodInfo.Joiner minimumKeepInfo) {
     if (liveMethods.contains(method) || targetedMethods.contains(method)) {
       keepInfo.joinMethod(method, info -> info.merge(minimumKeepInfo));
     } else {
@@ -3271,6 +3299,22 @@ public class Enqueuer {
           .computeIfAbsent(method, ignoreKey(KeepMethodInfo::newEmptyJoiner))
           .merge(minimumKeepInfo);
     }
+    enqueueMethodIfShrinkingIsDisallowed(method, preconditionEvent, minimumKeepInfo);
+  }
+
+  private void enqueueMethodIfShrinkingIsDisallowed(
+      ProgramMethod method,
+      EnqueuerEvent preconditionEvent,
+      KeepMethodInfo.Joiner minimumKeepInfo) {
+    if ((options.isShrinking() || mode.isMainDexTracing())
+        && !minimumKeepInfo.isShrinkingAllowed()) {
+      assert !minimumKeepInfo.getRules().isEmpty();
+      enqueueMethodDueToNoShrinkingRule(method, minimumKeepInfo, preconditionEvent);
+
+      if (method.getDefinition().isInstanceInitializer()) {
+        enqueueHolderWithDependentInstanceConstructor(method, minimumKeepInfo.getRules());
+      }
+    }
   }
 
   private void recordDependentMinimumKeepInfo(
@@ -3278,75 +3322,42 @@ public class Enqueuer {
       ProgramMethod method,
       KeepMethodInfo.Joiner minimumKeepInfo) {
     if (isPreconditionForMinimumKeepInfoSatisfied(preconditionEvent)) {
-      applyMinimumKeepInfoWhenLiveOrTargeted(method, minimumKeepInfo);
+      applyMinimumKeepInfoWhenLiveOrTargeted(method, preconditionEvent, minimumKeepInfo);
     } else {
       dependentMinimumKeepMethodInfo
           .computeIfAbsent(preconditionEvent, ignoreKey(ProgramMethodMap::create))
           .computeIfAbsent(method, ignoreKey(KeepMethodInfo::newEmptyJoiner))
           .merge(minimumKeepInfo);
     }
+
+    if (preconditionEvent.isUnconditionalKeepInfoEvent()) {
+      enqueueMethodIfShrinkingIsDisallowed(method, preconditionEvent, minimumKeepInfo);
+    }
   }
 
-  private void applyMinimumKeepInfoDependentOn(EnqueuerEvent precondition) {
+  private void applyMinimumKeepInfoDependentOn(EnqueuerEvent preconditionEvent) {
     Map<DexProgramClass, KeepClassInfo.Joiner> minimumKeepClassInfoDependentOnPrecondition =
-        dependentMinimumKeepClassInfo.remove(precondition);
+        dependentMinimumKeepClassInfo.remove(preconditionEvent);
     if (minimumKeepClassInfoDependentOnPrecondition != null) {
-      minimumKeepClassInfoDependentOnPrecondition.forEach(this::applyMinimumKeepInfoWhenLive);
+      minimumKeepClassInfoDependentOnPrecondition.forEach(
+          (clazz, minimumKeepInfo) ->
+              applyMinimumKeepInfoWhenLive(clazz, preconditionEvent, minimumKeepInfo));
     }
 
     ProgramFieldMap<KeepFieldInfo.Joiner> minimumKeepFieldInfoDependentOnPrecondition =
-        dependentMinimumKeepFieldInfo.remove(precondition);
+        dependentMinimumKeepFieldInfo.remove(preconditionEvent);
     if (minimumKeepFieldInfoDependentOnPrecondition != null) {
-      minimumKeepFieldInfoDependentOnPrecondition.forEach(this::applyMinimumKeepInfoWhenLive);
+      minimumKeepFieldInfoDependentOnPrecondition.forEach(
+          (field, minimumKeepInfo) ->
+              applyMinimumKeepInfoWhenLive(field, preconditionEvent, minimumKeepInfo));
     }
 
     ProgramMethodMap<KeepMethodInfo.Joiner> minimumKeepMethodInfoDependentOnPrecondition =
-        dependentMinimumKeepMethodInfo.remove(precondition);
+        dependentMinimumKeepMethodInfo.remove(preconditionEvent);
     if (minimumKeepMethodInfoDependentOnPrecondition != null) {
       minimumKeepMethodInfoDependentOnPrecondition.forEach(
-          this::applyMinimumKeepInfoWhenLiveOrTargeted);
-    }
-  }
-
-  private void keepClassWithRules(DexProgramClass clazz, Set<ProguardKeepRuleBase> rules) {
-    keepInfo.joinClass(clazz, info -> applyKeepRules(clazz, rules, info));
-  }
-
-  private void keepFieldWithRules(ProgramField field, Set<ProguardKeepRuleBase> rules) {
-    keepInfo.joinField(field, info -> applyKeepRules(field, rules, info));
-  }
-
-  private void keepMethodWithRules(ProgramMethod method, Set<ProguardKeepRuleBase> rules) {
-    keepInfo.joinMethod(method, info -> applyKeepRules(method, rules, info));
-  }
-
-  private void applyKeepRules(
-      ProgramDefinition definition,
-      Set<ProguardKeepRuleBase> rules,
-      KeepInfo.Joiner<?, ?, ?> joiner) {
-    for (ProguardKeepRuleBase rule : rules) {
-      ProguardKeepRuleModifiers modifiers =
-          (rule.isProguardIfRule() ? rule.asProguardIfRule().getSubsequentRule() : rule)
-              .getModifiers();
-      if (!modifiers.allowsShrinking) {
-        // TODO(b/159589281): Evaluate this interpretation.
-        joiner.disallowShrinking();
-        if (definition.getAccessFlags().isPackagePrivateOrProtected()) {
-          joiner.requireAccessModificationForRepackaging();
-        }
-      }
-      if (!modifiers.allowsAccessModification) {
-        joiner.disallowAccessModification();
-      }
-      if (!modifiers.allowsAnnotationRemoval) {
-        joiner.disallowAnnotationRemoval();
-      }
-      if (!modifiers.allowsObfuscation) {
-        joiner.disallowMinification();
-      }
-      if (!modifiers.allowsOptimization) {
-        joiner.disallowOptimization();
-      }
+          (method, minimumKeepInfo) ->
+              applyMinimumKeepInfoWhenLiveOrTargeted(method, preconditionEvent, minimumKeepInfo));
     }
   }
 
@@ -3563,6 +3574,10 @@ public class Enqueuer {
     // Prune the root set items that turned out to be dead.
     // TODO(b/150736225): Pruning of dead root set items is still incomplete.
     rootSet.pruneDeadItems(appView, this);
+    if (mode.isTreeShaking() && appView.hasMainDexRootSet()) {
+      assert rootSet != appView.getMainDexRootSet();
+      appView.getMainDexRootSet().pruneDeadItems(appView, this);
+    }
 
     // Ensure references from all hard coded factory items.
     appView
@@ -3838,7 +3853,7 @@ public class Enqueuer {
                   executorService,
                   activeIfRules,
                   consequentSetBuilder);
-          addConsequentRootSet(ifRuleEvaluator.run(), false);
+          addConsequentRootSet(ifRuleEvaluator.run());
           assert getNumberOfLiveItems() == numberOfLiveItemsAfterProcessing;
           if (!workList.isEmpty()) {
             continue;
@@ -3862,7 +3877,9 @@ public class Enqueuer {
           continue;
         }
 
-        addConsequentRootSet(computeDelayedInterfaceMethodSyntheticBridges(), true);
+        ConsequentRootSet consequentRootSet = computeDelayedInterfaceMethodSyntheticBridges();
+        addConsequentRootSet(consequentRootSet);
+        rootSet.addMinimumKeepRules(consequentRootSet);
         rootSet.delayedRootSetActionItems.clear();
 
         if (!workList.isEmpty()) {
@@ -3934,42 +3951,12 @@ public class Enqueuer {
     return result;
   }
 
-  private void addConsequentRootSet(ConsequentRootSet consequentRootSet, boolean addNoShrinking) {
-    consequentRootSet.forEachClassWithDependentItems(
-        appView,
-        clazz -> {
-          if (isTypeLive(clazz)) {
-            consequentRootSet.forEachDependentInstanceConstructor(
-                clazz, appView, this::enqueueHolderWithDependentInstanceConstructor);
-            consequentRootSet.forEachDependentStaticMember(
-                clazz, appView, this::enqueueDependentMember);
-            if (objectAllocationInfoCollection.isInstantiatedDirectlyOrHasInstantiatedSubtype(
-                clazz)) {
-              consequentRootSet.forEachDependentNonStaticMember(
-                  clazz, appView, this::enqueueDependentMember);
-            }
-            compatEnqueueHolderIfDependentNonStaticMember(
-                clazz, consequentRootSet.getDependentKeepClassCompatRule(clazz.type));
-          }
-        });
-    consequentRootSet.forEachMemberWithDependentItems(
-        appView,
-        (member, dependentItems) -> {
-          if (isMemberLive(member)) {
-            enqueueRootItems(dependentItems);
-          }
-        });
-
-    // TODO(b/132600955): This modifies the root set. Should the consequent be persistent?
-    rootSet.addConsequentRootSet(consequentRootSet, addNoShrinking);
-
-    enqueueRootItems(consequentRootSet.noShrinking);
-
-    consequentRootSet.forEachMinimumKeepInfo(
-        appView,
-        this::recordDependentMinimumKeepInfo,
-        this::recordDependentMinimumKeepInfo,
-        this::recordDependentMinimumKeepInfo);
+  private void addConsequentRootSet(ConsequentRootSet consequentRootSet) {
+    // TODO(b/132600955): This modifies the root set, but the consequent should not be persistent.
+    //  Instead, the consequent root set should be added to collections that are owned by the
+    //  enqueuer, similar to Enqueuer#dependentMinimumKeepClassInfo.
+    rootSet.addConsequentRootSet(consequentRootSet);
+    includeMinimumKeepInfo(consequentRootSet);
 
     // Check for compatibility rules indicating that the holder must be implicitly kept.
     if (forceProguardCompatibility) {
@@ -4002,7 +3989,7 @@ public class Enqueuer {
     ProgramMethod methodToKeep = action.getMethodToKeep();
     ProgramMethod singleTarget = action.getSingleTarget();
     DexEncodedMethod singleTargetMethod = singleTarget.getDefinition();
-    if (rootSet.noShrinking.containsMethod(singleTarget.getReference())) {
+    if (rootSet.isShrinkingDisallowedUnconditionally(singleTarget, options)) {
       return;
     }
     if (methodToKeep != singleTarget
@@ -4175,9 +4162,6 @@ public class Enqueuer {
         markVirtualMethodAsLive(superCallTarget, KeepReason.invokedViaSuperFrom(method));
       }
     }
-
-    // Add all dependent members to the workqueue.
-    enqueueRootItems(rootSet.getDependentItems(definition));
 
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processNewlyLiveMethod(method, context));

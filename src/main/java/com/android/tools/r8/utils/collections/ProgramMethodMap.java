@@ -7,12 +7,15 @@ package com.android.tools.r8.utils.collections;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.ProgramMethodEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 public class ProgramMethodMap<V> extends ProgramMemberMap<ProgramMethod, V> {
+
+  private static final ProgramMethodMap<?> EMPTY = new ProgramMethodMap<>(ImmutableMap::of);
 
   private ProgramMethodMap(Supplier<Map<Wrapper<ProgramMethod>, V>> backingFactory) {
     super(backingFactory);
@@ -24,6 +27,10 @@ public class ProgramMethodMap<V> extends ProgramMemberMap<ProgramMethod, V> {
 
   public static <V> ProgramMethodMap<V> createConcurrent() {
     return new ProgramMethodMap<>(ConcurrentHashMap::new);
+  }
+
+  public static <V> ProgramMethodMap<V> empty() {
+    return (ProgramMethodMap<V>) EMPTY;
   }
 
   @Override

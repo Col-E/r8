@@ -496,6 +496,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.mainDexRootSet = mainDexRootSet;
   }
 
+  public boolean hasMainDexRootSet() {
+    return mainDexRootSet != null;
+  }
+
   public MainDexRootSet getMainDexRootSet() {
     return mainDexRootSet;
   }

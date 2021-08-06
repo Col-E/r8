@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -27,9 +28,9 @@ public class IncludeDescriptorClassesTest extends TestBase {
     this.testParameters = parameters;
   }
 
-  @Parameterized.Parameters(name = "{0}, horizontalClassMerging:{1}")
-  public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimesAndApiLevels().build());
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private class Result {

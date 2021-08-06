@@ -1139,19 +1139,26 @@ public class VerticalClassMerger {
           interfaces.isEmpty()
               ? DexTypeList.empty()
               : new DexTypeList(interfaces.toArray(DexType.EMPTY_ARRAY));
-      // Step 2: replace fields and methods.
+      // Step 2: ensure -if rules cannot target the members that were merged into the target class.
+      directMethods.values().forEach(feedback::markMethodCannotBeKept);
+      virtualMethods.values().forEach(feedback::markMethodCannotBeKept);
+      for (int i = 0; i < source.instanceFields().size(); i++) {
+        feedback.markFieldCannotBeKept(mergedInstanceFields[i]);
+      }
+      for (int i = 0; i < source.staticFields().size(); i++) {
+        feedback.markFieldCannotBeKept(mergedStaticFields[i]);
+      }
+      // Step 3: replace fields and methods.
       target.addDirectMethods(directMethods.values());
       target.addVirtualMethods(virtualMethods.values());
       target.setInstanceFields(mergedInstanceFields);
       target.setStaticFields(mergedStaticFields);
-      target.forEachField(feedback::markFieldCannotBeKept);
-      target.forEachMethod(feedback::markMethodCannotBeKept);
-      // Step 3: Clear the members of the source class since they have now been moved to the target.
+      // Step 4: Clear the members of the source class since they have now been moved to the target.
       source.getMethodCollection().clearDirectMethods();
       source.getMethodCollection().clearVirtualMethods();
       source.clearInstanceFields();
       source.clearStaticFields();
-      // Step 4: Record merging.
+      // Step 5: Record merging.
       mergedClasses.put(source.type, target.type);
       assert !abortMerge;
       assert GenericSignatureCorrectnessHelper.createForVerification(

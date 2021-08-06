@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.shaking.KeepInfo.Builder;
 
 /** Immutable keep requirements for a member. */
@@ -15,9 +16,11 @@ public abstract class KeepMemberInfo<B extends Builder<B, K>, K extends KeepInfo
   }
 
   @Override
-  public boolean isRepackagingAllowed(GlobalKeepInfoConfiguration configuration) {
+  public boolean isRepackagingAllowed(
+      ProgramDefinition definition, GlobalKeepInfoConfiguration configuration) {
     return configuration.isRepackagingEnabled()
-        && !internalIsAccessModificationRequiredForRepackaging();
+        && (definition.getAccessFlags().isPublic()
+            || !internalIsAccessModificationRequiredForRepackaging());
   }
 
   public boolean isKotlinMetadataRemovalAllowed(

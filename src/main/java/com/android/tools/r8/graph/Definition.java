@@ -26,6 +26,8 @@ public interface Definition {
 
   AccessFlags<?> getAccessFlags();
 
+  DexClass getContextClass();
+
   DexType getContextType();
 
   DexDefinition getDefinition();

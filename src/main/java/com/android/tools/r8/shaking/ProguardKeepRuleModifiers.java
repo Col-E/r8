@@ -25,12 +25,14 @@ public class ProguardKeepRuleModifiers {
       return this;
     }
 
-    public void setAllowsShrinking(boolean allowsShrinking) {
+    public Builder setAllowsShrinking(boolean allowsShrinking) {
       this.allowsShrinking = allowsShrinking;
+      return this;
     }
 
-    public void setAllowsOptimization(boolean allowsOptimization) {
+    public Builder setAllowsOptimization(boolean allowsOptimization) {
       this.allowsOptimization = allowsOptimization;
+      return this;
     }
 
     public Builder setAllowsObfuscation(boolean allowsObfuscation) {

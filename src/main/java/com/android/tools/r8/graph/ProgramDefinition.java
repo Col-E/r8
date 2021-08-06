@@ -42,6 +42,7 @@ public interface ProgramDefinition extends Definition, ProgramDerivedContext {
     getDefinition().rewriteAllAnnotations(rewriter);
   }
 
+  @Override
   DexProgramClass getContextClass();
 
   @Override

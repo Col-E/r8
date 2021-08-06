@@ -123,7 +123,7 @@ public class GenericSignaturePartialTypeArgumentApplierTest extends TestBase {
                         HashMap::new,
                         s -> s,
                         ClassTypeSignature::new,
-                        (val1, val2) -> {
+                        (key, val1, val2) -> {
                           throw new Unreachable("No keys should be merged");
                         }))
                 .addLiveParameters(liveVariables),

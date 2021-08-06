@@ -974,7 +974,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (!options().isRepackagingEnabled()) {
       return false;
     }
-    if (!keepInfo.getInfo(clazz).isRepackagingAllowed(options())) {
+    if (!keepInfo.getInfo(clazz).isRepackagingAllowed(clazz, options())) {
       return false;
     }
     for (DexType superType : clazz.allImmediateSupertypes()) {
@@ -985,7 +985,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return clazz
         .traverseProgramMembers(
             member -> {
-              if (keepInfo.getInfo(member).isRepackagingAllowed(options())) {
+              if (keepInfo.getInfo(member).isRepackagingAllowed(member, options())) {
                 return TraversalContinuation.CONTINUE;
               }
               return TraversalContinuation.BREAK;
@@ -1084,7 +1084,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         methodAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         objectAllocationInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         lens.rewriteCallSites(callSites, definitionSupplier),
-        keepInfo.rewrite(lens, application.options),
+        keepInfo.rewrite(definitionSupplier, lens, application.options),
         // Take any rule in case of collisions.
         lens.rewriteReferenceKeys(mayHaveSideEffects, ListUtils::first),
         // Drop assume rules in case of collisions.

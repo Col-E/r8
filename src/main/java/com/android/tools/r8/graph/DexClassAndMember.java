@@ -27,6 +27,11 @@ public abstract class DexClassAndMember<D extends DexEncodedMember<D, R>, R exte
   }
 
   @Override
+  public DexClass getContextClass() {
+    return getHolder();
+  }
+
+  @Override
   public DexType getContextType() {
     return getHolderType();
   }

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking.ifrule;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -51,8 +52,7 @@ public class NoLongerSatisfiedIfRuleTest extends TestBase {
 
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
-    // TODO(b/153910208): Should be absent since A is dead.
-    assertThat(bClassSubject.uniqueMethodWithName("m"), isPresent());
+    assertThat(bClassSubject.uniqueMethodWithName("m"), isAbsent());
   }
 
   static class TestClass {

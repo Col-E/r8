@@ -7,11 +7,14 @@ package com.android.tools.r8.utils.collections;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.utils.ProgramFieldEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
 public class ProgramFieldMap<V> extends ProgramMemberMap<ProgramField, V> {
+
+  private static final ProgramFieldMap<?> EMPTY = new ProgramFieldMap<>(ImmutableMap::of);
 
   private ProgramFieldMap(Supplier<Map<Wrapper<ProgramField>, V>> backingFactory) {
     super(backingFactory);
@@ -19,6 +22,10 @@ public class ProgramFieldMap<V> extends ProgramMemberMap<ProgramField, V> {
 
   public static <V> ProgramFieldMap<V> create() {
     return new ProgramFieldMap<>(HashMap::new);
+  }
+
+  public static <V> ProgramFieldMap<V> empty() {
+    return (ProgramFieldMap<V>) EMPTY;
   }
 
   @Override

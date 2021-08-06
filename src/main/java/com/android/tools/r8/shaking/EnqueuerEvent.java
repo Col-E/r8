@@ -4,10 +4,17 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.DexDefinition;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 
 public abstract class EnqueuerEvent {
+
+  public DexDefinition getDefinition(DexDefinitionSupplier definitions) {
+    return null;
+  }
 
   public boolean isClassEvent() {
     return false;
@@ -37,12 +44,19 @@ public abstract class EnqueuerEvent {
     return false;
   }
 
+  public abstract EnqueuerEvent rewrittenWithLens(GraphLens lens);
+
   public abstract static class ClassEnqueuerEvent extends EnqueuerEvent {
 
     private final DexType clazz;
 
-    public ClassEnqueuerEvent(DexProgramClass clazz) {
-      this.clazz = clazz.getType();
+    ClassEnqueuerEvent(DexType clazz) {
+      this.clazz = clazz;
+    }
+
+    @Override
+    public DexDefinition getDefinition(DexDefinitionSupplier definitions) {
+      return definitions.definitionFor(getType());
     }
 
     public DexType getType() {
@@ -63,7 +77,11 @@ public abstract class EnqueuerEvent {
   public static class LiveClassEnqueuerEvent extends ClassEnqueuerEvent {
 
     public LiveClassEnqueuerEvent(DexProgramClass clazz) {
-      super(clazz);
+      this(clazz.getType());
+    }
+
+    private LiveClassEnqueuerEvent(DexType type) {
+      super(type);
     }
 
     @Override
@@ -74,6 +92,11 @@ public abstract class EnqueuerEvent {
     @Override
     public LiveClassEnqueuerEvent asLiveClassEvent() {
       return this;
+    }
+
+    @Override
+    public EnqueuerEvent rewrittenWithLens(GraphLens lens) {
+      return new LiveClassEnqueuerEvent(lens.lookupType(getType()));
     }
 
     @Override
@@ -97,7 +120,11 @@ public abstract class EnqueuerEvent {
   public static class InstantiatedClassEnqueuerEvent extends ClassEnqueuerEvent {
 
     public InstantiatedClassEnqueuerEvent(DexProgramClass clazz) {
-      super(clazz);
+      this(clazz.getType());
+    }
+
+    private InstantiatedClassEnqueuerEvent(DexType type) {
+      super(type);
     }
 
     @Override
@@ -108,6 +135,11 @@ public abstract class EnqueuerEvent {
     @Override
     public InstantiatedClassEnqueuerEvent asInstantiatedClassEvent() {
       return this;
+    }
+
+    @Override
+    public EnqueuerEvent rewrittenWithLens(GraphLens lens) {
+      return new InstantiatedClassEnqueuerEvent(lens.lookupType(getType()));
     }
 
     @Override
@@ -141,6 +173,11 @@ public abstract class EnqueuerEvent {
     @Override
     public boolean isUnconditionalKeepInfoEvent() {
       return true;
+    }
+
+    @Override
+    public EnqueuerEvent rewrittenWithLens(GraphLens lens) {
+      return this;
     }
   }
 }

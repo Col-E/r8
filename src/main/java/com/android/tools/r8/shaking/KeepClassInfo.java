@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.Function;
 
@@ -46,10 +47,12 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
   }
 
   @Override
-  public boolean isRepackagingAllowed(GlobalKeepInfoConfiguration configuration) {
+  public boolean isRepackagingAllowed(
+      ProgramDefinition definition, GlobalKeepInfoConfiguration configuration) {
     return configuration.isRepackagingEnabled()
         && internalIsMinificationAllowed()
-        && !internalIsAccessModificationRequiredForRepackaging();
+        && (definition.getAccessFlags().isPublic()
+            || !internalIsAccessModificationRequiredForRepackaging());
   }
 
   public boolean isKotlinMetadataRemovalAllowed(

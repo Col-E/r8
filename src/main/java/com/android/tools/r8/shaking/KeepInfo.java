@@ -5,7 +5,10 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.shaking.KeepInfo.Builder;
+import com.google.common.collect.Sets;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /** Keep information that can be associated with any item, i.e., class, method or field. */
@@ -117,7 +120,8 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
    * <p>This method requires knowledge of the global configuration as that can override the concrete
    * value on a given item.
    */
-  public abstract boolean isRepackagingAllowed(GlobalKeepInfoConfiguration configuration);
+  public abstract boolean isRepackagingAllowed(
+      ProgramDefinition definition, GlobalKeepInfoConfiguration configuration);
 
   boolean internalIsAccessModificationRequiredForRepackaging() {
     return requireAccessModificationForRepackaging;
@@ -388,6 +392,11 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     final Builder<B, K> builder;
 
+    // The set of rules that have contributed to this joiner. These are only needed for the
+    // interpretation of keep rules into keep info, and is therefore not stored in the keep info
+    // builder above.
+    final Set<ProguardKeepRuleBase> rules = Sets.newIdentityHashSet();
+
     Joiner(Builder<B, K> builder) {
       this.builder = builder;
     }
@@ -411,8 +420,16 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return null;
     }
 
+    public Set<ProguardKeepRuleBase> getRules() {
+      return rules;
+    }
+
     public boolean isBottom() {
       return builder.isEqualTo(builder.getBottomInfo());
+    }
+
+    public boolean isShrinkingAllowed() {
+      return builder.isShrinkingAllowed();
     }
 
     public boolean isTop() {
@@ -421,6 +438,11 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     public J top() {
       builder.makeTop();
+      return self();
+    }
+
+    public J addRule(ProguardKeepRuleBase rule) {
+      rules.add(rule);
       return self();
     }
 
@@ -464,6 +486,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       applyIf(
           builder.isAccessModificationRequiredForRepackaging(),
           Joiner::requireAccessModificationForRepackaging);
+      rules.addAll(joiner.rules);
       return self();
     }
 

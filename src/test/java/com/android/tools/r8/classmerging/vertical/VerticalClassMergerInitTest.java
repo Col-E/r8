@@ -14,6 +14,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -54,6 +55,8 @@ public class VerticalClassMergerInitTest extends TestBase {
               // The initializer is small in this example so only allow FORCE inlining.
               options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
             })
+        .addVerticallyMergedClassesInspector(
+            VerticallyMergedClassesInspector::assertNoClassesMerged)
         .compile()
         .inspect(
             inspector -> {

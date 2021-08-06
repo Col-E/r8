@@ -7,7 +7,7 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
@@ -42,6 +42,10 @@ public class MapUtils {
     map.entrySet().removeIf(entry -> entry.getKey() == entry.getValue());
   }
 
+  public static <K, V> void removeIf(Map<K, V> map, BiPredicate<K, V> predicate) {
+    map.entrySet().removeIf(entry -> predicate.test(entry.getKey(), entry.getValue()));
+  }
+
   public static String toString(Map<?, ?> map) {
     return StringUtils.join(
         ",", map.entrySet(), entry -> entry.getKey() + ":" + entry.getValue(), BraceType.TUBORG);
@@ -52,7 +56,7 @@ public class MapUtils {
       IntFunction<Map<K2, V2>> factory,
       Function<K1, K2> keyMapping,
       Function<V1, V2> valueMapping,
-      BiFunction<V2, V2, V2> valueMerger) {
+      TriFunction<K2, V2, V2, V2> valueMerger) {
     Map<K2, V2> result = factory.apply(map.size());
     map.forEach(
         (key, value) -> {
@@ -63,7 +67,7 @@ public class MapUtils {
           V2 newValue = valueMapping.apply(value);
           V2 existingValue = result.put(newKey, newValue);
           if (existingValue != null) {
-            result.put(newKey, valueMerger.apply(existingValue, newValue));
+            result.put(newKey, valueMerger.apply(newKey, existingValue, newValue));
           }
         });
     return result;

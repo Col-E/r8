@@ -742,6 +742,11 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
   }
 
   @Override
+  public DexClass getContextClass() {
+    return this;
+  }
+
+  @Override
   public DexClass getDefinition() {
     return this;
   }

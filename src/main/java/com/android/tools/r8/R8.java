@@ -367,9 +367,9 @@ public class R8 {
                 subtypingInfo,
                 classMergingEnqueuerExtensionBuilder);
 
-        assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness.appInfo());
-        assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
-        assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
+        assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness);
+        assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness);
+        assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness);
         assert appView.rootSet().verifyKeptItemsAreKept(appView);
         appView.rootSet().checkAllRulesAreUsed(options);
 

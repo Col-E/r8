@@ -75,7 +75,6 @@ public class ForNameTest extends CompatProguardSmaliTestBase {
             builder,
             testBuilder ->
                 testBuilder
-                    .addKeepMainRule(CLASS_NAME)
                     // Add main dex rule to disable Class.forName() optimization.
                     .addMainDexRules("-keep class " + CLASS_NAME)
                     .addDontOptimize()

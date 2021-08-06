@@ -26,7 +26,7 @@ public class KeepIfPresentRuleWithVerticalClassMergingTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public KeepIfPresentRuleWithVerticalClassMergingTest(TestParameters parameters) {
@@ -41,7 +41,7 @@ public class KeepIfPresentRuleWithVerticalClassMergingTest extends TestBase {
         .addKeepRules(
             "-if class * extends " + A.class.getTypeName(), "-keep class <1> { <init>(...); }")
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             inspector -> {
@@ -53,8 +53,7 @@ public class KeepIfPresentRuleWithVerticalClassMergingTest extends TestBase {
               assertThat(classBSubject.init(), isPresent());
               assertThat(classBSubject.uniqueMethodWithName("greet"), isPresent());
               assertEquals(2, classBSubject.allMethods().size());
-            }
-        )
+            })
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");
   }

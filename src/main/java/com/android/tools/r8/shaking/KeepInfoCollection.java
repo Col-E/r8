@@ -200,7 +200,8 @@ public abstract class KeepInfoCollection {
   @Deprecated
   public abstract void forEachPinnedField(Consumer<DexField> consumer, InternalOptions options);
 
-  public abstract KeepInfoCollection rewrite(NonIdentityGraphLens lens, InternalOptions options);
+  public abstract KeepInfoCollection rewrite(
+      DexDefinitionSupplier definitions, NonIdentityGraphLens lens, InternalOptions options);
 
   public abstract KeepInfoCollection mutate(Consumer<MutableKeepInfoCollection> mutator);
 
@@ -250,7 +251,8 @@ public abstract class KeepInfoCollection {
     }
 
     @Override
-    public KeepInfoCollection rewrite(NonIdentityGraphLens lens, InternalOptions options) {
+    public KeepInfoCollection rewrite(
+        DexDefinitionSupplier definitions, NonIdentityGraphLens lens, InternalOptions options) {
       Map<DexType, KeepClassInfo> newClassInfo = new IdentityHashMap<>(keepClassInfo.size());
       keepClassInfo.forEach(
           (type, info) -> {
@@ -258,7 +260,8 @@ public abstract class KeepInfoCollection {
             assert newType == type
                 || !info.isPinned(options)
                 || info.isMinificationAllowed(options)
-                || info.isRepackagingAllowed(options);
+                || info.isRepackagingAllowed(
+                    definitions.definitionFor(newType).asProgramClass(), options);
             KeepClassInfo previous = newClassInfo.put(newType, info);
             assert previous == null;
           });
@@ -322,7 +325,8 @@ public abstract class KeepInfoCollection {
           IdentityHashMap::new,
           rewriter,
           Function.identity(),
-          (joiner, otherJoiner) -> newEmptyJoiner.get().merge(joiner).merge(otherJoiner));
+          (reference, joiner, otherJoiner) ->
+              newEmptyJoiner.get().merge(joiner).merge(otherJoiner));
     }
 
     @Override
