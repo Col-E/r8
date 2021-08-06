@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.bisect.Bisect;
+import com.android.tools.r8.cf.CfVerifierTool;
 import com.android.tools.r8.compatproguard.CompatProguard;
 import com.android.tools.r8.dexsplitter.DexSplitter;
 import com.android.tools.r8.relocator.RelocatorCommandLine;
@@ -74,10 +75,13 @@ public class SwissArmyKnife {
         BackportedMethodList.main(shift(args));
         break;
       case "relocator":
-        RelocatorCommandLine.main(shift((args)));
+        RelocatorCommandLine.main(shift(args));
         break;
       case "tracereferences":
-        TraceReferences.main(shift((args)));
+        TraceReferences.main(shift(args));
+        break;
+      case "verify":
+        CfVerifierTool.main(shift(args));
         break;
       default:
         runDefault(args);
