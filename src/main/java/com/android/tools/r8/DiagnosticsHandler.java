@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
+import java.io.PrintStream;
 
 /**
  * A DiagnosticsHandler can be provided to customize handling of diagnostics information.
@@ -14,22 +15,27 @@ import com.android.tools.r8.position.Position;
 @Keep
 public interface DiagnosticsHandler {
 
+  /** Should be considered private. */
+  static void printDiagnosticToStream(Diagnostic diagnostic, String prefix, PrintStream stream) {
+    if (diagnostic.getOrigin() != Origin.unknown()) {
+      stream.print(prefix + " in " + diagnostic.getOrigin());
+      if (diagnostic.getPosition() != Position.UNKNOWN) {
+        stream.print(" at " + diagnostic.getPosition().getDescription());
+      }
+      stream.println(":");
+    } else {
+      stream.print(prefix + ": ");
+    }
+    stream.println(diagnostic.getDiagnosticMessage());
+  }
+
   /**
    * Handle error diagnostics.
    *
    * @param error Diagnostic containing error information.
    */
   default void error(Diagnostic error) {
-    if (error.getOrigin() != Origin.unknown()) {
-      System.err.print("Error in " + error.getOrigin());
-      if (error.getPosition() != Position.UNKNOWN) {
-        System.err.print(" at " + error.getPosition().getDescription());
-      }
-      System.err.println(":");
-    } else {
-      System.err.print("Error: ");
-    }
-    System.err.println(error.getDiagnosticMessage());
+    printDiagnosticToStream(error, "Error", System.err);
   }
 
   /**
@@ -38,13 +44,7 @@ public interface DiagnosticsHandler {
    * @param warning Diagnostic containing warning information.
    */
   default void warning(Diagnostic warning) {
-    if (warning.getOrigin() != Origin.unknown()) {
-      System.err.println("Warning in " + warning.getOrigin() + ":");
-      System.err.print("  ");
-    } else {
-      System.err.print("Warning: ");
-    }
-    System.err.println(warning.getDiagnosticMessage());
+    printDiagnosticToStream(warning, "Warning", System.err);
   }
 
   /**
@@ -53,13 +53,7 @@ public interface DiagnosticsHandler {
    * @param info Diagnostic containing the information.
    */
   default void info(Diagnostic info) {
-    if (info.getOrigin() != Origin.unknown()) {
-      System.out.println("Info in " + info.getOrigin() + ":");
-      System.out.print("  ");
-    } else {
-      System.out.print("Info: ");
-    }
-    System.out.println(info.getDiagnosticMessage());
+    printDiagnosticToStream(info, "Info", System.out);
   }
 
   /**
