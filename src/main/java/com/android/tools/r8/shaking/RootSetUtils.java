@@ -2135,7 +2135,14 @@ public class RootSetUtils {
                       MapUtils.transform(
                           minimumKeepInfo,
                           IdentityHashMap::new,
-                          graphLens::lookupReference,
+                          reference ->
+                              reference.apply(
+                                  type -> {
+                                    DexType rewrittenType = graphLens.lookupType(type);
+                                    return rewrittenType.isPrimitiveType() ? null : rewrittenType;
+                                  },
+                                  graphLens::getRenamedFieldSignature,
+                                  graphLens::getRenamedMethodSignature),
                           Function.identity(),
                           (reference, joiner, otherJoiner) ->
                               reference.apply(
