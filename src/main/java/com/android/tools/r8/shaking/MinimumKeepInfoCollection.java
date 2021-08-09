@@ -8,6 +8,8 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -126,6 +128,18 @@ public class MinimumKeepInfoCollection {
                           asProgramClassOrNull(definitions.definitionFor(method.getHolderType()))));
           return definition == null || !enqueuer.isReachable(definition);
         });
+  }
+
+  public KeepClassInfo.Joiner remove(DexType clazz) {
+    return (KeepClassInfo.Joiner) minimumKeepInfo.remove(clazz);
+  }
+
+  public KeepFieldInfo.Joiner remove(DexField field) {
+    return (KeepFieldInfo.Joiner) minimumKeepInfo.remove(field);
+  }
+
+  public KeepMethodInfo.Joiner remove(DexMethod method) {
+    return (KeepMethodInfo.Joiner) minimumKeepInfo.remove(method);
   }
 
   public MinimumKeepInfoCollection rewrittenWithLens(GraphLens graphLens) {

@@ -8,8 +8,11 @@ import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -21,6 +24,7 @@ import com.android.tools.r8.utils.TriConsumer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 public class DependentMinimumKeepInfoCollection {
 
@@ -54,6 +58,10 @@ public class DependentMinimumKeepInfoCollection {
                     fieldConsumer.accept(preconditionEvent, field, minimumKeepInfoForField),
                 (method, minimumKeepInfoForMethod) ->
                     methodConsumer.accept(preconditionEvent, method, minimumKeepInfoForMethod)));
+  }
+
+  public MinimumKeepInfoCollection get(EnqueuerEvent preconditionEvent) {
+    return dependentMinimumKeepInfo.get(preconditionEvent);
   }
 
   public MinimumKeepInfoCollection getOrCreateMinimumKeepInfoFor(EnqueuerEvent preconditionEvent) {
@@ -115,6 +123,35 @@ public class DependentMinimumKeepInfoCollection {
           // from the dependent minimum keep info collection.
           return minimumKeepInfo.isEmpty();
         });
+  }
+
+  public MinimumKeepInfoCollection remove(EnqueuerEvent preconditionEvent) {
+    return dependentMinimumKeepInfo.remove(preconditionEvent);
+  }
+
+  public KeepClassInfo.Joiner remove(EnqueuerEvent preconditionEvent, DexType clazz) {
+    return internalRemove(preconditionEvent, minimumKeepInfo -> minimumKeepInfo.remove(clazz));
+  }
+
+  public KeepFieldInfo.Joiner remove(EnqueuerEvent preconditionEvent, DexField field) {
+    return internalRemove(preconditionEvent, minimumKeepInfo -> minimumKeepInfo.remove(field));
+  }
+
+  public KeepMethodInfo.Joiner remove(EnqueuerEvent preconditionEvent, DexMethod method) {
+    return internalRemove(preconditionEvent, minimumKeepInfo -> minimumKeepInfo.remove(method));
+  }
+
+  private <J extends KeepInfo.Joiner<?, ?, ?>> J internalRemove(
+      EnqueuerEvent preconditionEvent, Function<MinimumKeepInfoCollection, J> fn) {
+    MinimumKeepInfoCollection minimumKeepInfo = get(preconditionEvent);
+    if (minimumKeepInfo == null) {
+      return null;
+    }
+    J minimumKeepInfoForReference = fn.apply(minimumKeepInfo);
+    if (minimumKeepInfo.isEmpty()) {
+      remove(preconditionEvent);
+    }
+    return minimumKeepInfoForReference;
   }
 
   public DependentMinimumKeepInfoCollection rewrittenWithLens(GraphLens graphLens) {

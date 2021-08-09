@@ -11,7 +11,6 @@ import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.getEmu
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
-import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 import static java.util.Collections.emptySet;
 
 import com.android.tools.r8.Diagnostic;
@@ -139,9 +138,7 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
-import com.android.tools.r8.utils.collections.ProgramFieldMap;
 import com.android.tools.r8.utils.collections.ProgramFieldSet;
-import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
@@ -391,13 +388,8 @@ public class Enqueuer {
    * Conditional minimum keep info for classes, fields, and methods, which should only be applied if
    * the outermost {@link EnqueuerEvent} is triggered during tracing (e.g., class X becomes live).
    */
-  private final Map<EnqueuerEvent, Map<DexProgramClass, KeepClassInfo.Joiner>>
-      dependentMinimumKeepClassInfo = new HashMap<>();
-
-  private final Map<EnqueuerEvent, ProgramFieldMap<KeepFieldInfo.Joiner>>
-      dependentMinimumKeepFieldInfo = new HashMap<>();
-  private final Map<EnqueuerEvent, ProgramMethodMap<KeepMethodInfo.Joiner>>
-      dependentMinimumKeepMethodInfo = new HashMap<>();
+  private final DependentMinimumKeepInfoCollection dependentMinimumKeepInfo =
+      new DependentMinimumKeepInfoCollection();
 
   /**
    * A set of seen const-class references that serve as an initial lock-candidate set and will
@@ -3172,14 +3164,11 @@ public class Enqueuer {
 
   private void applyMinimumKeepInfo(DexProgramClass clazz) {
     EnqueuerEvent preconditionEvent = UnconditionalKeepInfoEvent.get();
-    Map<DexProgramClass, KeepClassInfo.Joiner> minimumKeepClassInfo =
-        dependentMinimumKeepClassInfo.get(preconditionEvent);
-    if (minimumKeepClassInfo != null) {
-      KeepClassInfo.Joiner minimumKeepInfoForClass = minimumKeepClassInfo.remove(clazz);
-      if (minimumKeepInfoForClass != null) {
-        keepInfo.joinClass(clazz, info -> info.merge(minimumKeepInfoForClass));
-        enqueueClassIfShrinkingIsDisallowed(clazz, preconditionEvent, minimumKeepInfoForClass);
-      }
+    KeepClassInfo.Joiner minimumKeepInfoForClass =
+        dependentMinimumKeepInfo.remove(preconditionEvent, clazz.getType());
+    if (minimumKeepInfoForClass != null) {
+      keepInfo.joinClass(clazz, info -> info.merge(minimumKeepInfoForClass));
+      enqueueClassIfShrinkingIsDisallowed(clazz, preconditionEvent, minimumKeepInfoForClass);
     }
   }
 
@@ -3190,10 +3179,9 @@ public class Enqueuer {
     if (liveTypes.contains(clazz)) {
       keepInfo.joinClass(clazz, info -> info.merge(minimumKeepInfo));
     } else {
-      dependentMinimumKeepClassInfo
-          .computeIfAbsent(UnconditionalKeepInfoEvent.get(), ignoreKey(IdentityHashMap::new))
-          .computeIfAbsent(clazz, ignoreKey(KeepClassInfo::newEmptyJoiner))
-          .merge(minimumKeepInfo);
+      dependentMinimumKeepInfo
+          .getOrCreateUnconditionalMinimumKeepInfo()
+          .mergeMinimumKeepInfoFor(clazz.getType(), minimumKeepInfo);
     }
     enqueueClassIfShrinkingIsDisallowed(clazz, preconditionEvent, minimumKeepInfo);
   }
@@ -3216,10 +3204,9 @@ public class Enqueuer {
     if (isPreconditionForMinimumKeepInfoSatisfied(preconditionEvent)) {
       applyMinimumKeepInfoWhenLive(clazz, preconditionEvent, minimumKeepInfo);
     } else {
-      dependentMinimumKeepClassInfo
-          .computeIfAbsent(preconditionEvent, ignoreKey(IdentityHashMap::new))
-          .computeIfAbsent(clazz, ignoreKey(KeepClassInfo::newEmptyJoiner))
-          .merge(minimumKeepInfo);
+      dependentMinimumKeepInfo
+          .getOrCreateMinimumKeepInfoFor(preconditionEvent)
+          .mergeMinimumKeepInfoFor(clazz.getType(), minimumKeepInfo);
     }
     if (preconditionEvent.isUnconditionalKeepInfoEvent()) {
       enqueueClassIfShrinkingIsDisallowed(clazz, preconditionEvent, minimumKeepInfo);
@@ -3228,15 +3215,12 @@ public class Enqueuer {
 
   private void applyMinimumKeepInfo(ProgramField field) {
     EnqueuerEvent preconditionEvent = UnconditionalKeepInfoEvent.get();
-    ProgramFieldMap<KeepFieldInfo.Joiner> minimumKeepFieldInfo =
-        dependentMinimumKeepFieldInfo.get(preconditionEvent);
-    if (minimumKeepFieldInfo != null) {
-      KeepFieldInfo.Joiner minimumKeepInfoForField = minimumKeepFieldInfo.remove(field);
+    KeepFieldInfo.Joiner minimumKeepInfoForField =
+        dependentMinimumKeepInfo.remove(preconditionEvent, field.getReference());
       if (minimumKeepInfoForField != null) {
         keepInfo.joinField(field, info -> info.merge(minimumKeepInfoForField));
         enqueueFieldIfShrinkingIsDisallowed(field, preconditionEvent, minimumKeepInfoForField);
       }
-    }
   }
 
   private void applyMinimumKeepInfoWhenLive(
@@ -3244,10 +3228,9 @@ public class Enqueuer {
     if (liveFields.contains(field)) {
       keepInfo.joinField(field, info -> info.merge(minimumKeepInfo));
     } else {
-      dependentMinimumKeepFieldInfo
-          .computeIfAbsent(UnconditionalKeepInfoEvent.get(), ignoreKey(ProgramFieldMap::create))
-          .computeIfAbsent(field, ignoreKey(KeepFieldInfo::newEmptyJoiner))
-          .merge(minimumKeepInfo);
+      dependentMinimumKeepInfo
+          .getOrCreateUnconditionalMinimumKeepInfo()
+          .mergeMinimumKeepInfoFor(field.getReference(), minimumKeepInfo);
     }
     enqueueFieldIfShrinkingIsDisallowed(field, preconditionEvent, minimumKeepInfo);
   }
@@ -3266,10 +3249,9 @@ public class Enqueuer {
     if (isPreconditionForMinimumKeepInfoSatisfied(preconditionEvent)) {
       applyMinimumKeepInfoWhenLive(field, preconditionEvent, minimumKeepInfo);
     } else {
-      dependentMinimumKeepFieldInfo
-          .computeIfAbsent(preconditionEvent, ignoreKey(ProgramFieldMap::create))
-          .computeIfAbsent(field, ignoreKey(KeepFieldInfo::newEmptyJoiner))
-          .merge(minimumKeepInfo);
+      dependentMinimumKeepInfo
+          .getOrCreateMinimumKeepInfoFor(preconditionEvent)
+          .mergeMinimumKeepInfoFor(field.getReference(), minimumKeepInfo);
     }
     if (preconditionEvent.isUnconditionalKeepInfoEvent()) {
       enqueueFieldIfShrinkingIsDisallowed(field, preconditionEvent, minimumKeepInfo);
@@ -3278,15 +3260,12 @@ public class Enqueuer {
 
   private void applyMinimumKeepInfo(ProgramMethod method) {
     EnqueuerEvent preconditionEvent = UnconditionalKeepInfoEvent.get();
-    ProgramMethodMap<KeepMethodInfo.Joiner> minimumKeepMethodInfo =
-        dependentMinimumKeepMethodInfo.get(preconditionEvent);
-    if (minimumKeepMethodInfo != null) {
-      KeepMethodInfo.Joiner minimumKeepInfoForMethod = minimumKeepMethodInfo.remove(method);
+    KeepMethodInfo.Joiner minimumKeepInfoForMethod =
+        dependentMinimumKeepInfo.remove(preconditionEvent, method.getReference());
       if (minimumKeepInfoForMethod != null) {
         keepInfo.joinMethod(method, info -> info.merge(minimumKeepInfoForMethod));
         enqueueMethodIfShrinkingIsDisallowed(method, preconditionEvent, minimumKeepInfoForMethod);
       }
-    }
   }
 
   private void applyMinimumKeepInfoWhenLiveOrTargeted(
@@ -3296,10 +3275,9 @@ public class Enqueuer {
     if (liveMethods.contains(method) || targetedMethods.contains(method)) {
       keepInfo.joinMethod(method, info -> info.merge(minimumKeepInfo));
     } else {
-      dependentMinimumKeepMethodInfo
-          .computeIfAbsent(UnconditionalKeepInfoEvent.get(), ignoreKey(ProgramMethodMap::create))
-          .computeIfAbsent(method, ignoreKey(KeepMethodInfo::newEmptyJoiner))
-          .merge(minimumKeepInfo);
+      dependentMinimumKeepInfo
+          .getOrCreateUnconditionalMinimumKeepInfo()
+          .mergeMinimumKeepInfoFor(method.getReference(), minimumKeepInfo);
     }
     enqueueMethodIfShrinkingIsDisallowed(method, preconditionEvent, minimumKeepInfo);
   }
@@ -3326,10 +3304,9 @@ public class Enqueuer {
     if (isPreconditionForMinimumKeepInfoSatisfied(preconditionEvent)) {
       applyMinimumKeepInfoWhenLiveOrTargeted(method, preconditionEvent, minimumKeepInfo);
     } else {
-      dependentMinimumKeepMethodInfo
-          .computeIfAbsent(preconditionEvent, ignoreKey(ProgramMethodMap::create))
-          .computeIfAbsent(method, ignoreKey(KeepMethodInfo::newEmptyJoiner))
-          .merge(minimumKeepInfo);
+      dependentMinimumKeepInfo
+          .getOrCreateMinimumKeepInfoFor(preconditionEvent)
+          .mergeMinimumKeepInfoFor(method.getReference(), minimumKeepInfo);
     }
 
     if (preconditionEvent.isUnconditionalKeepInfoEvent()) {
@@ -3338,28 +3315,18 @@ public class Enqueuer {
   }
 
   private void applyMinimumKeepInfoDependentOn(EnqueuerEvent preconditionEvent) {
-    Map<DexProgramClass, KeepClassInfo.Joiner> minimumKeepClassInfoDependentOnPrecondition =
-        dependentMinimumKeepClassInfo.remove(preconditionEvent);
+    MinimumKeepInfoCollection minimumKeepClassInfoDependentOnPrecondition =
+        dependentMinimumKeepInfo.remove(preconditionEvent);
     if (minimumKeepClassInfoDependentOnPrecondition != null) {
       minimumKeepClassInfoDependentOnPrecondition.forEach(
-          (clazz, minimumKeepInfo) ->
-              applyMinimumKeepInfoWhenLive(clazz, preconditionEvent, minimumKeepInfo));
-    }
-
-    ProgramFieldMap<KeepFieldInfo.Joiner> minimumKeepFieldInfoDependentOnPrecondition =
-        dependentMinimumKeepFieldInfo.remove(preconditionEvent);
-    if (minimumKeepFieldInfoDependentOnPrecondition != null) {
-      minimumKeepFieldInfoDependentOnPrecondition.forEach(
-          (field, minimumKeepInfo) ->
-              applyMinimumKeepInfoWhenLive(field, preconditionEvent, minimumKeepInfo));
-    }
-
-    ProgramMethodMap<KeepMethodInfo.Joiner> minimumKeepMethodInfoDependentOnPrecondition =
-        dependentMinimumKeepMethodInfo.remove(preconditionEvent);
-    if (minimumKeepMethodInfoDependentOnPrecondition != null) {
-      minimumKeepMethodInfoDependentOnPrecondition.forEach(
-          (method, minimumKeepInfo) ->
-              applyMinimumKeepInfoWhenLiveOrTargeted(method, preconditionEvent, minimumKeepInfo));
+          appView,
+          (clazz, minimumKeepInfoForClass) ->
+              applyMinimumKeepInfoWhenLive(clazz, preconditionEvent, minimumKeepInfoForClass),
+          (field, minimumKeepInfoForField) ->
+              applyMinimumKeepInfoWhenLive(field, preconditionEvent, minimumKeepInfoForField),
+          (method, minimumKeepInfoForMethod) ->
+              applyMinimumKeepInfoWhenLiveOrTargeted(
+                  method, preconditionEvent, minimumKeepInfoForMethod));
     }
   }
 
