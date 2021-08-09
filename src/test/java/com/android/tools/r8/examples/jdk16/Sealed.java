@@ -2,14 +2,14 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.examples.jdk15;
+package com.android.tools.r8.examples.jdk16;
 
 import com.android.tools.r8.examples.JavaExampleClassProxy;
 import java.nio.file.Path;
 
 public class Sealed {
 
-  private static final String EXAMPLE_FILE = "examplesJava15/sealed";
+  private static final String EXAMPLE_FILE = "examplesJava16/sealed";
 
   public static final JavaExampleClassProxy Compiler =
       new JavaExampleClassProxy(EXAMPLE_FILE, "sealed/Compiler");

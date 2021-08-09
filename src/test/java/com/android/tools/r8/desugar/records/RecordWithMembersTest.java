@@ -36,10 +36,10 @@ public class RecordWithMembersTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static List<Object[]> data() {
-    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk15).
+    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk16).
     return buildParameters(
         getTestParameters()
-            .withCustomRuntime(CfRuntime.getCheckedInJdk15())
+            .withCustomRuntime(CfRuntime.getCheckedInJdk16())
             .withDexRuntimes()
             .withAllApiLevelsAlsoForCf()
             .build());

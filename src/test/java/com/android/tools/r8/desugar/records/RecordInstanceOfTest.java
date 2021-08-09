@@ -37,7 +37,7 @@ public class RecordInstanceOfTest extends TestBase {
     // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk15).
     return buildParameters(
         getTestParameters()
-            .withCustomRuntime(CfRuntime.getCheckedInJdk15())
+            .withCustomRuntime(CfRuntime.getCheckedInJdk16())
             .withDexRuntimes()
             .withAllApiLevelsAlsoForCf()
             .build());

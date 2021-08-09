@@ -131,9 +131,9 @@ sourceSets {
             srcDirs = ['src/test/examplesJava11']
         }
     }
-    examplesJava15 {
+    examplesJava16 {
         java {
-            srcDirs = ['src/test/examplesJava15']
+            srcDirs = ['src/test/examplesJava16']
         }
     }
     jdk11TimeTests {
@@ -372,18 +372,18 @@ def cloudSystemDependencies = [
                 "third_party": ["openjdk/openjdk-9.0.4/linux",
                                 "openjdk/jdk8/linux-x86",
                                 "openjdk/jdk-11/linux",
-                                "openjdk/jdk-15/linux"],
+                                "openjdk/jdk-16/linux"],
         ],
         osx: [
                 "third_party": ["openjdk/openjdk-9.0.4/osx",
                                 "openjdk/jdk8/darwin-x86",
                                 "openjdk/jdk-11/osx",
-                                "openjdk/jdk-15/osx"],
+                                "openjdk/jdk-16/osx"],
         ],
         windows: [
                 "third_party": ["openjdk/openjdk-9.0.4/windows",
                                 "openjdk/jdk-11/windows",
-                                "openjdk/jdk-15/windows"],
+                                "openjdk/jdk-16/windows"],
         ],
 ]
 
@@ -575,12 +575,15 @@ def setJdkCompilationWithCompatibility(String sourceSet, String javaHome, JavaVe
             options.compilerArgs.add('--enable-preview')
         }
         if (OperatingSystem.current().isLinux()) {
+            dependsOn getDownloadDepsTaskName("third_party", "openjdk/" + javaHome + "/linux")
             options.forkOptions.javaHome = file(jdkDir + 'linux')
         } else if (OperatingSystem.current().isMacOsX()) {
+            dependsOn getDownloadDepsTaskName("third_party", "openjdk/" + javaHome + "/osx")
             options.forkOptions.javaHome = compatibility > JavaVersion.VERSION_1_9
                     ? file(jdkDir + 'osx/Contents/Home')
                     : file(jdkDir + 'osx')
         } else {
+            dependsOn getDownloadDepsTaskName("third_party", "openjdk/" + javaHome + "/windows")
             options.forkOptions.javaHome = file(jdkDir + 'windows')
         }
         sourceCompatibility = compatibility
@@ -619,9 +622,9 @@ setJdkCompilationWithCompatibility(
         JavaVersion.VERSION_11,
         false)
 setJdkCompilationWithCompatibility(
-        sourceSets.examplesJava15.compileJavaTaskName,
-        'jdk-15',
-        JavaVersion.VERSION_15,
+        sourceSets.examplesJava16.compileJavaTaskName,
+        'jdk-16',
+        JavaVersion.VERSION_16,
         true)
 
 task compileMainWithJava11 (type: JavaCompile) {
@@ -1591,7 +1594,7 @@ def buildExampleJarsCreateTask(javaVersion, sourceSet) {
 buildExampleJarsCreateTask("Java9", sourceSets.examplesJava9)
 buildExampleJarsCreateTask("Java10", sourceSets.examplesJava10)
 buildExampleJarsCreateTask("Java11", sourceSets.examplesJava11)
-buildExampleJarsCreateTask("Java15", sourceSets.examplesJava15)
+buildExampleJarsCreateTask("Java16", sourceSets.examplesJava16)
 
 task provideArtFrameworksDependencies {
     cloudDependencies.tools.forEach({ art ->
@@ -1674,7 +1677,7 @@ task buildExamples {
     dependsOn buildExampleJava9Jars
     dependsOn buildExampleJava10Jars
     dependsOn buildExampleJava11Jars
-    dependsOn buildExampleJava15Jars
+    dependsOn buildExampleJava16Jars
     dependsOn buildExampleAndroidApi
     def examplesDir = file("src/test/examples")
     def noDexTests = [

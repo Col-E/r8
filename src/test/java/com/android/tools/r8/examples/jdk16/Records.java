@@ -2,14 +2,14 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.examples.jdk15;
+package com.android.tools.r8.examples.jdk16;
 
 import com.android.tools.r8.examples.JavaExampleClassProxy;
 import java.nio.file.Path;
 
 public class Records {
 
-  private static final String EXAMPLE_FILE = "examplesJava15/records";
+  private static final String EXAMPLE_FILE = "examplesJava16/records";
 
   public static final JavaExampleClassProxy Main =
       new JavaExampleClassProxy(EXAMPLE_FILE, "records/Main");

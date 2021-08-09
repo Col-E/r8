@@ -123,7 +123,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
   }
 
-  public static final CfVersion SUPPORTED_CF_VERSION = CfVersion.V15_PREVIEW;
+  public static final CfVersion SUPPORTED_CF_VERSION = CfVersion.V16_PREVIEW;
   public static final CfVersion EXPERIMENTAL_CF_VERSION = CfVersion.V12;
 
   public static final int SUPPORTED_DEX_VERSION =
