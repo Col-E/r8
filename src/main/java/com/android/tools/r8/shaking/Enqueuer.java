@@ -3161,11 +3161,13 @@ public class Enqueuer {
   }
 
   private void includeMinimumKeepInfo(RootSetBase rootSet) {
-    rootSet.forEachMinimumKeepInfo(
-        appView,
-        this::recordDependentMinimumKeepInfo,
-        this::recordDependentMinimumKeepInfo,
-        this::recordDependentMinimumKeepInfo);
+    rootSet
+        .getDependentMinimumKeepInfo()
+        .forEach(
+            appView,
+            this::recordDependentMinimumKeepInfo,
+            this::recordDependentMinimumKeepInfo,
+            this::recordDependentMinimumKeepInfo);
   }
 
   private void applyMinimumKeepInfo(DexProgramClass clazz) {
@@ -3879,7 +3881,9 @@ public class Enqueuer {
 
         ConsequentRootSet consequentRootSet = computeDelayedInterfaceMethodSyntheticBridges();
         addConsequentRootSet(consequentRootSet);
-        rootSet.addMinimumKeepRules(consequentRootSet);
+        rootSet
+            .getDependentMinimumKeepInfo()
+            .merge(consequentRootSet.getDependentMinimumKeepInfo());
         rootSet.delayedRootSetActionItems.clear();
 
         if (!workList.isEmpty()) {

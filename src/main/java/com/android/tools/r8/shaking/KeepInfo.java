@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.shaking.KeepInfo.Builder;
@@ -44,6 +45,13 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
         builder.isOptimizationAllowed(),
         builder.isShrinkingAllowed(),
         builder.isAccessModificationRequiredForRepackaging());
+  }
+
+  public static Joiner<?, ?, ?> newEmptyJoinerFor(DexReference reference) {
+    return reference.apply(
+        clazz -> KeepClassInfo.newEmptyJoiner(),
+        field -> KeepFieldInfo.newEmptyJoiner(),
+        method -> KeepMethodInfo.newEmptyJoiner());
   }
 
   abstract B builder();
@@ -488,6 +496,10 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
           Joiner::requireAccessModificationForRepackaging);
       rules.addAll(joiner.rules);
       return self();
+    }
+
+    public J mergeUnsafe(Joiner<?, ?, ?> joiner) {
+      return merge((J) joiner);
     }
 
     public K join() {
