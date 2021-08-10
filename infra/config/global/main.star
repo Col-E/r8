@@ -107,9 +107,9 @@ def get_dimensions(windows=False, jctf=False, internal=False, normal=False):
     dimensions["normal"] = "true"
   return dimensions
 
-def r8_builder(name, priority=26, **kwargs):
+def r8_builder(name, priority=26, trigger=True, **kwargs):
   release = name.endswith("release")
-  triggered = ["branch-gitiles-trigger"] if release \
+  triggered = None if not trigger else ["branch-gitiles-trigger"] if release\
       else ["main-gitiles-trigger"]
 
   luci.builder(
@@ -119,7 +119,7 @@ def r8_builder(name, priority=26, **kwargs):
         "iam.gserviceaccount.com",
     build_numbers = True,
     swarming_tags = ["vpython:native-python-wrapper"],
-    notifies = ["r8-failures"],
+    notifies = ["r8-failures"] if trigger else None,
     priority = priority,
     triggered_by = triggered,
     executable = "rex",
@@ -137,8 +137,8 @@ def r8_tester(name,
   for name in [name, name + "_release"]:
     r8_builder(
         name = name,
-        execution_timeout=execution_timeout,
-        expiration_timeout=expiration_timeout,
+        execution_timeout = execution_timeout,
+        expiration_timeout = expiration_timeout,
         dimensions = dimensions,
         properties = {
             "test_options" : test_options,
@@ -149,8 +149,36 @@ def r8_tester(name,
 def r8_tester_with_default(name, test_options, dimensions=None):
   r8_tester(name, test_options + common_test_options, dimensions)
 
+def jctf():
+  for release in ["", "_release"]:
+    for tool in ["d8", "r8cf"]:
+      properties = {
+          "tool": tool,
+          "builder_group" : "internal.client.r8",
+          "dex_vm" : "all",
+          "only_jctf" : "true",
+      }
+      name = "linux-" + tool + "_jctf"
+      name = name + release
+      r8_builder(
+          name,
+          dimensions = get_dimensions(jctf=True),
+          execution_timeout = time.hour * 12,
+          expiration_timeout = time.hour * 35,
+          properties = properties,
+      )
+jctf()
+
+
 def archivers():
-  for name in ["archive", "archive_release"]:
+  for name in ["archive", "archive_release", "archive_lib_desugar"]:
+    desugar = "desugar" in name
+    properties = {
+        "archive": "true",
+        "builder_group" : "internal.client.r8"
+    }
+    if desugar:
+      properties["sdk_desugar"] = "true"
     r8_builder(
         name,
         dimensions = get_dimensions(),
@@ -160,11 +188,9 @@ def archivers():
             max_concurrent_invocations = 3
         ),
         priority = 25,
-        properties = {
-            "archive": "true",
-            "builder_group" : "internal.client.r8"
-        },
-        execution_timeout = time.minute * 30,
+        trigger = not desugar,
+        properties = properties,
+        execution_timeout = time.hour * 1 if desugar else time.minute * 30 ,
         expiration_timeout = time.hour * 35,
     )
 archivers()
