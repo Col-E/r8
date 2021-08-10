@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection.EmptyCfClassDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection.NonEmptyCfClassDesugaringCollection;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaring;
@@ -36,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.Consumer;
 
 public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesugaringCollection {
 
@@ -47,7 +45,6 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
   private final RecordRewriter recordRewriter;
   private final DesugaredLibraryRetargeter desugaredLibraryRetargeter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
-  private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
 
   NonEmptyCfInstructionDesugaringCollection(AppView<?> appView) {
     this.appView = appView;
@@ -56,7 +53,6 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       this.recordRewriter = null;
       this.desugaredLibraryRetargeter = null;
       this.interfaceMethodRewriter = null;
-      this.desugaredLibraryAPIConverter = null;
       return;
     }
     this.nestBasedAccessDesugaring = NestBasedAccessDesugaring.create(appView);
@@ -76,25 +72,14 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       desugarings.add(new TwrInstructionDesugaring(appView));
     }
     // TODO(b/183998768): Enable interface method rewriter cf to cf also in R8.
-    if (appView.options().isInterfaceMethodDesugaringEnabled()
-        && !appView.enableWholeProgramOptimizations()) {
-      interfaceMethodRewriter =
-          new InterfaceMethodRewriter(
-              appView, backportedMethodRewriter, desugaredLibraryRetargeter);
-      desugarings.add(interfaceMethodRewriter);
-    } else {
-      interfaceMethodRewriter = null;
-    }
-    desugaredLibraryAPIConverter =
-        appView.rewritePrefix.isRewriting() && !appView.enableWholeProgramOptimizations()
-            ? new DesugaredLibraryAPIConverter(
-                appView,
-                interfaceMethodRewriter,
-                desugaredLibraryRetargeter,
-                backportedMethodRewriter)
+    interfaceMethodRewriter =
+        appView.options().isInterfaceMethodDesugaringEnabled()
+                && !appView.enableWholeProgramOptimizations()
+            ? new InterfaceMethodRewriter(
+                appView, backportedMethodRewriter, desugaredLibraryRetargeter)
             : null;
-    if (desugaredLibraryAPIConverter != null) {
-      desugarings.add(desugaredLibraryAPIConverter);
+    if (interfaceMethodRewriter != null) {
+      desugarings.add(interfaceMethodRewriter);
     }
     desugarings.add(new LambdaInstructionDesugaring(appView));
     desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
@@ -346,12 +331,5 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       return desugaredLibraryRetargeter.getRetargetingInfo();
     }
     return null;
-  }
-
-  @Override
-  public void withDesugaredLibraryAPIConverter(Consumer<DesugaredLibraryAPIConverter> consumer) {
-    if (desugaredLibraryAPIConverter != null) {
-      consumer.accept(desugaredLibraryAPIConverter);
-    }
   }
 }

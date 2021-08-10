@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.ClassConverterResult;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethodDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverterEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialBridgeInfo;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaringEventConsumer;
@@ -49,8 +48,7 @@ public abstract class CfInstructionDesugaringEventConsumer
         RecordDesugaringEventConsumer,
         TwrCloseResourceDesugaringEventConsumer,
         InterfaceMethodDesugaringEventConsumer,
-        DesugaredLibraryRetargeterInstructionEventConsumer,
-        DesugaredLibraryAPIConverterEventConsumer {
+        DesugaredLibraryRetargeterInstructionEventConsumer {
 
   public static D8CfInstructionDesugaringEventConsumer createForD8(
       D8MethodProcessor methodProcessor) {
@@ -68,21 +66,6 @@ public abstract class CfInstructionDesugaringEventConsumer
 
   public static CfInstructionDesugaringEventConsumer createForDesugaredCode() {
     return new CfInstructionDesugaringEventConsumer() {
-
-      @Override
-      public void acceptWrapperProgramClass(DexProgramClass clazz) {
-        assert false;
-      }
-
-      @Override
-      public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
-        assert false;
-      }
-
-      @Override
-      public void acceptAPIConversion(ProgramMethod method) {
-        assert false;
-      }
 
       @Override
       public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
@@ -246,21 +229,6 @@ public abstract class CfInstructionDesugaringEventConsumer
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
 
-    @Override
-    public void acceptWrapperProgramClass(DexProgramClass clazz) {
-      methodProcessor.scheduleDesugaredMethodsForProcessing(clazz.programMethods());
-    }
-
-    @Override
-    public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void acceptAPIConversion(ProgramMethod method) {
-      methodProcessor.scheduleDesugaredMethodForProcessing(method);
-    }
-
     public List<ProgramMethod> finalizeDesugaring(
         AppView<?> appView, ClassConverterResult.Builder classConverterResultBuilder) {
       List<ProgramMethod> needsProcessing = new ArrayList<>();
@@ -377,24 +345,6 @@ public abstract class CfInstructionDesugaringEventConsumer
     public void acceptInvokeStaticInterfaceOutliningMethod(
         ProgramMethod method, ProgramMethod context) {
       assert false : "TODO(b/183998768): To be implemented";
-    }
-
-    @Override
-    public void acceptWrapperProgramClass(DexProgramClass clazz) {
-      // TODO(b/189912077): There should be nothing to do.
-      assert false;
-    }
-
-    @Override
-    public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
-      // TODO(b/189912077): Should be added to live non program types.
-      assert false;
-    }
-
-    @Override
-    public void acceptAPIConversion(ProgramMethod method) {
-      // TODO(b/189912077): There should be nothing to do.
-      assert false;
     }
 
     @Override

@@ -130,10 +130,9 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
         .setProto(emulatedMethod.getProto())
         .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
         .setCode(
-            emulatedInterfaceMethod ->
+            theMethod ->
                 new EmulateInterfaceSyntheticCfCodeProvider(
-                        emulatedInterfaceMethod.getHolderType(),
-                        method.getHolderType(),
+                        theMethod.getHolderType(),
                         companionMethod,
                         libraryMethod,
                         extraDispatchCases,
