@@ -199,13 +199,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public DexType getArgumentType(int argumentIndex) {
-    if (isStatic()) {
-      return getReference().getParameter(argumentIndex);
-    }
-    if (argumentIndex == 0) {
-      return getHolderType();
-    }
-    return getReference().getParameter(argumentIndex - 1);
+    return getReference().getArgumentType(argumentIndex, isStatic());
   }
 
   public int getNumberOfArguments() {

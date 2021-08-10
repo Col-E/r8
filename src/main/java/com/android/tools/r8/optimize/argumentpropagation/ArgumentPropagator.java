@@ -75,5 +75,7 @@ public class ArgumentPropagator {
     // TODO(b/190154391): Remove parameters with constant values.
     // TODO(b/190154391): Remove unused parameters by simulating they are constant.
     // TODO(b/190154391): Strengthen the static type of parameters.
+    // TODO(b/190154391): If we learn that a method returns a constant, then consider changing its
+    //  return type to void.
   }
 }

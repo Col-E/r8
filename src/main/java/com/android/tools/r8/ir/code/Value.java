@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
@@ -1081,6 +1082,10 @@ public class Value implements Comparable<Value> {
 
   public TypeElement getType() {
     return type;
+  }
+
+  public DynamicType getDynamicType(AppView<AppInfoWithLiveness> appView) {
+    return DynamicType.create(this, appView);
   }
 
   public TypeElement getDynamicUpperBoundType(

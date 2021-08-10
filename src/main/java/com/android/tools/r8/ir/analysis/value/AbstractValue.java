@@ -11,6 +11,10 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class AbstractValue {
 
+  public static BottomValue bottom() {
+    return BottomValue.getInstance();
+  }
+
   public abstract boolean isNonTrivial();
 
   public boolean isSingleBoolean() {

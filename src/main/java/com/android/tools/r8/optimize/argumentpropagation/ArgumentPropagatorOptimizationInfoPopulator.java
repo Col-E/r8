@@ -23,6 +23,9 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     //  instructions, build a flow graph where nodes are parameters and there is an edge from a
     //  parameter p1 to p2 if the value of p2 is at least the value of p1. Then propagate the
     //  collected argument information throughout the flow graph.
+    // TODO(b/190154391): If we learn that parameter p1 is constant, and that the enclosing method
+    //  returns p1 according to the optimization info, then update the optimization info to describe
+    //  that the method returns the constant.
     throw new Unimplemented();
   }
 }

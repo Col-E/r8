@@ -59,6 +59,16 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     return visitor.visitDexMethod(this, other);
   }
 
+  public DexType getArgumentType(int argumentIndex, boolean isStatic) {
+    if (isStatic) {
+      return getParameter(argumentIndex);
+    }
+    if (argumentIndex == 0) {
+      return getHolderType();
+    }
+    return getParameter(argumentIndex - 1);
+  }
+
   public DexType getParameter(int index) {
     return proto.getParameter(index);
   }

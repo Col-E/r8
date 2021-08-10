@@ -7,6 +7,8 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -50,6 +52,10 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
 
   public ClassReference asClassReference() {
     return Reference.classFromDescriptor(toDescriptorString());
+  }
+
+  public TypeElement toTypeElement(AppView<?> appView) {
+    return TypeElement.fromDexType(this, Nullability.maybeNull(), appView);
   }
 
   @Override

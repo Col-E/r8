@@ -154,13 +154,13 @@ public class ListUtils {
   }
 
   public static <T> ArrayList<T> newArrayList(T element) {
-    ArrayList<T> list = new ArrayList<>();
+    ArrayList<T> list = new ArrayList<>(1);
     list.add(element);
     return list;
   }
 
   public static <T> ArrayList<T> newArrayList(T element, T other) {
-    ArrayList<T> list = new ArrayList<>();
+    ArrayList<T> list = new ArrayList<>(2);
     list.add(element);
     list.add(other);
     return list;
