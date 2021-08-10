@@ -155,9 +155,11 @@ public class DesugaredLibraryAPIConverter
   // method.
   @Override
   public void postProcessingDesugaring(
-      CfPostProcessingDesugaringEventConsumer eventConsumer, ExecutorService executorService) {
+      Collection<DexProgramClass> programClasses,
+      CfPostProcessingDesugaringEventConsumer eventConsumer,
+      ExecutorService executorService) {
     assert noPendingWrappersOrConversions();
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
+    for (DexProgramClass clazz : programClasses) {
       if (!appView.isAlreadyLibraryDesugared(clazz)) {
         ArrayList<DexEncodedMethod> callbacks = new ArrayList<>();
         for (ProgramMethod virtualProgramMethod : clazz.virtualProgramMethods()) {
