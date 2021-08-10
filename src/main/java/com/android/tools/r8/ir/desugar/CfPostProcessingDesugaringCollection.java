@@ -4,11 +4,13 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterPostProcessor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -31,7 +33,9 @@ public abstract class CfPostProcessingDesugaringCollection {
   }
 
   public abstract void postProcessingDesugaring(
-      CfPostProcessingDesugaringEventConsumer eventConsumer, ExecutorService executorService)
+      Collection<DexProgramClass> programClasses,
+      CfPostProcessingDesugaringEventConsumer eventConsumer,
+      ExecutorService executorService)
       throws ExecutionException;
 
   public static class NonEmptyCfPostProcessingDesugaringCollection
@@ -72,10 +76,12 @@ public abstract class CfPostProcessingDesugaringCollection {
 
     @Override
     public void postProcessingDesugaring(
-        CfPostProcessingDesugaringEventConsumer eventConsumer, ExecutorService executorService)
+        Collection<DexProgramClass> programClasses,
+        CfPostProcessingDesugaringEventConsumer eventConsumer,
+        ExecutorService executorService)
         throws ExecutionException {
       for (CfPostProcessingDesugaring desugaring : desugarings) {
-        desugaring.postProcessingDesugaring(eventConsumer, executorService);
+        desugaring.postProcessingDesugaring(programClasses, eventConsumer, executorService);
       }
     }
   }
@@ -94,7 +100,9 @@ public abstract class CfPostProcessingDesugaringCollection {
 
     @Override
     public void postProcessingDesugaring(
-        CfPostProcessingDesugaringEventConsumer eventConsumer, ExecutorService executorService)
+        Collection<DexProgramClass> programClasses,
+        CfPostProcessingDesugaringEventConsumer eventConsumer,
+        ExecutorService executorService)
         throws ExecutionException {
       // Intentionally empty.
     }

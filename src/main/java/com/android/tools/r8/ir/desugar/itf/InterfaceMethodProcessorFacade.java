@@ -15,6 +15,7 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -60,7 +61,7 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
 
     CollectingInterfaceDesugaringEventConsumer eventConsumer =
         new CollectingInterfaceDesugaringEventConsumer();
-    processClassesConcurrently(eventConsumer, executorService);
+    processClassesConcurrently(appView.appInfo().classes(), eventConsumer, executorService);
     converter.processMethodsConcurrently(
         eventConsumer.getSortedSynthesizedMethods(), executorService);
   }
@@ -101,11 +102,12 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
   }
 
   private void processClassesConcurrently(
-      InterfaceProcessingDesugaringEventConsumer eventConsumer, ExecutorService executorService)
+      Collection<DexProgramClass> programClasses,
+      InterfaceProcessingDesugaringEventConsumer eventConsumer,
+      ExecutorService executorService)
       throws ExecutionException {
     ThreadUtils.processItems(
-        Iterables.filter(
-            appView.appInfo().classes(), (DexProgramClass clazz) -> shouldProcess(clazz, flavour)),
+        Iterables.filter(programClasses, (DexProgramClass clazz) -> shouldProcess(clazz, flavour)),
         clazz -> {
           for (InterfaceDesugaringProcessor processor : interfaceDesugaringProcessors) {
             processor.process(clazz, eventConsumer);
@@ -119,10 +121,12 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
 
   @Override
   public void postProcessingDesugaring(
-      CfPostProcessingDesugaringEventConsumer eventConsumer, ExecutorService executorService)
+      Collection<DexProgramClass> programClasses,
+      CfPostProcessingDesugaringEventConsumer eventConsumer,
+      ExecutorService executorService)
       throws ExecutionException {
     // TODO(b/183998768): Would be nice to use the ClassProcessing for the processing of classes,
     //  and do here only the finalization.
-    processClassesConcurrently(eventConsumer, executorService);
+    processClassesConcurrently(programClasses, eventConsumer, executorService);
   }
 }

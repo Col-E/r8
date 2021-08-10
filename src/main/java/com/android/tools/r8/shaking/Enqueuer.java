@@ -3918,10 +3918,12 @@ public class Enqueuer {
     SyntheticAdditions syntheticAdditions =
         new SyntheticAdditions(appView.createProcessorContext());
 
+    assert workList.isEmpty();
+
     R8PostProcessingDesugaringEventConsumer eventConsumer =
         CfPostProcessingDesugaringEventConsumer.createForR8(appView, syntheticAdditions);
     CfPostProcessingDesugaringCollection.create(appView, null, desugaring.getRetargetingInfo())
-        .postProcessingDesugaring(eventConsumer, executorService);
+        .postProcessingDesugaring(liveTypes.items, eventConsumer, executorService);
 
     if (syntheticAdditions.isEmpty()) {
       return;
