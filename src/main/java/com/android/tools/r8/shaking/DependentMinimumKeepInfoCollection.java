@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.EnqueuerEvent.ClassEnqueuerEvent;
 import com.android.tools.r8.shaking.EnqueuerEvent.UnconditionalKeepInfoEvent;
-import com.android.tools.r8.shaking.KeepMethodInfo.Joiner;
+import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.TriConsumer;
 import java.util.HashMap;
@@ -47,7 +47,7 @@ public class DependentMinimumKeepInfoCollection {
       DexDefinitionSupplier definitions,
       TriConsumer<EnqueuerEvent, DexProgramClass, KeepClassInfo.Joiner> classConsumer,
       TriConsumer<EnqueuerEvent, ProgramField, KeepFieldInfo.Joiner> fieldConsumer,
-      TriConsumer<EnqueuerEvent, ProgramMethod, Joiner> methodConsumer) {
+      TriConsumer<EnqueuerEvent, ProgramMethod, KeepMethodInfo.Joiner> methodConsumer) {
     dependentMinimumKeepInfo.forEach(
         (preconditionEvent, minimumKeepInfo) ->
             minimumKeepInfo.forEach(
@@ -69,7 +69,7 @@ public class DependentMinimumKeepInfoCollection {
         preconditionEvent, ignoreKey(MinimumKeepInfoCollection::new));
   }
 
-  public KeepInfo.Joiner<?, ?, ?> getOrCreateMinimumKeepInfoFor(
+  public Joiner<?, ?, ?> getOrCreateMinimumKeepInfoFor(
       EnqueuerEvent preconditionEvent, DexReference reference) {
     return getOrCreateMinimumKeepInfoFor(preconditionEvent)
         .getOrCreateMinimumKeepInfoFor(reference);
@@ -79,8 +79,7 @@ public class DependentMinimumKeepInfoCollection {
     return getOrCreateMinimumKeepInfoFor(UnconditionalKeepInfoEvent.get());
   }
 
-  public KeepInfo.Joiner<?, ?, ?> getOrCreateUnconditionalMinimumKeepInfoFor(
-      DexReference reference) {
+  public Joiner<?, ?, ?> getOrCreateUnconditionalMinimumKeepInfoFor(DexReference reference) {
     return getOrCreateMinimumKeepInfoFor(UnconditionalKeepInfoEvent.get(), reference);
   }
 
@@ -141,7 +140,7 @@ public class DependentMinimumKeepInfoCollection {
     return internalRemove(preconditionEvent, minimumKeepInfo -> minimumKeepInfo.remove(method));
   }
 
-  private <J extends KeepInfo.Joiner<?, ?, ?>> J internalRemove(
+  private <J extends Joiner<?, ?, ?>> J internalRemove(
       EnqueuerEvent preconditionEvent, Function<MinimumKeepInfoCollection, J> fn) {
     MinimumKeepInfoCollection minimumKeepInfo = get(preconditionEvent);
     if (minimumKeepInfo == null) {
