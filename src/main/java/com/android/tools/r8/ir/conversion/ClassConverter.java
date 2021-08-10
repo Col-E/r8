@@ -78,9 +78,7 @@ public abstract class ClassConverter {
 
       // TODO(b/191656218): Move upfront the loop and use maybe the class event consumer.
       if (appView.options().isDesugaredLibraryCompilation()) {
-        methodProcessor.newWave();
         converter.ensureWrappersForL8(instructionDesugaringEventConsumer);
-        methodProcessor.awaitMethodProcessing();
       }
 
       // Process the wave and wait for all IR processing to complete.
