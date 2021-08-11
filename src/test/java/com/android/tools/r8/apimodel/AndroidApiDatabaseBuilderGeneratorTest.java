@@ -19,6 +19,7 @@ import com.android.tools.r8.TestState;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.apimodel.AndroidApiVersionsXmlParser.ParsedApiClass;
 import com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanBox;
@@ -36,7 +37,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import org.junit.Test;
@@ -121,6 +124,8 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
    * were introduced. Running main will generate a new jar and run tests on it to ensure it is
    * compatible with R8 sources and works as expected.
    *
+   * <p>The generated jar depends on r8NoManifestWithoutDeps.
+   *
    * <p>If the generated jar passes tests it will be moved to third_party/android_jar/api-database/
    * and override the current file in there.
    */
@@ -141,8 +146,12 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
             AndroidApiDatabaseBuilderGeneratorTest::testNoPlaceHolder);
     tests.forEach(
         test -> {
-          if (!test.apply(generated, apiClasses)) {
-            throw new RuntimeException("Generated jar did not pass tests");
+          try {
+            if (!test.apply(generated, apiClasses)) {
+              throw new RuntimeException("Generated jar did not pass tests");
+            }
+          } catch (Exception e) {
+            throw new RuntimeException("Generated jar did not pass tests", e);
           }
         });
   }
@@ -232,42 +241,114 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
   }
 
   private static String getExpected(List<ParsedApiClass> parsedApiClasses, boolean abort) {
+    Map<ClassReference, ParsedApiClass> parsedApiClassMap = new HashMap<>(parsedApiClasses.size());
+    parsedApiClasses.forEach(
+        parsedClass -> parsedApiClassMap.put(parsedClass.getClassReference(), parsedClass));
     List<String> expected = new ArrayList<>();
     parsedApiClasses.forEach(
         apiClass -> {
-          expected.add(apiClass.getClassReference().getDescriptor());
+          expected.add("CLASS: " + apiClass.getClassReference().getDescriptor());
           expected.add(apiClass.getApiLevel().getName());
           expected.add(apiClass.getTotalMemberCount() + "");
-          BooleanBox added = new BooleanBox(false);
-          apiClass.visitFieldReferences(
-              (apiLevel, fieldReferences) -> {
-                fieldReferences.forEach(
-                    fieldReference -> {
-                      if (added.isTrue() && abort) {
-                        return;
-                      }
-                      added.set();
-                      expected.add(fieldReference.getFieldType().getDescriptor());
-                      expected.add(fieldReference.getFieldName());
-                      expected.add(apiLevel.getName());
-                    });
-              });
-          added.set(false);
-          apiClass.visitMethodReferences(
-              (apiLevel, methodReferences) -> {
-                methodReferences.forEach(
-                    methodReference -> {
-                      if (added.isTrue() && abort) {
-                        return;
-                      }
-                      added.set();
-                      expected.add(methodReference.getMethodDescriptor());
-                      expected.add(methodReference.getMethodName());
-                      expected.add(apiLevel.getName());
-                    });
-              });
+          visitApiClass(expected, parsedApiClassMap, apiClass, apiClass.getApiLevel(), true, abort);
+          visitApiClass(
+              expected, parsedApiClassMap, apiClass, apiClass.getApiLevel(), false, abort);
         });
     return StringUtils.lines(expected);
+  }
+
+  private static boolean visitApiClass(
+      List<String> expected,
+      Map<ClassReference, ParsedApiClass> parsedApiClassMap,
+      ParsedApiClass apiClass,
+      AndroidApiLevel apiLevel,
+      boolean visitFields,
+      boolean abort) {
+    BooleanBox added = new BooleanBox(false);
+    if (visitFields) {
+      added.set(visitFields(expected, apiClass, apiLevel, abort));
+    } else {
+      added.set(visitMethods(expected, apiClass, apiLevel, abort));
+    }
+    if (added.isTrue() && abort) {
+      return true;
+    }
+    // Go through super type methods if not interface.
+    if (!apiClass.isInterface()) {
+      apiClass.visitSuperType(
+          (classReference, linkApiLevel) -> {
+            if (added.isTrue() && abort) {
+              return;
+            }
+            ParsedApiClass superApiClass = parsedApiClassMap.get(classReference);
+            assert superApiClass != null;
+            added.set(
+                visitApiClass(
+                    expected,
+                    parsedApiClassMap,
+                    superApiClass,
+                    linkApiLevel.max(apiLevel),
+                    visitFields,
+                    abort));
+          });
+    }
+    if (!visitFields) {
+      apiClass.visitInterface(
+          (classReference, linkApiLevel) -> {
+            if (added.isTrue() && abort) {
+              return;
+            }
+            ParsedApiClass ifaceApiClass = parsedApiClassMap.get(classReference);
+            assert ifaceApiClass != null;
+            added.set(
+                visitApiClass(
+                    expected,
+                    parsedApiClassMap,
+                    ifaceApiClass,
+                    linkApiLevel.max(apiLevel),
+                    visitFields,
+                    abort));
+          });
+    }
+    return added.get();
+  }
+
+  private static boolean visitFields(
+      List<String> expected, ParsedApiClass apiClass, AndroidApiLevel minApiLevel, boolean abort) {
+    BooleanBox added = new BooleanBox(false);
+    apiClass.visitFieldReferences(
+        (apiLevel, fieldReferences) -> {
+          fieldReferences.forEach(
+              fieldReference -> {
+                if (added.isTrue() && abort) {
+                  return;
+                }
+                added.set();
+                expected.add(fieldReference.getFieldType().getDescriptor());
+                expected.add(fieldReference.getFieldName());
+                expected.add(apiLevel.max(minApiLevel).getName());
+              });
+        });
+    return added.get();
+  }
+
+  private static boolean visitMethods(
+      List<String> expected, ParsedApiClass apiClass, AndroidApiLevel minApiLevel, boolean abort) {
+    BooleanBox added = new BooleanBox(false);
+    apiClass.visitMethodReferences(
+        (apiLevel, methodReferences) -> {
+          methodReferences.forEach(
+              methodReference -> {
+                if (added.isTrue() && abort) {
+                  return;
+                }
+                added.set();
+                expected.add(methodReference.getMethodDescriptor());
+                expected.add(methodReference.getMethodName());
+                expected.add(apiLevel.max(minApiLevel).getName());
+              });
+        });
+    return added.get();
   }
 
   public static class TestGeneratedMainVisitClasses {
@@ -286,7 +367,7 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
                 AndroidApiDatabaseBuilderTemplate.buildClass(
                     Reference.classFromDescriptor(descriptor));
             if (apiClass != null) {
-              System.out.println(descriptor);
+              System.out.println("CLASS: " + descriptor);
               System.out.println(apiClass.getApiLevel().getName());
               System.out.println(apiClass.getMemberCount());
               apiClass.visitFields(
@@ -317,7 +398,7 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
                 AndroidApiDatabaseBuilderTemplate.buildClass(
                     Reference.classFromDescriptor(descriptor));
             if (apiClass != null) {
-              System.out.println(descriptor);
+              System.out.println("CLASS: " + descriptor);
               System.out.println(apiClass.getApiLevel().getName());
               System.out.println(apiClass.getMemberCount());
               apiClass.visitFields(

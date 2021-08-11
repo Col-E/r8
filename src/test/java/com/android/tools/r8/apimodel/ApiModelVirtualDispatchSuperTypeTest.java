@@ -5,10 +5,8 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.addTracedApiReferenceLevelCallBack;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -35,7 +33,7 @@ public class ApiModelVirtualDispatchSuperTypeTest extends TestBase {
     this.parameters = parameters;
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     Method main = Main.class.getDeclaredMethod("main", String[].class);
     testForR8(parameters.getBackend())
@@ -55,16 +53,17 @@ public class ApiModelVirtualDispatchSuperTypeTest extends TestBase {
             addTracedApiReferenceLevelCallBack(
                 (method, apiLevel) -> {
                   if (Reference.methodFromMethod(main).equals(method)) {
-                    // TODO(b/193414761): Should not be UNKNOWN.
-                    assertEquals(AndroidApiLevel.UNKNOWN, apiLevel);
+                    // android.app.Service.stopSelf() was introduced at AndroidApiLevel.B but
+                    // android/accessibilityservice/AccessibilityService was introduced at D
+                    // so the minimum api level is D.
+                    assertEquals(
+                        parameters.isCfRuntime()
+                            ? AndroidApiLevel.D
+                            : parameters.getApiLevel().max(AndroidApiLevel.D),
+                        apiLevel);
                   }
                 }))
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              // TODO(b/193414761): We should analyze all members.
-              diagnostics.assertErrorMessageThatMatches(
-                  containsString("Every member should have been analyzed"));
-            });
+        .compile();
   }
 
   /* Only here to get the test to compile */
@@ -76,7 +75,8 @@ public class ApiModelVirtualDispatchSuperTypeTest extends TestBase {
   public static class Main {
 
     public static void main(String[] args) {
-      // stopSelf() is inherited from android/app/Service which was introduced at AndroidApiLevel.B.
+      // AccessibilityService.stopSelf() is inherited from android/app/Service which was introduced
+      // at AndroidApiLevel.B.
       new /* android.accessibilityservice */ AccessibilityService().stopSelf();
     }
   }

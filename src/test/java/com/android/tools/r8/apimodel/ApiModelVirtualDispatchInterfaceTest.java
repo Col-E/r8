@@ -5,15 +5,13 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.addTracedApiReferenceLevelCallBack;
-import static com.android.tools.r8.utils.AndroidApiLevel.UNKNOWN;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import org.junit.Test;
@@ -35,7 +33,7 @@ public class ApiModelVirtualDispatchInterfaceTest extends TestBase {
     this.parameters = parameters;
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     Method main = Main.class.getDeclaredMethod("main", String[].class);
     testForR8(parameters.getBackend())
@@ -48,16 +46,14 @@ public class ApiModelVirtualDispatchInterfaceTest extends TestBase {
             addTracedApiReferenceLevelCallBack(
                 (method, apiLevel) -> {
                   if (Reference.methodFromMethod(main).equals(method)) {
-                    // TODO(b/193414761): Should not be UNKNOWN.
-                    assertEquals(UNKNOWN, apiLevel);
+                    assertEquals(
+                        parameters.isCfRuntime()
+                            ? AndroidApiLevel.B
+                            : parameters.getApiLevel().max(AndroidApiLevel.B),
+                        apiLevel);
                   }
                 }))
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              // TODO(b/193414761): We should analyze all members.
-              diagnostics.assertErrorMessageThatMatches(
-                  containsString("Every member should have been analyzed"));
-            });
+        .compile();
   }
 
   public static class Main {

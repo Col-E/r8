@@ -5,6 +5,7 @@
 package com.android.tools.r8.apimodel;
 
 import com.android.tools.r8.androidapi.AndroidApiClass;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
@@ -34,7 +35,9 @@ public class AndroidApiDatabaseClassTemplate extends AndroidApiClass {
 
   @Override
   public TraversalContinuation visitFields(
-      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor) {
+      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor,
+      ClassReference holder,
+      int minApi) {
     // Code added dynamically in AndroidApiDatabaseBuilderGenerator.
     placeHolderForVisitFields();
     return TraversalContinuation.CONTINUE;
@@ -42,7 +45,9 @@ public class AndroidApiDatabaseClassTemplate extends AndroidApiClass {
 
   @Override
   public TraversalContinuation visitMethods(
-      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation> visitor) {
+      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation> visitor,
+      ClassReference holder,
+      int minApi) {
     // Code added dynamically in AndroidApiDatabaseBuilderGenerator.
     placeHolderForVisitMethods();
     return TraversalContinuation.CONTINUE;

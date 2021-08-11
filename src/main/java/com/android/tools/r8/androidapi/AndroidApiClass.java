@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.androidapi;
 
+import static com.android.tools.r8.utils.AndroidApiLevel.getAndroidApiLevel;
+
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -28,38 +30,56 @@ public abstract class AndroidApiClass {
 
   public abstract int getMemberCount();
 
-  public abstract TraversalContinuation visitFields(
-      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor);
+  public TraversalContinuation visitFields(
+      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor) {
+    return visitFields(visitor, classReference, 1);
+  }
 
-  public abstract TraversalContinuation visitMethods(
-      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation> visitor);
+  public TraversalContinuation visitMethods(
+      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation> visitor) {
+    return visitMethods(visitor, classReference, 1);
+  }
+
+  protected abstract TraversalContinuation visitFields(
+      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor,
+      ClassReference holder,
+      int minApiClass);
+
+  protected abstract TraversalContinuation visitMethods(
+      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation> visitor,
+      ClassReference holder,
+      int minApiClass);
 
   protected TraversalContinuation visitField(
+      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor,
+      ClassReference holder,
+      int minApiClass,
+      int minApiField,
       String name,
-      String typeDescriptor,
-      int apiLevel,
-      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor) {
+      String typeDescriptor) {
     return visitor.apply(
-        Reference.field(classReference, name, Reference.typeFromDescriptor(typeDescriptor)),
-        AndroidApiLevel.getAndroidApiLevel(apiLevel));
+        Reference.field(holder, name, Reference.typeFromDescriptor(typeDescriptor)),
+        getAndroidApiLevel(Integer.max(minApiClass, minApiField)));
   }
 
   protected TraversalContinuation visitMethod(
+      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation> visitor,
+      ClassReference holder,
+      int minApiClass,
+      int minApiMethod,
       String name,
       String[] formalTypeDescriptors,
-      String returnType,
-      int apiLevel,
-      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation> visitor) {
+      String returnType) {
     List<TypeReference> typeReferenceList = new ArrayList<>(formalTypeDescriptors.length);
     for (String formalTypeDescriptor : formalTypeDescriptors) {
       typeReferenceList.add(Reference.typeFromDescriptor(formalTypeDescriptor));
     }
     return visitor.apply(
         Reference.method(
-            classReference,
+            holder,
             name,
             typeReferenceList,
             returnType == null ? null : Reference.returnTypeFromDescriptor(returnType)),
-        AndroidApiLevel.getAndroidApiLevel(apiLevel));
+        getAndroidApiLevel(Integer.max(minApiClass, minApiMethod)));
   }
 }

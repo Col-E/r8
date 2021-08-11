@@ -13,6 +13,7 @@ import static org.objectweb.asm.Opcodes.ARETURN;
 import static org.objectweb.asm.Opcodes.DUP;
 import static org.objectweb.asm.Opcodes.F_SAME1;
 import static org.objectweb.asm.Opcodes.IFEQ;
+import static org.objectweb.asm.Opcodes.ILOAD;
 import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
@@ -27,7 +28,9 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
 import com.android.tools.r8.transformers.MethodTransformer;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.IntBox;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -89,10 +92,11 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
             .collect(Collectors.toList());
 
     for (ParsedApiClass apiClass : apiClasses) {
+      String apiClassDescriptor = getApiClassReference(apiClass).getDescriptor();
       consumer.accept(
-          getApiClassDescriptor(apiClass),
+          apiClassDescriptor,
           transformer(AndroidApiDatabaseClassTemplate.class)
-              .setClassDescriptor(getApiClassDescriptor(apiClass))
+              .setClassDescriptor(apiClassDescriptor)
               .addMethodTransformer(getInitTransformer(apiClass))
               .addMethodTransformer(getApiLevelTransformer(apiClass))
               .addMethodTransformer(getGetMemberCountTransformer(apiClass))
@@ -103,6 +107,8 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
               .removeMethods(MethodPredicate.onName("placeHolderForGetMemberCount"))
               .removeMethods(MethodPredicate.onName("placeHolderForVisitFields"))
               .removeMethods(MethodPredicate.onName("placeHolderForVisitMethods"))
+              .setSourceFile(
+                  DescriptorUtils.getSimpleClassNameFromDescriptor(apiClassDescriptor) + ".java")
               .computeMaxs()
               .transform(ClassWriter.COMPUTE_MAXS));
     }
@@ -137,13 +143,17 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
             .replace("Template", "ForPackage_" + pkg.replace(".", "_")));
   }
 
-  private static String getApiClassDescriptor(ParsedApiClass apiClass) {
-    return DescriptorUtils.javaTypeToDescriptor(
-        AndroidApiDatabaseClassTemplate.class
-            .getTypeName()
-            .replace(
-                "Template",
-                "ForClass_" + apiClass.getClassReference().getTypeName().replace(".", "_")));
+  private static ClassReference getApiClassReference(ParsedApiClass apiClass) {
+    return fromTemplate(apiClass.getClassReference());
+  }
+
+  private static ClassReference fromTemplate(ClassReference classReference) {
+    String descriptor =
+        DescriptorUtils.javaTypeToDescriptor(
+            AndroidApiDatabaseClassTemplate.class
+                .getTypeName()
+                .replace("Template", "ForClass_" + classReference.getTypeName().replace(".", "_")));
+    return Reference.classFromDescriptor(descriptor);
   }
 
   // The transformer below changes AndroidApiDatabaseClassTemplate.<init> from:
@@ -190,17 +200,24 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
   //     placeHolder();
   //     return TraversalContinuation.CONTINUE;
   // into
-  //    TraversalContinuation s1 = visitField("field1", "descriptor1", apiLevel1, visitor)
+  //    TraversalContinuation s1 = visitField(visitor, holder, minApiClass, apiLevel1, "field1",
+  //        "descriptor1")
   //    if (s1.shouldBreak()) {
   //       return s1;
   //    }
-  //    TraversalContinuation s2 = visitField("field2", "descriptor2", apiLevel2, visitor)
+  //    TraversalContinuation s2 = visitField(visitor, holder, minApiClass, apiLevel2, "field2",
+  //   //        "descriptor2")
   //    if (s2.shouldBreak()) {
   //       return s2;
   //    }
   //    ...
+  //    AndroidApiClassForClass_class_name1() super1 = new AndroidApiClassForClass_class_name1();
+  //    TraversalContinuation sN = super1.visitFields(
+  //        visitor, holder, max(minApiClass, minApiForLink));
+  //    ...
   //    return TraversalContinuation.CONTINUE;
   private static MethodTransformer getVisitFieldsTransformer(ParsedApiClass apiClass) {
+    IntBox lineNumberBox = new IntBox(0);
     return replaceCode(
         "placeHolderForVisitFields",
         transformer -> {
@@ -208,19 +225,26 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
               (apiLevel, references) -> {
                 references.forEach(
                     reference -> {
+                      Label labelStart = new Label();
+                      transformer.visitLabel(labelStart);
+                      transformer.visitLineNumber(lineNumberBox.getAndIncrement(), labelStart);
                       transformer.visitVarInsn(ALOAD, 0);
+                      transformer.visitVarInsn(ALOAD, 1);
+                      transformer.visitVarInsn(ALOAD, 2);
+                      transformer.visitVarInsn(ILOAD, 3);
+                      transformer.visitLdcInsn(apiLevel.getLevel());
                       transformer.visitLdcInsn(reference.getFieldName());
                       transformer.visitLdcInsn(reference.getFieldType().getDescriptor());
-                      transformer.visitLdcInsn(apiLevel.getLevel());
-                      transformer.visitVarInsn(ALOAD, 1);
                       transformer.visitMethodInsn(
                           INVOKEVIRTUAL,
                           ANDROID_API_CLASS.getBinaryName(),
                           "visitField",
-                          "(Ljava/lang/String;"
-                              + "Ljava/lang/String;"
+                          "(Ljava/util/function/BiFunction;"
+                              + descriptor(ClassReference.class)
                               + "I"
-                              + "Ljava/util/function/BiFunction;)"
+                              + "I"
+                              + "Ljava/lang/String;"
+                              + "Ljava/lang/String;)"
                               + TRAVERSAL_CONTINUATION.getDescriptor(),
                           false);
                       // Note that instead of storing the result here, we dup it on the stack.
@@ -246,6 +270,19 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
                       transformer.visitInsn(POP);
                     });
               });
+          if (!apiClass.isInterface()) {
+            apiClass.visitSuperType(
+                (superType, apiLevel) -> {
+                  addMembersForParent(
+                      transformer,
+                      superType,
+                      "visitFields",
+                      apiLevel,
+                      lineNumberBox.getAndIncrement());
+                });
+          }
+          // No need to visit fields on interfaces since they have to be static and should not be
+          // called on a super instance.
         });
   }
 
@@ -253,19 +290,24 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
   //     placeHolderForVisitMethods();
   //     return TraversalContinuation.CONTINUE;
   // into
-  //    TraversalContinuation s1 = visitMethod(
-  //      "method1", new String[] { "param11", ... , "param1X" }, null/return1, apiLevel1, visitor)
+  //    TraversalContinuation s1 = visitMethod(visitor, holder, minApiClass, apiLevel1,
+  //      "method1", new String[] { "param11", ... , "param1X" }, null/return1)
   //    if (s1.shouldBreak()) {
   //       return s1;
   //    }
-  //    TraversalContinuation s1 = visitMethod(
-  //      "method2", new String[] { "param21", ... , "param2X" }, null/return2, apiLevel2, visitor)
+  //    TraversalContinuation s1 = visitMethod(visitor, holder, minApiClass, apiLevel2,
+  //      "method2", new String[] { "param21", ... , "param2X" }, null/return2)
   //    if (s2.shouldBreak()) {
   //       return s2;
   //    }
   //    ...
+  //    AndroidApiClassForClass_class_name1() super1 = new AndroidApiClassForClass_class_name1();
+  //    TraversalContinuation sN = super1.visitMethods(
+  //      visitor, holder, max(minApiClass, minApiForLink));
+  //    ...
   //    return TraversalContinuation.CONTINUE;
   private static MethodTransformer getVisitMethodsTransformer(ParsedApiClass apiClass) {
+    IntBox lineNumberBox = new IntBox(0);
     return replaceCode(
         "placeHolderForVisitMethods",
         transformer -> {
@@ -273,7 +315,14 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
               (apiLevel, references) -> {
                 references.forEach(
                     reference -> {
+                      Label labelStart = new Label();
+                      transformer.visitLabel(labelStart);
+                      transformer.visitLineNumber(lineNumberBox.getAndIncrement(), labelStart);
                       transformer.visitVarInsn(ALOAD, 0);
+                      transformer.visitVarInsn(ALOAD, 1);
+                      transformer.visitVarInsn(ALOAD, 2);
+                      transformer.visitVarInsn(ILOAD, 3);
+                      transformer.visitLdcInsn(apiLevel.getLevel());
                       transformer.visitLdcInsn(reference.getMethodName());
                       List<TypeReference> formalTypes = reference.getFormalTypes();
                       transformer.visitLdcInsn(formalTypes.size());
@@ -289,16 +338,17 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
                       } else {
                         transformer.visitInsn(ACONST_NULL);
                       }
-                      transformer.visitLdcInsn(apiLevel.getLevel());
-                      transformer.visitVarInsn(ALOAD, 1);
                       transformer.visitMethodInsn(
                           INVOKEVIRTUAL,
                           ANDROID_API_CLASS.getBinaryName(),
                           "visitMethod",
-                          "(Ljava/lang/String;"
-                              + "[Ljava/lang/String;Ljava/lang/String;"
+                          "(Ljava/util/function/BiFunction;"
+                              + descriptor(ClassReference.class)
                               + "I"
-                              + "Ljava/util/function/BiFunction;)"
+                              + "I"
+                              + "Ljava/lang/String;"
+                              + "[Ljava/lang/String;"
+                              + "Ljava/lang/String;)"
                               + TRAVERSAL_CONTINUATION.getDescriptor(),
                           false);
                       // Note that instead of storing the result here, we dup it on the stack.
@@ -324,7 +374,70 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
                       transformer.visitInsn(POP);
                     });
               });
+          if (!apiClass.isInterface()) {
+            // Visit super types before interfaces emulating a poor man's resolutions.
+            apiClass.visitSuperType(
+                (superType, apiLevel) -> {
+                  addMembersForParent(
+                      transformer,
+                      superType,
+                      "visitMethods",
+                      apiLevel,
+                      lineNumberBox.getAndIncrement());
+                });
+          }
+          apiClass.visitInterface(
+              (classReference, apiLevel) -> {
+                addMembersForParent(
+                    transformer,
+                    classReference,
+                    "visitMethods",
+                    apiLevel,
+                    lineNumberBox.getAndIncrement());
+              });
         });
+  }
+
+  private static void addMembersForParent(
+      MethodTransformer transformer,
+      ClassReference classReference,
+      String methodName,
+      AndroidApiLevel minApiLevel,
+      int lineNumber) {
+    String binaryName = fromTemplate(classReference).getBinaryName();
+    Label labelStart = new Label();
+    transformer.visitLabel(labelStart);
+    transformer.visitLineNumber(lineNumber, labelStart);
+    transformer.visitTypeInsn(NEW, binaryName);
+    transformer.visitInsn(DUP);
+    transformer.visitMethodInsn(INVOKESPECIAL, binaryName, "<init>", "()V", false);
+    transformer.visitVarInsn(ALOAD, 1);
+    transformer.visitVarInsn(ALOAD, 2);
+    // Compute the max api level compared to what is passed in.
+    transformer.visitLdcInsn(minApiLevel.getLevel());
+    transformer.visitVarInsn(ILOAD, 3);
+    transformer.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "max", "(II)I", false);
+    transformer.visitMethodInsn(
+        INVOKEVIRTUAL,
+        binaryName,
+        methodName,
+        "(Ljava/util/function/BiFunction;"
+            + descriptor(ClassReference.class)
+            + "I)"
+            + TRAVERSAL_CONTINUATION.getDescriptor(),
+        false);
+    // Note that instead of storing the result here, we dup it on the stack.
+    transformer.visitInsn(DUP);
+    transformer.visitMethodInsn(
+        INVOKEVIRTUAL, TRAVERSAL_CONTINUATION.getBinaryName(), "shouldBreak", "()Z", false);
+    Label label = new Label();
+    transformer.visitJumpInsn(IFEQ, label);
+    transformer.visitInsn(ARETURN);
+    transformer.visitLabel(label);
+    transformer.visitFrame(
+        F_SAME1, 0, new Object[] {}, 1, new Object[] {TRAVERSAL_CONTINUATION.getBinaryName()});
+    // The pop here is needed to remove the dupped value in the case we do not return.
+    transformer.visitInsn(POP);
   }
 
   // The transformer below changes AndroidApiDatabasePackageTemplate.buildClass from:
@@ -359,8 +472,7 @@ public class AndroidApiDatabaseBuilderGenerator extends TestBase {
                     false);
                 Label label = new Label();
                 transformer.visitJumpInsn(IFEQ, label);
-                String binaryName =
-                    DescriptorUtils.getBinaryNameFromDescriptor(getApiClassDescriptor(apiClass));
+                String binaryName = getApiClassReference(apiClass).getBinaryName();
                 transformer.visitTypeInsn(NEW, binaryName);
                 transformer.visitInsn(DUP);
                 transformer.visitMethodInsn(INVOKESPECIAL, binaryName, "<init>", "()V", false);

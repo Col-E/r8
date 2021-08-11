@@ -294,6 +294,11 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public boolean isInterface() {
+    return dexClass.isInterface();
+  }
+
+  @Override
   public boolean isImplementing(ClassSubject subject) {
     assertTrue(subject.isPresent());
     for (DexType itf : getDexProgramClass().interfaces) {

@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -40,8 +41,9 @@ public class AndroidApiVersionsXmlParser {
     this.maxApiLevel = maxApiLevel;
   }
 
-  private ParsedApiClass register(ClassReference reference, AndroidApiLevel apiLevel) {
-    ParsedApiClass parsedApiClass = new ParsedApiClass(reference, apiLevel);
+  private ParsedApiClass register(
+      ClassReference reference, AndroidApiLevel apiLevel, boolean isInterface) {
+    ParsedApiClass parsedApiClass = new ParsedApiClass(reference, apiLevel, isInterface);
     classes.add(parsedApiClass);
     return parsedApiClass;
   }
@@ -62,11 +64,19 @@ public class AndroidApiVersionsXmlParser {
         continue;
       }
       ClassReference originalReference = clazz.getOriginalReference();
-      ParsedApiClass parsedApiClass = register(originalReference, apiLevel);
+      ParsedApiClass parsedApiClass = register(originalReference, apiLevel, clazz.isInterface());
       NodeList members = node.getChildNodes();
       for (int j = 0; j < members.getLength(); j++) {
         Node memberNode = members.item(j);
-        if (isMethod(memberNode)) {
+        if (isExtends(memberNode)) {
+          parsedApiClass.registerSuperType(
+              Reference.classFromBinaryName(getName(memberNode)),
+              hasSince(memberNode) ? getSince(memberNode) : apiLevel);
+        } else if (isImplements(memberNode)) {
+          parsedApiClass.registerInterface(
+              Reference.classFromBinaryName(getName(memberNode)),
+              hasSince(memberNode) ? getSince(memberNode) : apiLevel);
+        } else if (isMethod(memberNode)) {
           // TODO(b/190326408): Check for existence.
           parsedApiClass.register(
               getMethodReference(originalReference, memberNode),
@@ -109,16 +119,29 @@ public class AndroidApiVersionsXmlParser {
     return node.getNodeName().equals("field");
   }
 
-  private AndroidApiLevel getMaxAndroidApiLevelFromNode(Node node, AndroidApiLevel defaultValue) {
-    if (node == null) {
-      return defaultValue;
-    }
+  private boolean isExtends(Node node) {
+    return node.getNodeName().equals("extends");
+  }
+
+  private boolean isImplements(Node node) {
+    return node.getNodeName().equals("implements");
+  }
+
+  private boolean hasSince(Node node) {
+    return node.getAttributes().getNamedItem("since") != null;
+  }
+
+  private AndroidApiLevel getSince(Node node) {
+    assert hasSince(node);
     Node since = node.getAttributes().getNamedItem("since");
-    if (since == null) {
+    return AndroidApiLevel.getAndroidApiLevel(Integer.parseInt(since.getNodeValue()));
+  }
+
+  private AndroidApiLevel getMaxAndroidApiLevelFromNode(Node node, AndroidApiLevel defaultValue) {
+    if (node == null || !hasSince(node)) {
       return defaultValue;
     }
-    return defaultValue.max(
-        AndroidApiLevel.getAndroidApiLevel(Integer.parseInt(since.getNodeValue())));
+    return defaultValue.max(getSince(node));
   }
 
   public static List<ParsedApiClass> getParsedApiClasses(
@@ -132,12 +155,17 @@ public class AndroidApiVersionsXmlParser {
 
     private final ClassReference classReference;
     private final AndroidApiLevel apiLevel;
+    private final boolean isInterface;
+    private final Map<ClassReference, AndroidApiLevel> superTypes = new LinkedHashMap<>();
+    private final Map<ClassReference, AndroidApiLevel> interfaces = new LinkedHashMap<>();
     private final TreeMap<AndroidApiLevel, List<FieldReference>> fieldReferences = new TreeMap<>();
     private final Map<AndroidApiLevel, List<MethodReference>> methodReferences = new TreeMap<>();
 
-    private ParsedApiClass(ClassReference classReference, AndroidApiLevel apiLevel) {
+    private ParsedApiClass(
+        ClassReference classReference, AndroidApiLevel apiLevel, boolean isInterface) {
       this.classReference = classReference;
       this.apiLevel = apiLevel;
+      this.isInterface = isInterface;
     }
 
     public ClassReference getClassReference() {
@@ -171,6 +199,16 @@ public class AndroidApiVersionsXmlParser {
       methodReferences.computeIfAbsent(apiLevel, ignoreArgument(ArrayList::new)).add(reference);
     }
 
+    private void registerSuperType(ClassReference superType, AndroidApiLevel apiLevel) {
+      AndroidApiLevel existing = superTypes.put(superType, apiLevel);
+      assert existing == null;
+    }
+
+    private void registerInterface(ClassReference iface, AndroidApiLevel apiLevel) {
+      AndroidApiLevel existing = interfaces.put(iface, apiLevel);
+      assert existing == null;
+    }
+
     public void visitFieldReferences(BiConsumer<AndroidApiLevel, List<FieldReference>> consumer) {
       fieldReferences.forEach(
           (apiLevel, references) -> {
@@ -185,6 +223,18 @@ public class AndroidApiVersionsXmlParser {
             references.sort(Comparator.comparing(MethodReference::getMethodName));
             consumer.accept(apiLevel, references);
           });
+    }
+
+    public void visitSuperType(BiConsumer<ClassReference, AndroidApiLevel> consumer) {
+      superTypes.forEach(consumer);
+    }
+
+    public void visitInterface(BiConsumer<ClassReference, AndroidApiLevel> consumer) {
+      interfaces.forEach(consumer);
+    }
+
+    public boolean isInterface() {
+      return isInterface;
     }
   }
 }

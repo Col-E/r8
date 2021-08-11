@@ -5,10 +5,8 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.addTracedApiReferenceLevelCallBack;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -35,7 +33,7 @@ public class ApiModelFieldSuperTypeTest extends TestBase {
     this.parameters = parameters;
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     Method main = Main.class.getDeclaredMethod("main", String[].class);
     testForR8(parameters.getBackend())
@@ -55,16 +53,14 @@ public class ApiModelFieldSuperTypeTest extends TestBase {
             addTracedApiReferenceLevelCallBack(
                 (method, apiLevel) -> {
                   if (Reference.methodFromMethod(main).equals(method)) {
-                    // TODO(b/193414761): Should not be UNKNOWN.
-                    assertEquals(AndroidApiLevel.UNKNOWN, apiLevel);
+                    assertEquals(
+                        parameters.isCfRuntime()
+                            ? AndroidApiLevel.E
+                            : parameters.getApiLevel().max(AndroidApiLevel.E),
+                        apiLevel);
                   }
                 }))
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              // TODO(b/193414761): We should analyze all members.
-              diagnostics.assertErrorMessageThatMatches(
-                  containsString("Every member should have been analyzed"));
-            });
+        .compile();
   }
 
   /* Only here to get the test to compile */
@@ -77,7 +73,7 @@ public class ApiModelFieldSuperTypeTest extends TestBase {
 
     public static void main(String[] args) {
       // START_CONTINUATION_MASK is inherited from android/app/Service which was introduced at
-      // AndroidApiLevel.B.
+      // AndroidApiLevel.E.
       System.out.println(
           new /* android.accessibilityservice */ AccessibilityService().START_CONTINUATION_MASK);
     }

@@ -6,11 +6,9 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.addTracedApiReferenceLevelCallBack;
 import static com.android.tools.r8.utils.AndroidApiLevel.LATEST;
-import static com.android.tools.r8.utils.AndroidApiLevel.UNKNOWN;
-import static org.hamcrest.CoreMatchers.containsString;
+import static com.android.tools.r8.utils.AndroidApiLevel.R;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -36,7 +34,7 @@ public class ApiModelVirtualDispatchLinkInterfaceTest extends TestBase {
     this.parameters = parameters;
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     // Landroid/view/accessibility/AccessibilityNodeInfo$AccessibilityAction; is introduced at api
     // level 21 and on api level 30 it implements android.os.Parcelable.
@@ -58,16 +56,10 @@ public class ApiModelVirtualDispatchLinkInterfaceTest extends TestBase {
             addTracedApiReferenceLevelCallBack(
                 (method, apiLevel) -> {
                   if (Reference.methodFromMethod(main).equals(method)) {
-                    // TODO(b/193414761): Should be 30.
-                    assertEquals(UNKNOWN, apiLevel);
+                    assertEquals(R, apiLevel);
                   }
                 }))
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              // TODO(b/193414761): We should analyze all members.
-              diagnostics.assertErrorMessageThatMatches(
-                  containsString("Every member should have been analyzed"));
-            });
+        .compile();
   }
 
   public static class AccessibilityNodeInfo$AccessibilityAction {

@@ -120,6 +120,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public boolean isInterface() {
+    throw new Unreachable("Cannot determine if an absent class is an interface");
+  }
+
+  @Override
   public String getOriginalName() {
     return reference.getTypeName();
   }

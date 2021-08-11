@@ -1406,6 +1406,22 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
                     }
                     return TraversalContinuation.CONTINUE;
                   }
+
+                  @Override
+                  protected TraversalContinuation visitFields(
+                      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor,
+                      ClassReference holder,
+                      int minApi) {
+                    return null;
+                  }
+
+                  @Override
+                  protected TraversalContinuation visitMethods(
+                      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation> visitor,
+                      ClassReference holder,
+                      int minApi) {
+                    return null;
+                  }
                 });
           });
     }
