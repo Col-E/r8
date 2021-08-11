@@ -23,8 +23,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
@@ -227,7 +227,7 @@ public class BridgeHoisting {
         appView.dexItemFactory().createMethod(clazz.type, invokedMethod.proto, invokedMethod.name);
 
     // The targeted method must be present on the new holder class for this to be feasible.
-    ResolutionResult resolutionResult =
+    MethodResolutionResult resolutionResult =
         appView.appInfo().resolveMethodOnClass(methodToInvoke, clazz);
     if (!resolutionResult.isSingleResolution()) {
       return;

@@ -16,8 +16,8 @@ import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.graph.ResolutionResult.NoSuchMethodResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.NoSuchMethodResult;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.transformers.ClassFileTransformer;
@@ -119,7 +119,8 @@ public class NestInvokeSpecialInterfaceMethodAccessWithIntermediateTest extends 
 
     // Resolve the method from the point of the declared holder.
     assertEquals(method.holder, declaredClassDefinition.type);
-    ResolutionResult resolutionResult = appInfo.resolveMethodOn(declaredClassDefinition, method);
+    MethodResolutionResult resolutionResult =
+        appInfo.resolveMethodOn(declaredClassDefinition, method);
 
     // The targeted method is a private interface method and thus not a maximally specific method.
     assertTrue(resolutionResult instanceof NoSuchMethodResult);

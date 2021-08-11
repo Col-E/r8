@@ -10,12 +10,12 @@ import static com.android.tools.r8.utils.TraversalContinuation.CONTINUE;
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
-import com.android.tools.r8.graph.ResolutionResult.ArrayCloneMethodResult;
-import com.android.tools.r8.graph.ResolutionResult.ClassNotFoundResult;
-import com.android.tools.r8.graph.ResolutionResult.IllegalAccessOrNoSuchMethodResult;
-import com.android.tools.r8.graph.ResolutionResult.IncompatibleClassResult;
-import com.android.tools.r8.graph.ResolutionResult.NoSuchMethodResult;
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.ArrayCloneMethodResult;
+import com.android.tools.r8.graph.MethodResolutionResult.ClassNotFoundResult;
+import com.android.tools.r8.graph.MethodResolutionResult.IllegalAccessOrNoSuchMethodResult;
+import com.android.tools.r8.graph.MethodResolutionResult.IncompatibleClassResult;
+import com.android.tools.r8.graph.MethodResolutionResult.NoSuchMethodResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection.Builder;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
@@ -595,7 +595,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * <p>This is to overcome the shortcoming of the DEX file format that does not allow to encode the
    * kind of a method reference.
    */
-  public ResolutionResult unsafeResolveMethodDueToDexFormat(DexMethod method) {
+  public MethodResolutionResult unsafeResolveMethodDueToDexFormat(DexMethod method) {
     assert checkIfObsolete();
     DexType holder = method.holder;
     if (holder.isArrayType()) {
@@ -608,13 +608,13 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return resolveMethodOn(definition, method);
   }
 
-  public ResolutionResult resolveMethod(DexMethod method, boolean isInterface) {
+  public MethodResolutionResult resolveMethod(DexMethod method, boolean isInterface) {
     return isInterface
         ? resolveMethodOnInterface(method.holder, method)
         : resolveMethodOnClass(method, method.holder);
   }
 
-  public ResolutionResult resolveMethodOn(DexClass holder, DexMethod method) {
+  public MethodResolutionResult resolveMethodOn(DexClass holder, DexMethod method) {
     return holder.isInterface()
         ? resolveMethodOnInterface(holder, method)
         : resolveMethodOnClass(method, holder);
@@ -631,7 +631,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @param isInterface Indicates if resolution is to be done according to class or interface.
    * @return The result of resolution.
    */
-  public ResolutionResult resolveMethodOn(DexType holder, DexMethod method, boolean isInterface) {
+  public MethodResolutionResult resolveMethodOn(
+      DexType holder, DexMethod method, boolean isInterface) {
     assert checkIfObsolete();
     return isInterface
         ? resolveMethodOnInterface(holder, method)
@@ -645,7 +646,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * 10.7 of the Java Language Specification</a>. All invokations will have target java.lang.Object
    * except clone which has no target.
    */
-  private ResolutionResult resolveMethodOnArray(DexType holder, DexMethod method) {
+  private MethodResolutionResult resolveMethodOnArray(DexType holder, DexMethod method) {
     assert checkIfObsolete();
     assert holder.isArrayType();
     if (method.name == dexItemFactory().cloneMethodName) {
@@ -655,7 +656,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     }
   }
 
-  public ResolutionResult resolveMethodOnClass(DexMethod method) {
+  public MethodResolutionResult resolveMethodOnClass(DexMethod method) {
     return resolveMethodOnClass(method, method.holder);
   }
 
@@ -670,7 +671,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * invoke on the given descriptor to a corresponding invoke on the resolved descriptor, as the
    * resolved method is used as basis for dispatch.
    */
-  public ResolutionResult resolveMethodOnClass(DexMethod method, DexType holder) {
+  public MethodResolutionResult resolveMethodOnClass(DexMethod method, DexType holder) {
     assert checkIfObsolete();
     if (holder.isArrayType()) {
       return resolveMethodOnArray(holder, method);
@@ -686,11 +687,11 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return resolveMethodOnClass(method, clazz);
   }
 
-  public ResolutionResult resolveMethodOnClass(DexMethod method, DexClass clazz) {
+  public MethodResolutionResult resolveMethodOnClass(DexMethod method, DexClass clazz) {
     assert checkIfObsolete();
     assert !clazz.isInterface();
     // Step 2:
-    ResolutionResult result = resolveMethodOnClassStep2(clazz, method, clazz);
+    MethodResolutionResult result = resolveMethodOnClassStep2(clazz, method, clazz);
     if (result != null) {
       return result;
     }
@@ -703,7 +704,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">Section
    * 5.4.3.3 of the JVM Spec</a>.
    */
-  private ResolutionResult resolveMethodOnClassStep2(
+  private MethodResolutionResult resolveMethodOnClassStep2(
       DexClass clazz, DexMethod method, DexClass initialResolutionHolder) {
     // Pt. 1: Signature polymorphic method check.
     // See also <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-2.html#jvms-2.9">
@@ -741,7 +742,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * 5.4.3.3 of the JVM Spec</a>. As this is the same for interfaces and classes, we share one
    * implementation.
    */
-  private ResolutionResult resolveMethodStep3(DexClass clazz, DexMethod method) {
+  private MethodResolutionResult resolveMethodStep3(DexClass clazz, DexMethod method) {
     MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder();
     resolveMethodStep3Helper(method, clazz, builder);
     return builder.resolve(clazz);
@@ -807,7 +808,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return method != null && !method.accessFlags.isPrivate() && !method.accessFlags.isStatic();
   }
 
-  public ResolutionResult resolveMethodOnInterface(DexMethod method) {
+  public MethodResolutionResult resolveMethodOnInterface(DexMethod method) {
     return resolveMethodOnInterface(method.holder, method);
   }
 
@@ -822,7 +823,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * invoke on the given descriptor to a corresponding invoke on the resolved descriptor, as the
    * resolved method is used as basis for dispatch.
    */
-  public ResolutionResult resolveMethodOnInterface(DexType holder, DexMethod desc) {
+  public MethodResolutionResult resolveMethodOnInterface(DexType holder, DexMethod desc) {
     assert checkIfObsolete();
     if (holder.isArrayType()) {
       return IncompatibleClassResult.INSTANCE;
@@ -840,7 +841,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return resolveMethodOnInterface(definition, desc);
   }
 
-  public ResolutionResult resolveMethodOnInterface(DexClass definition, DexMethod desc) {
+  public MethodResolutionResult resolveMethodOnInterface(DexClass definition, DexMethod desc) {
     assert checkIfObsolete();
     assert definition.isInterface();
     // Step 2: Look for exact method on interface.
@@ -1004,12 +1005,12 @@ public class AppInfoWithClassHierarchy extends AppInfo {
           : null;
     }
 
-    ResolutionResult resolve(DexClass initialResolutionHolder) {
+    MethodResolutionResult resolve(DexClass initialResolutionHolder) {
       assert initialResolutionHolder != null;
       return internalResolve(initialResolutionHolder);
     }
 
-    private ResolutionResult internalResolve(DexClass initialResolutionHolder) {
+    private MethodResolutionResult internalResolve(DexClass initialResolutionHolder) {
       if (maximallySpecificMethods.isEmpty()) {
         return NoSuchMethodResult.INSTANCE;
       }

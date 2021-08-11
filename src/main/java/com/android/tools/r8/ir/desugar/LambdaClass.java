@@ -29,10 +29,10 @@ import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.lambda.ForcefullyMovedLambdaMethodConsumer;
@@ -321,7 +321,7 @@ public final class LambdaClass {
     assert implMethod.holder == accessedFrom.getHolderType();
     assert descriptor.verifyTargetFoundInClass(accessedFrom.getHolderType());
     if (implHandle.type.isInvokeStatic()) {
-      ResolutionResult resolution =
+      MethodResolutionResult resolution =
           appView.appInfoForDesugaring().resolveMethod(implMethod, implHandle.isInterface);
       if (resolution.isFailedResolution()) {
         return new InvalidLambdaImplTarget(

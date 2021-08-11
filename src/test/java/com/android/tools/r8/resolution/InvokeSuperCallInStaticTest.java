@@ -21,7 +21,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.io.IOException;
@@ -59,7 +59,7 @@ public class InvokeSuperCallInStaticTest extends TestBase {
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(Base.class, "collect", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     assertTrue(resolutionResult.isSingleResolution());
     DexProgramClass context =
         appView.definitionForProgramType(buildType(A.class, appInfo.dexItemFactory()));

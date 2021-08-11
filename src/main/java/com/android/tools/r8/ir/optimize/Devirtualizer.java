@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import static com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult.isOverriding;
+import static com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult.isOverriding;
 
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
@@ -11,8 +11,8 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;

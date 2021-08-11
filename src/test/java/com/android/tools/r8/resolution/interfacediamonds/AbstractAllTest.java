@@ -11,7 +11,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
@@ -45,7 +45,7 @@ public class AbstractAllTest extends TestBase {
         buildClasses(CLASSES).addLibraryFile(parameters.getDefaultRuntimeLibrary()).build();
     AppInfoWithLiveness appInfo = computeAppViewWithLiveness(app, Main.class).appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
     // Currently R8 will resolve to L::f as that is the first in the topological search.
     // Resolution may return any of the matches, so it is valid if this expectation changes.

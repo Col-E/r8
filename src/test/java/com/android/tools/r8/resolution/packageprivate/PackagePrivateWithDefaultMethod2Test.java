@@ -21,7 +21,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LookupResult;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.resolution.packageprivate.a.Abstract;
 import com.android.tools.r8.resolution.packageprivate.a.AbstractWidening;
 import com.android.tools.r8.resolution.packageprivate.a.I;
@@ -73,7 +73,7 @@ public class PackagePrivateWithDefaultMethod2Test extends TestBase {
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(A.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);

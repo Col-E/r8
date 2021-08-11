@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.horizontalclassmerging.SubtypingForrestForClasses;

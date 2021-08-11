@@ -27,8 +27,8 @@ import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -611,7 +611,8 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
       DexClass clazz, EmulatedInterfaceInfo emulatedInterfaceInfo) {
     AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
     for (Wrapper<DexMethod> signature : emulatedInterfaceInfo.signatures.signatures) {
-      ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(signature.get(), clazz);
+      MethodResolutionResult resolutionResult =
+          appInfo.resolveMethodOnClass(signature.get(), clazz);
       if (resolutionResult.isFailedResolution()) {
         return true;
       }
@@ -650,7 +651,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
   private void resolveForwardForSignature(
       DexClass clazz, DexMethod method, Consumer<DexClassAndMethod> addForward) {
     AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
-    ResolutionResult resolutionResult = appInfo.resolveMethodOn(clazz, method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOn(clazz, method);
     if (resolutionResult.isFailedResolution()
         || resolutionResult.asSuccessfulMemberResolutionResult().getResolvedMember().isStatic()) {
       // When doing resolution we may find a static or private targets and bubble up the failed

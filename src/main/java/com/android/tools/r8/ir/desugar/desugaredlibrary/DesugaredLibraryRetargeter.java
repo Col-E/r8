@@ -17,8 +17,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -198,7 +198,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
         return NO_REWRITING;
       }
       // We need to force resolution, even on d8, to know if the invoke has to be rewritten.
-      ResolutionResult resolutionResult =
+      MethodResolutionResult resolutionResult =
           appView.appInfoForDesugaring().resolveMethod(invokedMethod, isInterface);
       if (resolutionResult.isFailedResolution()) {
         return NO_REWRITING;

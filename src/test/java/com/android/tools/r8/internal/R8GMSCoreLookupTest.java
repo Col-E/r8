@@ -22,7 +22,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApp;
@@ -75,7 +75,7 @@ public class R8GMSCoreLookupTest extends TestBase {
         appInfo().resolveMethodOnClass(method.getReference(), id.holder).getSingleTarget(), method);
 
     // Check lookup targets with include method.
-    ResolutionResult resolutionResult =
+    MethodResolutionResult resolutionResult =
         appInfo().resolveMethodOnClass(method.getReference(), clazz);
     AppInfoWithLiveness appInfo = null; // TODO(b/154881041): Remove or compute liveness.
     LookupResult lookupResult =

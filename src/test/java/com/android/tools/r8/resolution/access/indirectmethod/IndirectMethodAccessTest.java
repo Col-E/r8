@@ -12,7 +12,7 @@ import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.resolution.access.indirectmethod.pkg.C;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.OptionalBool;
@@ -65,7 +65,7 @@ public class IndirectMethodAccessTest extends TestBase {
     DexProgramClass cClass =
         appInfo.definitionFor(buildType(C.class, appInfo.dexItemFactory())).asProgramClass();
     DexMethod bar = buildMethod(B.class.getMethod("foo"), appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(bar);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(bar);
     assertEquals(
         OptionalBool.TRUE, resolutionResult.isAccessibleForVirtualDispatchFrom(cClass, appInfo));
   }

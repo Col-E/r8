@@ -19,11 +19,11 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MemberResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.NestHostClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.SuccessfulMemberResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -97,7 +97,7 @@ public class RepackagingUseRegistry extends UseRegistry {
   }
 
   public ProgramMethod registerMethodReference(DexMethod method) {
-    ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
+    MethodResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
     registerMemberAccess(resolutionResult, false);
     return resolutionResult.isSingleResolution()
         ? resolutionResult.asSingleResolution().getResolvedProgramMethod()

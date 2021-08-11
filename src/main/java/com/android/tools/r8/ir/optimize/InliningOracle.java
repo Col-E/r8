@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;

@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMember;
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo.AssumeType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;

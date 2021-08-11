@@ -17,7 +17,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -95,7 +95,8 @@ public class NestInvokeSpecialMethodAccessTest extends TestBase {
 
     // Resolve the method from the point of the declared holder.
     assertEquals(method.holder, declaredClassDefinition.type);
-    ResolutionResult resolutionResult = appInfo.resolveMethodOn(declaredClassDefinition, method);
+    MethodResolutionResult resolutionResult =
+        appInfo.resolveMethodOn(declaredClassDefinition, method);
 
     // Verify that the resolved method is on the defining class.
     assertEquals(

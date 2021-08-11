@@ -20,7 +20,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LookupResult;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -59,7 +59,7 @@ public class DefaultInterfaceMethodInSubInterfaceSubTypeTest extends TestBase {
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);

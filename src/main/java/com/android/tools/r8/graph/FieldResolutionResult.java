@@ -17,6 +17,16 @@ public abstract class FieldResolutionResult
     return UnknownFieldResolutionResult.INSTANCE;
   }
 
+  @Override
+  public boolean isFieldResolutionResult() {
+    return true;
+  }
+
+  @Override
+  public FieldResolutionResult asFieldResolutionResult() {
+    return this;
+  }
+
   public DexEncodedField getResolvedField() {
     return null;
   }

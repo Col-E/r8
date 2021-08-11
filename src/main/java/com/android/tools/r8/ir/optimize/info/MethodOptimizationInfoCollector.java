@@ -52,8 +52,8 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.DeterminismAnalysis;
 import com.android.tools.r8.ir.analysis.InitializedClassesOnNormalExitAnalysis;
@@ -987,7 +987,7 @@ public class MethodOptimizationInfoCollector {
       return false;
     }
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-    ResolutionResult resolutionResult =
+    MethodResolutionResult resolutionResult =
         appView
             .appInfo()
             .resolveMethodOnClass(appView.dexItemFactory().objectMembers.finalize, clazz);

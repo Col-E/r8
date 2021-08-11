@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -184,7 +184,7 @@ public class NewInstance extends Instruction {
     }
 
     // Verify that the object does not have a finalizer.
-    ResolutionResult finalizeResolutionResult =
+    MethodResolutionResult finalizeResolutionResult =
         appViewWithLiveness
             .appInfo()
             .resolveMethodOnClass(dexItemFactory.objectMembers.finalize, clazz);

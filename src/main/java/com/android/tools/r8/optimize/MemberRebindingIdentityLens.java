@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import java.util.IdentityHashMap;
 import java.util.Map;

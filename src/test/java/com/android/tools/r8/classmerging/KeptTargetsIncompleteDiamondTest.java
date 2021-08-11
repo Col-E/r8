@@ -17,7 +17,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.google.common.collect.ImmutableList;
@@ -76,7 +76,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     // }
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(I.class, I.class);
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appView.dexItemFactory());
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
+    MethodResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
     DexType typeI = buildType(I.class, appView.dexItemFactory());
     DexType typeL = buildType(L.class, appView.dexItemFactory());
     DexType typeA = buildType(A.class, appView.dexItemFactory());
@@ -117,7 +117,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     // }
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(I.class, I.class);
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appView.dexItemFactory());
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
+    MethodResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
     DexType typeI = buildType(I.class, appView.dexItemFactory());
     DexType typeL = buildType(L.class, appView.dexItemFactory());
     DexType typeA = buildType(A.class, appView.dexItemFactory());
@@ -157,7 +157,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     // }
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(J.class, J.class);
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appView.dexItemFactory());
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
+    MethodResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
     DexType typeI = buildType(I.class, appView.dexItemFactory());
     DexType typeB = buildType(A.class, appView.dexItemFactory());
     DexProgramClass classI = appView.definitionForProgramType(typeI);
@@ -194,7 +194,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     // }
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(J.class, A.class);
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appView.dexItemFactory());
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
+    MethodResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
     DexType typeI = buildType(I.class, appView.dexItemFactory());
     DexType typeB = buildType(A.class, appView.dexItemFactory());
     DexProgramClass classI = appView.definitionForProgramType(typeI);
@@ -233,7 +233,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     // }
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(I.class, I.class);
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appView.dexItemFactory());
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
+    MethodResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
     DexType typeI = buildType(I.class, appView.dexItemFactory());
     DexType typeB = buildType(A.class, appView.dexItemFactory());
     DexProgramClass classI = appView.definitionForProgramType(typeI);

@@ -20,7 +20,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LookupResult;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -59,7 +59,8 @@ public class SubTypeMissingOverridesTest extends TestBase {
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnInterface(method.holder, method);
+    MethodResolutionResult resolutionResult =
+        appInfo.resolveMethodOnInterface(method.holder, method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);

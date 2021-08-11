@@ -11,7 +11,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -50,7 +50,7 @@ public class DefaultLeftAbstractRightTest extends TestBase {
                 Main.class)
             .appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
     assertEquals(L.class.getTypeName(), resolutionTarget.getHolderType().toSourceString());
   }

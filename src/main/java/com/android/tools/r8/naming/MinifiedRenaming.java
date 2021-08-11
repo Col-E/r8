@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
@@ -106,7 +106,7 @@ class MinifiedRenaming extends NonIdentityNamingLens {
       return true;
     }
 
-    ResolutionResult resolution = appView.appInfo().unsafeResolveMethodDueToDexFormat(method);
+    MethodResolutionResult resolution = appView.appInfo().unsafeResolveMethodDueToDexFormat(method);
     assert resolution != null;
 
     if (resolution.isSingleResolution()) {

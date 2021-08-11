@@ -15,8 +15,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.modeling.LibraryMethodReadSetModeling;
@@ -115,7 +115,8 @@ public abstract class InvokeMethod extends Invoke {
         refinedReceiverLowerBound = null;
       }
     }
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method, getInterfaceBit());
+    MethodResolutionResult resolutionResult =
+        appView.appInfo().resolveMethod(method, getInterfaceBit());
     LookupResult lookupResult;
     if (refinedReceiverUpperBound != null) {
       lookupResult =

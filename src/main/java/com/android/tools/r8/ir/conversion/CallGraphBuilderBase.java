@@ -19,9 +19,9 @@ import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
@@ -173,7 +173,7 @@ abstract class CallGraphBuilderBase {
       Invoke.Type type = result.getType();
       if (type == Invoke.Type.INTERFACE || type == Invoke.Type.VIRTUAL) {
         // For virtual and interface calls add all potential targets that could be called.
-        ResolutionResult resolutionResult =
+        MethodResolutionResult resolutionResult =
             appView.appInfo().resolveMethod(method, type == Invoke.Type.INTERFACE);
         DexEncodedMethod target = resolutionResult.getSingleTarget();
         if (target != null) {
@@ -215,7 +215,8 @@ abstract class CallGraphBuilderBase {
           possibleProgramTargetsCache.computeIfAbsent(
               target,
               method -> {
-                ResolutionResult resolution = appView.appInfo().resolveMethod(method, isInterface);
+                MethodResolutionResult resolution =
+                    appView.appInfo().resolveMethod(method, isInterface);
                 if (resolution.isVirtualTarget()) {
                   LookupResult lookupResult =
                       resolution.lookupVirtualDispatchTargets(

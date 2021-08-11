@@ -67,6 +67,9 @@ import com.android.tools.r8.graph.LookupLambdaTarget;
 import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
+import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.FailedResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -74,9 +77,6 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramDerivedContext;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.graph.ResolutionResult.FailedResolutionResult;
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.analysis.ApiModelAnalysis;
@@ -2012,7 +2012,7 @@ public class Enqueuer {
       DexMethod method, ProgramDefinition context, KeepReason reason) {
     // Record the references in case they are not program types.
     recordMethodReference(method, context);
-    ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
+    MethodResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
     if (resolutionResult.isFailedResolution()) {
       markFailedMethodResolutionTargets(
           method, resolutionResult.asFailedResolution(), context, reason);
@@ -2023,7 +2023,7 @@ public class Enqueuer {
   private SingleResolutionResult resolveMethod(
       DexMethod method, ProgramDefinition context, KeepReason reason, boolean interfaceInvoke) {
     // Record the references in case they are not program types.
-    ResolutionResult resolutionResult = appInfo.resolveMethod(method, interfaceInvoke);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethod(method, interfaceInvoke);
     if (resolutionResult.isSingleResolution()) {
       recordMethodReference(
           method, resolutionResult.getResolutionPair().asProgramDerivedContext(context));
@@ -2535,7 +2535,7 @@ public class Enqueuer {
   private void markLibraryOrClasspathOverrideLive(
       InstantiatedObject instantiation,
       DexClass libraryOrClasspathClass,
-      ResolutionResult resolution) {
+      MethodResolutionResult resolution) {
     LookupTarget lookup = resolution.lookupVirtualDispatchTarget(instantiation, appInfo);
     if (lookup == null) {
       return;

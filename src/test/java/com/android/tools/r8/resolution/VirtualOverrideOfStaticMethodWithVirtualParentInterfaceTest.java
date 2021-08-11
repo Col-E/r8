@@ -16,8 +16,8 @@ import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
@@ -129,7 +129,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
   public void lookupSingleTarget() {
     DexProgramClass bClass = appInfo.definitionForProgramType(methodOnBReference.holder);
     ProgramMethod methodOnB = bClass.lookupProgramMethod(methodOnBReference);
-    ResolutionResult resolutionResult =
+    MethodResolutionResult resolutionResult =
         appInfo.resolveMethodOnInterface(methodOnBReference.holder, methodOnBReference);
     DexEncodedMethod resolved = resolutionResult.getSingleTarget();
     assertEquals(methodOnBReference, resolved.getReference());
@@ -141,7 +141,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
 
   @Test
   public void lookupVirtualTargets() {
-    ResolutionResult resolutionResult =
+    MethodResolutionResult resolutionResult =
         appInfo.resolveMethodOnInterface(methodOnBReference.holder, methodOnBReference);
     DexEncodedMethod resolved = resolutionResult.getSingleTarget();
     assertEquals(methodOnBReference, resolved.getReference());

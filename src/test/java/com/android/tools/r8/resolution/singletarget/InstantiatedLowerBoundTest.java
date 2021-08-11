@@ -19,8 +19,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -118,7 +118,7 @@ public class InstantiatedLowerBoundTest extends TestBase {
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     DexMethod fooB = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
     DexMethod fooC = buildNullaryVoidMethod(C.class, "foo", appInfo.dexItemFactory());
-    ResolutionResult resolution = appInfo.resolveMethodOnClass(fooA);
+    MethodResolutionResult resolution = appInfo.resolveMethodOnClass(fooA);
     DexProgramClass context = appView.definitionForProgramType(typeMain);
     DexProgramClass upperBound = appView.definitionForProgramType(typeA);
     DexProgramClass lowerBound = appView.definitionForProgramType(typeC);

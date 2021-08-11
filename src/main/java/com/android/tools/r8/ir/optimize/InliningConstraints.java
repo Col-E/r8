@@ -17,8 +17,8 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -174,10 +174,11 @@ public class InliningConstraints {
     if (lookup.holder.isArrayType()) {
       return ConstraintWithTarget.ALWAYS;
     }
-    ResolutionResult resolutionResult = appView.appInfo().unsafeResolveMethodDueToDexFormat(lookup);
+    MethodResolutionResult resolutionResult =
+        appView.appInfo().unsafeResolveMethodDueToDexFormat(lookup);
     DexEncodedMethod target =
         singleTargetWhileVerticalClassMerging(
-            resolutionResult, context, ResolutionResult::lookupInvokeDirectTarget);
+            resolutionResult, context, MethodResolutionResult::lookupInvokeDirectTarget);
     return forResolvedMember(resolutionResult.getInitialResolutionHolder(), context, target);
   }
 
@@ -205,10 +206,11 @@ public class InliningConstraints {
     if (lookup.holder.isArrayType()) {
       return ConstraintWithTarget.ALWAYS;
     }
-    ResolutionResult resolutionResult = appView.appInfo().unsafeResolveMethodDueToDexFormat(lookup);
+    MethodResolutionResult resolutionResult =
+        appView.appInfo().unsafeResolveMethodDueToDexFormat(lookup);
     DexEncodedMethod target =
         singleTargetWhileVerticalClassMerging(
-            resolutionResult, context, ResolutionResult::lookupInvokeStaticTarget);
+            resolutionResult, context, MethodResolutionResult::lookupInvokeStaticTarget);
     if (!allowStaticInterfaceMethodCalls && target != null) {
       // See b/120121170.
       DexClass methodClass = appView.definitionFor(graphLens.lookupType(target.getHolderType()));
@@ -221,9 +223,10 @@ public class InliningConstraints {
 
   @SuppressWarnings("ConstantConditions")
   private DexEncodedMethod singleTargetWhileVerticalClassMerging(
-      ResolutionResult resolutionResult,
+      MethodResolutionResult resolutionResult,
       ProgramMethod context,
-      TriFunction<ResolutionResult, DexProgramClass, AppInfoWithClassHierarchy, DexEncodedMethod>
+      TriFunction<
+              MethodResolutionResult, DexProgramClass, AppInfoWithClassHierarchy, DexEncodedMethod>
           lookup) {
     if (!resolutionResult.isSingleResolution()) {
       return null;
@@ -357,7 +360,7 @@ public class InliningConstraints {
 
     // Perform resolution and derive inlining constraints based on the accessibility of the
     // resolution result.
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method, isInterface);
+    MethodResolutionResult resolutionResult = appView.appInfo().resolveMethod(method, isInterface);
     if (!resolutionResult.isVirtualTarget()) {
       return ConstraintWithTarget.NEVER;
     }

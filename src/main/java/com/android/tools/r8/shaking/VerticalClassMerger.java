@@ -45,10 +45,10 @@ import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
@@ -1464,7 +1464,8 @@ public class VerticalClassMerger {
 
     // Returns the method that shadows the given method, or null if method is not shadowed.
     private DexEncodedMethod findMethodInTarget(DexEncodedMethod method) {
-      ResolutionResult resolutionResult = appInfo.resolveMethodOn(target, method.getReference());
+      MethodResolutionResult resolutionResult =
+          appInfo.resolveMethodOn(target, method.getReference());
       if (!resolutionResult.isSingleResolution()) {
         // May happen in case of missing classes, or if multiple implementations were found.
         abortMerge = true;
@@ -2028,7 +2029,7 @@ public class VerticalClassMerger {
           for (DexType type : method.proto.parameters.values) {
             checkTypeReference(type);
           }
-          ResolutionResult resolutionResult =
+          MethodResolutionResult resolutionResult =
               isInterface.isUnknown()
                   ? appView.appInfo().unsafeResolveMethodDueToDexFormat(method)
                   : appView.appInfo().resolveMethod(method, isInterface.isTrue());

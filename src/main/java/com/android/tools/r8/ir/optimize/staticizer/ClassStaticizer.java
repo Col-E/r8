@@ -18,8 +18,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -658,7 +658,7 @@ public final class ClassStaticizer {
         return false;
       }
       AppInfoWithLiveness appInfo = appView.appInfo();
-      ResolutionResult resolutionResult =
+      MethodResolutionResult resolutionResult =
           appInfo.unsafeResolveMethodDueToDexFormat(methodReferenced);
       DexEncodedMethod methodInvoked =
           user.isInvokeDirect()

@@ -24,4 +24,20 @@ public abstract class MemberResolutionResult<
       ProgramDefinition context, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return isAccessibleFrom(context, appView.appInfo());
   }
+
+  public boolean isFieldResolutionResult() {
+    return false;
+  }
+
+  public boolean isMethodResolutionResult() {
+    return false;
+  }
+
+  public FieldResolutionResult asFieldResolutionResult() {
+    return null;
+  }
+
+  public MethodResolutionResult asMethodResolutionResult() {
+    return null;
+  }
 }

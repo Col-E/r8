@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
@@ -332,7 +332,7 @@ public class ClassInitializationAnalysis {
         }
       }
       DexMethod method = instruction.getInvokedMethod();
-      ResolutionResult resolutionResult =
+      MethodResolutionResult resolutionResult =
           appView.appInfo().resolveMethodOnInterface(method.holder, method);
       if (!resolutionResult.isSingleResolution()) {
         return false;
@@ -393,7 +393,7 @@ public class ClassInitializationAnalysis {
       if (superType == null) {
         return false;
       }
-      ResolutionResult resolutionResult =
+      MethodResolutionResult resolutionResult =
           appView.appInfo().resolveMethodOn(superType, method, instruction.isInterface);
       if (!resolutionResult.isSingleResolution()) {
         return false;
@@ -430,7 +430,7 @@ public class ClassInitializationAnalysis {
         }
       }
       DexMethod method = instruction.getInvokedMethod();
-      ResolutionResult resolutionResult =
+      MethodResolutionResult resolutionResult =
           appView.appInfo().resolveMethodOnClass(method, method.holder);
       if (!resolutionResult.isSingleResolution()) {
         return false;

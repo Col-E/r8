@@ -15,7 +15,7 @@ import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -107,7 +107,8 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends T
 
   @Test
   public void testResolution() {
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB, methodOnB.holder);
+    MethodResolutionResult resolutionResult =
+        appInfo.resolveMethodOnClass(methodOnB, methodOnB.holder);
     assertTrue(resolutionResult.isFailedResolution());
   }
 

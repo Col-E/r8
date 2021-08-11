@@ -19,7 +19,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.google.common.collect.ImmutableSet;
@@ -87,7 +87,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
             });
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(initial, "foo", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexProgramClass context =
         DexProgramClass.asProgramClassOrNull(
             appView
@@ -238,7 +238,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
                 .build());
     AppInfoWithClassHierarchy appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexType typeA = buildType(A.class, appInfo.dexItemFactory());
     DexType typeB = buildType(B.class, appInfo.dexItemFactory());
     DexProgramClass classB = appInfo.definitionForProgramType(typeB);
@@ -273,7 +273,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
             Unrelated.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(Unrelated.class, "foo", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Unrelated.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);

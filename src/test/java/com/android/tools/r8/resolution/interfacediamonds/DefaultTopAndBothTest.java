@@ -11,7 +11,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -52,7 +52,7 @@ public class DefaultTopAndBothTest extends TestBase {
                 Main.class)
             .appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     Set<String> holders = new HashSet<>();
     resolutionResult
         .asFailedResolution()

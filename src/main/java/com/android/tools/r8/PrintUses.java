@@ -23,8 +23,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.shaking.MainDexInfo;
@@ -105,7 +105,7 @@ public class PrintUses {
 
     @Override
     public void registerInvokeVirtual(DexMethod method) {
-      ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
+      MethodResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
       DexEncodedMethod target =
           resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
       if (target != null && target.getReference() != method) {
@@ -277,7 +277,7 @@ public class PrintUses {
       // If clazz overrides any methods in superType, we should keep those as well.
       clazz.forEachMethod(
           method -> {
-            ResolutionResult resolutionResult =
+            MethodResolutionResult resolutionResult =
                 appInfo.resolveMethodOn(
                     superType, method.getReference(), superType != clazz.superType);
             DexEncodedMethod dexEncodedMethod = resolutionResult.getSingleTarget();

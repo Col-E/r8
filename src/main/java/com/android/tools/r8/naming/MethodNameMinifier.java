@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -360,7 +360,7 @@ class MethodNameMinifier {
       return;
     }
 
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethodOn(holder, method);
+    MethodResolutionResult resolutionResult = appView.appInfo().resolveMethodOn(holder, method);
     if (resolutionResult.isSingleResolution()) {
       DexEncodedMethod resolvedMethod = resolutionResult.getSingleTarget();
       if (resolvedMethod.getReference() == method) {

@@ -21,9 +21,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.LibraryMethod;
+import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -1021,7 +1021,7 @@ final class InlineCandidateProcessor {
     // We should not inline a method if the invocation has type interface or virtual and the
     // signature of the invocation resolves to a private or static method.
     // TODO(b/147212189): Why not inline private methods? If access is permitted it is valid.
-    ResolutionResult resolutionResult =
+    MethodResolutionResult resolutionResult =
         appView.appInfo().resolveMethodOnClass(callee, eligibleClass);
     if (resolutionResult.isSingleResolution()
         && !resolutionResult.getSingleTarget().isNonPrivateVirtualMethod()) {

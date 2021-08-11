@@ -14,8 +14,8 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.singletarget.Main;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
 import com.android.tools.r8.resolution.singletarget.one.AbstractTopClass;
@@ -204,7 +204,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
   public void lookupVirtualTargets() {
     DexMethod method = buildNullaryVoidMethod(invokeReceiver, methodName, appInfo.dexItemFactory());
     Assert.assertNotNull(appInfo.resolveMethodOnClass(method).getSingleTarget());
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     if (resolutionResult.isVirtualTarget()) {
       LookupResult lookupResult =
           resolutionResult.lookupVirtualDispatchTargets(

@@ -19,7 +19,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.io.IOException;
@@ -59,7 +59,7 @@ public class InvalidResolutionToThisTarget extends TestBase {
                       Main.class);
               AppInfoWithLiveness appInfo = appView.appInfo();
               DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-              ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+              MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
               assertTrue(resolutionResult.isSingleResolution());
               DexType mainType = buildType(Main.class, appInfo.dexItemFactory());
               DexProgramClass main = appView.definitionForProgramType(mainType);

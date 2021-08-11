@@ -27,9 +27,9 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.FieldLookupResult;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
@@ -348,7 +348,7 @@ public class Tracer {
           return;
         }
         assert lookupResult.getType().isInterface() || lookupResult.getType().isVirtual();
-        ResolutionResult resolutionResult =
+        MethodResolutionResult resolutionResult =
             lookupResult.getType().isInterface()
                 ? appInfo.resolveMethodOnInterface(method)
                 : appInfo.resolveMethodOnClass(method);

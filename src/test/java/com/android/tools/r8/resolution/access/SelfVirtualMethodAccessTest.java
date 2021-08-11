@@ -11,7 +11,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.StringUtils;
@@ -59,7 +59,7 @@ public class SelfVirtualMethodAccessTest extends TestBase {
     DexProgramClass aClass =
         appInfo.definitionFor(buildType(A.class, appInfo.dexItemFactory())).asProgramClass();
     DexMethod bar = buildMethod(A.class.getDeclaredMethod("bar"), appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(bar);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(bar);
     assertEquals(OptionalBool.TRUE, resolutionResult.isAccessibleFrom(aClass, appInfo));
   }
 

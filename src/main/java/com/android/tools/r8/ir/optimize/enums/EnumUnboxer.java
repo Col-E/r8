@@ -37,9 +37,9 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues.EnumStaticFieldValues;
@@ -898,7 +898,8 @@ public class EnumUnboxer {
       }
       // Perform resolution and derive unboxing constraints based on the accessibility of the
       // resolution result.
-      ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method, isInterface);
+      MethodResolutionResult resolutionResult =
+          appView.appInfo().resolveMethod(method, isInterface);
       if (!resolutionResult.isVirtualTarget()) {
         constraint = Constraint.NEVER;
         return;
@@ -941,7 +942,7 @@ public class EnumUnboxer {
       if (method.holder.isArrayType()) {
         return;
       }
-      ResolutionResult resolutionResult =
+      MethodResolutionResult resolutionResult =
           appView.appInfo().unsafeResolveMethodDueToDexFormat(method);
       DexEncodedMethod target = resolutionResult.getSingleTarget();
       if (target == null || !methodValidator.test(target)) {

@@ -19,7 +19,18 @@ import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
-public abstract class ResolutionResult extends MemberResolutionResult<DexEncodedMethod, DexMethod> {
+public abstract class MethodResolutionResult
+    extends MemberResolutionResult<DexEncodedMethod, DexMethod> {
+
+  @Override
+  public boolean isMethodResolutionResult() {
+    return true;
+  }
+
+  @Override
+  public MethodResolutionResult asMethodResolutionResult() {
+    return this;
+  }
 
   /**
    * Returns true if resolution succeeded *and* the resolved method has a known definition.
@@ -137,7 +148,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
       LambdaDescriptor lambdaInstance, AppInfoWithClassHierarchy appInfo);
 
   /** Result for a resolution that succeeds with a known declaration/definition. */
-  public static class SingleResolutionResult extends ResolutionResult
+  public static class SingleResolutionResult extends MethodResolutionResult
       implements SuccessfulMemberResolutionResult<DexEncodedMethod, DexMethod> {
     private final DexClass initialResolutionHolder;
     private final DexClass resolvedHolder;
@@ -700,7 +711,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
     }
   }
 
-  abstract static class EmptyResult extends ResolutionResult {
+  abstract static class EmptyResult extends MethodResolutionResult {
 
     @Override
     public final DexClassAndMethod lookupInvokeSpecialTarget(
