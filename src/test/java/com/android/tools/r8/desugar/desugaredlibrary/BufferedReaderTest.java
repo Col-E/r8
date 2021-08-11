@@ -126,7 +126,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
       Path desugaredLib =
           getDesugaredLibraryInCF(parameters, this::configurationForLibraryCompilation);
 
-      // Run on the JVM with desuagred library on classpath.
+      // Run on the JVM with desugared library on classpath.
       testForJvm()
           .addProgramFiles(jar)
           .addRunClasspathFiles(desugaredLib)

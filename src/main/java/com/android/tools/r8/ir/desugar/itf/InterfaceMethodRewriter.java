@@ -214,6 +214,10 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     }
   }
 
+  public Set<DexString> getEmulatedMethods() {
+    return emulatedMethods;
+  }
+
   private void initializeEmulatedInterfaceVariables() {
     Map<DexType, DexType> emulateLibraryInterface =
         options.desugaredLibraryConfiguration.getEmulateLibraryInterface();

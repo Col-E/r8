@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.desugar.LambdaClass.LAMBDA_INSTANCE_FIELD_
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexDebugEvent.AdvanceLine;
 import com.android.tools.r8.graph.DexDebugEvent.AdvancePC;
 import com.android.tools.r8.graph.DexDebugEvent.Default;
@@ -716,6 +717,44 @@ public class DexItemFactory {
           .put(floatType, boxedFloatType)
           .put(doubleType, boxedDoubleType)
           .build());
+
+  public final Map<DexType, DexMethod> unboxPrimitiveMethod =
+      ImmutableMap.<DexType, DexMethod>builder()
+          .put(boxedBooleanType, createUnboxMethod(booleanType, unboxBooleanMethodName))
+          .put(boxedByteType, createUnboxMethod(byteType, unboxByteMethodName))
+          .put(boxedCharType, createUnboxMethod(charType, unboxCharMethodName))
+          .put(boxedShortType, createUnboxMethod(shortType, unboxShortMethodName))
+          .put(boxedIntType, createUnboxMethod(intType, unboxIntMethodName))
+          .put(boxedLongType, createUnboxMethod(longType, unboxLongMethodName))
+          .put(boxedFloatType, createUnboxMethod(floatType, unboxFloatMethodName))
+          .put(boxedDoubleType, createUnboxMethod(doubleType, unboxDoubleMethodName))
+          .build();
+
+  private DexMethod createUnboxMethod(DexType primitiveType, DexString unboxMethodName) {
+    DexProto proto = createProto(primitiveType);
+    return createMethod(primitiveToBoxed.get(primitiveType), proto, unboxMethodName);
+  }
+
+  // Works both with the boxed and unboxed type.
+  public DexMethod getUnboxPrimitiveMethod(DexType type) {
+    DexType boxType = primitiveToBoxed.getOrDefault(type, type);
+    DexMethod unboxMethod = unboxPrimitiveMethod.get(boxType);
+    if (unboxMethod == null) {
+      throw new Unreachable("Invalid primitive type descriptor: " + type);
+    }
+    return unboxMethod;
+  }
+
+  // Works both with the boxed and unboxed type.
+  public DexMethod getBoxPrimitiveMethod(DexType type) {
+    DexType boxType = primitiveToBoxed.getOrDefault(type, type);
+    DexType primitive = getPrimitiveFromBoxed(boxType);
+    if (primitive == null) {
+      throw new Unreachable("Invalid primitive type descriptor: " + type);
+    }
+    DexProto proto = createProto(boxType, primitive);
+    return createMethod(boxType, proto, valueOfMethodName);
+  }
 
   public DexType getBoxedForPrimitiveType(DexType primitive) {
     assert primitive.isPrimitiveType();

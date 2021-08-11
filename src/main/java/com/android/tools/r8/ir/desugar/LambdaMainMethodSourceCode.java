@@ -407,7 +407,7 @@ final class LambdaMainMethodSourceCode {
       }
       DexType fromTypeAsPrimitive = factory.getPrimitiveFromBoxed(boxedType);
       if (fromTypeAsPrimitive != null) {
-        addPrimitiveUnboxing(fromTypeAsPrimitive, boxedType, instructions, factory);
+        addPrimitiveUnboxing(boxedType, instructions, factory);
         addPrimitiveWideningConversion(fromTypeAsPrimitive, toType, instructions);
         return;
       }
@@ -424,7 +424,7 @@ final class LambdaMainMethodSourceCode {
           || (boxedFromType != factory.booleanType
               && boxedFromType != factory.charType
               && toType == factory.boxedNumberType)) {
-        addPrimitiveBoxing(fromType, boxedFromType, instructions, factory);
+        addPrimitiveBoxing(boxedFromType, instructions, factory);
         return;
       }
     }
@@ -513,55 +513,19 @@ final class LambdaMainMethodSourceCode {
         "converted to " + toType.toSourceString() + " via primitive widening conversion.");
   }
 
-  private static DexMethod getUnboxMethod(byte primitive, DexType boxType, DexItemFactory factory) {
-    DexProto proto;
-    switch (primitive) {
-      case 'Z':  // byte
-        proto = factory.createProto(factory.booleanType);
-        return factory.createMethod(boxType, proto, factory.unboxBooleanMethodName);
-      case 'B':  // byte
-        proto = factory.createProto(factory.byteType);
-        return factory.createMethod(boxType, proto, factory.unboxByteMethodName);
-      case 'S':  // short
-        proto = factory.createProto(factory.shortType);
-        return factory.createMethod(boxType, proto, factory.unboxShortMethodName);
-      case 'C':  // char
-        proto = factory.createProto(factory.charType);
-        return factory.createMethod(boxType, proto, factory.unboxCharMethodName);
-      case 'I':  // int
-        proto = factory.createProto(factory.intType);
-        return factory.createMethod(boxType, proto, factory.unboxIntMethodName);
-      case 'J':  // long
-        proto = factory.createProto(factory.longType);
-        return factory.createMethod(boxType, proto, factory.unboxLongMethodName);
-      case 'F':  // float
-        proto = factory.createProto(factory.floatType);
-        return factory.createMethod(boxType, proto, factory.unboxFloatMethodName);
-      case 'D':  // double
-        proto = factory.createProto(factory.doubleType);
-        return factory.createMethod(boxType, proto, factory.unboxDoubleMethodName);
-      default:
-        throw new Unreachable("Invalid primitive type descriptor: " + primitive);
-    }
-  }
-
   private static void addPrimitiveUnboxing(
-      DexType primitiveType,
       DexType boxType,
       Builder<CfInstruction> instructions,
       DexItemFactory factory) {
-    DexMethod method = getUnboxMethod(primitiveType.descriptor.content[0], boxType, factory);
+    DexMethod method = factory.getUnboxPrimitiveMethod(boxType);
     instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, method, false));
   }
 
   private static void addPrimitiveBoxing(
-      DexType primitiveType,
       DexType boxType,
       Builder<CfInstruction> instructions,
       DexItemFactory factory) {
-    // Generate factory method fo boxing.
-    DexProto proto = factory.createProto(boxType, primitiveType);
-    DexMethod method = factory.createMethod(boxType, proto, factory.valueOfMethodName);
+    DexMethod method = factory.getBoxPrimitiveMethod(boxType);
     instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, method, false));
   }
 }

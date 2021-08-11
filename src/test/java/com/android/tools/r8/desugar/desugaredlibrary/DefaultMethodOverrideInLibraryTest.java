@@ -37,7 +37,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class DefaultMethodOverrideInLibraryTest extends DesugaredLibraryTestBase {
 
-  static final String EXPECTED = StringUtils.lines("0", "42");
+  static final String EXPECTED = StringUtils.lines("0", "42", "0", "0", "42", "42");
 
   private final TestParameters parameters;
 
@@ -127,15 +127,31 @@ public class DefaultMethodOverrideInLibraryTest extends DesugaredLibraryTestBase
   static class MyIntegerArrayListWithoutOverride extends ArrayList<Integer>
       implements MyIntegerList {
     // No override of spliterator.
+
+    public Spliterator<Integer> superSpliteratorItf() {
+      return MyIntegerList.super.spliterator();
+    }
+
+    public Spliterator<Integer> superSpliterator() {
+      return super.spliterator();
+    }
   }
 
   // Derived list with an override of spliterator. The call must hit the classes override and that
-  // will explictly call the custom default method.
+  // will explicitly call the custom default method.
   static class MyIntegerArrayListWithOverride extends ArrayList<Integer> implements MyIntegerList {
 
     @Override
     public Spliterator<Integer> spliterator() {
       return MyIntegerList.super.spliterator();
+    }
+
+    public Spliterator<Integer> superSpliteratorItf() {
+      return MyIntegerList.super.spliterator();
+    }
+
+    public Spliterator<Integer> superSpliterator() {
+      return super.spliterator();
     }
   }
 
@@ -144,6 +160,11 @@ public class DefaultMethodOverrideInLibraryTest extends DesugaredLibraryTestBase
     public static void main(String[] args) {
       System.out.println(new MyIntegerArrayListWithoutOverride().spliterator().estimateSize());
       System.out.println(new MyIntegerArrayListWithOverride().spliterator().estimateSize());
+      System.out.println(new MyIntegerArrayListWithoutOverride().superSpliterator().estimateSize());
+      System.out.println(new MyIntegerArrayListWithOverride().superSpliterator().estimateSize());
+      System.out.println(
+          new MyIntegerArrayListWithoutOverride().superSpliteratorItf().estimateSize());
+      System.out.println(new MyIntegerArrayListWithOverride().superSpliteratorItf().estimateSize());
     }
   }
 }
