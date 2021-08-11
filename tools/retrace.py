@@ -46,10 +46,15 @@ def parse_arguments():
       action='store_true',
       help='Disables diagnostics printing to stdout.')
   parser.add_argument(
-    '--debug-agent',
-    default=None,
-    action='store_true',
-    help='Attach a debug-agent to the retracer java process.')
+      '--debug-agent',
+      default=None,
+      action='store_true',
+      help='Attach a debug-agent to the retracer java process.')
+  parser.add_argument(
+      '--regex',
+      default=None,
+      help='Sets a custom regular expression used for parsing'
+  )
   return parser.parse_args()
 
 
@@ -62,9 +67,10 @@ def main():
       args.stacktrace,
       args.no_r8lib,
       quiet=args.quiet,
-      debug=args.debug_agent)
+      debug=args.debug_agent,
+      regex=args.regex)
 
-def run(map_path, stacktrace, no_r8lib, quiet=False, debug=False):
+def run(map_path, stacktrace, no_r8lib, quiet=False, debug=False, regex=None):
   retrace_args = [jdk.GetJavaExecutable()]
 
   if debug:
@@ -77,6 +83,10 @@ def run(map_path, stacktrace, no_r8lib, quiet=False, debug=False):
     'com.android.tools.r8.retrace.Retrace',
     map_path
   ]
+
+  if regex:
+    retrace_args.append('--regex')
+    retrace_args.append(regex)
 
   if quiet:
     retrace_args.append('--quiet')
