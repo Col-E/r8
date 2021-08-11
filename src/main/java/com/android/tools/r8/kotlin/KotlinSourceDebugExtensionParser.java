@@ -25,6 +25,7 @@ public class KotlinSourceDebugExtensionParser {
   private static final String SMAP_IDENTIFIER = "SMAP";
   private static final String SMAP_SECTION_START = "*S";
   private static final String SMAP_SECTION_KOTLIN_START = SMAP_SECTION_START + " Kotlin";
+  private static final String SMAP_SECTION_KOTLIN_DEBUG_START = SMAP_SECTION_START + " KotlinDebug";
   private static final String SMAP_FILES_IDENTIFIER = "*F";
   private static final String SMAP_LINES_IDENTIFIER = "*L";
   private static final String SMAP_END_IDENTIFIER = "*E";
@@ -84,13 +85,13 @@ public class KotlinSourceDebugExtensionParser {
       readUntil(terminator::equals, linesInBlock, callback);
     }
 
-    void readUntil(
+    String readUntil(
         Predicate<String> terminator,
         int linesInBlock,
         ThrowingConsumer<List<String>, KotlinSourceDebugExtensionParserException> callback)
         throws IOException, KotlinSourceDebugExtensionParserException {
       if (terminator.test(readLine)) {
-        return;
+        return readLine;
       }
       List<String> readStrings = new ArrayList<>();
       readStrings.add(readNextLine());
@@ -106,10 +107,11 @@ public class KotlinSourceDebugExtensionParser {
         }
         readStrings.add(readNextLine());
       }
-      if (readStrings.size() > 0 && !terminator.test(readStrings.get(0))) {
+      if (!readStrings.isEmpty() && !terminator.test(readStrings.get(0))) {
         throw new KotlinSourceDebugExtensionParserException(
             "Block size does not match linesInBlock = " + linesInBlock);
       }
+      return readStrings.isEmpty() ? null : readStrings.get(0);
     }
 
     @Override
@@ -132,14 +134,17 @@ public class KotlinSourceDebugExtensionParser {
     // + <file_id_i> <file_name_i>
     // <path_i>
     // *L
-    // <from>#<file>,<to>:<debug-line-position>
+    // <from>#<file>,<range>:<debug-line-position>
     // <from>#<file>:<debug-line-position>
     // *E <-- This is an error in versions prior to kotlin 1.5 and is not present in kotlin 1.5.
     // *S KotlinDebug
-    // ***
+    // + <file_id_i> <file_name_i>
+    // <path_i>
+    // *L
+    // <from>#<file>,<range>:<debug-line-position>
+    // <from>#<file>:<debug-line-position>
     // *E
     try (BufferedStringReader reader = new BufferedStringReader(annotationData)) {
-      ResultBuilder builder = new ResultBuilder();
       // Check for SMAP
       if (!reader.readExpectedLine(SMAP_IDENTIFIER)) {
         return null;
@@ -147,42 +152,67 @@ public class KotlinSourceDebugExtensionParser {
       if (reader.readUntil(SMAP_SECTION_KOTLIN_START).isEOF()) {
         return null;
       }
-      // At this point we should be parsing a kotlin source debug extension, so we will throw if we
-      // read an unexpected line.
-      reader.readExpectedLineOrThrow(SMAP_FILES_IDENTIFIER);
-      // Iterate over the files section with the format:
-      // + <file_number_i> <file_name_i>
-      // <file_path_i>
-      reader.readUntil(
-          SMAP_LINES_IDENTIFIER, 2, block -> addFileToBuilder(block.get(0), block.get(1), builder));
 
-      // Ensure that we read *L.
-      if (reader.isEOF()) {
-        throw new KotlinSourceDebugExtensionParserException(
-            "Unexpected EOF - no debug line positions");
+      StratumBuilder inlineePositions = new StratumBuilder();
+      StratumBuilder calleePositions = new StratumBuilder();
+
+      String terminatedLine = parseStratumContents(reader, inlineePositions);
+
+      // Read callee positions
+      if (terminatedLine.equals(SMAP_END_IDENTIFIER)) {
+        String nextLine = reader.readNextLine();
+        // If we read to the end then there is not KotlinDebug section which translates to no need
+        // for mapping the resulting positions obtained from the inlineePositions.
+        if (reader.isEOF()) {
+          assert nextLine == null;
+          return new Result(inlineePositions.segmentTree, calleePositions.segmentTree);
+        }
+        if (!nextLine.equals(SMAP_SECTION_KOTLIN_DEBUG_START)) {
+          return null;
+        }
+      } else if (!terminatedLine.equals(SMAP_SECTION_KOTLIN_DEBUG_START)) {
+        return null;
       }
-      // Iterate over the debug line number positions:
-      // <from>#<file>,<range>:<debug-line-position>
-      // or
-      // <from>#<file>:<debug-line-position>
-      reader.readUntil(
-          line -> line.equals(SMAP_END_IDENTIFIER) || line.startsWith(SMAP_SECTION_START),
-          1,
-          block -> addDebugEntryToBuilder(block.get(0), builder));
+      parseStratumContents(reader, calleePositions);
 
       // Ensure that we read the end section and it is terminated.
       if (reader.isEOF() && !reader.readLine.equals(SMAP_END_IDENTIFIER)) {
         throw new KotlinSourceDebugExtensionParserException(
             "Unexpected EOF when parsing SMAP debug entries");
       }
-
-      return builder.build();
+      return new Result(inlineePositions.segmentTree, calleePositions.segmentTree);
     } catch (IOException | KotlinSourceDebugExtensionParserException e) {
       return null;
     }
   }
 
-  private static void addFileToBuilder(String entryLine, String filePath, ResultBuilder builder)
+  private static String parseStratumContents(BufferedStringReader reader, StratumBuilder builder)
+      throws KotlinSourceDebugExtensionParserException, IOException {
+    // At this point we should be parsing a kotlin source debug extension, so we will throw if we
+    // read an unexpected line.
+    reader.readExpectedLineOrThrow(SMAP_FILES_IDENTIFIER);
+    // Iterate over the files section with the format:
+    // + <file_number_i> <file_name_i>
+    // <file_path_i>
+    reader.readUntil(
+        SMAP_LINES_IDENTIFIER, 2, block -> addFileToBuilder(block.get(0), block.get(1), builder));
+
+    // Ensure that we read *L.
+    if (reader.isEOF()) {
+      throw new KotlinSourceDebugExtensionParserException(
+          "Unexpected EOF - no debug line positions");
+    }
+    // Iterate over the debug line number positions:
+    // <from>#<file>,<range>:<debug-line-position>
+    // or
+    // <from>#<file>:<debug-line-position>
+    return reader.readUntil(
+        line -> line.equals(SMAP_END_IDENTIFIER) || line.startsWith(SMAP_SECTION_START),
+        1,
+        block -> addDebugEntryToBuilder(block.get(0), builder));
+  }
+
+  private static void addFileToBuilder(String entryLine, String filePath, StratumBuilder builder)
       throws KotlinSourceDebugExtensionParserException {
     // + <file_number_i> <file_name_i>
     // <file_path_i>
@@ -221,22 +251,30 @@ public class KotlinSourceDebugExtensionParser {
     return number;
   }
 
-  private static void addDebugEntryToBuilder(String debugEntry, ResultBuilder builder)
+  private static void addDebugEntryToBuilder(String debugEntry, StratumBuilder builder)
       throws KotlinSourceDebugExtensionParserException {
-    // <from>#<file>,<size>:<debug-line-position>
+    // <from>#<file>,<size>:<debug-line-position>,<size>
     // or
     // <from>#<file>:<debug-line-position>
     // All positions should define intervals for mappings.
     try {
+      int size = 1;
       int targetSplit = debugEntry.indexOf(':');
-      int target = Integer.parseInt(debugEntry.substring(targetSplit + 1));
+      int targetRangeStart = targetSplit + 1;
+      int targetRangeSeparator = debugEntry.indexOf(',', targetSplit);
+      int target;
+      if (targetRangeSeparator > -1) {
+        target = Integer.parseInt(debugEntry.substring(targetRangeStart, targetRangeSeparator));
+        size = Integer.parseInt(debugEntry.substring(targetRangeSeparator + 1));
+      } else {
+        target = Integer.parseInt(debugEntry.substring(targetRangeStart));
+      }
       String original = debugEntry.substring(0, targetSplit);
       int fileIndexSplit = original.indexOf('#');
       int originalStart = Integer.parseInt(original.substring(0, fileIndexSplit));
       // The range may have a different end than start.
       String fileAndEndRange = original.substring(fileIndexSplit + 1);
       int endRangeCharPosition = fileAndEndRange.indexOf(',');
-      int size = 1;
       if (endRangeCharPosition > -1) {
         // The file should be at least one number wide.
         assert endRangeCharPosition > 0;
@@ -260,29 +298,31 @@ public class KotlinSourceDebugExtensionParser {
 
   public static class Result {
 
-    private final SegmentTree<Position> segmentTree;
+    private final SegmentTree<Position> inlineePositions;
+    private final SegmentTree<Position> calleePositions;
 
-    public Result(SegmentTree<Position> segmentTree) {
-      this.segmentTree = segmentTree;
+    public Result(SegmentTree<Position> inlineePositions, SegmentTree<Position> calleePositions) {
+      this.inlineePositions = inlineePositions;
+      this.calleePositions = calleePositions;
     }
 
-    public Map.Entry<Integer, Position> lookup(int point) {
-      return segmentTree.findEntry(point);
+    public Map.Entry<Integer, Position> lookupInlinedPosition(int point) {
+      return inlineePositions.findEntry(point);
     }
 
-    public int size() {
-      return segmentTree.size();
+    public Map.Entry<Integer, Position> lookupCalleePosition(int point) {
+      return calleePositions.findEntry(point);
+    }
+
+    public int inlinePositionsCount() {
+      return inlineePositions.size();
     }
   }
 
-  public static class ResultBuilder {
+  public static class StratumBuilder {
 
     SegmentTree<Position> segmentTree = new SegmentTree<>(false);
     Map<Integer, Source> files = new HashMap<>();
-
-    public Result build() {
-      return new Result(segmentTree);
-    }
   }
 
   public static class Source {

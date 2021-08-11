@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -143,17 +144,17 @@ public class LineNumberOptimizer {
       if (parsedData == null) {
         return baseRemapper.createRemappedPosition(position);
       }
-      Map.Entry<Integer, KotlinSourceDebugExtensionParser.Position> currentPosition =
-          parsedData.lookup(line);
-      if (currentPosition == null) {
+      Map.Entry<Integer, KotlinSourceDebugExtensionParser.Position> inlinedPosition =
+          parsedData.lookupInlinedPosition(line);
+      if (inlinedPosition == null) {
         return baseRemapper.createRemappedPosition(position);
       }
-      int delta = line - currentPosition.getKey();
-      int originalPosition = currentPosition.getValue().getRange().from + delta;
+      int inlineeLineDelta = line - inlinedPosition.getKey();
+      int originalInlineeLine = inlinedPosition.getValue().getRange().from + inlineeLineDelta;
       try {
-        String binaryName = currentPosition.getValue().getSource().getPath();
+        String binaryName = inlinedPosition.getValue().getSource().getPath();
         String nameAndDescriptor =
-            lineToMethodMapper.lookupNameAndDescriptor(binaryName, originalPosition);
+            lineToMethodMapper.lookupNameAndDescriptor(binaryName, originalInlineeLine);
         if (nameAndDescriptor == null) {
           return baseRemapper.createRemappedPosition(position);
         }
@@ -173,8 +174,20 @@ public class LineNumberOptimizer {
                 factory.createString(returnTypeDescriptor),
                 argumentDexStringDescriptors);
         if (!inlinee.equals(position.method)) {
+          // We have an inline from a different method than the current position.
+          Entry<Integer, KotlinSourceDebugExtensionParser.Position> calleePosition =
+              parsedData.lookupCalleePosition(line);
+          if (calleePosition != null) {
+            // Take the first line as the callee position
+            position =
+                new Position(
+                    calleePosition.getValue().getRange().from,
+                    position.file,
+                    position.method,
+                    position.callerPosition);
+          }
           return baseRemapper.createRemappedPosition(
-              new Position(originalPosition, null, inlinee, position));
+              new Position(originalInlineeLine, null, inlinee, position));
         }
         // This is the same position, so we should really not mark this as an inline position. Fall
         // through to the default case.

@@ -74,7 +74,6 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends KotlinTestBase {
   }
 
   private int getObfuscatedLinePosition() {
-    // TODO(b/185358363): This should go away when we correctly retrace.
     return kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72) ? 43 : 32;
   }
 
@@ -122,10 +121,7 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends KotlinTestBase {
                           8,
                           FILENAME_INLINE),
                       LinePosition.create(
-                          mainSubject.asFoundMethodSubject(),
-                          1,
-                          getObfuscatedLinePosition(),
-                          FILENAME_INLINE));
+                          mainSubject.asFoundMethodSubject(), 1, 21, FILENAME_INLINE));
               checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
             });
   }

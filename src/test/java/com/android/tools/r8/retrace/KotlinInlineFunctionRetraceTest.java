@@ -122,7 +122,7 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
                   LinePosition.stack(
                       LinePosition.create(
                           inlineExceptionStatic(kotlinInspector), 2, 8, FILENAME_INLINE_STATIC),
-                      LinePosition.create(mainSubject.asFoundMethodSubject(), 2, 15, mainFileName));
+                      LinePosition.create(mainSubject.asFoundMethodSubject(), 2, 9, mainFileName));
               checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
             });
   }
@@ -155,7 +155,7 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
                           2,
                           15,
                           FILENAME_INLINE_INSTANCE),
-                      LinePosition.create(mainSubject.asFoundMethodSubject(), 2, 13, mainFileName));
+                      LinePosition.create(mainSubject.asFoundMethodSubject(), 2, 7, mainFileName));
               checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
             });
   }
@@ -187,7 +187,7 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
                           inlineExceptionStatic(kotlinInspector), 3, 8, FILENAME_INLINE_STATIC),
                       // TODO(b/146399675): There should be a nested frame on
                       //  retrace.NestedInlineFunctionKt.nestedInline(line 10).
-                      LinePosition.create(mainSubject.asFoundMethodSubject(), 3, 19, mainFileName));
+                      LinePosition.create(mainSubject.asFoundMethodSubject(), 3, 10, mainFileName));
               checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
             });
   }
@@ -218,8 +218,8 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
                       LinePosition.create(
                           inlineExceptionStatic(kotlinInspector), 2, 8, FILENAME_INLINE_STATIC),
                       // TODO(b/146399675): There should be a nested frame on
-                      //  retrace.NestedInlineFunctionKt.nestedInlineOnFirstLine(line 15).
-                      LinePosition.create(mainSubject.asFoundMethodSubject(), 2, 20, mainFileName));
+                      //  retrace.NestedInlineFunctionKt.nestedInline(line 10).
+                      LinePosition.create(mainSubject.asFoundMethodSubject(), 2, 10, mainFileName));
               checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
             });
   }
