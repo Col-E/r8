@@ -83,7 +83,7 @@ public class DefaultMethodOverrideInLibraryTest extends DesugaredLibraryTestBase
     if (parameters.isDexRuntime()
         && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)
         && parameters.getRuntime().asDex().getVm().getVersion().equals(Version.V7_0_0)) {
-      result.assertSuccessWithOutputLines("42", "42");
+      result.assertSuccessWithOutputLines("42", "42", "0", "0", "42", "42");
       return;
     }
     result.assertSuccessWithOutput(EXPECTED);
