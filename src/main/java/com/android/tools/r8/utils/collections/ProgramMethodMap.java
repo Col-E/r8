@@ -29,6 +29,7 @@ public class ProgramMethodMap<V> extends ProgramMemberMap<ProgramMethod, V> {
     return new ProgramMethodMap<>(ConcurrentHashMap::new);
   }
 
+  @SuppressWarnings("unchecked")
   public static <V> ProgramMethodMap<V> empty() {
     return (ProgramMethodMap<V>) EMPTY;
   }

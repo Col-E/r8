@@ -77,6 +77,7 @@ public class MinimumKeepInfoCollection {
         });
   }
 
+  @SuppressWarnings("unchecked")
   public <T extends DexReference> void forEachThatMatches(
       BiPredicate<DexReference, Joiner<?, ?, ?>> predicate,
       BiConsumer<T, KeepInfo.Joiner<?, ?, ?>> consumer) {

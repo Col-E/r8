@@ -498,6 +498,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       return self();
     }
 
+    @SuppressWarnings("unchecked")
     public J mergeUnsafe(Joiner<?, ?, ?> joiner) {
       return merge((J) joiner);
     }

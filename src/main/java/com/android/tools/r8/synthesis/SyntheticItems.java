@@ -669,6 +669,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return DexClassAndMethod.create(clazz, methodDefinition);
   }
 
+  @SuppressWarnings("unchecked")
   private <T extends DexClassAndMethod> DexEncodedMethod internalEnsureMethod(
       DexMethod methodReference,
       DexClass clazz,

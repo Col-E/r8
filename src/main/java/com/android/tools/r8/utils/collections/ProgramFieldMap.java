@@ -24,6 +24,7 @@ public class ProgramFieldMap<V> extends ProgramMemberMap<ProgramField, V> {
     return new ProgramFieldMap<>(HashMap::new);
   }
 
+  @SuppressWarnings("unchecked")
   public static <V> ProgramFieldMap<V> empty() {
     return (ProgramFieldMap<V>) EMPTY;
   }

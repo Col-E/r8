@@ -62,6 +62,7 @@ public class IterableUtils {
     return Collections.unmodifiableList(list);
   }
 
+  @SuppressWarnings("unchecked")
   public static <T, R extends T> R findOrDefault(
       Iterable<T> iterable, Predicate<T> predicate, R defaultValue) {
     for (T element : iterable) {
