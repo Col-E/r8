@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Date;
@@ -15,6 +17,7 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntUnaryOperator;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,7 +32,8 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
   @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        BooleanUtils.values(),
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
   }
 
   public RetargetOverrideTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
@@ -38,7 +42,62 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
   }
 
   @Test
+  public void testRetargetOverrideCf() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    Path desugaredTwice =
+        testForD8(Backend.CF)
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addProgramFiles(
+                testForD8(Backend.CF)
+                    .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+                    .addInnerClasses(RetargetOverrideTest.class)
+                    .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+                    .setMinApi(parameters.getApiLevel())
+                    .compile()
+                    .writeToZip())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+    if (parameters.getRuntime().isDex()) {
+      // Convert to DEX without desugaring and run.
+      testForD8()
+          .addProgramFiles(desugaredTwice)
+          .setMinApi(parameters.getApiLevel())
+          .disableDesugaring()
+          .compile()
+          .addDesugaredCoreLibraryRunClassPath(
+              this::buildDesugaredLibrary,
+              parameters.getApiLevel(),
+              keepRuleConsumer.get(),
+              shrinkDesugaredLibrary)
+          .run(
+              parameters.getRuntime(),
+              Executor.class,
+              Boolean.toString(parameters.getRuntime().isCf()))
+          .applyIf(
+              parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
+              SingleTestRunResult::assertFailure,
+              SingleTestRunResult::assertSuccess);
+    } else {
+      // Run on the JVM with desugared library on classpath.
+      testForJvm()
+          .addProgramFiles(desugaredTwice)
+          .addRunClasspathFiles(buildDesugaredLibraryClassFile(parameters.getApiLevel()))
+          .run(
+              parameters.getRuntime(),
+              Executor.class,
+              Boolean.toString(parameters.getRuntime().isCf()))
+          .applyIf(
+              parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
+              SingleTestRunResult::assertFailure,
+              SingleTestRunResult::assertSuccess);
+    }
+  }
+
+  @Test
   public void testRetargetOverrideD8() throws Exception {
+    Assume.assumeTrue(parameters.getRuntime().isDex());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdout =
         testForD8()
@@ -52,7 +111,10 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
                 parameters.getApiLevel(),
                 keepRuleConsumer.get(),
                 shrinkDesugaredLibrary)
-            .run(parameters.getRuntime(), Executor.class)
+            .run(
+                parameters.getRuntime(),
+                Executor.class,
+                Boolean.toString(parameters.getRuntime().isCf()))
             .assertSuccess()
             .getStdOut();
     assertLines2By2Correct(stdout);
@@ -60,6 +122,7 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testRetargetOverrideR8() throws Exception {
+    Assume.assumeTrue(parameters.getRuntime().isDex());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdout =
         testForR8(Backend.DEX)
@@ -74,7 +137,10 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
                 parameters.getApiLevel(),
                 keepRuleConsumer.get(),
                 shrinkDesugaredLibrary)
-            .run(parameters.getRuntime(), Executor.class)
+            .run(
+                parameters.getRuntime(),
+                Executor.class,
+                Boolean.toString(parameters.getRuntime().isCf()))
             .assertSuccess()
             .getStdOut();
     assertLines2By2Correct(stdout);
@@ -83,9 +149,10 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
   static class Executor {
 
     public static void main(String[] args) {
+      boolean isJvm = Boolean.parseBoolean(args[0]);
       directTypes();
       polyTypes();
-      baseTypes();
+      baseTypes(isJvm);
     }
 
     public static void directTypes() {
@@ -167,11 +234,13 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
       System.out.println("1990-03-22T00:00:00Z");
     }
 
-    public static void baseTypes() {
+    public static void baseTypes(boolean isJvm) {
       java.sql.Date date = new java.sql.Date(123456789);
       // The following one is not working on JVMs, but works on Android...
-      System.out.println(date.toInstant());
-      System.out.println("1970-01-02T10:17:36.789Z");
+      if (!isJvm) {
+        System.out.println(date.toInstant());
+        System.out.println("1970-01-02T10:17:36.789Z");
+      }
 
       GregorianCalendar gregCal = new GregorianCalendar(1990, 2, 22);
       System.out.println(gregCal.toInstant());
