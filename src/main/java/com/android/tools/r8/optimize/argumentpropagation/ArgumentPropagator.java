@@ -5,12 +5,21 @@
 package com.android.tools.r8.optimize.argumentpropagation;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.WorkList;
+import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 /** Optimization that propagates information about arguments from call sites to method entries. */
 public class ArgumentPropagator {
@@ -60,11 +69,49 @@ public class ArgumentPropagator {
    * Called by {@link IRConverter} *after* the primary optimization pass to populate the parameter
    * optimization info.
    */
-  public void populateParameterOptimizationInfo() {
+  public void populateParameterOptimizationInfo(ExecutorService executorService)
+      throws ExecutionException {
+    // Unset the scanner since all code objects have been scanned at this point.
     assert appView.isAllCodeProcessed();
-    new ArgumentPropagatorOptimizationInfoPopulator()
-        .populateOptimizationInfo(codeScanner.getResult());
     codeScanner = null;
+    new ArgumentPropagatorOptimizationInfoPopulator(appView, codeScanner.getResult())
+        .populateOptimizationInfo(executorService);
+  }
+
+  /**
+   * Computes the strongly connected components in the program class hierarchy (where extends and
+   * implements edges are treated as bidirectional).
+   *
+   * <p>All strongly connected components can be processed in parallel.
+   */
+  private static List<Set<DexProgramClass>> computeStronglyConnectedComponents(
+      AppView<AppInfoWithLiveness> appView, ImmediateProgramSubtypingInfo immediateSubtypingInfo) {
+    Set<DexProgramClass> seen = Sets.newIdentityHashSet();
+    List<Set<DexProgramClass>> stronglyConnectedComponents = new ArrayList<>();
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      if (seen.contains(clazz)) {
+        continue;
+      }
+      Set<DexProgramClass> stronglyConnectedComponent =
+          computeStronglyConnectedComponent(clazz, immediateSubtypingInfo);
+      stronglyConnectedComponents.add(stronglyConnectedComponent);
+      seen.addAll(stronglyConnectedComponent);
+    }
+    return stronglyConnectedComponents;
+  }
+
+  private static Set<DexProgramClass> computeStronglyConnectedComponent(
+      DexProgramClass clazz, ImmediateProgramSubtypingInfo immediateSubtypingInfo) {
+    WorkList<DexProgramClass> worklist = WorkList.newIdentityWorkList(clazz);
+    while (worklist.hasNext()) {
+      DexProgramClass current = worklist.next();
+      immediateSubtypingInfo.forEachImmediateSuperClassMatching(
+          current,
+          (supertype, superclass) -> superclass != null && superclass.isProgramClass(),
+          (supertype, superclass) -> worklist.addIfNotSeen(superclass.asProgramClass()));
+      worklist.addIfNotSeen(immediateSubtypingInfo.getSubclasses(current));
+    }
+    return worklist.getSeenSet();
   }
 
   /**

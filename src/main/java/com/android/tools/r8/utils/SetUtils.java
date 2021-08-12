@@ -92,6 +92,12 @@ public class SetUtils {
     return out;
   }
 
+  public static <T> T removeFirst(Set<T> set) {
+    T element = set.iterator().next();
+    set.remove(element);
+    return element;
+  }
+
   public static <T> Set<T> unionIdentityHashSet(Set<T> one, Set<T> other) {
     Set<T> union = Sets.newIdentityHashSet();
     union.addAll(one);

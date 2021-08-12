@@ -736,7 +736,7 @@ public class IRConverter {
     // the parameter optimization infos, and rewrite the application.
     appView.withArgumentPropagator(
         argumentPropagator -> {
-          argumentPropagator.populateParameterOptimizationInfo();
+          argumentPropagator.populateParameterOptimizationInfo(executorService);
           argumentPropagator.optimizeMethodParameters(postMethodProcessorBuilder);
         });
 

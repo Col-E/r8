@@ -96,11 +96,12 @@ class ArgumentPropagatorCodeScanner {
   }
 
   private Set<DexMethod> computeUnoptimizableMethods() {
+    // TODO(b/190154391): Consider bailing out for all classes that inherit from a missing class.
     throw new Unimplemented();
   }
 
-  ArgumentPropagatorCodeScannerResult getResult() {
-    throw new Unimplemented();
+  MethodStateCollection getResult() {
+    return methodStates;
   }
 
   void scan(ProgramMethod method, IRCode code) {
