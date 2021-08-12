@@ -114,6 +114,9 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
     // methods.
     // We cannot use the ClassProcessor since this applies up to 26, while the ClassProcessor
     // applies up to 24.
+    if (appView.isAlreadyLibraryDesugared(clazz)) {
+      return;
+    }
     for (DexClassAndMethod method : methods) {
       DexClass newInterface =
           syntheticHelper.ensureEmulatedInterfaceDispatchMethod(method, eventConsumer);

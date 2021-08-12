@@ -454,6 +454,9 @@ public final class D8Command extends BaseCompilerCommand {
       internal.enableSwitchRewriting = false;
       assert internal.enableStringSwitchConversion;
       internal.enableStringSwitchConversion = false;
+    } else {
+      assert !internal.desugarSpecificOptions().allowAllDesugaredInput
+          || getDesugarState() == DesugarState.OFF;
     }
     internal.mainDexListConsumer = getMainDexListConsumer();
     internal.minimalMainDex = internal.debug || minimalMainDex;
