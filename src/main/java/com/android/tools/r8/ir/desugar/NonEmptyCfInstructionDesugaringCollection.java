@@ -85,11 +85,18 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     } else {
       interfaceMethodRewriter = null;
     }
+    // In R8 interface method rewriting is performed in IR, we still need to filter
+    // out from API conversion methods desugared by the interface method rewriter.
+    InterfaceMethodRewriter enforcedInterfaceMethodRewriter =
+        interfaceMethodRewriter == null && appView.options().isInterfaceMethodDesugaringEnabled()
+            ? new InterfaceMethodRewriter(
+                appView, backportedMethodRewriter, desugaredLibraryRetargeter)
+            : interfaceMethodRewriter;
     desugaredLibraryAPIConverter =
-        appView.rewritePrefix.isRewriting() && !appView.enableWholeProgramOptimizations()
+        appView.rewritePrefix.isRewriting()
             ? new DesugaredLibraryAPIConverter(
                 appView,
-                interfaceMethodRewriter,
+                enforcedInterfaceMethodRewriter,
                 desugaredLibraryRetargeter,
                 backportedMethodRewriter)
             : null;

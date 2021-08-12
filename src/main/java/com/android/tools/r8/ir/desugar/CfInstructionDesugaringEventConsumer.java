@@ -381,20 +381,19 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptWrapperProgramClass(DexProgramClass clazz) {
-      // TODO(b/189912077): There should be nothing to do.
+      // Called only in Desugared library compilation which is D8.
       assert false;
     }
 
     @Override
     public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
-      // TODO(b/189912077): Should be added to live non program types.
-      assert false;
+      additions.addLiveClasspathClass(clazz);
     }
 
     @Override
     public void acceptAPIConversion(ProgramMethod method) {
-      // TODO(b/189912077): There should be nothing to do.
-      assert false;
+      // Intentionally empty. The method will be hit by the tracing in R8 as if it was
+      // present in the input code, and thus nothing needs to be done.
     }
 
     @Override

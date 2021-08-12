@@ -34,13 +34,11 @@ import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProv
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
-import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -93,7 +91,6 @@ import java.util.function.Function;
 public class DesugaredLibraryWrapperSynthesizer {
 
   private final AppView<?> appView;
-  private final Set<DexType> wrappersToGenerate = Sets.newConcurrentHashSet();
   // The invalidWrappers are wrappers with incorrect behavior because of final methods that could
   // not be overridden. Such wrappers are awful because the runtime behavior is undefined and does
   // not raise explicit errors. So we register them here and conversion methods for such wrappers
@@ -124,12 +121,6 @@ public class DesugaredLibraryWrapperSynthesizer {
   DexType ensureVivifiedTypeWrapper(
       DexType type, DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
     return ensureWrappers(type, eventConsumer).getVivifiedWrapper().type;
-  }
-
-
-  public void registerWrapper(DexType type) {
-    wrappersToGenerate.add(type);
-    assert getValidClassToWrap(type) != null;
   }
 
   private DexClass getValidClassToWrap(DexType type) {
@@ -617,24 +608,6 @@ public class DesugaredLibraryWrapperSynthesizer {
       // classes. Such wrappers are not required since the class won't be rewritten.
       if (validClassToWrap.isProgramClass()) {
         ensureWrappers(validClassToWrap, ignored -> {}, eventConsumer);
-      }
-    }
-  }
-
-  void synthesizeWrappersForClasspath(Consumer<DexClasspathClass> synthesizedCallback) {
-    BooleanBox changed = new BooleanBox(true);
-    while (changed.get()) {
-      changed.set(false);
-      Set<DexType> copy = new HashSet<>(wrappersToGenerate);
-      for (DexType type : copy) {
-        DexClass validClassToWrap = getValidClassToWrap(type);
-        ensureWrappers(
-            validClassToWrap,
-            classpathWrapper -> {
-              changed.set(true);
-              synthesizedCallback.accept(classpathWrapper);
-            },
-            null);
       }
     }
   }

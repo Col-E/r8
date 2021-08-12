@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -321,7 +320,7 @@ public abstract class EnqueuerWorklist {
     return queue.poll();
   }
 
-  abstract EnqueuerWorklist nonPushable(ProgramMethodSet enqueuedMarkMethodLive);
+  abstract EnqueuerWorklist nonPushable();
 
   abstract boolean enqueueAssertAction(Action assertion);
 
@@ -373,8 +372,8 @@ public abstract class EnqueuerWorklist {
     }
 
     @Override
-    EnqueuerWorklist nonPushable(ProgramMethodSet enqueuedMarkMethodLive) {
-      return new NonPushableEnqueuerWorklist(this, enqueuedMarkMethodLive);
+    EnqueuerWorklist nonPushable() {
+      return new NonPushableEnqueuerWorklist(this);
     }
 
     @Override
@@ -487,16 +486,12 @@ public abstract class EnqueuerWorklist {
 
   public static class NonPushableEnqueuerWorklist extends EnqueuerWorklist {
 
-    private ProgramMethodSet enqueuedMarkMethodLive;
-
-    private NonPushableEnqueuerWorklist(
-        PushableEnqueuerWorkList workList, ProgramMethodSet enqueuedMarkMethodLive) {
+    private NonPushableEnqueuerWorklist(PushableEnqueuerWorkList workList) {
       super(workList.enqueuer, workList.queue);
-      this.enqueuedMarkMethodLive = enqueuedMarkMethodLive;
     }
 
     @Override
-    EnqueuerWorklist nonPushable(ProgramMethodSet enqueuedMarkMethodLive) {
+    EnqueuerWorklist nonPushable() {
       return this;
     }
 
@@ -553,7 +548,7 @@ public abstract class EnqueuerWorklist {
     @Override
     boolean enqueueMarkMethodLiveAction(
         ProgramMethod method, ProgramDefinition context, KeepReason reason) {
-      if (enqueuedMarkMethodLive.contains(method)) {
+      if (!enqueuer.addLiveMethod(method, reason)) {
         return false;
       }
       throw attemptToEnqueue();

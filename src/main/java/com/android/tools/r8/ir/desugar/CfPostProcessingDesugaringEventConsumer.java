@@ -104,7 +104,8 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
 
     R8PostProcessingDesugaringEventConsumer(AppView<?> appView, SyntheticAdditions additions) {
-      this.desugaredLibraryAPIConverter = new DesugaredLibraryAPIConverter(appView, null);
+      this.desugaredLibraryAPIConverter =
+          new DesugaredLibraryAPIConverter(appView, null, null, null);
       this.additions = additions;
     }
 
@@ -131,7 +132,6 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     @Override
     public void acceptForwardingMethod(ProgramMethod method) {
       additions.addLiveMethod(method);
-      desugaredLibraryAPIConverter.generateCallbackIfRequired(method, this);
     }
 
     @Override

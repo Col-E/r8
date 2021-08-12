@@ -80,7 +80,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.analysis.ApiModelAnalysis;
-import com.android.tools.r8.graph.analysis.DesugaredLibraryConversionWrapperAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerCheckCastAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerExceptionGuardAnalysis;
@@ -431,7 +430,6 @@ public class Enqueuer {
   private final GraphReporter graphReporter;
 
   private final CfInstructionDesugaringCollection desugaring;
-  private final DesugaredLibraryConversionWrapperAnalysis desugaredLibraryWrapperAnalysis;
   private final ProgramMethodSet pendingDesugaring = ProgramMethodSet.create();
 
   Enqueuer(
@@ -483,13 +481,6 @@ public class Enqueuer {
     objectAllocationInfoCollection =
         ObjectAllocationInfoCollectionImpl.builder(mode.isInitialTreeShaking(), graphReporter);
 
-    if (appView.rewritePrefix.isRewriting() && mode.isInitialTreeShaking()) {
-      desugaredLibraryWrapperAnalysis = new DesugaredLibraryConversionWrapperAnalysis(appView);
-      registerAnalysis(desugaredLibraryWrapperAnalysis);
-      registerInvokeAnalysis(desugaredLibraryWrapperAnalysis);
-    } else {
-      desugaredLibraryWrapperAnalysis = null;
-    }
     apiReferenceLevelCache = AndroidApiReferenceLevelCache.create(appView);
   }
 
@@ -3438,7 +3429,6 @@ public class Enqueuer {
     SyntheticAdditions additions = new SyntheticAdditions(appView.createProcessorContext());
     desugar(additions);
     synthesizeInterfaceMethodBridges(additions);
-    synthesizeLibraryConversionWrappers(additions);
     if (additions.isEmpty()) {
       return;
     }
@@ -3754,20 +3744,6 @@ public class Enqueuer {
     return synthesizedClasses;
   }
 
-  private void synthesizeLibraryConversionWrappers(SyntheticAdditions additions) {
-    if (desugaredLibraryWrapperAnalysis == null) {
-      return;
-    }
-
-    // Generate first the callbacks since they may require extra wrappers.
-    ProgramMethodSet callbacks = desugaredLibraryWrapperAnalysis.generateCallbackMethods();
-    additions.addLiveMethods(callbacks);
-
-    // Generate wrappers on classpath so types are defined.
-    desugaredLibraryWrapperAnalysis.generateWrappers(additions::addLiveClasspathClass);
-  }
-
-
   private static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
       Set<R> toDescriptorSet(Set<D> set) {
     ImmutableSet.Builder<R> builder = new ImmutableSet.Builder<>();
@@ -3907,7 +3883,7 @@ public class Enqueuer {
 
     syntheticAdditions.enqueueWorkItems(this);
 
-    workList = workList.nonPushable(syntheticAdditions.getLiveMethods());
+    workList = workList.nonPushable();
 
     while (!workList.isEmpty()) {
       EnqueuerAction action = workList.poll();

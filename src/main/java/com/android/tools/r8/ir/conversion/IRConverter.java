@@ -55,7 +55,6 @@ import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer.D
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.ProgramAdditions;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter.Mode;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceApplicationRewriter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
@@ -156,7 +155,6 @@ public class IRConverter {
   private final CovariantReturnTypeAnnotationTransformer covariantReturnTypeAnnotationTransformer;
   private final StringSwitchRemover stringSwitchRemover;
   private final TypeChecker typeChecker;
-  private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
   private final ServiceLoaderRewriter serviceLoaderRewriter;
   private final EnumValueOptimizer enumValueOptimizer;
   private final EnumUnboxer enumUnboxer;
@@ -228,7 +226,6 @@ public class IRConverter {
       this.instructionDesugaring = CfInstructionDesugaringCollection.create(appView);
       this.classDesugaring = instructionDesugaring.createClassDesugaringCollection();
       this.interfaceMethodRewriter = null;
-      this.desugaredLibraryAPIConverter = null;
       this.covariantReturnTypeAnnotationTransformer = null;
       this.dynamicTypeOptimization = null;
       this.classInliner = null;
@@ -299,11 +296,6 @@ public class IRConverter {
           options.enableServiceLoaderRewriting
               ? new ServiceLoaderRewriter(appViewWithLiveness)
               : null;
-      this.desugaredLibraryAPIConverter =
-          appView.rewritePrefix.isRewriting()
-              ? new DesugaredLibraryAPIConverter(
-                  appView, Mode.ASSERT_CALLBACKS_AND_WRAPPERS_GENERATED)
-              : null;
       this.enumValueOptimizer =
           options.enableEnumValueOptimization ? new EnumValueOptimizer(appViewWithLiveness) : null;
     } else {
@@ -320,7 +312,6 @@ public class IRConverter {
       this.identifierNameStringMarker = null;
       this.devirtualizer = null;
       this.typeChecker = null;
-      this.desugaredLibraryAPIConverter = null;
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
       this.enumValueOptimizer = null;
@@ -1497,22 +1488,9 @@ public class IRConverter {
       timing.end();
     }
 
-    previous = printMethod(code, "IR after interface method rewriting (SSA)", previous);
-
-    if (desugaredLibraryAPIConverter != null
-        && appView.enableWholeProgramOptimizations()
-        && methodProcessor.isPrimaryMethodProcessor()) {
-      timing.begin("Desugar library API");
-      desugaredLibraryAPIConverter.desugar(code);
-      timing.end();
-      assert code.isConsistentSSA();
-    }
-
-    previous = printMethod(code, "IR after desugared library API Conversion (SSA)", previous);
-
     assert code.verifyTypes(appView);
 
-    previous = printMethod(code, "IR after twr close resource rewriter (SSA)", previous);
+    previous = printMethod(code, "IR after interface method rewriting (SSA)", previous);
 
     // TODO(b/140766440): an ideal solution would be puttting CodeOptimization for this into
     //  the list for primary processing only.

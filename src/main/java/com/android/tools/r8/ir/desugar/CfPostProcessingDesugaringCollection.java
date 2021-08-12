@@ -60,8 +60,8 @@ public abstract class CfPostProcessingDesugaringCollection {
         desugarings.add(interfaceMethodProcessorFacade);
       }
       DesugaredLibraryAPIConverter desugaredLibraryAPIConverter =
-          appView.rewritePrefix.isRewriting() && !appView.enableWholeProgramOptimizations()
-              ? new DesugaredLibraryAPIConverter(appView, null)
+          appView.rewritePrefix.isRewriting()
+              ? new DesugaredLibraryAPIConverter(appView, null, null, null)
               : null;
       // At this point the desugaredLibraryAPIConverter is required to be last to generate
       // call-backs on the forwarding methods.
