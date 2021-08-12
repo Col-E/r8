@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteArrayTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteClassTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodStateOrUnknown;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePolymorphicMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePrimitiveTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteReceiverParameterState;
@@ -161,8 +162,10 @@ class ArgumentPropagatorCodeScanner {
     DexMethod representativeMethodReference =
         getRepresentativeForPolymorphicInvokeOrElse(
             invoke, resolvedMethod, resolvedMethod.getReference());
-    methodStates.joinMethodState(
-        representativeMethodReference, () -> computeMethodState(invoke, resolvedMethod, context));
+    methodStates.addMethodState(
+        appView,
+        representativeMethodReference,
+        () -> computeMethodState(invoke, resolvedMethod, context));
   }
 
   private MethodState computeMethodState(
@@ -184,17 +187,18 @@ class ArgumentPropagatorCodeScanner {
   private MethodState computePolymorphicMethodState(
       InvokeMethodWithReceiver invoke, ProgramMethod context) {
     DynamicType dynamicReceiverType = invoke.getReceiver().getDynamicType(appView);
-    ConcretePolymorphicMethodState methodState = new ConcretePolymorphicMethodState();
-    methodState.setStateForReceiverBounds(
-        dynamicReceiverType, computeMonomorphicMethodState(invoke, context, dynamicReceiverType));
-
+    ConcretePolymorphicMethodState methodState =
+        new ConcretePolymorphicMethodState(
+            dynamicReceiverType,
+            computeMonomorphicMethodState(invoke, context, dynamicReceiverType));
     // TODO(b/190154391): If the receiver type is effectively unknown, and the computed monomorphic
     //  method state is also unknown (i.e., we have "unknown receiver type" -> "unknown method
     //  state"), then return the canonicalized UnknownMethodState instance instead.
     return methodState;
   }
 
-  private MethodState computeMonomorphicMethodState(InvokeMethod invoke, ProgramMethod context) {
+  private ConcreteMonomorphicMethodStateOrUnknown computeMonomorphicMethodState(
+      InvokeMethod invoke, ProgramMethod context) {
     return computeMonomorphicMethodState(
         invoke,
         context,
@@ -203,7 +207,7 @@ class ArgumentPropagatorCodeScanner {
             : null);
   }
 
-  private MethodState computeMonomorphicMethodState(
+  private ConcreteMonomorphicMethodStateOrUnknown computeMonomorphicMethodState(
       InvokeMethod invoke, ProgramMethod context, DynamicType dynamicReceiverType) {
     List<ParameterState> parameterStates = new ArrayList<>(invoke.arguments().size());
 

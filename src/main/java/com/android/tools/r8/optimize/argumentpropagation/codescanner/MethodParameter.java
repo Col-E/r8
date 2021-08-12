@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.DexMethod;
+import java.util.Objects;
 
 public class MethodParameter {
 
@@ -14,5 +15,19 @@ public class MethodParameter {
   public MethodParameter(DexMethod method, int index) {
     this.method = method;
     this.index = index;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    MethodParameter methodParameter = (MethodParameter) obj;
+    return method == methodParameter.method && index == methodParameter.index;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(method, index);
   }
 }

@@ -146,13 +146,15 @@ public abstract class AbstractValue {
   }
 
   public AbstractValue join(AbstractValue other, AbstractValueFactory factory, DexType type) {
-    return join(other, factory, type, false);
+    return join(other, factory, type.isReferenceType(), false);
   }
 
+  // TODO(b/196321452): Clean this up, in particular, replace the "allow" parameters by a
+  //  configuration object.
   public AbstractValue join(
       AbstractValue other,
       AbstractValueFactory factory,
-      DexType type,
+      boolean allowNullOrAbstractValue,
       boolean allowNonConstantNumbers) {
     if (isBottom() || other.isUnknown()) {
       return other;
@@ -163,7 +165,7 @@ public abstract class AbstractValue {
     if (equals(other)) {
       return this;
     }
-    if (type.isReferenceType()) {
+    if (allowNullOrAbstractValue) {
       if (isNull()) {
         return NullOrAbstractValue.create(other);
       }

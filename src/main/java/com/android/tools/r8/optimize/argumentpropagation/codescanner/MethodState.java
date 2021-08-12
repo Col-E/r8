@@ -4,13 +4,26 @@
 
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
-public abstract class MethodState {
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.function.Supplier;
 
-  public boolean isUnknown() {
-    return false;
-  }
+public interface MethodState {
 
-  public static UnknownMethodState unknown() {
+  static UnknownMethodState unknown() {
     return UnknownMethodState.get();
   }
+
+  boolean isConcrete();
+
+  ConcreteMethodState asConcrete();
+
+  boolean isMonomorphic();
+
+  ConcreteMonomorphicMethodState asMonomorphic();
+
+  boolean isUnknown();
+
+  MethodState mutableJoin(
+      AppView<AppInfoWithLiveness> appView, Supplier<MethodState> methodStateSupplier);
 }

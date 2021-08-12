@@ -7,6 +7,7 @@ package com.android.tools.r8.utils;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.function.Function;
@@ -20,6 +21,12 @@ public class SetUtils {
       }
     }
     return false;
+  }
+
+  public static <T> HashSet<T> newHashSet(T element) {
+    HashSet<T> result = new HashSet<>(1);
+    result.add(element);
+    return result;
   }
 
   public static <T> Set<T> newIdentityHashSet(T element) {

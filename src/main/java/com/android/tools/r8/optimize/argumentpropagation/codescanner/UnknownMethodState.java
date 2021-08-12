@@ -4,8 +4,13 @@
 
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.function.Supplier;
+
 // Use this when the nothing is known.
-public class UnknownMethodState extends MethodState {
+public class UnknownMethodState extends MethodStateBase
+    implements ConcreteMonomorphicMethodStateOrUnknown {
 
   private static final UnknownMethodState INSTANCE = new UnknownMethodState();
 
@@ -18,5 +23,11 @@ public class UnknownMethodState extends MethodState {
   @Override
   public boolean isUnknown() {
     return true;
+  }
+
+  @Override
+  public MethodState mutableJoin(
+      AppView<AppInfoWithLiveness> appView, Supplier<MethodState> methodStateSupplier) {
+    return this;
   }
 }

@@ -191,7 +191,7 @@ public class FieldAssignmentTracker {
               abstractValue.join(
                   argumentAbstractValue,
                   appView.abstractValueFactory(),
-                  field.getType(),
+                  field.getType().isReferenceType(),
                   isClassIdField);
           assert !abstractValue.isBottom();
         } else if (initializationInfo.isSingleValue()) {
@@ -200,7 +200,7 @@ public class FieldAssignmentTracker {
               abstractValue.join(
                   singleValueInitializationInfo,
                   appView.abstractValueFactory(),
-                  field.getType(),
+                  field.getType().isReferenceType(),
                   isClassIdField);
         } else if (initializationInfo.isTypeInitializationInfo()) {
           // TODO(b/149732532): Not handled, for now.

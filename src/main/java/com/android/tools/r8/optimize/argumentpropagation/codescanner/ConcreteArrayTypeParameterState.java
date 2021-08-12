@@ -8,7 +8,7 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 
 public class ConcreteArrayTypeParameterState extends ConcreteParameterState {
 
-  private final Nullability nullability;
+  private Nullability nullability;
 
   public ConcreteArrayTypeParameterState(MethodParameter inParameter) {
     super(inParameter);
@@ -18,5 +18,30 @@ public class ConcreteArrayTypeParameterState extends ConcreteParameterState {
   public ConcreteArrayTypeParameterState(Nullability nullability) {
     assert !nullability.isMaybeNull() : "Must use UnknownParameterState instead";
     this.nullability = nullability;
+  }
+
+  public ParameterState mutableJoin(ConcreteArrayTypeParameterState parameterState) {
+    assert !nullability.isMaybeNull();
+    assert !parameterState.nullability.isMaybeNull();
+    mutableJoinInParameters(parameterState);
+    if (widenInParameters()) {
+      return unknown();
+    }
+    return this;
+  }
+
+  @Override
+  public ConcreteParameterStateKind getKind() {
+    return ConcreteParameterStateKind.ARRAY;
+  }
+
+  @Override
+  public boolean isArrayParameter() {
+    return true;
+  }
+
+  @Override
+  public ConcreteArrayTypeParameterState asArrayParameter() {
+    return this;
   }
 }

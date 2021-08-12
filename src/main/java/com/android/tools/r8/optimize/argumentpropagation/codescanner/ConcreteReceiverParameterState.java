@@ -8,9 +8,40 @@ import com.android.tools.r8.ir.analysis.type.DynamicType;
 
 public class ConcreteReceiverParameterState extends ConcreteParameterState {
 
-  private final DynamicType type;
+  private DynamicType dynamicType;
 
-  public ConcreteReceiverParameterState(DynamicType type) {
-    this.type = type;
+  public ConcreteReceiverParameterState(DynamicType dynamicType) {
+    this.dynamicType = dynamicType;
+  }
+
+  public ParameterState mutableJoin(ConcreteReceiverParameterState parameterState) {
+    // TODO(b/190154391): Join the dynamic types using SubtypingInfo.
+    // TODO(b/190154391): Take in the static type as an argument, and unset the dynamic type if it
+    //  equals the static type.
+    dynamicType =
+        dynamicType.equals(parameterState.dynamicType) ? dynamicType : DynamicType.unknown();
+    if (dynamicType.isUnknown()) {
+      return unknown();
+    }
+    mutableJoinInParameters(parameterState);
+    if (widenInParameters()) {
+      return unknown();
+    }
+    return this;
+  }
+
+  @Override
+  public ConcreteParameterStateKind getKind() {
+    return ConcreteParameterStateKind.RECEIVER;
+  }
+
+  @Override
+  public boolean isReceiverParameter() {
+    return true;
+  }
+
+  @Override
+  public ConcreteReceiverParameterState asReceiverParameter() {
+    return this;
   }
 }

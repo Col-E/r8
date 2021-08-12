@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+
 public class UnknownParameterState extends ParameterState {
 
   private static final UnknownParameterState INSTANCE = new UnknownParameterState();
@@ -17,5 +20,11 @@ public class UnknownParameterState extends ParameterState {
   @Override
   public boolean isUnknown() {
     return true;
+  }
+
+  @Override
+  public ParameterState mutableJoin(
+      AppView<AppInfoWithLiveness> appView, ParameterState parameterState) {
+    return this;
   }
 }

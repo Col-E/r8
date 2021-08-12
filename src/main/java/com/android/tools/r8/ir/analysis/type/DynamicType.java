@@ -18,6 +18,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 public class DynamicType {
 
   private static final DynamicType BOTTOM = new DynamicType(TypeElement.getBottom());
+  private static final DynamicType UNKNOWN = new DynamicType(TypeElement.getTop());
 
   private final TypeElement dynamicUpperBoundType;
 
@@ -42,6 +43,10 @@ public class DynamicType {
     return BOTTOM;
   }
 
+  public static DynamicType unknown() {
+    return UNKNOWN;
+  }
+
   public TypeElement getDynamicUpperBoundType() {
     return dynamicUpperBoundType;
   }
@@ -56,6 +61,10 @@ public class DynamicType {
 
   public boolean isTrivial(TypeElement staticType) {
     return staticType == getDynamicUpperBoundType();
+  }
+
+  public boolean isUnknown() {
+    return getDynamicUpperBoundType().isTop();
   }
 
   @Override

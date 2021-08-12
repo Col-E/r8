@@ -4,15 +4,32 @@
 
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
-import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 public class MethodStateCollection {
 
-  public void joinMethodState(DexMethod method, Supplier<MethodState> state) {
-    // TODO(b/190154391): Do not attempt to compute the method state using the provided supplier
-    //  if the state for the given method is already unknown.
-    throw new Unimplemented();
+  private final Map<DexMethod, MethodState> methodStates = new ConcurrentHashMap<>();
+
+  /**
+   * This intentionally takes a {@link Supplier<MethodState>} to avoid computing the method state
+   * for a given call site when nothing is known about the arguments of the method.
+   */
+  public void addMethodState(
+      AppView<AppInfoWithLiveness> appView,
+      DexMethod method,
+      Supplier<MethodState> methodStateSupplier) {
+    methodStates.compute(
+        method,
+        (ignore, existingMethodState) -> {
+          if (existingMethodState == null) {
+            return methodStateSupplier.get();
+          }
+          return existingMethodState.mutableJoin(appView, methodStateSupplier);
+        });
   }
 }

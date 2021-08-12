@@ -4,10 +4,13 @@
 
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Iterables;
 import java.util.List;
 
-public class ConcreteMonomorphicMethodState extends ConcreteMethodState {
+public class ConcreteMonomorphicMethodState extends ConcreteMethodState
+    implements ConcreteMonomorphicMethodStateOrUnknown {
 
   List<ParameterState> parameterStates;
 
@@ -15,5 +18,38 @@ public class ConcreteMonomorphicMethodState extends ConcreteMethodState {
     assert Iterables.any(parameterStates, parameterState -> !parameterState.isUnknown())
         : "Must use UnknownMethodState instead";
     this.parameterStates = parameterStates;
+  }
+
+  public ConcreteMonomorphicMethodStateOrUnknown mutableJoin(
+      AppView<AppInfoWithLiveness> appView, ConcreteMonomorphicMethodState methodState) {
+    if (size() != methodState.size()) {
+      assert false;
+      return unknown();
+    }
+
+    for (int i = 0; i < size(); i++) {
+      ParameterState parameterState = parameterStates.get(i);
+      ParameterState otherParameterState = methodState.parameterStates.get(i);
+      parameterStates.set(i, parameterState.mutableJoin(appView, otherParameterState));
+    }
+
+    if (Iterables.all(parameterStates, ParameterState::isUnknown)) {
+      return unknown();
+    }
+    return this;
+  }
+
+  @Override
+  public boolean isMonomorphic() {
+    return true;
+  }
+
+  @Override
+  public ConcreteMonomorphicMethodState asMonomorphic() {
+    return this;
+  }
+
+  public int size() {
+    return parameterStates.size();
   }
 }
