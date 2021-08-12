@@ -49,7 +49,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
+import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.CollectionUtils;
@@ -521,8 +521,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             || deadProtoTypes.contains(type)
             || getMissingClasses().contains(type)
             // TODO(b/150693139): Remove these exceptions once fixed.
-            || InterfaceMethodRewriter.isCompanionClassType(type)
-            || InterfaceMethodRewriter.isEmulatedLibraryClassType(type)
+            || InterfaceDesugaringSyntheticHelper.isCompanionClassType(type)
+            || InterfaceDesugaringSyntheticHelper.isEmulatedLibraryClassType(type)
             // TODO(b/150736225): Not sure how to remove these.
             || DesugaredLibraryAPIConverter.isVivifiedType(type)
         : "Failed lookup of non-missing type: " + type;

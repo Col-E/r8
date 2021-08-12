@@ -5,6 +5,9 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.graph.DexApplication.classesWithDeterministicOrder;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.defaultAsMethodOfCompanionClass;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.getInterfaceClassType;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.isCompanionClassType;
 import static com.android.tools.r8.utils.IterableUtils.fromMethod;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -21,7 +24,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.SubtypingInfo;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
@@ -350,11 +352,10 @@ public class ProguardMapMinifier {
       Map<DexMethod, DexString> defaultInterfaceMethodImplementationNames) {
     // If the class does not resolve, then check if it is a companion class for an interface on
     // the class path.
-    if (!InterfaceMethodRewriter.isCompanionClassType(type)) {
+    if (!isCompanionClassType(type)) {
       return;
     }
-    DexClass interfaceType =
-        appView.definitionFor(InterfaceMethodRewriter.getInterfaceClassType(type, factory));
+    DexClass interfaceType = appView.definitionFor(getInterfaceClassType(type, factory));
     if (interfaceType == null || !interfaceType.isClasspathClass()) {
       return;
     }
@@ -368,7 +369,7 @@ public class ProguardMapMinifier {
       MethodSignature signature = (MethodSignature) naming.getOriginalSignature();
       if (signature.name.startsWith(interfaceType.type.toSourceString())) {
         DexMethod defaultMethod =
-            InterfaceMethodRewriter.defaultAsMethodOfCompanionClass(
+            defaultAsMethodOfCompanionClass(
                 signature.toUnqualified().toDexMethod(factory, interfaceType.type), factory);
         assert defaultMethod.holder == type;
         defaultInterfaceMethodImplementationNames.put(

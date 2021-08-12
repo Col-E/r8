@@ -309,8 +309,8 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
       return appView.appInfo().definitionForDesugarDependency(directSubClass, type);
     }
 
-    public void reportMissingType(DexType missingType, InterfaceMethodRewriter rewriter) {
-      rewriter.warnMissingInterface(closestProgramSubClass, closestProgramSubClass, missingType);
+    public void reportMissingType(DexType missingType, InterfaceDesugaringSyntheticHelper helper) {
+      helper.warnMissingInterface(closestProgramSubClass, closestProgramSubClass, missingType);
     }
   }
 
@@ -334,14 +334,14 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
     }
 
     @Override
-    public void reportMissingType(DexType missingType, InterfaceMethodRewriter rewriter) {
+    public void reportMissingType(DexType missingType, InterfaceDesugaringSyntheticHelper helper) {
       // Ignore missing types in the library.
     }
   }
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
-  private final InterfaceMethodRewriter rewriter;
+  private final InterfaceDesugaringSyntheticHelper helper;
   private final MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
   private final boolean needsLibraryInfo;
 
@@ -358,10 +358,10 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
   private final Map<DexProgramClass, ProgramMethodSet> newSyntheticMethods =
       new ConcurrentHashMap<>();
 
-  ClassProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
+  ClassProcessor(AppView<?> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
-    this.rewriter = rewriter;
+    this.helper = new InterfaceDesugaringSyntheticHelper(appView);
     needsLibraryInfo =
         !appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty()
             || !appView
@@ -402,9 +402,9 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
   private SignaturesInfo computeInterfaceInfo(DexClass iface, SignaturesInfo interfaceInfo) {
     assert iface.isInterface();
     assert iface.superType == dexItemFactory.objectType;
-    assert !rewriter.isEmulatedInterface(iface.type);
+    assert !helper.isEmulatedInterface(iface.type);
     // Add non-library default methods as well as those for desugared library classes.
-    if (!iface.isLibraryClass() || (needsLibraryInfo() && rewriter.isInDesugaredLibrary(iface))) {
+    if (!iface.isLibraryClass() || (needsLibraryInfo() && helper.isInDesugaredLibrary(iface))) {
       MethodSignatures signatures = getDefaultMethods(iface);
       interfaceInfo = interfaceInfo.withSignatures(signatures);
     }
@@ -415,7 +415,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
       DexClass iface, SignaturesInfo interfaceInfo) {
     assert iface.isInterface();
     assert iface.superType == dexItemFactory.objectType;
-    assert rewriter.isEmulatedInterface(iface.type);
+    assert helper.isEmulatedInterface(iface.type);
     assert needsLibraryInfo();
     MethodSignatures signatures = getDefaultMethods(iface);
     EmulatedInterfaceInfo emulatedInterfaceInfo =
@@ -548,7 +548,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
               extraInterfaceSignatures.put(
                   type,
                   new GenericSignature.ClassTypeSignature(
-                      rewriter.getEmulatedInterface(type), signature.typeArguments()));
+                      helper.getEmulatedInterface(type), signature.typeArguments()));
             }
             collectEmulatedInterfacesWithPropagatedTypeArguments(
                 type, signature.typeArguments(), emulatesInterfaces, extraInterfaceSignatures);
@@ -558,8 +558,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
           (type) -> {
             if (emulatesInterfaces.contains(type)) {
               extraInterfaceSignatures.put(
-                  type,
-                  new GenericSignature.ClassTypeSignature(rewriter.getEmulatedInterface(type)));
+                  type, new GenericSignature.ClassTypeSignature(helper.getEmulatedInterface(type)));
             }
             collectEmulatedInterfacesWithPropagatedTypeArguments(
                 type, null, emulatesInterfaces, extraInterfaceSignatures);
@@ -586,7 +585,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
               extraInterfaceSignatures.put(
                   iface,
                   new GenericSignature.ClassTypeSignature(
-                      rewriter.getEmulatedInterface(iface), signature));
+                      helper.getEmulatedInterface(iface), signature));
             }
             collectEmulatedInterfacesWithPropagatedTypeArguments(
                 iface, signature, emulatesInterfaces, extraInterfaceSignatures);
@@ -598,7 +597,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
             if (emulatesInterfaces.contains(iface)) {
               extraInterfaceSignatures.put(
                   iface,
-                  new GenericSignature.ClassTypeSignature(rewriter.getEmulatedInterface(iface)));
+                  new GenericSignature.ClassTypeSignature(helper.getEmulatedInterface(iface)));
             }
             collectEmulatedInterfacesWithPropagatedTypeArguments(
                 iface, null, emulatesInterfaces, extraInterfaceSignatures);
@@ -718,7 +717,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
       // Here we use step-3 of resolution to find a maximally specific default interface method.
       DexClassAndMethod result =
           appInfo.lookupMaximallySpecificMethod(libraryMethod.getHolder(), method);
-      if (result != null && rewriter.isEmulatedInterface(result.getHolderType())) {
+      if (result != null && helper.isEmulatedInterface(result.getHolderType())) {
         addForward.accept(result);
       }
     }
@@ -732,9 +731,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
   }
 
   private boolean dontRewrite(DexClassAndMethod method) {
-    return needsLibraryInfo()
-        && method.getHolder().isLibraryClass()
-        && rewriter.dontRewrite(method);
+    return needsLibraryInfo() && method.getHolder().isLibraryClass() && helper.dontRewrite(method);
   }
 
   // Construction of actual forwarding methods.
@@ -819,7 +816,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
     // In desugared library, emulated interface methods can be overridden by retarget lib members.
     DexMethod forwardMethod =
         target.getHolder().isInterface()
-            ? rewriter.ensureDefaultAsMethodOfCompanionClassStub(target).getReference()
+            ? helper.ensureDefaultAsMethodOfCompanionClassStub(target).getReference()
             : appView.options().desugaredLibraryConfiguration.retargetMethod(target, appView);
     DexEncodedMethod desugaringForwardingMethod =
         DexEncodedMethod.createDesugaringForwardingMethod(
@@ -836,7 +833,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
     }
     DexClass clazz = context.definitionFor(type, appView);
     if (clazz == null) {
-      context.reportMissingType(type, rewriter);
+      context.reportMissingType(type, helper);
       return null;
     }
     return clazz;
@@ -936,7 +933,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
     for (DexType superiface : iface.interfaces.values) {
       interfaceInfo = interfaceInfo.merge(visitInterfaceInfo(superiface, thisContext));
     }
-    return rewriter.isEmulatedInterface(iface.type)
+    return helper.isEmulatedInterface(iface.type)
         ? computeEmulatedInterfaceInfo(iface, interfaceInfo)
         : computeInterfaceInfo(iface, interfaceInfo);
   }

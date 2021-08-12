@@ -26,30 +26,28 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
   private final Flavor flavour;
   private final List<InterfaceDesugaringProcessor> interfaceDesugaringProcessors;
 
-  InterfaceMethodProcessorFacade(
-      AppView<?> appView, Flavor flavour, InterfaceMethodRewriter rewriter) {
+  InterfaceMethodProcessorFacade(AppView<?> appView, Flavor flavour) {
     this.appView = appView;
     this.flavour = flavour;
-    interfaceDesugaringProcessors = instantiateInterfaceDesugaringProcessors(appView, rewriter);
+    interfaceDesugaringProcessors = instantiateInterfaceDesugaringProcessors(appView);
   }
 
   private List<InterfaceDesugaringProcessor> instantiateInterfaceDesugaringProcessors(
-      AppView<?> appView, InterfaceMethodRewriter rewriter) {
+      AppView<?> appView) {
 
     // During L8 compilation, emulated interfaces are processed to be renamed, to have
     // their interfaces fixed-up and to generate the emulated dispatch code.
-    EmulatedInterfaceProcessor emulatedInterfaceProcessor =
-        new EmulatedInterfaceProcessor(appView, rewriter);
+    EmulatedInterfaceProcessor emulatedInterfaceProcessor = new EmulatedInterfaceProcessor(appView);
 
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
-    ClassProcessor classProcessor = new ClassProcessor(appView, rewriter);
+    ClassProcessor classProcessor = new ClassProcessor(appView);
 
     // Process interfaces, create companion or dispatch class if needed, move static
     // methods to companion class, copy default interface methods to companion classes,
     // make original default methods abstract, remove bridge methods, create dispatch
     // classes if needed.
-    InterfaceProcessor interfaceProcessor = new InterfaceProcessor(appView, rewriter);
+    InterfaceProcessor interfaceProcessor = new InterfaceProcessor(appView);
 
     // The processors can be listed in any order.
     return ImmutableList.of(classProcessor, interfaceProcessor, emulatedInterfaceProcessor);

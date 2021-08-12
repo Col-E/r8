@@ -69,13 +69,13 @@ import org.objectweb.asm.Opcodes;
 public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
 
   private final AppView<?> appView;
-  private final InterfaceMethodRewriter rewriter;
+  private final InterfaceDesugaringSyntheticHelper helper;
   private final Map<DexProgramClass, PostProcessingInterfaceInfo> postProcessingInterfaceInfos =
       new ConcurrentHashMap<>();
 
-  InterfaceProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
+  InterfaceProcessor(AppView<?> appView) {
     this.appView = appView;
-    this.rewriter = rewriter;
+    helper = new InterfaceDesugaringSyntheticHelper(appView);
   }
 
   @Override
@@ -222,7 +222,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   private void processVirtualInterfaceMethods(DexProgramClass iface) {
     for (ProgramMethod method : iface.virtualProgramMethods()) {
       DexEncodedMethod virtual = method.getDefinition();
-      if (rewriter.isDefaultMethod(virtual)) {
+      if (helper.isCompatibleDefaultMethod(virtual)) {
         if (!canMoveToCompanionClass(virtual)) {
           throw new CompilationError(
               "One or more instruction is preventing default interface "
@@ -237,7 +237,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
               iface.origin);
         }
         // Create a new method in a companion class to represent default method implementation.
-        ProgramMethod companion = rewriter.ensureDefaultAsMethodOfProgramCompanionClassStub(method);
+        ProgramMethod companion = helper.ensureDefaultAsMethodOfProgramCompanionClassStub(method);
         DexEncodedMethod.setDebugInfoWithFakeThisParameter(
             code, companion.getReference().getArity(), appView);
         finalizeMoveToCompanionMethod(method, companion);
@@ -270,7 +270,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                 + " is expected to "
                 + "either be public or private in "
                 + iface.origin;
-        companion = rewriter.ensureStaticAsMethodOfProgramCompanionClassStub(method);
+        companion = helper.ensureStaticAsMethodOfProgramCompanionClassStub(method);
       } else {
         assert definition.isPrivate();
         Code code = definition.getCode();
@@ -281,7 +281,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                   + method.getReference().toSourceString(),
               iface.origin);
         }
-        companion = rewriter.ensurePrivateAsMethodOfProgramCompanionClassStub(method);
+        companion = helper.ensurePrivateAsMethodOfProgramCompanionClassStub(method);
         DexEncodedMethod.setDebugInfoWithFakeThisParameter(
             code, companion.getReference().getArity(), appView);
       }
@@ -389,7 +389,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
       throw new Unimplemented("Native interface methods are not yet supported.");
     }
     return method.accessFlags.isStatic()
-        && !rewriter.factory.isClassConstructor(method.getReference());
+        && !appView.dexItemFactory().isClassConstructor(method.getReference());
   }
 
   private InterfaceProcessorNestedGraphLens postProcessInterfaces() {

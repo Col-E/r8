@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar.itf;
 
-import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.emulateInterfaceLibraryMethod;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -33,15 +31,12 @@ import java.util.Set;
 public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProcessor {
 
   private final AppView<?> appView;
-  private final InterfaceMethodRewriter rewriter;
-  private final Map<DexType, DexType> emulatedInterfaces;
+  private final InterfaceDesugaringSyntheticHelper helper;
   private final Map<DexType, List<DexType>> emulatedInterfacesHierarchy;
 
-  EmulatedInterfaceProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
+  EmulatedInterfaceProcessor(AppView<?> appView) {
     this.appView = appView;
-    this.rewriter = rewriter;
-    emulatedInterfaces =
-        appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface();
+    helper = new InterfaceDesugaringSyntheticHelper(appView);
     // Avoid the computation outside L8 since it is not needed.
     emulatedInterfacesHierarchy =
         appView.options().isDesugaredLibraryCompilation()
@@ -52,7 +47,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
   private Map<DexType, List<DexType>> processEmulatedInterfaceHierarchy() {
     Map<DexType, List<DexType>> emulatedInterfacesHierarchy = new IdentityHashMap<>();
     Set<DexType> processed = Sets.newIdentityHashSet();
-    ArrayList<DexType> emulatedInterfacesSorted = new ArrayList<>(emulatedInterfaces.keySet());
+    ArrayList<DexType> emulatedInterfacesSorted = new ArrayList<>(helper.getEmulatedInterfaces());
     emulatedInterfacesSorted.sort(DexType::compareTo);
     for (DexType interfaceType : emulatedInterfacesSorted) {
       processEmulatedInterfaceHierarchy(interfaceType, processed, emulatedInterfacesHierarchy);
@@ -76,7 +71,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
     LinkedList<DexType> workList = new LinkedList<>(Arrays.asList(theInterface.interfaces.values));
     while (!workList.isEmpty()) {
       DexType next = workList.removeLast();
-      if (emulatedInterfaces.containsKey(next)) {
+      if (helper.isEmulatedInterface(next)) {
         processEmulatedInterfaceHierarchy(next, processed, emulatedInterfacesHierarchy);
         emulatedInterfacesHierarchy.get(next).add(interfaceType);
         DexClass nextClass = appView.definitionFor(next);
@@ -89,7 +84,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
 
   DexProgramClass ensureEmulateInterfaceLibrary(
       DexProgramClass emulatedInterface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
-    assert rewriter.isEmulatedInterface(emulatedInterface.type);
+    assert helper.isEmulatedInterface(emulatedInterface.type);
     DexProgramClass emulateInterfaceClass =
         appView
             .getSyntheticItems()
@@ -108,7 +103,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
                 ignored -> {});
     emulateInterfaceClass.forEachProgramMethod(eventConsumer::acceptEmulatedInterfaceMethod);
     assert emulateInterfaceClass.getType()
-        == InterfaceMethodRewriter.getEmulateLibraryInterfaceClassType(
+        == InterfaceDesugaringSyntheticHelper.getEmulateLibraryInterfaceClassType(
             emulatedInterface.type, appView.dexItemFactory());
     return emulateInterfaceClass;
   }
@@ -119,12 +114,14 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
     DexMethod libraryMethod =
         method
             .getReference()
-            .withHolder(emulatedInterfaces.get(theInterface.type), appView.dexItemFactory());
+            .withHolder(helper.getEmulatedInterface(theInterface.type), appView.dexItemFactory());
     DexMethod companionMethod =
-        rewriter.ensureDefaultAsMethodOfProgramCompanionClassStub(method).getReference();
+        helper.ensureDefaultAsMethodOfProgramCompanionClassStub(method).getReference();
     List<Pair<DexType, DexMethod>> extraDispatchCases =
         getDispatchCases(method, theInterface, companionMethod);
-    DexMethod emulatedMethod = emulateInterfaceLibraryMethod(method, appView.dexItemFactory());
+    DexMethod emulatedMethod =
+        InterfaceDesugaringSyntheticHelper.emulateInterfaceLibraryMethod(
+            method, appView.dexItemFactory());
     methodBuilder
         .setName(emulatedMethod.getName())
         .setProto(emulatedMethod.getProto())
@@ -186,7 +183,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
           extraDispatchCases.add(
               new Pair<>(
                   subInterfaceClass.type,
-                  InterfaceMethodRewriter.defaultAsMethodOfCompanionClass(
+                  InterfaceDesugaringSyntheticHelper.defaultAsMethodOfCompanionClass(
                       result.getReference(), appView.dexItemFactory())));
         }
       }
@@ -215,7 +212,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
   public void process(
       DexProgramClass emulatedInterface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     if (!appView.options().isDesugaredLibraryCompilation()
-        || !rewriter.isEmulatedInterface(emulatedInterface.type)
+        || !helper.isEmulatedInterface(emulatedInterface.type)
         || appView.isAlreadyLibraryDesugared(emulatedInterface)) {
       return;
     }
@@ -234,7 +231,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
   }
 
   private void warnMissingEmulatedInterfaces() {
-    for (DexType interfaceType : emulatedInterfaces.keySet()) {
+    for (DexType interfaceType : helper.getEmulatedInterfaces()) {
       DexClass theInterface = appView.definitionFor(interfaceType);
       if (theInterface == null) {
         warnMissingEmulatedInterface(interfaceType);

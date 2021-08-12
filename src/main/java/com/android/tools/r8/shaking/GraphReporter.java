@@ -27,7 +27,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
+import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.DequeUtils;
@@ -283,7 +283,7 @@ public class GraphReporter {
 
   public KeepReasonWitness reportCompanionClass(DexProgramClass iface, DexProgramClass companion) {
     assert iface.isInterface();
-    assert InterfaceMethodRewriter.isCompanionClassType(companion.type);
+    assert InterfaceDesugaringSyntheticHelper.isCompanionClassType(companion.type);
     if (keptGraphConsumer == null) {
       return KeepReasonWitness.INSTANCE;
     }
@@ -293,7 +293,7 @@ public class GraphReporter {
 
   public KeepReasonWitness reportCompanionMethod(
       DexEncodedMethod definition, DexEncodedMethod implementation) {
-    assert InterfaceMethodRewriter.isCompanionClassType(implementation.getHolderType());
+    assert InterfaceDesugaringSyntheticHelper.isCompanionClassType(implementation.getHolderType());
     if (keptGraphConsumer == null) {
       return KeepReasonWitness.INSTANCE;
     }

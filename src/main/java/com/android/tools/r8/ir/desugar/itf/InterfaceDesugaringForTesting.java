@@ -7,22 +7,22 @@ package com.android.tools.r8.ir.desugar.itf;
 public class InterfaceDesugaringForTesting {
 
   public static String getEmulateLibraryClassNameSuffix() {
-    return InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
+    return InterfaceDesugaringSyntheticHelper.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
   }
 
   public static String getCompanionClassNameSuffix() {
-    return InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
+    return InterfaceDesugaringSyntheticHelper.COMPANION_CLASS_NAME_SUFFIX;
   }
 
   public static String getDefaultMethodPrefix() {
-    return InterfaceMethodRewriter.DEFAULT_METHOD_PREFIX;
+    return InterfaceDesugaringSyntheticHelper.DEFAULT_METHOD_PREFIX;
   }
 
   public static String getPrivateMethodPrefix() {
-    return InterfaceMethodRewriter.PRIVATE_METHOD_PREFIX;
+    return InterfaceDesugaringSyntheticHelper.PRIVATE_METHOD_PREFIX;
   }
 
   public static String getCompanionClassDescriptor(String descriptor) {
-    return InterfaceMethodRewriter.getCompanionClassDescriptor(descriptor);
+    return InterfaceDesugaringSyntheticHelper.getCompanionClassDescriptor(descriptor);
   }
 }
