@@ -57,6 +57,8 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
                     .writeToZip())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .setMinApi(parameters.getApiLevel())
+            .addOptionsModification(
+                options -> options.desugarSpecificOptions().allowAllDesugaredInput = true)
             .compile()
             .writeToZip();
     if (parameters.getRuntime().isDex()) {
