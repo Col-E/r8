@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -202,13 +203,28 @@ public abstract class TreeFixerBase {
       DexType newInnerClassType = fixupTypeOrNull(innerClassType);
       DexType outerClassType = innerClassAttribute.getOuter();
       DexType newOuterClassType = fixupTypeOrNull(outerClassType);
+      DexString newInnerName = innerClassAttribute.getInnerName();
+      // Compute the new inner name if the attribute changed. This could end up 'fixing' invalid
+      // inner class attributes.
+      boolean innerClassAttributeChanged =
+          newInnerClassType != innerClassType || newOuterClassType != outerClassType;
+      if (innerClassAttributeChanged && innerClassType != null && outerClassType != null) {
+        String innerClassName =
+            DescriptorUtils.getInnerClassName(
+                newOuterClassType.toDescriptorString(), newInnerClassType.toDescriptorString());
+        if (innerClassName != null) {
+          newInnerName = dexItemFactory.createString(innerClassName);
+        } else {
+          // If run without treeshaking and the outer type is missing we are not pruning the
+          // relationship.
+          assert !appView.options().isTreeShakingEnabled();
+          assert appView.appInfo().definitionForWithoutExistenceAssert(newOuterClassType) == null;
+        }
+      }
       newInnerClassAttributes.add(
           new InnerClassAttribute(
-              innerClassAttribute.getAccess(),
-              newInnerClassType,
-              newOuterClassType,
-              innerClassAttribute.getInnerName()));
-      changed |= newInnerClassType != innerClassType || newOuterClassType != outerClassType;
+              innerClassAttribute.getAccess(), newInnerClassType, newOuterClassType, newInnerName));
+      changed |= innerClassAttributeChanged;
     }
     return changed ? newInnerClassAttributes : innerClassAttributes;
   }
