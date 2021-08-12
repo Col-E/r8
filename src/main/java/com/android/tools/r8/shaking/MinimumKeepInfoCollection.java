@@ -162,7 +162,7 @@ public class MinimumKeepInfoCollection {
                   graphLens::getRenamedMethodSignature);
           if (rewrittenReference != null) {
             rewrittenMinimumKeepInfo
-                .getOrCreateMinimumKeepInfoFor(graphLens.lookupReference(reference))
+                .getOrCreateMinimumKeepInfoFor(rewrittenReference)
                 .mergeUnsafe(minimumKeepInfoForReference);
           }
         });
