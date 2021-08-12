@@ -4,8 +4,12 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.desugar.records.RecordRewriter;
+import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.List;
 
 /** Interface for desugaring a class. */
 public abstract class CfClassDesugaringCollection {
@@ -17,21 +21,39 @@ public abstract class CfClassDesugaringCollection {
 
   public abstract boolean isEmpty();
 
-  public static class NonEmptyCfClassDesugaringCollection extends CfClassDesugaringCollection {
-    private final RecordRewriter recordRewriter;
+  public static CfClassDesugaringCollection empty() {
+    return EmptyCfClassDesugaringCollection.getInstance();
+  }
 
-    NonEmptyCfClassDesugaringCollection(RecordRewriter recordRewriter) {
-      this.recordRewriter = recordRewriter;
+  public static CfClassDesugaringCollection create(AppView<?> appView) {
+    List<CfClassDesugaring> desugarings = new ArrayList<>();
+    RecordRewriter recordRewriter = RecordRewriter.create(appView);
+    if (recordRewriter != null) {
+      desugarings.add(recordRewriter);
+    }
+    if (desugarings.isEmpty()) {
+      return empty();
+    }
+    return new NonEmptyCfClassDesugaringCollection(desugarings);
+  }
+
+  public static class NonEmptyCfClassDesugaringCollection extends CfClassDesugaringCollection {
+    private final List<CfClassDesugaring> desugarings;
+
+    NonEmptyCfClassDesugaringCollection(List<CfClassDesugaring> desugarings) {
+      this.desugarings = desugarings;
     }
 
     @Override
     public void desugar(DexProgramClass clazz, CfClassDesugaringEventConsumer eventConsumer) {
-      recordRewriter.desugar(clazz, eventConsumer);
+      for (CfClassDesugaring desugaring : desugarings) {
+        desugaring.desugar(clazz, eventConsumer);
+      }
     }
 
     @Override
     public boolean needsDesugaring(DexProgramClass clazz) {
-      return recordRewriter.needsDesugaring(clazz);
+      return Iterables.any(desugarings, desugaring -> desugaring.needsDesugaring(clazz));
     }
 
     @Override
@@ -41,6 +63,14 @@ public abstract class CfClassDesugaringCollection {
   }
 
   public static class EmptyCfClassDesugaringCollection extends CfClassDesugaringCollection {
+
+    private static final EmptyCfClassDesugaringCollection INSTANCE =
+        new EmptyCfClassDesugaringCollection();
+
+    public static EmptyCfClassDesugaringCollection getInstance() {
+      return INSTANCE;
+    }
+
     @Override
     public void desugar(DexProgramClass clazz, CfClassDesugaringEventConsumer eventConsumer) {
       // Intentionally empty.

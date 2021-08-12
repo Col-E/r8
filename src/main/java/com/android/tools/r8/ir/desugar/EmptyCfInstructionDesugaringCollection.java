@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection.EmptyCfClassDesugaringCollection;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
@@ -48,11 +47,6 @@ public class EmptyCfInstructionDesugaringCollection extends CfInstructionDesugar
   @Override
   public boolean isEmpty() {
     return true;
-  }
-
-  @Override
-  public CfClassDesugaringCollection createClassDesugaringCollection() {
-    return new EmptyCfClassDesugaringCollection();
   }
 
   @Override

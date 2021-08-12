@@ -54,8 +54,6 @@ public abstract class CfInstructionDesugaringCollection {
     return false;
   }
 
-  public abstract CfClassDesugaringCollection createClassDesugaringCollection();
-
   /** Returns true if the given method needs desugaring. */
   public abstract boolean needsDesugaring(ProgramMethod method);
 

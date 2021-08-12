@@ -224,7 +224,7 @@ public class IRConverter {
       // - invoke-special desugaring.
       assert options.desugarState.isOn();
       this.instructionDesugaring = CfInstructionDesugaringCollection.create(appView);
-      this.classDesugaring = instructionDesugaring.createClassDesugaringCollection();
+      this.classDesugaring = CfClassDesugaringCollection.create(appView);
       this.interfaceMethodRewriter = null;
       this.covariantReturnTypeAnnotationTransformer = null;
       this.dynamicTypeOptimization = null;
@@ -251,7 +251,10 @@ public class IRConverter {
         appView.enableWholeProgramOptimizations()
             ? CfInstructionDesugaringCollection.empty()
             : CfInstructionDesugaringCollection.create(appView);
-    this.classDesugaring = instructionDesugaring.createClassDesugaringCollection();
+    this.classDesugaring =
+        appView.enableWholeProgramOptimizations()
+            ? CfClassDesugaringCollection.empty()
+            : CfClassDesugaringCollection.create(appView);
     this.interfaceMethodRewriter =
         options.isInterfaceMethodDesugaringEnabled() && appView.enableWholeProgramOptimizations()
             ? new InterfaceMethodRewriter(appView, this)

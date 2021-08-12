@@ -12,8 +12,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection.EmptyCfClassDesugaringCollection;
-import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection.NonEmptyCfClassDesugaringCollection;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
@@ -240,14 +238,6 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     }
     assert foundFalsePositive;
     return true;
-  }
-
-  @Override
-  public CfClassDesugaringCollection createClassDesugaringCollection() {
-    if (recordRewriter == null) {
-      return new EmptyCfClassDesugaringCollection();
-    }
-    return new NonEmptyCfClassDesugaringCollection(recordRewriter);
   }
 
   private Collection<CfInstruction> desugarInstruction(
