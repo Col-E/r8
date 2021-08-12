@@ -36,7 +36,7 @@ import java.util.Set;
  *   class B extends A implements I {}
  * </pre>
  */
-public class InterfaceMethodArgumentPropagator {
+public class MethodArgumentPropagator {
 
   // The state of a given class in the top-down traversal.
   private enum TraversalState {
@@ -74,7 +74,7 @@ public class InterfaceMethodArgumentPropagator {
   // See also prioritizeNewlySeenButNotFinishedRoots().
   private final List<DexProgramClass> newlySeenButNotFinishedRoots = new ArrayList<>();
 
-  public InterfaceMethodArgumentPropagator(
+  public MethodArgumentPropagator(
       AppView<AppInfoWithLiveness> appView,
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
       MethodStateCollection methodStates) {
