@@ -9,7 +9,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollection;
-import com.android.tools.r8.optimize.argumentpropagation.propagation.MethodArgumentPropagator;
+import com.android.tools.r8.optimize.argumentpropagation.propagation.InterfaceMethodArgumentPropagator;
+import com.android.tools.r8.optimize.argumentpropagation.propagation.VirtualDispatchMethodArgumentPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.WorkList;
@@ -111,13 +112,14 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     //
     // To handle this we first propagate any argument information stored for I.m() to A.m() by doing
     // a top-down traversal over the interfaces in the strongly connected component.
-    new MethodArgumentPropagator(appView, immediateSubtypingInfo, methodStates)
-        .propagateArgumentsForInterfaceMethods(stronglyConnectedComponent);
+    new InterfaceMethodArgumentPropagator(appView, immediateSubtypingInfo, methodStates)
+        .run(stronglyConnectedComponent);
 
     // Now all the argument information for a given method is guaranteed to be stored on a supertype
     // of the method's holder. All that remains is to propagate the information downwards in the
     // class hierarchy to propagate the argument information for a non-private virtual method to its
     // overrides.
-    throw new Unimplemented();
+    new VirtualDispatchMethodArgumentPropagator(appView, immediateSubtypingInfo, methodStates)
+        .run(stronglyConnectedComponent);
   }
 }
