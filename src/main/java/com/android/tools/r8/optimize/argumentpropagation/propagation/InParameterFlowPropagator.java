@@ -16,7 +16,7 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMon
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodParameter;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollection;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
@@ -37,10 +37,10 @@ import java.util.function.Consumer;
 public class InParameterFlowPropagator {
 
   final AppView<AppInfoWithLiveness> appView;
-  final MethodStateCollection methodStates;
+  final MethodStateCollectionByReference methodStates;
 
   public InParameterFlowPropagator(
-      AppView<AppInfoWithLiveness> appView, MethodStateCollection methodStates) {
+      AppView<AppInfoWithLiveness> appView, MethodStateCollectionByReference methodStates) {
     this.appView = appView;
     this.methodStates = methodStates;
   }

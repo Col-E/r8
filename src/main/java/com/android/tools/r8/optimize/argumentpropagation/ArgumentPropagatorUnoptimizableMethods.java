@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollection;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.UnknownMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.utils.DepthFirstTopDownClassHierarchyTraversal;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -34,12 +34,12 @@ public class ArgumentPropagatorUnoptimizableMethods {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final ImmediateProgramSubtypingInfo immediateSubtypingInfo;
-  private final MethodStateCollection methodStates;
+  private final MethodStateCollectionByReference methodStates;
 
   public ArgumentPropagatorUnoptimizableMethods(
       AppView<AppInfoWithLiveness> appView,
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
-      MethodStateCollection methodStates) {
+      MethodStateCollectionByReference methodStates) {
     this.appView = appView;
     this.immediateSubtypingInfo = immediateSubtypingInfo;
     this.methodStates = methodStates;

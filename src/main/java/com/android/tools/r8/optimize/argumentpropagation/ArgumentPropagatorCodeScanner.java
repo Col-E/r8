@@ -33,7 +33,7 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePri
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteReceiverParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodParameter;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollection;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.UnknownMethodState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -67,7 +67,7 @@ class ArgumentPropagatorCodeScanner {
    * The abstract program state for this optimization. Intuitively maps each parameter to its
    * abstract value and dynamic type.
    */
-  private final MethodStateCollection methodStates;
+  private final MethodStateCollectionByReference methodStates;
 
   ArgumentPropagatorCodeScanner(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
@@ -85,14 +85,14 @@ class ArgumentPropagatorCodeScanner {
     return roots;
   }
 
-  private MethodStateCollection computeInitialMethodStates() {
+  private MethodStateCollectionByReference computeInitialMethodStates() {
     // TODO(b/190154391): There is no need to track an abstract value for receivers; we only care
     //  about the dynamic type for such parameters. Consider initializing the initial state to have
     //  unknown abstract values for all receivers.
-    return MethodStateCollection.createConcurrent();
+    return MethodStateCollectionByReference.createConcurrent();
   }
 
-  MethodStateCollection getMethodStates() {
+  MethodStateCollectionByReference getMethodStates() {
     return methodStates;
   }
 

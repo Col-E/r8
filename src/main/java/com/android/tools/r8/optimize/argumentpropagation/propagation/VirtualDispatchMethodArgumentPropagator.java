@@ -18,7 +18,8 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePolymorphicMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollection;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionBySignature;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,15 +32,17 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
 
     // Argument information for virtual methods that must be propagated to all overrides (i.e., this
     // information does not have a lower bound).
-    final MethodStateCollection active = MethodStateCollection.create();
+    final MethodStateCollectionBySignature active = MethodStateCollectionBySignature.create();
 
     // Argument information for virtual methods that must be propagated to all overrides that are
     // above the given lower bound.
-    final Map<DexType, MethodStateCollection> activeUntilLowerBound = new IdentityHashMap<>();
+    final Map<DexType, MethodStateCollectionBySignature> activeUntilLowerBound =
+        new IdentityHashMap<>();
 
     // Argument information for virtual methods that is currently inactive, but should be propagated
     // to all overrides below a given upper bound.
-    final Map<DynamicType, MethodStateCollection> inactiveUntilUpperBound = new HashMap<>();
+    final Map<DynamicType, MethodStateCollectionBySignature> inactiveUntilUpperBound =
+        new HashMap<>();
 
     PropagationState(DexProgramClass clazz) {
       // Join the argument information from each of the super types.
@@ -70,7 +73,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
               // TODO(b/190154391): Verify that the lower bound is a subtype of the current.
               //  Otherwise we carry this information to all subtypes although there is no need to.
               activeUntilLowerBound
-                  .computeIfAbsent(lowerBound, ignoreKey(MethodStateCollection::create))
+                  .computeIfAbsent(lowerBound, ignoreKey(MethodStateCollectionBySignature::create))
                   .addMethodStates(appView, activeMethodState);
             } else {
               // No longer active.
@@ -88,7 +91,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
                 activeUntilLowerBound
                     .computeIfAbsent(
                         bounds.getDynamicLowerBoundType().getClassType(),
-                        ignoreKey(MethodStateCollection::create))
+                        ignoreKey(MethodStateCollectionBySignature::create))
                     .addMethodStates(appView, inactiveMethodState);
               } else {
                 active.addMethodStates(appView, inactiveMethodState);
@@ -99,7 +102,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
               //  subtype of this class. Otherwise we carry this information to all subtypes,
               //  although clearly the information will never become active.
               inactiveUntilUpperBound
-                  .computeIfAbsent(bounds, ignoreKey(MethodStateCollection::create))
+                  .computeIfAbsent(bounds, ignoreKey(MethodStateCollectionBySignature::create))
                   .addMethodStates(appView, inactiveMethodState);
             }
           });
@@ -108,7 +111,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
     private MethodState computeMethodStateForPolymorhicMethod(ProgramMethod method) {
       assert method.getDefinition().isNonPrivateVirtualMethod();
       MethodState methodState = active.get(method);
-      for (MethodStateCollection methodStates : activeUntilLowerBound.values()) {
+      for (MethodStateCollectionBySignature methodStates : activeUntilLowerBound.values()) {
         methodState = methodState.mutableJoin(appView, methodStates.get(method));
       }
       return methodState;
@@ -126,7 +129,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
   public VirtualDispatchMethodArgumentPropagator(
       AppView<AppInfoWithLiveness> appView,
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
-      MethodStateCollection methodStates) {
+      MethodStateCollectionByReference methodStates) {
     super(appView, immediateSubtypingInfo, methodStates);
   }
 
@@ -161,7 +164,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
           //  distinguish monomorphic unknown method states from polymorphic unknown method states.
           //  We only need to propagate polymorphic unknown method states here.
           if (methodState.isUnknown()) {
-            propagationState.active.addMethodState(appView, method.getReference(), methodState);
+            propagationState.active.addMethodState(appView, method, methodState);
             return;
           }
 
@@ -177,8 +180,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
           polymorphicMethodState.forEach(
               (bounds, methodStateForBounds) -> {
                 if (bounds.isUnknown()) {
-                  propagationState.active.addMethodState(
-                      appView, method.getReference(), methodStateForBounds);
+                  propagationState.active.addMethodState(appView, method, methodStateForBounds);
                 } else {
                   // TODO(b/190154391): Verify that the bounds are not trivial according to the
                   //  static receiver type.
@@ -191,18 +193,18 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
                           .activeUntilLowerBound
                           .computeIfAbsent(
                               bounds.getDynamicLowerBoundType().getClassType(),
-                              ignoreKey(MethodStateCollection::create))
-                          .addMethodState(appView, method.getReference(), methodStateForBounds);
+                              ignoreKey(MethodStateCollectionBySignature::create))
+                          .addMethodState(appView, method, methodStateForBounds);
                     } else {
-                      propagationState.active.addMethodState(
-                          appView, method.getReference(), methodStateForBounds);
+                      propagationState.active.addMethodState(appView, method, methodStateForBounds);
                     }
                   } else {
                     assert !classType.lessThanOrEqualUpToNullability(upperBound, appView);
                     propagationState
                         .inactiveUntilUpperBound
-                        .computeIfAbsent(bounds, ignoreKey(MethodStateCollection::create))
-                        .addMethodState(appView, method.getReference(), methodStateForBounds);
+                        .computeIfAbsent(
+                            bounds, ignoreKey(MethodStateCollectionBySignature::create))
+                        .addMethodState(appView, method, methodStateForBounds);
                   }
                 }
               });

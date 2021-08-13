@@ -13,7 +13,7 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMet
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollection;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.propagation.InParameterFlowPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.propagation.InterfaceMethodArgumentPropagator;
@@ -36,13 +36,13 @@ import java.util.concurrent.ExecutorService;
 public class ArgumentPropagatorOptimizationInfoPopulator {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final MethodStateCollection methodStates;
+  private final MethodStateCollectionByReference methodStates;
 
   private final ImmediateProgramSubtypingInfo immediateSubtypingInfo;
   private final List<Set<DexProgramClass>> stronglyConnectedComponents;
 
   ArgumentPropagatorOptimizationInfoPopulator(
-      AppView<AppInfoWithLiveness> appView, MethodStateCollection methodStates) {
+      AppView<AppInfoWithLiveness> appView, MethodStateCollectionByReference methodStates) {
     this.appView = appView;
     this.methodStates = methodStates;
 

@@ -5,33 +5,29 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-public class MethodStateCollection {
+abstract class MethodStateCollection<K> {
 
-  private final Map<DexMethod, MethodState> methodStates;
+  private final Map<K, MethodState> methodStates;
 
-  private MethodStateCollection(Map<DexMethod, MethodState> methodStates) {
+  MethodStateCollection(Map<K, MethodState> methodStates) {
     this.methodStates = methodStates;
   }
 
-  public static MethodStateCollection create() {
-    return new MethodStateCollection(new IdentityHashMap<>());
-  }
-
-  public static MethodStateCollection createConcurrent() {
-    return new MethodStateCollection(new ConcurrentHashMap<>());
-  }
+  abstract K getKey(ProgramMethod method);
 
   public void addMethodState(
-      AppView<AppInfoWithLiveness> appView, DexMethod method, MethodState methodState) {
+      AppView<AppInfoWithLiveness> appView, ProgramMethod method, MethodState methodState) {
+    addMethodState(appView, getKey(method), methodState);
+  }
+
+  private void addMethodState(
+      AppView<AppInfoWithLiveness> appView, K method, MethodState methodState) {
     if (methodState.isUnknown()) {
       methodStates.put(method, methodState);
     } else {
@@ -52,8 +48,13 @@ public class MethodStateCollection {
    */
   public void addMethodState(
       AppView<AppInfoWithLiveness> appView,
-      DexMethod method,
+      ProgramMethod method,
       Supplier<MethodState> methodStateSupplier) {
+    addMethodState(appView, getKey(method), methodStateSupplier);
+  }
+
+  public void addMethodState(
+      AppView<AppInfoWithLiveness> appView, K method, Supplier<MethodState> methodStateSupplier) {
     methodStates.compute(
         method,
         (ignore, existingMethodState) -> {
@@ -64,17 +65,18 @@ public class MethodStateCollection {
         });
   }
 
-  public void addMethodStates(AppView<AppInfoWithLiveness> appView, MethodStateCollection other) {
+  public void addMethodStates(
+      AppView<AppInfoWithLiveness> appView, MethodStateCollection<K> other) {
     other.methodStates.forEach(
-        (method, methodState) -> addMethodState(appView, method, () -> methodState));
+        (method, methodState) -> addMethodState(appView, method, methodState));
   }
 
-  public void forEach(BiConsumer<DexMethod, MethodState> consumer) {
+  public void forEach(BiConsumer<K, MethodState> consumer) {
     methodStates.forEach(consumer);
   }
 
   public MethodState get(ProgramMethod method) {
-    return methodStates.getOrDefault(method.getReference(), MethodState.bottom());
+    return methodStates.getOrDefault(getKey(method), MethodState.bottom());
   }
 
   public boolean isEmpty() {
@@ -82,11 +84,11 @@ public class MethodStateCollection {
   }
 
   public MethodState remove(ProgramMethod method) {
-    MethodState removed = methodStates.remove(method.getReference());
+    MethodState removed = methodStates.remove(getKey(method));
     return removed != null ? removed : MethodState.bottom();
   }
 
   public void set(ProgramMethod method, MethodState methodState) {
-    methodStates.put(method.getReference(), methodState);
+    methodStates.put(getKey(method), methodState);
   }
 }

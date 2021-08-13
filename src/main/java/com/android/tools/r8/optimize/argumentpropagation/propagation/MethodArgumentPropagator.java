@@ -6,18 +6,18 @@ package com.android.tools.r8.optimize.argumentpropagation.propagation;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollection;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.utils.DepthFirstTopDownClassHierarchyTraversal;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class MethodArgumentPropagator extends DepthFirstTopDownClassHierarchyTraversal {
 
-  final MethodStateCollection methodStates;
+  final MethodStateCollectionByReference methodStates;
 
   public MethodArgumentPropagator(
       AppView<AppInfoWithLiveness> appView,
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
-      MethodStateCollection methodStates) {
+      MethodStateCollectionByReference methodStates) {
     super(appView, immediateSubtypingInfo);
     this.methodStates = methodStates;
   }

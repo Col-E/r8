@@ -6,12 +6,14 @@ package com.android.tools.r8.optimize.argumentpropagation.propagation;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollection;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionBySignature;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -34,13 +36,13 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
 
   // Contains the argument information for each interface method (including inherited interface
   // methods) on the seen but not finished interfaces.
-  final Map<DexProgramClass, MethodStateCollection> methodStatesToPropagate =
+  final Map<DexProgramClass, MethodStateCollectionBySignature> methodStatesToPropagate =
       new IdentityHashMap<>();
 
   public InterfaceMethodArgumentPropagator(
       AppView<AppInfoWithLiveness> appView,
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
-      MethodStateCollection methodStates) {
+      MethodStateCollectionByReference methodStates) {
     super(appView, immediateSubtypingInfo, methodStates);
   }
 
@@ -67,7 +69,7 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
   @Override
   public void visit(DexProgramClass clazz) {
     assert !methodStatesToPropagate.containsKey(clazz);
-    MethodStateCollection interfaceState = computeInterfaceState(clazz);
+    MethodStateCollectionBySignature interfaceState = computeInterfaceState(clazz);
     propagateInterfaceStateToClassHierarchy(clazz, interfaceState);
   }
 
@@ -76,14 +78,15 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
     methodStatesToPropagate.remove(clazz);
   }
 
-  private MethodStateCollection computeInterfaceState(DexProgramClass interfaceDefinition) {
+  private MethodStateCollectionBySignature computeInterfaceState(
+      DexProgramClass interfaceDefinition) {
     // Join the state for all parent interfaces into a fresh state created for this interface.
-    MethodStateCollection interfaceState = MethodStateCollection.create();
+    MethodStateCollectionBySignature interfaceState = MethodStateCollectionBySignature.create();
     immediateSubtypingInfo.forEachImmediateSuperClassMatching(
         interfaceDefinition,
         (supertype, superclass) -> superclass != null && superclass.isProgramClass(),
         (supertype, superclass) -> {
-          MethodStateCollection implementedInterfaceState =
+          MethodStateCollectionBySignature implementedInterfaceState =
               methodStatesToPropagate.get(superclass.asProgramClass());
           assert implementedInterfaceState != null;
           interfaceState.addMethodStates(appView, implementedInterfaceState);
@@ -102,7 +105,7 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
           //  with no overrides (CF backend only). In this case, there is no need to add methodState
           //  to interfaceState.
           assert methodState.isUnknown() || methodState.asConcrete().isPolymorphic();
-          interfaceState.addMethodState(appView, method.getReference(), () -> methodState);
+          interfaceState.addMethodState(appView, method, methodState);
         });
 
     methodStatesToPropagate.put(interfaceDefinition, interfaceState);
@@ -110,7 +113,7 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
   }
 
   private void propagateInterfaceStateToClassHierarchy(
-      DexProgramClass interfaceDefinition, MethodStateCollection interfaceState) {
+      DexProgramClass interfaceDefinition, MethodStateCollectionBySignature interfaceState) {
     // Propagate the argument information for the interface's non-private virtual methods to the
     // the possible dispatch targets declared on classes that are not a subtype of the interface.
     immediateSubtypingInfo.forEachImmediateSubClassMatching(
@@ -119,10 +122,18 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
         subclass ->
             interfaceState.forEach(
                 (interfaceMethod, interfaceMethodState) -> {
+                  // TODO(b/190154391): Change resolution to take a signature.
+                  DexMethod interfaceMethodToResolve =
+                      appView
+                          .dexItemFactory()
+                          .createMethod(
+                              subclass.getType(),
+                              interfaceMethod.getProto(),
+                              interfaceMethod.getName());
                   SingleResolutionResult resolutionResult =
                       appView
                           .appInfo()
-                          .resolveMethodOnClass(interfaceMethod, subclass)
+                          .resolveMethodOnClass(interfaceMethodToResolve, subclass)
                           .asSingleResolution();
                   if (resolutionResult == null) {
                     assert false;
@@ -136,8 +147,7 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
                     return;
                   }
 
-                  methodStates.addMethodState(
-                      appView, resolvedMethod.getReference(), () -> interfaceMethodState);
+                  methodStates.addMethodState(appView, resolvedMethod, interfaceMethodState);
                 }));
   }
 
