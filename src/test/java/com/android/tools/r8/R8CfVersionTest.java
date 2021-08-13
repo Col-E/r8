@@ -5,6 +5,7 @@
 package com.android.tools.r8;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -43,6 +44,8 @@ public class R8CfVersionTest extends TestBase {
 
   @Test
   public void testCfVersionR8Lib() throws IOException {
+    // Only run when testing R8 lib as only then do we know it is built and up-to-date.
+    assumeTrue(ToolHelper.isTestingR8Lib());
     CodeInspector inspector = new CodeInspector(ToolHelper.R8LIB_JAR);
     inspector.forAllClasses(
         clazz -> {
