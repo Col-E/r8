@@ -3868,7 +3868,7 @@ public class Enqueuer {
     assert workList.isEmpty();
 
     R8PostProcessingDesugaringEventConsumer eventConsumer =
-        CfPostProcessingDesugaringEventConsumer.createForR8(appView, syntheticAdditions);
+        CfPostProcessingDesugaringEventConsumer.createForR8(syntheticAdditions);
     CfPostProcessingDesugaringCollection.create(appView, null, desugaring.getRetargetingInfo())
         .postProcessingDesugaring(liveTypes.items, eventConsumer, executorService);
 

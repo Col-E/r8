@@ -3,13 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverterEventConsumer.DesugaredLibraryAPIConverterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
@@ -32,9 +30,8 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     return new D8CfPostProcessingDesugaringEventConsumer(methodProcessor);
   }
 
-  public static R8PostProcessingDesugaringEventConsumer createForR8(
-      AppView<?> appView, SyntheticAdditions additions) {
-    return new R8PostProcessingDesugaringEventConsumer(appView, additions);
+  public static R8PostProcessingDesugaringEventConsumer createForR8(SyntheticAdditions additions) {
+    return new R8PostProcessingDesugaringEventConsumer(additions);
   }
 
   public abstract void finalizeDesugaring() throws ExecutionException;
@@ -98,20 +95,13 @@ public abstract class CfPostProcessingDesugaringEventConsumer
       extends CfPostProcessingDesugaringEventConsumer {
     private final SyntheticAdditions additions;
 
-    // The desugaredLibraryAPIConverter is required here because call-backs need to be generated
-    // once forwarding methods are generated. We should be able to remove it once the interface
-    // method desugaring and the API converter are moved cf to cf in R8.
-    private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
-
-    R8PostProcessingDesugaringEventConsumer(AppView<?> appView, SyntheticAdditions additions) {
-      this.desugaredLibraryAPIConverter =
-          new DesugaredLibraryAPIConverter(appView, null, null, null);
+    R8PostProcessingDesugaringEventConsumer(SyntheticAdditions additions) {
       this.additions = additions;
     }
 
     @Override
     public void finalizeDesugaring() throws ExecutionException {
-      desugaredLibraryAPIConverter.generateTrackingWarnings();
+      // Intentionally empty.
     }
 
     @Override
