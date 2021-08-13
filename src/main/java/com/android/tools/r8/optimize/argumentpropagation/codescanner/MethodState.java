@@ -10,9 +10,15 @@ import java.util.function.Supplier;
 
 public interface MethodState {
 
+  static BottomMethodState bottom() {
+    return BottomMethodState.get();
+  }
+
   static UnknownMethodState unknown() {
     return UnknownMethodState.get();
   }
+
+  boolean isBottom();
 
   boolean isConcrete();
 
@@ -23,6 +29,8 @@ public interface MethodState {
   ConcreteMonomorphicMethodState asMonomorphic();
 
   boolean isUnknown();
+
+  MethodState mutableJoin(AppView<AppInfoWithLiveness> appView, MethodState methodState);
 
   MethodState mutableJoin(
       AppView<AppInfoWithLiveness> appView, Supplier<MethodState> methodStateSupplier);

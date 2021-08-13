@@ -9,6 +9,7 @@ import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 public class ConcretePolymorphicMethodState extends ConcreteMethodState {
 
@@ -20,6 +21,10 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState {
     // TODO(b/190154391): Ensure that we use the unknown state instead of mapping unknown -> unknown
     //  here.
     receiverBoundsToState.put(receiverBounds, methodState);
+  }
+
+  public void forEach(BiConsumer<DynamicType, MethodState> consumer) {
+    receiverBoundsToState.forEach(consumer);
   }
 
   public boolean isEmpty() {

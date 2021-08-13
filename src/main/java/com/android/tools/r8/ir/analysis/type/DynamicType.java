@@ -60,7 +60,7 @@ public class DynamicType {
   }
 
   public boolean isTrivial(TypeElement staticType) {
-    return staticType == getDynamicUpperBoundType();
+    return staticType == getDynamicUpperBoundType() || isUnknown();
   }
 
   public boolean isUnknown() {

@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class ParameterState {
@@ -12,6 +13,8 @@ public abstract class ParameterState {
   public static UnknownParameterState unknown() {
     return UnknownParameterState.get();
   }
+
+  public abstract AbstractValue getAbstractValue();
 
   public boolean isConcrete() {
     return false;

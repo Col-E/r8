@@ -51,6 +51,15 @@ public class ConcreteClassTypeParameterState extends ConcreteParameterState {
   }
 
   @Override
+  public AbstractValue getAbstractValue() {
+    return abstractValue;
+  }
+
+  public DynamicType getDynamicType() {
+    return dynamicType;
+  }
+
+  @Override
   public ConcreteParameterStateKind getKind() {
     return ConcreteParameterStateKind.CLASS;
   }

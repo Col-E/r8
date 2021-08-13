@@ -103,7 +103,7 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
     interfaceDefinition.forEachProgramVirtualMethod(
         method -> {
           MethodState methodState = methodStates.get(method);
-          if (methodState == null) {
+          if (methodState.isBottom()) {
             return;
           }
 

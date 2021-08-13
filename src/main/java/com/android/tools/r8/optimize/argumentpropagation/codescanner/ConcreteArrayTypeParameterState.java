@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 
 public class ConcreteArrayTypeParameterState extends ConcreteParameterState {
 
@@ -31,8 +32,17 @@ public class ConcreteArrayTypeParameterState extends ConcreteParameterState {
   }
 
   @Override
+  public AbstractValue getAbstractValue() {
+    return AbstractValue.unknown();
+  }
+
+  @Override
   public ConcreteParameterStateKind getKind() {
     return ConcreteParameterStateKind.ARRAY;
+  }
+
+  public Nullability getNullability() {
+    return nullability;
   }
 
   @Override

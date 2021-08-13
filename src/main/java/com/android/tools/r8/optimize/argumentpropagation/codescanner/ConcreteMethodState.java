@@ -11,6 +11,11 @@ import java.util.function.Supplier;
 public abstract class ConcreteMethodState extends MethodStateBase {
 
   @Override
+  public boolean isConcrete() {
+    return true;
+  }
+
+  @Override
   public ConcreteMethodState asConcrete() {
     return this;
   }
@@ -24,13 +29,20 @@ public abstract class ConcreteMethodState extends MethodStateBase {
   }
 
   @Override
-  public MethodState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, Supplier<MethodState> methodStateSupplier) {
-    MethodState methodState = methodStateSupplier.get();
+  public MethodState mutableJoin(AppView<AppInfoWithLiveness> appView, MethodState methodState) {
+    if (methodState.isBottom()) {
+      return this;
+    }
     if (methodState.isUnknown()) {
       return methodState;
     }
     return mutableJoin(appView, methodState.asConcrete());
+  }
+
+  @Override
+  public MethodState mutableJoin(
+      AppView<AppInfoWithLiveness> appView, Supplier<MethodState> methodStateSupplier) {
+    return mutableJoin(appView, methodStateSupplier.get());
   }
 
   private MethodState mutableJoin(

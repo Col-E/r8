@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 
 public class ConcreteReceiverParameterState extends ConcreteParameterState {
 
@@ -28,6 +29,15 @@ public class ConcreteReceiverParameterState extends ConcreteParameterState {
       return unknown();
     }
     return this;
+  }
+
+  @Override
+  public AbstractValue getAbstractValue() {
+    return AbstractValue.unknown();
+  }
+
+  public DynamicType getDynamicType() {
+    return dynamicType;
   }
 
   @Override

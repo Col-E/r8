@@ -43,6 +43,11 @@ public class ConcretePrimitiveTypeParameterState extends ConcreteParameterState 
   }
 
   @Override
+  public AbstractValue getAbstractValue() {
+    return abstractValue;
+  }
+
+  @Override
   public ConcreteParameterStateKind getKind() {
     return ConcreteParameterStateKind.PRIMITIVE;
   }

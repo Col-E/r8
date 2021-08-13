@@ -9,12 +9,17 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteParameterState;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -187,6 +192,68 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
           isTop = false;
         } else {
           newCallSiteInfo.dynamicUpperBoundTypes.put(i, staticType);
+        }
+      }
+    }
+    return isTop ? CallSiteOptimizationInfo.top() : newCallSiteInfo;
+  }
+
+  public static CallSiteOptimizationInfo fromMethodState(
+      AppView<AppInfoWithLiveness> appView,
+      ProgramMethod method,
+      ConcreteMonomorphicMethodState methodState) {
+    boolean allowConstantPropagation =
+        appView.options().callSiteOptimizationOptions().isConstantPropagationEnabled();
+    ConcreteCallSiteOptimizationInfo newCallSiteInfo =
+        new ConcreteCallSiteOptimizationInfo(methodState.size(), allowConstantPropagation);
+    boolean isTop = true;
+    for (int argumentIndex = 0; argumentIndex < methodState.size(); argumentIndex++) {
+      ParameterState parameterState = methodState.getParameterState(argumentIndex);
+      if (parameterState.isUnknown()) {
+        continue;
+      }
+
+      ConcreteParameterState concreteParameterState = parameterState.asConcrete();
+
+      // Constant propagation.
+      if (allowConstantPropagation) {
+        AbstractValue abstractValue = concreteParameterState.getAbstractValue();
+        if (abstractValue.isNonTrivial()) {
+          newCallSiteInfo.constants.put(argumentIndex, abstractValue);
+          isTop = false;
+        }
+      }
+
+      // Type propagation.
+      DexType staticType = method.getDefinition().getArgumentType(argumentIndex);
+      if (staticType.isReferenceType()) {
+        TypeElement staticTypeElement = staticType.toTypeElement(appView);
+        if (staticType.isArrayType()) {
+          Nullability nullability = concreteParameterState.asArrayParameter().getNullability();
+          if (nullability.isDefinitelyNull()) {
+            if (allowConstantPropagation) {
+              newCallSiteInfo.constants.put(
+                  argumentIndex, appView.abstractValueFactory().createNullValue());
+            }
+          } else if (nullability.isDefinitelyNotNull()) {
+            newCallSiteInfo.dynamicUpperBoundTypes.put(
+                argumentIndex, staticTypeElement.asArrayType().asDefinitelyNotNull());
+          } else {
+            // Should never happen, since the parameter state is unknown in this case.
+            assert false;
+          }
+        } else if (staticType.isClassType()) {
+          DynamicType dynamicType =
+              method.getDefinition().isInstance() && argumentIndex == 0
+                  ? concreteParameterState.asReceiverParameter().getDynamicType()
+                  : concreteParameterState.asClassParameter().getDynamicType();
+          if (!dynamicType.isTrivial(staticTypeElement)) {
+            newCallSiteInfo.dynamicUpperBoundTypes.put(
+                argumentIndex, dynamicType.getDynamicUpperBoundType());
+            isTop = false;
+          } else {
+            newCallSiteInfo.dynamicUpperBoundTypes.put(argumentIndex, staticTypeElement);
+          }
         }
       }
     }

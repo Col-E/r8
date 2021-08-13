@@ -8,31 +8,29 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.function.Supplier;
 
-// Use this when the nothing is known.
-public class UnknownMethodState extends MethodStateBase
-    implements ConcreteMonomorphicMethodStateOrUnknown {
+public class BottomMethodState extends MethodStateBase {
 
-  private static final UnknownMethodState INSTANCE = new UnknownMethodState();
+  private static final BottomMethodState INSTANCE = new BottomMethodState();
 
-  private UnknownMethodState() {}
+  private BottomMethodState() {}
 
-  public static UnknownMethodState get() {
+  public static BottomMethodState get() {
     return INSTANCE;
   }
 
   @Override
-  public boolean isUnknown() {
+  public boolean isBottom() {
     return true;
   }
 
   @Override
   public MethodState mutableJoin(AppView<AppInfoWithLiveness> appView, MethodState methodState) {
-    return this;
+    return methodState;
   }
 
   @Override
   public MethodState mutableJoin(
       AppView<AppInfoWithLiveness> appView, Supplier<MethodState> methodStateSupplier) {
-    return this;
+    return methodStateSupplier.get();
   }
 }

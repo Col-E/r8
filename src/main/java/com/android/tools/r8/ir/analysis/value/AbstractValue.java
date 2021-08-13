@@ -15,6 +15,10 @@ public abstract class AbstractValue {
     return BottomValue.getInstance();
   }
 
+  public static UnknownValue unknown() {
+    return UnknownValue.getInstance();
+  }
+
   public abstract boolean isNonTrivial();
 
   public boolean isSingleBoolean() {

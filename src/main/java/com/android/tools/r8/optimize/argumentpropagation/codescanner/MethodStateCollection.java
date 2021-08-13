@@ -30,6 +30,22 @@ public class MethodStateCollection {
     return new MethodStateCollection(new ConcurrentHashMap<>());
   }
 
+  public void addMethodState(
+      AppView<AppInfoWithLiveness> appView, DexMethod method, MethodState methodState) {
+    if (methodState.isUnknown()) {
+      methodStates.put(method, methodState);
+    } else {
+      methodStates.compute(
+          method,
+          (ignore, existingMethodState) -> {
+            if (existingMethodState == null) {
+              return methodState;
+            }
+            return existingMethodState.mutableJoin(appView, methodState);
+          });
+    }
+  }
+
   /**
    * This intentionally takes a {@link Supplier<MethodState>} to avoid computing the method state
    * for a given call site when nothing is known about the arguments of the method.
@@ -58,6 +74,11 @@ public class MethodStateCollection {
   }
 
   public MethodState get(ProgramMethod method) {
-    return methodStates.get(method.getReference());
+    return methodStates.getOrDefault(method.getReference(), MethodState.bottom());
+  }
+
+  public MethodState remove(ProgramMethod method) {
+    MethodState removed = methodStates.remove(method.getReference());
+    return removed != null ? removed : MethodState.bottom();
   }
 }

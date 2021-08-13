@@ -6,8 +6,17 @@ package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 public abstract class MethodStateBase implements MethodState {
 
+  public static BottomMethodState bottom() {
+    return BottomMethodState.get();
+  }
+
   public static UnknownMethodState unknown() {
     return UnknownMethodState.get();
+  }
+
+  @Override
+  public boolean isBottom() {
+    return false;
   }
 
   @Override
