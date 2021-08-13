@@ -736,11 +736,16 @@ public class IRBuilder {
     // ones, it's better not to insert assumptions for inlinee in the beginning.
     CallSiteOptimizationInfo callSiteOptimizationInfo = getMethod().getCallSiteOptimizationInfo();
     if (callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo() && method == context) {
-      assert appView.hasLiveness();
-      ArgumentPropagatorIROptimizer.optimize(
-          appView.withLiveness(),
-          ir,
-          callSiteOptimizationInfo.asConcreteCallSiteOptimizationInfo());
+      // TODO(b/190154391): Consider pruning all argument information from the optimization info
+      //  after the second optimization pass. That way we save memory and can assert here that
+      //  !appView.hasLiveness() (which currently may happen due to the reflective behavior
+      //  handling in the final round of tree shaking).
+      if (appView.hasLiveness()) {
+        ArgumentPropagatorIROptimizer.optimize(
+            appView.withLiveness(),
+            ir,
+            callSiteOptimizationInfo.asConcreteCallSiteOptimizationInfo());
+      }
     }
 
     if (appView.options().isStringSwitchConversionEnabled()) {
