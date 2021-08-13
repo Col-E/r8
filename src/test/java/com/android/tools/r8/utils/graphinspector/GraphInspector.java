@@ -584,6 +584,7 @@ public class GraphInspector {
                   && EdgeKindPredicate.isAnnotatedOn.test(infos));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public boolean isKeptByReferenceInAnnotationOn(
         QueryNode annotationNode, QueryNode annotatedNode) {
@@ -913,7 +914,7 @@ public class GraphInspector {
   }
 
   private QueryNode getQueryNode(GraphNode node, String absentString) {
-    return node == null ? new AbsentQueryNode(absentString) : new QueryNodeImpl(this, node);
+    return node == null ? new AbsentQueryNode(absentString) : new QueryNodeImpl<>(this, node);
   }
 
   private boolean isPureCompatTarget(GraphNode target) {
