@@ -151,8 +151,7 @@ public class ToolHelper {
   private static final String PROGUARD5_2_1 = "third_party/proguard/proguard5.2.1/bin/proguard";
   private static final String PROGUARD6_0_1 = "third_party/proguard/proguard6.0.1/bin/proguard";
   private static final String PROGUARD = PROGUARD5_2_1;
-  public static final String JACOCO_AGENT =
-      "third_party/jacoco/0.8.2/org.jacoco.agent-0.8.2-runtime.jar";
+  public static final String JACOCO_AGENT = "third_party/jacoco/0.8.6/lib/jacocoagent.jar";
   public static final String JACOCO_CLI = "third_party/jacoco/0.8.6/lib/jacococli.jar";
   public static final String PROGUARD_SETTINGS_FOR_INTERNAL_APPS = "third_party/proguardsettings/";
 
