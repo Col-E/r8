@@ -6,6 +6,7 @@ package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.utils.Action;
 
 public class ConcreteReceiverParameterState extends ConcreteParameterState {
 
@@ -15,18 +16,23 @@ public class ConcreteReceiverParameterState extends ConcreteParameterState {
     this.dynamicType = dynamicType;
   }
 
-  public ParameterState mutableJoin(ConcreteReceiverParameterState parameterState) {
+  public ParameterState mutableJoin(
+      ConcreteReceiverParameterState parameterState, Action onChangedAction) {
     // TODO(b/190154391): Join the dynamic types using SubtypingInfo.
     // TODO(b/190154391): Take in the static type as an argument, and unset the dynamic type if it
     //  equals the static type.
+    DynamicType oldDynamicType = dynamicType;
     dynamicType =
         dynamicType.equals(parameterState.dynamicType) ? dynamicType : DynamicType.unknown();
     if (dynamicType.isUnknown()) {
       return unknown();
     }
-    mutableJoinInParameters(parameterState);
+    boolean inParametersChanged = mutableJoinInParameters(parameterState);
     if (widenInParameters()) {
       return unknown();
+    }
+    if (dynamicType != oldDynamicType || inParametersChanged) {
+      onChangedAction.execute();
     }
     return this;
   }

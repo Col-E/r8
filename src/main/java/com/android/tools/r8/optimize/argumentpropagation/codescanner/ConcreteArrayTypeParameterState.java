@@ -6,6 +6,7 @@ package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.utils.Action;
 
 public class ConcreteArrayTypeParameterState extends ConcreteParameterState {
 
@@ -21,12 +22,16 @@ public class ConcreteArrayTypeParameterState extends ConcreteParameterState {
     this.nullability = nullability;
   }
 
-  public ParameterState mutableJoin(ConcreteArrayTypeParameterState parameterState) {
+  public ParameterState mutableJoin(
+      ConcreteArrayTypeParameterState parameterState, Action onChangedAction) {
     assert !nullability.isMaybeNull();
     assert !parameterState.nullability.isMaybeNull();
-    mutableJoinInParameters(parameterState);
+    boolean inParametersChanged = mutableJoinInParameters(parameterState);
     if (widenInParameters()) {
       return unknown();
+    }
+    if (inParametersChanged) {
+      onChangedAction.execute();
     }
     return this;
   }

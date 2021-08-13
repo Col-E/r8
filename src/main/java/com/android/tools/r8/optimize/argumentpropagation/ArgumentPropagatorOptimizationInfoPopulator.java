@@ -7,7 +7,15 @@ package com.android.tools.r8.optimize.argumentpropagation;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMethodState;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteParameterState;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollection;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
+import com.android.tools.r8.optimize.argumentpropagation.propagation.InParameterFlowPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.propagation.InterfaceMethodArgumentPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.propagation.VirtualDispatchMethodArgumentPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -96,6 +104,13 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     //  that the method returns the constant.
     ThreadUtils.processItems(
         stronglyConnectedComponents, this::processStronglyConnectedComponent, executorService);
+
+    // Solve the parameter flow constraints.
+    new InParameterFlowPropagator(appView, methodStates).run(executorService);
+
+    // The information stored on each method is now sound, and can be used as optimization info.
+    setOptimizationInfo(executorService);
+
     assert methodStates.isEmpty();
   }
 
@@ -120,5 +135,47 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     // overrides.
     new VirtualDispatchMethodArgumentPropagator(appView, immediateSubtypingInfo, methodStates)
         .run(stronglyConnectedComponent);
+  }
+
+  private void setOptimizationInfo(ExecutorService executorService) throws ExecutionException {
+    ThreadUtils.processItems(
+        appView.appInfo().classes(), this::setOptimizationInfo, executorService);
+  }
+
+  private void setOptimizationInfo(DexProgramClass clazz) {
+    clazz.forEachProgramMethod(this::setOptimizationInfo);
+  }
+
+  private void setOptimizationInfo(ProgramMethod method) {
+    MethodState methodState = methodStates.remove(method);
+    if (methodState.isBottom()) {
+      // TODO(b/190154391): This should only happen if the method is never called. Consider removing
+      //  the method in this case.
+      return;
+    }
+
+    if (methodState.isUnknown()) {
+      // Nothing is known about the arguments to this method.
+      return;
+    }
+
+    ConcreteMethodState concreteMethodState = methodState.asConcrete();
+    if (concreteMethodState.isPolymorphic()) {
+      assert false;
+      return;
+    }
+
+    ConcreteMonomorphicMethodState monomorphicMethodState = concreteMethodState.asMonomorphic();
+    assert monomorphicMethodState.getParameterStates().stream()
+        .filter(ParameterState::isConcrete)
+        .map(ParameterState::asConcrete)
+        .noneMatch(ConcreteParameterState::hasInParameters);
+
+    method
+        .getDefinition()
+        .joinCallSiteOptimizationInfo(
+            ConcreteCallSiteOptimizationInfo.fromMethodState(
+                appView, method, monomorphicMethodState),
+            appView);
   }
 }

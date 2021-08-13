@@ -7,6 +7,7 @@ package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Action;
 
 public class ConcretePrimitiveTypeParameterState extends ConcreteParameterState {
 
@@ -23,9 +24,12 @@ public class ConcretePrimitiveTypeParameterState extends ConcreteParameterState 
   }
 
   public ParameterState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, ConcretePrimitiveTypeParameterState parameterState) {
+      AppView<AppInfoWithLiveness> appView,
+      ConcretePrimitiveTypeParameterState parameterState,
+      Action onChangedAction) {
     boolean allowNullOrAbstractValue = false;
     boolean allowNonConstantNumbers = false;
+    AbstractValue oldAbstractValue = abstractValue;
     abstractValue =
         abstractValue.join(
             parameterState.abstractValue,
@@ -35,9 +39,12 @@ public class ConcretePrimitiveTypeParameterState extends ConcreteParameterState 
     if (abstractValue.isUnknown()) {
       return unknown();
     }
-    mutableJoinInParameters(parameterState);
+    boolean inParametersChanged = mutableJoinInParameters(parameterState);
     if (widenInParameters()) {
       return unknown();
+    }
+    if (abstractValue != oldAbstractValue || inParametersChanged) {
+      onChangedAction.execute();
     }
     return this;
   }

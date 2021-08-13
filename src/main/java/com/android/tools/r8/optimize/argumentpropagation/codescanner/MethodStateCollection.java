@@ -85,4 +85,8 @@ public class MethodStateCollection {
     MethodState removed = methodStates.remove(method.getReference());
     return removed != null ? removed : MethodState.bottom();
   }
+
+  public void set(ProgramMethod method, MethodState methodState) {
+    methodStates.put(method.getReference(), methodState);
+  }
 }

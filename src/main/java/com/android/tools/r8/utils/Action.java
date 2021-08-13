@@ -6,5 +6,12 @@ package com.android.tools.r8.utils;
 
 @FunctionalInterface
 public interface Action {
+
+  Action EMPTY = () -> {};
+
+  static Action empty() {
+    return EMPTY;
+  }
+
   void execute();
 }

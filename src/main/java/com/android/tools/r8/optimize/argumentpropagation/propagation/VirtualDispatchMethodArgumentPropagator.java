@@ -8,14 +8,12 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
-import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePolymorphicMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
@@ -26,7 +24,6 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropagator {
 
@@ -134,7 +131,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
   public void run(Set<DexProgramClass> stronglyConnectedComponent) {
     super.run(stronglyConnectedComponent);
     assert verifyAllClassesFinished(stronglyConnectedComponent);
-    assert verifyStatePruned(stronglyConnectedComponent);
+    assert verifyStatePruned();
   }
 
   @Override
@@ -162,7 +159,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
   public void visit(DexProgramClass clazz) {
     assert !propagationStates.containsKey(clazz);
     PropagationState propagationState = computePropagationState(clazz);
-    setOptimizationInfo(clazz, propagationState);
+    computeFinalMethodStates(clazz, propagationState);
   }
 
   private PropagationState computePropagationState(DexProgramClass clazz) {
@@ -231,44 +228,20 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
     return propagationState;
   }
 
-  private void setOptimizationInfo(DexProgramClass clazz, PropagationState propagationState) {
-    clazz.forEachProgramMethod(method -> setOptimizationInfo(method, propagationState));
+  private void computeFinalMethodStates(DexProgramClass clazz, PropagationState propagationState) {
+    clazz.forEachProgramMethod(method -> computeFinalMethodState(method, propagationState));
   }
 
-  private void setOptimizationInfo(ProgramMethod method, PropagationState propagationState) {
-    MethodState methodState = methodStates.remove(method);
+  private void computeFinalMethodState(ProgramMethod method, PropagationState propagationState) {
+    MethodState methodState = methodStates.get(method);
 
     // If this is a polymorphic method, we need to compute the method state to account for dynamic
     // dispatch.
     if (methodState.isConcrete() && methodState.asConcrete().isPolymorphic()) {
       methodState = propagationState.computeMethodStateForPolymorhicMethod(method);
+      assert !methodState.isConcrete() || methodState.asConcrete().isMonomorphic();
+      methodStates.set(method, methodState);
     }
-
-    if (methodState.isBottom()) {
-      // TODO(b/190154391): This should only happen if the method is never called. Consider removing
-      //  the method in this case.
-      return;
-    }
-
-    if (methodState.isUnknown()) {
-      // Nothing is known about the arguments to this method.
-      return;
-    }
-
-    ConcreteMethodState concreteMethodState = methodState.asConcrete();
-    if (concreteMethodState.isPolymorphic()) {
-      assert false;
-      return;
-    }
-
-    // TODO(b/190154391): We need to resolve the flow constraints before this is guaranteed to be
-    //  sound.
-    method
-        .getDefinition()
-        .joinCallSiteOptimizationInfo(
-            ConcreteCallSiteOptimizationInfo.fromMethodState(
-                appView, method, concreteMethodState.asMonomorphic()),
-            appView);
   }
 
   @Override
@@ -283,13 +256,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
     return true;
   }
 
-  private boolean verifyStatePruned(Set<DexProgramClass> stronglyConnectedComponent) {
-    Set<DexType> types =
-        stronglyConnectedComponent.stream().map(DexClass::getType).collect(Collectors.toSet());
-    methodStates.forEach(
-        (method, methodState) -> {
-          assert !types.contains(method.getHolderType());
-        });
+  private boolean verifyStatePruned() {
     assert propagationStates.isEmpty();
     return true;
   }

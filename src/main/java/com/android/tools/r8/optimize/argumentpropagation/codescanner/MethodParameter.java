@@ -17,6 +17,14 @@ public class MethodParameter {
     this.index = index;
   }
 
+  public DexMethod getMethod() {
+    return method;
+  }
+
+  public int getIndex() {
+    return index;
+  }
+
   @Override
   public boolean equals(Object obj) {
     if (obj == null || getClass() != obj.getClass()) {

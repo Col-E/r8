@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Action;
 
 public class ConcreteClassTypeParameterState extends ConcreteParameterState {
 
@@ -26,9 +27,12 @@ public class ConcreteClassTypeParameterState extends ConcreteParameterState {
   }
 
   public ParameterState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, ConcreteClassTypeParameterState parameterState) {
+      AppView<AppInfoWithLiveness> appView,
+      ConcreteClassTypeParameterState parameterState,
+      Action onChangedAction) {
     boolean allowNullOrAbstractValue = true;
     boolean allowNonConstantNumbers = false;
+    AbstractValue oldAbstractValue = abstractValue;
     abstractValue =
         abstractValue.join(
             parameterState.abstractValue,
@@ -38,14 +42,18 @@ public class ConcreteClassTypeParameterState extends ConcreteParameterState {
     // TODO(b/190154391): Join the dynamic types using SubtypingInfo.
     // TODO(b/190154391): Take in the static type as an argument, and unset the dynamic type if it
     //  equals the static type.
+    DynamicType oldDynamicType = dynamicType;
     dynamicType =
         dynamicType.equals(parameterState.dynamicType) ? dynamicType : DynamicType.unknown();
     if (abstractValue.isUnknown() && dynamicType.isUnknown()) {
       return unknown();
     }
-    mutableJoinInParameters(parameterState);
+    boolean inParametersChanged = mutableJoinInParameters(parameterState);
     if (widenInParameters()) {
       return unknown();
+    }
+    if (abstractValue != oldAbstractValue || dynamicType != oldDynamicType || inParametersChanged) {
+      onChangedAction.execute();
     }
     return this;
   }

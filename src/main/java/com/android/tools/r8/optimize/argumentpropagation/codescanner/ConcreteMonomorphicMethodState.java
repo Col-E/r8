@@ -24,6 +24,10 @@ public class ConcreteMonomorphicMethodState extends ConcreteMethodState
     return parameterStates.get(index);
   }
 
+  public List<ParameterState> getParameterStates() {
+    return parameterStates;
+  }
+
   public ConcreteMonomorphicMethodStateOrUnknown mutableJoin(
       AppView<AppInfoWithLiveness> appView, ConcreteMonomorphicMethodState methodState) {
     if (size() != methodState.size()) {
@@ -51,6 +55,10 @@ public class ConcreteMonomorphicMethodState extends ConcreteMethodState
   @Override
   public ConcreteMonomorphicMethodState asMonomorphic() {
     return this;
+  }
+
+  public void setParameterState(int index, ParameterState parameterState) {
+    parameterStates.set(index, parameterState);
   }
 
   public int size() {

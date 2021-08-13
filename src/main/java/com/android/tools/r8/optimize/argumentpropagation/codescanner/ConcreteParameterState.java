@@ -6,6 +6,7 @@ package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
 import java.util.Collections;
@@ -28,6 +29,18 @@ public abstract class ConcreteParameterState extends ParameterState {
 
   ConcreteParameterState(MethodParameter inParameter) {
     this.inParameters = SetUtils.newHashSet(inParameter);
+  }
+
+  public void clearInParameters() {
+    inParameters.clear();
+  }
+
+  public boolean hasInParameters() {
+    return !inParameters.isEmpty();
+  }
+
+  public Set<MethodParameter> getInParameters() {
+    return inParameters;
   }
 
   public abstract ConcreteParameterStateKind getKind();
@@ -76,7 +89,7 @@ public abstract class ConcreteParameterState extends ParameterState {
 
   @Override
   public ParameterState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, ParameterState parameterState) {
+      AppView<AppInfoWithLiveness> appView, ParameterState parameterState, Action onChangedAction) {
     if (parameterState.isUnknown()) {
       return parameterState;
     }
@@ -85,16 +98,19 @@ public abstract class ConcreteParameterState extends ParameterState {
     if (kind == otherKind) {
       switch (getKind()) {
         case ARRAY:
-          return asArrayParameter().mutableJoin(parameterState.asConcrete().asArrayParameter());
+          return asArrayParameter()
+              .mutableJoin(parameterState.asConcrete().asArrayParameter(), onChangedAction);
         case CLASS:
           return asClassParameter()
-              .mutableJoin(appView, parameterState.asConcrete().asClassParameter());
+              .mutableJoin(
+                  appView, parameterState.asConcrete().asClassParameter(), onChangedAction);
         case PRIMITIVE:
           return asPrimitiveParameter()
-              .mutableJoin(appView, parameterState.asConcrete().asPrimitiveParameter());
+              .mutableJoin(
+                  appView, parameterState.asConcrete().asPrimitiveParameter(), onChangedAction);
         case RECEIVER:
           return asReceiverParameter()
-              .mutableJoin(parameterState.asConcrete().asReceiverParameter());
+              .mutableJoin(parameterState.asConcrete().asReceiverParameter(), onChangedAction);
         default:
           // Dead.
       }
@@ -104,15 +120,15 @@ public abstract class ConcreteParameterState extends ParameterState {
     return unknown();
   }
 
-  void mutableJoinInParameters(ConcreteParameterState parameterState) {
+  boolean mutableJoinInParameters(ConcreteParameterState parameterState) {
     if (parameterState.inParameters.isEmpty()) {
-      return;
+      return false;
     }
     if (inParameters.isEmpty()) {
       assert inParameters == Collections.<MethodParameter>emptySet();
       inParameters = Sets.newIdentityHashSet();
     }
-    inParameters.addAll(parameterState.inParameters);
+    return inParameters.addAll(parameterState.inParameters);
   }
 
   boolean widenInParameters() {
