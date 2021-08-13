@@ -8,7 +8,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,16 +31,16 @@ public class RepackageMissingSuperTypeTest extends RepackageTestBase {
 
   @Test
   public void testR8WithoutRepackaging() throws Exception {
-    runTest(false).assertSuccessWithOutputLines(EXPECTED);
+    runTest(false);
   }
 
   @Test
   public void testR8() throws Exception {
-    runTest(true).assertSuccessWithOutputLines(EXPECTED);
+    runTest(true);
   }
 
-  private R8TestRunResult runTest(boolean repackage) throws Exception {
-    return testForR8(parameters.getBackend())
+  private void runTest(boolean repackage) throws Exception {
+    testForR8(parameters.getBackend())
         .addProgramClasses(
             ClassWithSuperCall.class,
             ClassWithoutSuperCall.class,
@@ -56,14 +55,15 @@ public class RepackageMissingSuperTypeTest extends RepackageTestBase {
         .compile()
         .inspect(
             inspector -> {
-              assertThat(ClassWithSuperCall.class, isNotRepackaged(inspector));
-              assertThat(ClassWithoutSuperCall.class, isNotRepackaged(inspector));
+              assertThat(ClassWithSuperCall.class, isRepackagedIf(inspector, repackage));
+              assertThat(ClassWithoutSuperCall.class, isRepackagedIf(inspector, repackage));
             })
         .addRunClasspathClasses(MissingSuperType.class)
-        .run(parameters.getRuntime(), Main.class);
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  static class MissingSuperType {
+  public static class MissingSuperType {
 
     public void foo() {
       System.out.println("MissingSuperType::foo");
