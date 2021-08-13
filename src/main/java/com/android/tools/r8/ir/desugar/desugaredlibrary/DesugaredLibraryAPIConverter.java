@@ -97,7 +97,7 @@ public class DesugaredLibraryAPIConverter
     this.interfaceMethodRewriter = interfaceMethodRewriter;
     this.retargeter = retargeter;
     this.backportedMethodRewriter = backportedMethodRewriter;
-    this.wrapperSynthesizor = new DesugaredLibraryWrapperSynthesizer(appView, this);
+    this.wrapperSynthesizor = new DesugaredLibraryWrapperSynthesizer(appView);
     if (appView.options().testing.trackDesugaredAPIConversions) {
       trackedCallBackAPIs = Sets.newConcurrentHashSet();
       trackedAPIs = Sets.newConcurrentHashSet();
@@ -413,7 +413,12 @@ public class DesugaredLibraryAPIConverter
         methodWithVivifiedTypeInSignature(originalMethod.getReference(), clazz.type, appView);
     CfCode cfCode =
         new APIConverterWrapperCfCodeProvider(
-                appView, originalMethod.getReference(), null, this, clazz.isInterface(), null)
+                appView,
+                originalMethod.getReference(),
+                null,
+                wrapperSynthesizor,
+                clazz.isInterface(),
+                null)
             .generateCfCode();
     DexEncodedMethod newMethod =
         wrapperSynthesizor.newSynthesizedMethod(methodToInstall, originalMethod, cfCode);
@@ -438,26 +443,6 @@ public class DesugaredLibraryAPIConverter
       sb.append(method);
     }
     appView.options().reporter.warning(new StringDiagnostic(sb.toString()));
-  }
-
-  public void reportInvalidInvoke(DexType type, DexMethod invokedMethod, String debugString) {
-    DexType desugaredType = appView.rewritePrefix.rewrittenType(type, appView);
-    StringDiagnostic diagnostic =
-        new StringDiagnostic(
-            "Invoke to "
-                + invokedMethod.holder
-                + "#"
-                + invokedMethod.name
-                + " may not work correctly at runtime (Cannot convert "
-                + debugString
-                + "type "
-                + desugaredType
-                + ").");
-    if (appView.options().isDesugaredLibraryCompilation()) {
-      throw appView.options().reporter.fatalError(diagnostic);
-    } else {
-      appView.options().reporter.info(diagnostic);
-    }
   }
 
   public static DexType vivifiedTypeFor(DexType type, AppView<?> appView) {
@@ -520,14 +505,11 @@ public class DesugaredLibraryAPIConverter
   private DexMethod computeReturnConversion(
       DexMethod invokedMethod, DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
     DexType returnType = invokedMethod.proto.returnType;
-    if (!appView.rewritePrefix.hasRewrittenType(returnType, appView)) {
-      return null;
-    }
-    if (canConvert(returnType)) {
+    if (wrapperSynthesizor.shouldConvert(returnType, invokedMethod)) {
       DexType newReturnType = DesugaredLibraryAPIConverter.vivifiedTypeFor(returnType, appView);
-      return ensureConversionMethod(returnType, newReturnType, returnType, eventConsumer);
+      return wrapperSynthesizor.ensureConversionMethod(
+          returnType, newReturnType, returnType, eventConsumer);
     }
-    reportInvalidInvoke(returnType, invokedMethod, "return ");
     return null;
   }
 
@@ -537,14 +519,11 @@ public class DesugaredLibraryAPIConverter
     DexType[] parameters = invokedMethod.proto.parameters.values;
     for (int i = 0; i < parameters.length; i++) {
       DexType argType = parameters[i];
-      if (appView.rewritePrefix.hasRewrittenType(argType, appView)) {
-        if (canConvert(argType)) {
-          DexType argVivifiedType = vivifiedTypeFor(argType, appView);
-          parameterConversions[i] =
-              ensureConversionMethod(argType, argType, argVivifiedType, eventConsumer);
-        } else {
-          reportInvalidInvoke(argType, invokedMethod, "parameter ");
-        }
+      if (wrapperSynthesizor.shouldConvert(argType, invokedMethod)) {
+        DexType argVivifiedType = vivifiedTypeFor(argType, appView);
+        parameterConversions[i] =
+            wrapperSynthesizor.ensureConversionMethod(
+                argType, argType, argVivifiedType, eventConsumer);
       }
     }
     return parameterConversions;
@@ -767,30 +746,5 @@ public class DesugaredLibraryAPIConverter
                                     .generateCfCode()));
     eventConsumer.acceptAPIConversion(outline);
     return outline.getReference();
-  }
-
-  public DexMethod ensureConversionMethod(
-      DexType type,
-      DexType srcType,
-      DexType destType,
-      DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
-    // ConversionType holds the methods "rewrittenType convert(type)" and the other way around.
-    // But everything is going to be rewritten, so we need to use vivifiedType and type".
-    DexType conversionHolder =
-        appView.options().desugaredLibraryConfiguration.getCustomConversions().get(type);
-    if (conversionHolder == null) {
-      conversionHolder =
-          type == srcType
-              ? wrapperSynthesizor.ensureTypeWrapper(type, eventConsumer)
-              : wrapperSynthesizor.ensureVivifiedTypeWrapper(type, eventConsumer);
-    }
-    assert conversionHolder != null;
-    return factory.createMethod(
-        conversionHolder, factory.createProto(destType, srcType), factory.convertMethodName);
-  }
-
-  public boolean canConvert(DexType type) {
-    return appView.options().desugaredLibraryConfiguration.getCustomConversions().containsKey(type)
-        || wrapperSynthesizor.canGenerateWrapper(type);
   }
 }

@@ -94,14 +94,12 @@ public class DesugaredLibraryWrapperSynthesizer {
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
-  private final DesugaredLibraryAPIConverter converter;
   private final ConcurrentHashMap<DexType, List<DexEncodedMethod>> allImplementedMethodsCache =
       new ConcurrentHashMap<>();
 
-  DesugaredLibraryWrapperSynthesizer(AppView<?> appView, DesugaredLibraryAPIConverter converter) {
+  DesugaredLibraryWrapperSynthesizer(AppView<?> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
-    this.converter = converter;
   }
 
   public boolean isSyntheticWrapper(DexType type) {
@@ -109,15 +107,70 @@ public class DesugaredLibraryWrapperSynthesizer {
         || appView.getSyntheticItems().isSyntheticOfKind(type, SyntheticKind.VIVIFIED_WRAPPER);
   }
 
-  boolean canGenerateWrapper(DexType type) {
+  public boolean shouldConvert(DexType type, DexMethod method) {
+    if (!appView.rewritePrefix.hasRewrittenType(type, appView)) {
+      return false;
+    }
+    if (canConvert(type)) {
+      return true;
+    }
+    reportInvalidInvoke(type, method);
+    return false;
+  }
+
+  public DexMethod ensureConversionMethod(
+      DexType type,
+      DexType srcType,
+      DexType destType,
+      DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+    // ConversionType holds the methods "rewrittenType convert(type)" and the other way around.
+    // But everything is going to be rewritten, so we need to use vivifiedType and type".
+    DexType conversionHolder =
+        appView.options().desugaredLibraryConfiguration.getCustomConversions().get(type);
+    if (conversionHolder == null) {
+      conversionHolder =
+          type == srcType
+              ? ensureTypeWrapper(type, eventConsumer)
+              : ensureVivifiedTypeWrapper(type, eventConsumer);
+    }
+    assert conversionHolder != null;
+    return factory.createMethod(
+        conversionHolder, factory.createProto(destType, srcType), factory.convertMethodName);
+  }
+
+  private boolean canConvert(DexType type) {
+    return appView.options().desugaredLibraryConfiguration.getCustomConversions().containsKey(type)
+        || canGenerateWrapper(type);
+  }
+
+  private void reportInvalidInvoke(DexType type, DexMethod invokedMethod) {
+    DexType desugaredType = appView.rewritePrefix.rewrittenType(type, appView);
+    StringDiagnostic diagnostic =
+        new StringDiagnostic(
+            "Invoke to "
+                + invokedMethod.holder
+                + "#"
+                + invokedMethod.name
+                + " may not work correctly at runtime (Cannot convert type "
+                + desugaredType
+                + ").");
+    if (appView.options().isDesugaredLibraryCompilation()) {
+      throw appView.options().reporter.fatalError(diagnostic);
+    } else {
+      appView.options().reporter.info(diagnostic);
+    }
+  }
+
+  private boolean canGenerateWrapper(DexType type) {
     return appView.options().desugaredLibraryConfiguration.getWrapperConversions().contains(type);
   }
 
-  DexType ensureTypeWrapper(DexType type, DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+  private DexType ensureTypeWrapper(
+      DexType type, DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
     return ensureWrappers(type, eventConsumer).getWrapper().type;
   }
 
-  DexType ensureVivifiedTypeWrapper(
+  private DexType ensureVivifiedTypeWrapper(
       DexType type, DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
     return ensureWrappers(type, eventConsumer).getVivifiedWrapper().type;
   }
@@ -442,7 +495,7 @@ public class DesugaredLibraryWrapperSynthesizer {
                     appView,
                     methodToInstall,
                     wrapperField.getReference(),
-                    converter,
+                    this,
                     isInterface,
                     eventConsumer)
                 .generateCfCode();
@@ -488,7 +541,7 @@ public class DesugaredLibraryWrapperSynthesizer {
                     appView,
                     dexEncodedMethod.getReference(),
                     wrapperField.getReference(),
-                    converter,
+                    this,
                     isInterface,
                     eventConsumer)
                 .generateCfCode();
