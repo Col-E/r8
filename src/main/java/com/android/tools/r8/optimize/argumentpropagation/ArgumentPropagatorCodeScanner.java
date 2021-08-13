@@ -7,6 +7,7 @@ package com.android.tools.r8.optimize.argumentpropagation;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -37,6 +38,8 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterSt
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -85,19 +88,27 @@ class ArgumentPropagatorCodeScanner {
   }
 
   private Map<DexMethod, DexMethod> computeClassMethodRoots() {
-    throw new Unimplemented();
+    // TODO(b/190154391): Group methods related by overriding to enable more effective pruning.
+    Map<DexMethod, DexMethod> roots = new IdentityHashMap<>();
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      clazz.forEachProgramVirtualMethod(
+          method -> roots.put(method.getReference(), method.getReference()));
+    }
+    return roots;
   }
 
   private MethodStateCollection computeInitialMethodStates() {
     // TODO(b/190154391): There is no need to track an abstract value for receivers; we only care
     //  about the dynamic type for such parameters. Consider initializing the initial state to have
     //  unknown abstract values for all receivers.
-    throw new Unimplemented();
+    return MethodStateCollection.createConcurrent();
   }
 
   private Set<DexMethod> computeUnoptimizableMethods() {
+    // TODO(b/190154391): Ensure we don't store any information for kept methods and their
+    //  overrides.
     // TODO(b/190154391): Consider bailing out for all classes that inherit from a missing class.
-    throw new Unimplemented();
+    return Collections.emptySet();
   }
 
   MethodStateCollection getResult() {
@@ -215,16 +226,14 @@ class ArgumentPropagatorCodeScanner {
     int argumentIndex = 0;
     if (invoke.isInvokeMethodWithReceiver()) {
       assert dynamicReceiverType != null;
-      parameterStates.set(
-          0,
+      parameterStates.add(
           computeParameterStateForReceiver(
               invoke.asInvokeMethodWithReceiver(), dynamicReceiverType));
       argumentIndex++;
     }
 
     for (; argumentIndex < invoke.arguments().size(); argumentIndex++) {
-      parameterStates.set(
-          argumentIndex,
+      parameterStates.add(
           computeParameterStateForNonReceiver(
               invoke, argumentIndex, invoke.getArgument(argumentIndex), context));
     }

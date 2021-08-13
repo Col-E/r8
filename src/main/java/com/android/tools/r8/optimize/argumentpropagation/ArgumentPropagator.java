@@ -12,6 +12,8 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
@@ -73,8 +75,10 @@ public class ArgumentPropagator {
       throws ExecutionException {
     // Unset the scanner since all code objects have been scanned at this point.
     assert appView.isAllCodeProcessed();
+    MethodStateCollection codeScannerResult = codeScanner.getResult();
     codeScanner = null;
-    new ArgumentPropagatorOptimizationInfoPopulator(appView, codeScanner.getResult())
+
+    new ArgumentPropagatorOptimizationInfoPopulator(appView, codeScannerResult)
         .populateOptimizationInfo(executorService);
   }
 
@@ -114,15 +118,29 @@ public class ArgumentPropagator {
     return worklist.getSeenSet();
   }
 
-  /**
-   * Called by {@link IRConverter} to optimize method definitions. This also adds all methods that
-   * require reprocessing to {@param postMethodProcessorBuilder}.
-   */
-  public void optimizeMethodParameters(PostMethodProcessor.Builder postMethodProcessorBuilder) {
+  /** Called by {@link IRConverter} to optimize method definitions. */
+  public void optimizeMethodParameters() {
     // TODO(b/190154391): Remove parameters with constant values.
     // TODO(b/190154391): Remove unused parameters by simulating they are constant.
     // TODO(b/190154391): Strengthen the static type of parameters.
     // TODO(b/190154391): If we learn that a method returns a constant, then consider changing its
     //  return type to void.
+  }
+
+  /**
+   * Called by {@link IRConverter} to add all methods that require reprocessing to {@param
+   * postMethodProcessorBuilder}.
+   */
+  public void enqueueMethodsForProcessing(PostMethodProcessor.Builder postMethodProcessorBuilder) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      clazz.forEachProgramMethod(
+          method -> {
+            CallSiteOptimizationInfo callSiteOptimizationInfo =
+                method.getDefinition().getCallSiteOptimizationInfo();
+            if (callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo()) {
+              postMethodProcessorBuilder.add(method);
+            }
+          });
+    }
   }
 }

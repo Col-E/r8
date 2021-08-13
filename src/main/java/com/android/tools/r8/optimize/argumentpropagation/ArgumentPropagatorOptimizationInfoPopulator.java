@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.optimize.argumentpropagation;
 
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
@@ -97,7 +96,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     //  that the method returns the constant.
     ThreadUtils.processItems(
         stronglyConnectedComponents, this::processStronglyConnectedComponent, executorService);
-    throw new Unimplemented();
+    assert methodStates.isEmpty();
   }
 
   private void processStronglyConnectedComponent(Set<DexProgramClass> stronglyConnectedComponent) {

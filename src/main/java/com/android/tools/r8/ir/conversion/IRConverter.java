@@ -731,7 +731,8 @@ public class IRConverter {
     appView.withArgumentPropagator(
         argumentPropagator -> {
           argumentPropagator.populateParameterOptimizationInfo(executorService);
-          argumentPropagator.optimizeMethodParameters(postMethodProcessorBuilder);
+          argumentPropagator.optimizeMethodParameters();
+          argumentPropagator.enqueueMethodsForProcessing(postMethodProcessorBuilder);
         });
 
     if (libraryMethodOverrideAnalysis != null) {

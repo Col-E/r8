@@ -1220,6 +1220,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     // TODO(b/69963623): enable if everything is ready, including signature rewriting at call sites.
     private boolean enableConstantPropagation = false;
+    private boolean enableExperimentalArgumentPropagation = false;
     private boolean enableTypePropagation = true;
 
     private void disableOptimization() {
@@ -1247,7 +1248,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
 
     public boolean isExperimentalArgumentPropagationEnabled() {
-      return false;
+      return enableExperimentalArgumentPropagation;
     }
 
     public boolean isConstantPropagationEnabled() {
@@ -1256,6 +1257,16 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean isTypePropagationEnabled() {
       return enableTypePropagation;
+    }
+
+    public void setEnableConstantPropagation() {
+      assert !isConstantPropagationEnabled();
+      enableConstantPropagation = true;
+    }
+
+    public void setEnableExperimentalArgumentPropagation() {
+      assert !isExperimentalArgumentPropagationEnabled();
+      enableExperimentalArgumentPropagation = true;
     }
   }
 

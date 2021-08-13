@@ -77,6 +77,10 @@ public class MethodStateCollection {
     return methodStates.getOrDefault(method.getReference(), MethodState.bottom());
   }
 
+  public boolean isEmpty() {
+    return methodStates.isEmpty();
+  }
+
   public MethodState remove(ProgramMethod method) {
     MethodState removed = methodStates.remove(method.getReference());
     return removed != null ? removed : MethodState.bottom();
