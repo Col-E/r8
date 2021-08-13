@@ -5,7 +5,10 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 public class D8TestCompileResult extends TestCompileResult<D8TestCompileResult, D8TestRunResult> {
   private final String proguardMap;
@@ -53,5 +56,14 @@ public class D8TestCompileResult extends TestCompileResult<D8TestCompileResult, 
   @Override
   public D8TestRunResult createRunResult(TestRuntime runtime, ProcessResult result) {
     return new D8TestRunResult(app, runtime, result, proguardMap);
+  }
+
+  public D8TestRunResult runWithJaCoCo(
+      Path output, TestRuntime runtime, String mainClass, String... args)
+      throws IOException, ExecutionException {
+    setSystemProperty("jacoco-agent.destfile", output.toString());
+    setSystemProperty("jacoco-agent.dumponexit", "true");
+    setSystemProperty("jacoco-agent.output", "file");
+    return run(runtime, mainClass, args);
   }
 }

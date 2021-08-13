@@ -100,7 +100,7 @@ public class AssertionsConfigurationJacocoTest extends TestBase implements Opcod
     List<String> cmdline = new ArrayList<>();
     cmdline.add(TestRuntime.getSystemRuntime().asCf().getJavaExecutable().toString());
     cmdline.add("-jar");
-    cmdline.add(ToolHelper.JACOCO_CLI);
+    cmdline.add(ToolHelper.JACOCO_CLI.toString());
     cmdline.add("instrument");
     cmdline.add(input.toString());
     cmdline.add("--dest");

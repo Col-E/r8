@@ -158,6 +158,23 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
     return self();
   }
 
+  public JvmTestBuilder enableJaCoCoAgentForOfflineInstrumentedCode(Path jacocoAgent, Path output) {
+    addProgramFiles(jacocoAgent);
+    addVmArguments(
+        "-Djacoco-agent.destfile=" + output.toString(),
+        "-Djacoco-agent.dumponexit=true",
+        "-Djacoco-agent.output=file");
+    return self();
+  }
+
+  public JvmTestBuilder enableJaCoCoAgent(Path jacocoAgent, Path output) {
+    addProgramFiles(jacocoAgent);
+    addVmArguments(
+        String.format(
+            "-javaagent:%s=destfile=%s,dumponexit=true,output=file", jacocoAgent, output));
+    return self();
+  }
+
   public JvmTestBuilder addVmArguments(Collection<String> arguments) {
     vmArguments.addAll(arguments);
     return self();

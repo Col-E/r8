@@ -151,8 +151,9 @@ public class ToolHelper {
   private static final String PROGUARD5_2_1 = "third_party/proguard/proguard5.2.1/bin/proguard";
   private static final String PROGUARD6_0_1 = "third_party/proguard/proguard6.0.1/bin/proguard";
   private static final String PROGUARD = PROGUARD5_2_1;
-  public static final String JACOCO_AGENT = "third_party/jacoco/0.8.6/lib/jacocoagent.jar";
-  public static final String JACOCO_CLI = "third_party/jacoco/0.8.6/lib/jacococli.jar";
+  public static final Path JACOCO_ROOT = Paths.get("third_party", "jacoco", "0.8.6");
+  public static final Path JACOCO_AGENT = JACOCO_ROOT.resolve(Paths.get("lib", "jacocoagent.jar"));
+  public static final Path JACOCO_CLI = JACOCO_ROOT.resolve(Paths.get("lib", "jacococli.jar"));
   public static final String PROGUARD_SETTINGS_FOR_INTERNAL_APPS = "third_party/proguardsettings/";
 
   private static final String RETRACE6_0_1 = "third_party/proguard/proguard6.0.1/bin/retrace";
@@ -1590,6 +1591,36 @@ public class ToolHelper {
     }
 
     return processResult;
+  }
+
+  public static ProcessResult runJaCoCoInstrument(Path sourceClassFiles, Path outputDirectory)
+      throws IOException {
+    List<String> cmdline = new ArrayList<>();
+    cmdline.add(TestRuntime.getSystemRuntime().asCf().getJavaExecutable().toString());
+    cmdline.add("-jar");
+    cmdline.add(ToolHelper.JACOCO_CLI.toString());
+    cmdline.add("instrument");
+    cmdline.add(sourceClassFiles.toString());
+    cmdline.add("--dest");
+    cmdline.add(outputDirectory.toString());
+    ProcessBuilder builder = new ProcessBuilder(cmdline);
+    return ToolHelper.runProcess(builder);
+  }
+
+  public static ProcessResult runJaCoCoReport(Path classfiles, Path jacocoExec, Path reportFile)
+      throws IOException {
+    List<String> cmdline = new ArrayList<>();
+    cmdline.add(TestRuntime.getSystemRuntime().asCf().getJavaExecutable().toString());
+    cmdline.add("-jar");
+    cmdline.add(ToolHelper.JACOCO_CLI.toString());
+    cmdline.add("report");
+    cmdline.add(jacocoExec.toString());
+    cmdline.add("--classfiles");
+    cmdline.add(classfiles.toString());
+    cmdline.add("--csv");
+    cmdline.add(reportFile.toString());
+    ProcessBuilder builder = new ProcessBuilder(cmdline);
+    return ToolHelper.runProcess(builder);
   }
 
   private static Path findNonConflictingDestinationFilePath(Path testOutputPath) {
