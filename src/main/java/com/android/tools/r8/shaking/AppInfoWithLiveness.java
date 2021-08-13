@@ -603,6 +603,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return methodsTargetedByInvokeDynamic.contains(method);
   }
 
+  public boolean isMethodTargetedByInvokeDynamic(ProgramMethod method) {
+    return isMethodTargetedByInvokeDynamic(method.getReference());
+  }
+
   public Set<DexMethod> getVirtualMethodsTargetedByInvokeDirect() {
     return virtualMethodsTargetedByInvokeDirect;
   }

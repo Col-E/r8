@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.optimize.argumentpropagation;
 
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -35,14 +35,13 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodParam
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollection;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.UnknownMethodState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Analyzes each {@link IRCode} during the primary optimization to collect information about the
@@ -70,21 +69,10 @@ class ArgumentPropagatorCodeScanner {
    */
   private final MethodStateCollection methodStates;
 
-  /**
-   * The methods that are not subject to argument propagation. This includes (i) methods that are
-   * not subject to optimization due to -keep rules, (ii) classpath/library method overrides, and
-   * (iii) methods that are unlikely to benefit from argument propagation according to heuristics.
-   *
-   * <p>Argument propagation must also be disabled for lambda implementation methods unless we model
-   * the calls from lambda main methods synthesized by the JVM.
-   */
-  private final Set<DexMethod> unoptimizableMethods;
-
   ArgumentPropagatorCodeScanner(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.classMethodRoots = computeClassMethodRoots();
     this.methodStates = computeInitialMethodStates();
-    this.unoptimizableMethods = computeUnoptimizableMethods();
   }
 
   private Map<DexMethod, DexMethod> computeClassMethodRoots() {
@@ -104,14 +92,7 @@ class ArgumentPropagatorCodeScanner {
     return MethodStateCollection.createConcurrent();
   }
 
-  private Set<DexMethod> computeUnoptimizableMethods() {
-    // TODO(b/190154391): Ensure we don't store any information for kept methods and their
-    //  overrides.
-    // TODO(b/190154391): Consider bailing out for all classes that inherit from a missing class.
-    return Collections.emptySet();
-  }
-
-  MethodStateCollection getResult() {
+  MethodStateCollection getMethodStates() {
     return methodStates;
   }
 
@@ -335,7 +316,16 @@ class ArgumentPropagatorCodeScanner {
   }
 
   private void scan(InvokeCustom invoke, ProgramMethod context) {
-    // TODO(b/190154391): Handle call to bootstrap method.
-    throw new Unimplemented();
+    // If the bootstrap method is program declared it will be called. The call is with runtime
+    // provided arguments so ensure that the argument information is unknown.
+    DexMethodHandle bootstrapMethod = invoke.getCallSite().bootstrapMethod;
+    SingleResolutionResult resolution =
+        appView
+            .appInfo()
+            .resolveMethod(bootstrapMethod.asMethod(), bootstrapMethod.isInterface)
+            .asSingleResolution();
+    if (resolution != null && resolution.getResolvedHolder().isProgramClass()) {
+      methodStates.set(resolution.getResolvedProgramMethod(), UnknownMethodState.get());
+    }
   }
 }

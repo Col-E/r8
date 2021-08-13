@@ -7,16 +7,15 @@ package com.android.tools.r8.optimize.argumentpropagation.propagation;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -46,7 +45,7 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
   }
 
   @Override
-  public void run(Set<DexProgramClass> stronglyConnectedComponent) {
+  public void run(Collection<DexProgramClass> stronglyConnectedComponent) {
     super.run(stronglyConnectedComponent);
     assert verifyAllInterfacesFinished(stronglyConnectedComponent);
   }
@@ -62,16 +61,7 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
 
   @Override
   public boolean isRoot(DexProgramClass clazz) {
-    if (!clazz.isInterface()) {
-      return false;
-    }
-    for (DexType implementedType : clazz.getInterfaces()) {
-      DexClass implementedDefinition = appView.definitionFor(implementedType);
-      if (implementedDefinition != null && implementedDefinition.isProgramClass()) {
-        return false;
-      }
-    }
-    return true;
+    return clazz.isInterface() && super.isRoot(clazz);
   }
 
   @Override
@@ -151,7 +141,8 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
                 }));
   }
 
-  private boolean verifyAllInterfacesFinished(Set<DexProgramClass> stronglyConnectedComponent) {
+  private boolean verifyAllInterfacesFinished(
+      Collection<DexProgramClass> stronglyConnectedComponent) {
     assert stronglyConnectedComponent.stream()
         .filter(DexClass::isInterface)
         .allMatch(this::isClassFinished);

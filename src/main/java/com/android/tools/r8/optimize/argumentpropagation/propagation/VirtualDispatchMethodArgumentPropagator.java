@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.optimize.argumentpropagation.propagation;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.graph.AppView;
@@ -14,16 +14,16 @@ import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePolymorphicMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 
 public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropagator {
 
@@ -54,6 +54,9 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
     //  memory usage, but would require visiting all transitive (program) super classes for each
     //  subclass.
     private void addParentState(DexProgramClass clazz, DexProgramClass superclass) {
+      ClassTypeElement classType =
+          TypeElement.fromDexType(clazz.getType(), maybeNull(), appView).asClassType();
+
       PropagationState parentState = propagationStates.get(superclass.asProgramClass());
       assert parentState != null;
 
@@ -78,7 +81,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
       parentState.inactiveUntilUpperBound.forEach(
           (bounds, inactiveMethodState) -> {
             ClassTypeElement upperBound = bounds.getDynamicUpperBoundType().asClassType();
-            if (upperBound.getClassType() == clazz.getType()) {
+            if (upperBound.equalUpToNullability(classType)) {
               // The upper bound is the current class, thus this inactive information now becomes
               // active.
               if (bounds.hasDynamicLowerBoundType()) {
@@ -128,31 +131,10 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
   }
 
   @Override
-  public void run(Set<DexProgramClass> stronglyConnectedComponent) {
+  public void run(Collection<DexProgramClass> stronglyConnectedComponent) {
     super.run(stronglyConnectedComponent);
     assert verifyAllClassesFinished(stronglyConnectedComponent);
     assert verifyStatePruned();
-  }
-
-  @Override
-  public void forEachSubClass(DexProgramClass clazz, Consumer<DexProgramClass> consumer) {
-    immediateSubtypingInfo.getSubclasses(clazz).forEach(consumer);
-  }
-
-  @Override
-  public boolean isRoot(DexProgramClass clazz) {
-    DexProgramClass superclass = asProgramClassOrNull(appView.definitionFor(clazz.getSuperType()));
-    if (superclass != null) {
-      return false;
-    }
-    for (DexType implementedType : clazz.getInterfaces()) {
-      DexProgramClass implementedClass =
-          asProgramClassOrNull(appView.definitionFor(implementedType));
-      if (implementedClass != null) {
-        return false;
-      }
-    }
-    return true;
   }
 
   @Override
@@ -163,6 +145,8 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
   }
 
   private PropagationState computePropagationState(DexProgramClass clazz) {
+    ClassTypeElement classType =
+        TypeElement.fromDexType(clazz.getType(), maybeNull(), appView).asClassType();
     PropagationState propagationState = new PropagationState(clazz);
 
     // Join the argument information from the methods of the current class.
@@ -199,7 +183,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
                   // TODO(b/190154391): Verify that the bounds are not trivial according to the
                   //  static receiver type.
                   ClassTypeElement upperBound = bounds.getDynamicUpperBoundType().asClassType();
-                  if (upperBound.getClassType() == clazz.getType()) {
+                  if (upperBound.equalUpToNullability(classType)) {
                     if (bounds.hasDynamicLowerBoundType()) {
                       // TODO(b/190154391): Verify that the lower bound is a subtype of the current
                       //  class.
@@ -214,7 +198,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
                           appView, method.getReference(), methodStateForBounds);
                     }
                   } else {
-                    assert !appView.appInfo().isSubtype(clazz.getType(), upperBound.getClassType());
+                    assert !classType.lessThanOrEqualUpToNullability(upperBound, appView);
                     propagationState
                         .inactiveUntilUpperBound
                         .computeIfAbsent(bounds, ignoreKey(MethodStateCollection::create))
@@ -233,6 +217,11 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
   }
 
   private void computeFinalMethodState(ProgramMethod method, PropagationState propagationState) {
+    if (!method.getDefinition().hasCode()) {
+      methodStates.remove(method);
+      return;
+    }
+
     MethodState methodState = methodStates.get(method);
 
     // If this is a polymorphic method, we need to compute the method state to account for dynamic
@@ -249,7 +238,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
     propagationStates.remove(clazz);
   }
 
-  private boolean verifyAllClassesFinished(Set<DexProgramClass> stronglyConnectedComponent) {
+  private boolean verifyAllClassesFinished(Collection<DexProgramClass> stronglyConnectedComponent) {
     for (DexProgramClass clazz : stronglyConnectedComponent) {
       assert isClassFinished(clazz);
     }

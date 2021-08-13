@@ -8,8 +8,9 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
+import java.util.List;
 import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,18 +20,23 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class CallSiteOptimizationLibraryLambdaPropagationTest extends TestBase {
 
+  private final boolean enableExperimentalArgumentPropagation;
   private final TestParameters parameters;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters()
-        .withCfRuntimes()
-        .withDexRuntimes()
-        .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
-        .build();
+  @Parameters(name = "{1}, experimental: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(),
+        getTestParameters()
+            .withCfRuntimes()
+            .withDexRuntimes()
+            .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
+            .build());
   }
 
-  public CallSiteOptimizationLibraryLambdaPropagationTest(TestParameters parameters) {
+  public CallSiteOptimizationLibraryLambdaPropagationTest(
+      boolean enableExperimentalArgumentPropagation, TestParameters parameters) {
+    this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
     this.parameters = parameters;
   }
 
@@ -39,6 +45,14 @@ public class CallSiteOptimizationLibraryLambdaPropagationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(CallSiteOptimizationLibraryLambdaPropagationTest.class)
         .addKeepMainRule(TestClass.class)
+        .applyIf(
+            enableExperimentalArgumentPropagation,
+            builder ->
+                builder.addOptionsModification(
+                    options ->
+                        options
+                            .callSiteOptimizationOptions()
+                            .setEnableExperimentalArgumentPropagation()))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

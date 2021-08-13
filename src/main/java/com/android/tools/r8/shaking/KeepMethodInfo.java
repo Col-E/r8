@@ -35,6 +35,10 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     return new Builder(this);
   }
 
+  public boolean isArgumentPropagationAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration);
+  }
+
   public Joiner joiner() {
     assert !isTop();
     return new Joiner(this);

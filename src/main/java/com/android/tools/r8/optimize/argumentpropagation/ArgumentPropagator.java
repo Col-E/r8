@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -24,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 /** Optimization that propagates information about arguments from call sites to method entries. */
+// TODO(b/190154391): Add timing information for performance tracking.
 public class ArgumentPropagator {
 
   private final AppView<AppInfoWithLiveness> appView;
@@ -53,6 +55,15 @@ public class ArgumentPropagator {
    */
   public void initializeCodeScanner() {
     codeScanner = new ArgumentPropagatorCodeScanner(appView);
+
+    // Disable argument propagation for methods that should not be optimized.
+    ImmediateProgramSubtypingInfo immediateSubtypingInfo =
+        ImmediateProgramSubtypingInfo.create(appView);
+    // TODO(b/190154391): Consider computing the strongly connected components and running this in
+    //  parallel for each scc.
+    new ArgumentPropagatorUnoptimizableMethods(
+            appView, immediateSubtypingInfo, codeScanner.getMethodStates())
+        .disableArgumentPropagationForUnoptimizableMethods(appView.appInfo().classes());
   }
 
   /** Called by {@link IRConverter} prior to finalizing methods. */
@@ -75,7 +86,7 @@ public class ArgumentPropagator {
       throws ExecutionException {
     // Unset the scanner since all code objects have been scanned at this point.
     assert appView.isAllCodeProcessed();
-    MethodStateCollection codeScannerResult = codeScanner.getResult();
+    MethodStateCollection codeScannerResult = codeScanner.getMethodStates();
     codeScanner = null;
 
     new ArgumentPropagatorOptimizationInfoPopulator(appView, codeScannerResult)
@@ -133,7 +144,8 @@ public class ArgumentPropagator {
    */
   public void enqueueMethodsForProcessing(PostMethodProcessor.Builder postMethodProcessorBuilder) {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      clazz.forEachProgramMethod(
+      clazz.forEachProgramMethodMatching(
+          DexEncodedMethod::hasCode,
           method -> {
             CallSiteOptimizationInfo callSiteOptimizationInfo =
                 method.getDefinition().getCallSiteOptimizationInfo();

@@ -12,7 +12,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
@@ -33,18 +33,23 @@ public class CallSiteOptimizationWithInvokeCustomTargetTest extends TestBase {
 
   private static final String EXPECTED = StringUtils.lines("Hello world!");
 
+  private final boolean enableExperimentalArgumentPropagation;
   private final TestParameters parameters;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters()
-        .withAllRuntimes()
-        // Only works when invoke-custom/dynamic are supported and ConstantCallSite defined.
-        .withApiLevelsStartingAtIncluding(apiLevelWithInvokeCustomSupport())
-        .build();
+  @Parameters(name = "{1}, experimental: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(),
+        getTestParameters()
+            .withAllRuntimes()
+            // Only works when invoke-custom/dynamic are supported and ConstantCallSite defined.
+            .withApiLevelsStartingAtIncluding(apiLevelWithInvokeCustomSupport())
+            .build());
   }
 
-  public CallSiteOptimizationWithInvokeCustomTargetTest(TestParameters parameters) {
+  public CallSiteOptimizationWithInvokeCustomTargetTest(
+      boolean enableExperimentalArgumentPropagation, TestParameters parameters) {
+    this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
     this.parameters = parameters;
   }
 
@@ -61,9 +66,17 @@ public class CallSiteOptimizationWithInvokeCustomTargetTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
         .addKeepMethodRules(methodFromMethod(TestClass.class.getDeclaredMethod("bar", int.class)))
+        .applyIf(
+            enableExperimentalArgumentPropagation,
+            builder ->
+                builder.addOptionsModification(
+                    options ->
+                        options
+                            .callSiteOptimizationOptions()
+                            .setEnableExperimentalArgumentPropagation()))
         .enableInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(

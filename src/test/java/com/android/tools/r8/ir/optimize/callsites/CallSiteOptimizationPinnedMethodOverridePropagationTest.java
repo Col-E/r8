@@ -11,9 +11,9 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,14 +24,19 @@ public class CallSiteOptimizationPinnedMethodOverridePropagationTest extends Tes
 
   private static final String CLASS_PREFIX =
       "com.android.tools.r8.ir.optimize.callsites.CallSiteOptimizationPinnedMethodOverridePropagationTest$";
+
+  private final boolean enableExperimentalArgumentPropagation;
   private final TestParameters parameters;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{1}, experimental: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
   }
 
-  public CallSiteOptimizationPinnedMethodOverridePropagationTest(TestParameters parameters) {
+  public CallSiteOptimizationPinnedMethodOverridePropagationTest(
+      boolean enableExperimentalArgumentPropagation, TestParameters parameters) {
+    this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
     this.parameters = parameters;
   }
 
@@ -58,13 +63,20 @@ public class CallSiteOptimizationPinnedMethodOverridePropagationTest extends Tes
                         + "Arg getArg2(); \npublic static "
                         + CLASS_PREFIX
                         + "Call getCaller(); \n}"))
+            .applyIf(
+                enableExperimentalArgumentPropagation,
+                builder ->
+                    builder.addOptionsModification(
+                        options ->
+                            options
+                                .callSiteOptimizationOptions()
+                                .setEnableExperimentalArgumentPropagation()))
             .enableNoVerticalClassMergingAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile();
-    CodeInspector inspector = compiled.inspector();
     compiled.run(parameters.getRuntime(), Main2.class).assertSuccessWithOutputLines("Arg1");
     testForD8()
         .addProgramClasses(Main.class)
