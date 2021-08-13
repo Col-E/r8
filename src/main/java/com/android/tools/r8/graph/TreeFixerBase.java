@@ -217,8 +217,10 @@ public abstract class TreeFixerBase {
         } else {
           // If run without treeshaking and the outer type is missing we are not pruning the
           // relationship.
-          assert !appView.options().isTreeShakingEnabled();
-          assert appView.appInfo().definitionForWithoutExistenceAssert(newOuterClassType) == null;
+          // TODO(b/196503304): Enable the below asserts when resolved.
+          assert !appView.options().isTreeShakingEnabled() || true;
+          // assert appView.appInfo().definitionForWithoutExistenceAssert(newOuterClassType) ==
+          // null;
         }
       }
       newInnerClassAttributes.add(
