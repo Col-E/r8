@@ -35,6 +35,7 @@ import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,6 +43,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -91,13 +93,10 @@ import java.util.function.Function;
 public class DesugaredLibraryWrapperSynthesizer {
 
   private final AppView<?> appView;
-  // The invalidWrappers are wrappers with incorrect behavior because of final methods that could
-  // not be overridden. Such wrappers are awful because the runtime behavior is undefined and does
-  // not raise explicit errors. So we register them here and conversion methods for such wrappers
-  // raise a runtime exception instead of generating the wrapper.
-  private final Set<DexType> invalidWrappers = Sets.newConcurrentHashSet();
   private final DexItemFactory factory;
   private final DesugaredLibraryAPIConverter converter;
+  private final ConcurrentHashMap<DexType, List<DexEncodedMethod>> allImplementedMethodsCache =
+      new ConcurrentHashMap<>();
 
   DesugaredLibraryWrapperSynthesizer(AppView<?> appView, DesugaredLibraryAPIConverter converter) {
     this.appView = appView;
@@ -312,8 +311,7 @@ public class DesugaredLibraryWrapperSynthesizer {
             appView,
             ignored -> {},
             methodBuilder ->
-                buildConversionMethod(
-                    methodBuilder, wrapperField, reverseWrapperField, context.type));
+                buildConversionMethod(methodBuilder, wrapperField, reverseWrapperField, context));
   }
 
   private DexClassAndMethod ensureClasspathConversionMethod(
@@ -332,22 +330,26 @@ public class DesugaredLibraryWrapperSynthesizer {
             ignored -> {},
             methodBuilder ->
                 buildConversionMethod(
-                    methodBuilder, wrapperField, reverseWrapperField, context.getType()));
+                    methodBuilder, wrapperField, reverseWrapperField, context.asDexClass()));
+  }
+
+  private boolean isInvalidWrapper(DexClass clazz) {
+    return Iterables.any(allImplementedMethods(clazz), DexEncodedMethod::isFinal);
   }
 
   private void buildConversionMethod(
       SyntheticMethodBuilder methodBuilder,
       DexField wrapperField,
       DexField reverseWrapperField,
-      DexType reportingType) {
+      DexClass context) {
     CfCode cfCode;
-    if (invalidWrappers.contains(wrapperField.holder)) {
+    if (isInvalidWrapper(context)) {
       cfCode =
           new APIConverterThrowRuntimeExceptionCfCodeProvider(
                   appView,
                   factory.createString(
                       "Unsupported conversion for "
-                          + reportingType
+                          + context.type
                           + ". See compilation time warnings for more details."),
                   wrapperField.holder)
               .generateCfCode();
@@ -432,7 +434,6 @@ public class DesugaredLibraryWrapperSynthesizer {
               dexEncodedMethod.getReference().name);
       CfCode cfCode;
       if (dexEncodedMethod.isFinal()) {
-        invalidWrappers.add(wrapperField.getHolderType());
         finalMethods.add(dexEncodedMethod.getReference());
         continue;
       } else {
@@ -479,7 +480,6 @@ public class DesugaredLibraryWrapperSynthesizer {
               dexEncodedMethod.getReference(), wrapperField.getHolderType(), appView);
       CfCode cfCode;
       if (dexEncodedMethod.isFinal()) {
-        invalidWrappers.add(wrapperField.getHolderType());
         finalMethods.add(dexEncodedMethod.getReference());
         continue;
       } else {
@@ -547,7 +547,12 @@ public class DesugaredLibraryWrapperSynthesizer {
         true);
   }
 
-  private List<DexEncodedMethod> allImplementedMethods(DexClass libraryClass) {
+  private List<DexEncodedMethod> allImplementedMethods(DexClass clazz) {
+    return allImplementedMethodsCache.computeIfAbsent(
+        clazz.type, type -> internalAllImplementedMethods(clazz));
+  }
+
+  private List<DexEncodedMethod> internalAllImplementedMethods(DexClass libraryClass) {
     LinkedList<DexClass> workList = new LinkedList<>();
     List<DexEncodedMethod> implementedMethods = new ArrayList<>();
     workList.add(libraryClass);
