@@ -45,11 +45,17 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
   // For now, before revisiting methods with more precise argument info, we switch the mode.
   // Then, revisiting a target at a certain level will not improve call site information of
   // callees in lower levels.
-  private enum Mode {
-    COLLECT, // Set until the end of the 1st round of IR processing. CallSiteOptimizationInfo will
-             // be updated in this mode only.
-    REVISIT  // Set once the all methods are processed. IRBuilder will add other instructions that
-             // reflect collected CallSiteOptimizationInfo.
+  public enum Mode {
+    // Set until the end of the 1st round of IR processing. CallSiteOptimizationInfo will be updated
+    // in this mode only.
+    COLLECT,
+    // Set once the all methods are processed. IRBuilder will add other instructions that reflect
+    // collected CallSiteOptimizationInfo.
+    REVISIT;
+
+    public boolean isRevisit() {
+      return this == REVISIT;
+    }
   }
 
   private final AppView<AppInfoWithLiveness> appView;
@@ -66,6 +72,10 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     if (Log.isLoggingEnabledFor(CallSiteOptimizationInfoPropagator.class)) {
       revisitedMethods = ProgramMethodSet.create();
     }
+  }
+
+  public Mode getMode() {
+    return mode;
   }
 
   public void logResults() {
