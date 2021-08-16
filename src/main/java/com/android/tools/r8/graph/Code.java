@@ -103,4 +103,8 @@ public abstract class Code extends CachedHashValueDexItem {
   public boolean verifyNoInputReaders() {
     return true;
   }
+
+  public Code getCodeAsInlining(DexMethod caller, DexMethod callee) {
+    throw new Unreachable();
+  }
 }

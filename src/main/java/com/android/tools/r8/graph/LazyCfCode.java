@@ -150,6 +150,11 @@ public class LazyCfCode extends Code {
     return code;
   }
 
+  @Override
+  public Code getCodeAsInlining(DexMethod caller, DexMethod callee) {
+    return asCfCode().getCodeAsInlining(caller, callee);
+  }
+
   public static class DebugParsingOptions {
     public final boolean lineInfo;
     public final boolean localInfo;

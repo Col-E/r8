@@ -201,9 +201,11 @@ public class InterfaceDesugaringSyntheticHelper {
               // TODO(b/183998768): Once R8 desugars in the enqueuer this should set an invalid
               //  code to ensure it is never used before desugared and installed.
               .setCode(
-                  ignored ->
+                  syntheticMethod ->
                       appView.enableWholeProgramOptimizations()
-                          ? virtual.getCode()
+                          ? virtual
+                              .getCode()
+                              .getCodeAsInlining(syntheticMethod, method.getReference())
                           : InvalidCode.getInstance());
         });
   }
@@ -231,9 +233,11 @@ public class InterfaceDesugaringSyntheticHelper {
               // TODO(b/183998768): Once R8 desugars in the enqueuer this should set an invalid
               //  code to ensure it is never used before desugared and installed.
               .setCode(
-                  ignored ->
+                  syntheticMethod ->
                       appView.enableWholeProgramOptimizations()
-                          ? definition.getCode()
+                          ? definition
+                              .getCode()
+                              .getCodeAsInlining(syntheticMethod, method.getReference())
                           : InvalidCode.getInstance());
         });
   }
@@ -313,9 +317,11 @@ public class InterfaceDesugaringSyntheticHelper {
               // TODO(b/183998768): Once R8 desugars in the enqueuer this should set an invalid
               //  code to ensure it is never used before desugared and installed.
               .setCode(
-                  ignored ->
+                  syntheticMethod ->
                       appView.enableWholeProgramOptimizations()
-                          ? definition.getCode()
+                          ? definition
+                              .getCode()
+                              .getCodeAsInlining(syntheticMethod, method.getReference())
                           : InvalidCode.getInstance());
         });
   }

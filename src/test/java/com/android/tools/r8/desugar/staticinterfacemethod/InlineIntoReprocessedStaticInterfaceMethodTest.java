@@ -8,7 +8,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,17 +28,14 @@ public class InlineIntoReprocessedStaticInterfaceMethodTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    AssertUtils.assertFailsCompilationIf(
-        !parameters.canUseDefaultAndStaticInterfaceMethods(),
-        () ->
-            testForR8(parameters.getBackend())
-                .addInnerClasses(getClass())
-                .addKeepMainRule(Main.class)
-                .enableInliningAnnotations()
-                .setMinApi(parameters.getApiLevel())
-                .compile()
-                .run(parameters.getRuntime(), Main.class)
-                .assertSuccessWithOutputLines("A"));
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .enableInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("A");
   }
 
   static class Main {

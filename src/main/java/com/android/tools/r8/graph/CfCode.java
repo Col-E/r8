@@ -730,6 +730,33 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
             thisLocalInfo.index, debugLocalInfo, thisLocalInfo.start, thisLocalInfo.end));
   }
 
+  @Override
+  public Code getCodeAsInlining(DexMethod caller, DexMethod callee) {
+    Position callerPosition = Position.synthetic(0, caller, null);
+    List<CfInstruction> newInstructions = new ArrayList<>(instructions.size() + 2);
+    CfLabel firstLabel;
+    if (instructions.get(0).isLabel()) {
+      firstLabel = instructions.get(0).asLabel();
+    } else {
+      firstLabel = new CfLabel();
+      newInstructions.add(firstLabel);
+    }
+    newInstructions.add(new CfPosition(firstLabel, callerPosition));
+    for (CfInstruction instruction : instructions) {
+      if (instruction.isPosition()) {
+        CfPosition oldPosition = instruction.asPosition();
+        newInstructions.add(
+            new CfPosition(
+                oldPosition.getLabel(),
+                oldPosition.getPosition().withOutermostCallerPosition(callerPosition)));
+      } else {
+        newInstructions.add(instruction);
+      }
+    }
+    return new CfCode(
+        originalHolder, maxStack, maxLocals, newInstructions, tryCatchRanges, localVariables);
+  }
+
   public StackMapStatus verifyFrames(DexEncodedMethod method, AppView<?> appView, Origin origin) {
     return verifyFrames(method, appView, origin, RewrittenPrototypeDescription.none());
   }

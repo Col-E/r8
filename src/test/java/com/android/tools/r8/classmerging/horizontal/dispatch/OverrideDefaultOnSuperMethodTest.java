@@ -14,10 +14,6 @@ import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.classmerging.horizontal.HorizontalClassMergingTestBase;
-import com.android.tools.r8.classmerging.horizontal.dispatch.OverrideDefaultMethodTest.A;
-import com.android.tools.r8.classmerging.horizontal.dispatch.OverrideDefaultMethodTest.B;
-import com.android.tools.r8.classmerging.horizontal.dispatch.OverrideDefaultMethodTest.I;
-import com.android.tools.r8.classmerging.horizontal.dispatch.OverrideDefaultMethodTest.J;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import org.junit.Test;
 

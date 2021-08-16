@@ -1322,7 +1322,7 @@ public class Outliner {
     InterfaceProcessorNestedGraphLens interfaceProcessorLens =
         InterfaceProcessorNestedGraphLens.find(appView.graphLens());
     if (interfaceProcessorLens != null) {
-      interfaceProcessorLens.toggleMappingToExtraMethods();
+      interfaceProcessorLens.enableMapping();
     }
 
     for (LongLivedProgramMethodMultisetBuilder outlineMethods : candidateMethodLists) {
@@ -1335,7 +1335,7 @@ public class Outliner {
     // TODO(b/167345026): Remove once default interface methods are desugared prior to the first
     //  optimization pass.
     if (interfaceProcessorLens != null) {
-      interfaceProcessorLens.toggleMappingToExtraMethods();
+      interfaceProcessorLens.disableMapping();
     }
 
     candidateMethodLists.clear();

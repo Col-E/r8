@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.DexDebugEvent.Default;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.DebugLocalsChange;
@@ -253,21 +254,15 @@ public class DexDebugEventBuilder {
       // TODO(herhut): To be super clever, encode only the part that is above limit.
       lineDelta = 0;
     }
-    int specialOpcode = computeSpecialOpcode(lineDelta, pcDelta);
+    int specialOpcode = Default.computeSpecialOpcode(lineDelta, pcDelta);
     if (specialOpcode > Constants.DBG_LAST_SPECIAL) {
       events.add(factory.createAdvancePC(pcDelta));
       // TODO(herhut): To be super clever, encode only the part that is above limit.
-      specialOpcode = computeSpecialOpcode(lineDelta, 0);
+      specialOpcode = Default.computeSpecialOpcode(lineDelta, 0);
     }
     assert specialOpcode >= Constants.DBG_FIRST_SPECIAL;
     assert specialOpcode <= Constants.DBG_LAST_SPECIAL;
     events.add(factory.createDefault(specialOpcode));
-  }
-
-  private static int computeSpecialOpcode(int lineDelta, int pcDelta) {
-    return Constants.DBG_FIRST_SPECIAL
-        + (lineDelta - Constants.DBG_LINE_BASE)
-        + Constants.DBG_LINE_RANGE * pcDelta;
   }
 
   private static void emitLocalChangeEvents(

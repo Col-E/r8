@@ -38,6 +38,7 @@ public class DesugarStaticInterfaceMethodsInlineIntoStaticRetraceTest extends Re
   @Override
   public void configure(R8TestBuilder<?> builder) {
     builder.enableInliningAnnotations();
+    builder.enableExperimentalMapFileVersion();
   }
 
   @Override
@@ -55,13 +56,9 @@ public class DesugarStaticInterfaceMethodsInlineIntoStaticRetraceTest extends Re
   public void testSourceFileAndLineNumberTable() throws Exception {
     runTest(
         ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
-        // For the desugaring to companion classes the retrace stacktrace is still the same
-        // as the mapping file has a fully qualified class name in the method mapping, e.g.:
-        //
-        // com.android.tools.r8.naming.retrace.InterfaceWithDefaultMethod1$-CC
-        //   -> com.android.tools.r8.naming.retrace.a:1:1:void
-        // com.android.tools.r8.naming.retrace.InterfaceWithDefaultMethod1.defaultMethod1():80:80
-        //   -> a
+        // Companion methods are treated as having inlined the interface method code.
+        // If compiling with synthetic marking support in the mapping file, the synthetic frames
+        // are removed and the trace will be equal to RI.
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) ->
             assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace)));
   }

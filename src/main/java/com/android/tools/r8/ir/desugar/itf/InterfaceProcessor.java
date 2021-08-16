@@ -46,6 +46,7 @@ import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentat
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
+import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
@@ -302,7 +303,11 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     if (definition.hasClassFileVersion()) {
       companion.getDefinition().downgradeClassFileVersion(definition.getClassFileVersion());
     }
-    companion.getDefinition().setCode(definition.getCode(), appView);
+    companion
+        .getDefinition()
+        .setCode(
+            definition.getCode().getCodeAsInlining(companion.getReference(), method.getReference()),
+            appView);
     definition.setCode(InvalidCode.getInstance(), appView);
   }
 
@@ -510,9 +515,14 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
 
   // Specific lens which remaps invocation types to static since all rewrites performed here
   // are to static companion methods.
+  // TODO(b/167345026): Remove the use of this lens.
   public static class InterfaceProcessorNestedGraphLens extends NestedGraphLens {
 
     private BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> extraNewMethodSignatures;
+    private BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
+        pendingNewMethodSignatures;
+    private BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
+        pendingExtraNewMethodSignatures;
 
     public InterfaceProcessorNestedGraphLens(
         AppView<?> appView,
@@ -521,7 +531,12 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
         Map<DexType, DexType> typeMap,
         BidirectionalOneToOneMap<DexMethod, DexMethod> extraNewMethodSignatures) {
       super(appView, fieldMap, methodMap, typeMap);
-      this.extraNewMethodSignatures = extraNewMethodSignatures;
+      // These are "pending" and installed in the "toggled" state only.
+      pendingNewMethodSignatures = newMethodSignatures;
+      pendingExtraNewMethodSignatures = extraNewMethodSignatures;
+      // The interface methods do not contribute to renaming lens info anymore, so they are cleared.
+      newMethodSignatures = new EmptyBidirectionalOneToOneMap<>();
+      this.extraNewMethodSignatures = new EmptyBidirectionalOneToOneMap<>();
     }
 
     public static InterfaceProcessorNestedGraphLens find(GraphLens lens) {
@@ -538,10 +553,14 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
       return null;
     }
 
-    public void toggleMappingToExtraMethods() {
-      BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> tmp = newMethodSignatures;
-      this.newMethodSignatures = extraNewMethodSignatures;
-      this.extraNewMethodSignatures = tmp;
+    public void enableMapping() {
+      this.newMethodSignatures = pendingExtraNewMethodSignatures;
+      this.extraNewMethodSignatures = pendingNewMethodSignatures;
+    }
+
+    public void disableMapping() {
+      this.newMethodSignatures = new EmptyBidirectionalOneToOneMap<>();
+      this.extraNewMethodSignatures = new EmptyBidirectionalOneToOneMap<>();
     }
 
     public BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
@@ -586,8 +605,6 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
           new BidirectionalOneToOneHashMap<>();
 
       public void recordCodeMovedToCompanionClass(DexMethod from, DexMethod to) {
-        assert from != to;
-        methodMap.put(from, from);
         extraNewMethodSignatures.put(from, to);
       }
 

@@ -48,19 +48,13 @@ public class DesugarStaticInterfaceMethodDirectRetraceTest extends RetraceTestBa
   @Override
   public void configure(R8TestBuilder<?> builder) {
     builder.enableInliningAnnotations();
+    builder.enableExperimentalMapFileVersion();
   }
 
   @Test
   public void testSourceFileAndLineNumberTable() throws Exception {
     runTest(
         ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
-        // For the desugaring to companion classes the retrace stacktrace is still the same
-        // as the mapping file has a fully qualified class name in the method mapping, e.g.:
-        //
-        // com.android.tools.r8.naming.retrace.InterfaceWithStaticMethod$-CC
-        //   -> com.android.tools.r8.naming.retrace.a:1:1:void
-        // com.android.tools.r8.naming.retrace.InterfaceWithStaticMethod$.staticMethod():80:80
-        //   -> a
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) ->
             assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace)));
   }

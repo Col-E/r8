@@ -10,6 +10,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
+import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
@@ -164,6 +165,52 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
     newParameters[0] = factory.createString(fakeThisName);
     System.arraycopy(parameters, 0, newParameters, 1, parameters.length);
     return new DexDebugInfo(debugInfo.startLine, newParameters, debugInfo.events);
+  }
+
+  @Override
+  public Code getCodeAsInlining(DexMethod caller, DexMethod callee) {
+    return new DexCode(
+        registerSize,
+        incomingRegisterSize,
+        outgoingRegisterSize,
+        instructions,
+        tries,
+        handlers,
+        debugInfoAsInlining(caller, callee));
+  }
+
+  private DexDebugInfo debugInfoAsInlining(DexMethod caller, DexMethod callee) {
+    Position callerPosition = Position.synthetic(0, caller, null);
+    if (debugInfo == null) {
+      // If the method has no debug info we generate a preamble position to denote the inlining.
+      // This is consistent with the building IR for inlining which will always ensure the method
+      // has a position.
+      return new DexDebugInfo(
+          0,
+          new DexString[caller.getArity()],
+          new DexDebugEvent[] {
+            new DexDebugEvent.SetInlineFrame(callee, callerPosition),
+            DexDebugEvent.ZERO_CHANGE_DEFAULT_EVENT
+          });
+    }
+    DexDebugEvent[] oldEvents = debugInfo.events;
+    DexDebugEvent[] newEvents = new DexDebugEvent[oldEvents.length + 1];
+    int i = 0;
+    newEvents[i++] = new DexDebugEvent.SetInlineFrame(callee, callerPosition);
+    for (DexDebugEvent event : oldEvents) {
+      if (event instanceof SetInlineFrame) {
+        SetInlineFrame oldFrame = (SetInlineFrame) event;
+        newEvents[i++] =
+            new SetInlineFrame(
+                oldFrame.callee,
+                oldFrame.caller == null
+                    ? callerPosition
+                    : oldFrame.caller.withOutermostCallerPosition(callerPosition));
+      } else {
+        newEvents[i++] = event;
+      }
+    }
+    return new DexDebugInfo(debugInfo.startLine, debugInfo.parameters, newEvents);
   }
 
   public static int getLargestPrefix(DexItemFactory factory, DexString name) {
