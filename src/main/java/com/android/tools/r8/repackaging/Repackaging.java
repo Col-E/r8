@@ -274,16 +274,25 @@ public class Repackaging {
     }
 
     // Always repackage outer classes first, if any.
-    InnerClassAttribute innerClassAttribute = classToRepackage.getInnerClassAttributeForThisClass();
     DexProgramClass outerClass = null;
-    if (innerClassAttribute != null && innerClassAttribute.getOuter() != null) {
-      outerClass = asProgramClassOrNull(appView.definitionFor(innerClassAttribute.getOuter()));
-      if (outerClass != null) {
-        if (pkg.contains(outerClass)) {
-          processClass(outerClass, pkg, newPackageDescriptor, mappings);
-        } else {
-          outerClass = null;
-        }
+    if (classToRepackage.hasEnclosingMethodAttribute()) {
+      DexType enclosingClass = classToRepackage.getEnclosingMethodAttribute().getEnclosingClass();
+      if (enclosingClass != null) {
+        outerClass = asProgramClassOrNull(appView.definitionFor(enclosingClass));
+      }
+    }
+    if (outerClass == null) {
+      InnerClassAttribute innerClassAttribute =
+          classToRepackage.getInnerClassAttributeForThisClass();
+      if (innerClassAttribute != null && innerClassAttribute.getOuter() != null) {
+        outerClass = asProgramClassOrNull(appView.definitionFor(innerClassAttribute.getOuter()));
+      }
+    }
+    if (outerClass != null) {
+      if (pkg.contains(outerClass)) {
+        processClass(outerClass, pkg, newPackageDescriptor, mappings);
+      } else {
+        outerClass = null;
       }
     }
     mappings.put(

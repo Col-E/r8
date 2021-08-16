@@ -208,7 +208,10 @@ public abstract class TreeFixerBase {
       // inner class attributes.
       boolean innerClassAttributeChanged =
           newInnerClassType != innerClassType || newOuterClassType != outerClassType;
-      if (innerClassAttributeChanged && innerClassType != null && outerClassType != null) {
+      if (innerClassAttributeChanged
+          && innerClassType != null
+          && outerClassType != null
+          && innerClassAttribute.getInnerName() != null) {
         String innerClassName =
             DescriptorUtils.getInnerClassName(
                 newOuterClassType.toDescriptorString(), newInnerClassType.toDescriptorString());
@@ -217,10 +220,8 @@ public abstract class TreeFixerBase {
         } else {
           // If run without treeshaking and the outer type is missing we are not pruning the
           // relationship.
-          // TODO(b/196503304): Enable the below asserts when resolved.
-          assert !appView.options().isTreeShakingEnabled() || true;
-          // assert appView.appInfo().definitionForWithoutExistenceAssert(newOuterClassType) ==
-          // null;
+          assert !appView.options().isTreeShakingEnabled();
+          assert appView.appInfo().definitionForWithoutExistenceAssert(newOuterClassType) == null;
         }
       }
       newInnerClassAttributes.add(
