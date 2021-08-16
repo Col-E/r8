@@ -187,7 +187,7 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
       // has a position.
       return new DexDebugInfo(
           0,
-          new DexString[caller.getArity()],
+          new DexString[callee.getArity()],
           new DexDebugEvent[] {
             new DexDebugEvent.SetInlineFrame(callee, callerPosition),
             DexDebugEvent.ZERO_CHANGE_DEFAULT_EVENT
