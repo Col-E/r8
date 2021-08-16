@@ -2049,7 +2049,9 @@ def setUpTestingState(Test task) {
     // Hide all test events from the console, they are written to the report.
     task.testLogging { events = [] }
 
-    def branch = getGitBranchName()
+    def branch = project.hasProperty('testing-state-name')
+        ? project.getProperty('testing-state-name')
+        : getGitBranchName()
     def reportDir = file("${buildDir}/test-state/${branch}")
     def index = reportDir.toPath().resolve("index.html").toFile()
     def resetState = project.hasProperty('reset-testing-state')

@@ -171,6 +171,10 @@ def ParseOptions():
       help='Print the execution time of the slowest tests..',
       default=False, action='store_true')
   result.add_option(
+      '--testing-state-name',
+      help='Set an explict name for the testing state '
+          '(used in conjunction with --with/reset-testing-state).')
+  result.add_option(
       '--with-testing-state',
       help='Run/resume tests using testing state.',
       default=False, action='store_true')
@@ -322,6 +326,8 @@ def Main():
     gradle_args.append('-Preset-testing-state')
   elif options.with_testing_state:
     gradle_args.append('-Ptesting-state')
+  if options.testing_state_name:
+    gradle_args.append('-Ptesting-state-name=' + options.testing_state_name)
 
   # Build an R8 with dependencies for bootstrapping tests before adding test sources.
   gradle_args.append('r8WithDeps')
