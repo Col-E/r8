@@ -8,15 +8,20 @@ import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 
-public interface DesugaredLibraryAPIConverterEventConsumer {
+public interface DesugaredLibraryWrapperSynthesizerEventConsumer {
 
   void acceptWrapperProgramClass(DexProgramClass clazz);
 
   void acceptWrapperClasspathClass(DexClasspathClass clazz);
 
-  void acceptAPIConversion(ProgramMethod method);
+  interface DesugaredLibraryAPIConverterEventConsumer
+      extends DesugaredLibraryWrapperSynthesizerEventConsumer {
 
-  interface DesugaredLibraryAPIConverterPostProcessingEventConsumer {
+    void acceptAPIConversion(ProgramMethod method);
+  }
+
+  interface DesugaredLibraryAPIConverterPostProcessingEventConsumer
+      extends DesugaredLibraryWrapperSynthesizerEventConsumer {
 
     void acceptAPIConversionCallback(ProgramMethod method);
   }

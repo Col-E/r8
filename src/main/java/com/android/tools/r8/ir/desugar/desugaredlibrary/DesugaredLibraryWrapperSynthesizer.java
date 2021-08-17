@@ -122,7 +122,7 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexType type,
       DexType srcType,
       DexType destType,
-      DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+      DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
     // ConversionType holds the methods "rewrittenType convert(type)" and the other way around.
     // But everything is going to be rewritten, so we need to use vivifiedType and type".
     DexType conversionHolder =
@@ -166,12 +166,12 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private DexType ensureTypeWrapper(
-      DexType type, DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+      DexType type, DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
     return ensureWrappers(type, eventConsumer).getWrapper().type;
   }
 
   private DexType ensureVivifiedTypeWrapper(
-      DexType type, DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+      DexType type, DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
     return ensureWrappers(type, eventConsumer).getVivifiedWrapper().type;
   }
 
@@ -207,7 +207,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private Wrappers ensureWrappers(
-      DexType type, DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+      DexType type, DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
     assert canGenerateWrapper(type) : type;
     DexClass dexClass = getValidClassToWrap(type);
     return ensureWrappers(dexClass, ignored -> {}, eventConsumer);
@@ -216,7 +216,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   private Wrappers ensureWrappers(
       DexClass context,
       Consumer<DexClasspathClass> creationCallback,
-      DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+      DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
     DexType type = context.type;
     DexClass wrapper;
     DexClass vivifiedWrapper;
@@ -300,7 +300,7 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexType wrappingType,
       DexType wrappedType,
       DexProgramClass programContext,
-      DesugaredLibraryAPIConverterEventConsumer eventConsumer,
+      DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer,
       Function<DexEncodedField, DexEncodedMethod[]> virtualMethodProvider) {
     return appView
         .getSyntheticItems()
@@ -325,7 +325,7 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexType wrappedType,
       ClasspathOrLibraryClass classpathOrLibraryContext,
       Consumer<DexClasspathClass> creationCallback,
-      DesugaredLibraryAPIConverterEventConsumer eventConsumer,
+      DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer,
       Function<DexEncodedField, DexEncodedMethod[]> virtualMethodProvider) {
     return appView
         .getSyntheticItems()
@@ -339,9 +339,8 @@ public class DesugaredLibraryWrapperSynthesizer {
             // The creation of virtual methods may require new wrappers, this needs to happen
             // once the wrapper is created to avoid infinite recursion.
             wrapper -> {
-              if (eventConsumer != null) {
-                eventConsumer.acceptWrapperClasspathClass(wrapper);
-              }
+              assert eventConsumer != null;
+              eventConsumer.acceptWrapperClasspathClass(wrapper);
               wrapper.setVirtualMethods(
                   virtualMethodProvider.apply(getWrapperUniqueEncodedField(wrapper)));
               creationCallback.accept(wrapper);
@@ -453,7 +452,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   private DexEncodedMethod[] synthesizeVirtualMethodsForVivifiedTypeWrapper(
       DexClass dexClass,
       DexEncodedField wrapperField,
-      DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+      DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
     List<DexEncodedMethod> dexMethods = allImplementedMethods(dexClass);
     List<DexEncodedMethod> generatedMethods = new ArrayList<>();
     // Each method should use only types in their signature, but each method the wrapper forwards
@@ -511,7 +510,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   private DexEncodedMethod[] synthesizeVirtualMethodsForTypeWrapper(
       DexClass dexClass,
       DexEncodedField wrapperField,
-      DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+      DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
     List<DexEncodedMethod> dexMethods = allImplementedMethods(dexClass);
     List<DexEncodedMethod> generatedMethods = new ArrayList<>();
     // Each method should use only vivified types in their signature, but each method the wrapper
@@ -660,7 +659,7 @@ public class DesugaredLibraryWrapperSynthesizer {
         field, fieldAccessFlags, FieldTypeSignature.noSignature(), DexAnnotationSet.empty(), null);
   }
 
-  void ensureWrappersForL8(DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+  void ensureWrappersForL8(DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
     DesugaredLibraryConfiguration conf = appView.options().desugaredLibraryConfiguration;
     for (DexType type : conf.getWrapperConversions()) {
       assert !conf.getCustomConversions().containsKey(type);

@@ -32,8 +32,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverterEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
@@ -58,7 +58,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
     private final DexMethod forwardMethod;
     private final DesugaredLibraryWrapperSynthesizer wrapperSynthesizer;
     private final boolean itfCall;
-    private final DesugaredLibraryAPIConverterEventConsumer eventConsumer;
+    private final DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer;
 
     public APIConverterVivifiedWrapperCfCodeProvider(
         AppView<?> appView,
@@ -66,7 +66,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
         DexField wrapperField,
         DesugaredLibraryWrapperSynthesizer wrapperSynthesizer,
         boolean itfCall,
-        DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+        DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
       super(appView, wrapperField.holder);
       this.forwardMethod = forwardMethod;
       this.wrapperField = wrapperField;
@@ -145,7 +145,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
     DexMethod forwardMethod;
     DesugaredLibraryWrapperSynthesizer wrapperSynthesizor;
     boolean itfCall;
-    private final DesugaredLibraryAPIConverterEventConsumer eventConsumer;
+    private final DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer;
 
     public APIConverterWrapperCfCodeProvider(
         AppView<?> appView,
@@ -153,7 +153,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
         DexField wrapperField,
         DesugaredLibraryWrapperSynthesizer wrapperSynthesizor,
         boolean itfCall,
-        DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+        DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
       //  Var wrapperField is null if should forward to receiver.
       super(appView, wrapperField == null ? forwardMethod.holder : wrapperField.holder);
       this.forwardMethod = forwardMethod;

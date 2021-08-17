@@ -324,7 +324,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
   }
 
   private DexMethod computeReturnConversion(
-      DexMethod invokedMethod, DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+      DexMethod invokedMethod, DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
     DexType returnType = invokedMethod.proto.returnType;
     if (wrapperSynthesizor.shouldConvert(returnType, invokedMethod)) {
       DexType newReturnType = DesugaredLibraryAPIConverter.vivifiedTypeFor(returnType, appView);
@@ -335,7 +335,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
   }
 
   private DexMethod[] computeParameterConversions(
-      DexMethod invokedMethod, DesugaredLibraryAPIConverterEventConsumer eventConsumer) {
+      DexMethod invokedMethod, DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
     DexMethod[] parameterConversions = new DexMethod[invokedMethod.getArity()];
     DexType[] parameters = invokedMethod.proto.parameters.values;
     for (int i = 0; i < parameters.length; i++) {

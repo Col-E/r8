@@ -3,13 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverterEventConsumer.DesugaredLibraryAPIConverterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPIConverterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -32,6 +33,12 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
   public static R8PostProcessingDesugaringEventConsumer createForR8(SyntheticAdditions additions) {
     return new R8PostProcessingDesugaringEventConsumer(additions);
+  }
+
+  @Override
+  public void acceptWrapperProgramClass(DexProgramClass clazz) {
+    // TODO(b/191656218): Remove unneeded method.
+    throw new Unreachable();
   }
 
   public abstract void finalizeDesugaring() throws ExecutionException;
@@ -89,6 +96,11 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     public void acceptAPIConversionCallback(ProgramMethod method) {
       methodsToReprocess.add(method);
     }
+
+    @Override
+    public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
+      // Intentionally empty.
+    }
   }
 
   public static class R8PostProcessingDesugaringEventConsumer
@@ -106,7 +118,8 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     @Override
     public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
-      additions.addLiveMethods(clazz.programMethods());
+      // TODO(b/191656218): Remove unneeded method.
+      throw new Unreachable();
     }
 
     @Override
@@ -137,6 +150,11 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     @Override
     public void acceptAPIConversionCallback(ProgramMethod method) {
       additions.addLiveMethod(method);
+    }
+
+    @Override
+    public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
+      additions.addLiveClasspathClass(clazz);
     }
   }
 }

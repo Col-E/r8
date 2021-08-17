@@ -19,7 +19,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaring;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverterEventConsumer.DesugaredLibraryAPIConverterPostProcessingEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPIConverterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperCfCodeProvider;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.WorkList;
@@ -200,7 +200,7 @@ public class DesugaredLibraryAPICallbackSynthesizor implements CfPostProcessingD
                 null,
                 wrapperSynthesizor,
                 clazz.isInterface(),
-                null)
+                eventConsumer)
             .generateCfCode();
     DexEncodedMethod newMethod =
         wrapperSynthesizor.newSynthesizedMethod(methodToInstall, originalMethod, cfCode);
