@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.desugar;
 
-import static org.hamcrest.CoreMatchers.containsString;
-
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -40,12 +38,7 @@ public class LambdaMissingInterfaceTest extends TestBase {
         .compile()
         .addRunClasspathClasses(MissingInterface.class)
         .run(parameters.getRuntime(), Main.class)
-        // We allow for renaming if the class is missing
-        .assertFailureWithErrorThatMatchesIf(
-            parameters.getDexRuntimeVersion().isDalvik(),
-            containsString(descriptor(MissingInterface.class) + "' is not accessible"))
-        .assertFailureWithErrorThatThrowsIf(
-            !parameters.getDexRuntimeVersion().isDalvik(), IllegalAccessError.class);
+        .assertFailureWithErrorThatThrows(AbstractMethodError.class);
   }
 
   interface MissingInterface {

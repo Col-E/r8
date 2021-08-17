@@ -5,7 +5,7 @@
 package com.android.tools.r8.repackage;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
-import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
@@ -52,6 +52,10 @@ public class RepackageLambdaMissingInterfaceTest extends RepackageTestBase {
         .inspect(
             inspector -> {
               // Find the generated lambda class
+              if (!parameters.isDexRuntime()) {
+                assertThat(ClassWithLambda.class, isNotRepackaged(inspector));
+                return;
+              }
               if (repackage) {
                 assertThat(ClassWithLambda.class, isRepackaged(inspector));
               } else {
@@ -62,8 +66,7 @@ public class RepackageLambdaMissingInterfaceTest extends RepackageTestBase {
                   clazz -> {
                     if (clazz.isSynthesizedJavaLambdaClass()) {
                       assertThat(
-                          clazz.getFinalName(),
-                          startsWith(repackage ? getRepackagePackage() : "a."));
+                          clazz.getFinalName(), containsString(Main.class.getPackage().getName()));
                     }
                   });
             })
@@ -71,7 +74,7 @@ public class RepackageLambdaMissingInterfaceTest extends RepackageTestBase {
         .run(parameters.getRuntime(), Main.class);
   }
 
-  public interface MissingInterface {
+  interface MissingInterface {
 
     void bar(int x);
   }

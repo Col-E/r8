@@ -7,6 +7,7 @@ package com.android.tools.r8.repackage;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,16 +25,16 @@ public class RepackageMissingMemberReferenceTest extends RepackageTestBase {
 
   @Test
   public void testR8WithoutRepackaging() throws Exception {
-    runTest(false);
+    runTest(false).assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
   public void testR8() throws Exception {
-    runTest(true);
+    runTest(true).assertSuccessWithOutputLines(EXPECTED);
   }
 
-  private void runTest(boolean repackage) throws Exception {
-    testForR8(parameters.getBackend())
+  private R8TestRunResult runTest(boolean repackage) throws Exception {
+    return testForR8(parameters.getBackend())
         .addProgramClasses(ClassWithMissingReferenceInCode.class, Main.class)
         .addKeepMainRule(Main.class)
         .applyIf(repackage, this::configureRepackaging)
@@ -43,14 +44,12 @@ public class RepackageMissingMemberReferenceTest extends RepackageTestBase {
         .compile()
         .inspect(
             inspector ->
-                assertThat(
-                    ClassWithMissingReferenceInCode.class, isRepackagedIf(inspector, repackage)))
+                assertThat(ClassWithMissingReferenceInCode.class, isNotRepackaged(inspector)))
         .addRunClasspathClasses(MissingReference.class)
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
+        .run(parameters.getRuntime(), Main.class);
   }
 
-  public static class MissingReference {
+  static class MissingReference {
     public static void doSomething() {
       System.out.println("MissingReference::doSomething");
     }
