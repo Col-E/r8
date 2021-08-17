@@ -15,8 +15,6 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.AndroidApiLevel;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -38,7 +36,6 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
   private int readBits = 0;
   private ClassTypeElement dynamicLowerBoundType = null;
   private TypeElement dynamicUpperBoundType = null;
-  private Optional<AndroidApiLevel> apiReferenceLevel = null;
 
   public MutableFieldOptimizationInfo fixupClassTypeReferences(
       AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens lens) {
@@ -69,7 +66,6 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
   public MutableFieldOptimizationInfo mutableCopy() {
     MutableFieldOptimizationInfo copy = new MutableFieldOptimizationInfo();
     copy.flags = flags;
-    copy.apiReferenceLevel = apiReferenceLevel;
     return copy;
   }
 
@@ -153,30 +149,5 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
   @Override
   public MutableFieldOptimizationInfo asMutableFieldOptimizationInfo() {
     return this;
-  }
-
-  @SuppressWarnings("OptionalAssignedToNull")
-  @Override
-  public boolean hasApiReferenceLevelForDefinition() {
-    return apiReferenceLevel != null;
-  }
-
-  @Override
-  public AndroidApiLevel getApiReferenceLevelForDefinition(AndroidApiLevel minApi) {
-    assert hasApiReferenceLevelForDefinition();
-    return apiReferenceLevel.orElse(minApi);
-  }
-
-  @Override
-  @SuppressWarnings("OptionalAssignedToNull")
-  public void setMinApiReferenceLevel() {
-    assert apiReferenceLevel == null;
-    this.apiReferenceLevel = Optional.empty();
-  }
-
-  @Override
-  public void setApiReferenceLevelForDefinition(AndroidApiLevel apiReferenceLevel) {
-    assert apiReferenceLevel != null;
-    this.apiReferenceLevel = Optional.of(apiReferenceLevel);
   }
 }

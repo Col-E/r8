@@ -6,18 +6,11 @@ package com.android.tools.r8.graph.analysis;
 
 import com.android.tools.r8.androidapi.AndroidApiReferenceLevelCache;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMember;
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMember;
+import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.optimize.info.DefaultFieldOptimizationWithMinApiInfo;
-import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationWithMinApiInfo;
-import com.android.tools.r8.ir.optimize.info.MemberOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.shaking.DefaultEnqueuerUseRegistry;
 import com.android.tools.r8.utils.AndroidApiLevel;
 
@@ -35,14 +28,12 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
 
   @Override
   public void processNewlyLiveField(ProgramField field, ProgramDefinition context) {
-    setApiLevelForMemberDefinition(
-        field.getDefinition(), computeApiLevelForReferencedTypes(field.getReference()));
+    computeApiLevelForDefinition(field);
   }
 
   @Override
   public void processNewlyLiveMethod(ProgramMethod method, ProgramDefinition context) {
-    setApiLevelForMemberDefinition(
-        method.getDefinition(), computeApiLevelForReferencedTypes(method.getReference()));
+    computeApiLevelForDefinition(method);
   }
 
   @Override
@@ -55,71 +46,35 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
           .tracedMethodApiLevelCallback
           .accept(method.getMethodReference(), registry.getMaxApiReferenceLevel());
     }
-    setApiLevelForMemberDefinition(
-        method.getDefinition(), computeApiLevelForReferencedTypes(method.getReference()));
-    setApiLevelForCode(method.getDefinition(), registry.getMaxApiReferenceLevel());
+    computeApiLevelForDefinition(method);
+    method.getDefinition().setApiLevelForCode(registry.getMaxApiReferenceLevel());
   }
 
   @Override
   public void notifyMarkMethodAsTargeted(ProgramMethod method) {
-    setApiLevelForMemberDefinition(method.getDefinition(), minApiLevel);
+    computeApiLevelForDefinition(method);
   }
 
   @Override
   public void notifyMarkFieldAsReachable(ProgramField field) {
-    setApiLevelForMemberDefinition(field.getDefinition(), minApiLevel);
+    computeApiLevelForDefinition(field);
   }
 
   @Override
   public void notifyMarkVirtualDispatchTargetAsLive(LookupTarget target) {
     target.accept(
-        dexClassAndMethod -> {
-          setApiLevelForMemberDefinition(dexClassAndMethod.getDefinition(), minApiLevel);
-        },
+        this::computeApiLevelForDefinition,
         lookupLambdaTarget -> {
           // The implementation method will be assigned an api level when visited.
         });
   }
 
-  private void setApiLevelForMemberDefinition(
-      DexEncodedMember<?, ?> member, AndroidApiLevel apiLevel) {
-    // To not have mutable update information for all members that all has min api level we
-    // swap the default optimization info for one with that marks the api level to be min api.
-    MemberOptimizationInfo<?> optimizationInfo = member.getOptimizationInfo();
-    if (!optimizationInfo.isMutableOptimizationInfo() && apiLevel == minApiLevel) {
-      member.accept(
-          field -> {
-            field.setMinApiOptimizationInfo(DefaultFieldOptimizationWithMinApiInfo.getInstance());
-          },
-          method -> {
-            method.setMinApiOptimizationInfo(DefaultMethodOptimizationWithMinApiInfo.getInstance());
-          });
-    } else {
-      AndroidApiLevel maxApiLevel =
-          optimizationInfo.hasApiReferenceLevelForDefinition()
-              ? apiLevel.max(optimizationInfo.getApiReferenceLevelForDefinition(minApiLevel))
-              : apiLevel;
-      member.accept(
-          field -> {
-            field.getMutableOptimizationInfo().setApiReferenceLevelForDefinition(maxApiLevel);
-          },
-          method -> {
-            method.getMutableOptimizationInfo().setApiReferenceLevelForDefinition(maxApiLevel);
-          });
-    }
-  }
-
-  private void setApiLevelForCode(DexEncodedMethod method, AndroidApiLevel apiLevel) {
-    MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
-    assert optimizationInfo != DefaultMethodOptimizationInfo.getInstance();
-    if (!optimizationInfo.isMutableOptimizationInfo() && apiLevel == minApiLevel) {
-      assert optimizationInfo == DefaultMethodOptimizationWithMinApiInfo.getInstance();
-      return;
-    }
-    method.getMutableOptimizationInfo().setApiReferenceLevelForCode(apiLevel);
-  }
-
-  private AndroidApiLevel computeApiLevelForReferencedTypes(DexMember<?, ?> member) {
-    return member.computeApiLevelForReferencedTypes(appView, referenceLevelCache::lookupMax);
+  private void computeApiLevelForDefinition(DexClassAndMember<?, ?> member) {
+    member
+        .getDefinition()
+        .setApiLevelForDefinition(
+            member
+                .getReference()
+                .computeApiLevelForReferencedTypes(appView, referenceLevelCache::lookupMax));
   }
 }

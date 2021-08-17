@@ -6,7 +6,6 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
-import static com.android.tools.r8.utils.AndroidApiLevelUtils.MIN_API_LEVEL;
 
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
@@ -17,7 +16,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.optimize.info.DefaultFieldOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.DefaultFieldOptimizationWithMinApiInfo;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
@@ -45,7 +43,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   /** Generic signature information if the attribute is present in the input */
   private FieldTypeSignature genericSignature;
 
-  private FieldOptimizationInfo optimizationInfo;
+  private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
   private KotlinFieldLevelInfo kotlinMemberInfo = getNoKotlinInfo();
 
   private static void specify(StructuralSpecification<DexEncodedField, ?> spec) {
@@ -98,20 +96,11 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       boolean deprecated,
       boolean d8R8Synthesized,
       AndroidApiLevel apiLevel) {
-    super(field, annotations, d8R8Synthesized);
+    super(field, annotations, d8R8Synthesized, apiLevel);
     this.accessFlags = accessFlags;
     this.staticValue = staticValue;
     this.deprecated = deprecated;
     this.genericSignature = genericSignature;
-    if (apiLevel == AndroidApiLevel.UNKNOWN) {
-      optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
-    } else if (apiLevel == MIN_API_LEVEL) {
-      optimizationInfo = DefaultFieldOptimizationWithMinApiInfo.getInstance();
-    } else {
-      MutableFieldOptimizationInfo optimizationInfo = new MutableFieldOptimizationInfo();
-      this.optimizationInfo = optimizationInfo;
-      optimizationInfo.setApiReferenceLevelForDefinition(apiLevel);
-    }
     assert genericSignature != null;
     assert GenericSignatureUtils.verifyNoDuplicateGenericDefinitions(genericSignature, annotations);
   }
@@ -148,8 +137,8 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   @Override
-  public AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApiLevel) {
-    return optimizationInfo.getApiReferenceLevelForDefinition(minApiLevel);
+  public AndroidApiLevel getApiLevel() {
+    return getApiLevelForDefinition();
   }
 
   public synchronized MutableFieldOptimizationInfo getMutableOptimizationInfo() {
@@ -159,10 +148,6 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   public void setOptimizationInfo(MutableFieldOptimizationInfo info) {
-    optimizationInfo = info;
-  }
-
-  public void setMinApiOptimizationInfo(DefaultFieldOptimizationWithMinApiInfo info) {
     optimizationInfo = info;
   }
 
@@ -400,6 +385,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     private FieldAccessFlags accessFlags;
     private FieldTypeSignature genericSignature;
     private DexValue staticValue;
+    private AndroidApiLevel apiLevel;
     private FieldOptimizationInfo optimizationInfo;
     private boolean deprecated;
     private boolean d8R8Synthesized;
@@ -413,6 +399,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       genericSignature = from.getGenericSignature();
       annotations = from.annotations();
       staticValue = from.staticValue;
+      apiLevel = from.getApiLevel();
       optimizationInfo =
           from.optimizationInfo.isMutableOptimizationInfo()
               ? from.optimizationInfo.asMutableFieldOptimizationInfo().mutableCopy()
@@ -468,7 +455,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
               staticValue,
               deprecated,
               d8R8Synthesized,
-              AndroidApiLevel.UNKNOWN);
+              apiLevel);
       dexEncodedField.optimizationInfo = optimizationInfo;
       buildConsumer.accept(dexEncodedField);
       return dexEncodedField;

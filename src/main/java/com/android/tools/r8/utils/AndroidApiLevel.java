@@ -4,6 +4,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.utils.structural.Ordered;
 import java.util.Arrays;
 import java.util.List;
@@ -73,6 +74,12 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
 
   public DexVersion getDexVersion() {
     return DexVersion.getDexVersion(this);
+  }
+
+  public static AndroidApiLevel minApiLevelIfEnabledOrUnknown(AppView<?> appView) {
+    return appView.options().apiModelingOptions().enableApiCallerIdentification
+        ? appView.options().minApiLevel
+        : UNKNOWN;
   }
 
   public static List<AndroidApiLevel> getAndroidApiLevelsSorted() {

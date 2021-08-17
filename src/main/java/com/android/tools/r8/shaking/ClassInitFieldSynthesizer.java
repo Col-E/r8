@@ -5,7 +5,7 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
-import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiLevelIfEnabledForNewMember;
+import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
@@ -22,7 +22,6 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Visibility;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Function;
 
 public class ClassInitFieldSynthesizer {
 
@@ -93,7 +92,7 @@ public class ClassInitFieldSynthesizer {
               null,
               deprecated,
               DexEncodedField.D8_R8_SYNTHESIZED,
-              getApiLevelIfEnabledForNewMember(appView, Function.identity()));
+              minApiLevelIfEnabledOrUnknown(appView));
       clazz.appendStaticField(encodedClinitField);
     }
     lensBuilder.map(type, encodedClinitField.getReference());

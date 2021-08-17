@@ -25,11 +25,9 @@ import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.BitSet;
-import java.util.Optional;
 import java.util.Set;
 
 public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
@@ -74,9 +72,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
 
   private SimpleInliningConstraint simpleInliningConstraint =
       NeverSimpleInliningConstraint.getInstance();
-
-  private Optional<AndroidApiLevel> codeApiReferenceLevel = null;
-  private Optional<AndroidApiLevel> definitionApiReferenceLevel = null;
 
   // To reduce the memory footprint of UpdatableMethodOptimizationInfo, all the boolean fields are
   // merged into a flag int field. The various static final FLAG fields indicate which bit is
@@ -159,8 +154,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
     classInlinerConstraint = template.classInlinerConstraint;
     enumUnboxerMethodClassification = template.enumUnboxerMethodClassification;
-    definitionApiReferenceLevel = template.definitionApiReferenceLevel;
-    codeApiReferenceLevel = template.codeApiReferenceLevel;
   }
 
   public MutableMethodOptimizationInfo fixupClassTypeReferences(
@@ -533,50 +526,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   @Override
   public boolean returnValueHasBeenPropagated() {
     return isFlagSet(RETURN_VALUE_HAS_BEEN_PROPAGATED_FLAG);
-  }
-
-  @Override
-  public AndroidApiLevel getApiReferenceLevelForDefinition(AndroidApiLevel minApi) {
-    assert hasApiReferenceLevelForDefinition();
-    return definitionApiReferenceLevel.orElse(minApi);
-  }
-
-  @SuppressWarnings("OptionalAssignedToNull")
-  @Override
-  public boolean hasApiReferenceLevelForDefinition() {
-    return definitionApiReferenceLevel != null;
-  }
-
-  @Override
-  @SuppressWarnings("OptionalAssignedToNull")
-  public boolean hasApiReferenceLevelForCode() {
-    return codeApiReferenceLevel != null;
-  }
-
-  @Override
-  public AndroidApiLevel getApiReferenceLevelForCode(AndroidApiLevel minApi) {
-    assert hasApiReferenceLevelForCode();
-    return codeApiReferenceLevel.orElse(minApi);
-  }
-
-  @Override
-  @SuppressWarnings("OptionalAssignedToNull")
-  public void setMinApiReferenceLevel() {
-    assert codeApiReferenceLevel == null;
-    assert definitionApiReferenceLevel == null;
-    this.codeApiReferenceLevel = Optional.empty();
-    this.definitionApiReferenceLevel = Optional.empty();
-  }
-
-  public void setApiReferenceLevelForCode(AndroidApiLevel apiLevel) {
-    assert apiLevel != null;
-    this.codeApiReferenceLevel = Optional.of(apiLevel);
-  }
-
-  @Override
-  public void setApiReferenceLevelForDefinition(AndroidApiLevel apiLevel) {
-    assert apiLevel != null;
-    this.definitionApiReferenceLevel = Optional.of(apiLevel);
   }
 
   @Override

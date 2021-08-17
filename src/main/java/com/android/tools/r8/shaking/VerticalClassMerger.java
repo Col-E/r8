@@ -7,7 +7,6 @@ import static com.android.tools.r8.dex.Constants.TEMPORARY_INSTANCE_INITIALIZER_
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
-import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiLevelIfEnabledForNewMember;
 
 import com.android.tools.r8.androidapi.AndroidApiReferenceLevelCache;
 import com.android.tools.r8.errors.Unreachable;
@@ -1451,8 +1450,8 @@ public class VerticalClassMerger {
               code,
               true,
               method.hasClassFileVersion() ? method.getClassFileVersion() : null,
-              getApiLevelIfEnabledForNewMember(appView, method::getApiReferenceLevelForDefinition),
-              getApiLevelIfEnabledForNewMember(appView, Function.identity()));
+              method.getApiLevelForDefinition(),
+              method.getApiLevelForDefinition());
       bridge.setLibraryMethodOverride(method.isLibraryMethodOverride());
       if (method.accessFlags.isPromotedToPublic()) {
         // The bridge is now the public method serving the role of the original method, and should

@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.desugar;
 
 import static com.android.tools.r8.ir.desugar.lambda.ForcefullyMovedLambdaMethodConsumer.emptyForcefullyMovedLambdaMethodConsumer;
-import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiLevelIfEnabledForNewMember;
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.dex.Constants;
@@ -40,11 +39,11 @@ import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Represents lambda class generated for a lambda descriptor in context of lambda instantiation
@@ -109,7 +108,7 @@ public final class LambdaClass {
     this.lambdaField =
         !stateless ? null : factory.createField(type, type, factory.lambdaInstanceFieldName);
 
-    // Synthesize the program class one all fields are set.
+    // Synthesize the program class once all fields are set.
     synthesizeLambdaClass(builder);
   }
 
@@ -244,7 +243,8 @@ public final class LambdaClass {
               null,
               deprecated,
               d8R8Synthesized,
-              getApiLevelIfEnabledForNewMember(appView, Function.identity())));
+              // The api level is computed when tracing.
+              AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView)));
     }
     builder.setInstanceFields(fields);
   }
@@ -270,7 +270,8 @@ public final class LambdaClass {
                   DexValueNull.NULL,
                   deprecated,
                   d8R8Synthesized,
-                  getApiLevelIfEnabledForNewMember(appView, Function.identity()))));
+                  // The api level is computed when tracing.
+                  AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView))));
     }
   }
 

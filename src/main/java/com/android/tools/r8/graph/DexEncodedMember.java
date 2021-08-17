@@ -20,12 +20,20 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
   // set.
   private final boolean d8R8Synthesized;
 
+  /** apiLevelForDefinition describes the api level needed for knowing all types */
+  private AndroidApiLevel apiLevelForDefinition;
+
   private final R reference;
 
-  public DexEncodedMember(R reference, DexAnnotationSet annotations, boolean d8R8Synthesized) {
+  public DexEncodedMember(
+      R reference,
+      DexAnnotationSet annotations,
+      boolean d8R8Synthesized,
+      AndroidApiLevel apiLevelForDefinition) {
     super(annotations);
     this.reference = reference;
     this.d8R8Synthesized = d8R8Synthesized;
+    this.apiLevelForDefinition = apiLevelForDefinition;
   }
 
   public abstract KotlinMemberLevelInfo getKotlinInfo();
@@ -85,7 +93,15 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
 
   public abstract MemberOptimizationInfo<?> getOptimizationInfo();
 
-  public abstract AndroidApiLevel getApiReferenceLevel(AndroidApiLevel minApiLevel);
+  public abstract AndroidApiLevel getApiLevel();
+
+  public AndroidApiLevel getApiLevelForDefinition() {
+    return apiLevelForDefinition;
+  }
+
+  public void setApiLevelForDefinition(AndroidApiLevel apiLevelForDefinition) {
+    this.apiLevelForDefinition = apiLevelForDefinition;
+  }
 
   @Override
   public final boolean equals(Object other) {

@@ -4,11 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
-import com.android.tools.r8.utils.AndroidApiLevel;
-
 public interface MutableOptimizationInfo {
 
-  void setMinApiReferenceLevel();
-
-  void setApiReferenceLevelForDefinition(AndroidApiLevel apiLevel);
 }

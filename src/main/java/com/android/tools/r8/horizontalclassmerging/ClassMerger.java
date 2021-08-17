@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
-import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiLevelIfEnabledForNewMember;
+import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -45,7 +45,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * The class merger is responsible for moving methods from the sources in {@link ClassMerger#group}
@@ -141,8 +140,8 @@ public class ClassMerger {
             classInitializerMerger.getCode(syntheticMethodReference),
             DexEncodedMethod.D8_R8_SYNTHESIZED,
             classInitializerMerger.getCfVersion(),
-            getApiLevelIfEnabledForNewMember(appView, ignored -> apiReferenceLevel),
-            getApiLevelIfEnabledForNewMember(appView, ignored -> apiReferenceLevel));
+            apiReferenceLevel,
+            apiReferenceLevel);
     classMethodsBuilder.addDirectMethod(definition);
 
     // In case we didn't synthesize CF code, we register the class initializer for conversion to dex
@@ -230,7 +229,7 @@ public class ClassMerger {
             null,
             deprecated,
             d8R8Synthesized,
-            getApiLevelIfEnabledForNewMember(appView, Function.identity()));
+            minApiLevelIfEnabledOrUnknown(appView));
 
     // For the $r8$classId synthesized fields, we try to over-approximate the set of values it may
     // have. For example, for a merge group of size 4, we may compute the set {0, 2, 3}, if the

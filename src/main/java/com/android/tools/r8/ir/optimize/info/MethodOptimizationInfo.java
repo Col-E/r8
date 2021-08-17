@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMeth
 import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.BitSet;
 import java.util.Set;
@@ -100,10 +99,6 @@ public abstract class MethodOptimizationInfo
   public abstract boolean returnValueOnlyDependsOnArguments();
 
   public abstract boolean returnValueHasBeenPropagated();
-
-  public abstract boolean hasApiReferenceLevelForCode();
-
-  public abstract AndroidApiLevel getApiReferenceLevelForCode(AndroidApiLevel minApi);
 
   @Override
   public boolean isMethodOptimizationInfo() {

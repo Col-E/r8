@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.horizontalclassmerging.code;
 
-import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiLevelIfEnabled;
+import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 import static java.lang.Integer.max;
 
 import com.android.tools.r8.cf.CfVersion;
@@ -104,12 +104,8 @@ public class ClassInitializerMerger {
     assert !classInitializers.isEmpty();
     return ListUtils.fold(
         classInitializers,
-        appView.options().apiModelingOptions().enableApiCallerIdentification
-            ? appView.options().minApiLevel
-            : AndroidApiLevel.UNKNOWN,
-        (accApiLevel, method) ->
-            accApiLevel.max(
-                getApiLevelIfEnabled(appView, method.getDefinition()::getApiReferenceLevel)));
+        minApiLevelIfEnabledOrUnknown(appView),
+        (accApiLevel, method) -> accApiLevel.max(method.getDefinition().getApiLevel()));
   }
 
   public static class Builder {

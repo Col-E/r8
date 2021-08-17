@@ -4,7 +4,7 @@
 package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
-import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiLevelIfEnabled;
+import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.ProgramResource;
@@ -827,7 +827,7 @@ public class DexProgramClass extends DexClass
       AppView<?> appView,
       BiFunction<DexReference, AndroidApiLevel, AndroidApiLevel> apiLevelLookup) {
     // The api level of a class is the max level of it's members, super class and interfaces.
-    AndroidApiLevel computedApiLevel = getApiLevelIfEnabled(appView, Function.identity());
+    AndroidApiLevel computedApiLevel = minApiLevelIfEnabledOrUnknown(appView);
     for (DexType superType : allImmediateSupertypes()) {
       computedApiLevel = apiLevelLookup.apply(superType, computedApiLevel);
       if (computedApiLevel == AndroidApiLevel.UNKNOWN) {
@@ -838,9 +838,9 @@ public class DexProgramClass extends DexClass
   }
 
   public AndroidApiLevel getMembersApiReferenceLevel(AppView<?> appView) {
-    AndroidApiLevel memberLevel = getApiLevelIfEnabled(appView, Function.identity());
+    AndroidApiLevel memberLevel = minApiLevelIfEnabledOrUnknown(appView);
     for (DexEncodedMember<?, ?> member : members()) {
-      memberLevel = memberLevel.max(getApiLevelIfEnabled(appView, member::getApiReferenceLevel));
+      memberLevel = memberLevel.max(member.getApiLevel());
       if (memberLevel == AndroidApiLevel.UNKNOWN) {
         return AndroidApiLevel.UNKNOWN;
       }

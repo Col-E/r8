@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
-import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiLevelIfEnabledForNewMember;
+import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfArrayStore;
@@ -48,7 +48,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import org.objectweb.asm.Opcodes;
 
 public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
@@ -238,7 +237,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
               DexEncodedField.NO_STATIC_VALUE,
               DexEncodedField.NOT_DEPRECATED,
               DexEncodedField.D8_R8_SYNTHESIZED,
-              getApiLevelIfEnabledForNewMember(appView, Function.identity()));
+              minApiLevelIfEnabledOrUnknown(appView));
       fieldAccessInfoCollectionModifierBuilder
           .recordFieldReadInUnknownContext(valuesField.getReference())
           .recordFieldWriteInUnknownContext(valuesField.getReference());
@@ -258,8 +257,8 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
           createClassInitializerCode(sharedUtilityClassType, valuesField),
           DexEncodedMethod.D8_R8_SYNTHESIZED,
           CfVersion.V1_6,
-          getApiLevelIfEnabledForNewMember(appView, Function.identity()),
-          getApiLevelIfEnabledForNewMember(appView, Function.identity()));
+          minApiLevelIfEnabledOrUnknown(appView),
+          minApiLevelIfEnabledOrUnknown(appView));
     }
 
     private CfCode createClassInitializerCode(
@@ -305,8 +304,8 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
               createValuesMethodCode(sharedUtilityClassType, valuesField),
               DexEncodedMethod.D8_R8_SYNTHESIZED,
               CfVersion.V1_6,
-              getApiLevelIfEnabledForNewMember(appView, Function.identity()),
-              getApiLevelIfEnabledForNewMember(appView, Function.identity()));
+              minApiLevelIfEnabledOrUnknown(appView),
+              minApiLevelIfEnabledOrUnknown(appView));
       this.valuesMethod = valuesMethod;
       return valuesMethod;
     }

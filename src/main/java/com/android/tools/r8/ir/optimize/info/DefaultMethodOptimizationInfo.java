@@ -18,7 +18,6 @@ import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodCl
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableSet;
 import java.util.BitSet;
@@ -192,26 +191,6 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
 
   @Override
   public boolean returnValueHasBeenPropagated() {
-    return false;
-  }
-
-  @Override
-  public boolean hasApiReferenceLevelForCode() {
-    return false;
-  }
-
-  @Override
-  public AndroidApiLevel getApiReferenceLevelForCode(AndroidApiLevel minApi) {
-    throw new RuntimeException("Should never be called");
-  }
-
-  @Override
-  public AndroidApiLevel getApiReferenceLevelForDefinition(AndroidApiLevel minApi) {
-    throw new RuntimeException("Should never be called");
-  }
-
-  @Override
-  public boolean hasApiReferenceLevelForDefinition() {
     return false;
   }
 

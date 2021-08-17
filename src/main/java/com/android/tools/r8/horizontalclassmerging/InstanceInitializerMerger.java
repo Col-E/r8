@@ -5,7 +5,6 @@
 package com.android.tools.r8.horizontalclassmerging;
 
 import static com.android.tools.r8.dex.Constants.TEMPORARY_INSTANCE_INITIALIZER_PREFIX;
-import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiLevelIfEnabledForNewMember;
 
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
@@ -372,10 +371,8 @@ public class InstanceInitializerMerger {
             getNewCode(newMethodReference, syntheticMethodReference, needsClassId, extraNulls),
             true,
             getNewClassFileVersion(),
-            getApiLevelIfEnabledForNewMember(
-                appView, representativeMethod::getApiReferenceLevelForDefinition),
-            getApiLevelIfEnabledForNewMember(
-                appView, representativeMethod::getApiReferenceLevelForCode));
+            representativeMethod.getApiLevelForDefinition(),
+            representativeMethod.getApiLevelForCode());
     classMethodsBuilder.addDirectMethod(newInstanceInitializer);
 
     if (mode.isFinal()) {
