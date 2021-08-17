@@ -106,7 +106,8 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
       KmFunction kmFunction, DexItemFactory factory) {
     String lambdaClassOriginName = JvmExtensionsKt.getLambdaClassOriginName(kmFunction);
     if (lambdaClassOriginName != null) {
-      return KotlinTypeReference.fromBinaryName(lambdaClassOriginName, factory);
+      return KotlinTypeReference.fromBinaryName(
+          lambdaClassOriginName, factory, lambdaClassOriginName);
     }
     return null;
   }

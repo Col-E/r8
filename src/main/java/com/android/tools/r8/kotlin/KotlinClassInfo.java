@@ -187,7 +187,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       KmClass kmClass, DexItemFactory factory) {
     String anonymousObjectOriginName = JvmExtensionsKt.getAnonymousObjectOriginName(kmClass);
     if (anonymousObjectOriginName != null) {
-      return KotlinTypeReference.fromBinaryName(anonymousObjectOriginName, factory);
+      return KotlinTypeReference.fromBinaryName(
+          anonymousObjectOriginName, factory, anonymousObjectOriginName);
     }
     return null;
   }
@@ -198,7 +199,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     for (String nestedClass : nestedClasses) {
       String binaryName =
           clazz.type.toBinaryName() + DescriptorUtils.INNER_CLASS_SEPARATOR + nestedClass;
-      nestedTypes.add(KotlinTypeReference.fromBinaryName(binaryName, factory));
+      nestedTypes.add(KotlinTypeReference.fromBinaryName(binaryName, factory, nestedClass));
     }
     return nestedTypes.build();
   }
@@ -210,7 +211,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       String binaryName =
           sealedSubClass.replace(
               DescriptorUtils.JAVA_PACKAGE_SEPARATOR, DescriptorUtils.INNER_CLASS_SEPARATOR);
-      sealedTypes.add(KotlinTypeReference.fromBinaryName(binaryName, factory));
+      sealedTypes.add(KotlinTypeReference.fromBinaryName(binaryName, factory, sealedSubClass));
     }
     return sealedTypes.build();
   }
@@ -326,30 +327,31 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     }
     // Rewrite nested classes.
     for (KotlinTypeReference nestedClass : nestedClasses) {
-      rewritten |=
+      Box<String> nestedDescriptorBox = new Box<>();
+      boolean nestedClassRewritten =
           nestedClass.toRenamedBinaryNameOrDefault(
-              nestedDescriptor -> {
-                if (nestedDescriptor != null) {
-                  // If the class is a nested class, it should be on the form Foo.Bar$Baz, where Baz
-                  // is the
-                  // name we should record.
-                  int innerClassIndex =
-                      nestedDescriptor.lastIndexOf(DescriptorUtils.INNER_CLASS_SEPARATOR);
-                  kmClass.visitNestedClass(nestedDescriptor.substring(innerClassIndex + 1));
-                }
-              },
-              appView,
-              namingLens,
-              null);
+              nestedDescriptorBox::set, appView, namingLens, null);
+      if (nestedDescriptorBox.isSet()) {
+        if (nestedClassRewritten) {
+          // If the class is a nested class, it should be on the form Foo.Bar$Baz, where Baz
+          // is the name we should record.
+          String nestedDescriptor = nestedDescriptorBox.get();
+          int innerClassIndex = nestedDescriptor.lastIndexOf(DescriptorUtils.INNER_CLASS_SEPARATOR);
+          kmClass.visitNestedClass(nestedDescriptor.substring(innerClassIndex + 1));
+        } else {
+          kmClass.visitNestedClass(nestedClass.getOriginalName());
+        }
+      }
+      rewritten |= nestedClassRewritten;
     }
     // Rewrite sealed sub classes.
     for (KotlinTypeReference sealedSubClass : sealedSubClasses) {
       rewritten |=
           sealedSubClass.toRenamedBinaryNameOrDefault(
-              sealedDescriptor -> {
-                if (sealedDescriptor != null) {
+              sealedName -> {
+                if (sealedName != null) {
                   kmClass.visitSealedSubclass(
-                      sealedDescriptor.replace(
+                      sealedName.replace(
                           DescriptorUtils.INNER_CLASS_SEPARATOR,
                           DescriptorUtils.JAVA_PACKAGE_SEPARATOR));
                 }
@@ -409,7 +411,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     declarationContainerInfo.trace(definitionSupplier);
     forEachApply(typeParameters, param -> param::trace, definitionSupplier);
     forEachApply(superTypes, type -> type::trace, definitionSupplier);
-    forEachApply(sealedSubClasses, sealed -> sealed::trace, definitionSupplier);
+    forEachApply(sealedSubClasses, sealedClass -> sealedClass::trace, definitionSupplier);
     forEachApply(nestedClasses, nested -> nested::trace, definitionSupplier);
     localDelegatedProperties.trace(definitionSupplier);
     // TODO(b/154347404): trace enum entries.

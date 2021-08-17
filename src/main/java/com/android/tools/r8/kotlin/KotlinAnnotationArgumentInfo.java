@@ -68,7 +68,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
 
     private static KotlinAnnotationClassValueInfo create(KClassValue arg, DexItemFactory factory) {
       return new KotlinAnnotationClassValueInfo(
-          KotlinTypeReference.fromBinaryName(arg.getClassName(), factory),
+          KotlinTypeReference.fromBinaryName(arg.getClassName(), factory, arg.getClassName()),
           arg.getArrayDimensionCount());
     }
 
@@ -100,7 +100,8 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
 
     private static KotlinAnnotationEnumValueInfo create(EnumValue arg, DexItemFactory factory) {
       return new KotlinAnnotationEnumValueInfo(
-          KotlinTypeReference.fromBinaryName(arg.getEnumClassName(), factory),
+          KotlinTypeReference.fromBinaryName(
+              arg.getEnumClassName(), factory, arg.getEnumClassName()),
           arg.getEnumEntryName());
     }
 
