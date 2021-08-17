@@ -20,9 +20,6 @@ class InterfaceMethodRewriterFixup {
   }
 
   void run() {
-    if (graphLens == null) {
-      return;
-    }
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       if (clazz.getEnclosingMethodAttribute() != null
           && clazz.getEnclosingMethodAttribute().getEnclosingMethod() != null) {

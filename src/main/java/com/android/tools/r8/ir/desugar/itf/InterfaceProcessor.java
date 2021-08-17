@@ -448,10 +448,14 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   @Override
   public void finalizeProcessing(InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     InterfaceProcessorNestedGraphLens graphLens = postProcessInterfaces();
-    if (appView.enableWholeProgramOptimizations() && graphLens != null) {
-      appView.setGraphLens(graphLens);
+    if (graphLens != null) {
+      if (appView.enableWholeProgramOptimizations()) {
+        appView.setGraphLens(graphLens);
+      }
+      new InterfaceMethodRewriterFixup(appView, graphLens).run();
+
+      graphLens.moveToPending();
     }
-    new InterfaceMethodRewriterFixup(appView, graphLens).run();
   }
 
   private PostProcessingInterfaceInfo getPostProcessingInterfaceInfo(DexProgramClass iface) {
@@ -531,6 +535,10 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
         Map<DexType, DexType> typeMap,
         BidirectionalOneToOneMap<DexMethod, DexMethod> extraNewMethodSignatures) {
       super(appView, fieldMap, methodMap, typeMap);
+      this.extraNewMethodSignatures = extraNewMethodSignatures;
+    }
+
+    public void moveToPending() {
       // These are "pending" and installed in the "toggled" state only.
       pendingNewMethodSignatures = newMethodSignatures;
       pendingExtraNewMethodSignatures = extraNewMethodSignatures;
