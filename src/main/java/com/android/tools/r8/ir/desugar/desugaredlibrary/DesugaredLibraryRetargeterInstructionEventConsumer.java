@@ -15,10 +15,10 @@ public interface DesugaredLibraryRetargeterInstructionEventConsumer {
 
   void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz);
 
-  void acceptInterfaceInjection(DexProgramClass clazz, DexClass newInterface);
-
   interface DesugaredLibraryRetargeterPostProcessingEventConsumer
       extends DesugaredLibraryRetargeterInstructionEventConsumer {
+
+    void acceptInterfaceInjection(DexProgramClass clazz, DexClass newInterface);
 
     void acceptForwardingMethod(ProgramMethod method);
   }

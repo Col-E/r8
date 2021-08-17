@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
@@ -95,11 +94,6 @@ public abstract class CfInstructionDesugaringEventConsumer
       }
 
       @Override
-      public void acceptInterfaceInjection(DexProgramClass clazz, DexClass newInterface) {
-        assert false;
-      }
-
-      @Override
       public void acceptThrowMethod(ProgramMethod method, ProgramMethod context) {
         assert false;
       }
@@ -177,11 +171,6 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz) {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void acceptInterfaceInjection(DexProgramClass clazz, DexClass newInterface) {
       // Intentionally empty.
     }
 
@@ -345,11 +334,6 @@ public abstract class CfInstructionDesugaringEventConsumer
     public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
       // Called only in Desugared library compilation which is D8.
       assert false;
-    }
-
-    @Override
-    public void acceptInterfaceInjection(DexProgramClass clazz, DexClass newInterface) {
-      additions.injectInterface(clazz, newInterface);
     }
 
     @Override

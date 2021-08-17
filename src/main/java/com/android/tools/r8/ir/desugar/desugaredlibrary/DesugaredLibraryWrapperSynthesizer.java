@@ -312,9 +312,8 @@ public class DesugaredLibraryWrapperSynthesizer {
             // The creation of virtual methods may require new wrappers, this needs to happen
             // once the wrapper is created to avoid infinite recursion.
             wrapper -> {
-              if (eventConsumer != null) {
-                eventConsumer.acceptWrapperProgramClass(wrapper);
-              }
+              assert eventConsumer != null;
+              eventConsumer.acceptWrapperProgramClass(wrapper);
               wrapper.setVirtualMethods(
                   virtualMethodProvider.apply(getWrapperUniqueEncodedField(wrapper)));
             });
@@ -489,7 +488,7 @@ public class DesugaredLibraryWrapperSynthesizer {
       if (dexEncodedMethod.isFinal()) {
         finalMethods.add(dexEncodedMethod.getReference());
         continue;
-      } else {
+      } else if (dexClass.isProgramClass()) {
         cfCode =
             new APIConverterVivifiedWrapperCfCodeProvider(
                     appView,
@@ -499,6 +498,8 @@ public class DesugaredLibraryWrapperSynthesizer {
                     isInterface,
                     eventConsumer)
                 .generateCfCode();
+      } else {
+        cfCode = null;
       }
       DexEncodedMethod newDexEncodedMethod =
           newSynthesizedMethod(methodToInstall, dexEncodedMethod, cfCode);
@@ -535,7 +536,7 @@ public class DesugaredLibraryWrapperSynthesizer {
       if (dexEncodedMethod.isFinal()) {
         finalMethods.add(dexEncodedMethod.getReference());
         continue;
-      } else {
+      } else if (dexClass.isProgramClass()) {
         cfCode =
             new APIConverterWrapperCfCodeProvider(
                     appView,
@@ -545,6 +546,8 @@ public class DesugaredLibraryWrapperSynthesizer {
                     isInterface,
                     eventConsumer)
                 .generateCfCode();
+      } else {
+        cfCode = null;
       }
       DexEncodedMethod newDexEncodedMethod =
           newSynthesizedMethod(methodToInstall, dexEncodedMethod, cfCode);
@@ -582,9 +585,9 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexMethod methodToInstall, DexEncodedMethod template, Code code) {
     MethodAccessFlags newFlags = template.accessFlags.copy();
     assert newFlags.isPublic();
-    if (code == null) {
-      newFlags.setAbstract();
-    } else {
+    // It can happen that we wrap an abstract method, in which case the wrapping method is no
+    // longer abstract.
+    if (code != null) {
       newFlags.unsetAbstract();
     }
     // TODO(b/146114533): Fix inlining in synthetic methods and remove unsetBridge.
