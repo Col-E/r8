@@ -66,6 +66,10 @@ public abstract class FieldResolutionResult
     return false;
   }
 
+  public boolean isFailedResolution() {
+    return false;
+  }
+
   public DexClass getInitialResolutionHolder() {
     return null;
   }
@@ -161,6 +165,11 @@ public abstract class FieldResolutionResult
 
     @Override
     public boolean isFailedOrUnknownResolution() {
+      return true;
+    }
+
+    @Override
+    public boolean isFailedResolution() {
       return true;
     }
   }

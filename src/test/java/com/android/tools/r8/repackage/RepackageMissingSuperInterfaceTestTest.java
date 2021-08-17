@@ -4,12 +4,13 @@
 
 package com.android.tools.r8.repackage;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,16 +27,16 @@ public class RepackageMissingSuperInterfaceTestTest extends RepackageTestBase {
 
   @Test
   public void testR8WithoutRepackaging() throws Exception {
-    runTest(false).assertSuccessWithOutputLines(EXPECTED);
+    runTest(false);
   }
 
   @Test
   public void testR8() throws Exception {
-    runTest(true).assertSuccessWithOutputLines(EXPECTED);
+    runTest(true);
   }
 
-  private R8TestRunResult runTest(boolean repackage) throws Exception {
-    return testForR8(parameters.getBackend())
+  private void runTest(boolean repackage) throws Exception {
+    testForR8(parameters.getBackend())
         .addProgramClasses(ClassImplementingMissingInterface.class, Main.class)
         .addKeepMainRule(Main.class)
         .applyIf(repackage, this::configureRepackaging)
@@ -46,13 +47,20 @@ public class RepackageMissingSuperInterfaceTestTest extends RepackageTestBase {
         .compile()
         .inspect(
             inspector -> {
-              assertThat(ClassImplementingMissingInterface.class, isNotRepackaged(inspector));
+              if (repackage) {
+                assertThat(ClassImplementingMissingInterface.class, isRepackaged(inspector));
+              } else {
+                // The class is minified.
+                ClassSubject clazz = inspector.clazz(ClassImplementingMissingInterface.class);
+                assertThat(clazz, isPresentAndRenamed());
+              }
             })
         .addRunClasspathClasses(MissingInterface.class)
-        .run(parameters.getRuntime(), Main.class);
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  private interface MissingInterface {
+  public interface MissingInterface {
 
     void bar();
   }

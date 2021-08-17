@@ -116,13 +116,22 @@ public class RepackagingUseRegistry extends UseRegistry {
       MemberResolutionResult<?, ?> resolutionResult, boolean isInvoke) {
     if (!resolutionResult.isSuccessfulMemberResolutionResult()) {
       // To preserve errors in the original program, we need to look at the failure dependencies.
-      // For example, if this method accesses in a package-private method in another package, and we
-      // move the two methods to the same package, then the invoke would no longer fail with an
+      // For example, if this member accesses a package-private method in another package, and we
+      // move the two members to the same package, then the invoke would no longer fail with an
       // IllegalAccessError.
-      if (isInvoke) {
-        // TODO(b/150589374): Only add this if we are in the minification mode of repackaging.
-        node.addNeighbor(missingTypeNode);
+
+      // For fields and methods that cannot be found the chance of recovering by repackaging is
+      // pretty slim thus we allow for repackaging the callers.
+      if (resolutionResult.isFieldResolutionResult()) {
+        assert resolutionResult.asFieldResolutionResult().isFailedResolution();
+        return;
       }
+      MethodResolutionResult methodResult = resolutionResult.asMethodResolutionResult();
+      if (methodResult.isClassNotFoundResult()
+          || methodResult.isNoSuchMethodErrorResult(context.getContextClass(), appInfo)) {
+        return;
+      }
+      node.addNeighbor(missingTypeNode);
       return;
     }
 
@@ -161,9 +170,6 @@ public class RepackagingUseRegistry extends UseRegistry {
     DexClass clazz = appInfo.definitionFor(type);
     if (clazz != null) {
       consumer.accept(clazz);
-    } else {
-      // The missing type reference can be package private and we cannot repackage.
-      node.addNeighbor(missingTypeNode);
     }
   }
 

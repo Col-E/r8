@@ -80,6 +80,10 @@ public abstract class MethodResolutionResult
     return false;
   }
 
+  public boolean isClassNotFoundResult() {
+    return false;
+  }
+
   /** Returns non-null if isFailedResolution() is true, otherwise null. */
   public FailedResolutionResult asFailedResolution() {
     return null;
@@ -845,6 +849,11 @@ public abstract class MethodResolutionResult
 
     private ClassNotFoundResult() {
       // Intentionally left empty.
+    }
+
+    @Override
+    public boolean isClassNotFoundResult() {
+      return true;
     }
   }
 

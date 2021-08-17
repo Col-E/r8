@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.repackage;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,16 +25,16 @@ public class RepackageMissingMemberReferenceTest extends RepackageTestBase {
 
   @Test
   public void testR8WithoutRepackaging() throws Exception {
-    runTest(false).assertSuccessWithOutputLines(EXPECTED);
+    runTest(false);
   }
 
   @Test
   public void testR8() throws Exception {
-    runTest(true).assertSuccessWithOutputLines(EXPECTED);
+    runTest(true);
   }
 
-  private R8TestRunResult runTest(boolean repackage) throws Exception {
-    return testForR8(parameters.getBackend())
+  private void runTest(boolean repackage) throws Exception {
+    testForR8(parameters.getBackend())
         .addProgramClasses(ClassWithMissingReferenceInCode.class, Main.class)
         .addKeepMainRule(Main.class)
         .applyIf(repackage, this::configureRepackaging)
@@ -43,13 +43,20 @@ public class RepackageMissingMemberReferenceTest extends RepackageTestBase {
         .enableInliningAnnotations()
         .compile()
         .inspect(
-            inspector ->
-                assertThat(ClassWithMissingReferenceInCode.class, isNotRepackaged(inspector)))
+            inspector -> {
+              if (repackage) {
+                assertThat(ClassWithMissingReferenceInCode.class, isRepackaged(inspector));
+              } else {
+                assertThat(
+                    inspector.clazz(ClassWithMissingReferenceInCode.class), isPresentAndRenamed());
+              }
+            })
         .addRunClasspathClasses(MissingReference.class)
-        .run(parameters.getRuntime(), Main.class);
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  static class MissingReference {
+  public static class MissingReference {
     public static void doSomething() {
       System.out.println("MissingReference::doSomething");
     }
