@@ -55,6 +55,10 @@ public class DesugarStaticInterfaceMethodsRetraceTest extends RetraceTestBase {
     // TODO(b/186015503): This test fails when mapping via PCs.
     //  also the test should be updated to use TestParameters and api levels.
     assumeTrue("b/186015503", !backend.isDex() || mode != CompilationMode.RELEASE);
+    // This also fails when desugaring due to the change in companion method stacks.
+    assumeTrue(
+        ToolHelper.getMinApiLevelForDexVm()
+            .isGreaterThanOrEqualTo(apiLevelWithDefaultInterfaceMethodsSupport()));
     runTest(
         ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
         // For the desugaring to companion classes the retrace stacktrace is still the same
