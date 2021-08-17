@@ -44,7 +44,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 // I am responsible for the generation of wrappers used to call library APIs when desugaring
@@ -210,12 +209,11 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexType type, DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
     assert canGenerateWrapper(type) : type;
     DexClass dexClass = getValidClassToWrap(type);
-    return ensureWrappers(dexClass, ignored -> {}, eventConsumer);
+    return ensureWrappers(dexClass, eventConsumer);
   }
 
   private Wrappers ensureWrappers(
       DexClass context,
-      Consumer<DexClasspathClass> creationCallback,
       DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
     DexType type = context.type;
     DexClass wrapper;
@@ -258,7 +256,6 @@ public class DesugaredLibraryWrapperSynthesizer {
               vivifiedTypeFor(type),
               type,
               classpathOrLibraryContext,
-              creationCallback,
               eventConsumer,
               wrapperField ->
                   synthesizeVirtualMethodsForTypeWrapper(context, wrapperField, eventConsumer));
@@ -268,7 +265,6 @@ public class DesugaredLibraryWrapperSynthesizer {
               type,
               vivifiedTypeFor(type),
               classpathOrLibraryContext,
-              creationCallback,
               eventConsumer,
               wrapperField ->
                   synthesizeVirtualMethodsForVivifiedTypeWrapper(
@@ -324,7 +320,6 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexType wrappingType,
       DexType wrappedType,
       ClasspathOrLibraryClass classpathOrLibraryContext,
-      Consumer<DexClasspathClass> creationCallback,
       DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer,
       Function<DexEncodedField, DexEncodedMethod[]> virtualMethodProvider) {
     return appView
@@ -343,7 +338,6 @@ public class DesugaredLibraryWrapperSynthesizer {
               eventConsumer.acceptWrapperClasspathClass(wrapper);
               wrapper.setVirtualMethods(
                   virtualMethodProvider.apply(getWrapperUniqueEncodedField(wrapper)));
-              creationCallback.accept(wrapper);
             });
   }
 
@@ -667,7 +661,7 @@ public class DesugaredLibraryWrapperSynthesizer {
       // In broken set-ups we can end up having a json files containing wrappers of non desugared
       // classes. Such wrappers are not required since the class won't be rewritten.
       if (validClassToWrap.isProgramClass()) {
-        ensureWrappers(validClassToWrap, ignored -> {}, eventConsumer);
+        ensureWrappers(validClassToWrap, eventConsumer);
       }
     }
   }
