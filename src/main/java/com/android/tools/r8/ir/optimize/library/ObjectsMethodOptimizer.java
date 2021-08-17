@@ -183,16 +183,8 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
         }
         instructionIterator.removeOrReplaceByDebugLocalRead();
       } else if (singleTarget.getReference() == objectsMethods.requireNonNullElseGet) {
-        // Optimize Objects.requireNonNullElseGet(null, supplier) into supplier.get().
-        if (invoke.hasOutValue()) {
-          invoke.outValue().replaceUsers(invoke.getLastArgument(), affectedValues);
-        }
-        instructionIterator.replaceCurrentInstruction(
-            InvokeVirtual.builder()
-                .setMethod(dexItemFactory.supplierMembers.get)
-                .setOutValue(invoke.outValue())
-                .setSingleArgument(invoke.getLastArgument())
-                .build());
+        // Don't optimize Objects.requireNonNullElseGet. The result of calling supplier.get() still
+        // needs a null-check, so two invokes will be needed.
       }
     }
   }

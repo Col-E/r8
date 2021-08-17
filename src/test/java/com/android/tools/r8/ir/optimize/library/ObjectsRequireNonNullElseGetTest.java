@@ -41,7 +41,17 @@ public class ObjectsRequireNonNullElseGetTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void testD8() throws Exception {
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(getProgramClassFileData())
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Foo", "Bar", "Expected NPE");
+  }
+
+  @Test
+  public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(Main.class)
@@ -65,10 +75,12 @@ public class ObjectsRequireNonNullElseGetTest extends TestBase {
               assertThat(testNullArgumentMethodSubject, isPresent());
               assertThat(
                   testNullArgumentMethodSubject,
-                  not(invokesMethodWithName("requireNonNullElseGet")));
+                  parameters.getApiLevel().isGreaterThan(AndroidApiLevel.Q)
+                      ? invokesMethodWithName("requireNonNullElseGet")
+                      : not(invokesMethodWithName("requireNonNullElseGet")));
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Foo", "Bar");
+        .assertSuccessWithOutputLines("Foo", "Bar", "Expected NPE");
   }
 
   private byte[] getProgramClassFileData() throws IOException {
@@ -83,6 +95,12 @@ public class ObjectsRequireNonNullElseGetTest extends TestBase {
     public static void main(String[] args) {
       testNonNullArgument();
       testNullArgument();
+      try {
+        testNullArgumentAndNullSupplier();
+        System.out.println("Unexpected");
+      } catch (NullPointerException e) {
+        System.out.println("Expected NPE");
+      }
     }
 
     @NeverInline
@@ -93,6 +111,11 @@ public class ObjectsRequireNonNullElseGetTest extends TestBase {
     @NeverInline
     static void testNullArgument() {
       System.out.println(Mock.requireNonNullElseGet(null, () -> "Bar"));
+    }
+
+    @NeverInline
+    static void testNullArgumentAndNullSupplier() {
+      System.out.println(Mock.requireNonNullElseGet(null, () -> null));
     }
   }
 
