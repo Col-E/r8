@@ -36,6 +36,16 @@ public class ObjectsRequireNonNullElseTest extends TestBase {
   }
 
   @Test
+  public void testD8() throws Exception {
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(getProgramClassFileData())
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Foo", "Bar", "Expected NPE");
+  }
+
+  @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getProgramClassFileData())
@@ -62,7 +72,7 @@ public class ObjectsRequireNonNullElseTest extends TestBase {
                   testNullArgumentMethodSubject, not(invokesMethodWithName("requireNonNullElse")));
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Foo", "Bar");
+        .assertSuccessWithOutputLines("Foo", "Bar", "Expected NPE");
   }
 
   private byte[] getProgramClassFileData() throws IOException {
@@ -77,6 +87,12 @@ public class ObjectsRequireNonNullElseTest extends TestBase {
     public static void main(String[] args) {
       testNonNullArgument();
       testNullArgument();
+      try {
+        testNullArgumentAndNullDefaultValue();
+        System.out.println("Unexpected");
+      } catch (NullPointerException e) {
+        System.out.println("Expected NPE");
+      }
     }
 
     @NeverInline
@@ -87,6 +103,11 @@ public class ObjectsRequireNonNullElseTest extends TestBase {
     @NeverInline
     static void testNullArgument() {
       System.out.println(Mock.requireNonNullElse(null, "Bar"));
+    }
+
+    @NeverInline
+    static void testNullArgumentAndNullDefaultValue() {
+      System.out.println(Mock.requireNonNullElse(null, null));
     }
   }
 

@@ -177,11 +177,14 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
       instructionIterator.removeOrReplaceByDebugLocalRead();
     } else if (inValue.isAlwaysNull(appView)) {
       if (singleTarget.getReference() == objectsMethods.requireNonNullElse) {
-        // Optimize Objects.requireNonNullElse(null, defaultObj) into defaultObj.
-        if (invoke.hasOutValue()) {
-          invoke.outValue().replaceUsers(invoke.getLastArgument(), affectedValues);
+        // Optimize Objects.requireNonNullElse(null, defaultObj) into defaultObj if defaultObj
+        // is never null.
+        if (invoke.getLastArgument().isNeverNull()) {
+          if (invoke.hasOutValue()) {
+            invoke.outValue().replaceUsers(invoke.getLastArgument(), affectedValues);
+          }
+          instructionIterator.removeOrReplaceByDebugLocalRead();
         }
-        instructionIterator.removeOrReplaceByDebugLocalRead();
       } else if (singleTarget.getReference() == objectsMethods.requireNonNullElseGet) {
         // Don't optimize Objects.requireNonNullElseGet. The result of calling supplier.get() still
         // needs a null-check, so two invokes will be needed.
