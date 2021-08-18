@@ -5,7 +5,9 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterL8Synthesizer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizer;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
@@ -18,12 +20,17 @@ public class CfL8ClassSynthesizerCollection {
 
   private Collection<CfL8ClassSynthesizer> synthesizers = new ArrayList<>();
 
-  public CfL8ClassSynthesizerCollection(AppView<?> appView) {
+  public CfL8ClassSynthesizerCollection(AppView<?> appView, RetargetingInfo retargetingInfo) {
     assert appView.options().isDesugaredLibraryCompilation();
     EmulatedInterfaceSynthesizer emulatedInterfaceSynthesizer =
         EmulatedInterfaceSynthesizer.create(appView);
     if (emulatedInterfaceSynthesizer != null) {
       synthesizers.add(emulatedInterfaceSynthesizer);
+    }
+    DesugaredLibraryRetargeterL8Synthesizer retargeterL8Synthesizer =
+        DesugaredLibraryRetargeterL8Synthesizer.create(appView, retargetingInfo);
+    if (retargeterL8Synthesizer != null) {
+      synthesizers.add(retargeterL8Synthesizer);
     }
     synthesizers.add(new DesugaredLibraryWrapperSynthesizer(appView));
   }

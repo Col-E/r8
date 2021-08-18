@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.ClassConverterResult;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethodDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterInstructionEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPIConverterEventConsumer;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialBridgeInfo;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaringEventConsumer;
@@ -75,11 +75,6 @@ public abstract class CfInstructionDesugaringEventConsumer
 
       @Override
       public void acceptAPIConversion(ProgramMethod method) {
-        assert false;
-      }
-
-      @Override
-      public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
         assert false;
       }
 
@@ -162,11 +157,6 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     private D8CfInstructionDesugaringEventConsumer(D8MethodProcessor methodProcessor) {
       this.methodProcessor = methodProcessor;
-    }
-
-    @Override
-    public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
-      methodProcessor.scheduleDesugaredMethodsForProcessing(clazz.programMethods());
     }
 
     @Override
@@ -328,12 +318,6 @@ public abstract class CfInstructionDesugaringEventConsumer
       this.lambdaClassConsumer = lambdaClassConsumer;
       this.twrCloseResourceMethodConsumer = twrCloseResourceMethodConsumer;
       this.additions = additions;
-    }
-
-    @Override
-    public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
-      // Called only in Desugared library compilation which is D8.
-      assert false;
     }
 
     @Override

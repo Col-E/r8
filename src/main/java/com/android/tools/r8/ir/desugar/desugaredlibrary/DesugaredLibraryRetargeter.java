@@ -124,7 +124,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
         new InvokeRetargetingResult(false, ignored -> null);
 
     private final boolean hasNewInvokeTarget;
-    private final Function<DesugaredLibraryRetargeterInstructionEventConsumer, DexMethod>
+    private final Function<DesugaredLibraryRetargeterSynthesizerEventConsumer, DexMethod>
         newInvokeTargetSupplier;
 
     static InvokeRetargetingResult createInvokeRetargetingResult(DexMethod retarget) {
@@ -136,7 +136,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
 
     private InvokeRetargetingResult(
         boolean hasNewInvokeTarget,
-        Function<DesugaredLibraryRetargeterInstructionEventConsumer, DexMethod>
+        Function<DesugaredLibraryRetargeterSynthesizerEventConsumer, DexMethod>
             newInvokeTargetSupplier) {
       this.hasNewInvokeTarget = hasNewInvokeTarget;
       this.newInvokeTargetSupplier = newInvokeTargetSupplier;
@@ -147,7 +147,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     }
 
     public DexMethod getNewInvokeTarget(
-        DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
+        DesugaredLibraryRetargeterSynthesizerEventConsumer eventConsumer) {
       assert hasNewInvokeTarget();
       return newInvokeTargetSupplier.apply(eventConsumer);
     }

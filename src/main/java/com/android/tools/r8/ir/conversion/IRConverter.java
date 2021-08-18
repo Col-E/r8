@@ -49,6 +49,8 @@ import com.android.tools.r8.ir.desugar.CfClassDesugaringEventConsumer.D8CfClassD
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizerCollection;
+import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer.D8CfPostProcessingDesugaringEventConsumer;
@@ -440,6 +442,14 @@ public class IRConverter {
       application = appView.appInfo().app();
     }
     return application;
+  }
+
+  public void l8ClassSynthesis(
+      ExecutorService executorService,
+      CfL8ClassSynthesizerEventConsumer l8ClassSynthesizerEventConsumer)
+      throws ExecutionException {
+    new CfL8ClassSynthesizerCollection(appView, instructionDesugaring.getRetargetingInfo())
+        .synthesizeClasses(executorService, l8ClassSynthesizerEventConsumer);
   }
 
   private void postProcessingDesugaringForD8(

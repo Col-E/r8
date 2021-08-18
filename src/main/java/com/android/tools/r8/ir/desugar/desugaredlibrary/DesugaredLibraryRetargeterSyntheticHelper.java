@@ -11,6 +11,8 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterInstructionEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterL8SynthesizerEventConsumer;
 import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
@@ -27,7 +29,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
 
   public DexClass ensureEmulatedHolderDispatchMethod(
       DexClassAndMethod emulatedDispatchMethod,
-      DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
+      DesugaredLibraryRetargeterSynthesizerEventConsumer eventConsumer) {
     assert eventConsumer != null;
     DexClass interfaceClass =
         ensureEmulatedInterfaceDispatchMethod(emulatedDispatchMethod, eventConsumer);
@@ -44,10 +46,19 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
                   appView,
                   classBuilder ->
                       buildHolderDispatchMethod(classBuilder, emulatedDispatchMethod, itfMethod),
-                  eventConsumer::acceptDesugaredLibraryRetargeterDispatchProgramClass);
+                  clazz -> {
+                    DesugaredLibraryRetargeterL8SynthesizerEventConsumer programEventConsumer =
+                        eventConsumer.asProgramSynthesizer();
+                    assert programEventConsumer != null;
+                    programEventConsumer.acceptDesugaredLibraryRetargeterDispatchProgramClass(
+                        clazz);
+                  });
     } else {
       ClasspathOrLibraryClass context =
           emulatedDispatchMethod.getHolder().asClasspathOrLibraryClass();
+      DesugaredLibraryRetargeterInstructionEventConsumer classpathEventConsumer =
+          eventConsumer.asClasspathSynthesizer();
+      assert classpathEventConsumer != null;
       assert context != null;
       holderDispatch =
           appView
@@ -58,7 +69,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
                   appView,
                   classBuilder ->
                       buildHolderDispatchMethod(classBuilder, emulatedDispatchMethod, itfMethod),
-                  eventConsumer::acceptDesugaredLibraryRetargeterDispatchClasspathClass);
+                  classpathEventConsumer::acceptDesugaredLibraryRetargeterDispatchClasspathClass);
     }
     rewriteType(holderDispatch.type);
     return holderDispatch;
@@ -66,7 +77,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
 
   public DexClass ensureEmulatedInterfaceDispatchMethod(
       DexClassAndMethod emulatedDispatchMethod,
-      DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
+      DesugaredLibraryRetargeterSynthesizerEventConsumer eventConsumer) {
     assert eventConsumer != null;
     DexClass interfaceDispatch;
     if (appView.options().isDesugaredLibraryCompilation()) {
@@ -79,8 +90,17 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
                   appView,
                   classBuilder ->
                       buildInterfaceDispatchMethod(classBuilder, emulatedDispatchMethod),
-                  eventConsumer::acceptDesugaredLibraryRetargeterDispatchProgramClass);
+                  clazz -> {
+                    DesugaredLibraryRetargeterL8SynthesizerEventConsumer programEventConsumer =
+                        eventConsumer.asProgramSynthesizer();
+                    assert programEventConsumer != null;
+                    programEventConsumer.acceptDesugaredLibraryRetargeterDispatchProgramClass(
+                        clazz);
+                  });
     } else {
+      DesugaredLibraryRetargeterInstructionEventConsumer classpathEventConsumer =
+          eventConsumer.asClasspathSynthesizer();
+      assert classpathEventConsumer != null;
       ClasspathOrLibraryClass context =
           emulatedDispatchMethod.getHolder().asClasspathOrLibraryClass();
       assert context != null;
@@ -93,7 +113,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
                   appView,
                   classBuilder ->
                       buildInterfaceDispatchMethod(classBuilder, emulatedDispatchMethod),
-                  eventConsumer::acceptDesugaredLibraryRetargeterDispatchClasspathClass);
+                  classpathEventConsumer::acceptDesugaredLibraryRetargeterDispatchClasspathClass);
     }
     rewriteType(interfaceDispatch.type);
     return interfaceDispatch;

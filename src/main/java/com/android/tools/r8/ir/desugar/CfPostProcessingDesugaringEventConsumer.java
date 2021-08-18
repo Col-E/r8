@@ -3,13 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPICallbackSynthesizorEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
@@ -47,11 +46,6 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     private D8CfPostProcessingDesugaringEventConsumer(D8MethodProcessor methodProcessor) {
       this.methodProcessor = methodProcessor;
-    }
-
-    @Override
-    public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
-      methodsToReprocess.addAll(clazz.programMethods());
     }
 
     @Override
@@ -100,12 +94,6 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     @Override
     public void finalizeDesugaring() throws ExecutionException {
       // Intentionally empty.
-    }
-
-    @Override
-    public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
-      // TODO(b/191656218): Remove unneeded method.
-      throw new Unreachable();
     }
 
     @Override

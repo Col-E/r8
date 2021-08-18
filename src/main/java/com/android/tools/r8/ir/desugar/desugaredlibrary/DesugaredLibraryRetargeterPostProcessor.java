@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaring;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
 import com.google.common.collect.Maps;
@@ -49,11 +49,8 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
       CfPostProcessingDesugaringEventConsumer eventConsumer,
       ExecutorService executorService)
       throws ExecutionException {
-    if (appView.options().isDesugaredLibraryCompilation()) {
-      ensureEmulatedDispatchMethodsSynthesized(eventConsumer);
-    } else {
-      ensureInterfacesAndForwardingMethodsSynthesized(programClasses, eventConsumer);
-    }
+    assert !appView.options().isDesugaredLibraryCompilation();
+    ensureInterfacesAndForwardingMethodsSynthesized(programClasses, eventConsumer);
   }
 
   private void ensureInterfacesAndForwardingMethodsSynthesized(
@@ -148,17 +145,6 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
             target, clazz, forwardMethod, appView.dexItemFactory());
     desugaringForwardingMethod.setLibraryMethodOverride(OptionalBool.TRUE);
     return desugaringForwardingMethod;
-  }
-
-  private void ensureEmulatedDispatchMethodsSynthesized(
-      DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
-    assert appView.options().isDesugaredLibraryCompilation();
-    if (emulatedDispatchMethods.isEmpty()) {
-      return;
-    }
-    for (DexClassAndMethod emulatedDispatchMethod : emulatedDispatchMethods) {
-      syntheticHelper.ensureEmulatedHolderDispatchMethod(emulatedDispatchMethod, eventConsumer);
-    }
   }
 
   private void reportInvalidLibrarySupertype(
