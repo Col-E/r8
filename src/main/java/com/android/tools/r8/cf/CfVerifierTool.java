@@ -25,6 +25,7 @@ public class CfVerifierTool {
       builder.addProgramFile(Paths.get(arg));
     }
     InternalOptions options = new InternalOptions();
+    options.testing.verifyInputs = true;
     DexApplication dexApplication =
         new ApplicationReader(builder.build(), options, Timing.empty()).read();
     AppView<AppInfo> appView = AppView.createForD8(AppInfo.createInitialAppInfo(dexApplication));

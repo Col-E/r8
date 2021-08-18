@@ -75,7 +75,11 @@ import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.util.CheckClassAdapter;
 
 /**
  * Collection of program files needed for processing.
@@ -760,6 +764,30 @@ public class AndroidApp {
             | org.objectweb.asm.ClassReader.SKIP_DEBUG
             | org.objectweb.asm.ClassReader.SKIP_FRAMES);
     return extractor.getDescriptor();
+  }
+
+  public void validateInputs() {
+    for (ProgramResourceProvider programResourceProvider : getProgramResourceProviders()) {
+      try {
+        for (ProgramResource programResource : programResourceProvider.getProgramResources()) {
+          try {
+            Kind kind = programResource.getKind();
+            if (kind == Kind.DEX) {
+              continue;
+            }
+            byte[] bytes = programResource.getBytes();
+            ClassReader classReader = new ClassReader(bytes);
+            classReader.accept(
+                new CheckClassAdapter(Opcodes.ASM9, new ClassNode(), true) {},
+                ClassReader.EXPAND_FRAMES);
+          } catch (Throwable e) {
+            throw new CompilationError("Failed validating " + programResource.getOrigin(), e);
+          }
+        }
+      } catch (ResourceException e) {
+        throw new CompilationError("Resource exception in validation", e);
+      }
+    }
   }
 
   /**

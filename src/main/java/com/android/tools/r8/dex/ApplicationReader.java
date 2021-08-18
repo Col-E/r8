@@ -142,6 +142,11 @@ public class ApplicationReader {
     if (shouldDump) {
       dumpApplication();
     }
+
+    if (options.testing.verifyInputs) {
+      inputApp.validateInputs();
+    }
+
     timing.begin("DexApplication.read");
     final LazyLoadedDexApplication.Builder builder =
         DexApplication.builder(options, timing, resolver);

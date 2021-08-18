@@ -1571,6 +1571,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean disableMappingToOriginalProgramVerification = false;
     public boolean allowInvalidCfAccessFlags =
         System.getProperty("com.android.tools.r8.allowInvalidCfAccessFlags") != null;
+    public boolean verifyInputs = System.getProperty("com.android.tools.r8.verifyInputs") != null;
     // TODO(b/177333791): Set to true
     public boolean checkForNotExpandingMainDexTracingResult = false;
     public Set<String> allowedUnusedDontWarnPatterns = new HashSet<>();
