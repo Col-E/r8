@@ -10,4 +10,5 @@ public interface InterfaceProcessingDesugaringEventConsumer {
 
   void acceptForwardingMethod(ProgramMethod method);
 
+  void acceptCompanionClassClinit(ProgramMethod method);
 }

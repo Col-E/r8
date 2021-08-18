@@ -464,8 +464,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
           context,
           staticOutliningMethodConsumer,
           rewriteInvoke,
-          rewriteToThrow,
-          eventConsumer);
+          rewriteToThrow);
     }
     assert invoke.isInvokeSpecial();
     if (invoke.isInvokeSuper(context.getHolderType())) {
@@ -666,8 +665,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
             context,
             synthesizedMethods::add,
             rewriteInvoke,
-            rewriteToThrow,
-            null);
+            rewriteToThrow);
       } else {
         assert instruction.isInvokeSuper();
         rewriteInvokeSuper(invoke.getInvokedMethod(), context, rewriteInvoke, rewriteToThrow);
@@ -763,8 +761,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       ProgramMethod context,
       Consumer<ProgramMethod> staticOutliningMethodConsumer,
       Function<DexMethod, Collection<CfInstruction>> rewriteInvoke,
-      Function<SingleResolutionResult, Collection<CfInstruction>> rewriteToThrow,
-      InterfaceMethodDesugaringEventConsumer eventConsumer) {
+      Function<SingleResolutionResult, Collection<CfInstruction>> rewriteToThrow) {
     if (appView.getSyntheticItems().isPendingSynthetic(invokedMethod.holder)) {
       // We did not create this code yet, but it will not require rewriting.
       return null;
@@ -859,8 +856,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     assert resolutionResult.getResolvedMethod().isStatic();
     assert invokeNeedsRewriting(invokedMethod, STATIC);
     DexClassAndMethod companionMethod =
-        helper.ensureStaticAsMethodOfCompanionClassStub(
-            resolutionResult.getResolutionPair(), eventConsumer);
+        helper.ensureStaticAsMethodOfCompanionClassStub(resolutionResult.getResolutionPair());
     return rewriteInvoke.apply(companionMethod.getReference());
   }
 

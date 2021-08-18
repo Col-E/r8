@@ -12,7 +12,5 @@ public interface InterfaceMethodDesugaringEventConsumer {
 
   void acceptInvokeStaticInterfaceOutliningMethod(ProgramMethod method, ProgramMethod context);
 
-  void acceptCompanionClassClinit(ProgramMethod method);
-
   // TODO(b/183998768): Add acceptCompanionClass and acceptEmulatedInterface.
 }
