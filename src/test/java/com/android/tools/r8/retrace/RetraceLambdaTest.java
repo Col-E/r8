@@ -66,7 +66,6 @@ public class RetraceLambdaTest extends TestBase {
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .internalEnableMappingOutput()
-        .enableExperimentalMapFileVersion()
         .addInnerClasses(getClass())
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
@@ -102,7 +101,6 @@ public class RetraceLambdaTest extends TestBase {
         "Skip R8/CF for min-api > 1 (R8/CF does not desugar)",
         parameters.isDexRuntime() || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
     testForR8(parameters.getBackend())
-        .enableExperimentalMapFileVersion()
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepPackageNamesRule(getClass().getPackage())

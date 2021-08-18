@@ -38,7 +38,6 @@ public class DesugarStaticInterfaceMethodsInlineIntoStaticRetraceTest extends Re
   @Override
   public void configure(R8TestBuilder<?> builder) {
     builder.enableInliningAnnotations();
-    builder.enableExperimentalMapFileVersion();
   }
 
   @Override

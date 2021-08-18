@@ -1641,7 +1641,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public MapVersion getMapFileVersion() {
     return testing.enableExperimentalMapFileVersion
-        ? MapVersion.MapVersionExperimental
+        ? MapVersion.MAP_VERSION_EXPERIMENTAL
         : MapVersion.STABLE;
   }
 

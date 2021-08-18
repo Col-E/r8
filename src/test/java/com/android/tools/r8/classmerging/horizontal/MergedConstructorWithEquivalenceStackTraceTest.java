@@ -13,9 +13,7 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
-import com.android.tools.r8.classmerging.horizontal.MergedConstructorStackTraceTest.A;
 import com.android.tools.r8.naming.retrace.StackTrace;
-import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -63,16 +61,6 @@ public class MergedConstructorWithEquivalenceStackTraceTest extends HorizontalCl
                       //  constructors should retrace to the set of lines from each of the
                       //  individual source constructors.
                       .map(1, stackTraceLine -> stackTraceLine.builderOf().setLineNumber(0).build())
-                      // TODO(b/124483578): The synthetic method should not be part of the retraced
-                      //  stack trace.
-                      .add(
-                          2,
-                          StackTraceLine.builder()
-                              .setClassName(A.class.getTypeName())
-                              .setMethodName("$r8$init$synthetic")
-                              .setFileName(getClass().getSimpleName() + ".java")
-                              .setLineNumber(0)
-                              .build())
                       .build();
               assertThat(stackTrace, isSame(expectedStackTraceWithMergedConstructor));
               assertThat(codeInspector.clazz(B.class), not(isPresent()));

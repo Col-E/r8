@@ -48,7 +48,6 @@ public class DesugarStaticInterfaceMethodDirectRetraceTest extends RetraceTestBa
   @Override
   public void configure(R8TestBuilder<?> builder) {
     builder.enableInliningAnnotations();
-    builder.enableExperimentalMapFileVersion();
   }
 
   @Test

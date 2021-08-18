@@ -90,7 +90,7 @@ public class ProguardMapReader implements AutoCloseable {
   private int lineNo = 0;
   private int lineOffset = 0;
   private String line;
-  private MapVersion version = MapVersion.MapVersionNone;
+  private MapVersion version = MapVersion.MAP_VERSION_NONE;
 
   private int peekCodePoint() {
     return lineOffset < line.length() ? line.codePointAt(lineOffset) : '\n';
@@ -271,13 +271,13 @@ public class ProguardMapReader implements AutoCloseable {
         info -> {
           MapVersionMappingInformation generatorInfo = info.asMetaInfMappingInformation();
           if (generatorInfo != null) {
-            if (generatorInfo.getMapVersion().equals(MapVersion.MapVersionExperimental)) {
+            if (generatorInfo.getMapVersion().equals(MapVersion.MAP_VERSION_EXPERIMENTAL)) {
               // A mapping file that is marked "experimental" will be treated as an unversioned
               // file if the compiler/tool is not explicitly running with experimental support.
               version =
                   allowExperimentalMapping
-                      ? MapVersion.MapVersionExperimental
-                      : MapVersion.MapVersionNone;
+                      ? MapVersion.MAP_VERSION_EXPERIMENTAL
+                      : MapVersion.MAP_VERSION_NONE;
             } else {
               version = generatorInfo.getMapVersion();
             }

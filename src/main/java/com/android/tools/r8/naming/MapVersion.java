@@ -6,10 +6,11 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.utils.structural.Ordered;
 
 public enum MapVersion implements Ordered<MapVersion> {
-  MapVersionNone("none"),
-  MapVersionExperimental("experimental");
+  MAP_VERSION_NONE("none"),
+  MAP_VERSION_1_0("1.0"),
+  MAP_VERSION_EXPERIMENTAL("experimental");
 
-  public static final MapVersion STABLE = MapVersionNone;
+  public static final MapVersion STABLE = MAP_VERSION_1_0;
 
   private final String name;
 

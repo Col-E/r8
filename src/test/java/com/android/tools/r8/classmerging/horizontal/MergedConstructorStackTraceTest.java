@@ -14,7 +14,6 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.naming.retrace.StackTrace;
-import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,21 +54,7 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
-              StackTrace expectedStackTraceWithMergedConstructor =
-                  StackTrace.builder()
-                      .add(expectedStackTrace)
-                      .add(
-                          2,
-                          StackTraceLine.builder()
-                              .setClassName(A.class.getTypeName())
-                              // TODO(b/124483578): The synthetic method should not be part of the
-                              //  retraced stack trace.
-                              .setMethodName("$r8$init$synthetic")
-                              .setFileName(getClass().getSimpleName() + ".java")
-                              .setLineNumber(0)
-                              .build())
-                      .build();
-              assertThat(stackTrace, isSame(expectedStackTraceWithMergedConstructor));
+              assertThat(stackTrace, isSame(expectedStackTrace));
               assertThat(codeInspector.clazz(B.class), not(isPresent()));
             });
   }

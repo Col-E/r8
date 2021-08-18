@@ -14,7 +14,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.naming.retrace.StackTrace;
-import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,20 +53,7 @@ public class MergedVirtualMethodStackTraceTest extends HorizontalClassMergingTes
             (stackTrace, codeInspector) -> {
               assertThat(codeInspector.clazz(Program.A.class), isPresent());
               assertThat(codeInspector.clazz(Program.B.class), isAbsent());
-              StackTrace expectedStackTraceWithMergedMethod =
-                  StackTrace.builder()
-                      .add(expectedStackTrace)
-                      .add(
-                          1,
-                          StackTraceLine.builder()
-                              .setClassName(Program.A.class.getTypeName())
-                              .setMethodName("foo$bridge")
-                              .setFileName("Program.java")
-                              .setFileName(getClass().getSimpleName() + ".java")
-                              .setLineNumber(stackTrace.get(1).lineNumber)
-                              .build())
-                      .build();
-              assertThat(stackTrace, isSame(expectedStackTraceWithMergedMethod));
+              assertThat(stackTrace, isSame(expectedStackTrace));
             });
   }
 

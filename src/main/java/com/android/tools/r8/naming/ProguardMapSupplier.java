@@ -104,7 +104,7 @@ public class ProguardMapSupplier {
     builder.append("# common_typos_disable" + "\n");
     // Emit the R8 specific map-file version.
     MapVersion mapVersion = options.getMapFileVersion();
-    if (mapVersion.isGreaterThan(MapVersion.MapVersionNone)) {
+    if (mapVersion.isGreaterThan(MapVersion.MAP_VERSION_NONE)) {
       builder
           .append("# ")
           .append(new MapVersionMappingInformation(mapVersion).serialize())

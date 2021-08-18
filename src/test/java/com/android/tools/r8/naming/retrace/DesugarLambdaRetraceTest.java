@@ -12,7 +12,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
@@ -74,12 +73,6 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
     // Even when SourceFile is present retrace replaces the file name in the stack trace.
     assertThat(retracedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
     assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
-  }
-
-  @Override
-  public void configure(R8TestBuilder<?> builder) {
-    // Enable pruning of lambda synthetics in retrace.
-    builder.enableExperimentalMapFileVersion();
   }
 
   @Test

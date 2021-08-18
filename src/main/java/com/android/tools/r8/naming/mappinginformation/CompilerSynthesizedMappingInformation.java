@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 
 public class CompilerSynthesizedMappingInformation extends MappingInformation {
 
-  public static final MapVersion SUPPORTED_VERSION = MapVersion.MapVersionExperimental;
+  public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_1_0;
   public static final String ID = "com.android.tools.r8.synthesized";
 
   public static class Builder {
