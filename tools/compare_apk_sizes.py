@@ -45,7 +45,7 @@ def extract_apk(apk, output):
 def ensure_exists(files):
   for f in files:
     if not os.path.exists(f):
-      raise Exception('%s does not exist')
+      raise Exception('%s does not exist' % f)
 
 def extract_classes(input, output):
   if os.path.exists(output):
