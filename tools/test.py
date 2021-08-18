@@ -23,6 +23,7 @@ import utils
 
 ALL_ART_VMS = [
     "default",
+    "12.0.0",
     "10.0.0",
     "9.0.0",
     "8.1.0",

@@ -109,10 +109,14 @@ cp $ANDROID_HOST_BUILD/bin/dalvikvm32 $DEST/bin
 # dalvikvm32 or dalvikvm64).
 cp $ANDROID_HOST_BUILD/bin/dalvikvm $DEST/bin
 cp $ANDROID_HOST_BUILD/bin/dex2oat $DEST/bin
+if [ -e $ANDROID_HOST_BUILD/bin/dex2oat64 ]
+  then cp $ANDROID_HOST_BUILD/bin/dex2oat64 $DEST/bin
+fi
 if [ -e $ANDROID_HOST_BUILD/bin/patchoat ]
   # File patchoat does not exist on Q anymore.
   then cp $ANDROID_HOST_BUILD/bin/patchoat $DEST/bin
 fi
+
 
 # Required framework files.
 mkdir -p $DEST/framework
@@ -127,15 +131,32 @@ cp -r $ANDROID_HOST_BUILD/lib/* $DEST/lib
 # Image files required for dex2oat of actual android apps. We need an actual android product
 # image containing framework classes to verify the code against.
 mkdir -p $DEST/product/$ANDROID_PRODUCT/system/framework
-cp -r $ANDROID_TARGET_BUILD/product/$ANDROID_PRODUCT/system/framework/* $DEST/product/$ANDROID_PRODUCT/system/framework
+cp -rL $ANDROID_TARGET_BUILD/product/$ANDROID_PRODUCT/system/framework/* $DEST/product/$ANDROID_PRODUCT/system/framework
 
 # Required auxillary files.
-if [ -e $ANDROID_HOST_BUILD/usr/icu ]; then
-  mkdir -p $DEST/usr/icu
-  cp -r $ANDROID_HOST_BUILD/usr/icu/* $DEST/usr/icu
+if [ -e $ANDROID_HOST_BUILD/apex ]; then
+  mkdir -p $DEST/apex
+  cp -rL $ANDROID_HOST_BUILD/apex/* $DEST/apex
+  if [ -e $ANDROID_HOST_BUILD/com.android.i18n ]; then
+    mkdir -p $DEST/com.android.i18n
+    cp -r $ANDROID_HOST_BUILD/com.android.i18n/* $DEST/com.android.i18n
+  fi
+  if [ -e $ANDROID_HOST_BUILD/com.android.tzdata ]; then
+    mkdir -p $DEST/com.android.tzdata
+    cp -r $ANDROID_HOST_BUILD/com.android.tzdata/* $DEST/com.android.tzdata
+  fi
+  if [ -e $ANDROID_HOST_BUILD/usr ]; then
+    mkdir -p $DEST/usr
+    cp -r $ANDROID_HOST_BUILD/usr/* $DEST/usr
+  fi
 else
-  mkdir -p $DEST/com.android.runtime/etc/icu/
-  cp -r $ANDROID_HOST_BUILD/com.android.runtime/etc/icu/* $DEST/com.android.runtime/etc/icu/
+  if [ -e $ANDROID_HOST_BUILD/usr/icu ]; then
+    mkdir -p $DEST/usr/icu
+    cp -r $ANDROID_HOST_BUILD/usr/icu/* $DEST/usr/icu
+  else
+    mkdir -p $DEST/com.android.runtime/etc/icu/
+    cp -r $ANDROID_HOST_BUILD/com.android.runtime/etc/icu/* $DEST/com.android.runtime/etc/icu/
+  fi
 fi
 
 # Update links for vdex files for Android P and later.
@@ -166,3 +187,4 @@ strip $DEST/framework/x86_64/* 2> /dev/null
 
 echo "Now run"
 echo "(cd $DEST_ROOT; upload_to_google_storage.py -a --bucket r8-deps $ART_DIR)"
+echo "NOTE; If $ART_DIR has several directory elements adjust accordingly."

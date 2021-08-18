@@ -111,13 +111,6 @@ public class DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionInvokeVi
         result.assertSuccessWithOutput(EXPECTED);
         return;
       }
-      if (!unexpectedArtFailure() && !parameters.canUseDefaultAndStaticInterfaceMethods()) {
-        assert false : "Dead code until future ART behavior change. See b/152199517";
-        // Desugaring will insert a forwarding bridge which will hide the "invalid invoke" case.
-        // Thus, a future ART runtime that does not have the invalid IAE for the private override
-        // will end up calling the forward method to I.m.
-        result.assertSuccessWithOutput(EXPECTED);
-      }
       // The expected behavior is IAE since the resolved method is private.
       result.assertFailureWithErrorThatThrows(IllegalAccessError.class);
       return;
@@ -142,7 +135,8 @@ public class DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionInvokeVi
 
   private boolean unexpectedArtFailure() {
     return parameters.isDexRuntime()
-        && parameters.getRuntime().asDex().getVm().isNewerThan(DexVm.ART_6_0_1_HOST);
+        && parameters.getRuntime().asDex().getVm().isNewerThan(DexVm.ART_6_0_1_HOST)
+        && parameters.getRuntime().asDex().getVm().isOlderThan(DexVm.ART_12_0_0_HOST);
   }
 
   static class TestClass {

@@ -4,16 +4,17 @@
 
 package com.android.tools.r8.desugar.backports;
 
+import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-
-import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 
 @RunWith(Parameterized.class)
 public final class ByteBackportJava9Test extends AbstractBackportTest {
@@ -31,7 +32,8 @@ public final class ByteBackportJava9Test extends AbstractBackportTest {
 
   public ByteBackportJava9Test(TestParameters parameters) {
     super(parameters, Byte.class, TEST_JAR, "backport.ByteBackportJava9Main");
-    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
-    // an actual API level, migrate these tests to ByteBackportTest.
+
+    // Byte.compareUnsigned added in API 31.
+    registerTarget(AndroidApiLevel.S, 16);
   }
 }

@@ -5,6 +5,8 @@
 package com.android.tools.r8.desugar.backports;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import org.junit.runner.RunWith;
@@ -24,18 +26,29 @@ public class SparseArrayBackportTest extends AbstractBackportTest {
   public SparseArrayBackportTest(TestParameters parameters) throws IOException {
     super(
         parameters,
-        SparseArrayBackportTest.getSparseArray(),
+        SparseArrayBackportTest.getSparseArray(parameters),
         ImmutableList.of(
-            SparseArrayBackportTest.getTestRunner(), SparseArrayBackportTest.getSparseArray()));
+            SparseArrayBackportTest.getTestRunner(),
+            SparseArrayBackportTest.getSparseArray(parameters)));
 
     // The constructor is used by the test and put has been available since API 1 and is the
     // method set is rewritten to.
     ignoreInvokes("<init>");
     ignoreInvokes("put");
+
+    // android.util.SparseArray.set added in API 31.
+    registerTarget(AndroidApiLevel.S, 1);
   }
 
-  private static byte[] getSparseArray() throws IOException {
-    return transformer(SparseArray.class).setClassDescriptor(SPARSE_ARRAY_DESCRIPTOR).transform();
+  private static byte[] getSparseArray(TestParameters parameters) throws IOException {
+    if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.S)) {
+      assert parameters.getRuntime().asDex().getVm().isNewerThanOrEqual(DexVm.ART_12_0_0_HOST);
+      return transformer(SparseArrayAndroid12.class)
+          .setClassDescriptor(SPARSE_ARRAY_DESCRIPTOR)
+          .transform();
+    } else {
+      return transformer(SparseArray.class).setClassDescriptor(SPARSE_ARRAY_DESCRIPTOR).transform();
+    }
   }
 
   private static byte[] getTestRunner() throws IOException {
@@ -53,6 +66,17 @@ public class SparseArrayBackportTest extends AbstractBackportTest {
     public void put(int index, Object value) {
       TestRunner.doAssertEquals(42, index);
       TestRunner.doAssertEquals("Forty two", value);
+    }
+  }
+
+  public static class SparseArrayAndroid12 {
+    public void set(int index, Object value) {
+      TestRunner.doAssertEquals(42, index);
+      TestRunner.doAssertEquals("Forty two", value);
+    }
+
+    public void put(int index, Object value) {
+      TestRunner.doFail("put should not be called");
     }
   }
 

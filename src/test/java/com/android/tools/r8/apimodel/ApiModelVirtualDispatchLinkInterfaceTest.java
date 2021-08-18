@@ -7,7 +7,7 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.addTracedApiReferenceLevelCallBack;
 import static com.android.tools.r8.utils.AndroidApiLevel.LATEST;
 import static com.android.tools.r8.utils.AndroidApiLevel.R;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -56,7 +56,7 @@ public class ApiModelVirtualDispatchLinkInterfaceTest extends TestBase {
             addTracedApiReferenceLevelCallBack(
                 (method, apiLevel) -> {
                   if (Reference.methodFromMethod(main).equals(method)) {
-                    assertEquals(R, apiLevel);
+                    assertTrue(apiLevel.isGreaterThanOrEqualTo(R));
                   }
                 }))
         .compile();

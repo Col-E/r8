@@ -4,17 +4,18 @@
 
 package com.android.tools.r8.desugar.backports;
 
+import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-
-import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 
 @RunWith(Parameterized.class)
 public class MapBackportJava10Test extends AbstractBackportTest {
@@ -40,5 +41,8 @@ public class MapBackportJava10Test extends AbstractBackportTest {
     ignoreInvokes("get");
     ignoreInvokes("put");
     ignoreInvokes("size");
+
+    // Map.copyOf added in API 31.
+    registerTarget(AndroidApiLevel.S, 4);
   }
 }

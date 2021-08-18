@@ -44,13 +44,16 @@ public class ListBackportJava9Test extends AbstractBackportTest {
     ignoreInvokes("get");
     ignoreInvokes("set");
     ignoreInvokes("size");
+
+    // List.of added in API 30.
+    registerTarget(AndroidApiLevel.R, 18);
   }
 
   @Test
   public void desugaringApiLevelR() throws Exception {
-    // TODO(154759404): This test should start to fail when testing on an Android R VM.
-    if (parameters.getRuntime().isDex()
-        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.Q)) {
+    // TODO(b/154759404): This test should start to fail when testing on an Android R VM.
+    // This has now been checked with S, when R testing is added check and remove this.
+    if (parameters.getRuntime().isDex() && parameters.getApiLevel().isEqualTo(AndroidApiLevel.Q)) {
       testForD8()
           .setMinApi(AndroidApiLevel.R)
           .addProgramClasses(MiniAssert.class, IgnoreInvokes.class)

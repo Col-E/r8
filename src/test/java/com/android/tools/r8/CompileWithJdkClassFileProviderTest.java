@@ -116,8 +116,12 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
                     containsString(
                         "java.lang.NoClassDefFoundError: "
                             + "Failed resolution of: Ljava/util/concurrent/Flow$Subscriber;"),
-                    // Art 10+.
-                    containsString("java.lang.ClassNotFoundException: MySubscriber")));
+                    // Art 10.
+                    containsString("java.lang.ClassNotFoundException: MySubscriber"),
+                    // Art 11+.
+                    containsString(
+                        "java.lang.ClassNotFoundException: "
+                            + "java.util.concurrent.SubmissionPublisher")));
       } else {
         if (parameters.getRuntime().asCf().getVm() == CfVm.JDK8) {
           // java.util.concurrent.Flow$Subscriber not present in JDK8.

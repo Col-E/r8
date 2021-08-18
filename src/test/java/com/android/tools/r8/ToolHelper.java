@@ -256,7 +256,9 @@ public class ToolHelper {
     ART_9_0_0_TARGET(Version.V9_0_0, Kind.TARGET),
     ART_9_0_0_HOST(Version.V9_0_0, Kind.HOST),
     ART_10_0_0_TARGET(Version.V10_0_0, Kind.TARGET),
-    ART_10_0_0_HOST(Version.V10_0_0, Kind.HOST);
+    ART_10_0_0_HOST(Version.V10_0_0, Kind.HOST),
+    ART_12_0_0_TARGET(Version.V12_0_0, Kind.TARGET),
+    ART_12_0_0_HOST(Version.V12_0_0, Kind.HOST);
 
     private static final ImmutableMap<String, DexVm> SHORT_NAME_MAP =
         Arrays.stream(DexVm.values()).collect(ImmutableMap.toImmutableMap(
@@ -271,7 +273,8 @@ public class ToolHelper {
       V8_1_0("8.1.0"),
       DEFAULT("default"),
       V9_0_0("9.0.0"),
-      V10_0_0("10.0.0");
+      V10_0_0("10.0.0"),
+      V12_0_0("12.0.0");
 
       Version(String shortName) {
         this.shortName = shortName;
@@ -287,6 +290,10 @@ public class ToolHelper {
 
       public boolean isLatest() {
         return this == last();
+      }
+
+      public boolean isEqualTo(Version other) {
+        return compareTo(other) == 0;
       }
 
       public boolean isNewerThan(Version other) {
@@ -321,7 +328,7 @@ public class ToolHelper {
       }
 
       public static Version last() {
-        return V10_0_0;
+        return V12_0_0;
       }
 
       static {
@@ -358,8 +365,20 @@ public class ToolHelper {
       return SHORT_NAME_MAP.get(version.shortName + "_" + Kind.HOST.toString());
     }
 
+    public boolean isEqualTo(DexVm other) {
+      return version.isNewerThanOrEqual(other.version);
+    }
+
     public boolean isNewerThan(DexVm other) {
       return version.isNewerThan(other.version);
+    }
+
+    public boolean isNewerThanOrEqual(DexVm other) {
+      return version.isNewerThanOrEqual(other.version);
+    }
+
+    public boolean isOlderThan(DexVm other) {
+      return version.isOlderThan(other.version);
     }
 
     public boolean isOlderThanOrEqual(DexVm other) {
@@ -580,6 +599,7 @@ public class ToolHelper {
   private static final Map<DexVm, String> ART_DIRS =
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "art")
+          .put(DexVm.ART_12_0_0_HOST, "host/art-12.0.0-beta4")
           .put(DexVm.ART_10_0_0_HOST, "art-10.0.0")
           .put(DexVm.ART_9_0_0_HOST, "art-9.0.0")
           .put(DexVm.ART_8_1_0_HOST, "art-8.1.0")
@@ -587,10 +607,12 @@ public class ToolHelper {
           .put(DexVm.ART_6_0_1_HOST, "art-6.0.1")
           .put(DexVm.ART_5_1_1_HOST, "art-5.1.1")
           .put(DexVm.ART_4_4_4_HOST, "dalvik")
-          .put(DexVm.ART_4_0_4_HOST, "dalvik-4.0.4").build();
+          .put(DexVm.ART_4_0_4_HOST, "dalvik-4.0.4")
+          .build();
   private static final Map<DexVm, String> ART_BINARY_VERSIONS =
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "bin/art")
+          .put(DexVm.ART_12_0_0_HOST, "bin/art")
           .put(DexVm.ART_10_0_0_HOST, "bin/art")
           .put(DexVm.ART_9_0_0_HOST, "bin/art")
           .put(DexVm.ART_8_1_0_HOST, "bin/art")
@@ -598,16 +620,19 @@ public class ToolHelper {
           .put(DexVm.ART_6_0_1_HOST, "bin/art")
           .put(DexVm.ART_5_1_1_HOST, "bin/art")
           .put(DexVm.ART_4_4_4_HOST, "bin/dalvik")
-          .put(DexVm.ART_4_0_4_HOST, "bin/dalvik").build();
+          .put(DexVm.ART_4_0_4_HOST, "bin/dalvik")
+          .build();
 
   private static final Map<DexVm, String> ART_BINARY_VERSIONS_X64 =
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "bin/art")
+          .put(DexVm.ART_12_0_0_HOST, "bin/art")
           .put(DexVm.ART_10_0_0_HOST, "bin/art")
           .put(DexVm.ART_9_0_0_HOST, "bin/art")
           .put(DexVm.ART_8_1_0_HOST, "bin/art")
           .put(DexVm.ART_7_0_0_HOST, "bin/art")
-          .put(DexVm.ART_6_0_1_HOST, "bin/art").build();
+          .put(DexVm.ART_6_0_1_HOST, "bin/art")
+          .build();
 
   private static final List<String> DALVIK_BOOT_LIBS =
       ImmutableList.of(
@@ -627,6 +652,7 @@ public class ToolHelper {
     ImmutableMap.Builder<DexVm, List<String>> builder = ImmutableMap.builder();
     builder
         .put(DexVm.ART_DEFAULT, ART_BOOT_LIBS)
+        .put(DexVm.ART_12_0_0_HOST, ART_BOOT_LIBS)
         .put(DexVm.ART_10_0_0_HOST, ART_BOOT_LIBS)
         .put(DexVm.ART_9_0_0_HOST, ART_BOOT_LIBS)
         .put(DexVm.ART_8_1_0_HOST, ART_BOOT_LIBS)
@@ -644,6 +670,7 @@ public class ToolHelper {
     ImmutableMap.Builder<DexVm, String> builder = ImmutableMap.builder();
     builder
         .put(DexVm.ART_DEFAULT, "angler")
+        .put(DexVm.ART_12_0_0_HOST, "redfin")
         .put(DexVm.ART_10_0_0_HOST, "coral")
         .put(DexVm.ART_9_0_0_HOST, "marlin")
         .put(DexVm.ART_8_1_0_HOST, "marlin")
@@ -1002,6 +1029,8 @@ public class ToolHelper {
     switch (dexVm.version) {
       case DEFAULT:
         return AndroidApiLevel.O;
+      case V12_0_0:
+        return AndroidApiLevel.S;
       case V10_0_0:
         return AndroidApiLevel.Q;
       case V9_0_0:
@@ -1898,7 +1927,8 @@ public class ToolHelper {
   public static ProcessResult runDex2OatRaw(Path file, Path outFile, DexVm vm) throws IOException {
     // TODO(jmhenaff): find a way to run this on windows (push dex and run on device/emulator?)
     Assume.assumeTrue(ToolHelper.isDex2OatSupported());
-    Assume.assumeFalse("b/144975341", vm.version == DexVm.Version.V10_0_0);
+    Assume.assumeFalse(
+        "b/144975341", vm.version == DexVm.Version.V10_0_0 || vm.version == DexVm.Version.V12_0_0);
     if (vm.isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
       // Run default dex2oat for tests on dalvik runtimes.
       vm = DexVm.ART_DEFAULT;

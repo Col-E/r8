@@ -44,13 +44,16 @@ public class MapBackportJava9Test extends AbstractBackportTest {
     ignoreInvokes("get");
     ignoreInvokes("put");
     ignoreInvokes("size");
+
+    // Map.entry, Map.of and Map.ofEntries added in API 30.
+    registerTarget(AndroidApiLevel.R, 29);
   }
 
   @Test
   public void desugaringApiLevelR() throws Exception {
-    // TODO(154759404): This test should start to fail when testing on an Android R VM.
-    if (parameters.getRuntime().isDex()
-        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.Q)) {
+    // TODO(b/154759404): This test should start to fail when testing on an Android R VM.
+    // This has now been checked with S, when R testing is added check and remove this.
+    if (parameters.getRuntime().isDex() && parameters.getApiLevel().isEqualTo(AndroidApiLevel.R)) {
       testForD8()
           .setMinApi(AndroidApiLevel.R)
           .addProgramClasses(MiniAssert.class, IgnoreInvokes.class)

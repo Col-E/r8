@@ -11,7 +11,7 @@ import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -35,7 +35,6 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
     return buildParameters(
         BooleanUtils.values(),
         getTestParameters()
-            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withAllApiLevels()
             .withApiLevel(AndroidApiLevel.N)
             .build());
@@ -134,6 +133,10 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
 
   @Test
   public void testTime() throws Exception {
+    if (parameters.getRuntime().asDex().getVm().isEqualTo(DexVm.ART_12_0_0_HOST)) {
+      // TODO(b/197078988): Many additional tests fails with Android 12.
+      return;
+    }
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     D8TestCompileResult compileResult =

@@ -13,6 +13,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,16 +35,20 @@ public final class ObjectsBackportJava9Test extends AbstractBackportTest {
   private static final String TEST_CLASS = "backport.ObjectsBackportJava9Main";
 
   public ObjectsBackportJava9Test(TestParameters parameters) {
-    super(parameters, Short.class, TEST_JAR, TEST_CLASS);
+    super(parameters, Objects.class, TEST_JAR, TEST_CLASS);
     // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
     // an actual API level, migrate these tests to ObjectsBackportTest.
+
+    // Objects.checkFromIndexSize, Objects.checkFromToIndex, Objects.checkIndex,
+    // Objects.requireNonNullElse and Objects.requireNonNullElseGet added in API 30.
+    registerTarget(AndroidApiLevel.R, 28);
   }
 
   @Test
   public void desugaringApiLevelR() throws Exception {
-    // TODO(154759404): This test should start to fail when testing on an Android R VM.
-    if (parameters.getRuntime().isDex()
-        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.Q)) {
+    // TODO(b/154759404): This test should start to fail when testing on an Android R VM.
+    // This has now been checked with S, when R testing is added chck and remove this.
+    if (parameters.getRuntime().isDex() && parameters.getApiLevel().isEqualTo(AndroidApiLevel.R)) {
       testForD8()
           .setMinApi(AndroidApiLevel.R)
           .addProgramClasses(MiniAssert.class, IgnoreInvokes.class)

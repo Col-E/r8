@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.runner.RunWith;
@@ -31,7 +32,9 @@ public final class MathBackportJava9Test extends AbstractBackportTest {
 
   public MathBackportJava9Test(TestParameters parameters) {
     super(parameters, Math.class, TEST_JAR, "backport.MathBackportJava9Main");
-    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
-    // an actual API level, migrate these tests to MathBackportTest.
+
+    // Math.floorDiv, Math.floorMod, Math.multiplyExact, Math.multiplyFull and Math.multiplyHigh
+    // added in API 31.
+    registerTarget(AndroidApiLevel.S, 27);
   }
 }

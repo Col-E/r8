@@ -4,17 +4,18 @@
 
 package com.android.tools.r8.desugar.backports;
 
+import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-
-import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 
 @RunWith(Parameterized.class)
 public class SetBackportJava10Test extends AbstractBackportTest {
@@ -39,5 +40,10 @@ public class SetBackportJava10Test extends AbstractBackportTest {
     ignoreInvokes("add");
     ignoreInvokes("contains");
     ignoreInvokes("size");
+
+    // Set.of added in API 30
+    registerTarget(AndroidApiLevel.R, 1);
+    // Set.copyOf added in API 31
+    registerTarget(AndroidApiLevel.S, 5);
   }
 }

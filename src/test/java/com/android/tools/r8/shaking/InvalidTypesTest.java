@@ -74,6 +74,7 @@ public class InvalidTypesTest extends JasminTestBase {
               case V4_0_4:
               case V4_4_4:
               case V10_0_0:
+              case V12_0_0:
                 return StringUtils.joinLines("Hello!", "Goodbye!", "");
 
               case V7_0_0:
