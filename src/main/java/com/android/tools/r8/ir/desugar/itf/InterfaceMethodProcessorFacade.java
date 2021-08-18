@@ -77,11 +77,6 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
     }
 
     @Override
-    public void acceptCompanionClassClinit(ProgramMethod method) {
-      sortedSynthesizedMethods.add(method);
-    }
-
-    @Override
     public void acceptEmulatedInterfaceMethod(ProgramMethod method) {
 
       sortedSynthesizedMethods.add(method);

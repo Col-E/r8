@@ -75,11 +75,6 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptCompanionClassClinit(ProgramMethod method) {
-      methodsToReprocess.add(method);
-    }
-
-    @Override
     public void acceptEmulatedInterfaceMethod(ProgramMethod method) {
       methodsToReprocess.add(method);
     }
@@ -135,11 +130,6 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     @Override
     public void acceptForwardingMethod(ProgramMethod method) {
       additions.addLiveMethod(method);
-    }
-
-    @Override
-    public void acceptCompanionClassClinit(ProgramMethod method) {
-      assert false : "TODO(b/183998768): Support Interface processing in R8";
     }
 
     @Override

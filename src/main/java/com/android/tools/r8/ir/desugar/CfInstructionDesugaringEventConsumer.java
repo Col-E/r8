@@ -148,6 +148,11 @@ public abstract class CfInstructionDesugaringEventConsumer
       public void acceptTwrCloseResourceMethod(ProgramMethod closeMethod, ProgramMethod context) {
         assert false;
       }
+
+      @Override
+      public void acceptCompanionClassClinit(ProgramMethod method) {
+        assert false;
+      }
     };
   }
 
@@ -250,6 +255,11 @@ public abstract class CfInstructionDesugaringEventConsumer
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
 
+    @Override
+    public void acceptCompanionClassClinit(ProgramMethod method) {
+      methodProcessor.scheduleDesugaredMethodForProcessing(method);
+    }
+
     public List<ProgramMethod> finalizeDesugaring(
         AppView<?> appView, ClassConverterResult.Builder classConverterResultBuilder) {
       List<ProgramMethod> needsProcessing = new ArrayList<>();
@@ -339,6 +349,11 @@ public abstract class CfInstructionDesugaringEventConsumer
     @Override
     public void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz) {
       additions.addLiveClasspathClass(clazz);
+    }
+
+    @Override
+    public void acceptCompanionClassClinit(ProgramMethod method) {
+      // TODO(b/183998768): Update this once desugaring is moved to the enqueuer.
     }
 
     @Override
