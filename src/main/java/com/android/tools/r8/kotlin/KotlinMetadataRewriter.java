@@ -182,6 +182,13 @@ public class KotlinMetadataRewriter {
               writeMetadataFieldInfo);
       clazz.setAnnotations(clazz.annotations().rewrite(anno -> anno == oldMeta ? newMeta : anno));
     } catch (Throwable t) {
+      assert appView.checkForTesting(
+          () -> {
+            throw appView
+                .options()
+                .reporter
+                .fatalError(KotlinMetadataDiagnostic.unexpectedErrorWhenRewriting(clazz.type, t));
+          });
       appView
           .options()
           .reporter
