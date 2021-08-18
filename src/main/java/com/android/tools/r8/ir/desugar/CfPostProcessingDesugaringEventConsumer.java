@@ -75,11 +75,6 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptEmulatedInterfaceMethod(ProgramMethod method) {
-      methodsToReprocess.add(method);
-    }
-
-    @Override
     public void finalizeDesugaring() throws ExecutionException {
       assert methodProcessor.verifyNoPendingMethodProcessing();
       methodProcessor.newWave();
@@ -130,11 +125,6 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     @Override
     public void acceptForwardingMethod(ProgramMethod method) {
       additions.addLiveMethod(method);
-    }
-
-    @Override
-    public void acceptEmulatedInterfaceMethod(ProgramMethod method) {
-      assert false : "TODO(b/183998768): Support Interface processing in R8";
     }
 
     @Override

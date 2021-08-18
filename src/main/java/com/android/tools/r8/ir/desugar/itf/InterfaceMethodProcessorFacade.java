@@ -35,10 +35,6 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
   private List<InterfaceDesugaringProcessor> instantiateInterfaceDesugaringProcessors(
       AppView<?> appView) {
 
-    // During L8 compilation, emulated interfaces are processed to be renamed, to have
-    // their interfaces fixed-up and to generate the emulated dispatch code.
-    EmulatedInterfaceProcessor emulatedInterfaceProcessor = new EmulatedInterfaceProcessor(appView);
-
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
     ClassProcessor classProcessor = new ClassProcessor(appView);
@@ -50,7 +46,7 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
     InterfaceProcessor interfaceProcessor = new InterfaceProcessor(appView);
 
     // The processors can be listed in any order.
-    return ImmutableList.of(classProcessor, interfaceProcessor, emulatedInterfaceProcessor);
+    return ImmutableList.of(classProcessor, interfaceProcessor);
   }
 
   /** Runs the interfaceProcessor, the class processor and the emulated interface processor. */
@@ -73,12 +69,6 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
 
     @Override
     public void acceptForwardingMethod(ProgramMethod method) {
-      sortedSynthesizedMethods.add(method);
-    }
-
-    @Override
-    public void acceptEmulatedInterfaceMethod(ProgramMethod method) {
-
       sortedSynthesizedMethods.add(method);
     }
 

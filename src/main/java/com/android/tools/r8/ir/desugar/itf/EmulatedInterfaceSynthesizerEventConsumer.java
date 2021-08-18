@@ -4,10 +4,9 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
-import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 
-public interface InterfaceProcessingDesugaringEventConsumer {
+public interface EmulatedInterfaceSynthesizerEventConsumer {
 
-  void acceptForwardingMethod(ProgramMethod method);
-
+  void acceptEmulatedInterface(DexProgramClass clazz);
 }

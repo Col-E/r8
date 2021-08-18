@@ -12,6 +12,8 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizer;
+import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizerEventConsumer;
 import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming;
@@ -27,14 +29,24 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
-public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProcessor {
+public final class EmulatedInterfaceSynthesizer implements CfL8ClassSynthesizer {
 
   private final AppView<?> appView;
   private final InterfaceDesugaringSyntheticHelper helper;
   private final Map<DexType, List<DexType>> emulatedInterfacesHierarchy;
 
-  EmulatedInterfaceProcessor(AppView<?> appView) {
+  public static EmulatedInterfaceSynthesizer create(AppView<?> appView) {
+    if (!appView.options().isDesugaredLibraryCompilation()
+        || appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty()) {
+      return null;
+    }
+    return new EmulatedInterfaceSynthesizer(appView);
+  }
+
+  EmulatedInterfaceSynthesizer(AppView<?> appView) {
     this.appView = appView;
     helper = new InterfaceDesugaringSyntheticHelper(appView);
     // Avoid the computation outside L8 since it is not needed.
@@ -83,7 +95,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
   }
 
   DexProgramClass ensureEmulateInterfaceLibrary(
-      DexProgramClass emulatedInterface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
+      DexProgramClass emulatedInterface, EmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
     assert helper.isEmulatedInterface(emulatedInterface.type);
     DexProgramClass emulateInterfaceClass =
         appView
@@ -101,7 +113,7 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
                                     synthesizeEmulatedInterfaceMethod(
                                         method, emulatedInterface, methodBuilder))),
                 ignored -> {});
-    emulateInterfaceClass.forEachProgramMethod(eventConsumer::acceptEmulatedInterfaceMethod);
+    eventConsumer.acceptEmulatedInterface(emulateInterfaceClass);
     assert emulateInterfaceClass.getType()
         == InterfaceDesugaringSyntheticHelper.getEmulateLibraryInterfaceClassType(
             emulatedInterface.type, appView.dexItemFactory());
@@ -209,34 +221,33 @@ public final class EmulatedInterfaceProcessor implements InterfaceDesugaringProc
   }
 
   @Override
-  public void process(
-      DexProgramClass emulatedInterface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
-    if (!appView.options().isDesugaredLibraryCompilation()
-        || !helper.isEmulatedInterface(emulatedInterface.type)
-        || appView.isAlreadyLibraryDesugared(emulatedInterface)) {
-      return;
+  public List<Future<?>> synthesizeClasses(
+      ExecutorService executorService, CfL8ClassSynthesizerEventConsumer eventConsumer) {
+    assert appView.options().isDesugaredLibraryCompilation();
+    List<Future<?>> futures = new ArrayList<>();
+    for (DexType emulatedInterfaceType : helper.getEmulatedInterfaces()) {
+      DexClass emulatedInterfaceClazz = appView.definitionFor(emulatedInterfaceType);
+      if (emulatedInterfaceClazz == null || !emulatedInterfaceClazz.isProgramClass()) {
+        warnMissingEmulatedInterface(emulatedInterfaceType);
+        continue;
+      }
+      DexProgramClass emulatedInterface = emulatedInterfaceClazz.asProgramClass();
+      assert emulatedInterface != null;
+      if (!appView.isAlreadyLibraryDesugared(emulatedInterface)
+          && needsEmulateInterfaceLibrary(emulatedInterface)) {
+        futures.add(
+            executorService.submit(
+                () -> {
+                  ensureEmulateInterfaceLibrary(emulatedInterface, eventConsumer);
+                  return null;
+                }));
+      }
     }
-    if (needsEmulateInterfaceLibrary(emulatedInterface)) {
-      ensureEmulateInterfaceLibrary(emulatedInterface, eventConsumer);
-    }
+    return futures;
   }
 
   private boolean needsEmulateInterfaceLibrary(DexProgramClass emulatedInterface) {
     return Iterables.any(emulatedInterface.methods(), DexEncodedMethod::isDefaultMethod);
-  }
-
-  @Override
-  public void finalizeProcessing(InterfaceProcessingDesugaringEventConsumer eventConsumer) {
-    warnMissingEmulatedInterfaces();
-  }
-
-  private void warnMissingEmulatedInterfaces() {
-    for (DexType interfaceType : helper.getEmulatedInterfaces()) {
-      DexClass theInterface = appView.definitionFor(interfaceType);
-      if (theInterface == null) {
-        warnMissingEmulatedInterface(interfaceType);
-      }
-    }
   }
 
   private void warnMissingEmulatedInterface(DexType interfaceType) {
