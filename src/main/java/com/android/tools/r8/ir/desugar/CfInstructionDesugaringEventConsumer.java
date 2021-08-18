@@ -69,11 +69,6 @@ public abstract class CfInstructionDesugaringEventConsumer
     return new CfInstructionDesugaringEventConsumer() {
 
       @Override
-      public void acceptWrapperProgramClass(DexProgramClass clazz) {
-        assert false;
-      }
-
-      @Override
       public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
         assert false;
       }
@@ -241,11 +236,6 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
-    public void acceptWrapperProgramClass(DexProgramClass clazz) {
-      methodProcessor.scheduleDesugaredMethodsForProcessing(clazz.programMethods());
-    }
-
-    @Override
     public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
       // Intentionally empty.
     }
@@ -376,12 +366,6 @@ public abstract class CfInstructionDesugaringEventConsumer
     public void acceptInvokeStaticInterfaceOutliningMethod(
         ProgramMethod method, ProgramMethod context) {
       assert false : "TODO(b/183998768): To be implemented";
-    }
-
-    @Override
-    public void acceptWrapperProgramClass(DexProgramClass clazz) {
-      // Called only in Desugared library compilation which is D8.
-      assert false;
     }
 
     @Override

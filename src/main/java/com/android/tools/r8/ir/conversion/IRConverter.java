@@ -355,13 +355,6 @@ public class IRConverter {
         D8NestBasedAccessDesugaring::clearNestAttributes);
   }
 
-  public void ensureWrappersForL8(
-      D8CfInstructionDesugaringEventConsumer instructionDesugaringEventConsumer) {
-    assert appView.options().isDesugaredLibraryCompilation();
-    instructionDesugaring.withDesugaredLibraryAPIConverter(
-        converter -> converter.ensureWrappersForL8(instructionDesugaringEventConsumer));
-  }
-
   private void staticizeClasses(
       OptimizationFeedback feedback, ExecutorService executorService, GraphLens applied)
       throws ExecutionException {

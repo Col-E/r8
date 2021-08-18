@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizer;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ public class CfL8ClassSynthesizerCollection {
     if (emulatedInterfaceSynthesizer != null) {
       synthesizers.add(emulatedInterfaceSynthesizer);
     }
+    synthesizers.add(new DesugaredLibraryWrapperSynthesizer(appView));
   }
 
   public void synthesizeClasses(

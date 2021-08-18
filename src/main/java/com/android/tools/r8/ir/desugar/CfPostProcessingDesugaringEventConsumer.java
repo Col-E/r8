@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterInstructionEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPIConverterPostProcessingEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPICallbackSynthesizorEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -24,7 +24,7 @@ import java.util.concurrent.ExecutionException;
 public abstract class CfPostProcessingDesugaringEventConsumer
     implements DesugaredLibraryRetargeterPostProcessingEventConsumer,
         InterfaceProcessingDesugaringEventConsumer,
-        DesugaredLibraryAPIConverterPostProcessingEventConsumer {
+        DesugaredLibraryAPICallbackSynthesizorEventConsumer {
 
   public static D8CfPostProcessingDesugaringEventConsumer createForD8(
       D8MethodProcessor methodProcessor) {
@@ -35,16 +35,11 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     return new R8PostProcessingDesugaringEventConsumer(additions);
   }
 
-  @Override
-  public void acceptWrapperProgramClass(DexProgramClass clazz) {
-    // TODO(b/191656218): Remove unneeded method.
-    throw new Unreachable();
-  }
-
   public abstract void finalizeDesugaring() throws ExecutionException;
 
   public static class D8CfPostProcessingDesugaringEventConsumer
       extends CfPostProcessingDesugaringEventConsumer {
+
     private final D8MethodProcessor methodProcessor;
     // Methods cannot be processed directly because we cannot add method to classes while
     // concurrently processing other methods.
@@ -95,6 +90,7 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
   public static class R8PostProcessingDesugaringEventConsumer
       extends CfPostProcessingDesugaringEventConsumer {
+
     private final SyntheticAdditions additions;
 
     R8PostProcessingDesugaringEventConsumer(SyntheticAdditions additions) {

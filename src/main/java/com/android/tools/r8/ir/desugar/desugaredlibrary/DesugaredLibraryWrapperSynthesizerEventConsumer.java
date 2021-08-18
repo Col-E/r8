@@ -10,18 +10,47 @@ import com.android.tools.r8.graph.ProgramMethod;
 
 public interface DesugaredLibraryWrapperSynthesizerEventConsumer {
 
-  void acceptWrapperProgramClass(DexProgramClass clazz);
+  default DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer asProgramWrapperSynthesizer() {
+    assert false;
+    return null;
+  }
 
-  void acceptWrapperClasspathClass(DexClasspathClass clazz);
+  default DesugaredLibraryClasspathWrapperSynthesizeEventConsumer asClasspathWrapperSynthesizer() {
+    assert false;
+    return null;
+  }
+
+  interface DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer
+      extends DesugaredLibraryWrapperSynthesizerEventConsumer {
+
+    @Override
+    default DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer asProgramWrapperSynthesizer() {
+      return this;
+    }
+
+    void acceptWrapperProgramClass(DexProgramClass clazz);
+  }
+
+  interface DesugaredLibraryClasspathWrapperSynthesizeEventConsumer
+      extends DesugaredLibraryWrapperSynthesizerEventConsumer {
+
+    @Override
+    default DesugaredLibraryClasspathWrapperSynthesizeEventConsumer
+        asClasspathWrapperSynthesizer() {
+      return this;
+    }
+
+    void acceptWrapperClasspathClass(DexClasspathClass clazz);
+  }
 
   interface DesugaredLibraryAPIConverterEventConsumer
-      extends DesugaredLibraryWrapperSynthesizerEventConsumer {
+      extends DesugaredLibraryClasspathWrapperSynthesizeEventConsumer {
 
     void acceptAPIConversion(ProgramMethod method);
   }
 
-  interface DesugaredLibraryAPIConverterPostProcessingEventConsumer
-      extends DesugaredLibraryWrapperSynthesizerEventConsumer {
+  interface DesugaredLibraryAPICallbackSynthesizorEventConsumer
+      extends DesugaredLibraryClasspathWrapperSynthesizeEventConsumer {
 
     void acceptAPIConversionCallback(ProgramMethod method);
   }

@@ -241,12 +241,6 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     DexProto newProto = appView.dexItemFactory().createProto(newReturnType, newParameters);
     return appView.dexItemFactory().createMethod(holder, newProto, originalMethod.name);
   }
-
-  public void ensureWrappersForL8(CfInstructionDesugaringEventConsumer eventConsumer) {
-    assert appView.options().isDesugaredLibraryCompilation();
-    wrapperSynthesizor.ensureWrappersForL8(eventConsumer);
-  }
-
   public void generateTrackingWarnings() {
     generateTrackDesugaredAPIWarnings(trackedAPIs, "", appView);
   }

@@ -678,12 +678,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       Consumer<SyntheticMethodBuilder> buildMethodCallback,
       Consumer<T> newMethodCallback) {
     MethodCollection methodCollection = clazz.getMethodCollection();
-    DexEncodedMethod methodDefinition = methodCollection.getMethod(methodReference);
-    if (methodDefinition != null) {
-      return methodDefinition;
-    }
     synchronized (methodCollection) {
-      methodDefinition = methodCollection.getMethod(methodReference);
+      DexEncodedMethod methodDefinition = methodCollection.getMethod(methodReference);
       if (methodDefinition != null) {
         return methodDefinition;
       }
