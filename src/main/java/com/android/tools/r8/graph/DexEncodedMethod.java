@@ -1108,11 +1108,17 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public DexEncodedMethod toMethodThatLogsError(AppView<?> appView) {
-    if (appView.options().isGeneratingDex()) {
-      return toMethodThatLogsErrorDexCode(appView.dexItemFactory());
-    } else {
-      return toMethodThatLogsErrorCfCode(appView.dexItemFactory());
-    }
+    Builder builder =
+        builder(this)
+            .setCode(
+                appView.options().isGeneratingClassFiles()
+                    ? toCfCodeThatLogsError(appView.dexItemFactory())
+                    : toDexCodeThatLogsError(appView.dexItemFactory()))
+            .setIsLibraryMethodOverrideIf(
+                belongsToVirtualPool() && !isLibraryMethodOverride().isUnknown(),
+                isLibraryMethodOverride());
+    setObsolete();
+    return builder.build();
   }
 
   public static void setDebugInfoWithFakeThisParameter(Code code, int arity, AppView<?> appView) {
@@ -1127,8 +1133,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       cfCode.addFakeThisParameter(appView.dexItemFactory());
     }
   }
-  
-  private DexEncodedMethod toMethodThatLogsErrorDexCode(DexItemFactory itemFactory) {
+
+  private DexCode toDexCodeThatLogsError(DexItemFactory itemFactory) {
     checkIfObsolete();
     Signature signature = MethodSignature.fromDexMethod(getReference());
     DexString message =
@@ -1149,23 +1155,18 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
             exceptionType,
             itemFactory.createProto(itemFactory.voidType, itemFactory.stringType),
             itemFactory.constructorMethodName);
-    DexCode code =
-        generateCodeFromTemplate(
-            2,
-            2,
-            new ConstString(0, tag),
-            new ConstString(1, message),
-            new InvokeStatic(2, logMethod, 0, 1, 0, 0, 0),
-            new NewInstance(0, exceptionType),
-            new InvokeDirect(2, exceptionInitMethod, 0, 1, 0, 0, 0),
-            new Throw(0));
-    Builder builder = builder(this);
-    builder.setCode(code);
-    setObsolete();
-    return builder.build();
+    return generateCodeFromTemplate(
+        2,
+        2,
+        new ConstString(0, tag),
+        new ConstString(1, message),
+        new InvokeStatic(2, logMethod, 0, 1, 0, 0, 0),
+        new NewInstance(0, exceptionType),
+        new InvokeDirect(2, exceptionInitMethod, 0, 1, 0, 0, 0),
+        new Throw(0));
   }
 
-  private DexEncodedMethod toMethodThatLogsErrorCfCode(DexItemFactory itemFactory) {
+  private CfCode toCfCodeThatLogsError(DexItemFactory itemFactory) {
     checkIfObsolete();
     Signature signature = MethodSignature.fromDexMethod(getReference());
     DexString message =
@@ -1210,18 +1211,13 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         .add(new CfConstString(message))
         .add(new CfInvoke(Opcodes.INVOKESPECIAL, exceptionInitMethod, false))
         .add(new CfThrow());
-    CfCode code =
-        new CfCode(
-            getReference().holder,
-            3,
-            locals,
-            instructionBuilder.build(),
-            Collections.emptyList(),
-            Collections.emptyList());
-    Builder builder = builder(this);
-    builder.setCode(code);
-    setObsolete();
-    return builder.build();
+    return new CfCode(
+        getReference().holder,
+        3,
+        locals,
+        instructionBuilder.build(),
+        Collections.emptyList(),
+        Collections.emptyList());
   }
 
   public DexEncodedMethod toTypeSubstitutedMethod(DexMethod method) {
@@ -1319,7 +1315,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
                                                 .getHolderType()
                                                 .isInterface(definitions)))
                             .build())
-                    .modifyAccessFlags(MethodAccessFlags::setBridge))
+                    .modifyAccessFlags(MethodAccessFlags::setBridge)
+                    .setIsLibraryMethodOverrideIf(
+                        !isStatic() && !isLibraryMethodOverride().isUnknown(),
+                        isLibraryMethodOverride()))
         .build();
   }
 
