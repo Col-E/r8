@@ -10,35 +10,12 @@ import com.android.tools.r8.graph.ProgramMethod;
 
 public interface DesugaredLibraryWrapperSynthesizerEventConsumer {
 
-  default DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer asProgramWrapperSynthesizer() {
-    assert false;
-    return null;
-  }
-
-  default DesugaredLibraryClasspathWrapperSynthesizeEventConsumer asClasspathWrapperSynthesizer() {
-    assert false;
-    return null;
-  }
-
-  interface DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer
-      extends DesugaredLibraryWrapperSynthesizerEventConsumer {
-
-    @Override
-    default DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer asProgramWrapperSynthesizer() {
-      return this;
-    }
+  interface DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer {
 
     void acceptWrapperProgramClass(DexProgramClass clazz);
   }
 
-  interface DesugaredLibraryClasspathWrapperSynthesizeEventConsumer
-      extends DesugaredLibraryWrapperSynthesizerEventConsumer {
-
-    @Override
-    default DesugaredLibraryClasspathWrapperSynthesizeEventConsumer
-        asClasspathWrapperSynthesizer() {
-      return this;
-    }
+  interface DesugaredLibraryClasspathWrapperSynthesizeEventConsumer {
 
     void acceptWrapperClasspathClass(DexClasspathClass clazz);
   }

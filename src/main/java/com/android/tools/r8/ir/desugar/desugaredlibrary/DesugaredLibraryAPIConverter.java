@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConversionCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
@@ -318,7 +319,8 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
   }
 
   private DexMethod computeReturnConversion(
-      DexMethod invokedMethod, DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
+      DexMethod invokedMethod,
+      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer) {
     DexType returnType = invokedMethod.proto.returnType;
     if (wrapperSynthesizor.shouldConvert(returnType, invokedMethod)) {
       DexType newReturnType = DesugaredLibraryAPIConverter.vivifiedTypeFor(returnType, appView);
@@ -329,7 +331,8 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
   }
 
   private DexMethod[] computeParameterConversions(
-      DexMethod invokedMethod, DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer) {
+      DexMethod invokedMethod,
+      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer) {
     DexMethod[] parameterConversions = new DexMethod[invokedMethod.getArity()];
     DexType[] parameters = invokedMethod.proto.parameters.values;
     for (int i = 0; i < parameters.length; i++) {
