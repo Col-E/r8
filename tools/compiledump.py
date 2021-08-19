@@ -252,6 +252,19 @@ def download_distribution(args, version, temp):
   utils.download_file_from_cloud_storage(source, dest)
   return dest
 
+
+def clean_config(file):
+  with open(file) as f:
+    lines = f.readlines()
+  with open(file, 'w') as f:
+    for line in lines:
+      if ('-injars' not in line and '-libraryjars' not in line and
+          '-print' not in line):
+        f.write(line)
+      else:
+        print('Removing from config line: \n%s' % line)
+
+
 def prepare_wrapper(dist, temp, jdkhome):
   wrapper_file = os.path.join(
       utils.REPO_ROOT,
@@ -329,6 +342,10 @@ def run1(out, args, otherargs, jdkhome=None):
     if compiler != 'd8' and dump.config_file():
       if hasattr(args, 'config_file_consumer') and args.config_file_consumer:
         args.config_file_consumer(dump.config_file())
+      else:
+        # If we get a dump from the wild we can't use -injars, -libraryjars or
+        # -print{mapping,usage}
+        clean_config(dump.config_file())
       cmd.extend(['--pg-conf', dump.config_file()])
     if dump.main_dex_rules_resource():
       cmd.extend(['--main-dex-rules', dump.main_dex_rules_resource()])
