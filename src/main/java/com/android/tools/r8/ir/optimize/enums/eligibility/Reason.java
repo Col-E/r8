@@ -26,6 +26,7 @@ public abstract class Reason {
   public static final Reason INVALID_INVOKE = new StringReason("INVALID_INVOKE");
   public static final Reason INVALID_INVOKE_CLASSPATH =
       new StringReason("INVALID_INVOKE_CLASSPATH");
+  public static final Reason INVALID_INVOKE_CUSTOM = new StringReason("INVALID_INVOKE_CUSTOM");
   public static final Reason INVALID_INVOKE_ON_ARRAY = new StringReason("INVALID_INVOKE_ON_ARRAY");
   public static final Reason IMPLICIT_UP_CAST_IN_RETURN =
       new StringReason("IMPLICIT_UP_CAST_IN_RETURN");

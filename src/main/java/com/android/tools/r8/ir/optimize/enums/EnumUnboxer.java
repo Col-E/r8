@@ -33,7 +33,9 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
@@ -61,6 +63,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
@@ -122,6 +125,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -217,6 +221,13 @@ public class EnumUnboxer {
   }
 
   private DexProgramClass getEnumUnboxingCandidateOrNull(DexType type) {
+    if (type.isArrayType()) {
+      return getEnumUnboxingCandidateOrNull(type.toBaseType(appView.dexItemFactory()));
+    }
+    if (type.isPrimitiveType() || type.isVoidType()) {
+      return null;
+    }
+    assert type.isClassType();
     return enumUnboxingCandidatesInfo.getCandidateClassOrNull(type);
   }
 
@@ -253,6 +264,9 @@ public class EnumUnboxer {
           case Opcodes.CHECK_CAST:
             analyzeCheckCast(instruction.asCheckCast(), eligibleEnums);
             break;
+          case Opcodes.INVOKE_CUSTOM:
+            analyzeInvokeCustom(instruction.asInvokeCustom(), eligibleEnums);
+            break;
           case INVOKE_STATIC:
             analyzeInvokeStatic(instruction.asInvokeStatic(), eligibleEnums, code.context());
             break;
@@ -287,6 +301,49 @@ public class EnumUnboxer {
     if (methodsDependingOnLibraryModelisation.contains(code.context())) {
       conversionOptions.disablePeepholeOptimizations();
     }
+  }
+
+  private void analyzeInvokeCustom(InvokeCustom invoke, Set<DexType> eligibleEnums) {
+    Consumer<DexType> typeReferenceConsumer =
+        type -> {
+          DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(type);
+          if (enumClass != null) {
+            eligibleEnums.add(enumClass.getType());
+          }
+        };
+    invoke.getCallSite().getMethodProto().forEachType(typeReferenceConsumer);
+    invoke
+        .getCallSite()
+        .getBootstrapArgs()
+        .forEach(
+            bootstrapArgument -> {
+              if (bootstrapArgument.isDexValueMethodHandle()) {
+                DexMethodHandle methodHandle =
+                    bootstrapArgument.asDexValueMethodHandle().getValue();
+                if (methodHandle.isMethodHandle()) {
+                  DexMethod method = methodHandle.asMethod();
+                  DexProgramClass enumClass =
+                      getEnumUnboxingCandidateOrNull(method.getHolderType());
+                  if (enumClass != null) {
+                    markEnumAsUnboxable(Reason.INVALID_INVOKE_CUSTOM, enumClass);
+                  } else {
+                    method.getProto().forEachType(typeReferenceConsumer);
+                  }
+                } else {
+                  assert methodHandle.isFieldHandle();
+                  DexField field = methodHandle.asField();
+                  DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(field.getHolderType());
+                  if (enumClass != null) {
+                    markEnumAsUnboxable(Reason.INVALID_INVOKE_CUSTOM, enumClass);
+                  } else {
+                    typeReferenceConsumer.accept(field.getType());
+                  }
+                }
+              } else if (bootstrapArgument.isDexValueMethodType()) {
+                DexProto proto = bootstrapArgument.asDexValueMethodType().getValue();
+                proto.forEachType(typeReferenceConsumer);
+              }
+            });
   }
 
   private void analyzeFieldInstruction(

@@ -102,6 +102,14 @@ public final class DexCallSite extends IndexedDexItem implements StructuralItem<
     return application.getCallSite(name, desc, bootstrapMethod, bootstrapArgs);
   }
 
+  public List<DexValue> getBootstrapArgs() {
+    return bootstrapArgs;
+  }
+
+  public DexProto getMethodProto() {
+    return methodProto;
+  }
+
   @Override
   public DexCallSite self() {
     return this;
