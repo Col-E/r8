@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterInstructionEventConsumer;
 import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -124,7 +125,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
         new InvokeRetargetingResult(false, ignored -> null);
 
     private final boolean hasNewInvokeTarget;
-    private final Function<DesugaredLibraryRetargeterSynthesizerEventConsumer, DexMethod>
+    private final Function<DesugaredLibraryRetargeterInstructionEventConsumer, DexMethod>
         newInvokeTargetSupplier;
 
     static InvokeRetargetingResult createInvokeRetargetingResult(DexMethod retarget) {
@@ -136,7 +137,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
 
     private InvokeRetargetingResult(
         boolean hasNewInvokeTarget,
-        Function<DesugaredLibraryRetargeterSynthesizerEventConsumer, DexMethod>
+        Function<DesugaredLibraryRetargeterInstructionEventConsumer, DexMethod>
             newInvokeTargetSupplier) {
       this.hasNewInvokeTarget = hasNewInvokeTarget;
       this.newInvokeTargetSupplier = newInvokeTargetSupplier;
@@ -147,7 +148,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     }
 
     public DexMethod getNewInvokeTarget(
-        DesugaredLibraryRetargeterSynthesizerEventConsumer eventConsumer) {
+        DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
       assert hasNewInvokeTarget();
       return newInvokeTargetSupplier.apply(eventConsumer);
     }

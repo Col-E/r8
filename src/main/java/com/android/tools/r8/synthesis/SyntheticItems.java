@@ -508,14 +508,29 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       DexProgramClass context,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> fn) {
-    // Obtain the outer synthesizing context in the case the context itself is synthetic.
-    // This is to ensure a flat input-type -> synthetic-item mapping.
-    SynthesizingContext outerContext =
-        context.isProgramClass()
-            ? getSynthesizingContext(context.asProgramClass(), appView)
-            : SynthesizingContext.fromNonSyntheticInputContext(context.asClasspathOrLibraryClass());
+    SynthesizingContext outerContext = internalGetOuterContext(context, appView);
     DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
     return internalCreateClass(kind, fn, outerContext, type, appView.dexItemFactory());
+  }
+
+  public DexProgramClass getExistingFixedClass(
+      SyntheticKind kind, DexClass context, AppView<?> appView) {
+    assert kind.isFixedSuffixSynthetic;
+    SynthesizingContext outerContext = internalGetOuterContext(context, appView);
+    DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
+    DexClass clazz = appView.definitionFor(type);
+    assert clazz != null;
+    assert isSyntheticClass(type);
+    assert clazz.isProgramClass();
+    return clazz.asProgramClass();
+  }
+
+  // Obtain the outer synthesizing context in the case the context itself is synthetic.
+  // This is to ensure a flat input-type -> synthetic-item mapping.
+  private SynthesizingContext internalGetOuterContext(DexClass context, AppView<?> appView) {
+    return context.isProgramClass()
+        ? getSynthesizingContext(context.asProgramClass(), appView)
+        : SynthesizingContext.fromNonSyntheticInputContext(context.asClasspathOrLibraryClass());
   }
 
   /**
@@ -530,12 +545,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       Consumer<SyntheticProgramClassBuilder> fn,
       Consumer<DexProgramClass> onCreationConsumer) {
     assert kind.isFixedSuffixSynthetic;
-    // Obtain the outer synthesizing context in the case the context itself is synthetic.
-    // This is to ensure a flat input-type -> synthetic-item mapping.
-    SynthesizingContext outerContext =
-        context.isProgramClass()
-            ? getSynthesizingContext(context.asProgramClass(), appView)
-            : SynthesizingContext.fromNonSyntheticInputContext(context.asClasspathOrLibraryClass());
+    SynthesizingContext outerContext = internalGetOuterContext(context, appView);
     DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
     // Fast path is that the synthetic is already present. If so it must be a program class.
     DexClass clazz = appView.definitionFor(type);

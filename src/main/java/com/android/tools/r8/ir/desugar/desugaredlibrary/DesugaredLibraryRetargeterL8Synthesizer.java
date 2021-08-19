@@ -45,7 +45,7 @@ public class DesugaredLibraryRetargeterL8Synthesizer implements CfL8ClassSynthes
       futures.add(
           executorService.submit(
               () -> {
-                syntheticHelper.ensureEmulatedHolderDispatchMethod(
+                syntheticHelper.ensureProgramEmulatedHolderDispatchMethod(
                     emulatedDispatchMethod, eventConsumer);
                 return null;
               }));

@@ -11,41 +11,16 @@ import com.android.tools.r8.graph.ProgramMethod;
 
 public interface DesugaredLibraryRetargeterSynthesizerEventConsumer {
 
-  default DesugaredLibraryRetargeterL8SynthesizerEventConsumer asProgramSynthesizer() {
-    assert false;
-    return null;
-  }
-
-  default DesugaredLibraryRetargeterInstructionEventConsumer asClasspathSynthesizer() {
-    assert false;
-    return null;
-  }
-
-  interface DesugaredLibraryRetargeterL8SynthesizerEventConsumer
-      extends DesugaredLibraryRetargeterSynthesizerEventConsumer {
-
-    @Override
-    default DesugaredLibraryRetargeterL8SynthesizerEventConsumer asProgramSynthesizer() {
-      return this;
-    }
-
+  interface DesugaredLibraryRetargeterL8SynthesizerEventConsumer {
     void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz);
   }
 
-  interface DesugaredLibraryRetargeterInstructionEventConsumer
-      extends DesugaredLibraryRetargeterSynthesizerEventConsumer {
-
-    @Override
-    default DesugaredLibraryRetargeterInstructionEventConsumer asClasspathSynthesizer() {
-      return this;
-    }
-
+  interface DesugaredLibraryRetargeterInstructionEventConsumer {
     void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz);
   }
 
   interface DesugaredLibraryRetargeterPostProcessingEventConsumer
       extends DesugaredLibraryRetargeterInstructionEventConsumer {
-
     void acceptInterfaceInjection(DexProgramClass clazz, DexClass newInterface);
 
     void acceptForwardingMethod(ProgramMethod method);
