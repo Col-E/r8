@@ -4,37 +4,26 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
-import com.android.tools.r8.cf.code.CfFieldInstruction;
+
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.cf.code.CfReturnVoid;
-import com.android.tools.r8.cf.code.CfStackInstruction;
-import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeSuper;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexValue.DexValueInt;
-import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
-import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InvalidCode;
-import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -47,7 +36,6 @@ import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -58,7 +46,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-import org.objectweb.asm.Opcodes;
 
 // Default and static method interface desugaring processor for interfaces.
 //
@@ -100,12 +87,11 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
 
   private void ensureCompanionClassMethods(
       DexProgramClass iface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
-    ensureCompanionClassInitializesInterface(iface, eventConsumer);
     // TODO(b/183998768): Once fixed, the methods should be added for processing.
     // D8 and R8 don't need to optimize the methods since they are just moved from interfaces and
     // don't need to be re-processed.
     processVirtualInterfaceMethods(iface);
-    processDirectInterfaceMethods(iface);
+    processDirectInterfaceMethods(iface, eventConsumer);
   }
 
   static ProgramMethod ensureCompanionMethod(
@@ -113,7 +99,8 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
       DexString methodName,
       DexProto methodProto,
       AppView<?> appView,
-      Consumer<SyntheticMethodBuilder> fn) {
+      Consumer<SyntheticMethodBuilder> methodBuilderCallback,
+      Consumer<ProgramMethod> newMethodCallback) {
     return appView
         .getSyntheticItems()
         .ensureFixedClassMethod(
@@ -130,93 +117,8 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                             .getClassSignature()
                             .toObjectBoundWithSameFormals(
                                 new ClassTypeSignature(appView.dexItemFactory().objectType))),
-            fn);
-  }
-
-  private void ensureCompanionClassInitializesInterface(
-      DexProgramClass iface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
-    if (!hasStaticMethodThatTriggersNonTrivialClassInitializer(iface)) {
-      return;
-    }
-    DexEncodedField clinitField = ensureStaticClinitFieldToTriggerInterfaceInitialization(iface);
-    ProgramMethod clinit =
-        ensureCompanionMethod(
-            iface,
-            appView.dexItemFactory().classConstructorMethodName,
-            appView.dexItemFactory().createProto(appView.dexItemFactory().voidType),
-            appView,
-            methodBuilder -> createCompanionClassInitializer(iface, clinitField, methodBuilder));
-    eventConsumer.acceptCompanionClassClinit(clinit);
-  }
-
-  private DexEncodedField ensureStaticClinitFieldToTriggerInterfaceInitialization(
-      DexProgramClass iface) {
-    DexEncodedField clinitField =
-        findExistingStaticClinitFieldToTriggerInterfaceInitialization(iface);
-    if (clinitField == null) {
-      clinitField = createStaticClinitFieldToTriggerInterfaceInitialization(iface);
-      iface.appendStaticField(clinitField);
-    }
-    return clinitField;
-  }
-
-  private boolean hasStaticMethodThatTriggersNonTrivialClassInitializer(DexProgramClass iface) {
-    return iface.hasClassInitializer()
-        && iface
-            .getMethodCollection()
-            .hasDirectMethods(method -> method.isStatic() && !method.isClassInitializer());
-  }
-
-  private DexEncodedField findExistingStaticClinitFieldToTriggerInterfaceInitialization(
-      DexProgramClass iface) {
-    // Don't select a field that has been marked dead, since we'll assert later that these fields
-    // have been dead code eliminated.
-    for (DexEncodedField field :
-        iface.staticFields(field -> !field.isPrivate() && !field.getOptimizationInfo().isDead())) {
-      return field;
-    }
-    return null;
-  }
-
-  private DexEncodedField createStaticClinitFieldToTriggerInterfaceInitialization(
-      DexProgramClass iface) {
-    DexItemFactory dexItemFactory = appView.dexItemFactory();
-    DexField clinitFieldReference =
-        dexItemFactory.createFreshFieldNameWithoutHolder(
-            iface.getType(),
-            dexItemFactory.intType,
-            "$desugar$clinit",
-            candidate -> iface.lookupField(candidate) == null);
-    return new DexEncodedField(
-        clinitFieldReference,
-        FieldAccessFlags.builder().setPackagePrivate().setStatic().setSynthetic().build(),
-        FieldTypeSignature.noSignature(),
-        DexAnnotationSet.empty(),
-        DexValueInt.DEFAULT);
-  }
-
-  private void createCompanionClassInitializer(
-      DexProgramClass iface, DexEncodedField clinitField, SyntheticMethodBuilder methodBuilder) {
-    SyntheticMethodBuilder.SyntheticCodeGenerator codeGenerator =
-        method ->
-            new CfCode(
-                method.holder,
-                clinitField.getType().isWideType() ? 2 : 1,
-                0,
-                ImmutableList.of(
-                    new CfFieldInstruction(
-                        Opcodes.GETSTATIC, clinitField.getReference(), clinitField.getReference()),
-                    clinitField.getType().isWideType()
-                        ? new CfStackInstruction(Opcode.Pop2)
-                        : new CfStackInstruction(Opcode.Pop),
-                    new CfReturnVoid()),
-                ImmutableList.of(),
-                ImmutableList.of());
-    methodBuilder
-        .setAccessFlags(
-            MethodAccessFlags.builder().setConstructor().setPackagePrivate().setStatic().build())
-        .setCode(codeGenerator)
-        .setClassFileVersion(iface.getInitialClassFileVersion());
+            methodBuilderCallback,
+            newMethodCallback);
   }
 
   private void processVirtualInterfaceMethods(DexProgramClass iface) {
@@ -247,7 +149,8 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     }
   }
 
-  private void processDirectInterfaceMethods(DexProgramClass iface) {
+  private void processDirectInterfaceMethods(
+      DexProgramClass iface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     for (ProgramMethod method : iface.directProgramMethods()) {
       DexEncodedMethod definition = method.getDefinition();
       if (definition.isClassInitializer()) {
@@ -270,7 +173,9 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
                 + " is expected to "
                 + "either be public or private in "
                 + iface.origin;
-        companion = helper.ensureStaticAsMethodOfProgramCompanionClassStub(method);
+        companion =
+            helper.ensureStaticAsMethodOfProgramCompanionClassStub(
+                method, eventConsumer::acceptCompanionClassClinit);
       } else {
         assert definition.isPrivate();
         Code code = definition.getCode();

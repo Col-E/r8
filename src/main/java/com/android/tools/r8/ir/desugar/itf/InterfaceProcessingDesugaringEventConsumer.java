@@ -10,5 +10,6 @@ public interface InterfaceProcessingDesugaringEventConsumer {
 
   void acceptForwardingMethod(ProgramMethod method);
 
+  // TODO(b/183998768): Remove this once interface desugaring is moved to the R8 enqueuer.
   void acceptCompanionClassClinit(ProgramMethod method);
 }

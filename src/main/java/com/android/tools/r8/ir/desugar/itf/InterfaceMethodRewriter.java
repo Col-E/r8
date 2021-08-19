@@ -464,7 +464,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
           context,
           staticOutliningMethodConsumer,
           rewriteInvoke,
-          rewriteToThrow);
+          rewriteToThrow,
+          eventConsumer::acceptCompanionClassClinit);
     }
     assert invoke.isInvokeSpecial();
     if (invoke.isInvokeSuper(context.getHolderType())) {
@@ -665,7 +666,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
             context,
             synthesizedMethods::add,
             rewriteInvoke,
-            rewriteToThrow);
+            rewriteToThrow,
+            synthesizedMethods::add);
       } else {
         assert instruction.isInvokeSuper();
         rewriteInvokeSuper(invoke.getInvokedMethod(), context, rewriteInvoke, rewriteToThrow);
@@ -761,7 +763,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       ProgramMethod context,
       Consumer<ProgramMethod> staticOutliningMethodConsumer,
       Function<DexMethod, Collection<CfInstruction>> rewriteInvoke,
-      Function<SingleResolutionResult, Collection<CfInstruction>> rewriteToThrow) {
+      Function<SingleResolutionResult, Collection<CfInstruction>> rewriteToThrow,
+      Consumer<ProgramMethod> companionClinitConsumer) {
     if (appView.getSyntheticItems().isPendingSynthetic(invokedMethod.holder)) {
       // We did not create this code yet, but it will not require rewriting.
       return null;
@@ -856,7 +859,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     assert resolutionResult.getResolvedMethod().isStatic();
     assert invokeNeedsRewriting(invokedMethod, STATIC);
     DexClassAndMethod companionMethod =
-        helper.ensureStaticAsMethodOfCompanionClassStub(resolutionResult.getResolutionPair());
+        helper.ensureStaticAsMethodOfCompanionClassStub(
+            resolutionResult.getResolutionPair(), companionClinitConsumer);
     return rewriteInvoke.apply(companionMethod.getReference());
   }
 

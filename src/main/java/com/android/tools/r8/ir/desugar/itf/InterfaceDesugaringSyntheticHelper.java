@@ -4,28 +4,55 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
+import com.android.tools.r8.cf.CfVersion;
+import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfInitClass;
+import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue.DexValueInt;
+import com.android.tools.r8.graph.FieldAccessFlags;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.structural.Ordered;
+import com.google.common.collect.ImmutableList;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
+import org.objectweb.asm.Opcodes;
 
 public class InterfaceDesugaringSyntheticHelper {
+
+  // Any interface method desugared code can be version 1.7 at the most.
+  // Note: we always desugar both default/static (v1.8) and private (v9) when targeting api < N.
+  public static final CfVersion MAX_INTERFACE_DESUGARED_CF_VERSION = CfVersion.V1_7;
+
+  public static CfVersion getInterfaceDesugaredCfVersion(CfVersion existing) {
+    return Ordered.min(existing, MAX_INTERFACE_DESUGARED_CF_VERSION);
+  }
 
   // Use InterfaceDesugaringForTesting for public accesses in tests.
   static final String EMULATE_LIBRARY_CLASS_NAME_SUFFIX = "$-EL";
@@ -167,9 +194,11 @@ public class InterfaceDesugaringSyntheticHelper {
     return ensureMethodOfClasspathCompanionClassStub(companionMethodReference, context, appView);
   }
 
-  DexClassAndMethod ensureStaticAsMethodOfCompanionClassStub(DexClassAndMethod method) {
+  DexClassAndMethod ensureStaticAsMethodOfCompanionClassStub(
+      DexClassAndMethod method, Consumer<ProgramMethod> companionClinitConsumer) {
     if (method.isProgramMethod()) {
-      return ensureStaticAsMethodOfProgramCompanionClassStub(method.asProgramMethod());
+      return ensureStaticAsMethodOfProgramCompanionClassStub(
+          method.asProgramMethod(), companionClinitConsumer);
     } else {
       ClasspathOrLibraryClass context = method.getHolder().asClasspathOrLibraryClass();
       DexMethod companionMethodReference = staticAsMethodOfCompanionClass(method);
@@ -207,7 +236,8 @@ public class InterfaceDesugaringSyntheticHelper {
                               .getCode()
                               .getCodeAsInlining(syntheticMethod, method.getReference())
                           : InvalidCode.getInstance());
-        });
+        },
+        ignored -> {});
   }
 
   ProgramMethod ensurePrivateAsMethodOfProgramCompanionClassStub(ProgramMethod method) {
@@ -239,11 +269,12 @@ public class InterfaceDesugaringSyntheticHelper {
                               .getCode()
                               .getCodeAsInlining(syntheticMethod, method.getReference())
                           : InvalidCode.getInstance());
-        });
+        },
+        ignored -> {});
   }
 
   // Represent a static interface method as a method of companion class.
-  final DexMethod staticAsMethodOfCompanionClass(DexClassAndMethod method) {
+  private DexMethod staticAsMethodOfCompanionClass(DexClassAndMethod method) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexType companionClassType = getCompanionClassType(method.getHolderType(), dexItemFactory);
     DexMethod rewritten = method.getReference().withHolder(companionClassType, dexItemFactory);
@@ -298,7 +329,11 @@ public class InterfaceDesugaringSyntheticHelper {
                     .setCode(DexEncodedMethod::buildEmptyThrowingCfCode));
   }
 
-  ProgramMethod ensureStaticAsMethodOfProgramCompanionClassStub(ProgramMethod method) {
+  ProgramMethod ensureStaticAsMethodOfProgramCompanionClassStub(
+      ProgramMethod method, Consumer<ProgramMethod> companionClinitConsumer) {
+    if (!method.getDefinition().isClassInitializer() && method.getHolder().hasClassInitializer()) {
+      ensureCompanionClassInitializesInterface(method.getHolder(), companionClinitConsumer);
+    }
     DexMethod companionMethodReference = staticAsMethodOfCompanionClass(method);
     DexEncodedMethod definition = method.getDefinition();
     return InterfaceProcessor.ensureCompanionMethod(
@@ -323,7 +358,107 @@ public class InterfaceDesugaringSyntheticHelper {
                               .getCode()
                               .getCodeAsInlining(syntheticMethod, method.getReference())
                           : InvalidCode.getInstance());
-        });
+        },
+        ignored -> {});
+  }
+
+  private void ensureCompanionClassInitializesInterface(
+      DexProgramClass iface, Consumer<ProgramMethod> companionClinitConsumer) {
+    assert hasStaticMethodThatTriggersNonTrivialClassInitializer(iface);
+    InterfaceProcessor.ensureCompanionMethod(
+        iface,
+        appView.dexItemFactory().classConstructorMethodName,
+        appView.dexItemFactory().createProto(appView.dexItemFactory().voidType),
+        appView,
+        methodBuilder -> createCompanionClassInitializer(iface, methodBuilder),
+        companionClinitConsumer);
+  }
+
+  private DexEncodedField ensureStaticClinitFieldToTriggerInterfaceInitialization(
+      DexProgramClass iface) {
+    DexEncodedField clinitField =
+        findExistingStaticClinitFieldToTriggerInterfaceInitialization(iface);
+    if (clinitField == null) {
+      clinitField = createStaticClinitFieldToTriggerInterfaceInitialization(iface);
+      iface.appendStaticField(clinitField);
+    }
+    return clinitField;
+  }
+
+  private boolean hasStaticMethodThatTriggersNonTrivialClassInitializer(DexProgramClass iface) {
+    return iface.hasClassInitializer()
+        && iface
+            .getMethodCollection()
+            .hasDirectMethods(method -> method.isStatic() && !method.isClassInitializer());
+  }
+
+  private DexEncodedField findExistingStaticClinitFieldToTriggerInterfaceInitialization(
+      DexProgramClass iface) {
+    // Don't select a field that has been marked dead, since we'll assert later that these fields
+    // have been dead code eliminated.
+    for (DexEncodedField field :
+        iface.staticFields(field -> !field.isPrivate() && !field.getOptimizationInfo().isDead())) {
+      return field;
+    }
+    return null;
+  }
+
+  private DexEncodedField createStaticClinitFieldToTriggerInterfaceInitialization(
+      DexProgramClass iface) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexField clinitFieldReference =
+        dexItemFactory.createFreshFieldNameWithoutHolder(
+            iface.getType(),
+            dexItemFactory.intType,
+            "$desugar$clinit",
+            candidate -> iface.lookupField(candidate) == null);
+    return new DexEncodedField(
+        clinitFieldReference,
+        FieldAccessFlags.builder().setPackagePrivate().setStatic().setSynthetic().build(),
+        FieldTypeSignature.noSignature(),
+        DexAnnotationSet.empty(),
+        DexValueInt.DEFAULT);
+  }
+
+  private void createCompanionClassInitializer(
+      DexProgramClass iface, SyntheticMethodBuilder methodBuilder) {
+    methodBuilder
+        .setAccessFlags(
+            MethodAccessFlags.builder().setConstructor().setPackagePrivate().setStatic().build())
+        .setClassFileVersion(getInterfaceDesugaredCfVersion(iface.getInitialClassFileVersion()))
+        .setCode(
+            method -> {
+              if (appView.canUseInitClass()) {
+                return new CfCode(
+                    method.holder,
+                    1,
+                    0,
+                    ImmutableList.of(
+                        new CfInitClass(iface.getType()),
+                        new CfStackInstruction(Opcode.Pop),
+                        new CfReturnVoid()),
+                    ImmutableList.of(),
+                    ImmutableList.of());
+              }
+              DexEncodedField clinitField =
+                  ensureStaticClinitFieldToTriggerInterfaceInitialization(iface);
+              boolean isWide = clinitField.getType().isWideType();
+              return new CfCode(
+                  method.holder,
+                  isWide ? 2 : 1,
+                  0,
+                  ImmutableList.of(
+                      new CfFieldInstruction(
+                          Opcodes.GETSTATIC,
+                          clinitField.getReference(),
+                          clinitField.getReference()),
+                      isWide
+                          ? new CfStackInstruction(Opcode.Pop2)
+                          : new CfStackInstruction(Opcode.Pop),
+                      new CfReturnVoid()),
+                  ImmutableList.of(),
+                  ImmutableList.of());
+            });
   }
 
   private Predicate<DexType> getShouldIgnoreFromReportsPredicate(AppView<?> appView) {
