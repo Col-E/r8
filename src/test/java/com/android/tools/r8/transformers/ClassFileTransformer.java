@@ -740,6 +740,34 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer replaceClassDescriptorInMembers(
+      String oldDescriptor, String newDescriptor) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public FieldVisitor visitField(
+              int access, String name, String descriptor, String signature, Object value) {
+            return super.visitField(
+                access,
+                name,
+                replaceAll(descriptor, oldDescriptor, newDescriptor),
+                signature,
+                value);
+          }
+
+          @Override
+          public MethodVisitor visitMethod(
+              int access, String name, String descriptor, String signature, String[] exceptions) {
+            return super.visitMethod(
+                access,
+                name,
+                replaceAll(descriptor, oldDescriptor, newDescriptor),
+                signature,
+                exceptions);
+          }
+        });
+  }
+
   public ClassFileTransformer replaceClassDescriptorInMethodInstructions(
       String oldDescriptor, String newDescriptor) {
     return addMethodTransformer(
