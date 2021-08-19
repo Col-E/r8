@@ -93,6 +93,10 @@ class ClassNameMinifier {
         registerClassAsUsed(clazz.type, descriptor);
       }
     }
+    appView
+        .appInfo()
+        .getMissingClasses()
+        .forEach(missingClass -> registerClassAsUsed(missingClass, missingClass.getDescriptor()));
     timing.end();
 
     timing.begin("rename-classes");

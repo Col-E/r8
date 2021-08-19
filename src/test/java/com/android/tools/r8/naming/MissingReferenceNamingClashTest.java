@@ -6,12 +6,9 @@ package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -44,40 +41,27 @@ public class MissingReferenceNamingClashTest extends TestBase {
   public void testR8() throws Exception {
     // The references to Missing will be rewritten to a.a but the definition will not be present.
     String newDescriptor = "La/a;";
-    R8TestCompileResult compileResult =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(A.class, Main.class)
-            .addProgramClassFileData(
-                transformer(Anno.class)
-                    .replaceClassDescriptorInMembers(descriptor(Missing.class), newDescriptor)
-                    .transform())
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(Main.class)
-            .addKeepClassAndMembersRules(Anno.class)
-            .addKeepClassRulesWithAllowObfuscation(A.class)
-            .addKeepRuntimeVisibleAnnotations()
-            .addDontWarn(descriptorToJavaType(newDescriptor))
-            .compile();
-    if (parameters.isCfRuntime()) {
-      compileResult
-          .inspect(
-              inspector -> {
-                ClassSubject aSubject = inspector.clazz(A.class);
-                assertThat(aSubject, isPresent());
-                assertEquals(newDescriptor, aSubject.getFinalDescriptor());
-              })
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutputLines("A::foo");
-    } else {
-      // TODO(b/196406764): This should not fail.
-      AssertionError assertionError =
-          assertThrows(
-              AssertionError.class,
-              () -> {
-                compileResult.run(parameters.getRuntime(), Main.class);
-              });
-      assertThat(assertionError.getMessage(), containsString("Out-of-order type ids"));
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(A.class, Main.class)
+        .addProgramClassFileData(
+            transformer(Anno.class)
+                .replaceClassDescriptorInMembers(descriptor(Missing.class), newDescriptor)
+                .transform())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .addKeepClassAndMembersRules(Anno.class)
+        .addKeepClassRulesWithAllowObfuscation(A.class)
+        .addKeepRuntimeVisibleAnnotations()
+        .addDontWarn(descriptorToJavaType(newDescriptor))
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject aSubject = inspector.clazz(A.class);
+              assertThat(aSubject, isPresent());
+              assertEquals("La/b;", aSubject.getFinalDescriptor());
+            })
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("A::foo");
   }
 
   /* Will be missing on input */
