@@ -351,7 +351,7 @@ public class Repackaging {
         return newPackageDescriptor;
       } else if (packageObfuscationMode.isMinification()) {
         assert !proguardConfiguration.hasApplyMappingFile();
-        // Always keep top-level classes since there packages can never be minified.
+        // Always keep top-level classes since their packages can never be minified.
         if (pkg.getPackageDescriptor().equals("")
             || proguardConfiguration.getKeepPackageNamesPatterns().matches(pkg)
             || mayHavePinnedPackagePrivateOrProtectedItem(pkg)) {
@@ -392,15 +392,21 @@ public class Repackaging {
 
     private boolean mayHavePinnedPackagePrivateOrProtectedItem(ProgramPackage pkg) {
       // Go through all package classes and members to see if there is a pinned package-private
-      // item, in which case we cannot move it because there may be a reflective access to it.
+      // item, in which case we cannot move it because there could be an access to it from outside
+      // the program, which would be rewritten with -applymapping.
       for (DexProgramClass clazz : pkg.classesInPackage()) {
         if (clazz.getAccessFlags().isPackagePrivateOrProtected()
-            && appView.getKeepInfo().getClassInfo(clazz).isPinned(options)) {
+            && !appView.getKeepInfo().getClassInfo(clazz).isShrinkingAllowed(options)) {
           return true;
         }
         for (DexEncodedMember<?, ?> member : clazz.members()) {
+          // Skip the class initializer. Even if it is kept, it cannot be invoked, and thus we don't
+          // need any special handling to make sure it is always accessible to callers from tests.
+          if (member.isDexEncodedMethod() && member.asDexEncodedMethod().isClassInitializer()) {
+            continue;
+          }
           if (member.getAccessFlags().isPackagePrivateOrProtected()
-              && appView.getKeepInfo().getMemberInfo(member, clazz).isPinned(options)) {
+              && !appView.getKeepInfo().getMemberInfo(member, clazz).isShrinkingAllowed(options)) {
             return true;
           }
         }
