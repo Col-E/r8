@@ -741,15 +741,20 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       firstLabel = new CfLabel();
       newInstructions.add(firstLabel);
     }
-    newInstructions.add(new CfPosition(firstLabel, callerPosition));
+    boolean seenPosition = false;
     for (CfInstruction instruction : instructions) {
       if (instruction.isPosition()) {
+        seenPosition = true;
         CfPosition oldPosition = instruction.asPosition();
         newInstructions.add(
             new CfPosition(
                 oldPosition.getLabel(),
                 oldPosition.getPosition().withOutermostCallerPosition(callerPosition)));
       } else {
+        if (!instruction.isLabel() && !seenPosition) {
+          newInstructions.add(new CfPosition(firstLabel, callerPosition));
+          seenPosition = true;
+        }
         newInstructions.add(instruction);
       }
     }
