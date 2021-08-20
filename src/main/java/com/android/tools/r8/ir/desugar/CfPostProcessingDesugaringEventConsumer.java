@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -66,7 +65,7 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     @Override
     public void acceptCompanionClassClinit(ProgramMethod method) {
-      throw new Unreachable();
+      methodsToReprocess.add(method);
     }
 
     @Override
