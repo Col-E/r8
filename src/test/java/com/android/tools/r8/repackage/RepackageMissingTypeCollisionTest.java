@@ -5,8 +5,6 @@
 package com.android.tools.r8.repackage;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
@@ -66,10 +64,12 @@ public class RepackageMissingTypeCollisionTest extends RepackageTestBase {
             inspector -> {
               ClassSubject clazz = inspector.clazz(getNewATypeName());
               assertThat(clazz, isPresentAndRenamed());
-              assertEquals(getNewMissingTypeName(), clazz.getFinalName());
+              assertEquals(
+                  getRepackagePackage() + (isFlattenPackageHierarchy() ? ".a.b" : ".b"),
+                  clazz.getFinalName());
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(not(containsString("NoClassDefFoundError")));
+        .assertFailureWithErrorThatThrows(NoClassDefFoundError.class);
   }
 
   @Test

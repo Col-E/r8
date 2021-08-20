@@ -327,13 +327,13 @@ public class Repackaging {
 
   public static class DefaultRepackagingConfiguration implements RepackagingConfiguration {
 
-    private final AppView<?> appView;
+    private final AppView<AppInfoWithLiveness> appView;
     private final DexItemFactory dexItemFactory;
     private final InternalOptions options;
     private final ProguardConfiguration proguardConfiguration;
     private final MinificationPackageNamingStrategy packageMinificationStrategy;
 
-    public DefaultRepackagingConfiguration(AppView<?> appView) {
+    public DefaultRepackagingConfiguration(AppView<AppInfoWithLiveness> appView) {
       this.appView = appView;
       this.dexItemFactory = appView.dexItemFactory();
       this.options = appView.options();
@@ -442,17 +442,19 @@ public class Repackaging {
       }
       // Ensure that the generated name is unique.
       DexType finalRepackagedDexType = repackagedDexType;
-      for (int i = 1; isRepackageTypeUsed(finalRepackagedDexType, mappings, appView); i++) {
+      for (int i = 1; isRepackageTypeUsed(finalRepackagedDexType, mappings); i++) {
         finalRepackagedDexType = repackagedDexType.addSuffix(i + "", dexItemFactory);
       }
       return finalRepackagedDexType;
     }
-  }
 
-  private static boolean isRepackageTypeUsed(
-      DexType type, BiMap<DexType, DexType> mappings, AppView<?> appView) {
-    return mappings.inverse().containsKey(type)
-        || (appView.hasLiveness() && appView.withLiveness().appInfo().wasPruned(type));
+    private boolean isRepackageTypeUsed(DexType type, BiMap<DexType, DexType> mappings) {
+      if (mappings.inverse().containsKey(type)) {
+        return true;
+      }
+      return appView.appInfo().wasPruned(type)
+          || appView.appInfo().getMissingClasses().contains(type);
+    }
   }
 
   /** Testing only. */
