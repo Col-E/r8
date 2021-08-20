@@ -68,7 +68,7 @@ public abstract class MethodCollectionBacking {
 
   // Lookup methods.
 
-  abstract DexEncodedMethod getMethod(DexMethod method);
+  abstract DexEncodedMethod getMethod(DexProto methodProto, DexString methodName);
 
   abstract DexEncodedMethod getDirectMethod(DexMethod method);
 

@@ -688,15 +688,21 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   public MethodResolutionResult resolveMethodOnClass(DexMethod method, DexClass clazz) {
+    return resolveMethodOnClass(clazz, method.getProto(), method.getName());
+  }
+
+  public MethodResolutionResult resolveMethodOnClass(
+      DexClass clazz, DexProto methodProto, DexString methodName) {
     assert checkIfObsolete();
     assert !clazz.isInterface();
     // Step 2:
-    MethodResolutionResult result = resolveMethodOnClassStep2(clazz, method, clazz);
+    MethodResolutionResult result =
+        resolveMethodOnClassStep2(clazz, methodProto, methodName, clazz);
     if (result != null) {
       return result;
     }
     // Finally Step 3:
-    return resolveMethodStep3(clazz, method);
+    return resolveMethodStep3(clazz, methodProto, methodName);
   }
 
   /**
@@ -705,16 +711,19 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * 5.4.3.3 of the JVM Spec</a>.
    */
   private MethodResolutionResult resolveMethodOnClassStep2(
-      DexClass clazz, DexMethod method, DexClass initialResolutionHolder) {
+      DexClass clazz,
+      DexProto methodProto,
+      DexString methodName,
+      DexClass initialResolutionHolder) {
     // Pt. 1: Signature polymorphic method check.
     // See also <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-2.html#jvms-2.9">
     // Section 2.9 of the JVM Spec</a>.
-    DexEncodedMethod result = clazz.lookupSignaturePolymorphicMethod(method.name, dexItemFactory());
+    DexEncodedMethod result = clazz.lookupSignaturePolymorphicMethod(methodName, dexItemFactory());
     if (result != null) {
       return new SingleResolutionResult(initialResolutionHolder, clazz, result);
     }
     // Pt 2: Find a method that matches the descriptor.
-    result = clazz.lookupMethod(method);
+    result = clazz.lookupMethod(methodProto, methodName);
     if (result != null) {
       // If the resolved method is private, then it can only be accessed if the symbolic reference
       // that initiated the resolution was the type at which the method resolved on. If that is not
@@ -730,7 +739,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     if (clazz.superType != null) {
       DexClass superClass = definitionFor(clazz.superType);
       if (superClass != null) {
-        return resolveMethodOnClassStep2(superClass, method, initialResolutionHolder);
+        return resolveMethodOnClassStep2(
+            superClass, methodProto, methodName, initialResolutionHolder);
       }
     }
     return null;
@@ -742,35 +752,45 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * 5.4.3.3 of the JVM Spec</a>. As this is the same for interfaces and classes, we share one
    * implementation.
    */
-  private MethodResolutionResult resolveMethodStep3(DexClass clazz, DexMethod method) {
+  private MethodResolutionResult resolveMethodStep3(
+      DexClass clazz, DexProto methodProto, DexString methodName) {
     MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder();
-    resolveMethodStep3Helper(method, clazz, builder);
+    resolveMethodStep3Helper(methodProto, methodName, clazz, builder);
     return builder.resolve(clazz);
   }
 
   // Non-private lookup (ie, not resolution) to find interface targets.
   DexClassAndMethod lookupMaximallySpecificTarget(DexClass clazz, DexMethod method) {
     MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder();
-    resolveMethodStep3Helper(method, clazz, builder);
+    resolveMethodStep3Helper(method.getProto(), method.getName(), clazz, builder);
     return builder.lookup();
   }
 
   // Non-private lookup (ie, not resolution) to find interface targets.
   DexClassAndMethod lookupMaximallySpecificTarget(LambdaDescriptor lambda, DexMethod method) {
     MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder();
-    resolveMethodStep3Helper(method, dexItemFactory().objectType, lambda.interfaces, builder);
+    resolveMethodStep3Helper(
+        method.getProto(),
+        method.getName(),
+        dexItemFactory().objectType,
+        lambda.interfaces,
+        builder);
     return builder.lookup();
   }
 
   /** Helper method that builds the set of maximally specific methods. */
   private void resolveMethodStep3Helper(
-      DexMethod method, DexClass clazz, MaximallySpecificMethodsBuilder builder) {
+      DexProto methodProto,
+      DexString methodName,
+      DexClass clazz,
+      MaximallySpecificMethodsBuilder builder) {
     resolveMethodStep3Helper(
-        method, clazz.superType, Arrays.asList(clazz.interfaces.values), builder);
+        methodProto, methodName, clazz.superType, Arrays.asList(clazz.interfaces.values), builder);
   }
 
   private void resolveMethodStep3Helper(
-      DexMethod method,
+      DexProto methodProto,
+      DexString methodName,
       DexType superType,
       List<DexType> interfaces,
       MaximallySpecificMethodsBuilder builder) {
@@ -781,20 +801,20 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         continue;
       }
       assert definition.isInterface();
-      DexEncodedMethod result = definition.lookupMethod(method);
+      DexEncodedMethod result = definition.lookupMethod(methodProto, methodName);
       if (isMaximallySpecificCandidate(result)) {
         // The candidate is added and doing so will prohibit shadowed methods from being in the set.
         builder.addCandidate(definition, result, this);
       } else {
         // Look at the super-interfaces of this class and keep searching.
-        resolveMethodStep3Helper(method, definition, builder);
+        resolveMethodStep3Helper(methodProto, methodName, definition, builder);
       }
     }
     // Now look at indirect super interfaces.
     if (superType != null) {
       DexClass superClass = definitionFor(superType);
       if (superClass != null) {
-        resolveMethodStep3Helper(method, superClass, builder);
+        resolveMethodStep3Helper(methodProto, methodName, superClass, builder);
       }
     }
   }
@@ -860,7 +880,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     }
     // Step 3: Look for maximally-specific superinterface methods or any interface definition.
     //         This is the same for classes and interfaces.
-    return resolveMethodStep3(definition, desc);
+    return resolveMethodStep3(definition, desc.getProto(), desc.getName());
   }
 
   /**

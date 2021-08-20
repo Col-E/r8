@@ -160,7 +160,11 @@ public class MethodCollection {
   }
 
   public DexEncodedMethod getMethod(DexMethod method) {
-    return backing.getMethod(method);
+    return backing.getMethod(method.getProto(), method.getName());
+  }
+
+  public DexEncodedMethod getMethod(DexProto methodProto, DexString methodName) {
+    return backing.getMethod(methodProto, methodName);
   }
 
   public DexEncodedMethod getMethod(Predicate<DexEncodedMethod> predicate) {

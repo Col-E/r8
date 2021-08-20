@@ -228,7 +228,15 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
   @Override
   public boolean match(DexMethod method) {
-    return method.name == name && method.proto == proto;
+    return match(method.getProto(), method.getName());
+  }
+
+  public boolean match(DexMethodSignature method) {
+    return match(method.getProto(), method.getName());
+  }
+
+  public boolean match(DexProto methodProto, DexString methodName) {
+    return proto == methodProto && name == methodName;
   }
 
   @Override

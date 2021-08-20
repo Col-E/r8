@@ -588,6 +588,10 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     return methodCollection.getMethod(method);
   }
 
+  public DexEncodedMethod lookupMethod(DexProto methodProto, DexString methodName) {
+    return methodCollection.getMethod(methodProto, methodName);
+  }
+
   /** Find method in this class matching {@param method}. */
   public DexEncodedMethod lookupMethod(Predicate<DexEncodedMethod> predicate) {
     return methodCollection.getMethod(predicate);

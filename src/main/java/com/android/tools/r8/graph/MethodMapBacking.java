@@ -5,67 +5,59 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.IteratorUtils;
-import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.TraversalContinuation;
-import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Lists;
-import it.unimi.dsi.fastutil.objects.Object2ReferenceLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2ReferenceMap;
-import it.unimi.dsi.fastutil.objects.Object2ReferenceRBTreeMap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class MethodMapBacking extends MethodCollectionBacking {
 
-  private Object2ReferenceMap<Wrapper<DexMethod>, DexEncodedMethod> methodMap;
+  private Map<DexMethodSignature, DexEncodedMethod> methodMap;
 
   public MethodMapBacking() {
     this(createMap());
   }
 
-  private MethodMapBacking(Object2ReferenceMap<Wrapper<DexMethod>, DexEncodedMethod> methodMap) {
+  private MethodMapBacking(Map<DexMethodSignature, DexEncodedMethod> methodMap) {
     this.methodMap = methodMap;
   }
 
   public static MethodMapBacking createSorted() {
-    Comparator<Wrapper<DexMethod>> comparator = Comparator.comparing(Wrapper::get);
-    return new MethodMapBacking(new Object2ReferenceRBTreeMap<>(comparator));
+    return new MethodMapBacking(new TreeMap<>());
   }
 
-  private static Object2ReferenceMap<Wrapper<DexMethod>, DexEncodedMethod> createMap() {
+  private static Map<DexMethodSignature, DexEncodedMethod> createMap() {
     // Maintain a linked map so the output order remains a deterministic function of the input.
-    return new Object2ReferenceLinkedOpenHashMap<>();
+    return new HashMap<>();
   }
 
-  private static Object2ReferenceMap<Wrapper<DexMethod>, DexEncodedMethod> createMap(int capacity) {
+  private static Map<DexMethodSignature, DexEncodedMethod> createMap(int capacity) {
     // Maintain a linked map so the output order remains a deterministic function of the input.
-    return new Object2ReferenceLinkedOpenHashMap<>(capacity);
+    return new HashMap<>(capacity);
   }
 
-  private Wrapper<DexMethod> wrap(DexMethod method) {
-    return MethodSignatureEquivalence.get().wrap(method);
-  }
-
-  private void replace(Wrapper<DexMethod> existingKey, DexEncodedMethod method) {
-    if (existingKey.get().match(method)) {
+  private void replace(DexMethodSignature existingKey, DexEncodedMethod method) {
+    if (method.getReference().match(existingKey)) {
       methodMap.put(existingKey, method);
     } else {
       methodMap.remove(existingKey);
-      methodMap.put(wrap(method.getReference()), method);
+      methodMap.put(method.getSignature(), method);
     }
   }
 
   @Override
   boolean verify() {
     methodMap.forEach(
-        (key, method) -> {
-          assert key.get().match(method);
+        (signature, method) -> {
+          assert method.getReference().match(signature);
         });
     return true;
   }
@@ -97,7 +89,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
 
   @Override
   TraversalContinuation traverse(Function<DexEncodedMethod, TraversalContinuation> fn) {
-    for (Entry<Wrapper<DexMethod>, DexEncodedMethod> entry : methodMap.object2ReferenceEntrySet()) {
+    for (Entry<DexMethodSignature, DexEncodedMethod> entry : methodMap.entrySet()) {
       TraversalContinuation result = fn.apply(entry.getValue());
       if (result.shouldBreak()) {
         return result;
@@ -122,8 +114,8 @@ public class MethodMapBacking extends MethodCollectionBacking {
   }
 
   @Override
-  DexEncodedMethod getMethod(DexMethod method) {
-    return methodMap.get(wrap(method));
+  DexEncodedMethod getMethod(DexProto methodProto, DexString methodName) {
+    return methodMap.get(new DexMethodSignature(methodProto, methodName));
   }
 
   private DexEncodedMethod getMethod(Predicate<DexEncodedMethod> predicate) {
@@ -141,7 +133,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
 
   @Override
   DexEncodedMethod getDirectMethod(DexMethod method) {
-    DexEncodedMethod definition = getMethod(method);
+    DexEncodedMethod definition = getMethod(method.getProto(), method.getName());
     return definition != null && belongsToDirectPool(definition) ? definition : null;
   }
 
@@ -153,7 +145,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
 
   @Override
   DexEncodedMethod getVirtualMethod(DexMethod method) {
-    DexEncodedMethod definition = getMethod(method);
+    DexEncodedMethod definition = getMethod(method.getProto(), method.getName());
     return definition != null && belongsToVirtualPool(definition) ? definition : null;
   }
 
@@ -165,7 +157,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
 
   @Override
   void addMethod(DexEncodedMethod method) {
-    Wrapper<DexMethod> key = wrap(method.getReference());
+    DexMethodSignature key = method.getSignature();
     DexEncodedMethod old = methodMap.put(key, method);
     assert old == null;
   }
@@ -208,12 +200,12 @@ public class MethodMapBacking extends MethodCollectionBacking {
 
   @Override
   DexEncodedMethod removeMethod(DexMethod method) {
-    return methodMap.remove(wrap(method));
+    return methodMap.remove(method.getSignature());
   }
 
   @Override
   void removeMethods(Set<DexEncodedMethod> methods) {
-    methods.forEach(method -> methodMap.remove(wrap(method.getReference())));
+    methods.forEach(method -> methodMap.remove(method.getSignature()));
   }
 
   @Override
@@ -224,17 +216,16 @@ public class MethodMapBacking extends MethodCollectionBacking {
     if (methods == null) {
       methods = DexEncodedMethod.EMPTY_ARRAY;
     }
-    Object2ReferenceMap<Wrapper<DexMethod>, DexEncodedMethod> newMap =
-        createMap(size() + methods.length);
+    Map<DexMethodSignature, DexEncodedMethod> newMap = createMap(size() + methods.length);
     forEachMethod(
         method -> {
           if (belongsToVirtualPool(method)) {
-            newMap.put(wrap(method.getReference()), method);
+            newMap.put(method.getSignature(), method);
           }
         });
     for (DexEncodedMethod method : methods) {
       assert belongsToDirectPool(method);
-      newMap.put(wrap(method.getReference()), method);
+      newMap.put(method.getSignature(), method);
     }
     methodMap = newMap;
   }
@@ -247,17 +238,16 @@ public class MethodMapBacking extends MethodCollectionBacking {
     if (methods == null) {
       methods = DexEncodedMethod.EMPTY_ARRAY;
     }
-    Object2ReferenceMap<Wrapper<DexMethod>, DexEncodedMethod> newMap =
-        createMap(size() + methods.length);
+    Map<DexMethodSignature, DexEncodedMethod> newMap = createMap(size() + methods.length);
     forEachMethod(
         method -> {
           if (belongsToDirectPool(method)) {
-            newMap.put(wrap(method.getReference()), method);
+            newMap.put(method.getSignature(), method);
           }
         });
     for (DexEncodedMethod method : methods) {
       assert belongsToVirtualPool(method);
-      newMap.put(wrap(method.getReference()), method);
+      newMap.put(method.getSignature(), method);
     }
     methodMap = newMap;
   }
@@ -325,7 +315,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
       DexMethod method,
       Function<DexEncodedMethod, DexEncodedMethod> replacement,
       Predicate<DexEncodedMethod> predicate) {
-    Wrapper<DexMethod> key = wrap(method);
+    DexMethodSignature key = method.getSignature();
     DexEncodedMethod existing = methodMap.get(key);
     if (existing == null || !predicate.test(existing)) {
       return null;
@@ -339,7 +329,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
   @Override
   DexEncodedMethod replaceDirectMethodWithVirtualMethod(
       DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement) {
-    Wrapper<DexMethod> key = wrap(method);
+    DexMethodSignature key = method.getSignature();
     DexEncodedMethod existing = methodMap.get(key);
     if (existing == null || belongsToVirtualPool(existing)) {
       return null;
@@ -359,7 +349,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
   private boolean verifyVirtualizedMethods(Set<DexEncodedMethod> methods) {
     for (DexEncodedMethod method : methods) {
       assert belongsToVirtualPool(method);
-      assert methodMap.get(wrap(method.getReference())) == method;
+      assert methodMap.get(method.getSignature()) == method;
     }
     return true;
   }

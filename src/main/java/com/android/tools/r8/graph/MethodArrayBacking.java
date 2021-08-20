@@ -249,9 +249,21 @@ public class MethodArrayBacking extends MethodCollectionBacking {
   }
 
   @Override
-  DexEncodedMethod getMethod(DexMethod method) {
-    DexEncodedMethod result = getDirectMethod(method);
-    return result == null ? getVirtualMethod(method) : result;
+  DexEncodedMethod getMethod(DexProto methodProto, DexString methodName) {
+    DexEncodedMethod directMethod = internalGetMethod(methodProto, methodName, directMethods);
+    return directMethod == null
+        ? internalGetMethod(methodProto, methodName, virtualMethods)
+        : directMethod;
+  }
+
+  private static DexEncodedMethod internalGetMethod(
+      DexProto methodProto, DexString methodName, DexEncodedMethod[] methods) {
+    for (DexEncodedMethod method : methods) {
+      if (method.getReference().match(methodProto, methodName)) {
+        return method;
+      }
+    }
+    return null;
   }
 
   @Override

@@ -4,9 +4,13 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Objects;
 
-public class DexMethodSignature {
+public class DexMethodSignature implements StructuralItem<DexMethodSignature> {
+
   private final DexProto proto;
   private final DexString name;
 
@@ -21,12 +25,29 @@ public class DexMethodSignature {
     this.name = name;
   }
 
-  public DexProto getProto() {
-    return proto;
+  public int getArity() {
+    return proto.getArity();
   }
 
   public DexString getName() {
     return name;
+  }
+
+  public DexProto getProto() {
+    return proto;
+  }
+
+  public DexType getReturnType() {
+    return proto.returnType;
+  }
+
+  @Override
+  public StructuralMapping<DexMethodSignature> getStructuralMapping() {
+    return DexMethodSignature::specify;
+  }
+
+  private static void specify(StructuralSpecification<DexMethodSignature, ?> spec) {
+    spec.withItem(DexMethodSignature::getName).withItem(DexMethodSignature::getProto);
   }
 
   public DexMethodSignature withName(DexString name) {
@@ -58,12 +79,9 @@ public class DexMethodSignature {
     return Objects.hash(proto, name);
   }
 
-  public DexType getReturnType() {
-    return proto.returnType;
-  }
-
-  public int getArity() {
-    return proto.getArity();
+  @Override
+  public DexMethodSignature self() {
+    return this;
   }
 
   @Override
