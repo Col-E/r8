@@ -44,7 +44,7 @@ public class StaticMethodWithConstantArgumentTest extends TestBase {
             options -> {
               CallSiteOptimizationOptions callSiteOptimizationOptions =
                   options.callSiteOptimizationOptions();
-              callSiteOptimizationOptions.setEnableExperimentalArgumentPropagation();
+              callSiteOptimizationOptions.setEnableExperimentalArgumentPropagation(true);
               callSiteOptimizationOptions.setEnableConstantPropagation();
             })
         .enableInliningAnnotations()

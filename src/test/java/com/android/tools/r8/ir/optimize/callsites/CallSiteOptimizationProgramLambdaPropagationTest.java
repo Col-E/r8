@@ -38,14 +38,12 @@ public class CallSiteOptimizationProgramLambdaPropagationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(CallSiteOptimizationProgramLambdaPropagationTest.class)
         .addKeepMainRule(TestClass.class)
-        .applyIf(
-            enableExperimentalArgumentPropagation,
-            builder ->
-                builder.addOptionsModification(
-                    options ->
-                        options
-                            .callSiteOptimizationOptions()
-                            .setEnableExperimentalArgumentPropagation()))
+        .addOptionsModification(
+            options ->
+                options
+                    .callSiteOptimizationOptions()
+                    .setEnableExperimentalArgumentPropagation(
+                        enableExperimentalArgumentPropagation))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

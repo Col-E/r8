@@ -67,14 +67,12 @@ public class CallSiteOptimizationWithInvokeCustomTargetTest extends TestBase {
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(TestClass.class)
         .addKeepMethodRules(methodFromMethod(TestClass.class.getDeclaredMethod("bar", int.class)))
-        .applyIf(
-            enableExperimentalArgumentPropagation,
-            builder ->
-                builder.addOptionsModification(
-                    options ->
-                        options
-                            .callSiteOptimizationOptions()
-                            .setEnableExperimentalArgumentPropagation()))
+        .addOptionsModification(
+            options ->
+                options
+                    .callSiteOptimizationOptions()
+                    .setEnableExperimentalArgumentPropagation(
+                        enableExperimentalArgumentPropagation))
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)

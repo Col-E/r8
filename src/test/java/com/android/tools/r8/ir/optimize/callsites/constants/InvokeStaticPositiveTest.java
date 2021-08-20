@@ -14,7 +14,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
-import com.android.tools.r8.utils.InternalOptions.CallSiteOptimizationOptions;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -50,7 +50,7 @@ public class InvokeStaticPositiveTest extends TestBase {
               o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
             })
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(CallSiteOptimizationOptions::enableConstantPropagationForTesting)
+        .addOptionsModification(InternalOptions::enableConstantArgumentPropagationForTesting)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("non-null")
         .inspect(this::inspect);

@@ -63,14 +63,12 @@ public class CallSiteOptimizationPinnedMethodOverridePropagationTest extends Tes
                         + "Arg getArg2(); \npublic static "
                         + CLASS_PREFIX
                         + "Call getCaller(); \n}"))
-            .applyIf(
-                enableExperimentalArgumentPropagation,
-                builder ->
-                    builder.addOptionsModification(
-                        options ->
-                            options
-                                .callSiteOptimizationOptions()
-                                .setEnableExperimentalArgumentPropagation()))
+            .addOptionsModification(
+                options ->
+                    options
+                        .callSiteOptimizationOptions()
+                        .setEnableExperimentalArgumentPropagation(
+                            enableExperimentalArgumentPropagation))
             .enableNoVerticalClassMergingAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
             .enableInliningAnnotations()

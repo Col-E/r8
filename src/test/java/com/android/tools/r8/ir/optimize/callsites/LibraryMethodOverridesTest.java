@@ -63,14 +63,12 @@ public class LibraryMethodOverridesTest extends TestBase {
         .addOptionsModification(
             o ->
                 o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect)
-        .applyIf(
-            enableExperimentalArgumentPropagation,
-            builder ->
-                builder.addOptionsModification(
-                    options ->
-                        options
-                            .callSiteOptimizationOptions()
-                            .setEnableExperimentalArgumentPropagation()))
+        .addOptionsModification(
+            options ->
+                options
+                    .callSiteOptimizationOptions()
+                    .setEnableExperimentalArgumentPropagation(
+                        enableExperimentalArgumentPropagation))
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()

@@ -1210,7 +1210,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         System.getProperty("com.android.tools.r8.noCfMarkerForDesugaredCode") != null;
   }
 
-  public static class CallSiteOptimizationOptions {
+  public class CallSiteOptimizationOptions {
 
     // Each time we see an invoke with more dispatch targets than the threshold, we stop call site
     // propagation for all these dispatch targets. The motivation for this is that it is expensive
@@ -1223,7 +1223,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     private boolean enableExperimentalArgumentPropagation = false;
     private boolean enableTypePropagation = true;
 
-    private void disableOptimization() {
+    public void disableOptimization() {
       enableConstantPropagation = false;
       enableTypePropagation = false;
     }
@@ -1232,18 +1232,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       enableTypePropagation = false;
     }
 
-    // TODO(b/69963623): Remove this once enabled.
-    @VisibleForTesting
-    public static void enableConstantPropagationForTesting(InternalOptions options) {
-      assert !options.callSiteOptimizationOptions().isConstantPropagationEnabled();
-      options.callSiteOptimizationOptions().enableConstantPropagation = true;
-    }
-
     public int getMaxNumberOfDispatchTargetsBeforeAbandoning() {
       return maxNumberOfDispatchTargetsBeforeAbandoning;
     }
 
     public boolean isEnabled() {
+      if (!isOptimizing()) {
+        return false;
+      }
       return enableConstantPropagation || enableTypePropagation;
     }
 
@@ -1264,10 +1260,17 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       enableConstantPropagation = true;
     }
 
-    public void setEnableExperimentalArgumentPropagation() {
-      assert !isExperimentalArgumentPropagationEnabled();
-      enableExperimentalArgumentPropagation = true;
+    public void setEnableExperimentalArgumentPropagation(
+        boolean enableExperimentalArgumentPropagation) {
+      this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
     }
+  }
+
+  // TODO(b/69963623): Remove this once enabled.
+  @VisibleForTesting
+  public static void enableConstantArgumentPropagationForTesting(InternalOptions options) {
+    assert !options.callSiteOptimizationOptions().isConstantPropagationEnabled();
+    options.callSiteOptimizationOptions().enableConstantPropagation = true;
   }
 
   public class HorizontalClassMergerOptions {

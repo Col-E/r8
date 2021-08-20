@@ -48,14 +48,12 @@ public class KeptMethodTest extends TestBase {
         .addInnerClasses(KeptMethodTest.class)
         .addKeepMainRule(MAIN)
         .addKeepClassAndMembersRules(A.class)
-        .applyIf(
-            enableExperimentalArgumentPropagation,
-            builder ->
-                builder.addOptionsModification(
-                    options ->
-                        options
-                            .callSiteOptimizationOptions()
-                            .setEnableExperimentalArgumentPropagation()))
+        .addOptionsModification(
+            options ->
+                options
+                    .callSiteOptimizationOptions()
+                    .setEnableExperimentalArgumentPropagation(
+                        enableExperimentalArgumentPropagation))
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(

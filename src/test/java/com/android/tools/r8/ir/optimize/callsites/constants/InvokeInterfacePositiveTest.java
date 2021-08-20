@@ -16,7 +16,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
-import com.android.tools.r8.utils.InternalOptions.CallSiteOptimizationOptions;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -49,7 +49,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
-        .addOptionsModification(CallSiteOptimizationOptions::enableConstantPropagationForTesting)
+        .addOptionsModification(InternalOptions::enableConstantArgumentPropagationForTesting)
         .addOptionsModification(
             o -> {
               // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single
