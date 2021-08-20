@@ -7,6 +7,7 @@ import static com.android.tools.r8.references.Reference.classFromTypeName;
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescriptor;
 import static com.android.tools.r8.utils.StringUtils.replaceAll;
 import static org.objectweb.asm.Opcodes.ASM7;
+import static org.objectweb.asm.Opcodes.ASM9;
 
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
@@ -764,6 +765,29 @@ public class ClassFileTransformer {
                 replaceAll(descriptor, oldDescriptor, newDescriptor),
                 signature,
                 exceptions);
+          }
+        });
+  }
+
+  public ClassFileTransformer replaceClassDescriptorInAnnotationDefault(
+      String oldDescriptor, String newDescriptor) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+
+          @Override
+          public AnnotationVisitor visitAnnotationDefault() {
+            return new AnnotationVisitor(ASM9, super.visitAnnotationDefault()) {
+              @Override
+              public void visit(String name, Object value) {
+                super.visit(name, value);
+              }
+
+              @Override
+              public void visitEnum(String name, String descriptor, String value) {
+                super.visitEnum(
+                    name, descriptor.equals(oldDescriptor) ? newDescriptor : descriptor, value);
+              }
+            };
           }
         });
   }
