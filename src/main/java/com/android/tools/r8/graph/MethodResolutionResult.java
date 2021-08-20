@@ -98,6 +98,10 @@ public abstract class MethodResolutionResult
     return null;
   }
 
+  public ProgramMethod getResolvedProgramMethod() {
+    return null;
+  }
+
   @Override
   public DexClassAndMethod getResolutionPair() {
     return null;
@@ -192,6 +196,7 @@ public abstract class MethodResolutionResult
       return resolvedMethod;
     }
 
+    @Override
     public ProgramMethod getResolvedProgramMethod() {
       return resolvedHolder.isProgramClass()
           ? new ProgramMethod(resolvedHolder.asProgramClass(), resolvedMethod)

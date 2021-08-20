@@ -82,12 +82,11 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
       DexProgramClass interfaceDefinition) {
     // Join the state for all parent interfaces into a fresh state created for this interface.
     MethodStateCollectionBySignature interfaceState = MethodStateCollectionBySignature.create();
-    immediateSubtypingInfo.forEachImmediateSuperClassMatching(
+    immediateSubtypingInfo.forEachImmediateProgramSuperClass(
         interfaceDefinition,
-        (supertype, superclass) -> superclass != null && superclass.isProgramClass(),
-        (supertype, superclass) -> {
+        superclass -> {
           MethodStateCollectionBySignature implementedInterfaceState =
-              methodStatesToPropagate.get(superclass.asProgramClass());
+              methodStatesToPropagate.get(superclass);
           assert implementedInterfaceState != null;
           interfaceState.addMethodStates(appView, implementedInterfaceState);
         });

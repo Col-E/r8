@@ -80,10 +80,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     WorkList<DexProgramClass> worklist = WorkList.newIdentityWorkList(clazz);
     while (worklist.hasNext()) {
       DexProgramClass current = worklist.next();
-      immediateSubtypingInfo.forEachImmediateSuperClassMatching(
-          current,
-          (supertype, superclass) -> superclass != null && superclass.isProgramClass(),
-          (supertype, superclass) -> worklist.addIfNotSeen(superclass.asProgramClass()));
+      immediateSubtypingInfo.forEachImmediateProgramSuperClass(current, worklist::addIfNotSeen);
       worklist.addIfNotSeen(immediateSubtypingInfo.getSubclasses(current));
     }
     return worklist.getSeenSet();

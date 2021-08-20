@@ -78,12 +78,20 @@ public abstract class ReferenceTypeElement extends TypeElement {
     return getOrCreateVariant(nullability.meet(Nullability.definitelyNotNull()));
   }
 
+  public TypeElement asDefinitelyNull() {
+    return getOrCreateVariant(Nullability.definitelyNull());
+  }
+
   public TypeElement asDefinitelyNotNull() {
     return getOrCreateVariant(Nullability.definitelyNotNull());
   }
 
   public TypeElement asMaybeNull() {
     return getOrCreateVariant(Nullability.maybeNull());
+  }
+
+  public ReferenceTypeElement joinNullability(Nullability nullability) {
+    return getOrCreateVariant(nullability().join(nullability));
   }
 
   @Override

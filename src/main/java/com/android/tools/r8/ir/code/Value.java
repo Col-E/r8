@@ -1156,7 +1156,7 @@ public class Value implements Comparable<Value> {
       DexType type = definition.asNewInstance().clazz;
       DexClass clazz = appView.definitionFor(type);
       if (clazz != null && !clazz.isInterface()) {
-        return ClassTypeElement.create(type, definitelyNotNull(), appView);
+        return TypeElement.fromDexType(type, definitelyNotNull(), appView).asClassType();
       }
       return null;
     }

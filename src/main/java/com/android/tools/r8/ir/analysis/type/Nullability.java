@@ -29,6 +29,10 @@ public class Nullability {
 
   private Nullability() {}
 
+  public boolean isBottom() {
+    return this == BOTTOM;
+  }
+
   public boolean isDefinitelyNull() {
     return this == DEFINITELY_NULL;
   }

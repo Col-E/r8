@@ -63,6 +63,24 @@ public class ImmediateProgramSubtypingInfo {
         });
   }
 
+  public void forEachImmediateProgramSuperClass(
+      DexProgramClass clazz, Consumer<? super DexProgramClass> consumer) {
+    forEachImmediateProgramSuperClassMatching(clazz, alwaysTrue(), consumer);
+  }
+
+  public void forEachImmediateProgramSuperClassMatching(
+      DexProgramClass clazz,
+      Predicate<? super DexProgramClass> predicate,
+      Consumer<? super DexProgramClass> consumer) {
+    clazz.forEachImmediateSupertype(
+        supertype -> {
+          DexProgramClass superclass = asProgramClassOrNull(appView.definitionFor(supertype));
+          if (superclass != null && predicate.test(superclass)) {
+            consumer.accept(superclass);
+          }
+        });
+  }
+
   public void forEachImmediateSubClass(
       DexProgramClass clazz, Consumer<? super DexProgramClass> consumer) {
     forEachImmediateSubClassMatching(clazz, alwaysTrue(), consumer);

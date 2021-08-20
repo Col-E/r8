@@ -137,12 +137,11 @@ public class ArgumentPropagatorUnoptimizableMethods {
           unoptimizableInterfaceMethods.computeIfAbsent(clazz, ignoreKey(Sets::newIdentityHashSet));
 
       // Add the unoptimizable interface methods from the parent interfaces.
-      immediateSubtypingInfo.forEachImmediateSuperClassMatching(
+      immediateSubtypingInfo.forEachImmediateProgramSuperClass(
           clazz,
-          (supertype, superclass) -> superclass != null && superclass.isProgramClass(),
-          (supertype, superclass) ->
+          superclass ->
               unoptimizableInterfaceMethodsForClass.addAll(
-                  unoptimizableInterfaceMethods.get(superclass.asProgramClass())));
+                  unoptimizableInterfaceMethods.get(superclass)));
 
       // Propagate the unoptimizable interface methods of this interface to all immediate
       // (non-interface) subclasses.
@@ -221,12 +220,9 @@ public class ArgumentPropagatorUnoptimizableMethods {
           unoptimizableMethods.computeIfAbsent(clazz, ignoreKey(DexMethodSignatureSet::create));
 
       // Add the unoptimizable methods from the parent classes.
-      immediateSubtypingInfo.forEachImmediateSuperClassMatching(
+      immediateSubtypingInfo.forEachImmediateProgramSuperClass(
           clazz,
-          (supertype, superclass) -> superclass != null && superclass.isProgramClass(),
-          (supertype, superclass) ->
-              unoptimizableMethodsForClass.addAll(
-                  unoptimizableMethods.get(superclass.asProgramClass())));
+          superclass -> unoptimizableMethodsForClass.addAll(unoptimizableMethods.get(superclass)));
 
       // Disable argument propagation for the unoptimizable methods of this class.
       clazz.forEachProgramVirtualMethod(

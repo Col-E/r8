@@ -46,10 +46,8 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
 
     PropagationState(DexProgramClass clazz) {
       // Join the argument information from each of the super types.
-      immediateSubtypingInfo.forEachImmediateSuperClassMatching(
-          clazz,
-          (supertype, superclass) -> superclass != null && superclass.isProgramClass(),
-          (supertype, superclass) -> addParentState(clazz, superclass.asProgramClass()));
+      immediateSubtypingInfo.forEachImmediateProgramSuperClass(
+          clazz, superclass -> addParentState(clazz, superclass));
     }
 
     // TODO(b/190154391): This currently copies the state of the superclass into its immediate

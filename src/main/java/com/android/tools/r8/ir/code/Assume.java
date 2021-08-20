@@ -311,6 +311,8 @@ public class Assume extends Instruction {
     }
 
     public boolean verifyCorrectnessOfValues(Value dest, Value src, AppView<?> appView) {
+      assert !dynamicUpperBoundType.isBottom();
+      assert !dynamicUpperBoundType.isTop();
       assert dynamicUpperBoundType.lessThanOrEqualUpToNullability(src.getType(), appView);
       return true;
     }
