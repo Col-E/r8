@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 public class CfL8ClassSynthesizerCollection {
 
@@ -38,10 +37,7 @@ public class CfL8ClassSynthesizerCollection {
   public void synthesizeClasses(
       ExecutorService executorService, CfL8ClassSynthesizerEventConsumer eventConsumer)
       throws ExecutionException {
-    ArrayList<Future<?>> futures = new ArrayList<>();
-    for (CfL8ClassSynthesizer synthesizer : synthesizers) {
-      futures.addAll(synthesizer.synthesizeClasses(executorService, eventConsumer));
-    }
-    ThreadUtils.awaitFutures(futures);
+    ThreadUtils.processItems(
+        synthesizers, synthesizer -> synthesizer.synthesizeClasses(eventConsumer), executorService);
   }
 }

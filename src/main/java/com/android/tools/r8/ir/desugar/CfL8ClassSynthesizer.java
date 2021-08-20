@@ -4,14 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-
 public interface CfL8ClassSynthesizer {
 
-  // Each instance may delegate class synthesis to other threads, R8 needs to wait on the futures
-  // to be sure all classes have been instantiated.
-  List<Future<?>> synthesizeClasses(
-      ExecutorService executorService, CfL8ClassSynthesizerEventConsumer eventConsumer);
+  void synthesizeClasses(CfL8ClassSynthesizerEventConsumer eventConsumer);
 }

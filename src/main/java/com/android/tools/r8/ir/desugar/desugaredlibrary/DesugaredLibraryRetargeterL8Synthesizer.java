@@ -8,10 +8,6 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizer;
 import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizerEventConsumer;
 import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 public class DesugaredLibraryRetargeterL8Synthesizer implements CfL8ClassSynthesizer {
 
@@ -37,19 +33,11 @@ public class DesugaredLibraryRetargeterL8Synthesizer implements CfL8ClassSynthes
   }
 
   @Override
-  public List<Future<?>> synthesizeClasses(
-      ExecutorService executorService, CfL8ClassSynthesizerEventConsumer eventConsumer) {
+  public void synthesizeClasses(CfL8ClassSynthesizerEventConsumer eventConsumer) {
     assert !emulatedDispatchMethods.isEmpty();
-    List<Future<?>> futures = new ArrayList<>();
     for (DexClassAndMethod emulatedDispatchMethod : emulatedDispatchMethods) {
-      futures.add(
-          executorService.submit(
-              () -> {
-                syntheticHelper.ensureProgramEmulatedHolderDispatchMethod(
-                    emulatedDispatchMethod, eventConsumer);
-                return null;
-              }));
+      syntheticHelper.ensureProgramEmulatedHolderDispatchMethod(
+          emulatedDispatchMethod, eventConsumer);
     }
-    return futures;
   }
 }

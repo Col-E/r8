@@ -29,8 +29,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 public final class EmulatedInterfaceSynthesizer implements CfL8ClassSynthesizer {
 
@@ -221,10 +219,8 @@ public final class EmulatedInterfaceSynthesizer implements CfL8ClassSynthesizer 
   }
 
   @Override
-  public List<Future<?>> synthesizeClasses(
-      ExecutorService executorService, CfL8ClassSynthesizerEventConsumer eventConsumer) {
+  public void synthesizeClasses(CfL8ClassSynthesizerEventConsumer eventConsumer) {
     assert appView.options().isDesugaredLibraryCompilation();
-    List<Future<?>> futures = new ArrayList<>();
     for (DexType emulatedInterfaceType : helper.getEmulatedInterfaces()) {
       DexClass emulatedInterfaceClazz = appView.definitionFor(emulatedInterfaceType);
       if (emulatedInterfaceClazz == null || !emulatedInterfaceClazz.isProgramClass()) {
@@ -235,15 +231,9 @@ public final class EmulatedInterfaceSynthesizer implements CfL8ClassSynthesizer 
       assert emulatedInterface != null;
       if (!appView.isAlreadyLibraryDesugared(emulatedInterface)
           && needsEmulateInterfaceLibrary(emulatedInterface)) {
-        futures.add(
-            executorService.submit(
-                () -> {
-                  ensureEmulateInterfaceLibrary(emulatedInterface, eventConsumer);
-                  return null;
-                }));
+        ensureEmulateInterfaceLibrary(emulatedInterface, eventConsumer);
       }
     }
-    return futures;
   }
 
   private boolean needsEmulateInterfaceLibrary(DexProgramClass emulatedInterface) {

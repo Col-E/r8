@@ -34,7 +34,6 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
@@ -59,21 +58,18 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
     private final DexMethod forwardMethod;
     private final DesugaredLibraryWrapperSynthesizer wrapperSynthesizer;
     private final boolean itfCall;
-    private final DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer;
 
     public APIConverterVivifiedWrapperCfCodeProvider(
         AppView<?> appView,
         DexMethod forwardMethod,
         DexField wrapperField,
         DesugaredLibraryWrapperSynthesizer wrapperSynthesizer,
-        boolean itfCall,
-        DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer) {
+        boolean itfCall) {
       super(appView, wrapperField.holder);
       this.forwardMethod = forwardMethod;
       this.wrapperField = wrapperField;
       this.wrapperSynthesizer = wrapperSynthesizer;
       this.itfCall = itfCall;
-      this.eventConsumer = eventConsumer;
     }
 
     @Override
@@ -94,8 +90,8 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
           instructions.add(
               new CfInvoke(
                   Opcodes.INVOKESTATIC,
-                  wrapperSynthesizer.ensureProgramConversionMethod(
-                      param, param, vivifiedTypeFor(param), eventConsumer),
+                  wrapperSynthesizer.getExistingProgramConversionMethod(
+                      param, param, vivifiedTypeFor(param)),
                   false));
           newParameters[index - 1] = vivifiedTypeFor(param);
         }
@@ -126,8 +122,8 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
         instructions.add(
             new CfInvoke(
                 Opcodes.INVOKESTATIC,
-                wrapperSynthesizer.ensureProgramConversionMethod(
-                    returnType, vivifiedTypeFor(returnType), returnType, eventConsumer),
+                wrapperSynthesizer.getExistingProgramConversionMethod(
+                    returnType, vivifiedTypeFor(returnType), returnType),
                 false));
       }
       if (returnType == factory.voidType) {
@@ -240,18 +236,15 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
       extends AbstractAPIConverterWrapperCfCodeProvider {
 
     private final DexField wrapperField;
-    private final DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer;
 
     public APIConverterWrapperCfCodeProvider(
         AppView<?> appView,
         DexMethod forwardMethod,
         DexField wrapperField,
         DesugaredLibraryWrapperSynthesizer wrapperSynthesizor,
-        boolean itfCall,
-        DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer) {
+        boolean itfCall) {
       super(appView, wrapperField.holder, forwardMethod, wrapperSynthesizor, itfCall);
       this.wrapperField = wrapperField;
-      this.eventConsumer = eventConsumer;
     }
 
     @Override
@@ -262,8 +255,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
 
     @Override
     DexMethod ensureConversionMethod(DexType type, DexType srcType, DexType destType) {
-      return wrapperSynthesizor.ensureProgramConversionMethod(
-          type, srcType, destType, eventConsumer);
+      return wrapperSynthesizor.getExistingProgramConversionMethod(type, srcType, destType);
     }
   }
 

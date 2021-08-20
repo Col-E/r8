@@ -56,7 +56,7 @@ public class SyntheticMethodBuilder {
 
   public SyntheticMethodBuilder setName(DexString name) {
     assert name != null;
-    assert this.name == null;
+    assert this.name == null || this.name == name;
     this.name = name;
     return this;
   }
