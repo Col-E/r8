@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.analysis.type;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.Objects;
 
 /**
  * Represents the runtime type of a reference value. This type may be more precise than the value's
@@ -27,16 +28,38 @@ public class DynamicType {
     this.dynamicUpperBoundType = dynamicUpperBoundType;
   }
 
-  public static DynamicType create(Value value, AppView<AppInfoWithLiveness> appView) {
-    assert value.getType().isReferenceType();
-    TypeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
-    ClassTypeElement dynamicLowerBoundType = value.getDynamicLowerBoundType(appView);
+  public static DynamicType create(
+      AppView<AppInfoWithLiveness> appView,
+      TypeElement dynamicUpperBoundType,
+      ClassTypeElement dynamicLowerBoundType) {
+    if (dynamicUpperBoundType.isBottom()) {
+      return bottom();
+    }
+    if (dynamicUpperBoundType.isTop()) {
+      return unknown();
+    }
     if (dynamicLowerBoundType != null) {
       assert dynamicUpperBoundType.isClassType();
+      assert dynamicUpperBoundType.nullability() == dynamicLowerBoundType.nullability();
+      if (dynamicUpperBoundType.equals(dynamicLowerBoundType)) {
+        return createExact(dynamicLowerBoundType);
+      }
       return DynamicTypeWithLowerBound.create(
           appView, dynamicUpperBoundType.asClassType(), dynamicLowerBoundType);
     }
     return new DynamicType(dynamicUpperBoundType);
+  }
+
+  public static DynamicType createExact(ClassTypeElement exactDynamicType) {
+    return new ExactDynamicType(exactDynamicType);
+  }
+
+  public static DynamicType create(Value value, AppView<AppInfoWithLiveness> appView) {
+    assert value.getType().isReferenceType();
+    TypeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
+    ClassTypeElement dynamicLowerBoundType =
+        value.getDynamicLowerBoundType(appView, dynamicUpperBoundType.nullability());
+    return create(appView, dynamicUpperBoundType, dynamicLowerBoundType);
   }
 
   public static DynamicType bottom() {
@@ -59,12 +82,52 @@ public class DynamicType {
     return null;
   }
 
+  public boolean isBottom() {
+    return getDynamicUpperBoundType().isBottom();
+  }
+
   public boolean isTrivial(TypeElement staticType) {
-    return staticType == getDynamicUpperBoundType() || isUnknown();
+    return staticType.equals(getDynamicUpperBoundType()) || isUnknown();
   }
 
   public boolean isUnknown() {
     return getDynamicUpperBoundType().isTop();
+  }
+
+  public DynamicType join(AppView<AppInfoWithLiveness> appView, DynamicType dynamicType) {
+    if (isBottom()) {
+      return dynamicType;
+    }
+    if (dynamicType.isBottom() || equals(dynamicType)) {
+      return this;
+    }
+    if (isUnknown() || dynamicType.isUnknown()) {
+      return unknown();
+    }
+    TypeElement upperBoundType =
+        getDynamicUpperBoundType().join(dynamicType.getDynamicUpperBoundType(), appView);
+    ClassTypeElement lowerBoundType = meetDynamicLowerBound(appView, dynamicType);
+    if (upperBoundType.equals(getDynamicUpperBoundType())
+        && Objects.equals(lowerBoundType, getDynamicLowerBoundType())) {
+      return this;
+    }
+    return create(appView, upperBoundType, lowerBoundType);
+  }
+
+  private ClassTypeElement meetDynamicLowerBound(
+      AppView<AppInfoWithLiveness> appView, DynamicType dynamicType) {
+    if (!hasDynamicLowerBoundType() || !dynamicType.hasDynamicLowerBoundType()) {
+      return null;
+    }
+    ClassTypeElement lowerBoundType = getDynamicLowerBoundType();
+    ClassTypeElement otherLowerBoundType = dynamicType.getDynamicLowerBoundType();
+    if (lowerBoundType.lessThanOrEqualUpToNullability(otherLowerBoundType, appView)) {
+      return lowerBoundType.joinNullability(otherLowerBoundType.nullability());
+    }
+    if (otherLowerBoundType.lessThanOrEqualUpToNullability(lowerBoundType, appView)) {
+      return otherLowerBoundType.joinNullability(lowerBoundType.nullability());
+    }
+    return null;
   }
 
   @Override
@@ -72,8 +135,8 @@ public class DynamicType {
     if (other == null || getClass() != other.getClass()) {
       return false;
     }
-    DynamicType assumption = (DynamicType) other;
-    return dynamicUpperBoundType == assumption.dynamicUpperBoundType;
+    DynamicType dynamicType = (DynamicType) other;
+    return dynamicUpperBoundType.equals(dynamicType.dynamicUpperBoundType);
   }
 
   @Override

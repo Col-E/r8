@@ -94,6 +94,10 @@ public abstract class ReferenceTypeElement extends TypeElement {
     return getOrCreateVariant(nullability().join(nullability));
   }
 
+  public ReferenceTypeElement meetNullability(Nullability nullability) {
+    return getOrCreateVariant(nullability().meet(nullability));
+  }
+
   @Override
   public boolean isReferenceType() {
     return true;

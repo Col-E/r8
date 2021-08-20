@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
@@ -1136,13 +1137,18 @@ public class Value implements Comparable<Value> {
   }
 
   public ClassTypeElement getDynamicLowerBoundType(AppView<AppInfoWithLiveness> appView) {
+    return getDynamicLowerBoundType(appView, Nullability.maybeNull());
+  }
+
+  public ClassTypeElement getDynamicLowerBoundType(
+      AppView<AppInfoWithLiveness> appView, Nullability maxNullability) {
     // If it is a final or effectively-final class type, then we know the lower bound.
     if (getType().isClassType()) {
       ClassTypeElement classType = getType().asClassType();
       DexType type = classType.getClassType();
       DexClass clazz = appView.definitionFor(type);
       if (clazz != null && clazz.isEffectivelyFinal(appView)) {
-        return classType;
+        return classType.meetNullability(maxNullability);
       }
     }
 
@@ -1151,11 +1157,12 @@ public class Value implements Comparable<Value> {
       return null;
     }
 
-    Instruction definition = root.definition;
+    Instruction definition = root.getDefinition();
     if (definition.isNewInstance()) {
-      DexType type = definition.asNewInstance().clazz;
+      DexType type = definition.asNewInstance().getType();
       DexClass clazz = appView.definitionFor(type);
       if (clazz != null && !clazz.isInterface()) {
+        assert !maxNullability.isBottom();
         return TypeElement.fromDexType(type, definitelyNotNull(), appView).asClassType();
       }
       return null;
@@ -1163,13 +1170,19 @@ public class Value implements Comparable<Value> {
 
     // Try to find an alias of the receiver, which is defined by an instruction of the type Assume.
     Value aliasedValue =
-        getSpecificAliasedValue(value -> value.definition.isAssumeWithDynamicTypeAssumption());
+        getSpecificAliasedValue(value -> value.getDefinition().isAssumeWithDynamicTypeAssumption());
     if (aliasedValue != null) {
-      ClassTypeElement lattice =
-          aliasedValue.definition.asAssume().getDynamicTypeAssumption().getDynamicLowerBoundType();
-      return lattice != null && type.isDefinitelyNotNull() && lattice.isNullable()
-          ? lattice.asMeetWithNotNull()
-          : lattice;
+      ClassTypeElement aliasedValueType =
+          aliasedValue
+              .getDefinition()
+              .asAssume()
+              .getDynamicTypeAssumption()
+              .getDynamicLowerBoundType();
+      if (aliasedValueType != null) {
+        aliasedValueType = aliasedValueType.meetNullability(getType().nullability());
+        assert aliasedValueType.nullability().lessThanOrEqual(maxNullability);
+        return aliasedValueType;
+      }
     }
 
     return null;

@@ -15,16 +15,21 @@ public class DynamicTypeWithLowerBound extends DynamicType {
   DynamicTypeWithLowerBound(
       ClassTypeElement dynamicUpperBoundType, ClassTypeElement dynamicLowerBoundType) {
     super(dynamicUpperBoundType);
+    assert !dynamicUpperBoundType.equals(dynamicLowerBoundType);
     this.dynamicLowerBoundType = dynamicLowerBoundType;
   }
 
-  public static DynamicTypeWithLowerBound create(
+  static DynamicTypeWithLowerBound create(
       AppView<AppInfoWithLiveness> appView,
       ClassTypeElement dynamicUpperBoundType,
       ClassTypeElement dynamicLowerBoundType) {
+    assert dynamicUpperBoundType != null;
+    assert dynamicLowerBoundType != null;
+    assert dynamicUpperBoundType.nullability() == dynamicLowerBoundType.nullability();
     assert appView
         .appInfo()
-        .isSubtype(dynamicLowerBoundType.getClassType(), dynamicUpperBoundType.getClassType());
+        .isStrictSubtypeOf(
+            dynamicLowerBoundType.getClassType(), dynamicUpperBoundType.getClassType());
     return new DynamicTypeWithLowerBound(dynamicUpperBoundType, dynamicLowerBoundType);
   }
 
@@ -48,9 +53,9 @@ public class DynamicTypeWithLowerBound extends DynamicType {
     if (other == null || getClass() != other.getClass()) {
       return false;
     }
-    DynamicTypeWithLowerBound assumption = (DynamicTypeWithLowerBound) other;
-    return getDynamicUpperBoundType() == assumption.getDynamicUpperBoundType()
-        && getDynamicLowerBoundType() == assumption.getDynamicLowerBoundType();
+    DynamicTypeWithLowerBound dynamicType = (DynamicTypeWithLowerBound) other;
+    return getDynamicUpperBoundType().equals(dynamicType.getDynamicUpperBoundType())
+        && getDynamicLowerBoundType().equals(dynamicType.getDynamicLowerBoundType());
   }
 
   @Override
