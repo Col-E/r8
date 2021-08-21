@@ -18,7 +18,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
-import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -174,7 +174,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
       rewritten |= typeAlias.rewrite(typeAliasProvider, appView, namingLens);
     }
     // For properties, we need to combine potentially a field, setter and getter.
-    Map<KotlinPropertyInfo, KotlinPropertyGroup> properties = new IdentityHashMap<>();
+    Map<KotlinPropertyInfo, KotlinPropertyGroup> properties = new LinkedHashMap<>();
     for (DexEncodedField field : clazz.fields()) {
       if (field.getKotlinInfo().isProperty()) {
         properties
