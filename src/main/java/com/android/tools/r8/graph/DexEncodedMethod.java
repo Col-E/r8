@@ -403,7 +403,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public DexMethodSignature getSignature() {
-    return new DexMethodSignature(getReference());
+    return DexMethodSignature.create(getReference());
   }
 
   public DexType returnType() {

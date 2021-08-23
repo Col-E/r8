@@ -157,7 +157,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   public DexMethodSignature getSignature() {
-    return new DexMethodSignature(this);
+    return DexMethodSignature.create(this);
   }
 
   @Override

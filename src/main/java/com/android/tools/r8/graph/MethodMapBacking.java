@@ -115,7 +115,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
 
   @Override
   DexEncodedMethod getMethod(DexProto methodProto, DexString methodName) {
-    return methodMap.get(new DexMethodSignature(methodProto, methodName));
+    return methodMap.get(DexMethodSignature.create(methodName, methodProto));
   }
 
   private DexEncodedMethod getMethod(Predicate<DexEncodedMethod> predicate) {
