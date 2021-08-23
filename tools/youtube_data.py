@@ -125,10 +125,10 @@ def GetName():
 def GetMemoryData(version):
   assert version == '16.20'
   return {
-      'find-xmx-min': 2800,
-      'find-xmx-max': 3200,
+      'find-xmx-min': 3000,
+      'find-xmx-max': 3300,
       'find-xmx-range': 64,
-      'oom-threshold': 3000,
+      'oom-threshold': 3100,
       # TODO(b/143431825): Youtube can OOM randomly in memory configurations
       #  that should work.
       'skip-find-xmx-max': True,
