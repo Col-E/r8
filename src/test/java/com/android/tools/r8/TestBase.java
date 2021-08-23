@@ -5,6 +5,7 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.TestBuilder.getTestingAnnotations;
+import static com.android.tools.r8.ToolHelper.R8_TEST_BUCKET;
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static com.google.common.collect.Lists.cartesianProduct;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -1864,5 +1865,51 @@ public class TestBase {
     compileResult.assertAtLeastOneInfoMessage();
     compileResult.assertAllInfoMessagesMatch(
         containsString("The generic super type is not the same as the class super type"));
+  }
+
+  public static boolean uploadJarsToCloudStorageIfTestFails(
+      ThrowingBiFunction<Path, Path, Boolean, Exception> test, Path expected, Path actual)
+      throws Exception {
+    boolean filesAreEqual = false;
+    Throwable error = null;
+    try {
+      filesAreEqual = test.apply(expected, actual);
+    } catch (AssertionError | Exception assertionError) {
+      error = assertionError;
+    }
+    if (filesAreEqual) {
+      return true;
+    }
+    // Only upload files if we are running on the bots.
+    if (ToolHelper.isBot()) {
+      try {
+        System.out.println("DIFFERENCE IN JARS DETECTED");
+        System.out.println(
+            "***********************************************************************");
+        String expectedSha = ToolHelper.uploadFileToGoogleCloudStorage(R8_TEST_BUCKET, expected);
+        System.out.println("EXPECTED JAR SHA1: " + expectedSha);
+        System.out.println(
+            String.format(
+                "DOWNLOAD BY: `download_from_google_storage.py --bucket %s %s -o %s`",
+                R8_TEST_BUCKET, expectedSha, expected.getFileName()));
+        String actualSha = ToolHelper.uploadFileToGoogleCloudStorage(R8_TEST_BUCKET, actual);
+        System.out.println("ACTUAL JAR SHA1: " + actualSha);
+        System.out.println(
+            String.format(
+                "DOWNLOAD BY: `download_from_google_storage.py --bucket %s %s -o %s`",
+                R8_TEST_BUCKET, expectedSha, actual.getFileName()));
+        System.out.println(
+            "***********************************************************************");
+      } catch (Throwable e) {
+        e.printStackTrace();
+      }
+    }
+    if (error != null) {
+      if (error instanceof Exception) {
+        throw (Exception) error;
+      }
+      throw new RuntimeException(error);
+    }
+    return false;
   }
 }

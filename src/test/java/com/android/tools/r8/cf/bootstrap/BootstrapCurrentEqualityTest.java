@@ -14,7 +14,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ExternalR8TestCompileResult;
 import com.android.tools.r8.TestBase;
@@ -160,7 +159,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   }
 
   @Test
-  public void testR8LibCompatibility() throws IOException, CompilationFailedException {
+  public void testR8LibCompatibility() throws Exception {
     // Produce r81 = R8Lib(R8WithDeps) and r82 = R8LibNoDeps + Deps(R8WithDeps) and test that r81 is
     // equal to r82. This test should only run if we are testing r8lib and we expect both R8libs to
     // be built by gradle. If we are not testing with R8Lib, do not run this test.
@@ -184,7 +183,8 @@ public class BootstrapCurrentEqualityTest extends TestBase {
             .setMode(CompilationMode.RELEASE)
             .compile()
             .outputJar();
-    assert filesAreEqual(runR81, runR82);
+    assert uploadJarsToCloudStorageIfTestFails(
+        BootstrapCurrentEqualityTest::filesAreEqual, runR81, runR82);
   }
 
   @Test
@@ -243,12 +243,13 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     assertEquals(result.getStdout(), runR8R8.getStdout());
     assertEquals(result.getStderr(), runR8R8.getStderr());
     // Check that the output jars are the same.
-    assertProgramsEqual(result.outputJar(), runR8R8.outputJar());
+    uploadJarsToCloudStorageIfTestFails(
+        BootstrapCurrentEqualityTest::assertProgramsEqual, result.outputJar(), runR8R8.outputJar());
   }
 
-  public static void assertProgramsEqual(Path expectedJar, Path actualJar) throws Exception {
+  public static boolean assertProgramsEqual(Path expectedJar, Path actualJar) throws Exception {
     if (filesAreEqual(expectedJar, actualJar)) {
-      return;
+      return true;
     }
     ArchiveClassFileProvider expected = new ArchiveClassFileProvider(expectedJar);
     ArchiveClassFileProvider actual = new ArchiveClassFileProvider(actualJar);
@@ -259,6 +260,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
           getClassAsBytes(expected, descriptor),
           getClassAsBytes(actual, descriptor));
     }
+    return false;
   }
 
   public static boolean filesAreEqual(Path file1, Path file2) throws IOException {

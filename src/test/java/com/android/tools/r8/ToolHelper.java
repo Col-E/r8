@@ -124,6 +124,8 @@ public class ToolHelper {
   public static final String JAVA_CLASSES_DIR = BUILD_DIR + "classes/java/";
   public static final String JDK_11_TESTS_CLASSES_DIR = JAVA_CLASSES_DIR + "jdk11Tests/";
 
+  public static final String R8_TEST_BUCKET = "r8-test-results";
+
   public static final String ASM_JAR = BUILD_DIR + "deps/asm-9.2.jar";
   public static final String ASM_UTIL_JAR = BUILD_DIR + "deps/asm-util-9.2.jar";
 
@@ -215,6 +217,11 @@ public class ToolHelper {
 
   public static boolean verifyValidOutputMode(Backend backend, OutputMode outputMode) {
     return (backend == Backend.CF && outputMode == OutputMode.ClassFile) || backend == Backend.DEX;
+  }
+
+  public static boolean isBot() {
+    String swarming_bot_id = System.getenv("SWARMING_BOT_ID");
+    return swarming_bot_id != null && !swarming_bot_id.isEmpty();
   }
 
   public static StringConsumer consumeString(Consumer<String> consumer) {
@@ -2261,5 +2268,32 @@ public class ToolHelper {
     try (Stream<Path> walker = Files.walk(subFolder)) {
       return walker.filter(path -> path.toString().endsWith(endsWith)).collect(Collectors.toList());
     }
+  }
+
+  /** This code only works if run with depot_tools on the path */
+  public static String uploadFileToGoogleCloudStorage(String bucket, Path file) throws IOException {
+    ImmutableList.Builder<String> command =
+        new ImmutableList.Builder<String>()
+            .add("upload_to_google_storage.py")
+            .add("-f")
+            .add("--bucket")
+            .add(bucket)
+            .add(file.toAbsolutePath().toString());
+    ProcessResult result = ToolHelper.runProcess(new ProcessBuilder(command.build()));
+    if (result.exitCode != 0) {
+      throw new RuntimeException(
+          "Could not upload "
+              + file
+              + " to cloud storage:\n"
+              + result.stdout
+              + "\n"
+              + result.stderr);
+    }
+    // Upload will add a sha1 file at the same location.
+    Path sha1file = file.resolveSibling(file.getFileName() + ".sha1");
+    assert Files.exists(sha1file) : sha1file.toString();
+    List<String> strings = Files.readAllLines(sha1file);
+    assert !strings.isEmpty();
+    return strings.get(0);
   }
 }

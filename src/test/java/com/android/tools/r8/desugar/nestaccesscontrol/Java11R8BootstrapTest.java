@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.nestaccesscontrol;
 
+import static com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest.uploadJarsToCloudStorageIfTestFails;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
@@ -128,7 +129,8 @@ public class Java11R8BootstrapTest extends TestBase {
       }
       prevRunResult = runResult;
       if (prevGeneratedJar != null) {
-        BootstrapCurrentEqualityTest.assertProgramsEqual(prevGeneratedJar, generatedJar);
+        uploadJarsToCloudStorageIfTestFails(
+            BootstrapCurrentEqualityTest::assertProgramsEqual, prevGeneratedJar, generatedJar);
       }
       prevGeneratedJar = generatedJar;
     }
@@ -149,7 +151,8 @@ public class Java11R8BootstrapTest extends TestBase {
               .compile()
               .outputJar();
       if (prevGeneratedJar != null) {
-        BootstrapCurrentEqualityTest.assertProgramsEqual(prevGeneratedJar, generatedJar);
+        uploadJarsToCloudStorageIfTestFails(
+            BootstrapCurrentEqualityTest::assertProgramsEqual, prevGeneratedJar, generatedJar);
       }
       prevGeneratedJar = generatedJar;
     }
