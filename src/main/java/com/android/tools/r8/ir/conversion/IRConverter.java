@@ -465,7 +465,7 @@ public class IRConverter {
       D8MethodProcessor methodProcessor, ExecutorService executorService)
       throws ExecutionException {
     D8CfPostProcessingDesugaringEventConsumer eventConsumer =
-        CfPostProcessingDesugaringEventConsumer.createForD8(methodProcessor);
+        CfPostProcessingDesugaringEventConsumer.createForD8(methodProcessor, instructionDesugaring);
     methodProcessor.newWave();
     InterfaceMethodProcessorFacade interfaceDesugaring =
         instructionDesugaring.getInterfaceMethodPostProcessingDesugaring(ExcludeDexResources);

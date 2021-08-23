@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterL8Synthesizer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
-import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizer;
+import com.android.tools.r8.ir.desugar.itf.ProgramEmulatedInterfaceSynthesizer;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,8 +21,8 @@ public class CfL8ClassSynthesizerCollection {
 
   public CfL8ClassSynthesizerCollection(AppView<?> appView, RetargetingInfo retargetingInfo) {
     assert appView.options().isDesugaredLibraryCompilation();
-    EmulatedInterfaceSynthesizer emulatedInterfaceSynthesizer =
-        EmulatedInterfaceSynthesizer.create(appView);
+    ProgramEmulatedInterfaceSynthesizer emulatedInterfaceSynthesizer =
+        ProgramEmulatedInterfaceSynthesizer.create(appView);
     if (emulatedInterfaceSynthesizer != null) {
       synthesizers.add(emulatedInterfaceSynthesizer);
     }

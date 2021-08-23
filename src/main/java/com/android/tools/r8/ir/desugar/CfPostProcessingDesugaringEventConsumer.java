@@ -26,8 +26,8 @@ public abstract class CfPostProcessingDesugaringEventConsumer
         DesugaredLibraryAPICallbackSynthesizorEventConsumer {
 
   public static D8CfPostProcessingDesugaringEventConsumer createForD8(
-      D8MethodProcessor methodProcessor) {
-    return new D8CfPostProcessingDesugaringEventConsumer(methodProcessor);
+      D8MethodProcessor methodProcessor, CfInstructionDesugaringCollection instructionDesugaring) {
+    return new D8CfPostProcessingDesugaringEventConsumer(methodProcessor, instructionDesugaring);
   }
 
   public static R8PostProcessingDesugaringEventConsumer createForR8(SyntheticAdditions additions) {
@@ -43,9 +43,21 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     // Methods cannot be processed directly because we cannot add method to classes while
     // concurrently processing other methods.
     private final ProgramMethodSet methodsToReprocess = ProgramMethodSet.createConcurrent();
+    private final CfInstructionDesugaringCollection instructionDesugaring;
 
-    private D8CfPostProcessingDesugaringEventConsumer(D8MethodProcessor methodProcessor) {
+    private D8CfPostProcessingDesugaringEventConsumer(
+        D8MethodProcessor methodProcessor,
+        CfInstructionDesugaringCollection instructionDesugaring) {
       this.methodProcessor = methodProcessor;
+      this.instructionDesugaring = instructionDesugaring;
+    }
+
+    private void addMethodToReprocess(ProgramMethod method) {
+      if (instructionDesugaring.needsDesugaring(method)) {
+        instructionDesugaring.needsDesugaring(method);
+      }
+      assert !instructionDesugaring.needsDesugaring(method);
+      methodsToReprocess.add(method);
     }
 
     @Override
@@ -60,7 +72,7 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     @Override
     public void acceptForwardingMethod(ProgramMethod method) {
-      methodsToReprocess.add(method);
+      addMethodToReprocess(method);
     }
 
     @Override
@@ -78,7 +90,7 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     @Override
     public void acceptAPIConversionCallback(ProgramMethod method) {
-      methodsToReprocess.add(method);
+      addMethodToReprocess(method);
     }
 
     @Override

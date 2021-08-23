@@ -447,7 +447,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         return rewriteInvokeDirect(invoke.getMethod(), context, rewriteInvoke);
       }
       return rewriteInvokeInterfaceOrInvokeVirtual(
-          invoke.getMethod(), invoke.isInterface(), rewriteInvoke);
+          invoke.getMethod(), invoke.isInterface(), rewriteInvoke, eventConsumer);
     }
     if (invoke.isInvokeStatic()) {
       Consumer<ProgramMethod> staticOutliningMethodConsumer =
@@ -643,7 +643,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       rewriteInvokeDirect(invoke.getInvokedMethod(), context, rewriteInvoke);
     } else if (instruction.isInvokeVirtual() || instruction.isInvokeInterface()) {
       rewriteInvokeInterfaceOrInvokeVirtual(
-          invoke.getInvokedMethod(), invoke.getInterfaceBit(), rewriteInvoke);
+          invoke.getInvokedMethod(), invoke.getInterfaceBit(), rewriteInvoke, null);
     } else {
       Function<SingleResolutionResult, Collection<CfInstruction>> rewriteToThrow =
           (resolutionResult) ->
@@ -971,7 +971,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
             .asSingleResolution();
     if (resolution != null
         && (resolution.getResolvedHolder().isLibraryClass()
-            || appView.options().isDesugaredLibraryCompilation())) {
+            || helper.isEmulatedInterface(resolution.getResolvedHolder().type))) {
       DexClassAndMethod defaultMethod =
           appView.definitionFor(emulatedItf).lookupClassMethod(invokedMethod);
       if (defaultMethod != null && !helper.dontRewrite(defaultMethod)) {
@@ -985,12 +985,13 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   private Collection<CfInstruction> rewriteInvokeInterfaceOrInvokeVirtual(
       DexMethod invokedMethod,
       boolean interfaceBit,
-      Function<DexMethod, Collection<CfInstruction>> rewriteInvoke) {
+      Function<DexMethod, Collection<CfInstruction>> rewriteInvoke,
+      CfInstructionDesugaringEventConsumer eventConsumer) {
     DexClassAndMethod defaultMethod =
         defaultMethodForEmulatedDispatchOrNull(invokedMethod, interfaceBit);
     if (defaultMethod != null) {
       return rewriteInvoke.apply(
-          InterfaceDesugaringSyntheticHelper.emulateInterfaceLibraryMethod(defaultMethod, factory));
+          helper.ensureEmulatedInterfaceMethod(defaultMethod, eventConsumer).getReference());
     }
     return null;
   }

@@ -32,6 +32,7 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.ClasspathEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
@@ -127,8 +128,8 @@ public class InterfaceDesugaringSyntheticHelper {
     return true;
   }
 
-  public static DexMethod emulateInterfaceLibraryMethod(
-      DexClassAndMethod method, DexItemFactory factory) {
+  public DexMethod emulateInterfaceLibraryMethod(DexClassAndMethod method) {
+    DexItemFactory factory = appView.dexItemFactory();
     return factory.createMethod(
         getEmulateLibraryInterfaceClassType(method.getHolderType(), factory),
         factory.prependTypeToProto(method.getHolderType(), method.getProto()),
@@ -182,6 +183,42 @@ public class InterfaceDesugaringSyntheticHelper {
         descriptor.substring(0, descriptor.length() - 1 - COMPANION_CLASS_NAME_SUFFIX.length())
             + ";";
     return factory.createType(interfaceTypeDescriptor);
+  }
+
+  DexClassAndMethod ensureEmulatedInterfaceMethod(
+      DexClassAndMethod method, ClasspathEmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
+    DexMethod emulatedInterfaceMethod = emulateInterfaceLibraryMethod(method);
+    if (method.isProgramMethod()) {
+      assert appView.options().isDesugaredLibraryCompilation();
+      DexProgramClass emulatedInterface =
+          appView
+              .getSyntheticItems()
+              .getExistingFixedClass(
+                  SyntheticKind.EMULATED_INTERFACE_CLASS,
+                  method.asProgramMethod().getHolder(),
+                  appView);
+      return emulatedInterface.lookupProgramMethod(emulatedInterfaceMethod);
+    }
+    return appView
+        .getSyntheticItems()
+        .ensureFixedClasspathClassMethod(
+            emulatedInterfaceMethod.getName(),
+            emulatedInterfaceMethod.getProto(),
+            SyntheticKind.EMULATED_INTERFACE_CLASS,
+            method.getHolder().asClasspathOrLibraryClass(),
+            appView,
+            classBuilder -> {},
+            clazz -> {
+              // TODO(b/183998768): When interface method desugaring is cf to cf in R8, the
+              //  eventConsumer should always be non null.
+              if (eventConsumer != null) {
+                eventConsumer.acceptClasspathEmulatedInterface(clazz);
+              }
+            },
+            methodBuilder ->
+                methodBuilder
+                    .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                    .setCode(DexEncodedMethod::buildEmptyThrowingCfCode));
   }
 
   DexClassAndMethod ensureDefaultAsMethodOfCompanionClassStub(DexClassAndMethod method) {
@@ -323,6 +360,7 @@ public class InterfaceDesugaringSyntheticHelper {
             context,
             appView,
             classBuilder -> {},
+            ignored -> {},
             methodBuilder ->
                 methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())

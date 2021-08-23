@@ -4,9 +4,16 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
+import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 
 public interface EmulatedInterfaceSynthesizerEventConsumer {
 
-  void acceptEmulatedInterface(DexProgramClass clazz);
+  interface L8ProgramEmulatedInterfaceSynthesizerEventConsumer {
+    void acceptProgramEmulatedInterface(DexProgramClass clazz);
+  }
+
+  interface ClasspathEmulatedInterfaceSynthesizerEventConsumer {
+    void acceptClasspathEmulatedInterface(DexClasspathClass clazz);
+  }
 }

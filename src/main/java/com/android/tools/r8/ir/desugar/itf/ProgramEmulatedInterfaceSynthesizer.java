@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.desugar.itf;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -14,9 +15,11 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizer;
 import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizerEventConsumer;
+import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.L8ProgramEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming;
+import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Iterables;
@@ -30,21 +33,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public final class EmulatedInterfaceSynthesizer implements CfL8ClassSynthesizer {
+public final class ProgramEmulatedInterfaceSynthesizer implements CfL8ClassSynthesizer {
 
   private final AppView<?> appView;
   private final InterfaceDesugaringSyntheticHelper helper;
   private final Map<DexType, List<DexType>> emulatedInterfacesHierarchy;
 
-  public static EmulatedInterfaceSynthesizer create(AppView<?> appView) {
+  public static ProgramEmulatedInterfaceSynthesizer create(AppView<?> appView) {
     if (!appView.options().isDesugaredLibraryCompilation()
         || appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty()) {
       return null;
     }
-    return new EmulatedInterfaceSynthesizer(appView);
+    return new ProgramEmulatedInterfaceSynthesizer(appView);
   }
 
-  EmulatedInterfaceSynthesizer(AppView<?> appView) {
+  public ProgramEmulatedInterfaceSynthesizer(AppView<?> appView) {
     this.appView = appView;
     helper = new InterfaceDesugaringSyntheticHelper(appView);
     // Avoid the computation outside L8 since it is not needed.
@@ -92,35 +95,48 @@ public final class EmulatedInterfaceSynthesizer implements CfL8ClassSynthesizer 
     }
   }
 
-  DexProgramClass ensureEmulateInterfaceLibrary(
-      DexProgramClass emulatedInterface, EmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
+  DexProgramClass synthesizeProgramEmulatedInterface(
+      DexProgramClass emulatedInterface,
+      L8ProgramEmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
+    return appView
+        .getSyntheticItems()
+        .ensureFixedClass(
+            SyntheticNaming.SyntheticKind.EMULATED_INTERFACE_CLASS,
+            emulatedInterface,
+            appView,
+            builder -> synthesizeEmulateInterfaceMethods(emulatedInterface, builder),
+            eventConsumer::acceptProgramEmulatedInterface);
+  }
+
+  private void synthesizeEmulateInterfaceMethods(
+      DexProgramClass emulatedInterface, SyntheticProgramClassBuilder builder) {
     assert helper.isEmulatedInterface(emulatedInterface.type);
-    DexProgramClass emulateInterfaceClass =
-        appView
-            .getSyntheticItems()
-            .ensureFixedClass(
-                SyntheticNaming.SyntheticKind.EMULATED_INTERFACE_CLASS,
-                emulatedInterface,
-                appView,
-                builder ->
-                    emulatedInterface.forEachProgramMethodMatching(
-                        DexEncodedMethod::isDefaultMethod,
-                        method ->
-                            builder.addMethod(
-                                methodBuilder ->
-                                    synthesizeEmulatedInterfaceMethod(
-                                        method, emulatedInterface, methodBuilder))),
-                ignored -> {});
-    eventConsumer.acceptEmulatedInterface(emulateInterfaceClass);
-    assert emulateInterfaceClass.getType()
+    emulatedInterface.forEachProgramVirtualMethodMatching(
+        DexEncodedMethod::isDefaultMethod,
+        method ->
+            builder.addMethod(
+                methodBuilder ->
+                    synthesizeEmulatedInterfaceMethod(method, emulatedInterface, methodBuilder)));
+    assert builder.getType()
         == InterfaceDesugaringSyntheticHelper.getEmulateLibraryInterfaceClassType(
             emulatedInterface.type, appView.dexItemFactory());
-    return emulateInterfaceClass;
   }
 
   private void synthesizeEmulatedInterfaceMethod(
       ProgramMethod method, DexProgramClass theInterface, SyntheticMethodBuilder methodBuilder) {
     assert !method.getDefinition().isStatic();
+    DexMethod emulatedMethod = helper.emulateInterfaceLibraryMethod(method);
+    methodBuilder
+        .setName(emulatedMethod.getName())
+        .setProto(emulatedMethod.getProto())
+        .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+        .setCode(
+            emulatedInterfaceMethod ->
+                synthesizeCfCode(method.asProgramMethod(), theInterface, emulatedInterfaceMethod));
+  }
+
+  private CfCode synthesizeCfCode(
+      ProgramMethod method, DexProgramClass theInterface, DexMethod emulatedInterfaceMethod) {
     DexMethod libraryMethod =
         method
             .getReference()
@@ -129,23 +145,14 @@ public final class EmulatedInterfaceSynthesizer implements CfL8ClassSynthesizer 
         helper.ensureDefaultAsMethodOfProgramCompanionClassStub(method).getReference();
     List<Pair<DexType, DexMethod>> extraDispatchCases =
         getDispatchCases(method, theInterface, companionMethod);
-    DexMethod emulatedMethod =
-        InterfaceDesugaringSyntheticHelper.emulateInterfaceLibraryMethod(
-            method, appView.dexItemFactory());
-    methodBuilder
-        .setName(emulatedMethod.getName())
-        .setProto(emulatedMethod.getProto())
-        .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-        .setCode(
-            emulatedInterfaceMethod ->
-                new EmulateInterfaceSyntheticCfCodeProvider(
-                        emulatedInterfaceMethod.getHolderType(),
-                        method.getHolderType(),
-                        companionMethod,
-                        libraryMethod,
-                        extraDispatchCases,
-                        appView)
-                    .generateCfCode());
+    return new EmulateInterfaceSyntheticCfCodeProvider(
+            emulatedInterfaceMethod.getHolderType(),
+            method.getHolderType(),
+            companionMethod,
+            libraryMethod,
+            extraDispatchCases,
+            appView)
+        .generateCfCode();
   }
 
   private List<Pair<DexType, DexMethod>> getDispatchCases(
@@ -231,12 +238,12 @@ public final class EmulatedInterfaceSynthesizer implements CfL8ClassSynthesizer 
       assert emulatedInterface != null;
       if (!appView.isAlreadyLibraryDesugared(emulatedInterface)
           && needsEmulateInterfaceLibrary(emulatedInterface)) {
-        ensureEmulateInterfaceLibrary(emulatedInterface, eventConsumer);
+        synthesizeProgramEmulatedInterface(emulatedInterface, eventConsumer);
       }
     }
   }
 
-  private boolean needsEmulateInterfaceLibrary(DexProgramClass emulatedInterface) {
+  private boolean needsEmulateInterfaceLibrary(DexClass emulatedInterface) {
     return Iterables.any(emulatedInterface.methods(), DexEncodedMethod::isDefaultMethod);
   }
 

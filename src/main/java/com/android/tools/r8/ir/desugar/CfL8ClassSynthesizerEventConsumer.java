@@ -7,19 +7,19 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterL8SynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
-import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer;
+import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.L8ProgramEmulatedInterfaceSynthesizerEventConsumer;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
 public class CfL8ClassSynthesizerEventConsumer
-    implements EmulatedInterfaceSynthesizerEventConsumer,
+    implements L8ProgramEmulatedInterfaceSynthesizerEventConsumer,
         DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer,
         DesugaredLibraryRetargeterL8SynthesizerEventConsumer {
 
   private Set<DexProgramClass> synthesizedClasses = Sets.newConcurrentHashSet();
 
   @Override
-  public void acceptEmulatedInterface(DexProgramClass clazz) {
+  public void acceptProgramEmulatedInterface(DexProgramClass clazz) {
     synthesizedClasses.add(clazz);
   }
 

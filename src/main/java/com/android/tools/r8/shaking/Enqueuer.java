@@ -6,8 +6,6 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.FieldAccessInfoImpl.MISSING_FIELD_ACCESS_INFO;
 import static com.android.tools.r8.ir.desugar.LambdaDescriptor.isLambdaMetafactoryMethod;
-import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.emulateInterfaceLibraryMethod;
-import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.getEmulateLibraryInterfaceClassType;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
@@ -25,7 +23,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.ClassDefinition;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.ClasspathOrLibraryDefinition;
@@ -60,19 +57,16 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.FieldResolutionResult;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignatureEnqueuerAnalysis;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.LookupLambdaTarget;
 import com.android.tools.r8.graph.LookupTarget;
-import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.FailedResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramDerivedContext;
 import com.android.tools.r8.graph.ProgramField;
@@ -128,7 +122,6 @@ import com.android.tools.r8.synthesis.SyntheticItems.SynthesizingContextOracle;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
-import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.SetUtils;
@@ -3555,9 +3548,6 @@ public class Enqueuer {
         assert false;
       }
     }
-    if (mode.isInitialTreeShaking()) {
-      libraryClasses.addAll(synthesizeDesugaredLibraryClasses());
-    }
 
     // Add just referenced non-program types. We can't replace the program classes at this point as
     // they are needed in tree pruning.
@@ -3692,56 +3682,6 @@ public class Enqueuer {
       assert verifyReferencedType(param, worklist, app);
     }
     return true;
-  }
-
-  private List<DexLibraryClass> synthesizeDesugaredLibraryClasses() {
-    List<DexLibraryClass> synthesizedClasses = new ArrayList<>();
-    Map<DexType, DexType> emulateLibraryInterface =
-        options.desugaredLibraryConfiguration.getEmulateLibraryInterface();
-    emulateLibraryInterface
-        .keySet()
-        .forEach(
-            interfaceType -> {
-              DexClass interfaceClass = appView.definitionFor(interfaceType);
-              if (interfaceClass == null) {
-                appView
-                    .reporter()
-                    .error(
-                        new StringDiagnostic(
-                            "The interface "
-                                + interfaceType.getTypeName()
-                                + " is missing, but is required for Java 8+ API desugaring."));
-                return;
-              }
-
-              DexType emulateInterfaceType =
-                  getEmulateLibraryInterfaceClassType(interfaceType, dexItemFactory);
-              assert appView.definitionFor(emulateInterfaceType) == null;
-
-              List<DexEncodedMethod> emulateInterfaceClassMethods =
-                  ListUtils.newArrayList(
-                      builder ->
-                          interfaceClass.forEachClassMethodMatching(
-                              DexEncodedMethod::isDefaultMethod,
-                              method ->
-                                  builder.accept(
-                                      new DexEncodedMethod(
-                                          emulateInterfaceLibraryMethod(method, dexItemFactory),
-                                          MethodAccessFlags.createPublicStaticSynthetic(),
-                                          MethodTypeSignature.noSignature(),
-                                          DexAnnotationSet.empty(),
-                                          ParameterAnnotationsList.empty(),
-                                          null,
-                                          true))));
-
-              synthesizedClasses.add(
-                  DexLibraryClass.builder(dexItemFactory)
-                      .setAccessFlags(ClassAccessFlags.createPublicFinalSynthetic())
-                      .setDirectMethods(emulateInterfaceClassMethods)
-                      .setType(emulateInterfaceType)
-                      .build());
-            });
-    return synthesizedClasses;
   }
 
   private static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>

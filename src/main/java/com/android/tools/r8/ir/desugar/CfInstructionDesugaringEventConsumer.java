@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetarget
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPIConverterEventConsumer;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialBridgeInfo;
 import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.ClasspathEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDesugaringEventConsumer;
@@ -49,7 +50,8 @@ public abstract class CfInstructionDesugaringEventConsumer
         TwrCloseResourceDesugaringEventConsumer,
         InterfaceMethodDesugaringEventConsumer,
         DesugaredLibraryRetargeterInstructionEventConsumer,
-        DesugaredLibraryAPIConverterEventConsumer {
+        DesugaredLibraryAPIConverterEventConsumer,
+        ClasspathEmulatedInterfaceSynthesizerEventConsumer {
 
   public static D8CfInstructionDesugaringEventConsumer createForD8(
       D8MethodProcessor methodProcessor) {
@@ -67,6 +69,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
   public static CfInstructionDesugaringEventConsumer createForDesugaredCode() {
     return new CfInstructionDesugaringEventConsumer() {
+
+      @Override
+      public void acceptClasspathEmulatedInterface(DexClasspathClass clazz) {
+        assert false;
+      }
 
       @Override
       public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
@@ -161,6 +168,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz) {
+      // Intentionally empty.
+    }
+
+    @Override
+    public void acceptClasspathEmulatedInterface(DexClasspathClass clazz) {
       // Intentionally empty.
     }
 
@@ -322,6 +334,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptDesugaredLibraryRetargeterDispatchClasspathClass(DexClasspathClass clazz) {
+      additions.addLiveClasspathClass(clazz);
+    }
+
+    @Override
+    public void acceptClasspathEmulatedInterface(DexClasspathClass clazz) {
       additions.addLiveClasspathClass(clazz);
     }
 
