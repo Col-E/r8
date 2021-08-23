@@ -2254,7 +2254,7 @@ public class DexItemFactory {
       String baseName, DexType holder, DexProto proto, Predicate<DexMethodSignature> isFresh) {
     return createFreshMember(
         name -> {
-          DexMethodSignature trySignature = DexMethodSignature.create(name, proto);
+          DexMethodSignature trySignature = new DexMethodSignature(proto, name);
           if (isFresh.test(trySignature)) {
             return Optional.of(trySignature);
           } else {

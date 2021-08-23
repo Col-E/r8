@@ -9,28 +9,36 @@ import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Objects;
 
-public abstract class DexMethodSignature implements StructuralItem<DexMethodSignature> {
+public class DexMethodSignature implements StructuralItem<DexMethodSignature> {
 
-  DexMethodSignature() {}
+  private final DexProto proto;
+  private final DexString name;
 
-  public static DexMethodSignature create(DexMethod method) {
-    return new MethodBased(method);
+  public DexMethodSignature(DexMethod method) {
+    this(method.proto, method.name);
   }
 
-  public static DexMethodSignature create(DexString name, DexProto proto) {
-    return new NameAndProtoBased(name, proto);
+  public DexMethodSignature(DexProto proto, DexString name) {
+    assert proto != null;
+    assert name != null;
+    this.proto = proto;
+    this.name = name;
   }
-
-  public abstract DexString getName();
-
-  public abstract DexProto getProto();
 
   public int getArity() {
-    return getProto().getArity();
+    return proto.getArity();
+  }
+
+  public DexString getName() {
+    return name;
+  }
+
+  public DexProto getProto() {
+    return proto;
   }
 
   public DexType getReturnType() {
-    return getProto().getReturnType();
+    return proto.returnType;
   }
 
   @Override
@@ -43,11 +51,11 @@ public abstract class DexMethodSignature implements StructuralItem<DexMethodSign
   }
 
   public DexMethodSignature withName(DexString name) {
-    return create(name, getProto());
+    return new DexMethodSignature(proto, name);
   }
 
   public DexMethodSignature withProto(DexProto proto) {
-    return create(getName(), proto);
+    return new DexMethodSignature(proto, name);
   }
 
   public DexMethod withHolder(ProgramDefinition definition, DexItemFactory dexItemFactory) {
@@ -55,7 +63,7 @@ public abstract class DexMethodSignature implements StructuralItem<DexMethodSign
   }
 
   public DexMethod withHolder(DexReference reference, DexItemFactory dexItemFactory) {
-    return dexItemFactory.createMethod(reference.getContextType(), getProto(), getName());
+    return dexItemFactory.createMethod(reference.getContextType(), proto, name);
   }
 
   @Override
@@ -63,12 +71,12 @@ public abstract class DexMethodSignature implements StructuralItem<DexMethodSign
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     DexMethodSignature that = (DexMethodSignature) o;
-    return getProto() == that.getProto() && getName() == that.getName();
+    return proto == that.proto && name == that.name;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getProto(), getName());
+    return Objects.hash(proto, name);
   }
 
   @Override
@@ -78,7 +86,7 @@ public abstract class DexMethodSignature implements StructuralItem<DexMethodSign
 
   @Override
   public String toString() {
-    return "Method Signature " + getName() + " " + getProto();
+    return "Method Signature " + name + " " + proto.toString();
   }
 
   private String toSourceString() {
@@ -90,53 +98,13 @@ public abstract class DexMethodSignature implements StructuralItem<DexMethodSign
     if (includeReturnType) {
       builder.append(getReturnType().toSourceString()).append(" ");
     }
-    builder.append(getName()).append("(");
+    builder.append(name).append("(");
     for (int i = 0; i < getArity(); i++) {
       if (i != 0) {
         builder.append(", ");
       }
-      builder.append(getProto().parameters.values[i].toSourceString());
+      builder.append(proto.parameters.values[i].toSourceString());
     }
     return builder.append(")").toString();
-  }
-
-  static class MethodBased extends DexMethodSignature {
-
-    private final DexMethod method;
-
-    MethodBased(DexMethod method) {
-      this.method = method;
-    }
-
-    @Override
-    public DexString getName() {
-      return method.getName();
-    }
-
-    @Override
-    public DexProto getProto() {
-      return method.getProto();
-    }
-  }
-
-  static class NameAndProtoBased extends DexMethodSignature {
-
-    private final DexString name;
-    private final DexProto proto;
-
-    NameAndProtoBased(DexString name, DexProto proto) {
-      this.name = name;
-      this.proto = proto;
-    }
-
-    @Override
-    public DexString getName() {
-      return name;
-    }
-
-    @Override
-    public DexProto getProto() {
-      return proto;
-    }
   }
 }
