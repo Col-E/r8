@@ -40,12 +40,22 @@ public abstract class MethodStateBase implements MethodState {
   }
 
   @Override
+  public ConcreteMonomorphicMethodStateOrBottom asMonomorphicOrBottom() {
+    return null;
+  }
+
+  @Override
   public boolean isPolymorphic() {
     return false;
   }
 
   @Override
   public ConcretePolymorphicMethodState asPolymorphic() {
+    return null;
+  }
+
+  @Override
+  public ConcretePolymorphicMethodStateOrBottom asPolymorphicOrBottom() {
     return null;
   }
 

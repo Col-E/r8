@@ -6,7 +6,7 @@ package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 public abstract class ConcreteMethodState extends MethodStateBase {
 
@@ -33,8 +33,9 @@ public abstract class ConcreteMethodState extends MethodStateBase {
 
   @Override
   public MethodState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, Supplier<MethodState> methodStateSupplier) {
-    return mutableJoin(appView, methodStateSupplier.get());
+      AppView<AppInfoWithLiveness> appView,
+      Function<MethodState, MethodState> methodStateSupplier) {
+    return mutableJoin(appView, methodStateSupplier.apply(this));
   }
 
   private MethodState mutableJoin(

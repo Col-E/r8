@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ConcreteMonomorphicMethodState extends ConcreteMethodState
-    implements ConcreteMonomorphicMethodStateOrUnknown {
+    implements ConcreteMonomorphicMethodStateOrBottom, ConcreteMonomorphicMethodStateOrUnknown {
 
   List<ParameterState> parameterStates;
 
@@ -70,6 +70,11 @@ public class ConcreteMonomorphicMethodState extends ConcreteMethodState
 
   @Override
   public ConcreteMonomorphicMethodState asMonomorphic() {
+    return this;
+  }
+
+  @Override
+  public ConcreteMonomorphicMethodStateOrBottom asMonomorphicOrBottom() {
     return this;
   }
 

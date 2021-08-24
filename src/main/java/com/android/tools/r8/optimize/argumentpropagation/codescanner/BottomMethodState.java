@@ -6,9 +6,10 @@ package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
-public class BottomMethodState extends MethodStateBase {
+public class BottomMethodState extends MethodStateBase
+    implements ConcreteMonomorphicMethodStateOrBottom, ConcretePolymorphicMethodStateOrBottom {
 
   private static final BottomMethodState INSTANCE = new BottomMethodState();
 
@@ -24,6 +25,16 @@ public class BottomMethodState extends MethodStateBase {
   }
 
   @Override
+  public ConcreteMonomorphicMethodStateOrBottom asMonomorphicOrBottom() {
+    return this;
+  }
+
+  @Override
+  public ConcretePolymorphicMethodStateOrBottom asPolymorphicOrBottom() {
+    return this;
+  }
+
+  @Override
   public MethodState mutableCopy() {
     return this;
   }
@@ -35,7 +46,8 @@ public class BottomMethodState extends MethodStateBase {
 
   @Override
   public MethodState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, Supplier<MethodState> methodStateSupplier) {
-    return mutableJoin(appView, methodStateSupplier.get());
+      AppView<AppInfoWithLiveness> appView,
+      Function<MethodState, MethodState> methodStateSupplier) {
+    return mutableJoin(appView, methodStateSupplier.apply(this));
   }
 }

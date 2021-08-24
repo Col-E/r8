@@ -10,6 +10,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 abstract class MethodStateCollection<K> {
@@ -55,13 +56,13 @@ abstract class MethodStateCollection<K> {
   public void addTemporaryMethodState(
       AppView<AppInfoWithLiveness> appView,
       K method,
-      Supplier<MethodState> methodStateSupplier,
+      Function<MethodState, MethodState> methodStateSupplier,
       Timing timing) {
     methodStates.compute(
         method,
         (ignore, existingMethodState) -> {
           if (existingMethodState == null) {
-            MethodState newMethodState = methodStateSupplier.get();
+            MethodState newMethodState = methodStateSupplier.apply(MethodState.bottom());
             assert !newMethodState.isBottom();
             return newMethodState;
           }

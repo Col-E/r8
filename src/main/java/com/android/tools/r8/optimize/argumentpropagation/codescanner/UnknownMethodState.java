@@ -6,7 +6,7 @@ package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 // Use this when the nothing is known.
 public class UnknownMethodState extends MethodStateBase
@@ -37,7 +37,8 @@ public class UnknownMethodState extends MethodStateBase
 
   @Override
   public MethodState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, Supplier<MethodState> methodStateSupplier) {
+      AppView<AppInfoWithLiveness> appView,
+      Function<MethodState, MethodState> methodStateSupplier) {
     return this;
   }
 }

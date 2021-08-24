@@ -29,8 +29,10 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteArrayTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteClassTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodStateOrBottom;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodStateOrUnknown;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePolymorphicMethodState;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePolymorphicMethodStateOrBottom;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePrimitiveTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteReceiverParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodParameter;
@@ -193,13 +195,20 @@ class ArgumentPropagatorCodeScanner {
     methodStates.addTemporaryMethodState(
         appView,
         representativeMethodReference,
-        () -> computeMethodState(invoke, finalResolvedMethod, context, timing),
+        existingMethodState ->
+            computeMethodState(invoke, finalResolvedMethod, context, existingMethodState, timing),
         timing);
     timing.end();
   }
 
   private MethodState computeMethodState(
-      InvokeMethod invoke, ProgramMethod resolvedMethod, ProgramMethod context, Timing timing) {
+      InvokeMethod invoke,
+      ProgramMethod resolvedMethod,
+      ProgramMethod context,
+      MethodState existingMethodState,
+      Timing timing) {
+    assert !existingMethodState.isUnknown();
+
     // If this invoke may target at most one method, then we compute a state that maps each
     // parameter to the abstract value and dynamic type provided by this call site. Otherwise, we
     // compute a polymorphic method state, which includes information about the receiver's dynamic
@@ -207,11 +216,21 @@ class ArgumentPropagatorCodeScanner {
     timing.begin("Compute method state for invoke");
     boolean isPolymorphicInvoke =
         getRepresentativeForPolymorphicInvokeOrElse(invoke, resolvedMethod, null) != null;
-    MethodState result =
-        isPolymorphicInvoke
-            ? computePolymorphicMethodState(
-                invoke.asInvokeMethodWithReceiver(), resolvedMethod, context)
-            : computeMonomorphicMethodState(invoke, context);
+    MethodState result;
+    if (isPolymorphicInvoke) {
+      assert existingMethodState.isBottom() || existingMethodState.isPolymorphic();
+      result =
+          computePolymorphicMethodState(
+              invoke.asInvokeMethodWithReceiver(),
+              resolvedMethod,
+              context,
+              existingMethodState.asPolymorphicOrBottom());
+    } else {
+      assert existingMethodState.isBottom() || existingMethodState.isMonomorphic();
+      result =
+          computeMonomorphicMethodState(
+              invoke, context, existingMethodState.asMonomorphicOrBottom());
+    }
     timing.end();
     return result;
   }
@@ -220,40 +239,65 @@ class ArgumentPropagatorCodeScanner {
   //  experimenting with the performance/size trade-off between precise/imprecise handling of
   //  dynamic dispatch.
   private MethodState computePolymorphicMethodState(
-      InvokeMethodWithReceiver invoke, ProgramMethod resolvedMethod, ProgramMethod context) {
+      InvokeMethodWithReceiver invoke,
+      ProgramMethod resolvedMethod,
+      ProgramMethod context,
+      ConcretePolymorphicMethodStateOrBottom existingMethodState) {
     DynamicType dynamicReceiverType = invoke.getReceiver().getDynamicType(appView);
     assert !dynamicReceiverType.getDynamicUpperBoundType().nullability().isDefinitelyNull();
 
-    if (invoke.isInvokeSuper()) {
-      ClassTypeElement exactClassType =
-          resolvedMethod.getHolderType().toTypeElement(appView).asClassType();
-      DynamicType exactType = DynamicType.create(appView, exactClassType, exactClassType);
-      return new ConcretePolymorphicMethodState(
-          exactType, computeMonomorphicMethodState(invoke, context));
+    DynamicType bounds =
+        invoke.isInvokeSuper()
+            ? DynamicType.createExact(
+                resolvedMethod.getHolderType().toTypeElement(appView).asClassType())
+            : dynamicReceiverType;
+
+    MethodState existingMethodStateForBounds =
+        existingMethodState.isPolymorphic()
+            ? existingMethodState.asPolymorphic().getMethodStateForBounds(bounds)
+            : MethodState.bottom();
+
+    if (existingMethodStateForBounds.isPolymorphic()) {
+      assert false;
+      return MethodState.unknown();
     }
 
-    ConcretePolymorphicMethodState methodState =
-        new ConcretePolymorphicMethodState(
-            dynamicReceiverType,
-            computeMonomorphicMethodState(invoke, context, dynamicReceiverType));
+    // If we already don't know anything about the parameters for the given type bounds, then don't
+    // compute a method state.
+    if (existingMethodStateForBounds.isUnknown()) {
+      return MethodState.unknown();
+    }
+
     // TODO(b/190154391): If the receiver type is effectively unknown, and the computed monomorphic
     //  method state is also unknown (i.e., we have "unknown receiver type" -> "unknown method
     //  state"), then return the canonicalized UnknownMethodState instance instead.
-    return methodState;
+    return new ConcretePolymorphicMethodState(
+        bounds,
+        computeMonomorphicMethodState(
+            invoke,
+            context,
+            existingMethodStateForBounds.asMonomorphicOrBottom(),
+            dynamicReceiverType));
   }
 
   private ConcreteMonomorphicMethodStateOrUnknown computeMonomorphicMethodState(
-      InvokeMethod invoke, ProgramMethod context) {
+      InvokeMethod invoke,
+      ProgramMethod context,
+      ConcreteMonomorphicMethodStateOrBottom existingMethodState) {
     return computeMonomorphicMethodState(
         invoke,
         context,
+        existingMethodState,
         invoke.isInvokeMethodWithReceiver()
             ? invoke.getFirstArgument().getDynamicType(appView)
             : null);
   }
 
   private ConcreteMonomorphicMethodStateOrUnknown computeMonomorphicMethodState(
-      InvokeMethod invoke, ProgramMethod context, DynamicType dynamicReceiverType) {
+      InvokeMethod invoke,
+      ProgramMethod context,
+      ConcreteMonomorphicMethodStateOrBottom existingMethodState,
+      DynamicType dynamicReceiverType) {
     List<ParameterState> parameterStates = new ArrayList<>(invoke.arguments().size());
 
     int argumentIndex = 0;
@@ -261,14 +305,18 @@ class ArgumentPropagatorCodeScanner {
       assert dynamicReceiverType != null;
       parameterStates.add(
           computeParameterStateForReceiver(
-              invoke.asInvokeMethodWithReceiver(), dynamicReceiverType));
+              invoke.asInvokeMethodWithReceiver(), dynamicReceiverType, existingMethodState));
       argumentIndex++;
     }
 
     for (; argumentIndex < invoke.arguments().size(); argumentIndex++) {
       parameterStates.add(
           computeParameterStateForNonReceiver(
-              invoke, argumentIndex, invoke.getArgument(argumentIndex), context));
+              invoke,
+              argumentIndex,
+              invoke.getArgument(argumentIndex),
+              context,
+              existingMethodState));
     }
 
     // If all parameter states are unknown, then return a canonicalized unknown method state that
@@ -285,7 +333,15 @@ class ArgumentPropagatorCodeScanner {
   // TODO(b/190154391): Consider validating the above hypothesis by using
   //  computeParameterStateForNonReceiver() for receivers.
   private ParameterState computeParameterStateForReceiver(
-      InvokeMethodWithReceiver invoke, DynamicType dynamicReceiverType) {
+      InvokeMethodWithReceiver invoke,
+      DynamicType dynamicReceiverType,
+      ConcreteMonomorphicMethodStateOrBottom existingMethodState) {
+    // Don't compute a state for this parameter if the stored state is already unknown.
+    if (existingMethodState.isMonomorphic()
+        && existingMethodState.asMonomorphic().getParameterState(0).isUnknown()) {
+      return ParameterState.unknown();
+    }
+
     ClassTypeElement staticReceiverType =
         invoke
             .getInvokedMethod()
@@ -299,7 +355,17 @@ class ArgumentPropagatorCodeScanner {
   }
 
   private ParameterState computeParameterStateForNonReceiver(
-      InvokeMethod invoke, int argumentIndex, Value argument, ProgramMethod context) {
+      InvokeMethod invoke,
+      int argumentIndex,
+      Value argument,
+      ProgramMethod context,
+      ConcreteMonomorphicMethodStateOrBottom existingMethodState) {
+    // Don't compute a state for this parameter if the stored state is already unknown.
+    if (existingMethodState.isMonomorphic()
+        && existingMethodState.asMonomorphic().getParameterState(argumentIndex).isUnknown()) {
+      return ParameterState.unknown();
+    }
+
     Value argumentRoot = argument.getAliasedValue(aliasedValueConfiguration);
     TypeElement parameterType =
         invoke

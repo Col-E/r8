@@ -12,7 +12,8 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public class ConcretePolymorphicMethodState extends ConcreteMethodState {
+public class ConcretePolymorphicMethodState extends ConcreteMethodState
+    implements ConcretePolymorphicMethodStateOrBottom {
 
   private final Map<DynamicType, ConcreteMonomorphicMethodStateOrUnknown> receiverBoundsToState =
       new HashMap<>();
@@ -52,6 +53,15 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState {
   public void forEach(
       BiConsumer<? super DynamicType, ? super ConcreteMonomorphicMethodStateOrUnknown> consumer) {
     receiverBoundsToState.forEach(consumer);
+  }
+
+  public MethodState getMethodStateForBounds(DynamicType dynamicType) {
+    ConcreteMonomorphicMethodStateOrUnknown methodStateForBounds =
+        receiverBoundsToState.get(dynamicType);
+    if (methodStateForBounds != null) {
+      return methodStateForBounds;
+    }
+    return MethodState.bottom();
   }
 
   public boolean isEmpty() {
@@ -97,6 +107,11 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState {
 
   @Override
   public ConcretePolymorphicMethodState asPolymorphic() {
+    return this;
+  }
+
+  @Override
+  public ConcretePolymorphicMethodStateOrBottom asPolymorphicOrBottom() {
     return this;
   }
 }
