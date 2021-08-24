@@ -7,41 +7,41 @@ import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.Lists;
+import it.unimi.dsi.fastutil.objects.Object2ReferenceLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ReferenceRBTreeMap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
+import java.util.SortedMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class MethodMapBacking extends MethodCollectionBacking {
 
-  private Map<DexMethodSignature, DexEncodedMethod> methodMap;
+  private SortedMap<DexMethodSignature, DexEncodedMethod> methodMap;
 
   public MethodMapBacking() {
-    this(createMap());
+    this(createdLinkedMap());
   }
 
-  private MethodMapBacking(Map<DexMethodSignature, DexEncodedMethod> methodMap) {
+  private MethodMapBacking(SortedMap<DexMethodSignature, DexEncodedMethod> methodMap) {
     this.methodMap = methodMap;
   }
 
   public static MethodMapBacking createSorted() {
-    return new MethodMapBacking(new TreeMap<>());
+    return new MethodMapBacking(new Object2ReferenceRBTreeMap<>());
   }
 
-  private static Map<DexMethodSignature, DexEncodedMethod> createMap() {
+  private static SortedMap<DexMethodSignature, DexEncodedMethod> createdLinkedMap() {
     // Maintain a linked map so the output order remains a deterministic function of the input.
-    return new HashMap<>();
+    return new Object2ReferenceLinkedOpenHashMap<>();
   }
 
-  private static Map<DexMethodSignature, DexEncodedMethod> createMap(int capacity) {
+  private static SortedMap<DexMethodSignature, DexEncodedMethod> createdLinkedMap(int capacity) {
     // Maintain a linked map so the output order remains a deterministic function of the input.
-    return new HashMap<>(capacity);
+    return new Object2ReferenceLinkedOpenHashMap<>(capacity);
   }
 
   private void replace(DexMethodSignature existingKey, DexEncodedMethod method) {
@@ -216,7 +216,8 @@ public class MethodMapBacking extends MethodCollectionBacking {
     if (methods == null) {
       methods = DexEncodedMethod.EMPTY_ARRAY;
     }
-    Map<DexMethodSignature, DexEncodedMethod> newMap = createMap(size() + methods.length);
+    SortedMap<DexMethodSignature, DexEncodedMethod> newMap =
+        createdLinkedMap(size() + methods.length);
     forEachMethod(
         method -> {
           if (belongsToVirtualPool(method)) {
@@ -238,7 +239,8 @@ public class MethodMapBacking extends MethodCollectionBacking {
     if (methods == null) {
       methods = DexEncodedMethod.EMPTY_ARRAY;
     }
-    Map<DexMethodSignature, DexEncodedMethod> newMap = createMap(size() + methods.length);
+    SortedMap<DexMethodSignature, DexEncodedMethod> newMap =
+        createdLinkedMap(size() + methods.length);
     forEachMethod(
         method -> {
           if (belongsToDirectPool(method)) {
