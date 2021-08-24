@@ -72,12 +72,12 @@ class ArgumentPropagatorCodeScanner {
    * The abstract program state for this optimization. Intuitively maps each parameter to its
    * abstract value and dynamic type.
    */
-  private final MethodStateCollectionByReference methodStates;
+  private final MethodStateCollectionByReference methodStates =
+      MethodStateCollectionByReference.createConcurrent();
 
   ArgumentPropagatorCodeScanner(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.classMethodRoots = computeClassMethodRoots();
-    this.methodStates = computeInitialMethodStates();
   }
 
   private Map<DexMethod, DexMethod> computeClassMethodRoots() {
@@ -88,13 +88,6 @@ class ArgumentPropagatorCodeScanner {
           method -> roots.put(method.getReference(), method.getReference()));
     }
     return roots;
-  }
-
-  private MethodStateCollectionByReference computeInitialMethodStates() {
-    // TODO(b/190154391): There is no need to track an abstract value for receivers; we only care
-    //  about the dynamic type for such parameters. Consider initializing the initial state to have
-    //  unknown abstract values for all receivers.
-    return MethodStateCollectionByReference.createConcurrent();
   }
 
   MethodStateCollectionByReference getMethodStates() {
@@ -139,7 +132,6 @@ class ArgumentPropagatorCodeScanner {
       return;
     }
 
-    // TODO(b/190154391): Also bail out if the method is an unoptimizable program method.
     if (!resolutionResult.getResolvedHolder().isProgramClass()) {
       // Nothing to propagate; this could dispatch to a program method, but we cannot optimize
       // methods that override non-program methods.
