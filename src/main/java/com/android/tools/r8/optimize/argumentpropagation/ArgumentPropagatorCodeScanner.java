@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -54,7 +53,7 @@ import java.util.Map;
  *
  * <p>State pruning is applied on-the-fly to avoid storing redundant information.
  */
-class ArgumentPropagatorCodeScanner {
+public class ArgumentPropagatorCodeScanner {
 
   private static AliasedValueConfiguration aliasedValueConfiguration =
       AssumeAndCheckCastAliasedValueConfiguration.getInstance();
@@ -62,11 +61,11 @@ class ArgumentPropagatorCodeScanner {
   private final AppView<AppInfoWithLiveness> appView;
 
   /**
-   * Maps each non-interface method to the upper most method in the super class chain with the same
-   * method signature. This only contains an entry for non-private virtual methods that override
-   * another method in the program.
+   * Maps each non-private virtual method to the upper most method in the class hierarchy with the
+   * same method signature. Virtual methods that do not override other virtual methods are mapped to
+   * themselves.
    */
-  private final Map<DexMethod, DexMethod> classMethodRoots;
+  private final Map<DexMethod, DexMethod> virtualRootMethods = new IdentityHashMap<>();
 
   /**
    * The abstract program state for this optimization. Intuitively maps each parameter to its
@@ -77,17 +76,10 @@ class ArgumentPropagatorCodeScanner {
 
   ArgumentPropagatorCodeScanner(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.classMethodRoots = computeClassMethodRoots();
   }
 
-  private Map<DexMethod, DexMethod> computeClassMethodRoots() {
-    // TODO(b/190154391): Group methods related by overriding to enable more effective pruning.
-    Map<DexMethod, DexMethod> roots = new IdentityHashMap<>();
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      clazz.forEachProgramVirtualMethod(
-          method -> roots.put(method.getReference(), method.getReference()));
-    }
-    return roots;
+  public synchronized void addVirtualRootMethods(Map<DexMethod, DexMethod> extension) {
+    virtualRootMethods.putAll(extension);
   }
 
   MethodStateCollectionByReference getMethodStates() {
@@ -238,6 +230,13 @@ class ArgumentPropagatorCodeScanner {
     DynamicType dynamicReceiverType = invoke.getReceiver().getDynamicType(appView);
     assert !dynamicReceiverType.getDynamicUpperBoundType().nullability().isDefinitelyNull();
 
+    // TODO(b/190154391): Consider using an exact bound if we have a single target (these are cached
+    //  and should therefore not be too expensive to compute). Doing so should have the same
+    //  precision, but lead to less state propagation in the subsequent top-down class
+    //  hierarchy traversals.
+    // TODO(b/190154391): Normalize type bounds that are the same, by removing trivial lower bound
+    //  information. For example, the types (upper=B, lower=unknown) and (upper=B, lower=B) are
+    //  identical if B does not have any subtypes.
     DynamicType bounds =
         invoke.isInvokeSuper()
             ? DynamicType.createExact(
@@ -425,7 +424,7 @@ class ArgumentPropagatorCodeScanner {
     if (invoke.isInvokeSuper()) {
       return resolvedMethodReference;
     }
-    DexMethod rootMethod = classMethodRoots.get(resolvedMethodReference);
+    DexMethod rootMethod = virtualRootMethods.get(resolvedMethodReference);
     if (rootMethod != null) {
       assert invoke.isInvokeVirtual();
       return rootMethod;

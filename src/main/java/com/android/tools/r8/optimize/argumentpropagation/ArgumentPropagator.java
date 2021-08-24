@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.VirtualRootMethodsAnalysis;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
 import java.util.concurrent.ExecutionException;
@@ -61,11 +62,17 @@ public class ArgumentPropagator {
     // Disable argument propagation for methods that should not be optimized.
     ImmediateProgramSubtypingInfo immediateSubtypingInfo =
         ImmediateProgramSubtypingInfo.create(appView);
+
     // TODO(b/190154391): Consider computing the strongly connected components and running this in
     //  parallel for each scc.
     new ArgumentPropagatorUnoptimizableMethods(
             appView, immediateSubtypingInfo, codeScanner.getMethodStates())
         .disableArgumentPropagationForUnoptimizableMethods(appView.appInfo().classes());
+
+    // TODO(b/190154391): Consider computing the strongly connected components and running this in
+    //  parallel for each scc.
+    new VirtualRootMethodsAnalysis(appView, immediateSubtypingInfo)
+        .extendVirtualRootMethods(appView.appInfo().classes(), codeScanner);
 
     timing.end();
     timing.end();

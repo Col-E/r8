@@ -139,6 +139,13 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     // of the method's holder. All that remains is to propagate the information downwards in the
     // class hierarchy to propagate the argument information for a non-private virtual method to its
     // overrides.
+    // TODO(b/190154391): Before running the top-down traversal, consider lowering the argument
+    //  information for non-private virtual methods. If we have some argument information with upper
+    //  bound=B, which is stored on a method on class A, we could move this argument information
+    //  from class A to B. This way we could potentially get rid of the "inactive argument
+    //  information" during the depth-first class hierarchy traversal, since the argument
+    //  information would be active by construction when it is first seen during the top-down class
+    //  hierarchy traversal.
     new VirtualDispatchMethodArgumentPropagator(appView, immediateSubtypingInfo, methodStates)
         .run(stronglyConnectedComponent);
   }
