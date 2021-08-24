@@ -39,10 +39,9 @@ public class RepackageCloneTest extends RepackageTestBase {
         .compile()
         .inspect(
             inspector -> {
-              // TODO(b/197482897) This should be repackaged.
-              assertThat(A.class, isNotRepackaged(inspector));
+              assertThat(A.class, isRepackaged(inspector));
               assertThat(B.class, isRepackaged(inspector));
-              assertThat(C.class, isNotRepackaged(inspector));
+              assertThat(C.class, isRepackaged(inspector));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("foo", "null");

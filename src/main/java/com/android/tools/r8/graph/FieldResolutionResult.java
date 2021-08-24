@@ -66,10 +66,6 @@ public abstract class FieldResolutionResult
     return false;
   }
 
-  public boolean isFailedResolution() {
-    return false;
-  }
-
   public DexClass getInitialResolutionHolder() {
     return null;
   }

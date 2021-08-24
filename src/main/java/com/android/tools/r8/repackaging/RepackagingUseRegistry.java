@@ -128,6 +128,7 @@ public class RepackagingUseRegistry extends UseRegistry {
       }
       MethodResolutionResult methodResult = resolutionResult.asMethodResolutionResult();
       if (methodResult.isClassNotFoundResult()
+          || methodResult.isArrayCloneMethodResult()
           || methodResult.isNoSuchMethodErrorResult(context.getContextClass(), appInfo)) {
         return;
       }

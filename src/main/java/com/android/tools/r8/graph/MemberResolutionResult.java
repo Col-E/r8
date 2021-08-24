@@ -25,6 +25,15 @@ public abstract class MemberResolutionResult<
     return isAccessibleFrom(context, appView.appInfo());
   }
 
+  /**
+   * Returns true if resolution failed.
+   *
+   * <p>Note the disclaimer in the doc of {@code MethodResolutionResult.isSingleResolution()}.
+   */
+  public boolean isFailedResolution() {
+    return false;
+  }
+
   public boolean isFieldResolutionResult() {
     return false;
   }

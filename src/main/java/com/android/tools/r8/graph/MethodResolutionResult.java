@@ -59,15 +59,6 @@ public abstract class MethodResolutionResult
     return null;
   }
 
-  /**
-   * Returns true if resolution failed.
-   *
-   * <p>Note the disclaimer in the doc of {@code isSingleResolution()}.
-   */
-  public boolean isFailedResolution() {
-    return false;
-  }
-
   public boolean isIncompatibleClassChangeErrorResult() {
     return false;
   }
@@ -81,6 +72,10 @@ public abstract class MethodResolutionResult
   }
 
   public boolean isClassNotFoundResult() {
+    return false;
+  }
+
+  public boolean isArrayCloneMethodResult() {
     return false;
   }
 
@@ -806,6 +801,11 @@ public abstract class MethodResolutionResult
 
     @Override
     public boolean isVirtualTarget() {
+      return true;
+    }
+
+    @Override
+    public boolean isArrayCloneMethodResult() {
       return true;
     }
   }
