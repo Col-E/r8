@@ -1469,6 +1469,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     if (from.hasClassFileVersion()) {
       upgradeClassFileVersion(from.getClassFileVersion());
     }
+    apiLevelForCode = getApiLevelForCode().max(from.getApiLevelForCode());
   }
 
   public MethodTypeSignature getGenericSignature() {

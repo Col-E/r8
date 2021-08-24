@@ -5,7 +5,10 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.utils.AndroidApiLevel.L_MR1;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -38,6 +41,9 @@ public class ApiModelInlineInSameClassTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     Method apiMethod = Api.class.getDeclaredMethod("apiLevel22");
+    Method callingApi = ApiCaller.class.getDeclaredMethod("callingApi");
+    Method notCallingApi = ApiCaller.class.getDeclaredMethod("notCallingApi");
+    Method main = Main.class.getDeclaredMethod("main", String[].class);
     testForR8(parameters.getBackend())
         .addProgramClasses(ApiCaller.class, ApiCallerCaller.class, Main.class)
         .addLibraryClasses(Api.class)
@@ -47,13 +53,18 @@ public class ApiModelInlineInSameClassTest extends TestBase {
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()
+        .inspect(verifyThat(parameters, notCallingApi).inlinedIntoFromApiLevel(main, L_MR1))
         .inspect(
             inspector -> {
-              // TODO(b/197613376): The call should not be inlined into Main.main if minApi > L_MR1.
-              ClassSubject mainSubject = inspector.clazz(Main.class);
-              MethodSubject mainMethodSubject = mainSubject.uniqueMethodWithName("main");
-              assertThat(mainMethodSubject, isPresent());
-              assertThat(mainMethodSubject, CodeMatchers.invokesMethodWithName("apiLevel22"));
+              // No matter the api level, we should always inline callingApi into notCallingApi.
+              assertThat(inspector.method(callingApi), not(isPresent()));
+              if (parameters.isDexRuntime()
+                  && parameters.getApiLevel().isGreaterThanOrEqualTo(L_MR1)) {
+                ClassSubject mainSubject = inspector.clazz(Main.class);
+                MethodSubject mainMethodSubject = mainSubject.uniqueMethodWithName("main");
+                assertThat(mainMethodSubject, isPresent());
+                assertThat(mainMethodSubject, CodeMatchers.invokesMethodWithName("apiLevel22"));
+              }
             })
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
