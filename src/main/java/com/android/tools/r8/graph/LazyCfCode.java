@@ -62,6 +62,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -125,29 +126,33 @@ public class LazyCfCode extends Code {
   @Override
   public CfCode asCfCode() {
     if (code == null) {
-      ReparseContext context = this.context;
-      JarApplicationReader application = this.application;
-      assert application != null;
-      assert context != null;
-      // The ClassCodeVisitor is in charge of setting this.context to null.
-      try {
-        parseCode(context, false);
-      } catch (JsrEncountered e) {
-        for (Code code : context.codeList) {
-          code.asLazyCfCode().code = null;
-          code.asLazyCfCode().context = context;
-          code.asLazyCfCode().application = application;
-        }
-        try {
-          parseCode(context, true);
-        } catch (JsrEncountered e1) {
-          throw new Unreachable(e1);
-        }
-      }
-      assert verifyNoReparseContext(context.owner);
+      ExceptionUtils.withOriginAttachmentHandler(origin, this::internalParseCode);
     }
     assert code != null;
     return code;
+  }
+
+  private void internalParseCode() {
+    ReparseContext context = this.context;
+    JarApplicationReader application = this.application;
+    assert application != null;
+    assert context != null;
+    // The ClassCodeVisitor is in charge of setting this.context to null.
+    try {
+      parseCode(context, false);
+    } catch (JsrEncountered e) {
+      for (Code code : context.codeList) {
+        code.asLazyCfCode().code = null;
+        code.asLazyCfCode().context = context;
+        code.asLazyCfCode().application = application;
+      }
+      try {
+        parseCode(context, true);
+      } catch (JsrEncountered e1) {
+        throw new Unreachable(e1);
+      }
+    }
+    assert verifyNoReparseContext(context.owner);
   }
 
   @Override
@@ -773,6 +778,9 @@ public class LazyCfCode extends Code {
     @Override
     public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
       DexMethod method = application.getMethod(owner, name, desc);
+      if (application.getFactory().isClassConstructor(method)) {
+        throw new CompilationError("Invalid input code with a call to <clinit>");
+      }
       instructions.add(new CfInvoke(opcode, method, itf));
     }
 

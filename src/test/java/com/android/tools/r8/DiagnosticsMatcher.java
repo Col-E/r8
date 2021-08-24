@@ -58,15 +58,20 @@ public abstract class DiagnosticsMatcher extends TypeSafeMatcher<Diagnostic> {
   }
 
   public static Matcher<Diagnostic> diagnosticOrigin(Origin origin) {
+    return diagnosticOrigin(CoreMatchers.is(origin));
+  }
+
+  public static Matcher<Diagnostic> diagnosticOrigin(Matcher<Origin> originMatcher) {
     return new DiagnosticsMatcher() {
       @Override
       protected boolean eval(Diagnostic diagnostic) {
-        return diagnostic.getOrigin().equals(origin);
+        return originMatcher.matches(diagnostic.getOrigin());
       }
 
       @Override
       protected void explain(Description description) {
-        description.appendText("origin ").appendText(origin.toString());
+        description.appendText("origin with ");
+        originMatcher.describeTo(description);
       }
     };
   }

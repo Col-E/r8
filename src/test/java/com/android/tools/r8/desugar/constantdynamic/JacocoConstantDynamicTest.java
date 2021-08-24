@@ -5,6 +5,7 @@ package com.android.tools.r8.desugar.constantdynamic;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticOrigin;
+import static com.android.tools.r8.OriginMatcher.hasParent;
 import static com.android.tools.r8.utils.DescriptorUtils.JAVA_PACKAGE_SEPARATOR;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
@@ -23,7 +24,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
@@ -141,28 +142,23 @@ public class JacocoConstantDynamicTest extends TestBase {
     } else {
       assertThrows(
           CompilationFailedException.class,
-          () ->
-              testForD8(parameters.getBackend())
-                  .addProgramFiles(testClasses.getInstrumented())
-                  .addProgramFiles(ToolHelper.JACOCO_AGENT)
-                  .setMinApi(parameters.getApiLevel())
-                  .compileWithExpectedDiagnostics(
-                      diagnostics -> {
-                        // Check that the error is reported as an error to the diagnostics handler.
-                        diagnostics.assertErrorsCount(1);
-                        diagnostics.assertAllErrorsMatch(
-                            allOf(
-                                diagnosticMessage(containsString("Unsupported dynamic constant")),
-                                // The fatal error is not given an origin, so it can't provide it.
-                                // Note: This could be fixed by delaying reporting and associate the
-                                // info
-                                //  at the top-level handler. It would require mangling of the
-                                // diagnostic,
-                                //  so maybe not that elegant.
-                                diagnosticOrigin(Origin.unknown())));
-                        diagnostics.assertWarningsCount(0);
-                        diagnostics.assertInfosCount(0);
-                      }));
+          () -> {
+            ArchiveResourceProvider provider =
+                ArchiveResourceProvider.fromArchive(testClasses.getInstrumented(), true);
+            testForD8(parameters.getBackend())
+                .addProgramResourceProviders(provider)
+                .addProgramFiles(ToolHelper.JACOCO_AGENT)
+                .setMinApi(parameters.getApiLevel())
+                .compileWithExpectedDiagnostics(
+                    diagnostics -> {
+                      // Check that the error is reported as an error to the diagnostics handler.
+                      diagnostics.assertOnlyErrors();
+                      diagnostics.assertErrorsMatch(
+                          allOf(
+                              diagnosticMessage(containsString("Unsupported dynamic constant")),
+                              diagnosticOrigin(hasParent(provider.getOrigin()))));
+                    });
+          });
     }
   }
 

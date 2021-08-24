@@ -51,6 +51,10 @@ public class ArchiveResourceProvider implements ProgramResourceProvider, DataRes
     this.ignoreDexInArchive = ignoreDexInArchive;
   }
 
+  public Origin getOrigin() {
+    return origin;
+  }
+
   private List<ProgramResource> readArchive() throws IOException {
     List<ProgramResource> dexResources = new ArrayList<>();
     List<ProgramResource> classResources = new ArrayList<>();
