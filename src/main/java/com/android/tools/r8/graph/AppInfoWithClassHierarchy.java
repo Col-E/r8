@@ -599,7 +599,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     assert checkIfObsolete();
     DexType holder = method.holder;
     if (holder.isArrayType()) {
-      return resolveMethodOnArray(holder, method);
+      return resolveMethodOnArray(holder, method.getProto(), method.getName());
     }
     DexClass definition = definitionFor(holder);
     if (definition == null) {
@@ -615,9 +615,18 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   public MethodResolutionResult resolveMethodOn(DexClass holder, DexMethod method) {
+    return resolveMethodOn(holder, method.getProto(), method.getName());
+  }
+
+  public MethodResolutionResult resolveMethodOn(DexClass holder, DexMethodSignature method) {
+    return resolveMethodOn(holder, method.getProto(), method.getName());
+  }
+
+  public MethodResolutionResult resolveMethodOn(
+      DexClass holder, DexProto methodProto, DexString methodName) {
     return holder.isInterface()
-        ? resolveMethodOnInterface(holder, method)
-        : resolveMethodOnClass(method, holder);
+        ? resolveMethodOnInterface(holder, methodProto, methodName)
+        : resolveMethodOnClass(methodProto, methodName, holder);
   }
 
   /**
@@ -646,18 +655,23 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * 10.7 of the Java Language Specification</a>. All invokations will have target java.lang.Object
    * except clone which has no target.
    */
-  private MethodResolutionResult resolveMethodOnArray(DexType holder, DexMethod method) {
+  private MethodResolutionResult resolveMethodOnArray(
+      DexType holder, DexProto methodProto, DexString methodName) {
     assert checkIfObsolete();
     assert holder.isArrayType();
-    if (method.name == dexItemFactory().cloneMethodName) {
+    if (methodName == dexItemFactory().cloneMethodName) {
       return ArrayCloneMethodResult.INSTANCE;
     } else {
-      return resolveMethodOnClass(method, dexItemFactory().objectType);
+      return resolveMethodOnClass(methodProto, methodName, dexItemFactory().objectType);
     }
   }
 
   public MethodResolutionResult resolveMethodOnClass(DexMethod method) {
-    return resolveMethodOnClass(method, method.holder);
+    return resolveMethodOnClass(method.getProto(), method.getName(), method.getHolderType());
+  }
+
+  public MethodResolutionResult resolveMethodOnClass(DexMethod method, DexType holder) {
+    return resolveMethodOnClass(method.getProto(), method.getName(), holder);
   }
 
   /**
@@ -671,10 +685,27 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * invoke on the given descriptor to a corresponding invoke on the resolved descriptor, as the
    * resolved method is used as basis for dispatch.
    */
-  public MethodResolutionResult resolveMethodOnClass(DexMethod method, DexType holder) {
+  public MethodResolutionResult resolveMethodOnClass(
+      DexProto methodProto, DexString methodName, DexType holder) {
     assert checkIfObsolete();
     if (holder.isArrayType()) {
-      return resolveMethodOnArray(holder, method);
+      return resolveMethodOnArray(holder, methodProto, methodName);
+    }
+    DexClass clazz = definitionFor(holder);
+    if (clazz == null) {
+      return ClassNotFoundResult.INSTANCE;
+    }
+    // Step 1: If holder is an interface, resolution fails with an ICCE. We return null.
+    if (clazz.isInterface()) {
+      return IncompatibleClassResult.INSTANCE;
+    }
+    return resolveMethodOnClass(methodProto, methodName, clazz);
+  }
+
+  public MethodResolutionResult resolveMethodOnClass(DexMethodSignature method, DexType holder) {
+    assert checkIfObsolete();
+    if (holder.isArrayType()) {
+      return resolveMethodOnArray(holder, method.getProto(), method.getName());
     }
     DexClass clazz = definitionFor(holder);
     if (clazz == null) {
@@ -688,15 +719,15 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   public MethodResolutionResult resolveMethodOnClass(DexMethod method, DexClass clazz) {
-    return resolveMethodOnClass(clazz, method.getProto(), method.getName());
+    return resolveMethodOnClass(method.getProto(), method.getName(), clazz);
   }
 
   public MethodResolutionResult resolveMethodOnClass(DexMethodSignature method, DexClass clazz) {
-    return resolveMethodOnClass(clazz, method.getProto(), method.getName());
+    return resolveMethodOnClass(method.getProto(), method.getName(), clazz);
   }
 
   public MethodResolutionResult resolveMethodOnClass(
-      DexClass clazz, DexProto methodProto, DexString methodName) {
+      DexProto methodProto, DexString methodName, DexClass clazz) {
     assert checkIfObsolete();
     assert !clazz.isInterface();
     // Step 2:
@@ -866,10 +897,15 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   public MethodResolutionResult resolveMethodOnInterface(DexClass definition, DexMethod desc) {
+    return resolveMethodOnInterface(definition, desc.getProto(), desc.getName());
+  }
+
+  public MethodResolutionResult resolveMethodOnInterface(
+      DexClass definition, DexProto methodProto, DexString methodName) {
     assert checkIfObsolete();
     assert definition.isInterface();
     // Step 2: Look for exact method on interface.
-    DexEncodedMethod result = definition.lookupMethod(desc);
+    DexEncodedMethod result = definition.lookupMethod(methodProto, methodName);
     if (result != null) {
       return new SingleResolutionResult(definition, definition, result);
     }
@@ -878,13 +914,13 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     if (objectClass == null) {
       return ClassNotFoundResult.INSTANCE;
     }
-    result = objectClass.lookupMethod(desc);
+    result = objectClass.lookupMethod(methodProto, methodName);
     if (result != null && result.accessFlags.isPublic() && !result.accessFlags.isAbstract()) {
       return new SingleResolutionResult(definition, objectClass, result);
     }
     // Step 3: Look for maximally-specific superinterface methods or any interface definition.
     //         This is the same for classes and interfaces.
-    return resolveMethodStep3(definition, desc.getProto(), desc.getName());
+    return resolveMethodStep3(definition, methodProto, methodName);
   }
 
   /**

@@ -9,7 +9,6 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
@@ -101,17 +100,8 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
 
               inactiveMethodStates.forEach(
                   (signature, methodState) -> {
-                    // TODO(b/190154391): Update resolution to take a signature.
-                    DexMethod methodFromSignature =
-                        appView
-                            .dexItemFactory()
-                            .createMethod(
-                                clazz.getType(), signature.getProto(), signature.getName());
                     SingleResolutionResult resolutionResult =
-                        appView
-                            .appInfo()
-                            .resolveMethodOn(clazz, methodFromSignature)
-                            .asSingleResolution();
+                        appView.appInfo().resolveMethodOn(clazz, signature).asSingleResolution();
 
                     // Find the first virtual method in the super class hierarchy.
                     while (resolutionResult != null
@@ -119,10 +109,8 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
                       resolutionResult =
                           appView
                               .appInfo()
-                              .resolveMethodOn(
-                                  resolutionResult.getResolvedHolder().getSuperType(),
-                                  methodFromSignature,
-                                  false)
+                              .resolveMethodOnClass(
+                                  signature, resolutionResult.getResolvedHolder().getSuperType())
                               .asSingleResolution();
                     }
 
