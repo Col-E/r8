@@ -14,8 +14,10 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Timing;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -48,7 +50,12 @@ public class ArgumentPropagator {
    * Called by {@link IRConverter} *before* the primary optimization pass to setup the scanner for
    * collecting argument information from the code objects.
    */
-  public void initializeCodeScanner() {
+  public void initializeCodeScanner(Timing timing) {
+    assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
+
+    timing.begin("Argument propagator");
+    timing.begin("Initialize code scanner");
+
     codeScanner = new ArgumentPropagatorCodeScanner(appView);
 
     // Disable argument propagation for methods that should not be optimized.
@@ -59,56 +66,89 @@ public class ArgumentPropagator {
     new ArgumentPropagatorUnoptimizableMethods(
             appView, immediateSubtypingInfo, codeScanner.getMethodStates())
         .disableArgumentPropagationForUnoptimizableMethods(appView.appInfo().classes());
+
+    timing.end();
+    timing.end();
   }
 
   /** Called by {@link IRConverter} prior to finalizing methods. */
-  public void scan(ProgramMethod method, IRCode code, MethodProcessor methodProcessor) {
+  public void scan(
+      ProgramMethod method, IRCode code, MethodProcessor methodProcessor, Timing timing) {
     if (codeScanner != null) {
       // TODO(b/190154391): Do we process synthetic methods using a OneTimeMethodProcessor
       //  during the primary optimization pass?
       assert methodProcessor.isPrimaryMethodProcessor();
-      codeScanner.scan(method, code);
+      codeScanner.scan(method, code, timing);
     } else {
       assert !methodProcessor.isPrimaryMethodProcessor();
     }
+  }
+
+  public void transferArgumentInformation(ProgramMethod from, ProgramMethod to) {
+    assert codeScanner != null;
+    MethodStateCollectionByReference methodStates = codeScanner.getMethodStates();
+    MethodState methodState = methodStates.remove(from);
+    if (!methodState.isBottom()) {
+      methodStates.addMethodState(appView, to, methodState);
+    }
+  }
+
+  public void tearDownCodeScanner(
+      PostMethodProcessor.Builder postMethodProcessorBuilder,
+      ExecutorService executorService,
+      Timing timing)
+      throws ExecutionException {
+    assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
+    timing.begin("Argument propagator");
+    populateParameterOptimizationInfo(executorService, timing);
+    optimizeMethodParameters();
+    enqueueMethodsForProcessing(postMethodProcessorBuilder);
+    timing.end();
   }
 
   /**
    * Called by {@link IRConverter} *after* the primary optimization pass to populate the parameter
    * optimization info.
    */
-  public void populateParameterOptimizationInfo(ExecutorService executorService)
+  private void populateParameterOptimizationInfo(ExecutorService executorService, Timing timing)
       throws ExecutionException {
     // Unset the scanner since all code objects have been scanned at this point.
     assert appView.isAllCodeProcessed();
     MethodStateCollectionByReference codeScannerResult = codeScanner.getMethodStates();
     codeScanner = null;
 
+    timing.begin("Compute optimization info");
     new ArgumentPropagatorOptimizationInfoPopulator(appView, codeScannerResult)
-        .populateOptimizationInfo(executorService);
+        .populateOptimizationInfo(executorService, timing);
+    timing.end();
   }
 
   /** Called by {@link IRConverter} to optimize method definitions. */
-  public void optimizeMethodParameters() {
+  private void optimizeMethodParameters() {
     // TODO(b/190154391): Remove parameters with constant values.
     // TODO(b/190154391): Remove unused parameters by simulating they are constant.
     // TODO(b/190154391): Strengthen the static type of parameters.
     // TODO(b/190154391): If we learn that a method returns a constant, then consider changing its
     //  return type to void.
+    // TODO(b/69963623): If we optimize a method to be unconditionally throwing (because it has a
+    //  bottom parameter), then for each caller that becomes unconditionally throwing, we could
+    //  also enqueue the caller's callers for reprocessing. This would propagate the throwing
+    //  information to all call sites.
   }
 
   /**
    * Called by {@link IRConverter} to add all methods that require reprocessing to {@param
    * postMethodProcessorBuilder}.
    */
-  public void enqueueMethodsForProcessing(PostMethodProcessor.Builder postMethodProcessorBuilder) {
+  private void enqueueMethodsForProcessing(PostMethodProcessor.Builder postMethodProcessorBuilder) {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       clazz.forEachProgramMethodMatching(
           DexEncodedMethod::hasCode,
           method -> {
             CallSiteOptimizationInfo callSiteOptimizationInfo =
                 method.getDefinition().getCallSiteOptimizationInfo();
-            if (callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo()) {
+            if (callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo()
+                && !appView.appInfo().isNeverReprocessMethod(method.getReference())) {
               postMethodProcessorBuilder.add(method);
             }
           });

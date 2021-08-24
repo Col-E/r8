@@ -40,6 +40,16 @@ public abstract class MethodStateBase implements MethodState {
   }
 
   @Override
+  public boolean isPolymorphic() {
+    return false;
+  }
+
+  @Override
+  public ConcretePolymorphicMethodState asPolymorphic() {
+    return null;
+  }
+
+  @Override
   public boolean isUnknown() {
     return false;
   }

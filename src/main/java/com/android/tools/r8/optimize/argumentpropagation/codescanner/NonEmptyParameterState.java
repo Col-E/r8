@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
-public interface ConcreteMonomorphicMethodStateOrUnknown extends MethodState {
+public abstract class NonEmptyParameterState extends ParameterState {
 
   @Override
-  ConcreteMonomorphicMethodStateOrUnknown mutableCopy();
+  public NonEmptyParameterState asNonEmpty() {
+    return this;
+  }
 }

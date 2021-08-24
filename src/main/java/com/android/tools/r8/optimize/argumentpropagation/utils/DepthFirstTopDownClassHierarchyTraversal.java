@@ -102,13 +102,12 @@ public abstract class DepthFirstTopDownClassHierarchyTraversal {
     assert newlySeenButNotFinishedRoots.stream()
         .allMatch(
             newlySeenButNotFinishedRoot -> {
-              assert newlySeenButNotFinishedRoot.isInterface();
               assert isRoot(newlySeenButNotFinishedRoot);
               assert isClassSeenButNotFinished(newlySeenButNotFinishedRoot);
               return true;
             });
-    // Prioritize this interface over other not yet seen interfaces. This leads to more efficient
-    // state pruning.
+    // Prioritize this class over other not yet seen classes. This leads to more efficient state
+    // pruning.
     roots.addAll(newlySeenButNotFinishedRoots);
     newlySeenButNotFinishedRoots.clear();
   }
@@ -122,7 +121,7 @@ public abstract class DepthFirstTopDownClassHierarchyTraversal {
     // Before continuing the top-down traversal, ensure that all super interfaces are processed,
     // but without visiting the entire subtree of each super interface.
     if (!isClassSeenButNotFinished(clazz)) {
-      processImplementedInterfaces(clazz);
+      processSuperClasses(clazz);
       processClass(clazz);
     }
 
@@ -130,24 +129,22 @@ public abstract class DepthFirstTopDownClassHierarchyTraversal {
     markFinished(clazz);
   }
 
-  private void processImplementedInterfaces(DexProgramClass interfaceDefinition) {
-    assert !isClassSeenButNotFinished(interfaceDefinition);
-    assert !isClassFinished(interfaceDefinition);
-    for (DexType implementedType : interfaceDefinition.getInterfaces()) {
-      DexProgramClass implementedDefinition =
-          asProgramClassOrNull(appView.definitionFor(implementedType));
-      if (implementedDefinition == null || isClassSeenButNotFinished(implementedDefinition)) {
-        continue;
-      }
-      assert isClassUnseen(implementedDefinition);
-      processImplementedInterfaces(implementedDefinition);
-      processClass(implementedDefinition);
+  private void processSuperClasses(DexProgramClass clazz) {
+    assert !isClassSeenButNotFinished(clazz);
+    assert !isClassFinished(clazz);
+    immediateSubtypingInfo.forEachImmediateProgramSuperClassMatching(
+        clazz,
+        superclass -> !isClassSeenButNotFinished(superclass),
+        superclass -> {
+          assert isClassUnseen(superclass);
+          processSuperClasses(superclass);
+          processClass(superclass);
 
-      // If this is a root, then record that this root is seen but not finished.
-      if (isRoot(implementedDefinition)) {
-        newlySeenButNotFinishedRoots.add(implementedDefinition);
-      }
-    }
+          // If this is a root, then record that this root is seen but not finished.
+          if (isRoot(superclass)) {
+            newlySeenButNotFinishedRoots.add(superclass);
+          }
+        });
   }
 
   private void processSubclasses(DexProgramClass clazz) {

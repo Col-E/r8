@@ -9,7 +9,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
 
-public class UnknownParameterState extends ParameterState {
+public class UnknownParameterState extends NonEmptyParameterState {
 
   private static final UnknownParameterState INSTANCE = new UnknownParameterState();
 
@@ -20,13 +20,18 @@ public class UnknownParameterState extends ParameterState {
   }
 
   @Override
-  public AbstractValue getAbstractValue() {
+  public AbstractValue getAbstractValue(AppView<AppInfoWithLiveness> appView) {
     return AbstractValue.unknown();
   }
 
   @Override
   public boolean isUnknown() {
     return true;
+  }
+
+  @Override
+  public ParameterState mutableCopy() {
+    return this;
   }
 
   @Override

@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -20,6 +21,7 @@ import com.android.tools.r8.optimize.argumentpropagation.propagation.InterfaceMe
 import com.android.tools.r8.optimize.argumentpropagation.propagation.VirtualDispatchMethodArgumentPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -90,7 +92,8 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
    * Computes an over-approximation of each parameter's value and type and stores the result in
    * {@link com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo}.
    */
-  void populateOptimizationInfo(ExecutorService executorService) throws ExecutionException {
+  void populateOptimizationInfo(ExecutorService executorService, Timing timing)
+      throws ExecutionException {
     // TODO(b/190154391): Propagate argument information to handle virtual dispatch.
     // TODO(b/190154391): To deal with arguments that are themselves passed as arguments to invoke
     //  instructions, build a flow graph where nodes are parameters and there is an edge from a
@@ -99,14 +102,20 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     // TODO(b/190154391): If we learn that parameter p1 is constant, and that the enclosing method
     //  returns p1 according to the optimization info, then update the optimization info to describe
     //  that the method returns the constant.
+    timing.begin("Propagate argument information for virtual methods");
     ThreadUtils.processItems(
         stronglyConnectedComponents, this::processStronglyConnectedComponent, executorService);
+    timing.end();
 
     // Solve the parameter flow constraints.
+    timing.begin("Solve flow constraints");
     new InParameterFlowPropagator(appView, methodStates).run(executorService);
+    timing.end();
 
     // The information stored on each method is now sound, and can be used as optimization info.
+    timing.begin("Set optimization info");
     setOptimizationInfo(executorService);
+    timing.end();
 
     assert methodStates.isEmpty();
   }
@@ -144,10 +153,20 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
   }
 
   private void setOptimizationInfo(ProgramMethod method) {
-    MethodState methodState = methodStates.remove(method);
+    MethodState methodState = methodStates.removeOrElse(method, null);
+    if (methodState == null) {
+      return;
+    }
+
     if (methodState.isBottom()) {
-      // TODO(b/190154391): This should only happen if the method is never called. Consider removing
-      //  the method in this case.
+      if (!appView.options().canUseDefaultAndStaticInterfaceMethods()
+          && method.getHolder().isInterface()) {
+        // TODO(b/190154391): The method has not been moved to the companion class yet, so we can't
+        //  remove its code object.
+        return;
+      }
+      DexEncodedMethod definition = method.getDefinition();
+      definition.setCode(definition.buildEmptyThrowingCode(appView.options()), appView);
       return;
     }
 
@@ -163,6 +182,11 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     }
 
     ConcreteMonomorphicMethodState monomorphicMethodState = concreteMethodState.asMonomorphic();
+
+    // Verify that there is no parameter with bottom info.
+    assert monomorphicMethodState.getParameterStates().stream().noneMatch(ParameterState::isBottom);
+
+    // Verify that all in-parameter information has been pruned by the InParameterFlowPropagator.
     assert monomorphicMethodState.getParameterStates().stream()
         .filter(ParameterState::isConcrete)
         .map(ParameterState::asConcrete)

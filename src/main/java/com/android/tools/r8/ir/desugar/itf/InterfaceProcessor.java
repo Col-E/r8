@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
-
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.Instruction;

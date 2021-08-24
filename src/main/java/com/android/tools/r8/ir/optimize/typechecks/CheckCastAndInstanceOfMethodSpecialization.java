@@ -147,6 +147,9 @@ public class CheckCastAndInstanceOfMethodSpecialization implements Action {
     }
 
     method.getHolder().removeMethod(method.getReference());
+
+    appView.withArgumentPropagator(
+        argumentPropagator -> argumentPropagator.transferArgumentInformation(method, parentMethod));
   }
 
   private ProgramMethod resolveOnSuperClass(ProgramMethod method) {

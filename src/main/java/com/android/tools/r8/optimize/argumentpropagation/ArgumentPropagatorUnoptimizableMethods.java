@@ -95,7 +95,10 @@ public class ArgumentPropagatorUnoptimizableMethods {
     for (DexProgramClass clazz : stronglyConnectedComponent) {
       clazz.forEachProgramMethod(
           method -> {
-            assert !method.getDefinition().isLibraryMethodOverride().isUnknown();
+            assert !method.getDefinition().belongsToVirtualPool()
+                    || !method.getDefinition().isLibraryMethodOverride().isUnknown()
+                : "Unexpected virtual method without library method override information: "
+                    + method.toSourceString();
             if (method.getDefinition().isLibraryMethodOverride().isPossiblyTrue()
                 || appInfo.isMethodTargetedByInvokeDynamic(method)
                 || !appInfo

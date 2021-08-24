@@ -28,7 +28,13 @@ public interface MethodState {
 
   ConcreteMonomorphicMethodState asMonomorphic();
 
+  boolean isPolymorphic();
+
+  ConcretePolymorphicMethodState asPolymorphic();
+
   boolean isUnknown();
+
+  MethodState mutableCopy();
 
   MethodState mutableJoin(AppView<AppInfoWithLiveness> appView, MethodState methodState);
 

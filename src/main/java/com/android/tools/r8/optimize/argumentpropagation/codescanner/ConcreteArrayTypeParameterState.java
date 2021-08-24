@@ -4,41 +4,59 @@
 
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.SetUtils;
+import java.util.Collections;
+import java.util.Set;
 
-public class ConcreteArrayTypeParameterState extends ConcreteParameterState {
+public class ConcreteArrayTypeParameterState extends ConcreteReferenceTypeParameterState {
 
   private Nullability nullability;
 
   public ConcreteArrayTypeParameterState(MethodParameter inParameter) {
-    super(inParameter);
-    this.nullability = Nullability.bottom();
+    this(Nullability.bottom(), SetUtils.newHashSet(inParameter));
   }
 
   public ConcreteArrayTypeParameterState(Nullability nullability) {
-    assert !nullability.isMaybeNull() : "Must use UnknownParameterState instead";
-    this.nullability = nullability;
+    this(nullability, Collections.emptySet());
   }
 
-  public ParameterState mutableJoin(
-      ConcreteArrayTypeParameterState parameterState, Action onChangedAction) {
-    assert !nullability.isMaybeNull();
-    assert !parameterState.nullability.isMaybeNull();
-    boolean inParametersChanged = mutableJoinInParameters(parameterState);
-    if (widenInParameters()) {
-      return unknown();
+  public ConcreteArrayTypeParameterState(
+      Nullability nullability, Set<MethodParameter> inParameters) {
+    super(inParameters);
+    this.nullability = nullability;
+    assert !isEffectivelyBottom() : "Must use BottomArrayTypeParameterState instead";
+    assert !isEffectivelyUnknown() : "Must use UnknownParameterState instead";
+  }
+
+  @Override
+  public ParameterState clearInParameters() {
+    if (hasInParameters()) {
+      if (nullability.isBottom()) {
+        return bottomArrayTypeParameter();
+      }
+      internalClearInParameters();
     }
-    if (inParametersChanged) {
-      onChangedAction.execute();
-    }
+    assert !isEffectivelyBottom();
     return this;
   }
 
   @Override
-  public AbstractValue getAbstractValue() {
+  public AbstractValue getAbstractValue(AppView<AppInfoWithLiveness> appView) {
+    if (getNullability().isDefinitelyNull()) {
+      return appView.abstractValueFactory().createNullValue();
+    }
     return AbstractValue.unknown();
+  }
+
+  @Override
+  public DynamicType getDynamicType() {
+    return DynamicType.unknown();
   }
 
   @Override
@@ -46,6 +64,7 @@ public class ConcreteArrayTypeParameterState extends ConcreteParameterState {
     return ConcreteParameterStateKind.ARRAY;
   }
 
+  @Override
   public Nullability getNullability() {
     return nullability;
   }
@@ -57,6 +76,39 @@ public class ConcreteArrayTypeParameterState extends ConcreteParameterState {
 
   @Override
   public ConcreteArrayTypeParameterState asArrayParameter() {
+    return this;
+  }
+
+  public boolean isEffectivelyBottom() {
+    return nullability.isBottom() && !hasInParameters();
+  }
+
+  public boolean isEffectivelyUnknown() {
+    return nullability.isMaybeNull();
+  }
+
+  @Override
+  public ParameterState mutableCopy() {
+    return new ConcreteArrayTypeParameterState(nullability, copyInParameters());
+  }
+
+  @Override
+  public ParameterState mutableJoin(
+      AppView<AppInfoWithLiveness> appView,
+      ConcreteReferenceTypeParameterState parameterState,
+      Action onChangedAction) {
+    assert !nullability.isMaybeNull();
+    nullability = nullability.join(parameterState.getNullability());
+    if (nullability.isMaybeNull()) {
+      return unknown();
+    }
+    boolean inParametersChanged = mutableJoinInParameters(parameterState);
+    if (widenInParameters()) {
+      return unknown();
+    }
+    if (inParametersChanged) {
+      onChangedAction.execute();
+    }
     return this;
   }
 }

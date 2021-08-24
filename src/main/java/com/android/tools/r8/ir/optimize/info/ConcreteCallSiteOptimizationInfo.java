@@ -217,7 +217,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
 
       // Constant propagation.
       if (allowConstantPropagation) {
-        AbstractValue abstractValue = concreteParameterState.getAbstractValue();
+        AbstractValue abstractValue = concreteParameterState.getAbstractValue(appView);
         if (abstractValue.isNonTrivial()) {
           newCallSiteInfo.constants.put(argumentIndex, abstractValue);
           isTop = false;
@@ -234,12 +234,19 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
             if (allowConstantPropagation) {
               newCallSiteInfo.constants.put(
                   argumentIndex, appView.abstractValueFactory().createNullValue());
+            } else {
+              newCallSiteInfo.dynamicUpperBoundTypes.put(
+                  argumentIndex, staticTypeElement.asArrayType().asDefinitelyNull());
             }
+            isTop = false;
           } else if (nullability.isDefinitelyNotNull()) {
             newCallSiteInfo.dynamicUpperBoundTypes.put(
                 argumentIndex, staticTypeElement.asArrayType().asDefinitelyNotNull());
+            isTop = false;
           } else {
-            // Should never happen, since the parameter state is unknown in this case.
+            // The nullability should never be unknown, since we should use the unknown method state
+            // in this case. It should also not be bottom, since we should change the method's body
+            // to throw null in this case.
             assert false;
           }
         } else if (staticType.isClassType()) {

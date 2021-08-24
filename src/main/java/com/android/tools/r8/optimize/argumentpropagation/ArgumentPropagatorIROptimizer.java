@@ -78,7 +78,11 @@ public class ArgumentPropagatorIROptimizer {
       if (argumentValue.getType().isReferenceType()) {
         TypeElement dynamicUpperBoundType =
             optimizationInfo.getDynamicUpperBoundType(argument.getIndex());
-        if (dynamicUpperBoundType == null) {
+        if (dynamicUpperBoundType == null || dynamicUpperBoundType.isTop()) {
+          continue;
+        }
+        if (dynamicUpperBoundType.isBottom()) {
+          assert false;
           continue;
         }
         if (dynamicUpperBoundType.isDefinitelyNull()) {

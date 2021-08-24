@@ -99,7 +99,6 @@ import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
-import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
@@ -686,7 +685,8 @@ public class IRConverter {
     printPhase("Primary optimization pass");
 
     // Setup the argument propagator for the primary optimization pass.
-    appView.withArgumentPropagator(ArgumentPropagator::initializeCodeScanner);
+    appView.withArgumentPropagator(
+        argumentPropagator -> argumentPropagator.initializeCodeScanner(timing));
     appView.withCallSiteOptimizationInfoPropagator(
         optimization -> {
           optimization.abandonCallSitePropagationForLambdaImplementationMethods(
@@ -744,11 +744,9 @@ public class IRConverter {
     // Analyze the data collected by the argument propagator, use the analysis result to update
     // the parameter optimization infos, and rewrite the application.
     appView.withArgumentPropagator(
-        argumentPropagator -> {
-          argumentPropagator.populateParameterOptimizationInfo(executorService);
-          argumentPropagator.optimizeMethodParameters();
-          argumentPropagator.enqueueMethodsForProcessing(postMethodProcessorBuilder);
-        });
+        argumentPropagator ->
+            argumentPropagator.tearDownCodeScanner(
+                postMethodProcessorBuilder, executorService, timing));
 
     if (libraryMethodOverrideAnalysis != null) {
       libraryMethodOverrideAnalysis.finish();
@@ -1618,7 +1616,7 @@ public class IRConverter {
       MutableMethodConversionOptions conversionOptions,
       Timing timing) {
     appView.withArgumentPropagator(
-        argumentPropagator -> argumentPropagator.scan(method, code, methodProcessor));
+        argumentPropagator -> argumentPropagator.scan(method, code, methodProcessor, timing));
 
     if (enumUnboxer != null && methodProcessor.isPrimaryMethodProcessor()) {
       enumUnboxer.analyzeEnums(code, conversionOptions);

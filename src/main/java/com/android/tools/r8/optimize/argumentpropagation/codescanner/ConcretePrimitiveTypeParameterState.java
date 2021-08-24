@@ -8,19 +8,45 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.SetUtils;
+import java.util.Collections;
+import java.util.Set;
 
 public class ConcretePrimitiveTypeParameterState extends ConcreteParameterState {
 
   private AbstractValue abstractValue;
 
   public ConcretePrimitiveTypeParameterState(AbstractValue abstractValue) {
-    assert !abstractValue.isUnknown() : "Must use UnknownParameterState";
+    this(abstractValue, Collections.emptySet());
+  }
+
+  public ConcretePrimitiveTypeParameterState(
+      AbstractValue abstractValue, Set<MethodParameter> inParameters) {
+    super(inParameters);
     this.abstractValue = abstractValue;
+    assert !isEffectivelyBottom() : "Must use BottomPrimitiveTypeParameterState instead";
+    assert !isEffectivelyUnknown() : "Must use UnknownParameterState instead";
   }
 
   public ConcretePrimitiveTypeParameterState(MethodParameter inParameter) {
-    super(inParameter);
-    this.abstractValue = AbstractValue.bottom();
+    this(AbstractValue.bottom(), SetUtils.newHashSet(inParameter));
+  }
+
+  @Override
+  public ParameterState clearInParameters() {
+    if (hasInParameters()) {
+      if (abstractValue.isBottom()) {
+        return bottomPrimitiveTypeParameter();
+      }
+      internalClearInParameters();
+    }
+    assert !isEffectivelyBottom();
+    return this;
+  }
+
+  @Override
+  public ParameterState mutableCopy() {
+    return new ConcretePrimitiveTypeParameterState(abstractValue, copyInParameters());
   }
 
   public ParameterState mutableJoin(
@@ -50,13 +76,21 @@ public class ConcretePrimitiveTypeParameterState extends ConcreteParameterState 
   }
 
   @Override
-  public AbstractValue getAbstractValue() {
+  public AbstractValue getAbstractValue(AppView<AppInfoWithLiveness> appView) {
     return abstractValue;
   }
 
   @Override
   public ConcreteParameterStateKind getKind() {
     return ConcreteParameterStateKind.PRIMITIVE;
+  }
+
+  public boolean isEffectivelyBottom() {
+    return abstractValue.isBottom() && !hasInParameters();
+  }
+
+  public boolean isEffectivelyUnknown() {
+    return abstractValue.isUnknown();
   }
 
   @Override

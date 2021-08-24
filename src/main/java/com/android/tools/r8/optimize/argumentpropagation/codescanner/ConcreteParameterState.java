@@ -7,14 +7,13 @@ package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
-import com.android.tools.r8.utils.SetUtils;
-import com.google.common.collect.Sets;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
-public abstract class ConcreteParameterState extends ParameterState {
+public abstract class ConcreteParameterState extends NonEmptyParameterState {
 
-  enum ConcreteParameterStateKind {
+  public enum ConcreteParameterStateKind {
     ARRAY,
     CLASS,
     PRIMITIVE,
@@ -23,16 +22,22 @@ public abstract class ConcreteParameterState extends ParameterState {
 
   private Set<MethodParameter> inParameters;
 
-  ConcreteParameterState() {
-    this.inParameters = Collections.emptySet();
+  ConcreteParameterState(Set<MethodParameter> inParameters) {
+    this.inParameters = inParameters;
   }
 
-  ConcreteParameterState(MethodParameter inParameter) {
-    this.inParameters = SetUtils.newHashSet(inParameter);
+  public abstract ParameterState clearInParameters();
+
+  void internalClearInParameters() {
+    inParameters = Collections.emptySet();
   }
 
-  public void clearInParameters() {
-    inParameters.clear();
+  public Set<MethodParameter> copyInParameters() {
+    if (inParameters.isEmpty()) {
+      assert inParameters == Collections.<MethodParameter>emptySet();
+      return inParameters;
+    }
+    return new HashSet<>(inParameters);
   }
 
   public boolean hasInParameters() {
@@ -40,6 +45,7 @@ public abstract class ConcreteParameterState extends ParameterState {
   }
 
   public Set<MethodParameter> getInParameters() {
+    assert inParameters.isEmpty() || inParameters instanceof HashSet<?>;
     return inParameters;
   }
 
@@ -77,6 +83,14 @@ public abstract class ConcreteParameterState extends ParameterState {
     return null;
   }
 
+  public boolean isReferenceParameter() {
+    return false;
+  }
+
+  public ConcreteReferenceTypeParameterState asReferenceParameter() {
+    return null;
+  }
+
   @Override
   public boolean isConcrete() {
     return true;
@@ -88,36 +102,22 @@ public abstract class ConcreteParameterState extends ParameterState {
   }
 
   @Override
-  public ParameterState mutableJoin(
+  public final ParameterState mutableJoin(
       AppView<AppInfoWithLiveness> appView, ParameterState parameterState, Action onChangedAction) {
+    if (parameterState.isBottom()) {
+      return this;
+    }
     if (parameterState.isUnknown()) {
       return parameterState;
     }
-    ConcreteParameterStateKind kind = getKind();
-    ConcreteParameterStateKind otherKind = parameterState.asConcrete().getKind();
-    if (kind == otherKind) {
-      switch (getKind()) {
-        case ARRAY:
-          return asArrayParameter()
-              .mutableJoin(parameterState.asConcrete().asArrayParameter(), onChangedAction);
-        case CLASS:
-          return asClassParameter()
-              .mutableJoin(
-                  appView, parameterState.asConcrete().asClassParameter(), onChangedAction);
-        case PRIMITIVE:
-          return asPrimitiveParameter()
-              .mutableJoin(
-                  appView, parameterState.asConcrete().asPrimitiveParameter(), onChangedAction);
-        case RECEIVER:
-          return asReceiverParameter()
-              .mutableJoin(parameterState.asConcrete().asReceiverParameter(), onChangedAction);
-        default:
-          // Dead.
-      }
+    ConcreteParameterState concreteParameterState = parameterState.asConcrete();
+    if (isReferenceParameter()) {
+      assert concreteParameterState.isReferenceParameter();
+      return asReferenceParameter()
+          .mutableJoin(appView, concreteParameterState.asReferenceParameter(), onChangedAction);
     }
-
-    assert false;
-    return unknown();
+    return asPrimitiveParameter()
+        .mutableJoin(appView, concreteParameterState.asPrimitiveParameter(), onChangedAction);
   }
 
   boolean mutableJoinInParameters(ConcreteParameterState parameterState) {
@@ -126,7 +126,7 @@ public abstract class ConcreteParameterState extends ParameterState {
     }
     if (inParameters.isEmpty()) {
       assert inParameters == Collections.<MethodParameter>emptySet();
-      inParameters = Sets.newIdentityHashSet();
+      inParameters = new HashSet<>();
     }
     return inParameters.addAll(parameterState.inParameters);
   }

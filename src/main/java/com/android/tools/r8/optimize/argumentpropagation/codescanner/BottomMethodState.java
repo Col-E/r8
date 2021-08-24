@@ -24,13 +24,18 @@ public class BottomMethodState extends MethodStateBase {
   }
 
   @Override
+  public MethodState mutableCopy() {
+    return this;
+  }
+
+  @Override
   public MethodState mutableJoin(AppView<AppInfoWithLiveness> appView, MethodState methodState) {
-    return methodState;
+    return methodState.mutableCopy();
   }
 
   @Override
   public MethodState mutableJoin(
       AppView<AppInfoWithLiveness> appView, Supplier<MethodState> methodStateSupplier) {
-    return methodStateSupplier.get();
+    return mutableJoin(appView, methodStateSupplier.get());
   }
 }

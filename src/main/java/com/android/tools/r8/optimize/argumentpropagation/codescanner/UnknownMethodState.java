@@ -26,6 +26,11 @@ public class UnknownMethodState extends MethodStateBase
   }
 
   @Override
+  public UnknownMethodState mutableCopy() {
+    return this;
+  }
+
+  @Override
   public MethodState mutableJoin(AppView<AppInfoWithLiveness> appView, MethodState methodState) {
     return this;
   }

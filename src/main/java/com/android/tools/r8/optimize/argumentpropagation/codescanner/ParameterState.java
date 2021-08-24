@@ -11,11 +11,31 @@ import com.android.tools.r8.utils.Action;
 
 public abstract class ParameterState {
 
+  public static BottomParameterState bottomArrayTypeParameter() {
+    return BottomArrayTypeParameterState.get();
+  }
+
+  public static BottomParameterState bottomClassTypeParameter() {
+    return BottomClassTypeParameterState.get();
+  }
+
+  public static BottomParameterState bottomPrimitiveTypeParameter() {
+    return BottomPrimitiveTypeParameterState.get();
+  }
+
+  public static BottomParameterState bottomReceiverParameter() {
+    return BottomReceiverParameterState.get();
+  }
+
   public static UnknownParameterState unknown() {
     return UnknownParameterState.get();
   }
 
-  public abstract AbstractValue getAbstractValue();
+  public abstract AbstractValue getAbstractValue(AppView<AppInfoWithLiveness> appView);
+
+  public boolean isBottom() {
+    return false;
+  }
 
   public boolean isConcrete() {
     return false;
@@ -25,9 +45,15 @@ public abstract class ParameterState {
     return null;
   }
 
+  public NonEmptyParameterState asNonEmpty() {
+    return null;
+  }
+
   public boolean isUnknown() {
     return false;
   }
+
+  public abstract ParameterState mutableCopy();
 
   public final ParameterState mutableJoin(
       AppView<AppInfoWithLiveness> appView, ParameterState parameterState) {

@@ -4,13 +4,16 @@
 
 package com.android.tools.r8.optimize.argumentpropagation.propagation;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
@@ -20,6 +23,7 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePol
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionBySignature;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.UnknownMethodState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.HashMap;
@@ -80,7 +84,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
 
       // Add the argument information that is inactive until a given upper bound.
       parentState.inactiveUntilUpperBound.forEach(
-          (bounds, inactiveMethodState) -> {
+          (bounds, inactiveMethodStates) -> {
             ClassTypeElement upperBound = bounds.getDynamicUpperBoundType().asClassType();
             if (upperBound.equalUpToNullability(classType)) {
               // The upper bound is the current class, thus this inactive information now becomes
@@ -90,10 +94,49 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
                     .computeIfAbsent(
                         bounds.getDynamicLowerBoundType().getClassType(),
                         ignoreKey(MethodStateCollectionBySignature::create))
-                    .addMethodStates(appView, inactiveMethodState);
+                    .addMethodStates(appView, inactiveMethodStates);
               } else {
-                active.addMethodStates(appView, inactiveMethodState);
+                active.addMethodStates(appView, inactiveMethodStates);
               }
+
+              inactiveMethodStates.forEach(
+                  (signature, methodState) -> {
+                    // TODO(b/190154391): Update resolution to take a signature.
+                    DexMethod methodFromSignature =
+                        appView
+                            .dexItemFactory()
+                            .createMethod(
+                                clazz.getType(), signature.getProto(), signature.getName());
+                    SingleResolutionResult resolutionResult =
+                        appView
+                            .appInfo()
+                            .resolveMethodOn(clazz, methodFromSignature)
+                            .asSingleResolution();
+
+                    // Find the first virtual method in the super class hierarchy.
+                    while (resolutionResult != null
+                        && resolutionResult.getResolvedMethod().belongsToDirectPool()) {
+                      resolutionResult =
+                          appView
+                              .appInfo()
+                              .resolveMethodOn(
+                                  resolutionResult.getResolvedHolder().getSuperType(),
+                                  methodFromSignature,
+                                  false)
+                              .asSingleResolution();
+                    }
+
+                    // Propagate the argument information to the method on the super class.
+                    if (resolutionResult != null
+                        && resolutionResult.getResolvedHolder().isProgramClass()
+                        && resolutionResult.getResolvedHolder() != clazz) {
+                      propagationStates
+                          .get(resolutionResult.getResolvedHolder().asProgramClass())
+                          .active
+                          .addMethodState(
+                              appView, resolutionResult.getResolvedProgramMethod(), methodState);
+                    }
+                  });
             } else {
               // Still inactive.
               // TODO(b/190154391): Only carry this information downwards if the upper bound is a
@@ -101,14 +144,14 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
               //  although clearly the information will never become active.
               inactiveUntilUpperBound
                   .computeIfAbsent(bounds, ignoreKey(MethodStateCollectionBySignature::create))
-                  .addMethodStates(appView, inactiveMethodState);
+                  .addMethodStates(appView, inactiveMethodStates);
             }
           });
     }
 
     private MethodState computeMethodStateForPolymorhicMethod(ProgramMethod method) {
       assert method.getDefinition().isNonPrivateVirtualMethod();
-      MethodState methodState = active.get(method);
+      MethodState methodState = active.get(method).mutableCopy();
       for (MethodStateCollectionBySignature methodStates : activeUntilLowerBound.values()) {
         methodState = methodState.mutableJoin(appView, methodStates.get(method));
       }
@@ -141,13 +184,10 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
   @Override
   public void visit(DexProgramClass clazz) {
     assert !propagationStates.containsKey(clazz);
-    PropagationState propagationState = computePropagationState(clazz);
-    computeFinalMethodStates(clazz, propagationState);
+    computePropagationState(clazz);
   }
 
-  private PropagationState computePropagationState(DexProgramClass clazz) {
-    ClassTypeElement classType =
-        TypeElement.fromDexType(clazz.getType(), maybeNull(), appView).asClassType();
+  private void computePropagationState(DexProgramClass clazz) {
     PropagationState propagationState = new PropagationState(clazz);
 
     // Join the argument information from the methods of the current class.
@@ -162,7 +202,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
           //  distinguish monomorphic unknown method states from polymorphic unknown method states.
           //  We only need to propagate polymorphic unknown method states here.
           if (methodState.isUnknown()) {
-            propagationState.active.addMethodState(appView, method, methodState);
+            propagationState.active.set(method, UnknownMethodState.get());
             return;
           }
 
@@ -183,7 +223,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
                   // TODO(b/190154391): Verify that the bounds are not trivial according to the
                   //  static receiver type.
                   ClassTypeElement upperBound = bounds.getDynamicUpperBoundType().asClassType();
-                  if (upperBound.equalUpToNullability(classType)) {
+                  if (isUpperBoundSatisfied(upperBound, clazz, propagationState)) {
                     if (bounds.hasDynamicLowerBoundType()) {
                       // TODO(b/190154391): Verify that the lower bound is a subtype of the current
                       //  class.
@@ -197,7 +237,10 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
                       propagationState.active.addMethodState(appView, method, methodStateForBounds);
                     }
                   } else {
-                    assert !classType.lessThanOrEqualUpToNullability(upperBound, appView);
+                    assert !clazz
+                        .getType()
+                        .toTypeElement(appView)
+                        .lessThanOrEqualUpToNullability(upperBound, appView);
                     propagationState
                         .inactiveUntilUpperBound
                         .computeIfAbsent(
@@ -209,11 +252,30 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
         });
 
     propagationStates.put(clazz, propagationState);
-    return propagationState;
+  }
+
+  private boolean isUpperBoundSatisfied(
+      ClassTypeElement upperBound,
+      DexProgramClass currentClass,
+      PropagationState propagationState) {
+    DexType upperBoundType =
+        upperBound.getClassType() == appView.dexItemFactory().objectType
+                && upperBound.getInterfaces().hasSingleKnownInterface()
+            ? upperBound.getInterfaces().getSingleKnownInterface()
+            : upperBound.getClassType();
+    DexProgramClass upperBoundClass = asProgramClassOrNull(appView.definitionFor(upperBoundType));
+    if (upperBoundClass == null) {
+      // We should generally never have a dynamic receiver upper bound for a program method which is
+      // not a program class. However, since the program may not type change or there could be
+      // missing classes, we still need to cover this case. In the rare cases where this happens, we
+      // conservatively consider the upper bound to be satisfied.
+      return true;
+    }
+    return upperBoundClass == currentClass;
   }
 
   private void computeFinalMethodStates(DexProgramClass clazz, PropagationState propagationState) {
-    clazz.forEachProgramMethod(method -> computeFinalMethodState(method, propagationState));
+    clazz.forEachProgramVirtualMethod(method -> computeFinalMethodState(method, propagationState));
   }
 
   private void computeFinalMethodState(ProgramMethod method, PropagationState propagationState) {
@@ -223,19 +285,23 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
     }
 
     MethodState methodState = methodStates.get(method);
-
-    // If this is a polymorphic method, we need to compute the method state to account for dynamic
-    // dispatch.
-    if (methodState.isConcrete() && methodState.asConcrete().isPolymorphic()) {
-      methodState = propagationState.computeMethodStateForPolymorhicMethod(method);
-      assert !methodState.isConcrete() || methodState.asConcrete().isMonomorphic();
-      methodStates.set(method, methodState);
+    if (methodState.isMonomorphic() || methodState.isUnknown()) {
+      return;
     }
+
+    assert methodState.isBottom() || methodState.isPolymorphic();
+
+    // This is a polymorphic method and we need to compute the method state to account for dynamic
+    // dispatch.
+    methodState = propagationState.computeMethodStateForPolymorhicMethod(method);
+    assert !methodState.isConcrete() || methodState.asConcrete().isMonomorphic();
+    methodStates.set(method, methodState);
   }
 
   @Override
   public void prune(DexProgramClass clazz) {
-    propagationStates.remove(clazz);
+    PropagationState propagationState = propagationStates.remove(clazz);
+    computeFinalMethodStates(clazz, propagationState);
   }
 
   private boolean verifyAllClassesFinished(Collection<DexProgramClass> stronglyConnectedComponent) {

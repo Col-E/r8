@@ -6,11 +6,15 @@ package com.android.tools.r8.optimize.argumentpropagation.propagation;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
-import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePolymorphicMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionBySignature;
@@ -121,21 +125,12 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
         subclass ->
             interfaceState.forEach(
                 (interfaceMethod, interfaceMethodState) -> {
-                  // TODO(b/190154391): Change resolution to take a signature.
-                  DexMethod interfaceMethodToResolve =
-                      appView
-                          .dexItemFactory()
-                          .createMethod(
-                              subclass.getType(),
-                              interfaceMethod.getProto(),
-                              interfaceMethod.getName());
-                  SingleResolutionResult resolutionResult =
-                      appView
-                          .appInfo()
-                          .resolveMethodOnClass(interfaceMethodToResolve, subclass)
-                          .asSingleResolution();
-                  if (resolutionResult == null) {
-                    assert false;
+                  MethodResolutionResult resolutionResult =
+                      appView.appInfo().resolveMethodOnClass(interfaceMethod, subclass);
+                  if (resolutionResult.isFailedResolution()) {
+                    // TODO(b/190154391): Do we need to propagate argument information to the first
+                    //  virtual method above the inaccessible method in the class hierarchy?
+                    assert resolutionResult.isIllegalAccessErrorResult(subclass, appView.appInfo());
                     return;
                   }
 
@@ -146,8 +141,49 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
                     return;
                   }
 
-                  methodStates.addMethodState(appView, resolvedMethod, interfaceMethodState);
+                  MethodState transformedInterfaceMethodState =
+                      transformInterfaceMethodStateForClassMethod(
+                          subclass, resolvedMethod, interfaceMethodState);
+                  if (!transformedInterfaceMethodState.isBottom()) {
+                    methodStates.addMethodState(
+                        appView, resolvedMethod, transformedInterfaceMethodState);
+                  }
                 }));
+  }
+
+  private MethodState transformInterfaceMethodStateForClassMethod(
+      DexProgramClass clazz, ProgramMethod resolvedMethod, MethodState methodState) {
+    if (!methodState.isPolymorphic()) {
+      return methodState.mutableCopy();
+    }
+
+    // Rewrite the bounds of the polymorphic method state. If a given piece of argument information
+    // should be propagated to the resolved method, we replace the type bounds by the holder of the
+    // resolved method.
+    ConcretePolymorphicMethodState polymorphicMethodState = methodState.asPolymorphic();
+    return polymorphicMethodState.mutableCopyWithRewrittenBounds(
+        appView,
+        bounds -> {
+          boolean shouldPropagateMethodStateForBounds;
+          if (bounds.isUnknown()) {
+            shouldPropagateMethodStateForBounds = true;
+          } else {
+            ClassTypeElement upperBound = bounds.getDynamicUpperBoundType().asClassType();
+            shouldPropagateMethodStateForBounds =
+                upperBound
+                    .getInterfaces()
+                    .anyMatch(
+                        (interfaceType, isKnown) ->
+                            appView.appInfo().isSubtype(clazz.getType(), interfaceType));
+          }
+          if (shouldPropagateMethodStateForBounds) {
+            return DynamicType.createExact(
+                TypeElement.fromDexType(
+                        resolvedMethod.getHolderType(), Nullability.maybeNull(), appView)
+                    .asClassType());
+          }
+          return null;
+        });
   }
 
   private boolean verifyAllInterfacesFinished(

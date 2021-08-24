@@ -6,65 +6,62 @@ package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.SetUtils;
+import java.util.Collections;
+import java.util.Set;
 
-public class ConcreteClassTypeParameterState extends ConcreteParameterState {
+public class ConcreteClassTypeParameterState extends ConcreteReferenceTypeParameterState {
 
   private AbstractValue abstractValue;
   private DynamicType dynamicType;
 
   public ConcreteClassTypeParameterState(MethodParameter inParameter) {
-    super(inParameter);
-    this.abstractValue = AbstractValue.bottom();
-    this.dynamicType = DynamicType.bottom();
+    this(AbstractValue.bottom(), DynamicType.bottom(), SetUtils.newHashSet(inParameter));
   }
 
   public ConcreteClassTypeParameterState(AbstractValue abstractValue, DynamicType dynamicType) {
-    this.abstractValue = abstractValue;
-    this.dynamicType = dynamicType;
+    this(abstractValue, dynamicType, Collections.emptySet());
   }
 
-  public ParameterState mutableJoin(
-      AppView<AppInfoWithLiveness> appView,
-      ConcreteClassTypeParameterState parameterState,
-      Action onChangedAction) {
-    boolean allowNullOrAbstractValue = true;
-    boolean allowNonConstantNumbers = false;
-    AbstractValue oldAbstractValue = abstractValue;
-    abstractValue =
-        abstractValue.join(
-            parameterState.abstractValue,
-            appView.abstractValueFactory(),
-            allowNullOrAbstractValue,
-            allowNonConstantNumbers);
-    // TODO(b/190154391): Join the dynamic types using SubtypingInfo.
-    // TODO(b/190154391): Take in the static type as an argument, and unset the dynamic type if it
-    //  equals the static type.
-    DynamicType oldDynamicType = dynamicType;
-    dynamicType =
-        dynamicType.equals(parameterState.dynamicType) ? dynamicType : DynamicType.unknown();
-    if (abstractValue.isUnknown() && dynamicType.isUnknown()) {
-      return unknown();
+  public ConcreteClassTypeParameterState(
+      AbstractValue abstractValue, DynamicType dynamicType, Set<MethodParameter> inParameters) {
+    super(inParameters);
+    this.abstractValue = abstractValue;
+    this.dynamicType = dynamicType;
+    assert !isEffectivelyBottom() : "Must use BottomClassTypeParameterState instead";
+    assert !isEffectivelyUnknown() : "Must use UnknownParameterState instead";
+  }
+
+  @Override
+  public ParameterState clearInParameters() {
+    if (hasInParameters()) {
+      if (abstractValue.isBottom()) {
+        assert dynamicType.isBottom();
+        return bottomClassTypeParameter();
+      }
+      internalClearInParameters();
     }
-    boolean inParametersChanged = mutableJoinInParameters(parameterState);
-    if (widenInParameters()) {
-      return unknown();
-    }
-    if (abstractValue != oldAbstractValue || dynamicType != oldDynamicType || inParametersChanged) {
-      onChangedAction.execute();
-    }
+    assert !isEffectivelyBottom();
     return this;
   }
 
   @Override
-  public AbstractValue getAbstractValue() {
+  public AbstractValue getAbstractValue(AppView<AppInfoWithLiveness> appView) {
     return abstractValue;
   }
 
+  @Override
   public DynamicType getDynamicType() {
     return dynamicType;
+  }
+
+  @Override
+  public Nullability getNullability() {
+    return getDynamicType().getDynamicUpperBoundType().nullability();
   }
 
   @Override
@@ -79,6 +76,52 @@ public class ConcreteClassTypeParameterState extends ConcreteParameterState {
 
   @Override
   public ConcreteClassTypeParameterState asClassParameter() {
+    return this;
+  }
+
+  public boolean isEffectivelyBottom() {
+    return abstractValue.isBottom() && dynamicType.isBottom() && !hasInParameters();
+  }
+
+  public boolean isEffectivelyUnknown() {
+    return abstractValue.isUnknown() && dynamicType.isUnknown();
+  }
+
+  @Override
+  public ParameterState mutableCopy() {
+    return new ConcreteClassTypeParameterState(abstractValue, dynamicType, copyInParameters());
+  }
+
+  @Override
+  public ParameterState mutableJoin(
+      AppView<AppInfoWithLiveness> appView,
+      ConcreteReferenceTypeParameterState parameterState,
+      Action onChangedAction) {
+    boolean allowNullOrAbstractValue = true;
+    boolean allowNonConstantNumbers = false;
+    AbstractValue oldAbstractValue = abstractValue;
+    abstractValue =
+        abstractValue.join(
+            parameterState.getAbstractValue(appView),
+            appView.abstractValueFactory(),
+            allowNullOrAbstractValue,
+            allowNonConstantNumbers);
+    // TODO(b/190154391): Take in the static type as an argument, and unset the dynamic type if it
+    //  equals the static type.
+    DynamicType oldDynamicType = dynamicType;
+    dynamicType = dynamicType.join(appView, parameterState.getDynamicType());
+    if (abstractValue.isUnknown() && dynamicType.isUnknown()) {
+      return unknown();
+    }
+    boolean inParametersChanged = mutableJoinInParameters(parameterState);
+    if (widenInParameters()) {
+      return unknown();
+    }
+    if (abstractValue != oldAbstractValue
+        || !dynamicType.equals(oldDynamicType)
+        || inParametersChanged) {
+      onChangedAction.execute();
+    }
     return this;
   }
 }

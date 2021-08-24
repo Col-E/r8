@@ -691,6 +691,10 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return resolveMethodOnClass(clazz, method.getProto(), method.getName());
   }
 
+  public MethodResolutionResult resolveMethodOnClass(DexMethodSignature method, DexClass clazz) {
+    return resolveMethodOnClass(clazz, method.getProto(), method.getName());
+  }
+
   public MethodResolutionResult resolveMethodOnClass(
       DexClass clazz, DexProto methodProto, DexString methodName) {
     assert checkIfObsolete();

@@ -20,14 +20,6 @@ public abstract class ConcreteMethodState extends MethodStateBase {
     return this;
   }
 
-  public boolean isPolymorphic() {
-    return false;
-  }
-
-  public ConcretePolymorphicMethodState asPolymorphic() {
-    return null;
-  }
-
   @Override
   public MethodState mutableJoin(AppView<AppInfoWithLiveness> appView, MethodState methodState) {
     if (methodState.isBottom()) {
