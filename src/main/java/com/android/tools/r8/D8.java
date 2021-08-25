@@ -240,21 +240,9 @@ public final class D8 {
 
       // Preserve markers from input dex code and add a marker with the current version
       // if there were class file inputs.
-      boolean hasClassResources = false;
-      boolean hasDexResources = false;
-      for (DexProgramClass dexProgramClass : appView.appInfo().classes()) {
-        if (dexProgramClass.originatesFromClassResource()) {
-          hasClassResources = true;
-          if (hasDexResources) {
-            break;
-          }
-        } else if (dexProgramClass.originatesFromDexResource()) {
-          hasDexResources = true;
-          if (hasClassResources) {
-            break;
-          }
-        }
-      }
+      boolean hasClassResources = appView.appInfo().app().getFlags().hasReadProgramClassFromCf();
+      boolean hasDexResources = appView.appInfo().app().getFlags().hasReadProgramClassFromDex();
+
       Marker marker = options.getMarker(Tool.D8);
       Set<Marker> markers = new HashSet<>(appView.dexItemFactory().extractMarkers());
       // TODO(b/166617364): Don't add an additional marker when desugaring is turned off.

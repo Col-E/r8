@@ -29,6 +29,7 @@ public class LazyLoadedDexApplication extends DexApplication {
   /** Constructor should only be invoked by the DexApplication.Builder. */
   private LazyLoadedDexApplication(
       ClassNameMapper proguardMap,
+      DexApplicationReadFlags flags,
       ProgramClassCollection programClasses,
       ImmutableList<DataResourceProvider> dataResourceProviders,
       ClasspathClassCollection classpathClasses,
@@ -36,12 +37,7 @@ public class LazyLoadedDexApplication extends DexApplication {
       InternalOptions options,
       DexString highestSortingString,
       Timing timing) {
-    super(
-        proguardMap,
-        dataResourceProviders,
-        options,
-        highestSortingString,
-        timing);
+    super(proguardMap, flags, dataResourceProviders, options, highestSortingString, timing);
     this.programClasses = programClasses;
     this.classpathClasses = classpathClasses;
     this.libraryClasses = libraryClasses;
@@ -236,6 +232,7 @@ public class LazyLoadedDexApplication extends DexApplication {
     public LazyLoadedDexApplication build() {
       return new LazyLoadedDexApplication(
           proguardMap,
+          flags,
           ProgramClassCollection.create(getProgramClasses(), resolver),
           ImmutableList.copyOf(dataResourceProviders),
           classpathClasses,

@@ -32,6 +32,7 @@ public abstract class DexApplication {
 
   public final InternalOptions options;
   public final DexItemFactory dexItemFactory;
+  private final DexApplicationReadFlags flags;
 
   // Information on the lexicographically largest string referenced from code.
   public final DexString highestSortingString;
@@ -39,11 +40,13 @@ public abstract class DexApplication {
   /** Constructor should only be invoked by the DexApplication.Builder. */
   DexApplication(
       ClassNameMapper proguardMap,
+      DexApplicationReadFlags flags,
       ImmutableList<DataResourceProvider> dataResourceProviders,
       InternalOptions options,
       DexString highestSortingString,
       Timing timing) {
     this.proguardMap = proguardMap;
+    this.flags = flags;
     this.dataResourceProviders = dataResourceProviders;
     this.options = options;
     this.dexItemFactory = options.itemFactory;
@@ -119,6 +122,10 @@ public abstract class DexApplication {
     return classes;
   }
 
+  public DexApplicationReadFlags getFlags() {
+    return flags;
+  }
+
   public abstract DexClass definitionFor(DexType type);
 
   public abstract DexProgramClass programDefinitionFor(DexType type);
@@ -140,6 +147,7 @@ public abstract class DexApplication {
     public final DexItemFactory dexItemFactory;
     ClassNameMapper proguardMap;
     final Timing timing;
+    DexApplicationReadFlags flags;
 
     DexString highestSortingString;
     private final Collection<DexProgramClass> synthesizedClasses;
@@ -154,6 +162,7 @@ public abstract class DexApplication {
     abstract T self();
 
     public Builder(DexApplication application) {
+      flags = application.flags;
       programClasses.addAll(application.programClasses());
       dataResourceProviders.addAll(application.dataResourceProviders);
       proguardMap = application.getProguardMap();
@@ -170,6 +179,10 @@ public abstract class DexApplication {
 
     public DirectMappedDexApplication.Builder asDirect() {
       return null;
+    }
+
+    public void setFlags(DexApplicationReadFlags flags) {
+      this.flags = flags;
     }
 
     public synchronized T setProguardMap(ClassNameMapper proguardMap) {

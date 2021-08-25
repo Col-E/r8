@@ -35,6 +35,7 @@ public class DirectMappedDexApplication extends DexApplication {
 
   private DirectMappedDexApplication(
       ClassNameMapper proguardMap,
+      DexApplicationReadFlags flags,
       Map<DexType, DexClass> allClasses,
       ImmutableList<DexProgramClass> programClasses,
       ImmutableList<DexClasspathClass> classpathClasses,
@@ -43,12 +44,7 @@ public class DirectMappedDexApplication extends DexApplication {
       InternalOptions options,
       DexString highestSortingString,
       Timing timing) {
-    super(
-        proguardMap,
-        dataResourceProviders,
-        options,
-        highestSortingString,
-        timing);
+    super(proguardMap, flags, dataResourceProviders, options, highestSortingString, timing);
     this.allClasses = Collections.unmodifiableMap(allClasses);
     this.programClasses = programClasses;
     this.classpathClasses = classpathClasses;
@@ -307,6 +303,7 @@ public class DirectMappedDexApplication extends DexApplication {
       addAll(allClasses, getProgramClasses());
       return new DirectMappedDexApplication(
           proguardMap,
+          flags,
           allClasses,
           ImmutableList.copyOf(getProgramClasses()),
           ImmutableList.copyOf(getClasspathClasses()),

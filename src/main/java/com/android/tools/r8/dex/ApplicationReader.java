@@ -20,6 +20,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.UnsupportedMainDexListUsageDiagnostic;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexApplicationReadFlags;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -67,8 +68,7 @@ public class ApplicationReader {
   private final Timing timing;
   private final AndroidApp inputApp;
 
-  private boolean hasReadProgramResourcesFromCf = false;
-  private boolean hasReadProgramResourcesFromDex = false;
+  private DexApplicationReadFlags flags;
 
   public interface ProgramClassConflictResolver {
     DexProgramClass resolveClassConflict(DexProgramClass a, DexProgramClass b);
@@ -162,9 +162,9 @@ public class ApplicationReader {
       readProguardMap(proguardMap, builder, executorService, futures);
       ClassReader classReader = new ClassReader(executorService, futures);
       classReader.readSources();
-      hasReadProgramResourcesFromCf = classReader.hasReadProgramResourceFromCf;
-      hasReadProgramResourcesFromDex = classReader.hasReadProgramResourceFromDex;
       ThreadUtils.awaitFutures(futures);
+      flags = classReader.getDexApplicationReadFlags();
+      builder.setFlags(flags);
       classReader.initializeLazyClassCollection(builder);
       for (ProgramResourceProvider provider : inputApp.getProgramResourceProviders()) {
         DataResourceProvider dataResourceProvider = provider.getDataResourceProvider();
@@ -211,7 +211,7 @@ public class ApplicationReader {
   }
 
   public MainDexInfo readMainDexClasses(DexApplication app) {
-    return readMainDexClasses(app, hasReadProgramResourcesFromCf);
+    return readMainDexClasses(app, flags.hasReadProgramClassFromCf());
   }
 
   public MainDexInfo readMainDexClassesForR8(DexApplication app) {
@@ -325,7 +325,7 @@ public class ApplicationReader {
     // Jar application reader to share across all class readers.
     private final JarApplicationReader application = new JarApplicationReader(options);
 
-    // Flag of which input resource types have flowen into the program classes.
+    // Flag of which input resource types have flown into the program classes.
     // Note that this is just at the level of the resources having been given.
     // It is possible to have, e.g., an empty dex file, so no classes, but this will still be true
     // as there was a dex resource.
@@ -335,6 +335,11 @@ public class ApplicationReader {
     ClassReader(ExecutorService executorService, List<Future<?>> futures) {
       this.executorService = executorService;
       this.futures = futures;
+    }
+
+    public DexApplicationReadFlags getDexApplicationReadFlags() {
+      return new DexApplicationReadFlags(
+          hasReadProgramResourceFromDex, hasReadProgramResourceFromCf);
     }
 
     private void readDexSources(List<ProgramResource> dexSources, Queue<DexProgramClass> classes)
