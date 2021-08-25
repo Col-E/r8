@@ -7,6 +7,8 @@ package com.android.tools.r8.utils;
 import static com.android.tools.r8.utils.ClassReferenceUtils.getClassReferenceComparator;
 import static com.android.tools.r8.utils.TypeReferenceUtils.getTypeReferenceComparator;
 
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.references.ArrayReference;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
@@ -85,6 +87,15 @@ public class MethodReferenceUtils {
     } catch (NoSuchMethodException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public static DexMethod toDexMethod(
+      MethodReference methodReference, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createMethod(
+        ClassReferenceUtils.toDexType(methodReference.getHolderClass(), dexItemFactory),
+        TypeReferenceUtils.toDexProto(
+            methodReference.getFormalTypes(), methodReference.getReturnType(), dexItemFactory),
+        methodReference.getMethodName());
   }
 
   public static String toSourceStringWithoutHolderAndReturnType(MethodReference methodReference) {

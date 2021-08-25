@@ -122,6 +122,7 @@ public class ArgumentPropagator {
     // Unset the scanner since all code objects have been scanned at this point.
     assert appView.isAllCodeProcessed();
     MethodStateCollectionByReference codeScannerResult = codeScanner.getMethodStates();
+    appView.testing().argumentPropagatorEventConsumer.acceptCodeScannerResult(codeScannerResult);
     codeScanner = null;
 
     timing.begin("Compute optimization info");

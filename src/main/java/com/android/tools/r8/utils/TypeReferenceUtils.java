@@ -37,6 +37,15 @@ public class TypeReferenceUtils {
     return COMPARATOR;
   }
 
+  public static DexProto toDexProto(
+      List<TypeReference> formalTypes, TypeReference returnType, DexItemFactory dexItemFactory) {
+    return toDexProto(
+        formalTypes,
+        returnType,
+        dexItemFactory,
+        classReference -> ClassReferenceUtils.toDexType(classReference, dexItemFactory));
+  }
+
   /**
    * Converts the given {@param formalTypes} and {@param returnType} to a {@link DexProto}.
    *
@@ -53,6 +62,13 @@ public class TypeReferenceUtils {
         ListUtils.map(
             formalTypes,
             formalType -> toDexType(formalType, dexItemFactory, classReferenceConverter)));
+  }
+
+  public static DexType toDexType(TypeReference typeReference, DexItemFactory dexItemFactory) {
+    return toDexType(
+        typeReference,
+        dexItemFactory,
+        classReference -> ClassReferenceUtils.toDexType(classReference, dexItemFactory));
   }
 
   /**

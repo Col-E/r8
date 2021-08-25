@@ -86,7 +86,11 @@ abstract class MethodStateCollection<K> {
   }
 
   public MethodState get(ProgramMethod method) {
-    return methodStates.getOrDefault(getKey(method), MethodState.bottom());
+    return get(getKey(method));
+  }
+
+  public MethodState get(K method) {
+    return methodStates.getOrDefault(method, MethodState.bottom());
   }
 
   public boolean isEmpty() {

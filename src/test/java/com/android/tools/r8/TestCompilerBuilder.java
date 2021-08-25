@@ -10,6 +10,8 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
+import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorEventConsumer;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -18,6 +20,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ForwardingOutputStream;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingOutputStream;
+import com.android.tools.r8.utils.codeinspector.ArgumentPropagatorCodeScannerResultInspector;
 import com.android.tools.r8.utils.codeinspector.EnumUnboxingInspector;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
@@ -102,6 +105,23 @@ public abstract class TestCompilerBuilder<
   abstract CR internalCompile(
       B builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException;
+
+  public T addArgumentPropagatorCodeScannerResultInspector(
+      ThrowableConsumer<ArgumentPropagatorCodeScannerResultInspector> inspector) {
+    return addOptionsModification(
+        options ->
+            options.testing.argumentPropagatorEventConsumer =
+                options.testing.argumentPropagatorEventConsumer.andThen(
+                    new ArgumentPropagatorEventConsumer() {
+                      @Override
+                      public void acceptCodeScannerResult(
+                          MethodStateCollectionByReference methodStates) {
+                        inspector.acceptWithRuntimeException(
+                            new ArgumentPropagatorCodeScannerResultInspector(
+                                options.dexItemFactory(), methodStates));
+                      }
+                    }));
+  }
 
   public T addOptionsModification(Consumer<InternalOptions> optionsConsumer) {
     if (optionsConsumer != null) {

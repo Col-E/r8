@@ -50,6 +50,7 @@ import com.android.tools.r8.ir.desugar.nest.Nest;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorEventConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.ClassReference;
@@ -1483,6 +1484,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
 
     public static int NO_LIMIT = -1;
+
+    public ArgumentPropagatorEventConsumer argumentPropagatorEventConsumer =
+        ArgumentPropagatorEventConsumer.emptyConsumer();
 
     // Force writing the specified bytes as the DEX version content.
     public byte[] forceDexVersionBytes = null;
