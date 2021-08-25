@@ -234,9 +234,6 @@ public class ArgumentPropagatorCodeScanner {
     //  and should therefore not be too expensive to compute). Doing so should have the same
     //  precision, but lead to less state propagation in the subsequent top-down class
     //  hierarchy traversals.
-    // TODO(b/190154391): Normalize type bounds that are the same, by removing trivial lower bound
-    //  information. For example, the types (upper=B, lower=unknown) and (upper=B, lower=B) are
-    //  identical if B does not have any subtypes.
     DynamicType bounds =
         invoke.isInvokeSuper()
             ? DynamicType.createExact(

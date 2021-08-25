@@ -16,8 +16,13 @@ public class ExactDynamicType extends DynamicType {
   }
 
   @Override
+  public ClassTypeElement getDynamicUpperBoundType() {
+    return super.getDynamicUpperBoundType().asClassType();
+  }
+
+  @Override
   public ClassTypeElement getDynamicLowerBoundType() {
-    return getDynamicUpperBoundType().asClassType();
+    return getDynamicUpperBoundType();
   }
 
   @Override
@@ -37,5 +42,13 @@ public class ExactDynamicType extends DynamicType {
   @Override
   public int hashCode() {
     return getDynamicLowerBoundType().hashCode();
+  }
+
+  @Override
+  public DynamicType withNullability(Nullability nullability) {
+    if (getDynamicUpperBoundType().nullability() == nullability) {
+      return this;
+    }
+    return new ExactDynamicType(getDynamicUpperBoundType().getOrCreateVariant(nullability));
   }
 }

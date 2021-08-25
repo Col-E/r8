@@ -1086,7 +1086,7 @@ public class Value implements Comparable<Value> {
   }
 
   public DynamicType getDynamicType(AppView<AppInfoWithLiveness> appView) {
-    return DynamicType.create(this, appView);
+    return DynamicType.create(appView, this);
   }
 
   public TypeElement getDynamicUpperBoundType(
@@ -1137,18 +1137,23 @@ public class Value implements Comparable<Value> {
   }
 
   public ClassTypeElement getDynamicLowerBoundType(AppView<AppInfoWithLiveness> appView) {
-    return getDynamicLowerBoundType(appView, Nullability.maybeNull());
+    return getDynamicLowerBoundType(appView, null, Nullability.maybeNull());
   }
 
   public ClassTypeElement getDynamicLowerBoundType(
-      AppView<AppInfoWithLiveness> appView, Nullability maxNullability) {
-    // If it is a final or effectively-final class type, then we know the lower bound.
-    if (getType().isClassType()) {
-      ClassTypeElement classType = getType().asClassType();
-      DexType type = classType.getClassType();
-      DexClass clazz = appView.definitionFor(type);
-      if (clazz != null && clazz.isEffectivelyFinal(appView)) {
-        return classType.meetNullability(maxNullability);
+      AppView<AppInfoWithLiveness> appView,
+      TypeElement dynamicUpperBoundType,
+      Nullability maxNullability) {
+    // If the dynamic upper bound type is a final or effectively-final class type, then we know the
+    // lower bound. Since the dynamic upper bound type is below the static type in the class
+    // hierarchy, we only need to check if the dynamic upper bound type is effectively final if it
+    // is present.
+    TypeElement upperBoundType = dynamicUpperBoundType != null ? dynamicUpperBoundType : getType();
+    if (upperBoundType.isClassType()) {
+      ClassTypeElement upperBoundClassType = upperBoundType.asClassType();
+      DexClass upperBoundClass = appView.definitionFor(upperBoundClassType.getClassType());
+      if (upperBoundClass != null && upperBoundClass.isEffectivelyFinal(appView)) {
+        return upperBoundClassType.meetNullability(maxNullability);
       }
     }
 
