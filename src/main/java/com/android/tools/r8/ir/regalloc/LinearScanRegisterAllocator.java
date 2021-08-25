@@ -38,6 +38,7 @@ import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.regalloc.RegisterPositions.Type;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.LinkedHashSetUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.HashMultiset;
@@ -60,6 +61,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -2524,9 +2526,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       Map<BasicBlock, LiveAtEntrySets> liveAtEntrySets,
       List<LiveIntervals> liveIntervals) {
     for (BasicBlock block : code.topologicallySortedBlocks()) {
-      Set<Value> live = Sets.newIdentityHashSet();
-      Set<Value> phiOperands = Sets.newIdentityHashSet();
-      Set<Value> liveAtThrowingInstruction = Sets.newIdentityHashSet();
+      // Linked collections to ensure determinism of liveIntervals (see also b/197643889).
+      LinkedHashSet<Value> live = Sets.newLinkedHashSet();
+      LinkedHashSet<Value> phiOperands = Sets.newLinkedHashSet();
+      LinkedHashSet<Value> liveAtThrowingInstruction = Sets.newLinkedHashSet();
       Set<BasicBlock> exceptionalSuccessors = block.getCatchHandlers().getUniqueTargets();
       for (BasicBlock successor : block.getSuccessors()) {
         // Values live at entry to a block that is an exceptional successor are only live
@@ -2534,9 +2537,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         // the block only if they are used in normal flow as well.
         boolean isExceptionalSuccessor = exceptionalSuccessors.contains(successor);
         if (isExceptionalSuccessor) {
-          liveAtThrowingInstruction.addAll(liveAtEntrySets.get(successor).liveValues);
+          LinkedHashSetUtils.addAll(
+              liveAtThrowingInstruction, liveAtEntrySets.get(successor).liveValues);
         } else {
-          live.addAll(liveAtEntrySets.get(successor).liveValues);
+          LinkedHashSetUtils.addAll(live, liveAtEntrySets.get(successor).liveValues);
         }
         // Exception blocks should not have any phis (if an exception block has more than one
         // predecessor, then we insert a split block in-between).
@@ -2546,7 +2550,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           phiOperands.add(phi.getOperand(successor.getPredecessors().indexOf(block)));
         }
       }
-      live.addAll(phiOperands);
+      LinkedHashSetUtils.addAll(live, phiOperands);
       List<Instruction> instructions = block.getInstructions();
       for (Value value : live) {
         int end = block.entry().getNumber() + instructions.size() * INSTRUCTION_NUMBER_DELTA;
@@ -2635,7 +2639,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           // In debug mode, or if the method is reachability sensitive, extend the live range
           // to cover the full scope of a local variable (encoded as debug values).
           int number = instruction.getNumber();
-          for (Value use : instruction.getDebugValues()) {
+          List<Value> sortedDebugValues = new ArrayList<>(instruction.getDebugValues());
+          sortedDebugValues.sort(Value::compareTo);
+          for (Value use : sortedDebugValues) {
             assert use.needsRegister();
             if (!live.contains(use)) {
               live.add(use);

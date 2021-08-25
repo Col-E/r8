@@ -27,6 +27,7 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
+import com.android.tools.r8.utils.LinkedHashSetUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -61,7 +62,7 @@ public class IRCode implements ValueFactory {
 
   public static class LiveAtEntrySets {
     // Set of live SSA values (regardless of whether they denote a local variable).
-    public final Set<Value> liveValues;
+    public final LinkedHashSet<Value> liveValues;
 
     // Subset of live local-variable values.
     public final Set<Value> liveLocalValues;
@@ -69,7 +70,7 @@ public class IRCode implements ValueFactory {
     public final Deque<Value> liveStackValues;
 
     public LiveAtEntrySets(
-        Set<Value> liveValues, Set<Value> liveLocalValues, Deque<Value> liveStackValues) {
+        LinkedHashSet<Value> liveValues, Set<Value> liveLocalValues, Deque<Value> liveStackValues) {
       assert liveValues.containsAll(liveLocalValues);
       this.liveValues = liveValues;
       this.liveLocalValues = liveLocalValues;
@@ -176,14 +177,14 @@ public class IRCode implements ValueFactory {
     while (!worklist.isEmpty()) {
       BasicBlock block = worklist.poll();
       // Note that the iteration order of live values matters when inserting spill/restore moves.
-      Set<Value> live = new LinkedHashSet<>();
+      LinkedHashSet<Value> live = new LinkedHashSet<>();
       Set<Value> liveLocals = Sets.newIdentityHashSet();
       Deque<Value> liveStack = new ArrayDeque<>();
       Set<BasicBlock> exceptionalSuccessors = block.getCatchHandlers().getUniqueTargets();
       for (BasicBlock succ : block.getSuccessors()) {
         LiveAtEntrySets liveAtSucc = liveAtEntrySets.get(succ);
         if (liveAtSucc != null) {
-          live.addAll(liveAtSucc.liveValues);
+          LinkedHashSetUtils.addAll(live, liveAtSucc.liveValues);
           liveLocals.addAll(liveAtSucc.liveLocalValues);
           // The stack is only allowed to be non-empty in the case of linear-flow (so-far).
           // If succ is an exceptional successor the successor stack should be empty
