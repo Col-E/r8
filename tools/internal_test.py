@@ -362,9 +362,6 @@ def execute(cmd, archive, env=None):
         if time.time() - begin > RUN_TIMEOUT:
           popen.terminate()
           timed_out = True
-          stdout_fd.write("*************************************************\n")
-          stdout_fd.write("TERMINATING DUE TO TIME-OUT FROM internal_test.py\n")
-          stdout_fd.write("*************************************************\n")
         time.sleep(2)
       exitcode = popen.returncode
     finally:
