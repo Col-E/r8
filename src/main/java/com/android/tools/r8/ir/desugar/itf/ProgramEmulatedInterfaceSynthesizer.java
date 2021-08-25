@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizer;
-import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizerEventConsumer;
+import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
+import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.L8ProgramEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public final class ProgramEmulatedInterfaceSynthesizer implements CfL8ClassSynthesizer {
+public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthesizerDesugaring {
 
   private final AppView<?> appView;
   private final InterfaceDesugaringSyntheticHelper helper;
@@ -226,7 +226,7 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfL8ClassSynth
   }
 
   @Override
-  public void synthesizeClasses(CfL8ClassSynthesizerEventConsumer eventConsumer) {
+  public void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
     assert appView.options().isDesugaredLibraryCompilation();
     for (DexType emulatedInterfaceType : helper.getEmulatedInterfaces()) {
       DexClass emulatedInterfaceClazz = appView.definitionFor(emulatedInterfaceType);

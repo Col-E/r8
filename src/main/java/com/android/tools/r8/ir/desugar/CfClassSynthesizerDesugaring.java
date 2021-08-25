@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
-public interface CfL8ClassSynthesizer {
+public interface CfClassSynthesizerDesugaring {
 
-  void synthesizeClasses(CfL8ClassSynthesizerEventConsumer eventConsumer);
+  void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer);
 }

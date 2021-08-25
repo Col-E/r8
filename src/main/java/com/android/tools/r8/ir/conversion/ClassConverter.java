@@ -11,9 +11,9 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfClassDesugaringEventConsumer.D8CfClassDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizerEventConsumer;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -56,13 +56,13 @@ public abstract class ClassConverter {
     List<DexProgramClass> classes = appView.appInfo().classes();
 
     if (appView.options().isDesugaredLibraryCompilation()) {
-      CfL8ClassSynthesizerEventConsumer l8ClassSynthesizerEventConsumer =
-          new CfL8ClassSynthesizerEventConsumer();
-      converter.l8ClassSynthesis(executorService, l8ClassSynthesizerEventConsumer);
+      CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer =
+          new CfClassSynthesizerDesugaringEventConsumer();
+      converter.classSynthesisDesugaring(executorService, classSynthesizerEventConsumer);
       classes =
           ImmutableList.<DexProgramClass>builder()
               .addAll(classes)
-              .addAll(l8ClassSynthesizerEventConsumer.getSynthesizedClasses())
+              .addAll(classSynthesizerEventConsumer.getSynthesizedClasses())
               .build();
     }
 

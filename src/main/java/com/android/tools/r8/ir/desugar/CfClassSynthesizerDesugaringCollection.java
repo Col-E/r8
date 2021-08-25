@@ -15,11 +15,12 @@ import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-public class CfL8ClassSynthesizerCollection {
+public class CfClassSynthesizerDesugaringCollection {
 
-  private Collection<CfL8ClassSynthesizer> synthesizers = new ArrayList<>();
+  private Collection<CfClassSynthesizerDesugaring> synthesizers = new ArrayList<>();
 
-  public CfL8ClassSynthesizerCollection(AppView<?> appView, RetargetingInfo retargetingInfo) {
+  public CfClassSynthesizerDesugaringCollection(
+      AppView<?> appView, RetargetingInfo retargetingInfo) {
     assert appView.options().isDesugaredLibraryCompilation();
     ProgramEmulatedInterfaceSynthesizer emulatedInterfaceSynthesizer =
         ProgramEmulatedInterfaceSynthesizer.create(appView);
@@ -35,7 +36,7 @@ public class CfL8ClassSynthesizerCollection {
   }
 
   public void synthesizeClasses(
-      ExecutorService executorService, CfL8ClassSynthesizerEventConsumer eventConsumer)
+      ExecutorService executorService, CfClassSynthesizerDesugaringEventConsumer eventConsumer)
       throws ExecutionException {
     ThreadUtils.processItems(
         synthesizers, synthesizer -> synthesizer.synthesizeClasses(eventConsumer), executorService);

@@ -25,8 +25,8 @@ import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizer;
-import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizerEventConsumer;
+import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
+import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterConstructorCfCodeProvider;
@@ -93,7 +93,7 @@ import java.util.function.Function;
 //     return new j$....BiFunction$-WRP(wrappedValue);
 //     }
 //   }
-public class DesugaredLibraryWrapperSynthesizer implements CfL8ClassSynthesizer {
+public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDesugaring {
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
@@ -633,7 +633,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfL8ClassSynthesizer 
   // the wrappers with the conversion methods only, then the virtual methods assuming the
   // conversion methods are present.
   @Override
-  public void synthesizeClasses(CfL8ClassSynthesizerEventConsumer eventConsumer) {
+  public void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
     DesugaredLibraryConfiguration conf = appView.options().desugaredLibraryConfiguration;
     List<DexProgramClass> validClassesToWrap = new ArrayList<>();
     for (DexType type : conf.getWrapperConversions()) {

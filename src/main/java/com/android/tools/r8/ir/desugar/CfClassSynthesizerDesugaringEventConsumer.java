@@ -11,7 +11,7 @@ import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventCons
 import com.google.common.collect.Sets;
 import java.util.Set;
 
-public class CfL8ClassSynthesizerEventConsumer
+public class CfClassSynthesizerDesugaringEventConsumer
     implements L8ProgramEmulatedInterfaceSynthesizerEventConsumer,
         DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer,
         DesugaredLibraryRetargeterL8SynthesizerEventConsumer {
@@ -36,5 +36,4 @@ public class CfL8ClassSynthesizerEventConsumer
   public Set<DexProgramClass> getSynthesizedClasses() {
     return synthesizedClasses;
   }
-
 }

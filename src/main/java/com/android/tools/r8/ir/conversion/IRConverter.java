@@ -46,11 +46,11 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions.DefaultMethodC
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfClassDesugaringEventConsumer.D8CfClassDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringCollection;
+import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizerCollection;
-import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer.D8CfPostProcessingDesugaringEventConsumer;
@@ -452,12 +452,12 @@ public class IRConverter {
     }
   }
 
-  public void l8ClassSynthesis(
+  public void classSynthesisDesugaring(
       ExecutorService executorService,
-      CfL8ClassSynthesizerEventConsumer l8ClassSynthesizerEventConsumer)
+      CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer)
       throws ExecutionException {
-    new CfL8ClassSynthesizerCollection(appView, instructionDesugaring.getRetargetingInfo())
-        .synthesizeClasses(executorService, l8ClassSynthesizerEventConsumer);
+    new CfClassSynthesizerDesugaringCollection(appView, instructionDesugaring.getRetargetingInfo())
+        .synthesizeClasses(executorService, classSynthesizerEventConsumer);
   }
 
   private void postProcessingDesugaringForD8(

@@ -5,11 +5,11 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizer;
-import com.android.tools.r8.ir.desugar.CfL8ClassSynthesizerEventConsumer;
+import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
+import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
 
-public class DesugaredLibraryRetargeterL8Synthesizer implements CfL8ClassSynthesizer {
+public class DesugaredLibraryRetargeterL8Synthesizer implements CfClassSynthesizerDesugaring {
 
   private final AppView<?> appView;
   private final DesugaredLibraryRetargeterSyntheticHelper syntheticHelper;
@@ -33,7 +33,7 @@ public class DesugaredLibraryRetargeterL8Synthesizer implements CfL8ClassSynthes
   }
 
   @Override
-  public void synthesizeClasses(CfL8ClassSynthesizerEventConsumer eventConsumer) {
+  public void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
     assert !emulatedDispatchMethods.isEmpty();
     for (DexClassAndMethod emulatedDispatchMethod : emulatedDispatchMethods) {
       syntheticHelper.ensureProgramEmulatedHolderDispatchMethod(
