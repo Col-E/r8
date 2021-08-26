@@ -659,7 +659,7 @@ public class IRConverter {
 
     // Setup the argument propagator for the primary optimization pass.
     appView.withArgumentPropagator(
-        argumentPropagator -> argumentPropagator.initializeCodeScanner(timing));
+        argumentPropagator -> argumentPropagator.initializeCodeScanner(executorService, timing));
     appView.withCallSiteOptimizationInfoPropagator(
         optimization -> {
           optimization.abandonCallSitePropagationForLambdaImplementationMethods(

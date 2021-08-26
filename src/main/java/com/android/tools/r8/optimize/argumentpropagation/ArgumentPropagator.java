@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.optimize.argumentpropagation;
 
+import static com.android.tools.r8.optimize.argumentpropagation.utils.StronglyConnectedProgramClasses.computeStronglyConnectedProgramClasses;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -18,7 +20,10 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.VirtualRootMethodsAnalysis;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -50,7 +55,8 @@ public class ArgumentPropagator {
    * Called by {@link IRConverter} *before* the primary optimization pass to setup the scanner for
    * collecting argument information from the code objects.
    */
-  public void initializeCodeScanner(Timing timing) {
+  public void initializeCodeScanner(ExecutorService executorService, Timing timing)
+      throws ExecutionException {
     assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
 
     timing.begin("Argument propagator");
@@ -58,20 +64,25 @@ public class ArgumentPropagator {
 
     codeScanner = new ArgumentPropagatorCodeScanner(appView);
 
-    // Disable argument propagation for methods that should not be optimized.
     ImmediateProgramSubtypingInfo immediateSubtypingInfo =
         ImmediateProgramSubtypingInfo.create(appView);
+    List<Set<DexProgramClass>> stronglyConnectedProgramClasses =
+        computeStronglyConnectedProgramClasses(appView, immediateSubtypingInfo);
+    ThreadUtils.processItems(
+        stronglyConnectedProgramClasses,
+        classes -> {
+          // Disable argument propagation for methods that should not be optimized by setting their
+          // method state to unknown.
+          new ArgumentPropagatorUnoptimizableMethods(
+                  appView, immediateSubtypingInfo, codeScanner.getMethodStates())
+              .disableArgumentPropagationForUnoptimizableMethods(classes);
 
-    // TODO(b/190154391): Consider computing the strongly connected components and running this in
-    //  parallel for each scc.
-    new ArgumentPropagatorUnoptimizableMethods(
-            appView, immediateSubtypingInfo, codeScanner.getMethodStates())
-        .disableArgumentPropagationForUnoptimizableMethods(appView.appInfo().classes());
-
-    // TODO(b/190154391): Consider computing the strongly connected components and running this in
-    //  parallel for each scc.
-    new VirtualRootMethodsAnalysis(appView, immediateSubtypingInfo)
-        .extendVirtualRootMethods(appView.appInfo().classes(), codeScanner);
+          // Compute the mapping from virtual methods to their root virtual method and the set of
+          // monomorphic virtual methods.
+          new VirtualRootMethodsAnalysis(appView, immediateSubtypingInfo)
+              .extendVirtualRootMethods(appView.appInfo().classes(), codeScanner);
+        },
+        executorService);
 
     timing.end();
     timing.end();

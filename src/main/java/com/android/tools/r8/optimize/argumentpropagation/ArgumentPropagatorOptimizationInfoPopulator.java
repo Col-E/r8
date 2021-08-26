@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.optimize.argumentpropagation;
 
+import static com.android.tools.r8.optimize.argumentpropagation.utils.StronglyConnectedProgramClasses.computeStronglyConnectedProgramClasses;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -25,9 +27,6 @@ import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.WorkList;
-import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -56,40 +55,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
         ImmediateProgramSubtypingInfo.create(appView);
     this.immediateSubtypingInfo = immediateSubtypingInfo;
     this.stronglyConnectedComponents =
-        computeStronglyConnectedComponents(appView, immediateSubtypingInfo);
-  }
-
-  /**
-   * Computes the strongly connected components in the program class hierarchy (where extends and
-   * implements edges are treated as bidirectional).
-   *
-   * <p>All strongly connected components can be processed in parallel.
-   */
-  private static List<Set<DexProgramClass>> computeStronglyConnectedComponents(
-      AppView<AppInfoWithLiveness> appView, ImmediateProgramSubtypingInfo immediateSubtypingInfo) {
-    Set<DexProgramClass> seen = Sets.newIdentityHashSet();
-    List<Set<DexProgramClass>> stronglyConnectedComponents = new ArrayList<>();
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (seen.contains(clazz)) {
-        continue;
-      }
-      Set<DexProgramClass> stronglyConnectedComponent =
-          computeStronglyConnectedComponent(clazz, immediateSubtypingInfo);
-      stronglyConnectedComponents.add(stronglyConnectedComponent);
-      seen.addAll(stronglyConnectedComponent);
-    }
-    return stronglyConnectedComponents;
-  }
-
-  private static Set<DexProgramClass> computeStronglyConnectedComponent(
-      DexProgramClass clazz, ImmediateProgramSubtypingInfo immediateSubtypingInfo) {
-    WorkList<DexProgramClass> worklist = WorkList.newIdentityWorkList(clazz);
-    while (worklist.hasNext()) {
-      DexProgramClass current = worklist.next();
-      immediateSubtypingInfo.forEachImmediateProgramSuperClass(current, worklist::addIfNotSeen);
-      worklist.addIfNotSeen(immediateSubtypingInfo.getSubclasses(current));
-    }
-    return worklist.getSeenSet();
+        computeStronglyConnectedProgramClasses(appView, immediateSubtypingInfo);
   }
 
   /**
