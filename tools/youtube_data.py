@@ -125,7 +125,7 @@ def GetName():
 def GetMemoryData(version):
   assert version == '16.20'
   return {
-      'find-xmx-min': 3000,
+      'find-xmx-min': 3150,
       'find-xmx-max': 3300,
       'find-xmx-range': 64,
       'oom-threshold': 3100,
