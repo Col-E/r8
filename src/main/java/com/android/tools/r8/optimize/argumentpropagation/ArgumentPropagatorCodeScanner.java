@@ -43,10 +43,12 @@ import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Analyzes each {@link IRCode} during the primary optimization to collect information about the
@@ -60,6 +62,8 @@ public class ArgumentPropagatorCodeScanner {
       AssumeAndCheckCastAliasedValueConfiguration.getInstance();
 
   private final AppView<AppInfoWithLiveness> appView;
+
+  private final Set<DexMethod> monomorphicVirtualMethods = Sets.newIdentityHashSet();
 
   /**
    * Maps each non-private virtual method to the upper most method in the class hierarchy with the
@@ -79,6 +83,10 @@ public class ArgumentPropagatorCodeScanner {
     this.appView = appView;
   }
 
+  public synchronized void addMonomorphicVirtualMethods(Set<DexMethod> extension) {
+    monomorphicVirtualMethods.addAll(extension);
+  }
+
   public synchronized void addVirtualRootMethods(Map<DexMethod, DexMethod> extension) {
     virtualRootMethods.putAll(extension);
   }
@@ -89,6 +97,12 @@ public class ArgumentPropagatorCodeScanner {
 
   DexMethod getVirtualRootMethod(ProgramMethod method) {
     return virtualRootMethods.get(method.getReference());
+  }
+
+  boolean isMonomorphicVirtualMethod(ProgramMethod method) {
+    boolean isMonomorphicVirtualMethod = monomorphicVirtualMethods.contains(method.getReference());
+    assert method.getDefinition().belongsToVirtualPool() || !isMonomorphicVirtualMethod;
+    return isMonomorphicVirtualMethod;
   }
 
   void scan(ProgramMethod method, IRCode code, Timing timing) {
@@ -224,8 +238,6 @@ public class ArgumentPropagatorCodeScanner {
     return result;
   }
 
-  // TODO(b/190154391): Use monomorphic method states for virtual methods that are not overridden
-  //  and do not themselves override other methods.
   // TODO(b/190154391): Add a strategy that widens the dynamic receiver type to allow easily
   //  experimenting with the performance/size trade-off between precise/imprecise handling of
   //  dynamic dispatch.
@@ -444,24 +456,24 @@ public class ArgumentPropagatorCodeScanner {
 
   private DexMethod getRepresentativeForPolymorphicInvokeOrElse(
       InvokeMethod invoke, ProgramMethod resolvedMethod, DexMethod defaultValue) {
-    DexMethod resolvedMethodReference = resolvedMethod.getReference();
-    if (invoke.isInvokeInterface()) {
-      if (resolvedMethod.getDefinition().belongsToVirtualPool()) {
-        return getVirtualRootMethod(resolvedMethod);
-      }
-      // An invoke-interface can also target private methods, in which case this is a monomorphic
-      // invoke.
+    if (resolvedMethod.getDefinition().belongsToDirectPool()) {
       return defaultValue;
     }
-    if (invoke.isInvokeSuper()) {
-      return resolvedMethodReference;
+
+    if (invoke.isInvokeInterface()) {
+      assert !isMonomorphicVirtualMethod(resolvedMethod);
+      return getVirtualRootMethod(resolvedMethod);
     }
+
+    assert invoke.isInvokeSuper() || invoke.isInvokeVirtual();
+
+    if (isMonomorphicVirtualMethod(resolvedMethod)) {
+      return defaultValue;
+    }
+
     DexMethod rootMethod = getVirtualRootMethod(resolvedMethod);
-    if (rootMethod != null) {
-      assert invoke.isInvokeVirtual();
-      return rootMethod;
-    }
-    return defaultValue;
+    assert rootMethod != null;
+    return rootMethod;
   }
 
   private void scan(InvokeCustom invoke, ProgramMethod context) {

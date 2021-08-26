@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -161,6 +162,10 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
     }
     assert !isEffectivelyUnknown();
     return this;
+  }
+
+  public Collection<ConcreteMonomorphicMethodStateOrUnknown> values() {
+    return receiverBoundsToState.values();
   }
 
   @Override

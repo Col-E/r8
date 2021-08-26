@@ -42,6 +42,26 @@ public class ArgumentPropagatorCodeScannerResultInspector {
         MethodState::isBottom);
   }
 
+  public ArgumentPropagatorCodeScannerResultInspector assertHasMonomorphicMethodState(
+      MethodReference methodReference) {
+    return assertHasMethodStateThatMatches(
+        "Expected method state for "
+            + MethodReferenceUtils.toSourceString(methodReference)
+            + " to be monomorphic",
+        methodReference,
+        MethodState::isMonomorphic);
+  }
+
+  public ArgumentPropagatorCodeScannerResultInspector assertHasPolymorphicMethodState(
+      MethodReference methodReference) {
+    return assertHasMethodStateThatMatches(
+        "Expected method state for "
+            + MethodReferenceUtils.toSourceString(methodReference)
+            + " to be polymorphic",
+        methodReference,
+        MethodState::isPolymorphic);
+  }
+
   public ArgumentPropagatorCodeScannerResultInspector assertHasUnknownMethodState(
       MethodReference methodReference) {
     return assertHasMethodStateThatMatches(

@@ -161,30 +161,44 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
     // should be propagated to the resolved method, we replace the type bounds by the holder of the
     // resolved method.
     ConcretePolymorphicMethodState polymorphicMethodState = methodState.asPolymorphic();
-    return polymorphicMethodState.mutableCopyWithRewrittenBounds(
-        appView,
-        bounds -> {
-          boolean shouldPropagateMethodStateForBounds;
-          if (bounds.isUnknown()) {
-            shouldPropagateMethodStateForBounds = true;
-          } else {
-            ClassTypeElement upperBound = bounds.getDynamicUpperBoundType().asClassType();
-            shouldPropagateMethodStateForBounds =
-                upperBound
-                    .getInterfaces()
-                    .anyMatch(
-                        (interfaceType, isKnown) ->
-                            appView.appInfo().isSubtype(clazz.getType(), interfaceType));
-          }
-          if (shouldPropagateMethodStateForBounds) {
-            return DynamicType.createExact(
-                TypeElement.fromDexType(
-                        resolvedMethod.getHolderType(), Nullability.maybeNull(), appView)
-                    .asClassType());
-          }
-          return null;
-        },
-        resolvedMethod.getMethodSignature());
+    MethodState rewrittenMethodState =
+        polymorphicMethodState.mutableCopyWithRewrittenBounds(
+            appView,
+            bounds -> {
+              boolean shouldPropagateMethodStateForBounds;
+              if (bounds.isUnknown()) {
+                shouldPropagateMethodStateForBounds = true;
+              } else {
+                ClassTypeElement upperBound = bounds.getDynamicUpperBoundType().asClassType();
+                shouldPropagateMethodStateForBounds =
+                    upperBound
+                        .getInterfaces()
+                        .anyMatch(
+                            (interfaceType, isKnown) ->
+                                appView.appInfo().isSubtype(clazz.getType(), interfaceType));
+              }
+              if (shouldPropagateMethodStateForBounds) {
+                return DynamicType.createExact(
+                    TypeElement.fromDexType(
+                            resolvedMethod.getHolderType(), Nullability.maybeNull(), appView)
+                        .asClassType());
+              }
+              return null;
+            },
+            resolvedMethod.getMethodSignature());
+
+    // If the resolved method is a virtual method that does not override any methods and are not
+    // overridden by any methods, then we use a monomorphic method state for it. Therefore, we
+    // transform this polymorphic method state into a monomorphic method state, before joining it
+    // into the method's state.
+    if (methodStates.get(resolvedMethod).isMonomorphic() && rewrittenMethodState.isPolymorphic()) {
+      ConcretePolymorphicMethodState rewrittenPolymorphicMethodState =
+          rewrittenMethodState.asPolymorphic();
+      assert rewrittenPolymorphicMethodState.values().size() == 1;
+      return rewrittenPolymorphicMethodState.values().iterator().next();
+    }
+
+    return rewrittenMethodState;
   }
 
   private boolean verifyAllInterfacesFinished(
