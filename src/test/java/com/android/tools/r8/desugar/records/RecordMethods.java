@@ -10,14 +10,14 @@ import java.util.Arrays;
 // rewrites relevant calls to one of the following methods.
 public class RecordMethods {
 
-  public static String toString(RecordStub recordInstance, String simpleName, String fieldNames) {
+  public static String toString(
+      Object[] recordFieldsAsObjects, String simpleName, String fieldNames) {
     // Example: "Person[name=Jane Doe, age=42]"
     String[] fieldNamesSplit = fieldNames.isEmpty() ? new String[0] : fieldNames.split(";");
-    Object[] fields = recordInstance.getFieldsAsObjects();
     StringBuilder builder = new StringBuilder();
     builder.append(simpleName).append("[");
     for (int i = 0; i < fieldNamesSplit.length; i++) {
-      builder.append(fieldNamesSplit[i]).append("=").append(fields[i]);
+      builder.append(fieldNamesSplit[i]).append("=").append(recordFieldsAsObjects[i]);
       if (i != fieldNamesSplit.length - 1) {
         builder.append(", ");
       }
@@ -26,18 +26,7 @@ public class RecordMethods {
     return builder.toString();
   }
 
-  public static int hashCode(RecordStub recordInstance) {
-    return 31 * Arrays.hashCode(recordInstance.getFieldsAsObjects())
-        + recordInstance.getClass().hashCode();
-  }
-
-  public static boolean equals(RecordStub recordInstance, Object other) {
-    return recordInstance.getClass() == other.getClass()
-        && Arrays.equals(
-            ((RecordStub) other).getFieldsAsObjects(), recordInstance.getFieldsAsObjects());
-  }
-
-  public abstract static class RecordStub {
-    abstract Object[] getFieldsAsObjects();
+  public static int hashCode(Class<?> recordClass, Object[] recordFieldsAsObjects) {
+    return 31 * Arrays.hashCode(recordFieldsAsObjects) + recordClass.hashCode();
   }
 }

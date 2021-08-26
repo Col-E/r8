@@ -22,6 +22,10 @@ public abstract class SyntheticCfCodeProvider {
     this.holder = holder;
   }
 
+  public DexType getHolder() {
+    return holder;
+  }
+
   public abstract CfCode generateCfCode();
 
   protected CfCode standardCfCodeFromInstructions(List<CfInstruction> instructions) {

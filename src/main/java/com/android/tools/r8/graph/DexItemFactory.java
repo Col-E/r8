@@ -1122,6 +1122,7 @@ public class DexItemFactory {
   public class JavaUtilArraysMethods {
 
     public final DexMethod asList;
+    public final DexMethod equalsObjectArray;
 
     private JavaUtilArraysMethods() {
       asList =
@@ -1130,6 +1131,12 @@ public class DexItemFactory {
               createString("asList"),
               listDescriptor,
               new DexString[] {objectArrayDescriptor});
+      equalsObjectArray =
+          createMethod(
+              arraysDescriptor,
+              equalsMethodName,
+              booleanDescriptor,
+              new DexString[] {objectArrayDescriptor, objectArrayDescriptor});
     }
   }
 

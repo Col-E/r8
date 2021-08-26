@@ -11,7 +11,6 @@ package com.android.tools.r8.ir.desugar.records;
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArrayLength;
 import com.android.tools.r8.cf.code.CfArrayLoad;
-import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFrame;
@@ -44,100 +43,9 @@ import java.util.Arrays;
 public final class RecordCfMethods {
 
   public static void registerSynthesizedCodeReferences(DexItemFactory factory) {
-    factory.createSynthesizedType("Ljava/lang/Record;");
     factory.createSynthesizedType("Ljava/util/Arrays;");
     factory.createSynthesizedType("[Ljava/lang/Object;");
     factory.createSynthesizedType("[Ljava/lang/String;");
-  }
-
-  public static CfCode RecordMethods_equals(InternalOptions options, DexMethod method) {
-    CfLabel label0 = new CfLabel();
-    CfLabel label1 = new CfLabel();
-    CfLabel label2 = new CfLabel();
-    CfLabel label3 = new CfLabel();
-    CfLabel label4 = new CfLabel();
-    CfLabel label5 = new CfLabel();
-    return new CfCode(
-        method.holder,
-        2,
-        2,
-        ImmutableList.of(
-            label0,
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.objectType,
-                    options.itemFactory.createProto(options.itemFactory.classType),
-                    options.itemFactory.createString("getClass")),
-                false),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.objectType,
-                    options.itemFactory.createProto(options.itemFactory.classType),
-                    options.itemFactory.createString("getClass")),
-                false),
-            new CfIfCmp(If.Type.NE, ValueType.OBJECT, label3),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfCheckCast(options.itemFactory.createType("Ljava/lang/Record;")),
-            label1,
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Record;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("[Ljava/lang/Object;")),
-                    options.itemFactory.createString("$record$getFieldsAsObjects")),
-                false),
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Record;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("[Ljava/lang/Object;")),
-                    options.itemFactory.createString("$record$getFieldsAsObjects")),
-                false),
-            label2,
-            new CfInvoke(
-                184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/Arrays;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.createType("[Ljava/lang/Object;"),
-                        options.itemFactory.createType("[Ljava/lang/Object;")),
-                    options.itemFactory.createString("equals")),
-                false),
-            new CfIf(If.Type.EQ, ValueType.INT, label3),
-            new CfConstNumber(1, ValueType.INT),
-            new CfGoto(label4),
-            label3,
-            new CfFrame(
-                new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1},
-                    new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
-                      FrameType.initialized(options.itemFactory.objectType)
-                    }),
-                new ArrayDeque<>(Arrays.asList())),
-            new CfConstNumber(0, ValueType.INT),
-            label4,
-            new CfFrame(
-                new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1},
-                    new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
-                      FrameType.initialized(options.itemFactory.objectType)
-                    }),
-                new ArrayDeque<>(
-                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
-            new CfReturn(ValueType.INT),
-            label5),
-        ImmutableList.of(),
-        ImmutableList.of());
   }
 
   public static CfCode RecordMethods_hashCode(InternalOptions options, DexMethod method) {
@@ -148,19 +56,11 @@ public final class RecordCfMethods {
     return new CfCode(
         method.holder,
         2,
-        1,
+        2,
         ImmutableList.of(
             label0,
             new CfConstNumber(31, ValueType.INT),
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Record;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("[Ljava/lang/Object;")),
-                    options.itemFactory.createString("$record$getFieldsAsObjects")),
-                false),
+            new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
                 options.itemFactory.createMethod(
@@ -173,13 +73,6 @@ public final class RecordCfMethods {
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.INT),
             new CfLoad(ValueType.OBJECT, 0),
             label1,
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.objectType,
-                    options.itemFactory.createProto(options.itemFactory.classType),
-                    options.itemFactory.createString("getClass")),
-                false),
             new CfInvoke(
                 182,
                 options.itemFactory.createMethod(
@@ -210,11 +103,10 @@ public final class RecordCfMethods {
     CfLabel label11 = new CfLabel();
     CfLabel label12 = new CfLabel();
     CfLabel label13 = new CfLabel();
-    CfLabel label14 = new CfLabel();
     return new CfCode(
         method.holder,
         3,
-        7,
+        6,
         ImmutableList.of(
             label0,
             new CfLoad(ValueType.OBJECT, 2),
@@ -234,7 +126,7 @@ public final class RecordCfMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
+                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.stringType)
                     }),
@@ -255,7 +147,7 @@ public final class RecordCfMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1, 2},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
+                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.stringType)
                     }),
@@ -265,17 +157,6 @@ public final class RecordCfMethods {
                             options.itemFactory.createType("[Ljava/lang/String;"))))),
             new CfStore(ValueType.OBJECT, 3),
             label3,
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Record;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("[Ljava/lang/Object;")),
-                    options.itemFactory.createString("$record$getFieldsAsObjects")),
-                false),
-            new CfStore(ValueType.OBJECT, 4),
-            label4,
             new CfNew(options.itemFactory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
@@ -285,9 +166,9 @@ public final class RecordCfMethods {
                     options.itemFactory.createProto(options.itemFactory.voidType),
                     options.itemFactory.createString("<init>")),
                 false),
-            new CfStore(ValueType.OBJECT, 5),
-            label5,
-            new CfLoad(ValueType.OBJECT, 5),
+            new CfStore(ValueType.OBJECT, 4),
+            label4,
+            new CfLoad(ValueType.OBJECT, 4),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 182,
@@ -307,31 +188,30 @@ public final class RecordCfMethods {
                     options.itemFactory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
-            label6,
+            label5,
             new CfConstNumber(0, ValueType.INT),
-            new CfStore(ValueType.INT, 6),
-            label7,
+            new CfStore(ValueType.INT, 5),
+            label6,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2, 3, 4, 5, 6},
+                    new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
+                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
                       FrameType.initialized(options.itemFactory.stringBuilderType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
                 new ArrayDeque<>(Arrays.asList())),
-            new CfLoad(ValueType.INT, 6),
+            new CfLoad(ValueType.INT, 5),
             new CfLoad(ValueType.OBJECT, 3),
             new CfArrayLength(),
-            new CfIfCmp(If.Type.GE, ValueType.INT, label12),
-            label8,
-            new CfLoad(ValueType.OBJECT, 5),
+            new CfIfCmp(If.Type.GE, ValueType.INT, label11),
+            label7,
+            new CfLoad(ValueType.OBJECT, 4),
             new CfLoad(ValueType.OBJECT, 3),
-            new CfLoad(ValueType.INT, 6),
+            new CfLoad(ValueType.INT, 5),
             new CfArrayLoad(MemberType.OBJECT),
             new CfInvoke(
                 182,
@@ -350,8 +230,8 @@ public final class RecordCfMethods {
                         options.itemFactory.stringBuilderType, options.itemFactory.stringType),
                     options.itemFactory.createString("append")),
                 false),
-            new CfLoad(ValueType.OBJECT, 4),
-            new CfLoad(ValueType.INT, 6),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 5),
             new CfArrayLoad(MemberType.OBJECT),
             new CfInvoke(
                 182,
@@ -362,15 +242,15 @@ public final class RecordCfMethods {
                     options.itemFactory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
-            label9,
-            new CfLoad(ValueType.INT, 6),
+            label8,
+            new CfLoad(ValueType.INT, 5),
             new CfLoad(ValueType.OBJECT, 3),
             new CfArrayLength(),
             new CfConstNumber(1, ValueType.INT),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
-            new CfIfCmp(If.Type.EQ, ValueType.INT, label11),
-            label10,
-            new CfLoad(ValueType.OBJECT, 5),
+            new CfIfCmp(If.Type.EQ, ValueType.INT, label10),
+            label9,
+            new CfLoad(ValueType.OBJECT, 4),
             new CfConstString(options.itemFactory.createString(", ")),
             new CfInvoke(
                 182,
@@ -381,36 +261,34 @@ public final class RecordCfMethods {
                     options.itemFactory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
-            label11,
-            new CfFrame(
-                new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2, 3, 4, 5, 6},
-                    new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
-                      FrameType.initialized(options.itemFactory.stringType),
-                      FrameType.initialized(options.itemFactory.stringType),
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
-                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.stringBuilderType),
-                      FrameType.initialized(options.itemFactory.intType)
-                    }),
-                new ArrayDeque<>(Arrays.asList())),
-            new CfIinc(6, 1),
-            new CfGoto(label7),
-            label12,
+            label10,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
-                      FrameType.initialized(options.itemFactory.createType("Ljava/lang/Record;")),
+                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
+                      FrameType.initialized(options.itemFactory.stringBuilderType),
+                      FrameType.initialized(options.itemFactory.intType)
+                    }),
+                new ArrayDeque<>(Arrays.asList())),
+            new CfIinc(5, 1),
+            new CfGoto(label6),
+            label11,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1, 2, 3, 4},
+                    new FrameType[] {
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
+                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
                       FrameType.initialized(options.itemFactory.stringBuilderType)
                     }),
                 new ArrayDeque<>(Arrays.asList())),
-            new CfLoad(ValueType.OBJECT, 5),
+            new CfLoad(ValueType.OBJECT, 4),
             new CfConstString(options.itemFactory.createString("]")),
             new CfInvoke(
                 182,
@@ -421,8 +299,8 @@ public final class RecordCfMethods {
                     options.itemFactory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
-            label13,
-            new CfLoad(ValueType.OBJECT, 5),
+            label12,
+            new CfLoad(ValueType.OBJECT, 4),
             new CfInvoke(
                 182,
                 options.itemFactory.createMethod(
@@ -431,7 +309,7 @@ public final class RecordCfMethods {
                     options.itemFactory.createString("toString")),
                 false),
             new CfReturn(ValueType.OBJECT),
-            label14),
+            label13),
         ImmutableList.of(),
         ImmutableList.of());
   }
