@@ -23,7 +23,7 @@ import com.android.tools.r8.ir.desugar.itf.InterfaceMethodDesugaringEventConsume
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer.RecordInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.twr.TwrCloseResourceDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.google.common.collect.Sets;
@@ -46,7 +46,7 @@ public abstract class CfInstructionDesugaringEventConsumer
         InvokeSpecialToSelfDesugaringEventConsumer,
         LambdaDesugaringEventConsumer,
         NestBasedAccessDesugaringEventConsumer,
-        RecordDesugaringEventConsumer,
+        RecordInstructionDesugaringEventConsumer,
         TwrCloseResourceDesugaringEventConsumer,
         InterfaceMethodDesugaringEventConsumer,
         DesugaredLibraryRetargeterInstructionEventConsumer,

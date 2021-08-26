@@ -44,8 +44,6 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.DefaultMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
-import com.android.tools.r8.ir.desugar.CfClassDesugaringCollection;
-import com.android.tools.r8.ir.desugar.CfClassDesugaringEventConsumer.D8CfClassDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
@@ -134,7 +132,6 @@ public class IRConverter {
   private final Timing timing;
   private final Outliner outliner;
   private final ClassInitializerDefaultsOptimization classInitializerDefaultsOptimization;
-  private final CfClassDesugaringCollection classDesugaring;
   private final CfInstructionDesugaringCollection instructionDesugaring;
   private final FieldAccessAnalysis fieldAccessAnalysis;
   private final LibraryMethodOverrideAnalysis libraryMethodOverrideAnalysis;
@@ -225,7 +222,6 @@ public class IRConverter {
       // - invoke-special desugaring.
       assert options.desugarState.isOn();
       this.instructionDesugaring = CfInstructionDesugaringCollection.create(appView);
-      this.classDesugaring = CfClassDesugaringCollection.create(appView);
       this.interfaceMethodRewriter = null;
       this.covariantReturnTypeAnnotationTransformer = null;
       this.dynamicTypeOptimization = null;
@@ -252,10 +248,6 @@ public class IRConverter {
         appView.enableWholeProgramOptimizations()
             ? CfInstructionDesugaringCollection.empty()
             : CfInstructionDesugaringCollection.create(appView);
-    this.classDesugaring =
-        appView.enableWholeProgramOptimizations()
-            ? CfClassDesugaringCollection.empty()
-            : CfClassDesugaringCollection.create(appView);
     this.interfaceMethodRewriter =
         options.isInterfaceMethodDesugaringEnabled() && appView.enableWholeProgramOptimizations()
             ? new InterfaceMethodRewriter(appView, this)
@@ -456,7 +448,8 @@ public class IRConverter {
       ExecutorService executorService,
       CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer)
       throws ExecutionException {
-    new CfClassSynthesizerDesugaringCollection(appView, instructionDesugaring.getRetargetingInfo())
+    CfClassSynthesizerDesugaringCollection.create(
+            appView, instructionDesugaring.getRetargetingInfo())
         .synthesizeClasses(executorService, classSynthesizerEventConsumer);
   }
 
@@ -492,26 +485,6 @@ public class IRConverter {
 
     instructionDesugaring.withDesugaredLibraryAPIConverter(
         DesugaredLibraryAPIConverter::generateTrackingWarnings);
-  }
-
-  public void desugarClassesForD8(
-      List<DexProgramClass> classes,
-      D8CfClassDesugaringEventConsumer desugaringEventConsumer,
-      ExecutorService executorService)
-      throws ExecutionException {
-    if (classDesugaring.isEmpty()) {
-      return;
-    }
-    // Currently the classes can be processed in any order and do not require to be sorted.
-    ThreadUtils.processItems(
-        classes, clazz -> desugarClassForD8(clazz, desugaringEventConsumer), executorService);
-  }
-
-  private void desugarClassForD8(
-      DexProgramClass clazz, D8CfClassDesugaringEventConsumer desugaringEventConsumer) {
-    if (classDesugaring.needsDesugaring(clazz)) {
-      classDesugaring.desugar(clazz, desugaringEventConsumer);
-    }
   }
 
   public void prepareDesugaringForD8(ExecutorService executorService) throws ExecutionException {

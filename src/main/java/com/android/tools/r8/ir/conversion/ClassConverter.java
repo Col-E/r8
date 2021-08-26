@@ -9,8 +9,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.desugar.CfClassDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.CfClassDesugaringEventConsumer.D8CfClassDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
@@ -55,10 +53,10 @@ public abstract class ClassConverter {
       throws ExecutionException {
     List<DexProgramClass> classes = appView.appInfo().classes();
 
-    if (appView.options().isDesugaredLibraryCompilation()) {
       CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer =
           new CfClassSynthesizerDesugaringEventConsumer();
       converter.classSynthesisDesugaring(executorService, classSynthesizerEventConsumer);
+    if (!classSynthesizerEventConsumer.getSynthesizedClasses().isEmpty()) {
       classes =
           ImmutableList.<DexProgramClass>builder()
               .addAll(classes)
@@ -66,9 +64,6 @@ public abstract class ClassConverter {
               .build();
     }
 
-    D8CfClassDesugaringEventConsumer classDesugaringEventConsumer =
-        CfClassDesugaringEventConsumer.createForD8(methodProcessor);
-    converter.desugarClassesForD8(classes, classDesugaringEventConsumer, executorService);
     converter.prepareDesugaringForD8(executorService);
 
     while (!classes.isEmpty()) {

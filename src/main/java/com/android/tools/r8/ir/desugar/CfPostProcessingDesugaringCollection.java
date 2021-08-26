@@ -9,6 +9,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPICallb
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterPostProcessor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
+import com.android.tools.r8.ir.desugar.records.RecordRewriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -68,6 +69,10 @@ public abstract class CfPostProcessingDesugaringCollection {
       // call-backs on the forwarding methods.
       if (apiCallbackSynthesizor != null) {
         desugarings.add(apiCallbackSynthesizor);
+      }
+      RecordRewriter recordRewriter = RecordRewriter.create(appView);
+      if (recordRewriter != null) {
+        desugarings.add(recordRewriter);
       }
       if (desugarings.isEmpty()) {
         return empty();
