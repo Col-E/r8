@@ -38,10 +38,12 @@ import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 public class ClassFileTransformer {
@@ -885,6 +887,37 @@ public class ClassFileTransformer {
             } else {
               super.visitInvokeDynamicInsn(
                   name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
+            }
+          }
+        });
+  }
+
+  public ClassFileTransformer transformConstStringToConstantDynamic(
+      String constantName,
+      Class<?> bootstrapMethodHolder,
+      String bootstrapMethodName,
+      String name,
+      Class<?> type) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public void visitLdcInsn(Object value) {
+            String bootstrapMethodSignature =
+                "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;";
+            if (value instanceof String && value.equals(constantName)) {
+              super.visitLdcInsn(
+                  new ConstantDynamic(
+                      name,
+                      Reference.classFromClass(type).getDescriptor(),
+                      new Handle(
+                          Opcodes.H_INVOKESTATIC,
+                          DescriptorUtils.getClassBinaryName(bootstrapMethodHolder),
+                          bootstrapMethodName,
+                          bootstrapMethodSignature,
+                          false),
+                      new Object[] {}));
+            } else {
+              super.visitLdcInsn(value);
             }
           }
         });
