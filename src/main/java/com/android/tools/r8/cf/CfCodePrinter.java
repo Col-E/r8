@@ -49,6 +49,7 @@ import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
@@ -56,6 +57,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.MemberType;
+import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.StringUtils;
@@ -72,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.objectweb.asm.Opcodes;
 
 /** Rudimentary printer to print the source representation for creating CfCode object. */
 public class CfCodePrinter extends CfPrinter {
@@ -198,6 +201,14 @@ public class CfCodePrinter extends CfPrinter {
     return r8Type("FrameType", ImmutableList.of("cf", "code", "CfFrame"));
   }
 
+  private String monitorType() {
+    return r8Type("Monitor", ImmutableList.of("ir", "code"));
+  }
+
+  private String asmOpcodesType() {
+    return type("Opcodes", ImmutableList.of("org", "objectweb", "asm"));
+  }
+
   private String dexItemFactoryType() {
     return r8Type("DexItemFactory", "graph");
   }
@@ -312,6 +323,16 @@ public class CfCodePrinter extends CfPrinter {
         + ")";
   }
 
+  private String dexField(DexField field) {
+    return "options.itemFactory.createField("
+        + dexType(field.holder)
+        + ", "
+        + dexType(field.type)
+        + ", "
+        + dexString(field.name)
+        + ")";
+  }
+
   private void ensureComma() {
     if (pendingComma) {
       builder.append(",");
@@ -363,7 +384,7 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfConstClass constClass) {
-    throw new Unimplemented(constClass.getClass().getSimpleName());
+    printNewInstruction("CfConstClass", dexType(constClass.getType()));
   }
 
   @Override
@@ -378,7 +399,11 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfMonitor monitor) {
-    throw new Unimplemented(monitor.getClass().getSimpleName());
+    printNewInstruction(
+        "CfMonitor",
+        monitor.getType() == Monitor.Type.ENTER
+            ? monitorType() + ".Type.ENTER"
+            : monitorType() + ".Type.EXIT");
   }
 
   @Override
@@ -500,7 +525,23 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfFieldInstruction insn) {
-    throw new Unimplemented(insn.getClass().getSimpleName());
+    printNewInstruction(
+        "CfFieldInstruction", fieldInstructionOpcode(insn), dexField(insn.getField()));
+  }
+
+  private String fieldInstructionOpcode(CfFieldInstruction insn) {
+    switch (insn.getOpcode()) {
+      case Opcodes.GETSTATIC:
+        return asmOpcodesType() + ".GETSTATIC";
+      case Opcodes.PUTSTATIC:
+        return asmOpcodesType() + ".PUTSTATIC";
+      case Opcodes.GETFIELD:
+        return asmOpcodesType() + ".GETFIELD";
+      case Opcodes.PUTFIELD:
+        return asmOpcodesType() + ".PUTFIELD";
+      default:
+        throw new Unimplemented();
+    }
   }
 
   @Override
