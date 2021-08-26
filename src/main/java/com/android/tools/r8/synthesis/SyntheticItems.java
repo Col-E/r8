@@ -474,7 +474,36 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return legacyItem;
   }
 
-  private DexProgramClass internalCreateClass(
+  private DexProgramClass internalEnsureDexProgramClass(
+      SyntheticKind kind,
+      Consumer<SyntheticProgramClassBuilder> classConsumer,
+      Consumer<DexProgramClass> onCreationConsumer,
+      SynthesizingContext outerContext,
+      DexType type,
+      AppView<?> appView) {
+    // Fast path is that the synthetic is already present. If so it must be a program class.
+    DexClass dexClass = appView.appInfo().definitionFor(type);
+    if (dexClass != null) {
+      assert dexClass.isProgramClass();
+      return dexClass.asProgramClass();
+    }
+    // Slow path creates the class using the context to make it thread safe.
+    synchronized (type) {
+      // Recheck if it is present now the lock is held.
+      dexClass = appView.appInfo().definitionFor(type);
+      if (dexClass != null) {
+        assert dexClass.isProgramClass();
+        return dexClass.asProgramClass();
+      }
+      DexProgramClass clazz =
+          internalCreateProgramClass(
+              kind, classConsumer, outerContext, type, appView.dexItemFactory());
+      onCreationConsumer.accept(clazz);
+      return clazz;
+    }
+  }
+
+  private DexProgramClass internalCreateProgramClass(
       SyntheticKind kind,
       Consumer<SyntheticProgramClassBuilder> fn,
       SynthesizingContext outerContext,
@@ -499,7 +528,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     DexType type =
         SyntheticNaming.createInternalType(
             kind, outerContext, context.getSyntheticSuffix(), appView.dexItemFactory());
-    return internalCreateClass(kind, fn, outerContext, type, appView.dexItemFactory());
+    return internalCreateProgramClass(kind, fn, outerContext, type, appView.dexItemFactory());
   }
 
   // TODO(b/172194101): Make this take a unique context.
@@ -510,7 +539,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       Consumer<SyntheticProgramClassBuilder> fn) {
     SynthesizingContext outerContext = internalGetOuterContext(context, appView);
     DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
-    return internalCreateClass(kind, fn, outerContext, type, appView.dexItemFactory());
+    return internalCreateProgramClass(kind, fn, outerContext, type, appView.dexItemFactory());
   }
 
   public DexProgramClass getExistingFixedClass(
@@ -547,36 +576,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     assert kind.isFixedSuffixSynthetic;
     SynthesizingContext outerContext = internalGetOuterContext(context, appView);
     DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
-    // Fast path is that the synthetic is already present. If so it must be a program class.
-    DexClass clazz = appView.definitionFor(type);
-    if (clazz != null) {
-      assert isSyntheticClass(type);
-      assert clazz.isProgramClass();
-      return clazz.asProgramClass();
-    }
-    // Slow path creates the class using the context to make it thread safe.
-    synchronized (context) {
-      // Recheck if it is present now the lock is held.
-      clazz = appView.definitionFor(type);
-      if (clazz != null) {
-        assert isSyntheticClass(type);
-        assert clazz.isProgramClass();
-        return clazz.asProgramClass();
-      }
-      assert !isSyntheticClass(type);
-      DexProgramClass dexProgramClass =
-          internalCreateClass(
-              kind,
-              syntheticProgramClassBuilder -> {
-                syntheticProgramClassBuilder.setUseSortedMethodBacking(true);
-                fn.accept(syntheticProgramClassBuilder);
-              },
-              outerContext,
-              type,
-              appView.dexItemFactory());
-      onCreationConsumer.accept(dexProgramClass);
-      return dexProgramClass;
-    }
+    return internalEnsureDexProgramClass(kind, fn, onCreationConsumer, outerContext, type, appView);
   }
 
   public ProgramMethod ensureFixedClassMethod(
@@ -710,16 +710,17 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     }
   }
 
-  public DexProgramClass createFixedClassFromType(
+  public DexProgramClass ensureFixedClassFromType(
       SyntheticKind kind,
       DexType contextType,
-      DexItemFactory factory,
-      Consumer<SyntheticProgramClassBuilder> fn) {
+      AppView<?> appView,
+      Consumer<SyntheticProgramClassBuilder> fn,
+      Consumer<DexProgramClass> onCreationConsumer) {
     // Obtain the outer synthesizing context in the case the context itself is synthetic.
     // This is to ensure a flat input-type -> synthetic-item mapping.
     SynthesizingContext outerContext = SynthesizingContext.fromType(contextType);
-    DexType type = SyntheticNaming.createFixedType(kind, outerContext, factory);
-    return internalCreateClass(kind, fn, outerContext, type, factory);
+    DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
+    return internalEnsureDexProgramClass(kind, fn, onCreationConsumer, outerContext, type, appView);
   }
 
   /** Create a single synthetic method item. */

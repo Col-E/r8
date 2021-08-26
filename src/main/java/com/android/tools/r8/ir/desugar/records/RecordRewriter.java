@@ -103,21 +103,21 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
     if (instruction.isInvoke()) {
       CfInvoke cfInvoke = instruction.asInvoke();
       if (refersToRecord(cfInvoke.getMethod())) {
-        requiresRecordClass(eventConsumer);
+        ensureRecordClass(eventConsumer);
       }
       return;
     }
     if (instruction.isFieldInstruction()) {
       CfFieldInstruction fieldInstruction = instruction.asFieldInstruction();
       if (refersToRecord(fieldInstruction.getField())) {
-        requiresRecordClass(eventConsumer);
+        ensureRecordClass(eventConsumer);
       }
       return;
     }
     if (instruction.isTypeInstruction()) {
       CfTypeInstruction typeInstruction = instruction.asTypeInstruction();
       if (refersToRecord(typeInstruction.getType())) {
-        requiresRecordClass(eventConsumer);
+        ensureRecordClass(eventConsumer);
       }
       return;
     }
@@ -321,10 +321,38 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
     return false;
   }
 
-  private void requiresRecordClass(RecordDesugaringEventConsumer eventConsumer) {
-    DexProgramClass recordClass = synthesizeR8Record();
-    if (recordClass != null) {
-      eventConsumer.acceptRecordClass(recordClass);
+  private void ensureRecordClass(RecordDesugaringEventConsumer eventConsumer) {
+    DexItemFactory factory = appView.dexItemFactory();
+    checkRecordTagNotPresent(factory);
+    appView
+        .getSyntheticItems()
+        .ensureFixedClassFromType(
+            SyntheticNaming.SyntheticKind.RECORD_TAG,
+            factory.recordType,
+            appView,
+            builder -> {
+              DexEncodedMethod init = synthesizeRecordInitMethod();
+              DexEncodedMethod abstractGetFieldsAsObjectsMethod =
+                  synthesizeAbstractGetFieldsAsObjectsMethod();
+              builder
+                  .setAbstract()
+                  .setVirtualMethods(ImmutableList.of(abstractGetFieldsAsObjectsMethod))
+                  .setDirectMethods(ImmutableList.of(init));
+            },
+            eventConsumer::acceptRecordClass);
+  }
+
+  private void checkRecordTagNotPresent(DexItemFactory factory) {
+    DexClass r8RecordClass =
+        appView.appInfo().definitionForWithoutExistenceAssert(factory.recordTagType);
+    if (r8RecordClass != null && r8RecordClass.isProgramClass()) {
+      appView
+          .options()
+          .reporter
+          .error(
+              "D8/R8 is compiling a mix of desugared and non desugared input using"
+                  + " java.lang.Record, but the application reader did not import correctly "
+                  + factory.recordTagType);
     }
   }
 
@@ -337,7 +365,7 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
   public void desugar(DexProgramClass clazz, CfClassDesugaringEventConsumer eventConsumer) {
     if (clazz.isRecord()) {
       assert clazz.superType == factory.recordType;
-      requiresRecordClass(eventConsumer);
+      ensureRecordClass(eventConsumer);
       clazz.accessFlags.unsetRecord();
     }
   }
@@ -469,50 +497,6 @@ public class RecordRewriter implements CfInstructionDesugaring, CfClassDesugarin
     }
     assert method == factory.recordMembers.hashCode;
     return factory.objectMembers.toString;
-  }
-
-  private DexProgramClass synthesizeR8Record() {
-    DexItemFactory factory = appView.dexItemFactory();
-    DexClass r8RecordClass =
-        appView.appInfo().definitionForWithoutExistenceAssert(factory.recordTagType);
-    if (r8RecordClass != null && r8RecordClass.isProgramClass()) {
-      appView
-          .options()
-          .reporter
-          .error(
-              "D8/R8 is compiling a mix of desugared and non desugared input using"
-                  + " java.lang.Record, but the application reader did not import correctly "
-                  + factory.recordTagType.toString());
-    }
-    DexClass recordClass =
-        appView.appInfo().definitionForWithoutExistenceAssert(factory.recordType);
-    if (recordClass != null && recordClass.isProgramClass()) {
-      return null;
-    }
-    return synchronizedSynthesizeR8Record();
-  }
-
-  private synchronized DexProgramClass synchronizedSynthesizeR8Record() {
-    DexItemFactory factory = appView.dexItemFactory();
-    DexClass recordClass =
-        appView.appInfo().definitionForWithoutExistenceAssert(factory.recordType);
-    if (recordClass != null && recordClass.isProgramClass()) {
-      return null;
-    }
-    DexEncodedMethod init = synthesizeRecordInitMethod();
-    DexEncodedMethod abstractGetFieldsAsObjectsMethod =
-        synthesizeAbstractGetFieldsAsObjectsMethod();
-    return appView
-        .getSyntheticItems()
-        .createFixedClassFromType(
-            SyntheticNaming.SyntheticKind.RECORD_TAG,
-            factory.recordType,
-            factory,
-            builder ->
-                builder
-                    .setAbstract()
-                    .setVirtualMethods(ImmutableList.of(abstractGetFieldsAsObjectsMethod))
-                    .setDirectMethods(ImmutableList.of(init)));
   }
 
   private DexEncodedMethod synthesizeAbstractGetFieldsAsObjectsMethod() {
