@@ -114,7 +114,6 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     }
     this.recordRewriter = RecordRewriter.create(appView);
     if (recordRewriter != null) {
-      assert !appView.enableWholeProgramOptimizations() : "To be implemented";
       desugarings.add(recordRewriter);
     }
   }

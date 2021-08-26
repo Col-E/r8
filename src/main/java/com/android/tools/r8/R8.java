@@ -46,6 +46,8 @@ import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
+import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringCollection;
+import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterLibraryTypeSynthesizor;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.records.RecordRewriter;
@@ -321,6 +323,19 @@ public class R8 {
       }
       CfUtilityMethodsForCodeOptimizations.registerSynthesizedCodeReferences(
           appView.dexItemFactory());
+
+      // Upfront desugaring generation: Generates new program classes to be added in the app.
+      CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer =
+          new CfClassSynthesizerDesugaringEventConsumer();
+      CfClassSynthesizerDesugaringCollection.create(appView, null)
+          .synthesizeClasses(executorService, classSynthesizerEventConsumer);
+      if (appView.getSyntheticItems().hasPendingSyntheticClasses()) {
+        appView.setAppInfo(
+            appView
+                .appInfo()
+                .rebuildWithClassHierarchy(
+                    appView.getSyntheticItems().commit(appView.appInfo().app())));
+      }
 
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
       timing.begin("Strip unused code");

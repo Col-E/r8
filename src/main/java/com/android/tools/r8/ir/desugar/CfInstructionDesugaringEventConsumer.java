@@ -349,13 +349,13 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptRecordClass(DexProgramClass recordClass) {
-      // This is called each time an instruction or a class is found to require the record class.
-      assert false : "TODO(b/179146128): To be implemented";
+      // Intentionally empty. The class will be hit by tracing if required.
     }
 
     @Override
     public void acceptRecordMethod(ProgramMethod method) {
-      assert false : "TODO(b/179146128): To be implemented";
+      // Intentionally empty. The method will be hit by the tracing in R8 as if it was
+      // present in the input code, and thus nothing needs to be done.
     }
 
     @Override
