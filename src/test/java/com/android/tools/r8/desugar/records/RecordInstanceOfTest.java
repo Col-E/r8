@@ -13,7 +13,6 @@ import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.List;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -63,23 +62,35 @@ public class RecordInstanceOfTest extends TestBase {
   }
 
   @Test
-  public void testR8Cf() throws Exception {
-    Assume.assumeTrue(parameters.isCfRuntime());
-    Path output =
-        testForR8(parameters.getBackend())
-            .addProgramClassFileData(PROGRAM_DATA)
-            .setMinApi(parameters.getApiLevel())
-            .addKeepRules(RECORD_KEEP_RULE)
-            .addKeepMainRule(MAIN_TYPE)
-            .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-            .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
-            .compile()
-            .writeToZip();
-    RecordTestUtils.assertRecordsAreRecords(output);
-    testForJvm()
-        .addRunClasspathFiles(output)
-        .enablePreview()
+  public void testR8() throws Exception {
+    if (parameters.isCfRuntime()) {
+      Path output =
+          testForR8(parameters.getBackend())
+              .addProgramClassFileData(PROGRAM_DATA)
+              .setMinApi(parameters.getApiLevel())
+              .addKeepRules(RECORD_KEEP_RULE)
+              .addKeepMainRule(MAIN_TYPE)
+              .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
+              .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+              .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
+              .compile()
+              .writeToZip();
+      RecordTestUtils.assertRecordsAreRecords(output);
+      testForJvm()
+          .addRunClasspathFiles(output)
+          .enablePreview()
+          .run(parameters.getRuntime(), MAIN_TYPE)
+          .assertSuccessWithOutput(EXPECTED_RESULT);
+      return;
+    }
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(PROGRAM_DATA)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepRules(RECORD_KEEP_RULE)
+        .addKeepMainRule(MAIN_TYPE)
+        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+        .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
+        .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
