@@ -86,6 +86,10 @@ public class ArgumentPropagatorCodeScanner {
     return methodStates;
   }
 
+  DexMethod getVirtualRootMethod(ProgramMethod method) {
+    return virtualRootMethods.get(method.getReference());
+  }
+
   void scan(ProgramMethod method, IRCode code, Timing timing) {
     timing.begin("Argument propagation scanner");
     for (Invoke invoke : code.<Invoke>instructions(Instruction::isInvoke)) {
@@ -219,6 +223,8 @@ public class ArgumentPropagatorCodeScanner {
     return result;
   }
 
+  // TODO(b/190154391): Use monomorphic method states for virtual methods that are not overridden
+  //  and do not themselves override other methods.
   // TODO(b/190154391): Add a strategy that widens the dynamic receiver type to allow easily
   //  experimenting with the performance/size trade-off between precise/imprecise handling of
   //  dynamic dispatch.
@@ -230,16 +236,9 @@ public class ArgumentPropagatorCodeScanner {
     DynamicType dynamicReceiverType = invoke.getReceiver().getDynamicType(appView);
     assert !dynamicReceiverType.getDynamicUpperBoundType().nullability().isDefinitelyNull();
 
-    // TODO(b/190154391): Consider using an exact bound if we have a single target (these are cached
-    //  and should therefore not be too expensive to compute). Doing so should have the same
-    //  precision, but lead to less state propagation in the subsequent top-down class
-    //  hierarchy traversals.
     DynamicType bounds =
-        invoke.isInvokeSuper()
-            ? DynamicType.createExact(
-                resolvedMethod.getHolderType().toTypeElement(appView).asClassType())
-            : dynamicReceiverType;
-
+        computeBoundsForPolymorphicMethodState(
+            invoke, resolvedMethod, context, dynamicReceiverType);
     MethodState existingMethodStateForBounds =
         existingMethodState.isPolymorphic()
             ? existingMethodState.asPolymorphic().getMethodStateForBounds(bounds)
@@ -256,16 +255,48 @@ public class ArgumentPropagatorCodeScanner {
       return MethodState.unknown();
     }
 
-    // TODO(b/190154391): If the receiver type is effectively unknown, and the computed monomorphic
-    //  method state is also unknown (i.e., we have "unknown receiver type" -> "unknown method
-    //  state"), then return the canonicalized UnknownMethodState instance instead.
-    return new ConcretePolymorphicMethodState(
-        bounds,
+    ConcreteMonomorphicMethodStateOrUnknown methodStateForBounds =
         computeMonomorphicMethodState(
             invoke,
             context,
             existingMethodStateForBounds.asMonomorphicOrBottom(),
-            dynamicReceiverType));
+            dynamicReceiverType);
+    return ConcretePolymorphicMethodState.create(bounds, methodStateForBounds);
+  }
+
+  private DynamicType computeBoundsForPolymorphicMethodState(
+      InvokeMethodWithReceiver invoke,
+      ProgramMethod resolvedMethod,
+      ProgramMethod context,
+      DynamicType dynamicReceiverType) {
+    ProgramMethod singleTarget = invoke.lookupSingleProgramTarget(appView, context);
+    DynamicType bounds =
+        singleTarget != null
+            ? DynamicType.createExact(
+                singleTarget.getHolderType().toTypeElement(appView).asClassType())
+            : dynamicReceiverType.withNullability(Nullability.maybeNull());
+
+    // We intentionally drop the nullability for the type bounds. This increases the number of
+    // collisions in the polymorphic method states, which does not change the precision (since the
+    // nullability does not have any impact on the possible dispatch targets) and is good for state
+    // pruning.
+    assert bounds.getDynamicUpperBoundType().nullability().isMaybeNull();
+
+    // If the bounds are trivial (i.e., the upper bound is equal to the holder of the virtual root
+    // method), then widen the type bounds to 'unknown'.
+    DexMethod virtualRootMethod = getVirtualRootMethod(resolvedMethod);
+    if (virtualRootMethod == null) {
+      assert false : "Unexpected virtual method without root: " + resolvedMethod;
+      return bounds;
+    }
+
+    DynamicType trivialBounds =
+        DynamicType.create(
+            appView, virtualRootMethod.getHolderType().toTypeElement(appView).asClassType());
+    if (bounds.equals(trivialBounds)) {
+      return DynamicType.unknown();
+    }
+    return bounds;
   }
 
   private ConcreteMonomorphicMethodStateOrUnknown computeMonomorphicMethodState(
@@ -412,7 +443,7 @@ public class ArgumentPropagatorCodeScanner {
     DexMethod resolvedMethodReference = resolvedMethod.getReference();
     if (invoke.isInvokeInterface()) {
       if (resolvedMethod.getDefinition().belongsToVirtualPool()) {
-        return resolvedMethodReference;
+        return getVirtualRootMethod(resolvedMethod);
       }
       // An invoke-interface can also target private methods, in which case this is a monomorphic
       // invoke.
@@ -421,7 +452,7 @@ public class ArgumentPropagatorCodeScanner {
     if (invoke.isInvokeSuper()) {
       return resolvedMethodReference;
     }
-    DexMethod rootMethod = virtualRootMethods.get(resolvedMethodReference);
+    DexMethod rootMethod = getVirtualRootMethod(resolvedMethod);
     if (rootMethod != null) {
       assert invoke.isInvokeVirtual();
       return rootMethod;

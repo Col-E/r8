@@ -10,7 +10,7 @@ import java.util.function.Function;
 
 // Use this when the nothing is known.
 public class UnknownMethodState extends MethodStateBase
-    implements ConcreteMonomorphicMethodStateOrUnknown {
+    implements ConcreteMonomorphicMethodStateOrUnknown, ConcretePolymorphicMethodStateOrUnknown {
 
   private static final UnknownMethodState INSTANCE = new UnknownMethodState();
 

@@ -6,7 +6,6 @@ package com.android.tools.r8.optimize.argumentpropagation;
 
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -31,8 +30,7 @@ public class ImpreciseReceiverWithUnknownArgumentInformationWidenedToUnknownTest
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  // TODO(b/190154391): The state for A.test() should be unknown.
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void test() throws Exception {
     BooleanBox inspected = new BooleanBox();
     testForR8(parameters.getBackend())
