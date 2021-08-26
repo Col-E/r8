@@ -5,9 +5,11 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.SetUtils;
@@ -96,7 +98,9 @@ public class ConcreteClassTypeParameterState extends ConcreteReferenceTypeParame
   public ParameterState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       ConcreteReferenceTypeParameterState parameterState,
+      DexType parameterType,
       Action onChangedAction) {
+    assert parameterType.isClassType();
     boolean allowNullOrAbstractValue = true;
     boolean allowNonConstantNumbers = false;
     AbstractValue oldAbstractValue = abstractValue;
@@ -106,10 +110,11 @@ public class ConcreteClassTypeParameterState extends ConcreteReferenceTypeParame
             appView.abstractValueFactory(),
             allowNullOrAbstractValue,
             allowNonConstantNumbers);
-    // TODO(b/190154391): Take in the static type as an argument, and unset the dynamic type if it
-    //  equals the static type.
     DynamicType oldDynamicType = dynamicType;
-    dynamicType = dynamicType.join(appView, parameterState.getDynamicType());
+    DynamicType joinedDynamicType = dynamicType.join(appView, parameterState.getDynamicType());
+    DynamicType widenedDynamicType =
+        WideningUtils.widenDynamicNonReceiverType(appView, joinedDynamicType, parameterType);
+    dynamicType = widenedDynamicType;
     if (abstractValue.isUnknown() && dynamicType.isUnknown()) {
       return unknown();
     }

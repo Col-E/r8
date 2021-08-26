@@ -49,6 +49,10 @@ public class Nullability {
     return isMaybeNull() || isDefinitelyNull();
   }
 
+  public boolean isUnknown() {
+    return isMaybeNull();
+  }
+
   public Nullability join(Nullability other) {
     if (this == BOTTOM) {
       return other;
@@ -77,6 +81,10 @@ public class Nullability {
 
   public boolean lessThanOrEqual(Nullability other) {
     return join(other) == other;
+  }
+
+  public boolean strictlyLessThan(Nullability other) {
+    return !equals(other) && other == join(other);
   }
 
   public static Nullability definitelyNull() {

@@ -250,11 +250,8 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
             assert false;
           }
         } else if (staticType.isClassType()) {
-          DynamicType dynamicType =
-              method.getDefinition().isInstance() && argumentIndex == 0
-                  ? concreteParameterState.asReceiverParameter().getDynamicType()
-                  : concreteParameterState.asClassParameter().getDynamicType();
-          if (!dynamicType.isTrivial(staticTypeElement)) {
+          DynamicType dynamicType = concreteParameterState.asReferenceParameter().getDynamicType();
+          if (!dynamicType.isUnknown()) {
             newCallSiteInfo.dynamicUpperBoundTypes.put(
                 argumentIndex, dynamicType.getDynamicUpperBoundType());
             isTop = false;

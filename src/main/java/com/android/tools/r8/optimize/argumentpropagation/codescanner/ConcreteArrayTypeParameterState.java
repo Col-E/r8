@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -96,10 +97,12 @@ public class ConcreteArrayTypeParameterState extends ConcreteReferenceTypeParame
   public ParameterState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       ConcreteReferenceTypeParameterState parameterState,
+      DexType parameterType,
       Action onChangedAction) {
-    assert !nullability.isMaybeNull();
+    assert parameterType.isArrayType();
+    assert !nullability.isUnknown();
     nullability = nullability.join(parameterState.getNullability());
-    if (nullability.isMaybeNull()) {
+    if (nullability.isUnknown()) {
       return unknown();
     }
     boolean inParametersChanged = mutableJoinInParameters(parameterState);

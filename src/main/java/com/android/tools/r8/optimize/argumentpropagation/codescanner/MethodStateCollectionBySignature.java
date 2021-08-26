@@ -28,4 +28,9 @@ public class MethodStateCollectionBySignature extends MethodStateCollection<DexM
   DexMethodSignature getKey(ProgramMethod method) {
     return method.getMethodSignature();
   }
+
+  @Override
+  DexMethodSignature getSignature(DexMethodSignature method) {
+    return method;
+  }
 }

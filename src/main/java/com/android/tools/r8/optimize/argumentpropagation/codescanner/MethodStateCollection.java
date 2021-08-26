@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
@@ -24,6 +25,8 @@ abstract class MethodStateCollection<K> {
 
   abstract K getKey(ProgramMethod method);
 
+  abstract DexMethodSignature getSignature(K method);
+
   public void addMethodState(
       AppView<AppInfoWithLiveness> appView, ProgramMethod method, MethodState methodState) {
     addMethodState(appView, getKey(method), methodState);
@@ -41,7 +44,8 @@ abstract class MethodStateCollection<K> {
             if (existingMethodState == null) {
               newMethodState = methodState.mutableCopy();
             } else {
-              newMethodState = existingMethodState.mutableJoin(appView, methodState);
+              newMethodState =
+                  existingMethodState.mutableJoin(appView, getSignature(method), methodState);
             }
             assert !newMethodState.isBottom();
             return newMethodState;
@@ -68,7 +72,8 @@ abstract class MethodStateCollection<K> {
           }
           assert !existingMethodState.isBottom();
           timing.begin("Join temporary method state");
-          MethodState joinResult = existingMethodState.mutableJoin(appView, methodStateSupplier);
+          MethodState joinResult =
+              existingMethodState.mutableJoin(appView, getSignature(method), methodStateSupplier);
           assert !joinResult.isBottom();
           timing.end();
           return joinResult;

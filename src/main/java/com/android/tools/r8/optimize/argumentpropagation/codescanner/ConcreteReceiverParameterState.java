@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -88,9 +89,11 @@ public class ConcreteReceiverParameterState extends ConcreteReferenceTypeParamet
   public ParameterState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       ConcreteReferenceTypeParameterState parameterState,
+      DexType parameterType,
       Action onChangedAction) {
-    // TODO(b/190154391): Take in the static type as an argument, and unset the dynamic type if it
-    //  equals the static type.
+    // TODO(b/190154391): Always take in the static type as an argument, and unset the dynamic type
+    //  if it equals the static type.
+    assert parameterType == null || parameterType.isClassType();
     DynamicType oldDynamicType = dynamicType;
     dynamicType = dynamicType.join(appView, parameterState.getDynamicType());
     if (dynamicType.isUnknown()) {

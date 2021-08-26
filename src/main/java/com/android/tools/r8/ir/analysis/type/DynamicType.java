@@ -107,16 +107,16 @@ public class DynamicType {
     return null;
   }
 
+  public Nullability getNullability() {
+    return getDynamicUpperBoundType().nullability();
+  }
+
   public boolean isBottom() {
     return getDynamicUpperBoundType().isBottom();
   }
 
   public boolean isNullType() {
     return getDynamicUpperBoundType().isNullType();
-  }
-
-  public boolean isTrivial(TypeElement staticType) {
-    return staticType.equals(getDynamicUpperBoundType()) || isUnknown();
   }
 
   public boolean isUnknown() {

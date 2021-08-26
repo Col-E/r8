@@ -59,6 +59,10 @@ public abstract class DexClassAndMethod extends DexClassAndMember<DexEncodedMeth
     return getDefinition().getOptimizationInfo();
   }
 
+  public DexType getArgumentType(int index) {
+    return getDefinition().getArgumentType(index);
+  }
+
   public DexType getParameter(int index) {
     return getReference().getParameter(index);
   }

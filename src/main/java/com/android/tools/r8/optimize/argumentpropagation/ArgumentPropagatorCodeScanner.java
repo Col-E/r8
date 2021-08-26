@@ -9,9 +9,9 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -39,6 +39,7 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.UnknownMethodState;
+import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Iterables;
@@ -217,7 +218,7 @@ public class ArgumentPropagatorCodeScanner {
       assert existingMethodState.isBottom() || existingMethodState.isMonomorphic();
       result =
           computeMonomorphicMethodState(
-              invoke, context, existingMethodState.asMonomorphicOrBottom());
+              invoke, resolvedMethod, context, existingMethodState.asMonomorphicOrBottom());
     }
     timing.end();
     return result;
@@ -258,6 +259,7 @@ public class ArgumentPropagatorCodeScanner {
     ConcreteMonomorphicMethodStateOrUnknown methodStateForBounds =
         computeMonomorphicMethodState(
             invoke,
+            resolvedMethod,
             context,
             existingMethodStateForBounds.asMonomorphicOrBottom(),
             dynamicReceiverType);
@@ -301,10 +303,12 @@ public class ArgumentPropagatorCodeScanner {
 
   private ConcreteMonomorphicMethodStateOrUnknown computeMonomorphicMethodState(
       InvokeMethod invoke,
+      ProgramMethod resolvedMethod,
       ProgramMethod context,
       ConcreteMonomorphicMethodStateOrBottom existingMethodState) {
     return computeMonomorphicMethodState(
         invoke,
+        resolvedMethod,
         context,
         existingMethodState,
         invoke.isInvokeMethodWithReceiver()
@@ -314,6 +318,7 @@ public class ArgumentPropagatorCodeScanner {
 
   private ConcreteMonomorphicMethodStateOrUnknown computeMonomorphicMethodState(
       InvokeMethod invoke,
+      ProgramMethod resolvedMethod,
       ProgramMethod context,
       ConcreteMonomorphicMethodStateOrBottom existingMethodState,
       DynamicType dynamicReceiverType) {
@@ -324,7 +329,10 @@ public class ArgumentPropagatorCodeScanner {
       assert dynamicReceiverType != null;
       parameterStates.add(
           computeParameterStateForReceiver(
-              invoke.asInvokeMethodWithReceiver(), dynamicReceiverType, existingMethodState));
+              invoke.asInvokeMethodWithReceiver(),
+              resolvedMethod,
+              dynamicReceiverType,
+              existingMethodState));
       argumentIndex++;
     }
 
@@ -353,6 +361,7 @@ public class ArgumentPropagatorCodeScanner {
   //  computeParameterStateForNonReceiver() for receivers.
   private ParameterState computeParameterStateForReceiver(
       InvokeMethodWithReceiver invoke,
+      ProgramMethod resolvedMethod,
       DynamicType dynamicReceiverType,
       ConcreteMonomorphicMethodStateOrBottom existingMethodState) {
     // Don't compute a state for this parameter if the stored state is already unknown.
@@ -361,14 +370,9 @@ public class ArgumentPropagatorCodeScanner {
       return ParameterState.unknown();
     }
 
-    ClassTypeElement staticReceiverType =
-        invoke
-            .getInvokedMethod()
-            .getHolderType()
-            .toTypeElement(appView)
-            .asClassType()
-            .asMeetWithNotNull();
-    return dynamicReceiverType.isTrivial(staticReceiverType)
+    DynamicType widenedDynamicReceiverType =
+        WideningUtils.widenDynamicReceiverType(appView, resolvedMethod, dynamicReceiverType);
+    return widenedDynamicReceiverType.isUnknown()
         ? ParameterState.unknown()
         : new ConcreteReceiverParameterState(dynamicReceiverType);
   }
@@ -386,11 +390,9 @@ public class ArgumentPropagatorCodeScanner {
     }
 
     Value argumentRoot = argument.getAliasedValue(aliasedValueConfiguration);
-    TypeElement parameterType =
-        invoke
-            .getInvokedMethod()
-            .getArgumentType(argumentIndex, invoke.isInvokeStatic())
-            .toTypeElement(appView);
+    DexType parameterType =
+        invoke.getInvokedMethod().getArgumentType(argumentIndex, invoke.isInvokeStatic());
+    TypeElement parameterTypeElement = parameterType.toTypeElement(appView);
 
     // If the value is an argument of the enclosing method, then clearly we have no information
     // about its abstract value. Instead of treating this as having an unknown runtime value, we
@@ -401,18 +403,18 @@ public class ArgumentPropagatorCodeScanner {
       MethodParameter forwardedParameter =
           new MethodParameter(
               context.getReference(), argumentRoot.getDefinition().asArgument().getIndex());
-      if (parameterType.isClassType()) {
+      if (parameterTypeElement.isClassType()) {
         return new ConcreteClassTypeParameterState(forwardedParameter);
-      } else if (parameterType.isArrayType()) {
+      } else if (parameterTypeElement.isArrayType()) {
         return new ConcreteArrayTypeParameterState(forwardedParameter);
       } else {
-        assert parameterType.isPrimitiveType();
+        assert parameterTypeElement.isPrimitiveType();
         return new ConcretePrimitiveTypeParameterState(forwardedParameter);
       }
     }
 
     // Only track the nullability for array types.
-    if (parameterType.isArrayType()) {
+    if (parameterTypeElement.isArrayType()) {
       Nullability nullability = argument.getType().nullability();
       return nullability.isMaybeNull()
           ? ParameterState.unknown()
@@ -423,16 +425,18 @@ public class ArgumentPropagatorCodeScanner {
 
     // For class types, we track both the abstract value and the dynamic type. If both are unknown,
     // then use UnknownParameterState.
-    if (parameterType.isClassType()) {
+    if (parameterTypeElement.isClassType()) {
       DynamicType dynamicType = argument.getDynamicType(appView);
-      return abstractValue.isUnknown() && dynamicType.isTrivial(parameterType)
+      DynamicType widenedDynamicType =
+          WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, parameterType);
+      return abstractValue.isUnknown() && widenedDynamicType.isUnknown()
           ? ParameterState.unknown()
-          : new ConcreteClassTypeParameterState(abstractValue, dynamicType);
+          : new ConcreteClassTypeParameterState(abstractValue, widenedDynamicType);
     }
 
     // For primitive types, we only track the abstract value, thus if the abstract value is unknown,
     // we use UnknownParameterState.
-    assert parameterType.isPrimitiveType();
+    assert parameterTypeElement.isPrimitiveType();
     return abstractValue.isUnknown()
         ? ParameterState.unknown()
         : new ConcretePrimitiveTypeParameterState(abstractValue);

@@ -49,11 +49,6 @@ public class DynamicTypeWithLowerBound extends DynamicType {
   }
 
   @Override
-  public boolean isTrivial(TypeElement staticType) {
-    return false;
-  }
-
-  @Override
   public boolean equals(Object other) {
     if (other == null || getClass() != other.getClass()) {
       return false;

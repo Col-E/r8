@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
@@ -56,10 +57,13 @@ public abstract class ParameterState {
   public abstract ParameterState mutableCopy();
 
   public final ParameterState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, ParameterState parameterState) {
-    return mutableJoin(appView, parameterState, Action.empty());
+      AppView<AppInfoWithLiveness> appView, ParameterState parameterState, DexType parameterType) {
+    return mutableJoin(appView, parameterState, parameterType, Action.empty());
   }
 
   public abstract ParameterState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, ParameterState parameterState, Action onChangedAction);
+      AppView<AppInfoWithLiveness> appView,
+      ParameterState parameterState,
+      DexType parameterType,
+      Action onChangedAction);
 }

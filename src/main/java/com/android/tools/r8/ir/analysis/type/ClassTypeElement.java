@@ -135,6 +135,11 @@ public class ClassTypeElement extends ReferenceTypeElement {
   }
 
   @Override
+  public ClassTypeElement asDefinitelyNotNull() {
+    return getOrCreateVariant(Nullability.definitelyNotNull());
+  }
+
+  @Override
   public ClassTypeElement asMeetWithNotNull() {
     return getOrCreateVariant(nullability.meet(Nullability.definitelyNotNull()));
   }

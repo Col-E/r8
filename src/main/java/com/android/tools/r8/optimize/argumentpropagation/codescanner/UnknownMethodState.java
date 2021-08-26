@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.function.Function;
 
@@ -31,13 +32,17 @@ public class UnknownMethodState extends MethodStateBase
   }
 
   @Override
-  public MethodState mutableJoin(AppView<AppInfoWithLiveness> appView, MethodState methodState) {
+  public MethodState mutableJoin(
+      AppView<AppInfoWithLiveness> appView,
+      DexMethodSignature methodSignature,
+      MethodState methodState) {
     return this;
   }
 
   @Override
   public MethodState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
+      DexMethodSignature methodSignature,
       Function<MethodState, MethodState> methodStateSupplier) {
     return this;
   }

@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
@@ -227,7 +228,8 @@ public class InParameterFlowPropagator {
           (ignore, parameterNode) ->
               parameterNode != null
                   ? parameterNode
-                  : new ParameterNode(methodState, parameterIndex));
+                  : new ParameterNode(
+                      methodState, parameterIndex, method.getArgumentType(parameterIndex)));
     }
 
     private ProgramMethod getEnclosingMethod(MethodParameter methodParameter) {
@@ -250,15 +252,18 @@ public class InParameterFlowPropagator {
 
     private final ConcreteMonomorphicMethodState methodState;
     private final int parameterIndex;
+    private final DexType parameterType;
 
     private final Set<ParameterNode> predecessors = Sets.newIdentityHashSet();
     private final Set<ParameterNode> successors = Sets.newIdentityHashSet();
 
     private boolean pending = true;
 
-    ParameterNode(ConcreteMonomorphicMethodState methodState, int parameterIndex) {
+    ParameterNode(
+        ConcreteMonomorphicMethodState methodState, int parameterIndex, DexType parameterType) {
       this.methodState = methodState;
       this.parameterIndex = parameterIndex;
+      this.parameterType = parameterType;
     }
 
     void addPredecessor(ParameterNode predecessor) {
@@ -295,7 +300,8 @@ public class InParameterFlowPropagator {
         Action onChangedAction) {
       ParameterState oldParameterState = getState();
       ParameterState newParameterState =
-          oldParameterState.mutableJoin(appView, parameterStateToAdd, onChangedAction);
+          oldParameterState.mutableJoin(
+              appView, parameterStateToAdd, parameterType, onChangedAction);
       if (newParameterState != oldParameterState) {
         setState(newParameterState);
         onChangedAction.execute();

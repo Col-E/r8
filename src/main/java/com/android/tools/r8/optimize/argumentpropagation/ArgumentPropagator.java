@@ -23,7 +23,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 /** Optimization that propagates information about arguments from call sites to method entries. */
-// TODO(b/190154391): Add timing information for performance tracking.
 public class ArgumentPropagator {
 
   private final AppView<AppInfoWithLiveness> appView;

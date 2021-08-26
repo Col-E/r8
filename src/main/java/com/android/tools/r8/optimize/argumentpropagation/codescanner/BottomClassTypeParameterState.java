@@ -5,8 +5,10 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
 
@@ -22,7 +24,10 @@ public class BottomClassTypeParameterState extends BottomParameterState {
 
   @Override
   public ParameterState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, ParameterState parameterState, Action onChangedAction) {
+      AppView<AppInfoWithLiveness> appView,
+      ParameterState parameterState,
+      DexType parameterType,
+      Action onChangedAction) {
     if (parameterState.isBottom()) {
       return this;
     }
@@ -35,10 +40,11 @@ public class BottomClassTypeParameterState extends BottomParameterState {
         parameterState.asConcrete().asReferenceParameter();
     AbstractValue abstractValue = concreteParameterState.getAbstractValue(appView);
     DynamicType dynamicType = concreteParameterState.getDynamicType();
-    if (abstractValue.isUnknown() && dynamicType.isUnknown()) {
-      return unknown();
-    }
-    return new ConcreteClassTypeParameterState(
-        abstractValue, dynamicType, concreteParameterState.copyInParameters());
+    DynamicType widenedDynamicType =
+        WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, parameterType);
+    return abstractValue.isUnknown() && widenedDynamicType.isUnknown()
+        ? unknown()
+        : new ConcreteClassTypeParameterState(
+            abstractValue, widenedDynamicType, concreteParameterState.copyInParameters());
   }
 }

@@ -7,8 +7,10 @@ package com.android.tools.r8.optimize.argumentpropagation;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
@@ -19,6 +21,7 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterSt
 import com.android.tools.r8.optimize.argumentpropagation.propagation.InParameterFlowPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.propagation.InterfaceMethodArgumentPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.propagation.VirtualDispatchMethodArgumentPropagator;
+import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -29,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.IntStream;
 
 /**
  * Propagates the argument flow information collected by the {@link ArgumentPropagatorCodeScanner}.
@@ -198,6 +202,27 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
         .filter(ParameterState::isConcrete)
         .map(ParameterState::asConcrete)
         .noneMatch(ConcreteParameterState::hasInParameters);
+
+    // Verify that the dynamic type information is correct.
+    assert IntStream.range(0, monomorphicMethodState.getParameterStates().size())
+        .filter(
+            index -> {
+              ParameterState parameterState = monomorphicMethodState.getParameterState(index);
+              return parameterState.isConcrete() && parameterState.asConcrete().isClassParameter();
+            })
+        .allMatch(
+            index -> {
+              DynamicType dynamicType =
+                  monomorphicMethodState
+                      .getParameterState(index)
+                      .asConcrete()
+                      .asClassParameter()
+                      .getDynamicType();
+              DexType staticType = method.getArgumentType(index);
+              assert dynamicType
+                  == WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, staticType);
+              return true;
+            });
 
     method
         .getDefinition()

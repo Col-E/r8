@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
@@ -140,8 +141,11 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
     private MethodState computeMethodStateForPolymorhicMethod(ProgramMethod method) {
       assert method.getDefinition().isNonPrivateVirtualMethod();
       MethodState methodState = active.get(method).mutableCopy();
-      for (MethodStateCollectionBySignature methodStates : activeUntilLowerBound.values()) {
-        methodState = methodState.mutableJoin(appView, methodStates.get(method));
+      if (!activeUntilLowerBound.isEmpty()) {
+        DexMethodSignature methodSignature = method.getMethodSignature();
+        for (MethodStateCollectionBySignature methodStates : activeUntilLowerBound.values()) {
+          methodState = methodState.mutableJoin(appView, methodSignature, methodStates.get(method));
+        }
       }
       return methodState;
     }

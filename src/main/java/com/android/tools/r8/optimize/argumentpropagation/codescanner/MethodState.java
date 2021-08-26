@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.function.Function;
 
@@ -40,8 +41,13 @@ public interface MethodState {
 
   MethodState mutableCopy();
 
-  MethodState mutableJoin(AppView<AppInfoWithLiveness> appView, MethodState methodState);
+  MethodState mutableJoin(
+      AppView<AppInfoWithLiveness> appView,
+      DexMethodSignature methodSignature,
+      MethodState methodState);
 
   MethodState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, Function<MethodState, MethodState> methodStateSupplier);
+      AppView<AppInfoWithLiveness> appView,
+      DexMethodSignature methodSignature,
+      Function<MethodState, MethodState> methodStateSupplier);
 }

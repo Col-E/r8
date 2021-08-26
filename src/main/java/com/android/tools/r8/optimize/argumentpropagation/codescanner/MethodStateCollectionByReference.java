@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.ProgramMethod;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -27,5 +28,10 @@ public class MethodStateCollectionByReference extends MethodStateCollection<DexM
   @Override
   DexMethod getKey(ProgramMethod method) {
     return method.getReference();
+  }
+
+  @Override
+  DexMethodSignature getSignature(DexMethod method) {
+    return method.getSignature();
   }
 }

@@ -183,7 +183,8 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
                     .asClassType());
           }
           return null;
-        });
+        },
+        resolvedMethod.getMethodSignature());
   }
 
   private boolean verifyAllInterfacesFinished(

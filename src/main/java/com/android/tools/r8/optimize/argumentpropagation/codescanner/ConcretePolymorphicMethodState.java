@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.HashMap;
@@ -41,6 +42,7 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
 
   private ConcretePolymorphicMethodStateOrUnknown add(
       AppView<AppInfoWithLiveness> appView,
+      DexMethodSignature methodSignature,
       DynamicType bounds,
       ConcreteMonomorphicMethodStateOrUnknown methodState) {
     assert !isEffectivelyBottom();
@@ -55,7 +57,7 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
     } else {
       assert methodState.isMonomorphic();
       ConcreteMonomorphicMethodStateOrUnknown newMethodStateForBounds =
-          joinInner(appView, receiverBoundsToState.get(bounds), methodState);
+          joinInner(appView, methodSignature, receiverBoundsToState.get(bounds), methodState);
       if (bounds.isUnknown() && newMethodStateForBounds.isUnknown()) {
         return unknown();
       } else {
@@ -67,6 +69,7 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
 
   private static ConcreteMonomorphicMethodStateOrUnknown joinInner(
       AppView<AppInfoWithLiveness> appView,
+      DexMethodSignature methodSignature,
       ConcreteMonomorphicMethodStateOrUnknown methodState,
       ConcreteMonomorphicMethodStateOrUnknown other) {
     if (methodState == null) {
@@ -76,7 +79,7 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
       return unknown();
     }
     assert methodState.isMonomorphic();
-    return methodState.asMonomorphic().mutableJoin(appView, other.asMonomorphic());
+    return methodState.asMonomorphic().mutableJoin(appView, methodSignature, other.asMonomorphic());
   }
 
   public void forEach(
@@ -112,7 +115,9 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
   }
 
   public MethodState mutableCopyWithRewrittenBounds(
-      AppView<AppInfoWithLiveness> appView, Function<DynamicType, DynamicType> boundsRewriter) {
+      AppView<AppInfoWithLiveness> appView,
+      Function<DynamicType, DynamicType> boundsRewriter,
+      DexMethodSignature methodSignature) {
     assert !isEffectivelyBottom();
     assert !isEffectivelyUnknown();
     Map<DynamicType, ConcreteMonomorphicMethodStateOrUnknown> rewrittenReceiverBoundsToState =
@@ -126,7 +131,7 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
       ConcreteMonomorphicMethodStateOrUnknown existingMethodStateForBounds =
           rewrittenReceiverBoundsToState.get(rewrittenBounds);
       ConcreteMonomorphicMethodStateOrUnknown newMethodStateForBounds =
-          joinInner(appView, existingMethodStateForBounds, entry.getValue());
+          joinInner(appView, methodSignature, existingMethodStateForBounds, entry.getValue());
       if (rewrittenBounds.isUnknown() && newMethodStateForBounds.isUnknown()) {
         return unknown();
       }
@@ -138,7 +143,9 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
   }
 
   public MethodState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, ConcretePolymorphicMethodState methodState) {
+      AppView<AppInfoWithLiveness> appView,
+      DexMethodSignature methodSignature,
+      ConcretePolymorphicMethodState methodState) {
     assert !isEffectivelyBottom();
     assert !isEffectivelyUnknown();
     assert !methodState.isEffectivelyBottom();
@@ -146,7 +153,7 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
     for (Entry<DynamicType, ConcreteMonomorphicMethodStateOrUnknown> entry :
         methodState.receiverBoundsToState.entrySet()) {
       ConcretePolymorphicMethodStateOrUnknown result =
-          add(appView, entry.getKey(), entry.getValue());
+          add(appView, methodSignature, entry.getKey(), entry.getValue());
       if (result.isUnknown()) {
         return result;
       }

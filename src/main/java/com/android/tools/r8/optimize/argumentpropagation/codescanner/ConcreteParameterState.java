@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
 import java.util.Collections;
@@ -103,7 +104,10 @@ public abstract class ConcreteParameterState extends NonEmptyParameterState {
 
   @Override
   public final ParameterState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, ParameterState parameterState, Action onChangedAction) {
+      AppView<AppInfoWithLiveness> appView,
+      ParameterState parameterState,
+      DexType parameterType,
+      Action onChangedAction) {
     if (parameterState.isBottom()) {
       return this;
     }
@@ -114,10 +118,15 @@ public abstract class ConcreteParameterState extends NonEmptyParameterState {
     if (isReferenceParameter()) {
       assert concreteParameterState.isReferenceParameter();
       return asReferenceParameter()
-          .mutableJoin(appView, concreteParameterState.asReferenceParameter(), onChangedAction);
+          .mutableJoin(
+              appView,
+              concreteParameterState.asReferenceParameter(),
+              parameterType,
+              onChangedAction);
     }
     return asPrimitiveParameter()
-        .mutableJoin(appView, concreteParameterState.asPrimitiveParameter(), onChangedAction);
+        .mutableJoin(
+            appView, concreteParameterState.asPrimitiveParameter(), parameterType, onChangedAction);
   }
 
   boolean mutableJoinInParameters(ConcreteParameterState parameterState) {

@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
@@ -52,7 +53,9 @@ public class ConcretePrimitiveTypeParameterState extends ConcreteParameterState 
   public ParameterState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       ConcretePrimitiveTypeParameterState parameterState,
+      DexType parameterType,
       Action onChangedAction) {
+    assert parameterType.isPrimitiveType();
     boolean allowNullOrAbstractValue = false;
     boolean allowNonConstantNumbers = false;
     AbstractValue oldAbstractValue = abstractValue;

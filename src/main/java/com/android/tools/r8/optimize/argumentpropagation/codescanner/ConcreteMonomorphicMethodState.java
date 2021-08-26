@@ -5,6 +5,8 @@
 package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethodSignature;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
@@ -42,19 +44,33 @@ public class ConcreteMonomorphicMethodState extends ConcreteMethodState
   }
 
   public ConcreteMonomorphicMethodStateOrUnknown mutableJoin(
-      AppView<AppInfoWithLiveness> appView, ConcreteMonomorphicMethodState methodState) {
+      AppView<AppInfoWithLiveness> appView,
+      DexMethodSignature methodSignature,
+      ConcreteMonomorphicMethodState methodState) {
     if (size() != methodState.size()) {
       assert false;
       return unknown();
     }
 
-    for (int i = 0; i < size(); i++) {
-      ParameterState parameterState = parameterStates.get(i);
-      ParameterState otherParameterState = methodState.parameterStates.get(i);
-      parameterStates.set(i, parameterState.mutableJoin(appView, otherParameterState));
-      assert i == 0
-          || !parameterStates.get(i).isConcrete()
-          || !parameterStates.get(i).asConcrete().isReceiverParameter();
+    int argumentIndex = 0;
+    if (size() > methodSignature.getArity()) {
+      assert size() == methodSignature.getArity() + 1;
+      ParameterState parameterState = parameterStates.get(0);
+      ParameterState otherParameterState = methodState.parameterStates.get(0);
+      DexType parameterType = null;
+      parameterStates.set(
+          0, parameterState.mutableJoin(appView, otherParameterState, parameterType));
+      argumentIndex++;
+    }
+
+    for (int parameterIndex = 0; argumentIndex < size(); argumentIndex++, parameterIndex++) {
+      ParameterState parameterState = parameterStates.get(argumentIndex);
+      ParameterState otherParameterState = methodState.parameterStates.get(argumentIndex);
+      DexType parameterType = methodSignature.getParameter(parameterIndex);
+      parameterStates.set(
+          argumentIndex, parameterState.mutableJoin(appView, otherParameterState, parameterType));
+      assert !parameterStates.get(argumentIndex).isConcrete()
+          || !parameterStates.get(argumentIndex).asConcrete().isReceiverParameter();
     }
 
     if (Iterables.all(parameterStates, ParameterState::isUnknown)) {
