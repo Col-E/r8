@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.VirtualRootMethodsAnalysis;
+import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.ArgumentPropagatorReprocessingCriteriaCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -39,6 +40,12 @@ public class ArgumentPropagator {
    * processed by {@link ArgumentPropagatorOptimizationInfoPopulator}.
    */
   private ArgumentPropagatorCodeScanner codeScanner;
+
+  /**
+   * Analyzes the uses of arguments in methods to determine when reprocessing of methods will likely
+   * not lead to any additional code optimizations.
+   */
+  private ArgumentPropagatorReprocessingCriteriaCollection reprocessingCriteriaCollection;
 
   public ArgumentPropagator(AppView<AppInfoWithLiveness> appView) {
     assert appView.enableWholeProgramOptimizations();
@@ -63,6 +70,7 @@ public class ArgumentPropagator {
     timing.begin("Initialize code scanner");
 
     codeScanner = new ArgumentPropagatorCodeScanner(appView);
+    reprocessingCriteriaCollection = new ArgumentPropagatorReprocessingCriteriaCollection(appView);
 
     ImmediateProgramSubtypingInfo immediateSubtypingInfo =
         ImmediateProgramSubtypingInfo.create(appView);
@@ -92,12 +100,14 @@ public class ArgumentPropagator {
   public void scan(
       ProgramMethod method, IRCode code, MethodProcessor methodProcessor, Timing timing) {
     if (codeScanner != null) {
-      // TODO(b/190154391): Do we process synthetic methods using a OneTimeMethodProcessor
-      //  during the primary optimization pass?
       assert methodProcessor.isPrimaryMethodProcessor();
       codeScanner.scan(method, code, timing);
+
+      assert reprocessingCriteriaCollection != null;
+      reprocessingCriteriaCollection.analyzeArgumentUses(method, code);
     } else {
       assert !methodProcessor.isPrimaryMethodProcessor();
+      assert reprocessingCriteriaCollection == null;
     }
   }
 
@@ -136,8 +146,10 @@ public class ArgumentPropagator {
     codeScanner = null;
 
     timing.begin("Compute optimization info");
-    new ArgumentPropagatorOptimizationInfoPopulator(appView, codeScannerResult)
+    new ArgumentPropagatorOptimizationInfoPopulator(
+            appView, codeScannerResult, reprocessingCriteriaCollection)
         .populateOptimizationInfo(executorService, timing);
+    reprocessingCriteriaCollection = null;
     timing.end();
   }
 

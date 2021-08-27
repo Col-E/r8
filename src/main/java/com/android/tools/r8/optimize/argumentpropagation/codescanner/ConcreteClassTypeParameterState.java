@@ -51,6 +51,10 @@ public class ConcreteClassTypeParameterState extends ConcreteReferenceTypeParame
     return this;
   }
 
+  public AbstractValue getAbstractValue() {
+    return abstractValue;
+  }
+
   @Override
   public AbstractValue getAbstractValue(AppView<AppInfoWithLiveness> appView) {
     return abstractValue;
