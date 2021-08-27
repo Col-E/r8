@@ -51,8 +51,6 @@ public final class RecordCfMethods {
   public static CfCode RecordMethods_hashCode(InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
-    CfLabel label2 = new CfLabel();
-    CfLabel label3 = new CfLabel();
     return new CfCode(
         method.holder,
         2,
@@ -72,7 +70,6 @@ public final class RecordCfMethods {
                 false),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.INT),
             new CfLoad(ValueType.OBJECT, 0),
-            label1,
             new CfInvoke(
                 182,
                 options.itemFactory.createMethod(
@@ -81,9 +78,8 @@ public final class RecordCfMethods {
                     options.itemFactory.createString("hashCode")),
                 false),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
-            label2,
             new CfReturn(ValueType.INT),
-            label3),
+            label1),
         ImmutableList.of(),
         ImmutableList.of());
   }
