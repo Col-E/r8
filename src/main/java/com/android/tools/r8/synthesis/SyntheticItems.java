@@ -482,7 +482,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       DexType type,
       AppView<?> appView) {
     // Fast path is that the synthetic is already present. If so it must be a program class.
-    DexClass dexClass = appView.appInfo().definitionFor(type);
+    DexClass dexClass = appView.definitionFor(type);
     if (dexClass != null) {
       assert dexClass.isProgramClass();
       return dexClass.asProgramClass();
@@ -490,16 +490,24 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     // Slow path creates the class using the context to make it thread safe.
     synchronized (type) {
       // Recheck if it is present now the lock is held.
-      dexClass = appView.appInfo().definitionFor(type);
+      dexClass = appView.definitionFor(type);
       if (dexClass != null) {
         assert dexClass.isProgramClass();
         return dexClass.asProgramClass();
       }
-      DexProgramClass clazz =
+      assert !isSyntheticClass(type);
+      DexProgramClass dexProgramClass =
           internalCreateProgramClass(
-              kind, classConsumer, outerContext, type, appView.dexItemFactory());
-      onCreationConsumer.accept(clazz);
-      return clazz;
+              kind,
+              syntheticProgramClassBuilder -> {
+                syntheticProgramClassBuilder.setUseSortedMethodBacking(true);
+                classConsumer.accept(syntheticProgramClassBuilder);
+              },
+              outerContext,
+              type,
+              appView.dexItemFactory());
+      onCreationConsumer.accept(dexProgramClass);
+      return dexProgramClass;
     }
   }
 
