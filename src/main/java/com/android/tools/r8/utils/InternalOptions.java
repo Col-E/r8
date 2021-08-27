@@ -1214,15 +1214,15 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // TODO(b/69963623): enable if everything is ready, including signature rewriting at call sites.
     private boolean enableConstantPropagation = false;
     private boolean enableExperimentalArgumentPropagation = false;
-    private boolean enableTypePropagation = true;
+    private boolean enableDynamicTypePropagation = true;
 
     public void disableOptimization() {
       enableConstantPropagation = false;
-      enableTypePropagation = false;
+      enableDynamicTypePropagation = false;
     }
 
-    public void disableTypePropagationForTesting() {
-      enableTypePropagation = false;
+    public void disableDynamicTypePropagationForTesting() {
+      enableDynamicTypePropagation = false;
     }
 
     public int getMaxNumberOfDispatchTargetsBeforeAbandoning() {
@@ -1233,7 +1233,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       if (!isOptimizing()) {
         return false;
       }
-      return enableConstantPropagation || enableTypePropagation;
+      return enableConstantPropagation || enableDynamicTypePropagation;
     }
 
     public boolean isExperimentalArgumentPropagationEnabled() {
@@ -1244,8 +1244,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return enableConstantPropagation;
     }
 
-    public boolean isTypePropagationEnabled() {
-      return enableTypePropagation;
+    public boolean isDynamicTypePropagationEnabled() {
+      return enableDynamicTypePropagation;
     }
 
     public void setEnableConstantPropagation() {
@@ -1253,9 +1253,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       enableConstantPropagation = true;
     }
 
-    public void setEnableExperimentalArgumentPropagation(
+    public CallSiteOptimizationOptions setEnableExperimentalArgumentPropagation(
         boolean enableExperimentalArgumentPropagation) {
       this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
+      return this;
     }
   }
 
@@ -1630,7 +1631,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       public int numberOfProguardIfRuleMemberEvaluations = 0;
     }
 
-    public Consumer<ProgramMethod> callSiteOptimizationInfoInspector = null;
+    public Consumer<ProgramMethod> callSiteOptimizationInfoInspector =
+        ConsumerUtils.emptyConsumer();
 
     public Predicate<DexMethod> cfByteCodePassThrough = null;
 

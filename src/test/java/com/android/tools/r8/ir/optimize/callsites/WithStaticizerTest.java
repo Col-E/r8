@@ -13,28 +13,35 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class WithStaticizerTest extends TestBase {
+
   private static final Class<?> MAIN = Main.class;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
+  @Parameters(name = "{1}, experimental: {0}")
+  public static List<Object[]> data() {
     // TODO(b/112831361): support for class staticizer in CF backend.
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
   }
 
+  private final boolean enableExperimentalArgumentPropagation;
   private final TestParameters parameters;
 
-  public WithStaticizerTest(TestParameters parameters) {
+  public WithStaticizerTest(
+      boolean enableExperimentalArgumentPropagation, TestParameters parameters) {
+    this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
     this.parameters = parameters;
   }
 
@@ -43,6 +50,12 @@ public class WithStaticizerTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(WithStaticizerTest.class)
         .addKeepMainRule(MAIN)
+        .addOptionsModification(
+            options ->
+                options
+                    .callSiteOptimizationOptions()
+                    .setEnableExperimentalArgumentPropagation(
+                        enableExperimentalArgumentPropagation))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -62,8 +75,12 @@ public class WithStaticizerTest extends TestBase {
     assertThat(host, isPresent());
     MethodSubject foo = host.uniqueMethodWithName("foo");
     assertThat(foo, isPresent());
-    // TODO(b/139246447): Can optimize branches since `arg` is definitely not null.
-    assertTrue(foo.streamInstructions().anyMatch(InstructionSubject::isIf));
+    if (enableExperimentalArgumentPropagation) {
+      assertTrue(foo.streamInstructions().noneMatch(InstructionSubject::isIf));
+    } else {
+      // TODO(b/139246447): Can optimize branches since `arg` is definitely not null.
+      assertTrue(foo.streamInstructions().anyMatch(InstructionSubject::isIf));
+    }
   }
 
   @NeverClassInline

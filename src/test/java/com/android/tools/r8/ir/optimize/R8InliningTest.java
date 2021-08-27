@@ -125,7 +125,7 @@ public class R8InliningTest extends TestBase {
               // Tests depend on nullability of receiver and argument in general. Learning very
               // accurate
               // nullability from actual usage in tests bothers what we want to test.
-              o.callSiteOptimizationOptions().disableTypePropagationForTesting();
+              o.callSiteOptimizationOptions().disableDynamicTypePropagationForTesting();
               o.testing.horizontallyMergedClassesConsumer = this::fixInliningNullabilityClass;
               o.testing.horizontalClassMergingTarget =
                   (appView, candidates, target) -> {

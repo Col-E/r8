@@ -58,7 +58,7 @@ public class StringValueOfTest extends TestBase {
     // Disable the propagation of call site information to test String#valueOf optimization with
     // nullable argument. Otherwise, e.g., we know that only `null` is used for `hideNPE`, and then
     // simplify everything in that method.
-    options.callSiteOptimizationOptions().disableTypePropagationForTesting();
+    options.callSiteOptimizationOptions().disableDynamicTypePropagationForTesting();
     options.testing.forceNameReflectionOptimization = true;
   }
 

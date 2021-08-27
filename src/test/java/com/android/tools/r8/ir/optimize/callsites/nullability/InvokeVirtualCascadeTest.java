@@ -12,27 +12,33 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class InvokeVirtualCascadeTest extends TestBase {
   private static final Class<?> MAIN = Main.class;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameters(name = "{1}, experimental: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
+  private final boolean enableExperimentalArgumentPropagation;
   private final TestParameters parameters;
 
-  public InvokeVirtualCascadeTest(TestParameters parameters) {
+  public InvokeVirtualCascadeTest(
+      boolean enableExperimentalArgumentPropagation, TestParameters parameters) {
+    this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
     this.parameters = parameters;
   }
 
@@ -41,6 +47,12 @@ public class InvokeVirtualCascadeTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeVirtualCascadeTest.class)
         .addKeepMainRule(MAIN)
+        .addOptionsModification(
+            options ->
+                options
+                    .callSiteOptimizationOptions()
+                    .setEnableExperimentalArgumentPropagation(
+                        enableExperimentalArgumentPropagation))
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
@@ -56,16 +68,24 @@ public class InvokeVirtualCascadeTest extends TestBase {
 
     MethodSubject a_m = a.uniqueMethodWithName("m");
     assertThat(a_m, isPresent());
-    // TODO(b/139246447): Can optimize branches since `arg` is definitely not null.
-    assertTrue(a_m.streamInstructions().anyMatch(InstructionSubject::isIf));
+    if (enableExperimentalArgumentPropagation) {
+      assertTrue(a_m.streamInstructions().noneMatch(InstructionSubject::isIf));
+    } else {
+      // TODO(b/139246447): Can optimize branches since `arg` is definitely not null.
+      assertTrue(a_m.streamInstructions().anyMatch(InstructionSubject::isIf));
+    }
 
     ClassSubject b = inspector.clazz(B.class);
     assertThat(b, isPresent());
 
     MethodSubject b_m = b.uniqueMethodWithName("m");
     assertThat(b_m, isPresent());
-    // TODO(b/139246447): Can optimize branches since `arg` is definitely not null.
-    assertTrue(b_m.streamInstructions().anyMatch(InstructionSubject::isIf));
+    if (enableExperimentalArgumentPropagation) {
+      assertTrue(b_m.streamInstructions().noneMatch(InstructionSubject::isIf));
+    } else {
+      // TODO(b/139246447): Can optimize branches since `arg` is definitely not null.
+      assertTrue(b_m.streamInstructions().anyMatch(InstructionSubject::isIf));
+    }
   }
 
   @NoVerticalClassMerging

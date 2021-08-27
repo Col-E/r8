@@ -180,6 +180,7 @@ public class ArgumentPropagator {
             if (callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo()
                 && !appView.appInfo().isNeverReprocessMethod(method.getReference())) {
               postMethodProcessorBuilder.add(method);
+              appView.testing().callSiteOptimizationInfoInspector.accept(method);
             }
           });
     }

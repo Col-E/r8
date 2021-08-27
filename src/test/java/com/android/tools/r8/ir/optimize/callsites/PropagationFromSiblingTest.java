@@ -9,7 +9,8 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -18,14 +19,18 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class PropagationFromSiblingTest extends TestBase {
 
+  private final boolean enableExperimentalArgumentPropagation;
   private final TestParameters parameters;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameters(name = "{1}, experimental: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public PropagationFromSiblingTest(TestParameters parameters) {
+  public PropagationFromSiblingTest(
+      boolean enableExperimentalArgumentPropagation, TestParameters parameters) {
+    this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
     this.parameters = parameters;
   }
 
@@ -34,7 +39,13 @@ public class PropagationFromSiblingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(PropagationFromSiblingTest.class)
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(options -> options.enableUnusedInterfaceRemoval = false)
+        .addOptionsModification(
+            options -> {
+              options.enableUnusedInterfaceRemoval = false;
+              options
+                  .callSiteOptimizationOptions()
+                  .setEnableExperimentalArgumentPropagation(enableExperimentalArgumentPropagation);
+            })
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()

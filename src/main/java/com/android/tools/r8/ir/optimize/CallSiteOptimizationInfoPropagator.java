@@ -399,9 +399,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
           },
           method -> {
             targetsToRevisit.add(method);
-            if (appView.options().testing.callSiteOptimizationInfoInspector != null) {
-              appView.options().testing.callSiteOptimizationInfoInspector.accept(method);
-            }
+            appView.options().testing.callSiteOptimizationInfoInspector.accept(method);
           });
     }
     if (revisitedMethods != null) {

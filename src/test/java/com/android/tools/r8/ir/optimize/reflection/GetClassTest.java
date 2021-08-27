@@ -155,7 +155,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
     // In `getMainClass`, a call with `null`, which will throw NPE, is replaced with null throwing
     // code. Then, remaining call with non-null argument made getClass() replaceable.
     // Disable the propagation of call site information to separate the tests.
-    options.callSiteOptimizationOptions().disableTypePropagationForTesting();
+    options.callSiteOptimizationOptions().disableDynamicTypePropagationForTesting();
   }
 
   @Test
