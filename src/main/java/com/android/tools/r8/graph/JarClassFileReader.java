@@ -516,10 +516,6 @@ public class JarClassFileReader<T extends DexClass> {
       if (!accessFlags.isRecord()) {
         return;
       }
-      // TODO(b/169645628): Support records in all compilation.
-      if (!application.options.enableExperimentalRecordDesugaring()) {
-        throw new CompilationError("Records are not supported", origin);
-      }
       // TODO(b/169645628): Change this logic if we start stripping the record components.
       // Another approach would be to mark a bit in fields that are record components instead.
       String message = "Records are expected to have one record component per instance field.";
