@@ -33,7 +33,8 @@ public class DesugarLambdaWithLocalClass extends TestBase {
 
   private List<String> EXPECTED_D8_DESUGARED_RESULT =
       ImmutableList.of(
-          "Hello from inside lambda$test$0$DesugarLambdaWithLocalClass$TestClass",
+          "Hello from inside"
+              + " lambda$test$0$com-android-tools-r8-desugar-DesugarLambdaWithLocalClass$TestClass",
           "Hello from inside lambda$testStatic$1");
 
   @Parameterized.Parameters(name = "{0}")

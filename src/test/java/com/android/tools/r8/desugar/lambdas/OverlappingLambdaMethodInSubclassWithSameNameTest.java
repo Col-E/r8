@@ -23,9 +23,6 @@ public class OverlappingLambdaMethodInSubclassWithSameNameTest extends TestBase 
   static final String EXPECTED =
       StringUtils.lines("Superclass lambda: Hello!", "Superclass lambda: Hello!");
 
-  static final String UNEXPECTED_D8_B197625454 =
-      StringUtils.lines("Subclass lambda: Hello!", "Superclass lambda: Hello!");
-
   private static final Class<?> MAIN_CLASS =
       com.android.tools.r8.desugar.lambdas.b197625454.subpackage
           .OverlappingLambdaMethodInSubclassWithSameNameTestA.class;
@@ -58,7 +55,7 @@ public class OverlappingLambdaMethodInSubclassWithSameNameTest extends TestBase 
             OverlappingLambdaMethodInSubclassWithSameNameTestB.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN_CLASS)
-        .assertSuccessWithOutput(UNEXPECTED_D8_B197625454);
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test

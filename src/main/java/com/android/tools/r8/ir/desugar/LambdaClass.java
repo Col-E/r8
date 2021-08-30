@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import static com.android.tools.r8.ir.desugar.lambda.ForcefullyMovedLambdaMethodConsumer.emptyForcefullyMovedLambdaMethodConsumer;
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
+import static com.android.tools.r8.utils.DesugarUtils.appendFullyQualifiedHolderToMethodName;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unimplemented;
@@ -352,17 +353,14 @@ public final class LambdaClass {
     } else {
       // Otherwise we need to ensure the method can be reached publicly by virtual dispatch.
       // To avoid potential conflicts on the name of the lambda method once dispatch becomes virtual
-      // we add the method-holder name as suffix to the lambda-method name.
+      // we add the fully qualified method-holder name as suffix to the lambda-method name.
       return new InstanceLambdaImplTarget(
           appView
               .dexItemFactory()
               .createMethod(
                   implMethod.holder,
                   implMethod.proto,
-                  appView
-                      .dexItemFactory()
-                      .createString(
-                          implMethod.name.toString() + "$" + implMethod.holder.getName())));
+                  appendFullyQualifiedHolderToMethodName(implMethod, appView.dexItemFactory())));
     }
   }
 

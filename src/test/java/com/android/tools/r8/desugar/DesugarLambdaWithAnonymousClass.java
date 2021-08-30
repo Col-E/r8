@@ -34,7 +34,8 @@ public class DesugarLambdaWithAnonymousClass extends TestBase {
 
   private final List<String> EXPECTED_D8_DESUGARED_RESULT =
       ImmutableList.of(
-          "Hello from inside lambda$test$0$DesugarLambdaWithAnonymousClass$TestClass",
+          "Hello from inside"
+              + " lambda$test$0$com-android-tools-r8-desugar-DesugarLambdaWithAnonymousClass$TestClass",
           "Hello from inside lambda$testStatic$1");
 
   @Parameterized.Parameters(name = "{0}")
