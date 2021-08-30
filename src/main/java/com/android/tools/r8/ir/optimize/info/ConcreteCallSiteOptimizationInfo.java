@@ -255,8 +255,6 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
             newCallSiteInfo.dynamicUpperBoundTypes.put(
                 argumentIndex, dynamicType.getDynamicUpperBoundType());
             isTop = false;
-          } else {
-            newCallSiteInfo.dynamicUpperBoundTypes.put(argumentIndex, staticTypeElement);
           }
         }
       }
