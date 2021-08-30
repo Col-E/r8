@@ -106,6 +106,10 @@ public abstract class TestShrinkerBuilder<
     return addKeepRules("-dontoptimize");
   }
 
+  public T addDontShrink() {
+    return addKeepRules("-dontshrink");
+  }
+
   public T addDontWarn(Class<?>... classes) {
     for (Class<?> clazz : classes) {
       addDontWarn(clazz.getTypeName());

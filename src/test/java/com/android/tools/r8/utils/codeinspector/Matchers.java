@@ -25,6 +25,7 @@ import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.Visibility;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.function.Predicate;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -84,15 +85,24 @@ public class Matchers {
   }
 
   public static Matcher<MethodSubject> isBridge() {
+    return isMethodSatisfying("bridge", FoundMethodSubject::isBridge);
+  }
+
+  public static Matcher<MethodSubject> isInstanceInitializer() {
+    return isMethodSatisfying("instance initializer", FoundMethodSubject::isInstanceInitializer);
+  }
+
+  private static Matcher<MethodSubject> isMethodSatisfying(
+      String helperText, Predicate<FoundMethodSubject> predicate) {
     return new TypeSafeMatcher<MethodSubject>() {
       @Override
       protected boolean matchesSafely(MethodSubject subject) {
-        return subject.isPresent() && subject.isBridge();
+        return subject.isPresent() && predicate.test(subject.asFoundMethodSubject());
       }
 
       @Override
       public void describeTo(Description description) {
-        description.appendText(" bridge");
+        description.appendText(" " + helperText);
       }
 
       @Override
