@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.cf;
+package com.android.tools.r8.desugar.constantdynamic;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -14,10 +14,12 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.Handle;
@@ -25,24 +27,19 @@ import org.objectweb.asm.Handle;
 @RunWith(Parameterized.class)
 public class ConstantDynamicHolderTest extends TestBase {
 
+  @Parameter() public TestParameters parameters;
+
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters()
-        .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
-        .withDexRuntimes()
-        .withAllApiLevels()
-        .build();
-  }
-
-  final TestParameters parameters;
-
-  public ConstantDynamicHolderTest(TestParameters parameters) {
-    this.parameters = parameters;
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   @Test
   public void testReference() throws Exception {
     assumeTrue(parameters.isCfRuntime());
+    assumeTrue(parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11));
+    assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
+
     testForJvm()
         .addProgramClassFileData(getTransformedMain())
         .run(parameters.getRuntime(), Main.class)
@@ -52,6 +49,7 @@ public class ConstantDynamicHolderTest extends TestBase {
   @Test(expected = CompilationFailedException.class)
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
+
     testForD8()
         .addProgramClassFileData(getTransformedMain())
         .setMinApi(parameters.getApiLevel())
@@ -63,6 +61,8 @@ public class ConstantDynamicHolderTest extends TestBase {
 
   @Test(expected = CompilationFailedException.class)
   public void testR8() throws Exception {
+    assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
+
     testForR8(parameters.getBackend())
         .addProgramClassFileData(getTransformedMain())
         .setMinApi(parameters.getApiLevel())
