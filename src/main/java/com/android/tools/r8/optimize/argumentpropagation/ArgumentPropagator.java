@@ -88,7 +88,7 @@ public class ArgumentPropagator {
           // Compute the mapping from virtual methods to their root virtual method and the set of
           // monomorphic virtual methods.
           new VirtualRootMethodsAnalysis(appView, immediateSubtypingInfo)
-              .extendVirtualRootMethods(appView.appInfo().classes(), codeScanner);
+              .extendVirtualRootMethods(classes, codeScanner);
         },
         executorService);
 
