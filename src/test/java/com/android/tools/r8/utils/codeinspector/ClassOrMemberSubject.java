@@ -43,6 +43,7 @@ public abstract class ClassOrMemberSubject extends Subject {
     return getAccessFlags().isStatic();
   }
 
+  @Override
   public final boolean isSynthetic() {
     return getAccessFlags().isSynthetic();
   }
