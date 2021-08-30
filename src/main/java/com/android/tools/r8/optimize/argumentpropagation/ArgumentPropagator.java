@@ -23,6 +23,7 @@ import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.Ar
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -127,8 +128,13 @@ public class ArgumentPropagator {
       throws ExecutionException {
     assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
     timing.begin("Argument propagator");
-    populateParameterOptimizationInfo(executorService, timing);
-    optimizeMethodParameters();
+    ImmediateProgramSubtypingInfo immediateSubtypingInfo =
+        ImmediateProgramSubtypingInfo.create(appView);
+    List<Set<DexProgramClass>> stronglyConnectedProgramComponents =
+        computeStronglyConnectedProgramClasses(appView, immediateSubtypingInfo);
+    populateParameterOptimizationInfo(
+        immediateSubtypingInfo, stronglyConnectedProgramComponents, executorService, timing);
+    optimizeMethodParameters(immediateSubtypingInfo, stronglyConnectedProgramComponents);
     enqueueMethodsForProcessing(postMethodProcessorBuilder);
     timing.end();
   }
@@ -137,7 +143,11 @@ public class ArgumentPropagator {
    * Called by {@link IRConverter} *after* the primary optimization pass to populate the parameter
    * optimization info.
    */
-  private void populateParameterOptimizationInfo(ExecutorService executorService, Timing timing)
+  private void populateParameterOptimizationInfo(
+      ImmediateProgramSubtypingInfo immediateSubtypingInfo,
+      List<Set<DexProgramClass>> stronglyConnectedProgramComponents,
+      ExecutorService executorService,
+      Timing timing)
       throws ExecutionException {
     // Unset the scanner since all code objects have been scanned at this point.
     assert appView.isAllCodeProcessed();
@@ -147,23 +157,39 @@ public class ArgumentPropagator {
 
     timing.begin("Compute optimization info");
     new ArgumentPropagatorOptimizationInfoPopulator(
-            appView, codeScannerResult, reprocessingCriteriaCollection)
+            appView,
+            immediateSubtypingInfo,
+            codeScannerResult,
+            reprocessingCriteriaCollection,
+            stronglyConnectedProgramComponents)
         .populateOptimizationInfo(executorService, timing);
     reprocessingCriteriaCollection = null;
     timing.end();
   }
 
   /** Called by {@link IRConverter} to optimize method definitions. */
-  private void optimizeMethodParameters() {
-    // TODO(b/190154391): Remove parameters with constant values.
-    // TODO(b/190154391): Remove unused parameters by simulating they are constant.
-    // TODO(b/190154391): Strengthen the static type of parameters.
-    // TODO(b/190154391): If we learn that a method returns a constant, then consider changing its
-    //  return type to void.
-    // TODO(b/69963623): If we optimize a method to be unconditionally throwing (because it has a
-    //  bottom parameter), then for each caller that becomes unconditionally throwing, we could
-    //  also enqueue the caller's callers for reprocessing. This would propagate the throwing
-    //  information to all call sites.
+  private void optimizeMethodParameters(
+      ImmediateProgramSubtypingInfo immediateSubtypingInfo,
+      List<Set<DexProgramClass>> stronglyConnectedProgramComponents,
+      ExecutorService executorService)
+      throws ExecutionException {
+    Collection<ArgumentPropagatorGraphLens.Builder> partialGraphLensBuilders =
+        ThreadUtils.processItemsWithResults(
+            stronglyConnectedProgramComponents,
+            classes ->
+                new ArgumentPropagatorProgramOptimizer(appView, immediateSubtypingInfo)
+                    .optimize(classes),
+            executorService);
+
+    // Merge all the partial, disjoint graph lens builders into a single graph lens.
+    ArgumentPropagatorGraphLens.Builder graphLensBuilder =
+        ArgumentPropagatorGraphLens.builder(appView);
+    partialGraphLensBuilders.forEach(graphLensBuilder::mergeDisjoint);
+
+    ArgumentPropagatorGraphLens graphLens = graphLensBuilder.build();
+    if (graphLens != null) {
+      appView.setGraphLens(graphLens);
+    }
   }
 
   /**
