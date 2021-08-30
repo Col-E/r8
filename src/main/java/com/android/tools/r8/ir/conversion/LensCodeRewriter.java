@@ -707,9 +707,8 @@ public class LensCodeRewriter {
       DexType oldType,
       DexType newType,
       Value initialValue) {
-    if (initialValue.isConstNumber()
-        && initialValue.definition.asConstNumber().isZero()
-        && defaultValueHasChanged(oldType, newType)) {
+    if (initialValue.getType().isNullType() && defaultValueHasChanged(oldType, newType)) {
+      assert newType.isIntType();
       iterator.previous();
       Value rewrittenDefaultValue =
           iterator.insertConstNumberInstruction(
