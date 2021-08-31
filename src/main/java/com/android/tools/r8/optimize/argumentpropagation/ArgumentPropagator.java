@@ -134,7 +134,8 @@ public class ArgumentPropagator {
         computeStronglyConnectedProgramClasses(appView, immediateSubtypingInfo);
     populateParameterOptimizationInfo(
         immediateSubtypingInfo, stronglyConnectedProgramComponents, executorService, timing);
-    optimizeMethodParameters(immediateSubtypingInfo, stronglyConnectedProgramComponents);
+    optimizeMethodParameters(
+        immediateSubtypingInfo, stronglyConnectedProgramComponents, executorService);
     enqueueMethodsForProcessing(postMethodProcessorBuilder);
     timing.end();
   }
