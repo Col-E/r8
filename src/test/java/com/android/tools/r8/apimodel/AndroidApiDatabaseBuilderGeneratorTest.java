@@ -18,6 +18,7 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestState;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.apimodel.AndroidApiVersionsXmlParser.ParsedApiClass;
+import com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -115,7 +116,7 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
 
   @Test
   public void testDatabaseGenerationUpToDate() throws Exception {
-    TestBase.filesAreEqual(generateJar(), API_DATABASE_JAR);
+    BootstrapCurrentEqualityTest.filesAreEqual(generateJar(), API_DATABASE_JAR);
   }
 
   /**

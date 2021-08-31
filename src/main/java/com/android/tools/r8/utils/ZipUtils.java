@@ -102,24 +102,19 @@ public class ZipUtils {
       throws IOException {
     try (ZipOutputStream stream =
         new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(zipFile)))) {
-      zip(stream, basePath, filesToZip);
-    }
-  }
-
-  public static void zip(ZipOutputStream stream, Path basePath, Collection<Path> filesToZip)
-      throws IOException {
-    for (Path path : filesToZip) {
-      ZipEntry zipEntry =
-          new ZipEntry(
-              StreamSupport.stream(
-                      Spliterators.spliteratorUnknownSize(
-                          basePath.relativize(path).iterator(), Spliterator.ORDERED),
-                      false)
-                  .map(Path::toString)
-                  .collect(Collectors.joining("/")));
-      stream.putNextEntry(zipEntry);
-      Files.copy(path, stream);
-      stream.closeEntry();
+      for (Path path : filesToZip) {
+        ZipEntry zipEntry =
+            new ZipEntry(
+                StreamSupport.stream(
+                        Spliterators.spliteratorUnknownSize(
+                            basePath.relativize(path).iterator(), Spliterator.ORDERED),
+                        false)
+                    .map(Path::toString)
+                    .collect(Collectors.joining("/")));
+        stream.putNextEntry(zipEntry);
+        Files.copy(path, stream);
+        stream.closeEntry();
+      }
     }
   }
 
