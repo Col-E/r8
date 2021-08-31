@@ -26,7 +26,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -113,10 +112,6 @@ public class LintFilesTest extends TestBase {
 
   @Test
   public void testFileContent() throws Exception {
-    // Test require r8.jar not r8lib.jar, as the class com.android.tools.r8.GenerateLintFiles in
-    // not kept.
-    Assume.assumeTrue(!ToolHelper.isTestingR8Lib());
-
     Path directory = temp.newFolder().toPath();
     GenerateLintFiles.main(
         new String[] {
@@ -131,6 +126,9 @@ public class LintFilesTest extends TestBase {
             .parse(StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
 
     for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
+      if (apiLevel == AndroidApiLevel.UNKNOWN) {
+        continue;
+      }
       Path compileApiLevelDirectory = directory.resolve("compile_api_level_" + apiLevel.getLevel());
       if (apiLevel.getLevel()
           < desugaredLibraryConfiguration.getRequiredCompilationApiLevel().getLevel()) {
