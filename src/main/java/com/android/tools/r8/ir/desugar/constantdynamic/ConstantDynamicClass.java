@@ -31,7 +31,6 @@ import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -41,7 +40,6 @@ import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
@@ -124,30 +122,20 @@ public class ConstantDynamicClass {
   }
 
   private void synthesizeStaticFields(SyntheticProgramClassBuilder builder) {
-    boolean deprecated = false;
-    boolean d8R8Synthesized = true;
     builder.setStaticFields(
         ImmutableList.of(
-            new DexEncodedField(
-                this.initializedValueField,
-                FieldAccessFlags.createPrivateStaticSynthetic(),
-                FieldTypeSignature.noSignature(),
-                DexAnnotationSet.empty(),
-                null,
-                deprecated,
-                d8R8Synthesized,
-                // The api level is computed when tracing.
-                AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView)),
-            new DexEncodedField(
-                this.constantValueField,
-                FieldAccessFlags.createPrivateStaticSynthetic(),
-                FieldTypeSignature.noSignature(),
-                DexAnnotationSet.empty(),
-                null,
-                deprecated,
-                d8R8Synthesized,
-                // The api level is computed when tracing.
-                AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView))));
+            DexEncodedField.builder()
+                .setField(this.initializedValueField)
+                .setAccessFlags(FieldAccessFlags.createPrivateStaticSynthetic())
+                .setApiLevel(AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView))
+                .setD8R8Synthesized()
+                .build(),
+            DexEncodedField.builder()
+                .setField(this.constantValueField)
+                .setAccessFlags(FieldAccessFlags.createPrivateStaticSynthetic())
+                .setApiLevel(AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView))
+                .setD8R8Synthesized()
+                .build()));
   }
 
   private void synthesizeDirectMethods(SyntheticProgramClassBuilder builder) {

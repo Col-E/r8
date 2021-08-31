@@ -374,6 +374,10 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     this.genericSignature = FieldTypeSignature.noSignature();
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   private static Builder builder(DexEncodedField from) {
     return new Builder(from);
   }
@@ -381,15 +385,17 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   public static class Builder {
 
     private DexField field;
-    private DexAnnotationSet annotations;
+    private DexAnnotationSet annotations = DexAnnotationSet.empty();
     private FieldAccessFlags accessFlags;
-    private FieldTypeSignature genericSignature;
+    private FieldTypeSignature genericSignature = FieldTypeSignature.noSignature();
     private DexValue staticValue;
     private AndroidApiLevel apiLevel;
-    private FieldOptimizationInfo optimizationInfo;
+    private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
     private boolean deprecated;
     private boolean d8R8Synthesized;
     private Consumer<DexEncodedField> buildConsumer = ConsumerUtils.emptyConsumer();
+
+    Builder() {}
 
     Builder(DexEncodedField from) {
       // Copy all the mutable state of a DexEncodedField here.
@@ -445,7 +451,27 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       return this;
     }
 
-    DexEncodedField build() {
+    public Builder setAccessFlags(FieldAccessFlags accessFlags) {
+      this.accessFlags = accessFlags;
+      return this;
+    }
+
+    public Builder setD8R8Synthesized() {
+      this.d8R8Synthesized = true;
+      return this;
+    }
+
+    public Builder setApiLevel(AndroidApiLevel apiLevel) {
+      this.apiLevel = apiLevel;
+      return this;
+    }
+
+    public DexEncodedField build() {
+      assert field != null;
+      assert accessFlags != null;
+      assert genericSignature != null;
+      assert annotations != null;
+      assert apiLevel != null;
       DexEncodedField dexEncodedField =
           new DexEncodedField(
               field,
