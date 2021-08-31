@@ -11,14 +11,24 @@ import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.cf.code.CfConstDynamic;
 import com.android.tools.r8.cf.code.CfConstNull;
+import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfFrame;
+import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.CfGoto;
+import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.cf.code.CfLabel;
+import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfMonitor;
 import com.android.tools.r8.cf.code.CfReturn;
-import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfStore;
+import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -30,29 +40,32 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.collections.ImmutableDeque;
+import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.List;
 
 public class ConstantDynamicClass {
-  public static final String CONDY_CONST_FIELD_NAME = "CONST";
+  public static final String INITIALIZED_FIELD_NAME = "INITIALIZED";
+  public static final String CONST_FIELD_NAME = "CONST";
 
   final AppView<?> appView;
   final ConstantDynamicInstructionDesugaring desugaring;
   private final DexType accessedFrom;
   public ConstantDynamicReference reference;
+  public final DexField initializedValueField;
   public final DexField constantValueField;
-  final DexMethod classConstructor;
   final DexMethod getConstMethod;
 
   // Considered final but is set after due to circularity in allocation.
@@ -71,14 +84,10 @@ public class ConstantDynamicClass {
     this.reference = constantDynamic.getReference();
     this.constantValueField =
         factory.createField(
-            builder.getType(),
-            constantDynamic.getType(),
-            factory.createString(CONDY_CONST_FIELD_NAME));
-    this.classConstructor =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.voidType),
-            factory.classConstructorMethodName);
+            builder.getType(), constantDynamic.getType(), factory.createString(CONST_FIELD_NAME));
+    this.initializedValueField =
+        factory.createField(
+            builder.getType(), factory.booleanType, factory.createString(INITIALIZED_FIELD_NAME));
     this.getConstMethod =
         factory.createMethod(
             builder.getType(),
@@ -89,18 +98,24 @@ public class ConstantDynamicClass {
   }
 
   /*
-    // TODO(b/178172809): Don't use <clinit> to synchronize constant creation.
-    // Simple one class per. constant using <clinit> to synchronize constant creation
-    // generated with a pattern like this:
+    Generate code following this pattern:
 
-    class ExternalSyntheticXXX {
-       public static <constant type> CONST =
-           (<constant type>) bootstrapMethod(null, "constant name", <constant type>)
+    class CondySyntheticXXX {
+      private static boolean INITIALIZED;
+      private static <constant type> CONST;
 
-       public static <constant type> get() {
-         return CONST;
-       }
-     }
+     public static get() {
+        if (!INITIALIZED) {
+          synchronized (CondySyntheticXXX.class) {
+            if (!INITIALIZED) {
+              CONST = bsm(null, "constant name", <constant type>);
+              INITIALIZED = true;
+            }
+          }
+        }
+        return value;
+      }
+    }
 
   */
   private void synthesizeConstantDynamicClass(SyntheticProgramClassBuilder builder) {
@@ -109,21 +124,26 @@ public class ConstantDynamicClass {
   }
 
   private void synthesizeStaticFields(SyntheticProgramClassBuilder builder) {
-    // Create static field for the constant.
     boolean deprecated = false;
     boolean d8R8Synthesized = true;
     builder.setStaticFields(
         ImmutableList.of(
             new DexEncodedField(
-                this.constantValueField,
-                FieldAccessFlags.fromSharedAccessFlags(
-                    Constants.ACC_PRIVATE
-                        | Constants.ACC_FINAL
-                        | Constants.ACC_SYNTHETIC
-                        | Constants.ACC_STATIC),
+                this.initializedValueField,
+                FieldAccessFlags.createPrivateStaticSynthetic(),
                 FieldTypeSignature.noSignature(),
                 DexAnnotationSet.empty(),
-                DexValueNull.NULL,
+                null,
+                deprecated,
+                d8R8Synthesized,
+                // The api level is computed when tracing.
+                AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView)),
+            new DexEncodedField(
+                this.constantValueField,
+                FieldAccessFlags.createPrivateStaticSynthetic(),
+                FieldTypeSignature.noSignature(),
+                DexAnnotationSet.empty(),
+                null,
                 deprecated,
                 d8R8Synthesized,
                 // The api level is computed when tracing.
@@ -131,40 +151,16 @@ public class ConstantDynamicClass {
   }
 
   private void synthesizeDirectMethods(SyntheticProgramClassBuilder builder) {
-
-    List<DexEncodedMethod> methods = new ArrayList<>(2);
-    methods.add(
-        DexEncodedMethod.builder()
-            .setMethod(classConstructor)
-            .setAccessFlags(MethodAccessFlags.createForClassInitializer())
-            .setCode(generateClassInitializerCode(builder.getType()))
-            .setD8R8Synthesized()
-            .setApiLevelForDefinition(AndroidApiLevel.S)
-            .setApiLevelForCode(AndroidApiLevel.S)
-            .build());
-    methods.add(
-        DexEncodedMethod.builder()
-            .setMethod(getConstMethod)
-            .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-            .setCode(generateGetterCode(builder.getType()))
-            .setD8R8Synthesized()
-            .setApiLevelForDefinition(AndroidApiLevel.S)
-            .setApiLevelForCode(AndroidApiLevel.S)
-            .build());
-    builder.setDirectMethods(methods);
-  }
-
-  private CfCode generateClassInitializerCode(DexType holder) {
-    int maxStack = 3;
-    int maxLocals = 0;
-    ImmutableList<CfTryCatch> tryCatchRanges = ImmutableList.of();
-    ImmutableList<CfCode.LocalVariableInfo> localVariables = ImmutableList.of();
-    ImmutableList.Builder<CfInstruction> instructions = ImmutableList.builder();
-    invokeBootstrapMethod(reference, instructions);
-    instructions.add(new CfFieldInstruction(PUTSTATIC, constantValueField));
-    instructions.add(new CfReturnVoid());
-    return new CfCode(
-        holder, maxStack, maxLocals, instructions.build(), tryCatchRanges, localVariables);
+    builder.setDirectMethods(
+        ImmutableList.of(
+            DexEncodedMethod.builder()
+                .setMethod(getConstMethod)
+                .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                .setCode(generateGetterCode(builder))
+                .setD8R8Synthesized()
+                .setApiLevelForDefinition(AndroidApiLevel.S)
+                .setApiLevelForCode(AndroidApiLevel.S)
+                .build()));
   }
 
   private void invokeBootstrapMethod(
@@ -196,16 +192,86 @@ public class ConstantDynamicClass {
     flags.setPublic();
   }
 
-  private CfCode generateGetterCode(DexType holder) {
-    int maxStack = 1;
-    int maxLocals = 0;
-    ImmutableList<CfTryCatch> tryCatchRanges = ImmutableList.of();
+  private CfCode generateGetterCode(SyntheticProgramClassBuilder builder) {
+    int maxStack = 3;
+    int maxLocals = 2;
     ImmutableList<CfCode.LocalVariableInfo> localVariables = ImmutableList.of();
     ImmutableList.Builder<CfInstruction> instructions = ImmutableList.builder();
+
+    CfLabel initializedTrue = new CfLabel();
+    CfLabel initializedTrueSecond = new CfLabel();
+    CfLabel tryCatchStart = new CfLabel();
+    CfLabel tryCatchEnd = new CfLabel();
+    CfLabel tryCatchTarget = new CfLabel();
+    CfLabel tryCatchEndFinally = new CfLabel();
+
+    instructions.add(new CfFieldInstruction(GETSTATIC, initializedValueField));
+    instructions.add(new CfIf(If.Type.NE, ValueType.INT, initializedTrue));
+
+    instructions.add(new CfConstClass(builder.getType()));
+    instructions.add(new CfStackInstruction(Opcode.Dup));
+    instructions.add(new CfStore(ValueType.OBJECT, 0));
+    instructions.add(new CfMonitor(Monitor.Type.ENTER));
+    instructions.add(tryCatchStart);
+
+    instructions.add(new CfFieldInstruction(GETSTATIC, initializedValueField));
+    instructions.add(new CfIf(If.Type.NE, ValueType.INT, initializedTrueSecond));
+
+    invokeBootstrapMethod(reference, instructions);
+    instructions.add(new CfFieldInstruction(PUTSTATIC, constantValueField));
+    instructions.add(new CfConstNumber(1, ValueType.INT));
+    instructions.add(new CfFieldInstruction(PUTSTATIC, initializedValueField));
+
+    instructions.add(initializedTrueSecond);
+    instructions.add(
+        new CfFrame(
+            ImmutableInt2ReferenceSortedMap.of(
+                new int[] {0},
+                new FrameType[] {FrameType.initialized(builder.getFactory().objectType)}),
+            ImmutableDeque.of()));
+    instructions.add(new CfLoad(ValueType.OBJECT, 0));
+    instructions.add(new CfMonitor(Monitor.Type.EXIT));
+    instructions.add(tryCatchEnd);
+    instructions.add(new CfGoto(initializedTrue));
+
+    instructions.add(tryCatchTarget);
+    instructions.add(
+        new CfFrame(
+            ImmutableInt2ReferenceSortedMap.of(
+                new int[] {0},
+                new FrameType[] {FrameType.initialized(builder.getFactory().objectType)}),
+            ImmutableDeque.of(FrameType.initialized(builder.getFactory().throwableType))));
+    instructions.add(new CfStore(ValueType.OBJECT, 1));
+    instructions.add(new CfLoad(ValueType.OBJECT, 0));
+    instructions.add(new CfMonitor(Monitor.Type.EXIT));
+    instructions.add(tryCatchEndFinally);
+    instructions.add(new CfLoad(ValueType.OBJECT, 1));
+    instructions.add(new CfThrow());
+
+    instructions.add(initializedTrue);
+    instructions.add(new CfFrame(ImmutableInt2ReferenceSortedMap.empty(), ImmutableDeque.of()));
     instructions.add(new CfFieldInstruction(GETSTATIC, constantValueField));
     instructions.add(new CfReturn(ValueType.OBJECT));
+
+    List<CfTryCatch> tryCatchRanges =
+        ImmutableList.of(
+            new CfTryCatch(
+                tryCatchStart,
+                tryCatchEnd,
+                ImmutableList.of(builder.getFactory().throwableType),
+                ImmutableList.of(tryCatchTarget)),
+            new CfTryCatch(
+                tryCatchTarget,
+                tryCatchEndFinally,
+                ImmutableList.of(builder.getFactory().throwableType),
+                ImmutableList.of(tryCatchTarget)));
     return new CfCode(
-        holder, maxStack, maxLocals, instructions.build(), tryCatchRanges, localVariables);
+        builder.getType(),
+        maxStack,
+        maxLocals,
+        instructions.build(),
+        tryCatchRanges,
+        localVariables);
   }
 
   public final DexProgramClass getConstantDynamicProgramClass() {
