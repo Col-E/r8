@@ -473,7 +473,7 @@ public class R8 {
           // We can now remove visibility bridges. Note that we do not need to update the
           // invoke-targets here, as the existing invokes will simply dispatch to the now
           // visible super-method. MemberRebinding, if run, will then dispatch it correctly.
-          new VisibilityBridgeRemover(appView.withLiveness()).run();
+          new VisibilityBridgeRemover(appView.withLiveness()).run(executorService);
         }
       }
 
@@ -720,7 +720,7 @@ public class R8 {
       // Remove unneeded visibility bridges that have been inserted for member rebinding.
       // This can only be done if we have AppInfoWithLiveness.
       if (appView.appInfo().hasLiveness()) {
-        new VisibilityBridgeRemover(appView.withLiveness()).run();
+        new VisibilityBridgeRemover(appView.withLiveness()).run(executorService);
       } else {
         // If we don't have AppInfoWithLiveness here, it must be because we are not shrinking. When
         // we are not shrinking, we can't move visibility bridges. In principle, though, it would be

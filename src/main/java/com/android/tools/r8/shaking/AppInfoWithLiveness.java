@@ -1048,6 +1048,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       keepInfo.mutate(
           keepInfo -> keepInfo.removeKeepInfoForPrunedItems(prunedItems.getRemovedClasses()));
     }
+    if (!prunedItems.getRemovedMethods().isEmpty()) {
+      keepInfo.mutate(
+          keepInfo -> keepInfo.removeKeepInfoForPrunedItems(prunedItems.getRemovedMethods()));
+    }
     return new AppInfoWithLiveness(this, prunedItems);
   }
 

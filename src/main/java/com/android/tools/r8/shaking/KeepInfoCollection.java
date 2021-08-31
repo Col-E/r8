@@ -244,10 +244,20 @@ public abstract class KeepInfoCollection {
       this.methodRuleInstances = methodRuleInstances;
     }
 
-    public void removeKeepInfoForPrunedItems(Set<DexType> removedClasses) {
-      keepClassInfo.keySet().removeIf(removedClasses::contains);
-      keepFieldInfo.keySet().removeIf(field -> removedClasses.contains(field.getHolderType()));
-      keepMethodInfo.keySet().removeIf(method -> removedClasses.contains(method.getHolderType()));
+    public void removeKeepInfoForPrunedItems(Set<? extends DexReference> removedReferences) {
+      keepClassInfo.keySet().removeIf(removedReferences::contains);
+      keepFieldInfo
+          .keySet()
+          .removeIf(
+              field ->
+                  (removedReferences.contains(field)
+                      || removedReferences.contains(field.getHolderType())));
+      keepMethodInfo
+          .keySet()
+          .removeIf(
+              method ->
+                  (removedReferences.contains(method)
+                      || removedReferences.contains(method.getHolderType())));
     }
 
     @Override
