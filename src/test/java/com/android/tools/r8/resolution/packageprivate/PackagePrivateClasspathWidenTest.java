@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.TestAppViewBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -64,12 +65,13 @@ public class PackagePrivateClasspathWidenTest extends TestBase {
   public void testResolution() throws Exception {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
-        computeAppViewWithLiveness(
-            buildClasses(C.class, Main.class)
-                .addClasspathFiles(classPathJar)
-                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
-                .build(),
-            Main.class);
+        TestAppViewBuilder.builder()
+            .addProgramClasses(C.class, Main.class)
+            .addClasspathFiles(classPathJar)
+            .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
+            .addKeepMainRule(Main.class)
+            .setMinApi(apiLevelWithDefaultInterfaceMethodsSupport())
+            .buildWithLiveness();
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(Abstract.class, "foo", appInfo.dexItemFactory());
     MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);

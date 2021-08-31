@@ -6,6 +6,7 @@ package com.android.tools.r8.resolution.interfacediamonds;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.TestAppViewBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -41,9 +42,12 @@ public class DefaultTopAndRightTest extends TestBase {
     // The resolution is runtime independent, so just run it on the default CF VM.
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppInfoWithLiveness appInfo =
-        computeAppViewWithLiveness(
-                buildClasses(CLASSES).addLibraryFile(parameters.getDefaultRuntimeLibrary()).build(),
-                Main.class)
+        TestAppViewBuilder.builder()
+            .addProgramClasses(CLASSES)
+            .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
+            .addKeepMainRule(Main.class)
+            .setMinApi(apiLevelWithDefaultInterfaceMethodsSupport())
+            .buildWithLiveness()
             .appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
     MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);

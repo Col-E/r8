@@ -394,6 +394,7 @@ public abstract class CfInstructionDesugaringEventConsumer
     public void acceptInvokeStaticInterfaceOutliningMethod(
         ProgramMethod method, ProgramMethod context) {
       // Intentionally empty. The method will be hit by tracing if required.
+      additions.addNeverInlineMethod(method);
     }
 
     @Override

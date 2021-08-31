@@ -96,6 +96,24 @@ public class TestAppViewBuilder {
     return this;
   }
 
+  public TestAppViewBuilder addClasspathClasses(Class<?>... classes) {
+    return addClasspathClasses(Arrays.asList(classes));
+  }
+
+  public TestAppViewBuilder addClasspathClasses(Collection<Class<?>> classes) {
+    classes.forEach(clazz -> addClasspathFiles(ToolHelper.getClassFileForTestClass(clazz)));
+    return this;
+  }
+
+  public TestAppViewBuilder addClasspathFiles(Path... files) {
+    return addClasspathFiles(Arrays.asList(files));
+  }
+
+  public TestAppViewBuilder addClasspathFiles(List<Path> files) {
+    builder.addClasspathFiles(files);
+    return this;
+  }
+
   public TestAppViewBuilder addLibraryFiles(Path... files) {
     return addLibraryFiles(Arrays.asList(files));
   }
@@ -103,5 +121,9 @@ public class TestAppViewBuilder {
   public TestAppViewBuilder addLibraryFiles(List<Path> files) {
     builder.addLibraryFiles(files);
     return this;
+  }
+
+  public TestAppViewBuilder addTestingAnnotations() {
+    return addProgramClasses(TestBuilder.getTestingAnnotations());
   }
 }

@@ -644,6 +644,15 @@ public abstract class R8RunArtTestsTest {
   // Tests where the output of R8 fails when run with Art.
   private static final Multimap<String, TestCondition> failingRunWithArt =
       new ImmutableListMultimap.Builder<String, TestCondition>()
+          // The itf cache issue is hit on dx inputs on the runtime with the issue as we no longer
+          // desugar.
+          // TODO(b/198306901): Investigate this behavior change fully. Do we need a workaround?
+          .put(
+              "666-dex-cache-itf",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.DX),
+                  TestCondition.R8_COMPILER,
+                  TestCondition.runtimes(DexVm.Version.DEFAULT)))
           // The growth limit test fails after processing by R8 because R8 will eliminate an
           // "unneeded" const store. The following reflective call to the VM's GC will then see the
           // large array as still live and the subsequent allocations will fail to reach the desired

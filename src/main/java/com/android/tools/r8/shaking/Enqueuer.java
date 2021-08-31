@@ -3346,6 +3346,8 @@ public class Enqueuer {
 
     private final Map<DexMethod, ProgramMethod> liveMethods = new ConcurrentHashMap<>();
 
+    private final ProgramMethodSet neverInlineMethods = ProgramMethodSet.createConcurrent();
+
     private final Map<DexType, DexClasspathClass> syntheticClasspathClasses =
         new ConcurrentHashMap<>();
 
@@ -3412,6 +3414,10 @@ public class Enqueuer {
       return set;
     }
 
+    public void addNeverInlineMethod(ProgramMethod method) {
+      neverInlineMethods.add(method);
+    }
+
     void enqueueWorkItems(Enqueuer enqueuer) {
       assert enqueuer.mode.isInitialTreeShaking();
 
@@ -3435,6 +3441,8 @@ public class Enqueuer {
             enqueuer.objectAllocationInfoCollection.injectInterfaces(
                 enqueuer.appInfo(), clazz, itfs);
           });
+
+      neverInlineMethods.forEach(m -> enqueuer.rootSet.neverInline.add(m.getReference()));
     }
   }
 

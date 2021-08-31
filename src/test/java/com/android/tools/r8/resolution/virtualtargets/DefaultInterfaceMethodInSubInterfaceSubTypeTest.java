@@ -13,6 +13,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
+import com.android.tools.r8.TestAppViewBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -52,11 +53,13 @@ public class DefaultInterfaceMethodInSubInterfaceSubTypeTest extends TestBase {
   public void testResolution() throws Exception {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
-        computeAppViewWithLiveness(
-            buildClassesWithTestingAnnotations(I.class, J.class, A.class, B.class, Main.class)
-                .addLibraryFile(parameters.getDefaultRuntimeLibrary())
-                .build(),
-            Main.class);
+        TestAppViewBuilder.builder()
+            .addTestingAnnotations()
+            .addProgramClasses(I.class, J.class, A.class, B.class, Main.class)
+            .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
+            .addKeepMainRule(Main.class)
+            .setMinApi(apiLevelWithDefaultInterfaceMethodsSupport())
+            .buildWithLiveness();
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);

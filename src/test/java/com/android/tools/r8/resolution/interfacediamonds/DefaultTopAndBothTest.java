@@ -7,6 +7,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.TestAppViewBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -15,7 +16,6 @@ import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -44,12 +44,13 @@ public class DefaultTopAndBothTest extends TestBase {
     // The resolution is runtime independent, so just run it on the default CF VM.
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppInfoWithLiveness appInfo =
-        computeAppViewWithLiveness(
-                buildClasses(CLASSES)
-                    .addClassProgramData(Collections.singletonList(transformB()))
-                    .addLibraryFile(parameters.getDefaultRuntimeLibrary())
-                    .build(),
-                Main.class)
+        TestAppViewBuilder.builder()
+            .addProgramClasses(CLASSES)
+            .addProgramClassFileData(transformB())
+            .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
+            .addKeepMainRule(Main.class)
+            .setMinApi(apiLevelWithDefaultInterfaceMethodsSupport())
+            .buildWithLiveness()
             .appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
     MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
