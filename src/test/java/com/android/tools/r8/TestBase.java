@@ -8,7 +8,9 @@ import static com.android.tools.r8.TestBuilder.getTestingAnnotations;
 import static com.android.tools.r8.ToolHelper.R8_TEST_BUCKET;
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static com.google.common.collect.Lists.cartesianProduct;
+import static com.google.common.io.ByteStreams.toByteArray;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -93,6 +95,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -1911,5 +1914,55 @@ public class TestBase {
       throw new RuntimeException(error);
     }
     return false;
+  }
+
+  public static boolean assertProgramsEqual(Path expectedJar, Path actualJar) throws Exception {
+    if (filesAreEqual(expectedJar, actualJar)) {
+      return true;
+    }
+    ArchiveClassFileProvider expected = new ArchiveClassFileProvider(expectedJar);
+    ArchiveClassFileProvider actual = new ArchiveClassFileProvider(actualJar);
+    assertEquals(getSortedDescriptorList(expected), getSortedDescriptorList(actual));
+    for (String descriptor : expected.getClassDescriptors()) {
+      assertArrayEquals(
+          "Class " + descriptor + " differs",
+          getClassAsBytes(expected, descriptor),
+          getClassAsBytes(actual, descriptor));
+    }
+    return false;
+  }
+
+  public static boolean filesAreEqual(Path file1, Path file2) throws IOException {
+    long size = Files.size(file1);
+    long sizeOther = Files.size(file2);
+    if (size != sizeOther) {
+      return false;
+    }
+    if (size < 4096) {
+      return Arrays.equals(Files.readAllBytes(file1), Files.readAllBytes(file2));
+    }
+    int byteRead1 = 0;
+    int byteRead2 = 0;
+    try (FileInputStream fs1 = new FileInputStream(file1.toString());
+        FileInputStream fs2 = new FileInputStream(file2.toString())) {
+      BufferedInputStream bs1 = new BufferedInputStream(fs1);
+      BufferedInputStream bs2 = new BufferedInputStream(fs2);
+      while (byteRead1 == byteRead2 && byteRead1 != -1) {
+        byteRead1 = bs1.read();
+        byteRead2 = bs2.read();
+      }
+    }
+    return byteRead1 == byteRead2;
+  }
+
+  private static List<String> getSortedDescriptorList(ArchiveClassFileProvider inputJar) {
+    ArrayList<String> descriptorList = new ArrayList<>(inputJar.getClassDescriptors());
+    Collections.sort(descriptorList);
+    return descriptorList;
+  }
+
+  private static byte[] getClassAsBytes(ArchiveClassFileProvider inputJar, String descriptor)
+      throws Exception {
+    return toByteArray(inputJar.getProgramResource(descriptor).getByteStream());
   }
 }

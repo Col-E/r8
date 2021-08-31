@@ -231,6 +231,8 @@ third_party/r8mappings
 third_party/r8mappings.tar.gz
 third_party/remapper
 third_party/remapper.tar.gz
+third_party/retrace
+third_party/retrace.tar.gz
 third_party/retrace_benchmark
 third_party/retrace_benchmark.tar.gz
 third_party/retrace_internal
