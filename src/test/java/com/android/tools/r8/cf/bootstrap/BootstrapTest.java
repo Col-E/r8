@@ -4,11 +4,8 @@
 package com.android.tools.r8.cf.bootstrap;
 
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
-import static com.google.common.io.ByteStreams.toByteArray;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8Command;
@@ -21,9 +18,6 @@ import com.android.tools.r8.utils.FileUtils;
 import com.google.common.base.Charsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -152,28 +146,5 @@ public class BootstrapTest extends TestBase {
     assertEquals(processResult.stderr, 0, processResult.exitCode);
     String pgMap = FileUtils.readTextFile(pgMapFile, Charsets.UTF_8);
     return new R8Result(processResult, outputJar, pgMap);
-  }
-
-  private static void assertProgramsEqual(Path expectedJar, Path actualJar) throws Exception {
-    ArchiveClassFileProvider expected = new ArchiveClassFileProvider(expectedJar);
-    ArchiveClassFileProvider actual = new ArchiveClassFileProvider(actualJar);
-    assertEquals(getSortedDescriptorList(expected), getSortedDescriptorList(actual));
-    for (String descriptor : expected.getClassDescriptors()) {
-      assertArrayEquals(
-          "Class " + descriptor + " differs",
-          getClassAsBytes(expected, descriptor),
-          getClassAsBytes(actual, descriptor));
-    }
-  }
-
-  private static List<String> getSortedDescriptorList(ArchiveClassFileProvider inputJar) {
-    ArrayList<String> descriptorList = new ArrayList<>(inputJar.getClassDescriptors());
-    Collections.sort(descriptorList);
-    return descriptorList;
-  }
-
-  private static byte[] getClassAsBytes(ArchiveClassFileProvider inputJar, String descriptor)
-      throws Exception {
-    return toByteArray(inputJar.getProgramResource(descriptor).getByteStream());
   }
 }

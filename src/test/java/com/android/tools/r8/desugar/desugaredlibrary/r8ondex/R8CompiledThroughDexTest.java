@@ -12,13 +12,13 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8Command.Builder;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Pair;
@@ -166,7 +166,7 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
               + " differ from the external run which uses "
               + r8jar
               + ". If up-to-date, the likely cause of this error is that R8 is non-deterministic.",
-          BootstrapCurrentEqualityTest.filesAreEqual(outputThroughCf, outputThroughCfExternal));
+          TestBase.filesAreEqual(outputThroughCf, outputThroughCfExternal));
     }
 
     // Finally compile R8 on the ART runtime using the already compiled DEX version of R8.
@@ -194,7 +194,7 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
       assertEquals(0, artProcessResult.exitCode);
       assertTrue(
           "The output of R8/JVM in-process and R8/ART external differ.",
-          BootstrapCurrentEqualityTest.filesAreEqual(outputThroughCf, outputThroughDex));
+          TestBase.filesAreEqual(outputThroughCf, outputThroughDex));
     }
   }
 }

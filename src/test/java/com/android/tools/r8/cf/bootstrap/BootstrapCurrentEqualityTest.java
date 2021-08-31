@@ -5,15 +5,12 @@ package com.android.tools.r8.cf.bootstrap;
 
 import static com.android.tools.r8.graph.GenericSignatureIdentityTest.testParseSignaturesInJar;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
-import static com.google.common.io.ByteStreams.toByteArray;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
-import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ExternalR8TestCompileResult;
 import com.android.tools.r8.TestBase;
@@ -29,15 +26,9 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Lists;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -183,8 +174,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
             .setMode(CompilationMode.RELEASE)
             .compile()
             .outputJar();
-    assert uploadJarsToCloudStorageIfTestFails(
-        BootstrapCurrentEqualityTest::filesAreEqual, runR81, runR82);
+    assert uploadJarsToCloudStorageIfTestFails(TestBase::filesAreEqual, runR81, runR82);
   }
 
   @Test
@@ -245,56 +235,6 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     // Check that the output jars are the same.
     uploadJarsToCloudStorageIfTestFails(
         BootstrapCurrentEqualityTest::assertProgramsEqual, result.outputJar(), runR8R8.outputJar());
-  }
-
-  public static boolean assertProgramsEqual(Path expectedJar, Path actualJar) throws Exception {
-    if (filesAreEqual(expectedJar, actualJar)) {
-      return true;
-    }
-    ArchiveClassFileProvider expected = new ArchiveClassFileProvider(expectedJar);
-    ArchiveClassFileProvider actual = new ArchiveClassFileProvider(actualJar);
-    assertEquals(getSortedDescriptorList(expected), getSortedDescriptorList(actual));
-    for (String descriptor : expected.getClassDescriptors()) {
-      assertArrayEquals(
-          "Class " + descriptor + " differs",
-          getClassAsBytes(expected, descriptor),
-          getClassAsBytes(actual, descriptor));
-    }
-    return false;
-  }
-
-  public static boolean filesAreEqual(Path file1, Path file2) throws IOException {
-    long size = Files.size(file1);
-    long sizeOther = Files.size(file2);
-    if (size != sizeOther) {
-      return false;
-    }
-    if (size < 4096) {
-      return Arrays.equals(Files.readAllBytes(file1), Files.readAllBytes(file2));
-    }
-    int byteRead1 = 0;
-    int byteRead2 = 0;
-    try (FileInputStream fs1 = new FileInputStream(file1.toString());
-        FileInputStream fs2 = new FileInputStream(file2.toString())) {
-      BufferedInputStream bs1 = new BufferedInputStream(fs1);
-      BufferedInputStream bs2 = new BufferedInputStream(fs2);
-      while (byteRead1 == byteRead2 && byteRead1 != -1) {
-        byteRead1 = bs1.read();
-        byteRead2 = bs2.read();
-      }
-    }
-    return byteRead1 == byteRead2;
-  }
-
-  private static List<String> getSortedDescriptorList(ArchiveClassFileProvider inputJar) {
-    ArrayList<String> descriptorList = new ArrayList<>(inputJar.getClassDescriptors());
-    Collections.sort(descriptorList);
-    return descriptorList;
-  }
-
-  private static byte[] getClassAsBytes(ArchiveClassFileProvider inputJar, String descriptor)
-      throws Exception {
-    return toByteArray(inputJar.getProgramResource(descriptor).getByteStream());
   }
 
   private static TemporaryFolder newTempFolder() throws IOException {

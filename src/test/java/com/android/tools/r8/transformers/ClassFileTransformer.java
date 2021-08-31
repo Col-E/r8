@@ -4,6 +4,7 @@
 package com.android.tools.r8.transformers;
 
 import static com.android.tools.r8.references.Reference.classFromTypeName;
+import static com.android.tools.r8.transformers.ClassFileTransformer.InnerClassPredicate.always;
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescriptor;
 import static com.android.tools.r8.utils.StringUtils.replaceAll;
 import static org.objectweb.asm.Opcodes.ASM7;
@@ -31,6 +32,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -556,12 +558,31 @@ public class ClassFileTransformer {
     boolean test(String name, String typeDescriptor);
   }
 
+  @FunctionalInterface
+  public interface InnerClassPredicate {
+    boolean test(String name, String outerName, String innerName, int access);
+
+    static InnerClassPredicate always() {
+      return (name, outerName, innerName, access) -> true;
+    }
+
+    static InnerClassPredicate onName(String name) {
+      return (otherName, outerName, innerName, access) -> Objects.equals(name, otherName);
+    }
+  }
+
   public ClassFileTransformer removeInnerClasses() {
+    return removeInnerClasses(always());
+  }
+
+  public ClassFileTransformer removeInnerClasses(InnerClassPredicate predicate) {
     return addClassTransformer(
         new ClassTransformer() {
           @Override
           public void visitInnerClass(String name, String outerName, String innerName, int access) {
-            // Intentionally empty.
+            if (!predicate.test(name, outerName, innerName, access)) {
+              super.visitInnerClass(name, outerName, innerName, access);
+            }
           }
         });
   }
