@@ -12,6 +12,7 @@ import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfCmp;
 import com.android.tools.r8.cf.code.CfConstClass;
+import com.android.tools.r8.cf.code.CfConstDynamic;
 import com.android.tools.r8.cf.code.CfConstMethodHandle;
 import com.android.tools.r8.cf.code.CfConstMethodType;
 import com.android.tools.r8.cf.code.CfConstNull;
@@ -385,6 +386,12 @@ public class CfCodePrinter extends CfPrinter {
   @Override
   public void print(CfConstClass constClass) {
     printNewInstruction("CfConstClass", dexType(constClass.getType()));
+  }
+
+  @Override
+  public void print(CfConstDynamic constDynamic) {
+    // TODO(b/198143561): Support CfConstDynamic.
+    throw new Unimplemented(constDynamic.getClass().getSimpleName());
   }
 
   @Override

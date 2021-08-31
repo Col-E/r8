@@ -12,6 +12,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
@@ -40,6 +41,7 @@ public class BasicConstantDynamicTest extends TestBase {
   }
 
   private static final String EXPECTED_OUTPUT = StringUtils.lines("true", "true");
+  private static final Class<?> MAIN_CLASS = A.class;
 
   @Test
   public void testReference() throws Exception {
@@ -49,49 +51,75 @@ public class BasicConstantDynamicTest extends TestBase {
 
     testForJvm()
         .addProgramClassFileData(getTransformedClasses())
-        .run(parameters.getRuntime(), A.class)
+        .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
+
+  @Test
+  public void TestD8Cf() throws Exception {
+    testForDesugaring(parameters)
+        .addProgramClassFileData(getTransformedClasses())
+        .run(parameters.getRuntime(), MAIN_CLASS)
+        .applyIf(
+            // When not desugaring the CF code requires JDK 11.
+            DesugarTestConfiguration::isNotDesugared,
+            r -> {
+              if (parameters.isCfRuntime()
+                  && parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11)) {
+                r.assertSuccessWithOutput(EXPECTED_OUTPUT);
+              } else {
+                r.assertFailureWithErrorThatThrows(UnsupportedClassVersionError.class);
+              }
+            })
+        .applyIf(
+            DesugarTestConfiguration::isDesugared, r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
   }
 
   @Test
   public void testD8() throws Exception {
     assumeTrue(parameters.getRuntime().isDex());
 
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForD8(parameters.getBackend())
-                .addProgramClassFileData(getTransformedClasses())
-                .setMinApi(parameters.getApiLevel())
-                .compileWithExpectedDiagnostics(
-                    diagnostics -> {
-                      diagnostics.assertOnlyErrors();
-                      diagnostics.assertErrorsMatch(
-                          allOf(
-                              diagnosticMessage(containsString("Unsupported dynamic constant")),
-                              diagnosticOrigin(hasParent(Origin.unknown()))));
-                    }));
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedClasses())
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), MAIN_CLASS)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   @Test
   public void testR8() throws Exception {
     assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
 
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8(parameters.getBackend())
-                .addProgramClassFileData(getTransformedClasses())
-                .setMinApi(parameters.getApiLevel())
-                .addKeepMainRule(A.class)
-                .compileWithExpectedDiagnostics(
-                    diagnostics -> {
-                      diagnostics.assertOnlyErrors();
-                      diagnostics.assertErrorsMatch(
-                          allOf(
-                              diagnosticMessage(containsString("Unsupported dynamic constant")),
-                              diagnosticOrigin(hasParent(Origin.unknown()))));
-                    }));
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedClasses())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(MAIN_CLASS)
+        // TODO(b/198142613): There should not be a warnings on class references which are
+        //  desugared away.
+        .applyIf(
+            parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
+            b -> b.addDontWarn("java.lang.invoke.MethodHandles$Lookup"))
+        // TODO(b/198142625): Support CONSTANT_Dynamic output for class files.
+        .applyIf(
+            parameters.isCfRuntime(),
+            r -> {
+              assertThrows(
+                  CompilationFailedException.class,
+                  () ->
+                      r.compileWithExpectedDiagnostics(
+                          diagnostics -> {
+                            diagnostics.assertOnlyErrors();
+                            diagnostics.assertErrorsMatch(
+                                allOf(
+                                    diagnosticMessage(
+                                        containsString(
+                                            "Unsupported dynamic constant (not desugaring)")),
+                                    diagnosticOrigin(hasParent(Origin.unknown()))));
+                          }));
+            },
+            r ->
+                r.run(parameters.getRuntime(), MAIN_CLASS)
+                    .assertSuccessWithOutput(EXPECTED_OUTPUT));
   }
 
   private byte[] getTransformedClasses() throws IOException {

@@ -44,6 +44,7 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
 
   private static final String EXPECTED_OUTPUT =
       StringUtils.lines("true", "true", "true", "true", "true");
+  private static final Class<?> MAIN_CLASS = A.class;
 
   @Test
   public void testReference() throws Exception {
@@ -53,8 +54,27 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
 
     testForJvm()
         .addProgramClassFileData(getTransformedClasses())
-        .run(parameters.getRuntime(), A.class)
+        .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
+
+  @Test
+  public void TestD8Cf() throws Exception {
+    assertThrows(
+        CompilationFailedException.class,
+        () ->
+            testForD8(Backend.CF)
+                .addProgramClassFileData(getTransformedClasses())
+                .setMinApi(parameters.getApiLevel())
+                .compileWithExpectedDiagnostics(
+                    diagnostics -> {
+                      diagnostics.assertOnlyErrors();
+                      diagnostics.assertErrorsMatch(
+                          allOf(
+                              diagnosticMessage(
+                                  containsString("Unsupported dynamic constant (different owner)")),
+                              diagnosticOrigin(hasParent(Origin.unknown()))));
+                    }));
   }
 
   @Test
@@ -72,7 +92,8 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
                       diagnostics.assertOnlyErrors();
                       diagnostics.assertErrorsMatch(
                           allOf(
-                              diagnosticMessage(containsString("Unsupported dynamic constant")),
+                              diagnosticMessage(
+                                  containsString("Unsupported dynamic constant (different owner)")),
                               diagnosticOrigin(hasParent(Origin.unknown()))));
                     }));
   }
@@ -87,13 +108,14 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
             testForR8(parameters.getBackend())
                 .addProgramClassFileData(getTransformedClasses())
                 .setMinApi(parameters.getApiLevel())
-                .addKeepMainRule(A.class)
+                .addKeepMainRule(MAIN_CLASS)
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {
                       diagnostics.assertOnlyErrors();
                       diagnostics.assertErrorsMatch(
                           allOf(
-                              diagnosticMessage(containsString("Unsupported dynamic constant")),
+                              diagnosticMessage(
+                                  containsString("Unsupported dynamic constant (different owner)")),
                               diagnosticOrigin(hasParent(Origin.unknown()))));
                     }));
   }

@@ -100,6 +100,7 @@ import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer.R
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.ProgramAdditions;
+import com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
@@ -3516,6 +3517,7 @@ public class Enqueuer {
         CfInstructionDesugaringEventConsumer.createForR8(
             appView,
             this::recordLambdaSynthesizingContext,
+            this::recordConstantDynamicSynthesizingContext,
             this::recordTwrCloseResourceMethodSynthesizingContext,
             additions,
             (method, companion) -> {
@@ -3563,6 +3565,13 @@ public class Enqueuer {
   private void recordLambdaSynthesizingContext(LambdaClass lambdaClass, ProgramMethod context) {
     synchronized (synthesizingContexts) {
       synthesizingContexts.put(lambdaClass.getLambdaProgramClass(), context);
+    }
+  }
+
+  private void recordConstantDynamicSynthesizingContext(
+      ConstantDynamicClass constantDynamicClass, ProgramMethod context) {
+    synchronized (synthesizingContexts) {
+      synthesizingContexts.put(constantDynamicClass.getConstantDynamicProgramClass(), context);
     }
   }
 

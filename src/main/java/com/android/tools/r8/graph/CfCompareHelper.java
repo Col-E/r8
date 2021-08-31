@@ -25,6 +25,7 @@ public class CfCompareHelper {
   public static final int CONST_NUMBER_COMPARE_ID;
   public static final int CONST_METHOD_TYPE_COMPARE_ID;
   public static final int CONST_METHOD_HANDLE_COMPARE_ID;
+  public static final int CONST_DYNAMIC_COMPARE_ID;
   public static final int FRAME_COMPARE_ID;
   public static final int INIT_CLASS_COMPARE_ID;
   public static final int LABEL_COMPARE_ID;
@@ -38,6 +39,7 @@ public class CfCompareHelper {
     CONST_NUMBER_COMPARE_ID = ++lastId;
     CONST_METHOD_TYPE_COMPARE_ID = ++lastId;
     CONST_METHOD_HANDLE_COMPARE_ID = ++lastId;
+    CONST_DYNAMIC_COMPARE_ID = ++lastId;
     FRAME_COMPARE_ID = ++lastId;
     INIT_CLASS_COMPARE_ID = ++lastId;
     LABEL_COMPARE_ID = ++lastId;

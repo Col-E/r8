@@ -10,6 +10,7 @@ import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfCmp;
 import com.android.tools.r8.cf.code.CfConstClass;
+import com.android.tools.r8.cf.code.CfConstDynamic;
 import com.android.tools.r8.cf.code.CfConstMethodHandle;
 import com.android.tools.r8.cf.code.CfConstMethodType;
 import com.android.tools.r8.cf.code.CfConstNull;
@@ -324,6 +325,12 @@ public class CfPrinter {
     indent();
     builder.append("ldc ");
     appendType(constClass.getType());
+  }
+
+  public void print(CfConstDynamic constDynamic) {
+    indent();
+    builder.append("ldc <dynamic> ");
+    appendType(constDynamic.getType());
   }
 
   public void print(CfInitClass initClass) {

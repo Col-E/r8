@@ -10,6 +10,7 @@ import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfCmp;
 import com.android.tools.r8.cf.code.CfConstClass;
+import com.android.tools.r8.cf.code.CfConstDynamic;
 import com.android.tools.r8.cf.code.CfConstMethodHandle;
 import com.android.tools.r8.cf.code.CfConstMethodType;
 import com.android.tools.r8.cf.code.CfConstNull;
@@ -887,7 +888,9 @@ public class LazyCfCode extends Code {
             new CfConstMethodHandle(
                 DexMethodHandle.fromAsmHandle((Handle) cst, application, method.holder)));
       } else if (cst instanceof ConstantDynamic) {
-        throw new CompilationError("Unsupported dynamic constant: " + cst.toString());
+        instructions.add(
+            CfConstDynamic.fromAsmConstantDynamic(
+                (ConstantDynamic) cst, application, method.holder));
       } else {
         throw new CompilationError("Unsupported constant: " + cst.toString());
       }

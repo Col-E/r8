@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
@@ -95,6 +96,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       desugarings.add(desugaredLibraryAPIConverter);
     }
     desugarings.add(new LambdaInstructionDesugaring(appView));
+    desugarings.add(new ConstantDynamicInstructionDesugaring(appView));
     desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
     desugarings.add(new InvokeToPrivateRewriter());
     desugarings.add(new StringConcatInstructionDesugaring(appView));

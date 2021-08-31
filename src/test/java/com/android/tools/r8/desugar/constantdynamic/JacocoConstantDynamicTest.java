@@ -3,20 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.constantdynamic;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticOrigin;
-import static com.android.tools.r8.OriginMatcher.hasParent;
 import static com.android.tools.r8.utils.DescriptorUtils.JAVA_PACKAGE_SEPARATOR;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
-import static org.hamcrest.CoreMatchers.allOf;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
@@ -24,7 +17,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
@@ -45,8 +37,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class JacocoConstantDynamicTest extends TestBase {
 
-  @Parameter(0)
-  public TestParameters parameters;
+  @Parameter() public TestParameters parameters;
 
   @Parameter(1)
   public boolean useConstantDynamic;
@@ -140,25 +131,11 @@ public class JacocoConstantDynamicTest extends TestBase {
         assertFalse(Files.exists(agentOutput));
       }
     } else {
-      assertThrows(
-          CompilationFailedException.class,
-          () -> {
-            ArchiveResourceProvider provider =
-                ArchiveResourceProvider.fromArchive(testClasses.getInstrumented(), true);
-            testForD8(parameters.getBackend())
-                .addProgramResourceProviders(provider)
-                .addProgramFiles(ToolHelper.JACOCO_AGENT)
-                .setMinApi(parameters.getApiLevel())
-                .compileWithExpectedDiagnostics(
-                    diagnostics -> {
-                      // Check that the error is reported as an error to the diagnostics handler.
-                      diagnostics.assertOnlyErrors();
-                      diagnostics.assertErrorsMatch(
-                          allOf(
-                              diagnosticMessage(containsString("Unsupported dynamic constant")),
-                              diagnosticOrigin(hasParent(provider.getOrigin()))));
-                    });
-          });
+      testForD8(parameters.getBackend())
+          .addProgramFiles(testClasses.getInstrumented())
+          .addProgramFiles(ToolHelper.JACOCO_AGENT)
+          .setMinApi(parameters.getApiLevel())
+          .compile();
     }
   }
 

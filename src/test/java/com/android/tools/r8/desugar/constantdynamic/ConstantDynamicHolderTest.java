@@ -56,7 +56,8 @@ public class ConstantDynamicHolderTest extends TestBase {
         .compileWithExpectedDiagnostics(
             diagnostics ->
                 diagnostics.assertErrorMessageThatMatches(
-                    containsString("Unsupported dynamic constant")));
+                    containsString(
+                        "Unsupported dynamic constant (runtime provided bootstrap method)")));
   }
 
   @Test(expected = CompilationFailedException.class)
@@ -70,7 +71,8 @@ public class ConstantDynamicHolderTest extends TestBase {
         .compileWithExpectedDiagnostics(
             diagnostics ->
                 diagnostics.assertErrorMessageThatMatches(
-                    containsString("Unsupported dynamic constant")));
+                    containsString(
+                        "Unsupported dynamic constant (runtime provided bootstrap method)")));
   }
 
   private byte[] getTransformedMain() throws IOException {

@@ -38,6 +38,7 @@ public class HierarchyConstantDynamicTest extends TestBase {
   }
 
   private static final String EXPECTED_OUTPUT = StringUtils.lines("true", "true", "true");
+  private static final Class<?> MAIN_CLASS = A.class;
 
   @Test
   public void testReference() throws Exception {
@@ -55,37 +56,45 @@ public class HierarchyConstantDynamicTest extends TestBase {
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
 
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForD8(parameters.getBackend())
-                .addProgramClassFileData(getTransformedClasses())
-                .setMinApi(parameters.getApiLevel())
-                .compileWithExpectedDiagnostics(
-                    diagnostics -> {
-                      diagnostics.assertOnlyErrors();
-                      diagnostics.assertErrorsMatch(
-                          diagnosticMessage(containsString("Unsupported dynamic constant")));
-                    }));
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedClasses())
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), MAIN_CLASS)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   @Test
   public void testR8() throws Exception {
     assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
 
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8(parameters.getBackend())
-                .addProgramClassFileData(getTransformedClasses())
-                .setMinApi(parameters.getApiLevel())
-                .addKeepMainRule(A.class)
-                .compileWithExpectedDiagnostics(
-                    diagnostics -> {
-                      diagnostics.assertOnlyErrors();
-                      diagnostics.assertErrorsMatch(
-                          diagnosticMessage(containsString("Unsupported dynamic constant")));
-                    }));
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(getTransformedClasses())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(MAIN_CLASS)
+        // TODO(b/198142613): There should not be a warnings on class references which are
+        //  desugared away.
+        .applyIf(
+            parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
+            b -> b.addDontWarn("java.lang.invoke.MethodHandles$Lookup"))
+        // TODO(b/198142625): Support CONSTANT_Dynamic output for class files.
+        .applyIf(
+            parameters.isCfRuntime(),
+            r -> {
+              assertThrows(
+                  CompilationFailedException.class,
+                  () ->
+                      r.compileWithExpectedDiagnostics(
+                          diagnostics -> {
+                            diagnostics.assertOnlyErrors();
+                            diagnostics.assertErrorsMatch(
+                                diagnosticMessage(
+                                    containsString(
+                                        "Unsupported dynamic constant (not desugaring)")));
+                          }));
+            },
+            r ->
+                r.run(parameters.getRuntime(), MAIN_CLASS)
+                    .assertSuccessWithOutput(EXPECTED_OUTPUT));
   }
 
   private Collection<byte[]> getTransformedClasses() throws IOException {

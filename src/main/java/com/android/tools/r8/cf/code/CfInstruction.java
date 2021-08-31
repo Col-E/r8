@@ -118,6 +118,14 @@ public abstract class CfInstruction implements CfOrDexInstruction {
     return false;
   }
 
+  public CfConstDynamic asConstDynamic() {
+    return null;
+  }
+
+  public boolean isConstDynamic() {
+    return false;
+  }
+
   public CfFieldInstruction asFieldInstruction() {
     return null;
   }
